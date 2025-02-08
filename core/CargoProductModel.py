@@ -32,6 +32,9 @@ class CargoProduct(models.Model):
     loading_time = models.CharField(max_length=50)
     weight = models.PositiveIntegerField()
     description = models.CharField(max_length=300, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_modified = models.DateTimeField(auto_now=True)
+
 
     def clean(self):
         if self.weight < 10000:
