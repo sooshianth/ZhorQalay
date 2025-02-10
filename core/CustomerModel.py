@@ -11,7 +11,6 @@ class Customer(models.Model):
         ('trader', 'دلال'),
     ]
 
-    # شماره تلفن باید پرایمری کی باشه
     phone_number = models.CharField(_("تلفن همراه"), max_length=20, primary_key=True, unique=True)
 
     last_name = models.CharField(_("نام خانوادگی"), max_length=100)
@@ -51,3 +50,7 @@ class Customer(models.Model):
 
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}"
+    
+    def clean(self):
+        if not self.first_name and not self.last_name:
+            raise ValidationError(_('نام و نام خانوادگی را وارد کنید.'))
