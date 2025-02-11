@@ -66,7 +66,7 @@ class Customer(models.Model):
         return f"{self.first_name} {self.last_name}"
     
     def clean(self):
-        if not self.last_name:
-            raise ValidationError(_('نام خانوادگی را وارد کنید.'))
+        if not self.name:
+            raise ValidationError(_('نام را وارد کنید.'))
         if not self.phone_number.startswith('9') or len(self.phone_number) != 10:
             raise ValidationError(_('شماره تلفن باید با 9 شروع شود و 10 رقم باشد.'))
