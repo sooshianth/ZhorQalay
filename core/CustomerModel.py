@@ -9,36 +9,50 @@ class Customer(models.Model):
         ('livestock', 'گاودار'),
         ('factory', 'کارخانه خوراک'),
         ('trader', 'دلال'),
+        ('fish', 'پرورش آبزیان'),
     ]
 
-    phone_number = models.CharField(_("تلفن همراه"), max_length=20, primary_key=True, unique=True)
+    # شماره تلفن
+    phone_number = models.CharField(_("تلفن همراه"), max_length=20, unique=True)
 
-    last_name = models.CharField(_("نام خانوادگی"), max_length=100)
-    first_name = models.CharField(_("نام"), max_length=100, null=True, blank=True)
-    city_province = models.CharField(_("شهر/استان"), max_length=100, null=True, blank=True)
+    # اسم
+    name = models.CharField(_("نام"), max_length=100, null=True, blank=True)
 
+    # شهر
+    city = models.CharField(_("شهر"), max_length=100, null=True, blank=True)
+
+    # زمینه فعالیت
     field_of_activity = models.CharField(_("حیطه فعالیت"), max_length=255, blank=True, null=True,
         choices=FIELD_OF_ACTIVITY
     )
 
+    # ترجیحات خرید
     purchase_preferences = models.CharField(_("ترجیحات پرداخت"), max_length=255, blank=True, null=True,
         choices=[('cash', 'نقدری'), ('check', 'چک')]
     )
+    # ترحیجات کالایی
     product_preferences = models.CharField(_("ترجیحات کالایی"), max_length=255, blank=True, null=True,
         choices=CargoProduct.PRODUCT_TYPES
     )
 
-    contact_hours = models.CharField(_("ساعات مطلوب تماس"), max_length=50, blank=True, help_text=_("e.g., 9 to 12"))
+    # ترجیحات ساعت تماس
+    contact_start_time = models.TimeField(_("زمان شروع تماس"), blank=True, null=True)
+    contact_end_time = models.TimeField(_("زمان پایان تماس"), blank=True, null=True)
+
+    # فضای مجازی
     social_media = models.CharField(_("شبکات اجتماعی"), max_length=255, blank=True,
         help_text=_("مثلا: ایتا و تلگرام، اینستاگرام: آیدیش")
     )
 
-    profile_description = models.TextField(_("توضیحات تکمیلی شناسنامه"), blank=True)
+    # توضیحات بیشتر
+    added_description = models.TextField(_("توضیحات تکمیلی شناسنامه"), blank=True)
 
+    # ترجیحات پیامکی
     sms_preference = models.BooleanField(_("SMS Preference"), default=True,
         help_text=_("تمایل به دریافت پیامک دارد؟")
     )
 
+    # سهمیه
     quota = models.CharField(_("Quota"),max_length=244, blank=True)  # You might want a more specific field type
 
     class Meta:
