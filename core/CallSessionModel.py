@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
-from . import CustomerModel
+from django.utils.translation import gettext_lazy as _ 
+from .CustomerModel import Customer
 
 class CallSession(models.Model):
     
@@ -16,7 +17,7 @@ class CallSession(models.Model):
     ]
 
     #مشتری
-    customer = models.ForeignKey(CustomerModel, on_delete=models.CASCADE)
+    customer = models.ForeignKey(Customer, on_delete=models.DO_NOTHING, verbose_name=_('مشتری'), related_name='calls')
 
     #نوع تماس
     type = models.CharField(_('نوع تماس'), max_length=10, choices=CALL_TYPE)
@@ -28,11 +29,11 @@ class CallSession(models.Model):
     date = models.DateTimeField(_('تاریخ تماس') , auto_now_add=True)
 
     #یادداشت در صورت لزوم
-    notes = models.TimeField(_('یادداشت ها'), blank=True, null=True)
+    note = models.TextField(_('یادداشت '), max_length=255, blank=True, null=True)
 
     class Meta:
-        verbos_name = _('تماس')
-        verbos_name_plural = _('تماس ها')
+        verbose_name = _('تماس')
+        verbose_name_plural = _('تماس‌ها')
 
     def __str__(self):
         return f"{self.customer.name} - {self.date}"

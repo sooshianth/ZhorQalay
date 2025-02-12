@@ -45,7 +45,13 @@ class SalesAgent(models.Model):
     def get_all_archived_sales(self):
         return self.customers.all().purchases_made.all().filter(is_archived=True, is_paid=True)
 
-    
+    # پیگیری های انجام نشده
+    def get_all_undone_tasks(self):
+        return self.customers.all().tasks.all().filter(status=False)
+    # کل پیگیری های روز
+    def get_today_tasks(self):
+        return self.customers.all().tasks.all().filter(due_date__date=timezone.now().date())
+
     def __str__(self):
         return self.name
     
