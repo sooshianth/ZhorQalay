@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 from .extensions import utils
 
 class CargoProduct(models.Model):
@@ -29,23 +30,25 @@ class CargoProduct(models.Model):
         ('serbia', 'صربستان'),
     ]
 
-    product_type = models.CharField(max_length=25, choices=PRODUCT_TYPES)
-    country = models.CharField(max_length=20, choices=COUNTRIES)
-    importer_name = models.CharField(max_length=100)
-    quota = models.PositiveIntegerField()
-    loading_time = models.CharField(max_length=50)
-    status = models.BooleanField(default=True)
-    weight = models.PositiveIntegerField()
-    description = models.CharField(max_length=300, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    last_modified = models.DateTimeField(auto_now=True)
+    product_type = models.CharField(_('نوع محصول'), max_length=25, choices=PRODUCT_TYPES, )
+    country = models.CharField(_('کشور'), max_length=20, choices=COUNTRIES)
+    importer_name = models.CharField(_('نام صادرکننده'), max_length=100)
+    loading_time = models.CharField(_('زمان بارگیری'), max_length=50)
+    description = models.CharField(_('توضیحات'), max_length=300, null=True, blank=True)
+    quota = models.PositiveIntegerField(_('کوتاژ'), )
+    weight = models.PositiveIntegerField(_('وزن موجود'), )
+    created_at = models.DateTimeField(_('تاریخ ثبت'), auto_now_add=True)
+    last_modified = models.DateTimeField(_('تاریخ آخرین ویرایش'), auto_now=True)
+    status = models.BooleanField(_('فعال/غیرفعال'), default=True)
 
 
     def clean(self):
         if self.weight < 10000:
             raise ValidationError('وزن باید حداقل 10000 کیلوگرم باشد.')
         self.weight = round(self.weight / 100) * 100
-
+        if len(str(self.quota)) != 8:
+            raise ValidationError('کوتاژ باید ۸ رقمی باشد.')
+        
     def __str__(self):
         return f"{self.product_type} from {self.country} - {self.importer_name}"
     

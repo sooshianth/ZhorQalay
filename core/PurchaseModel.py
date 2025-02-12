@@ -26,10 +26,10 @@ class Purchase(models.Model):
         verbose_name_plural = "خریدها"
     
     def save(self, *args, **kwargs):
-        if self.is_archived:
-            if self.is_paid or self.is_sent or self.is_delivered or self.is_canceled:
-                raise ValidationError("خرید آرشیو شده نمی‌تواند پرداخت شده، ارسال شده، تحویل داده شده یا لغو شده باشد.")
-        super(Purchase, self).save(*args, **kwargs)
+        if self.is_paid and self.cargo:
+            self.cargo.weight -= self.weight
+            self.cargo.save()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"خرید {self.purchase_number} - {self.customer.name}"
@@ -86,6 +86,10 @@ class Purchase(models.Model):
 
         if not self.customer:
             errors['customer'] = 'انتخاب مشتری الزامی است'
+        
+        if self.is_archived:
+            if self.is_paid or self.is_sent or self.is_delivered or self.is_canceled:
+                errors['is_archived'] = 'خرید آرشیو شده نمی‌تواند پرداخت شده، ارسال شده، تحویل داده شده یا لغو شده باشد.'
+
         if errors:
             raise ValidationError(errors)
-
