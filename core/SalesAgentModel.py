@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 class SalesAgent(models.Model):
+    user = models.OneToOneField('auth.User', on_delete=models.DO_NOTHING, related_name='sales_agent')
     name = models.CharField(max_length=100)
     phone_number = models.CharField(max_length=20, unique=True)
 
