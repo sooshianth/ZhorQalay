@@ -22,7 +22,7 @@ class Customer(models.Model):
     city = models.CharField(_("شهر"), max_length=100, null=True, blank=True)
 
     # زمینه فعالیت
-    field_of_activity = models.CharField(_("حیطه فعالیت"), max_length=255, blank=True, null=True,
+    field_of_activity = models.CharField(_("حیطه فعالیت"), max_length=255, blank=True, null=True, multiple=True,
         choices=FIELD_OF_ACTIVITY
     )
 
@@ -40,7 +40,7 @@ class Customer(models.Model):
     contact_end_time = models.TimeField(_("زمان پایان تماس"), blank=True, null=True)
 
     # فضای مجازی
-    social_media = models.CharField(_("شبکات اجتماعی"), max_length=255, blank=True,
+    social_media = models.CharField(_("شبکات اجتماعی"), max_length=255, blank=True, null=True,
         help_text=_("مثلا: ایتا و تلگرام، اینستاگرام: آیدیش")
     )
 
@@ -55,9 +55,16 @@ class Customer(models.Model):
     # سهمیه
     quota = models.CharField(_("Quota"),max_length=244, blank=True)  # You might want a more specific field type
 
+    #آدرس
+    #address = models.TextField(_("آدرس"), blank=True, null=True)
+
+    #آخرین تماس با مشتری
+    # last_contact_date = models.DateTimeField(_("تاریخ آخرین تماس"), blank=True, null=True)
+
+
     class Meta:
-        verbose_name = _("Customer")
-        verbose_name_plural = _("Customers")
+        verbose_name = _("مشتری")
+        verbose_name_plural = _("مشتریان")
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"

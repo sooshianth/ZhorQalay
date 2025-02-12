@@ -1,13 +1,16 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from extensions import utils
 
 class CargoProduct(models.Model):
     PRODUCT_TYPES = [
         ('corn', 'ذرت'),
         ('barley', 'جو'),
         ('soy_meal', 'کنجاله سویا'),
+        ('soy_meal', 'کنجاله آفتابگردان'),
         ('rapeseed_meal', 'کنجاله کلزا'),
-        ('extracted_soy', 'سویا استحصالی'),
+        ('local_extracted_soy', ' سویا استحصالی داخلی'),
+        ('foreign_extracted_soy', ' سویا استحصالی خارجی'),
         ('soy_grain', 'دان سویا'),
         ('cotton_seed', 'دان پنبه'),
         ('alfalfa', 'یونجه'),
@@ -23,6 +26,7 @@ class CargoProduct(models.Model):
         ('turkey', 'ترکیه'),
         ('canada', 'کانادا'),
         ('australia', 'استرالیا'),
+        ('serbia', 'صربستان'),
     ]
 
     product_type = models.CharField(max_length=20, choices=PRODUCT_TYPES)
@@ -30,6 +34,7 @@ class CargoProduct(models.Model):
     importer_name = models.CharField(max_length=100)
     quota = models.PositiveIntegerField()
     loading_time = models.CharField(max_length=50)
+    status = models.BooleanField(default=True)
     weight = models.PositiveIntegerField()
     description = models.CharField(max_length=300, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -43,3 +48,10 @@ class CargoProduct(models.Model):
 
     def __str__(self):
         return f"{self.product_type} from {self.country} - {self.importer_name}"
+    
+    def change_status(self):
+        temp = self.status
+        self.status = not temp
+
+    def return_created(self):
+        return utils.time_convertor(self.created_at)
