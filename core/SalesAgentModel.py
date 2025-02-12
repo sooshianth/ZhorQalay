@@ -1,5 +1,65 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 class SalesAgent(models.Model):
-    pass
+    name = models.CharField(max_length=100)
+    phone_number = models.CharField(max_length=20, unique=True)
+
+    class Meta:
+        verbose_name = 'کارشناس فروش'
+        verbose_name_plural = 'کارشناسان فروش'
+
+    # مشتریان این کارشناس
+    def get_all_customers(self):
+        return self.customers.all()
+    
+
+    # لیست فروش‌های این ماه
+    def get_this_month_sales(self):
+        return self.customers.all().purchases_made.all().filter(is_archived=False, is_paid=True, created_at__month=timezone.now().month)
+    # مجموع مبلغ فروش‌های این ماه
+    def get_this_month_sales_amount(self):
+        return sum([purchase.amount_paid for purchase in self.get_this_month_sales()])
+    # مجموع وزن فروش‌های این ماه
+    def get_this_month_sales_weight(self):
+        return sum([purchase.weight for purchase in self.get_this_month_sales()])
+    # تعداد فروش‌های این ماه
+    def get_this_month_sales_count(self):
+        return len(self.get_this_month_sales())
+    # میانگین مبلغ فروش‌های این ماه
+    def get_this_month_sales_average(self):
+        return self.get_this_month_sales_amount() / self.get_this_month_sales_count()
+    
+
+    # فروش‌های احتمالی (کوتاژ ارسال شده هنوز خرید انجام نشده)
+    def get_potentional_sales(self):
+        return self.customers.all().purchases_made.all().filter(is_archived=False, is_paid=False)
+    # فروش‌های در جریان این کارشناس
+    def get_all_active_sales(self):
+        return self.customers.all().purchases_made.all().filter(is_archived=False, is_paid=True)
+    # فروش‌های احتمالی و در جریان 
+    def get_all_active_sales(self):
+        return self.customers.all().purchases_made.all().filter(is_archived=False)
+    # همه فروش های آرشیو شده این کارشناس
+    def get_all_archived_sales(self):
+        return self.customers.all().purchases_made.all().filter(is_archived=True, is_paid=True)
+
+    
+    def __str__(self):
+        return self.name
+    
+    def clean(self):
+        if SalesAgent.objects.filter(phone_number=self.phone_number).exists():
+            raise ValidationError('شماره تلفن تکراری است.')
+        if len(self.phone_number) < 11:
+            raise ValidationError('شماره تلفن باید 11 رقم باشد.')
+        if not self.phone_number.isdigit():
+            raise ValidationError('شماره تلفن باید عدد باشد.')
+        if not self.name:
+            raise ValidationError('نام نمی‌تواند خالی باشد.')
+        if len(self.name) < 3:
+            raise ValidationError('نام باید حداقل 3 حرف باشد.')
+        if len(self.name) > 100:
+            raise ValidationError('نام نمی‌تواند بیشتر از 100 حرف باشد.')
+        

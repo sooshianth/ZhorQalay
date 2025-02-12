@@ -1,13 +1,13 @@
 from django.db import models
 from django.core.exceptions import ValidationError
-from extensions import utils
+from .extensions import utils
 
 class CargoProduct(models.Model):
     PRODUCT_TYPES = [
         ('corn', 'ذرت'),
         ('barley', 'جو'),
         ('soy_meal', 'کنجاله سویا'),
-        ('soy_meal', 'کنجاله آفتابگردان'),
+        ('sunflower_meal', 'کنجاله آفتابگردان'),
         ('rapeseed_meal', 'کنجاله کلزا'),
         ('local_extracted_soy', ' سویا استحصالی داخلی'),
         ('foreign_extracted_soy', ' سویا استحصالی خارجی'),
@@ -29,7 +29,7 @@ class CargoProduct(models.Model):
         ('serbia', 'صربستان'),
     ]
 
-    product_type = models.CharField(max_length=20, choices=PRODUCT_TYPES)
+    product_type = models.CharField(max_length=25, choices=PRODUCT_TYPES)
     country = models.CharField(max_length=20, choices=COUNTRIES)
     importer_name = models.CharField(max_length=100)
     quota = models.PositiveIntegerField()

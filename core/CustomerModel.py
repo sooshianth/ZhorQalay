@@ -1,19 +1,25 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _ 
-from .models import CargoProduct
+from .SalesAgentModel import SalesAgent
+from .CargoProductModel import CargoProduct
+from django.contrib.postgres.fields import ArrayField
 
+
+FIELD_OF_ACTIVITY = [
+    ('chicken', 'مرغدار'),
+    ('livestock', 'گاودار'),
+    ('factory', 'کارخانه خوراک'),
+    ('trader', 'دلال'),
+    ('fish', 'پرورش آبزیان'),
+]
 class Customer(models.Model):
-    FIELD_OF_ACTIVITY = [
-        ('chicken', 'مرغدار'),
-        ('livestock', 'گاودار'),
-        ('factory', 'کارخانه خوراک'),
-        ('trader', 'دلال'),
-        ('fish', 'پرورش آبزیان'),
-    ]
 
     # شماره تلفن
     phone_number = models.CharField(_("تلفن همراه"), max_length=20, unique=True)
+
+    # کارشناس فروش
+    sales_agent = models.ForeignKey(SalesAgent, on_delete=models.SET_NULL, verbose_name=_("کارشناس فروش"), blank=True, null=True, related_name='customers')
 
     # اسم
     name = models.CharField(_("نام"), max_length=100, null=True, blank=True)
@@ -22,9 +28,9 @@ class Customer(models.Model):
     city = models.CharField(_("شهر"), max_length=100, null=True, blank=True)
 
     # زمینه فعالیت
-    field_of_activity = models.CharField(_("حیطه فعالیت"), max_length=255, blank=True, null=True, multiple=True,
+    field_of_activity = ArrayField(models.CharField(_("حیطه فعالیت"), max_length=255, blank=True, null=True,
         choices=FIELD_OF_ACTIVITY
-    )
+    ))
 
     # ترجیحات خرید
     purchase_preferences = models.CharField(_("ترجیحات پرداخت"), max_length=255, blank=True, null=True,
