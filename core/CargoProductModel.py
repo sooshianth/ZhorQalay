@@ -30,12 +30,12 @@ class CargoProduct(models.Model):
         ('serbia', 'صربستان'),
     ]
 
+    cottage = models.PositiveIntegerField(_('کوتاژ'), primary_key=True)
     product_type = models.CharField(_('نوع محصول'), max_length=25, choices=PRODUCT_TYPES, )
     country = models.CharField(_('کشور'), max_length=20, choices=COUNTRIES)
     importer_name = models.CharField(_('نام صادرکننده'), max_length=100)
     loading_time = models.CharField(_('زمان بارگیری'), max_length=50)
     description = models.CharField(_('توضیحات'), max_length=300, null=True, blank=True)
-    quota = models.PositiveIntegerField(_('کوتاژ'), )
     weight = models.PositiveIntegerField(_('وزن موجود'), )
     created_at = models.DateTimeField(_('تاریخ ثبت'), auto_now_add=True)
     last_modified = models.DateTimeField(_('تاریخ آخرین ویرایش'), auto_now=True)
