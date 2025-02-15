@@ -1,0 +1,32 @@
+<!-- create.html -->
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            ثبت مشتری جدید
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.phone_number.label_tag }}
+                            {{ form.phone_number }}
+                        </div>
+                        {{ form.name|as_crispy_field }}
+                        {{ form.city|as_crispy_field }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.field_of_activity|as_crispy_field }}
+                        {{ form.purchase_preferences|as_crispy_field }}
+                        {{ form.product_preferences|as_crispy_field }}
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">ثبت مشتری</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -21,7 +21,7 @@ def task_list(request, pk):
     tasks =  sales_agent.get_today_tasks
     return render(request, 'task_list.html', {'tasks' : tasks})
 
-def active_purchases(request):
+def active_purchases(request, pk):
     sales_agent = SalesAgent.objects.get(pk = pk)
     purchases = sales_agent.get_all_active_sales
     return render(request, 'active_purchases', {'purchases' : purchases})
