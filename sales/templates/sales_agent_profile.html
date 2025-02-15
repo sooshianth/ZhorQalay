@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>پروفایل نماینده فروش</h2>
+    
+    <section>
+        <h3>اطلاعات نماینده</h3>
+        <p><strong>نام:</strong> {{ sales_agent.name }}</p>
+        <p><strong>تلفن:</strong> {{ sales_agent.phone_number }}</p>
+    </section>
+    
+    <section>
+        <h3>مشتریان</h3>
+        <ul>
+            {% for customer in customers %}
+                <li>{{ customer.name }} - {{ customer.phone_number }}</li>
+            {% empty %}
+                <li>مشتری‌ای یافت نشد</li>
+            {% endfor %}
+        </ul>
+    </section>
+    
+    <section>
+        <h3>وظایف امروز</h3>
+        <ul>
+            {% for task in tasks_today %}
+                <li>{{ task.description }}</li>
+            {% empty %}
+                <li>هیچ وظیفه‌ای برای امروز ثبت نشده است</li>
+            {% endfor %}
+        </ul>
+    </section>
+    
+    <section>
+        <h3>فروش‌های فعال امروز</h3>
+        <ul>
+            {% for sale in active_sales_today %}
+                <li>{{ sale.product_name }} - {{ sale.amount }} تومان</li>
+            {% empty %}
+                <li>هیچ فروش فعالی برای امروز ثبت نشده است</li>
+            {% endfor %}
+        </ul>
+    </section>
+    
+    <section>
+        <h3>جمع فروش این ماه</h3>
+        <p><strong>{{ total_sales_this_month }} تومان</strong></p>
+    </section>
+</div>
+{% endblock %}
