@@ -1,27 +1,29 @@
 from core.models import SalesAgent, Customer, Purchase, CargoProduct, CallSession
 from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
 from django.http import Http404
+from django.views import View
 
-def customer_list(request):
-    sales_agent = request.user
-    customers = Customer.objects.filter(sales_agent = sales_agent)
-    return render(request, 'customer_list.html', {'customers' : customers})
+class SalesAgentProfileView(View):
+    template_name = 'sales_agent_profile.html'
 
-def customer_detail(request, pk):
-    sales_agent = request.user  
-    customer = get_object_or_404(Customer, pk=pk)
+    def get(self, request):
+        sales_agent = request.user.sales_agent  
 
-    if customer.sales_agent != sales_agent:
-        raise Http404("شما اجازه دسترسی به این مشتری را ندارید!")
+        customers = sales_agent.get_all_customer()
 
-    return render(request, 'customers/customer_detail.html', {'customer': customer})
+        tasks_today = sales_agent.get_today_tasks()
 
-def task_list(request, pk):
-    sales_agent = SalesAgent.objects.get(pk = pk)
-    tasks =  sales_agent.get_today_tasks
-    return render(request, 'task_list.html', {'tasks' : tasks})
+        active_sales_today = sales_agent.get_all_active_sales().filter(created_at__date=timezone.now().date())
 
-def active_purchases(request, pk):
-    sales_agent = SalesAgent.objects.get(pk = pk)
-    purchases = sales_agent.get_all_active_sales
-    return render(request, 'active_purchases', {'purchases' : purchases})
+        total_sales_this_month = sales_agent.get_this_month_sales_amount()
+
+        context = {
+            'sales_agent': sales_agent,
+            'customers': customers,
+            'tasks_today': tasks_today,
+            'active_sales_today': active_sales_today,
+            'total_sales_this_month': total_sales_this_month,
+        }
+
+        return render(request, self.template_name, context)
