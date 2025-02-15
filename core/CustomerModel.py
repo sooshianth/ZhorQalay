@@ -72,6 +72,9 @@ class Customer(models.Model):
         verbose_name = _("مشتری")
         verbose_name_plural = _("مشتریان")
 
+    def get_tasks_by_time(self):
+        return self.tasks.order_by('due_date')
+    
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
 
