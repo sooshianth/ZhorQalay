@@ -46,7 +46,7 @@ class CargoProduct(models.Model):
         if self.weight < 10000:
             raise ValidationError('وزن باید حداقل 10000 کیلوگرم باشد.')
         self.weight = round(self.weight / 100) * 100
-        if len(str(self.quota)) != 8:
+        if len(str(self.cottage)) != 8:
             raise ValidationError('کوتاژ باید ۸ رقمی باشد.')
         
     def __str__(self):

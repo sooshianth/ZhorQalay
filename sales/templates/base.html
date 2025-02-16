@@ -1,0 +1,30 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <title>داشبورد مدیریت مشتریان</title>
+    <!-- اضافه کردن استایل‌ها و اسکریپت‌های مورد نیاز -->
+</head>
+<body>
+    <!-- بخش جستجوی مشتری -->
+    <div class="search-section">
+        {% block search_section %}{% endblock %}
+    </div>
+
+    <!-- نمایش پروفایل مشتری -->
+    <div class="profile-section">
+        {% block profile_section %}{% endblock %}
+    </div>
+
+    <!-- بخش‌های دیگر (تماس‌ها، تسک‌ها، خریدها) -->
+    <div class="actions-section">
+        {% block actions_section %}{% endblock %}
+    </div>
+
+    <!-- تاریخچه تسک‌ها و تماس‌ها -->
+    <div class="history-section">
+        {% block history_section %}{% endblock %}
+    </div>
+</body>
+</html>

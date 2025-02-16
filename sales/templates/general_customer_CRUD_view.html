@@ -1,0 +1,48 @@
+<!-- templates/dashboard.html -->
+{% extends "base.html" %}
+
+{% block search_section %}
+    <form method="POST">
+        {% csrf_token %}
+        <input type="text" name="phone_number" placeholder="جستجو با شماره تلفن...">
+        <button type="submit">جستجو</button>
+    </form>
+{% endblock %}
+
+{% block profile_section %}
+    {% if customer %}
+        <h2>پروفایل مشتری: {{ customer.name }}</h2>
+        <p>شماره تماس: {{ customer.phone_number }}</p>
+    {% endif %}
+{% endblock %}
+
+{% block actions_section %}
+    {% if customer %}
+        <!-- لینک‌های ثبت عملیات -->
+        <a href="{% url 'call_session_create' customer.id %}">ثبت تماس جدید</a>
+        <a href="{% url 'task_create' customer.id %}">ثبت تسک جدید</a>
+        <a href="{% url 'purchase_register' customer.id %}">ثبت خرید جدید</a>
+    {% endif %}
+{% endblock %}
+
+{% block history_section %}
+    {% if customer %}
+        <!-- تاریخچه تسک‌ها -->
+        <h3>تسک‌ها</h3>
+        {% for task in tasks %}
+            <p>{{ task.description }} - وضعیت: {% if task.status %}انجام شده{% else %}در انتظار{% endif %}</p>
+        {% endfor %}
+
+        <!-- تاریخچه تماس‌ها -->
+        <h3>تماس‌ها</h3>
+        {% for call in call_sessions %}
+            <p>{{ call.type }} - {{ call.note }}</p>
+        {% endfor %}
+
+        <!-- تاریخچه خریدها -->
+        <h3>خریدها</h3>
+        {% for purchase in purchases %}
+            <p>{{ purchase.purchase_number }} - مبلغ: {{ purchase.amount_paid }}</p>
+        {% endfor %}
+    {% endif %}
+{% endblock %}

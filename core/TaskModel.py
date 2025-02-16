@@ -13,9 +13,8 @@ class Task(models.Model):
     ]
 
     decription = models.TextField(_('توضیحات'), max_length=100)
-    purchase = models.ForeignKey(Purchase, null=True, blank=True, related_name='tasks')
+    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, null=True, blank=True, related_name='tasks')
     customer = models.ForeignKey(Customer, on_delete=models.DO_NOTHING, verbose_name=_('مشتری'), related_name='tasks')
-    sales_agent = customer.sales_agent
     status = models.BooleanField(_('وضعیت پیگیری'), choices=TASK_STATUS, default=False)
     create_time = models.DateTimeField(_('زمان ایجاد شده'), auto_now_add=True)
     due_date = models.DateTimeField(_('زمان مورد انتظار پیگیری'), null=True, blank=True)
@@ -25,7 +24,7 @@ class Task(models.Model):
         verbose_name_plural = "وظایف"
 
     def __str__(self):
-        return f"{self.title} - {self.customer.name}"
+        return f"{self.customer.name}"
  
     def set_auto_update(self):
         self.auto_follow_up_date = self.created_at + timedelta(minutes=15) 

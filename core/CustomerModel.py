@@ -28,9 +28,9 @@ class Customer(models.Model):
     city = models.CharField(_("شهر"), max_length=100, null=True, blank=True)
 
     # زمینه فعالیت
-    field_of_activity = ArrayField(models.CharField(_("حیطه فعالیت"), max_length=255, blank=True, null=True,
+    field_of_activity = models.CharField(_("حیطه فعالیت"), max_length=255, blank=True, null=True,
         choices=FIELD_OF_ACTIVITY
-    ))
+    )
 
     # ترجیحات خرید
     purchase_preferences = models.CharField(_("ترجیحات پرداخت"), max_length=255, blank=True, null=True,
@@ -90,11 +90,14 @@ class Customer(models.Model):
     def get_tasks(self):
         return self.tasks.all()
     
-    def get_full_name(self):
+    def get_name(self):
         return self.name
+    
+    def get_sales_agent(self):
+        return self.sales_agent
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
+        return f"{self.phone_number} {self.name}"
     
     def clean(self):
         if not self.name:

@@ -59,16 +59,14 @@ class Purchase(models.Model):
     def clean(self):
         errors = {}
         if self.purchase_number:
-            if len(self.purchase_number) != 7 or not self.purchase_number.isdigit():
+            if len(str(self.purchase_number)) != 7 or not self.purchase_number.isdigit():
                 errors['purchase_number'] = 'شماره خرید باید دقیقاً 7 رقم عددی باشد'
-        else:
-            errors['purchase_number'] = 'شماره خرید الزامی است'
 
         if self.tracking_number:
-            if len(self.tracking_number) != 6 or not self.tracking_number.isdigit():
+            if len(str(self.tracking_number)) != 6 or not self.tracking_number.isdigit():
                 errors['tracking_number'] = 'شماره پیگیری باید دقیقاً 6 رقم عددی باشد'
         
-        if len(self.amount_paid) > 11 and len(self.amount_paid) < 7:
+        if len(str(self.amount_paid)) > 11 and len(self.amount_paid) < 7:
             errors['amount_paid'] = 'مبلغ پرداختی باید بین 7 و 11 رقم باشد'
         if self.is_paid and not self.amount_paid:
             errors['amount_paid'] = 'برای خریدهای پرداخت شده مبلغ الزامی است'

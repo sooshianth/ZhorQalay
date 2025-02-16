@@ -1,5 +1,20 @@
 from django.contrib import admin
-from .models import *
+from .CallSessionModel import CallSession
+from .CargoProductModel import CargoProduct
+from .CustomerModel import Customer
+from .FinancialManagerModel import FinancialManager
+from .LogisticsManagerModel import LogisticsManager
+from .PurchaseModel import Purchase
+from .SalesAgentModel import SalesAgent
+from .TaskModel import Task
 
-admin.register(CargoProduct)
-admin.register(Customer)
+
+
+admin.site.register(CallSession)
+admin.site.register(CargoProduct)
+admin.site.register(Customer)
+admin.site.register(FinancialManager)
+admin.site.register(LogisticsManager)
+admin.site.register(Purchase)
+admin.site.register(SalesAgent)
+admin.site.register(Task)

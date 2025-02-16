@@ -37,3 +37,16 @@ class CallSession(models.Model):
 
     def __str__(self):
         return f"{self.customer.name} - {self.date}"
+    
+    def clean(self):
+        if self.type not in dict(self.CALL_TYPE).keys():
+            raise ValidationError(_('نوع تماس نامعتبر است.'))
+        
+        if self.status not in dict(self.CALL_STATUS).keys():
+            raise ValidationError(_('وضعیت تماس نامعتبر است.'))
+        
+        if self.note and len(self.note) > 255:
+            raise ValidationError(_('طول یادداشت نباید بیشتر از 255 کاراکتر باشد.'))
+        
+        super().clean()
+
