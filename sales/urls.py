@@ -10,4 +10,6 @@ urlpatterns = [
     path('purchase/register/<int:customer_id>/', purchase_register_view.purchase_register_view, name='purchase_register'),
     path('customer/search/', customer_search_view.customer_search_view, name='customer_search'),
     path('customer/profile/<int:customer_id>/', customer_profile_view.customer_profile_view, name='customer_profile'),
+    path('profile/', sales_agent_profile, name='sales_agent_profile'),
+    path('customers/', customer_list_view, name='customer_list'),
 ]

@@ -1,51 +1,61 @@
-{% extends 'base.html' %}
+<!-- sales_agent_profile.html -->
+<h1>پروفایل کارشناس فروش</h1>
+<p>نام: {{ sales_agent.name }}</p>
+<p>شماره تلفن: {{ sales_agent.phone_number }}</p>
 
-{% block content %}
-<div class="container">
-    <h2>پروفایل نماینده فروش</h2>
-    
-    <section>
-        <h3>اطلاعات نماینده</h3>
-        <p><strong>نام:</strong> {{ sales_agent.name }}</p>
-        <p><strong>تلفن:</strong> {{ sales_agent.phone_number }}</p>
-    </section>
-    
-    <section>
-        <h3>مشتریان</h3>
-        <ul>
-            {% for customer in customers %}
-                <li>{{ customer.name }} - {{ customer.phone_number }}</li>
-            {% empty %}
-                <li>مشتری‌ای یافت نشد</li>
-            {% endfor %}
-        </ul>
-    </section>
-    
-    <section>
-        <h3>وظایف امروز</h3>
-        <ul>
-            {% for task in tasks_today %}
-                <li>{{ task.description }}</li>
-            {% empty %}
-                <li>هیچ وظیفه‌ای برای امروز ثبت نشده است</li>
-            {% endfor %}
-        </ul>
-    </section>
-    
-    <section>
-        <h3>فروش‌های فعال امروز</h3>
-        <ul>
-            {% for sale in active_sales_today %}
-                <li>{{ sale.product_name }} - {{ sale.amount }} تومان</li>
-            {% empty %}
-                <li>هیچ فروش فعالی برای امروز ثبت نشده است</li>
-            {% endfor %}
-        </ul>
-    </section>
-    
-    <section>
-        <h3>جمع فروش این ماه</h3>
-        <p><strong>{{ total_sales_this_month }} تومان</strong></p>
-    </section>
-</div>
-{% endblock %}
+<h2>همه تسک‌ها</h2>
+<ul>
+    {% for task in all_tasks %}
+        <li>
+            <strong>توضیحات:</strong> {{ task.description }}<br>
+            <strong>تاریخ:</strong> {{ task.due_date|date:"Y-m-d H:i" }}<br>
+            <strong>وضعیت:</strong> {% if task.status %}انجام شده{% else %}انجام نشده{% endif %}
+        </li>
+    {% empty %}
+        <li>هیچ تسکی یافت نشد</li>
+    {% endfor %}
+</ul>
+
+<h2>خریدهای پرداخت نشده (Unpaid)</h2>
+<ul>
+    {% for purchase in unpaid_purchases %}
+        <li>
+            <strong>محصول:</strong> {{ purchase.product }}<br>
+            <strong>مبلغ:</strong> {{ purchase.amount_paid }}<br>
+            <strong>تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
+        </li>
+    {% empty %}
+        <li>هیچ خرید پرداخت نشده‌ای یافت نشد</li>
+    {% endfor %}
+</ul>
+
+<h2>خریدهای فعال (Active)</h2>
+<ul>
+    {% for purchase in active_purchases %}
+        <li>
+            <strong>محصول:</strong> {{ purchase.product }}<br>
+            <strong>مبلغ:</strong> {{ purchase.amount_paid }}<br>
+            <strong>تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
+        </li>
+    {% empty %}
+        <li>هیچ خرید فعالی یافت نشد</li>
+    {% endfor %}
+</ul>
+
+<h2>خریدهای آرشیو شده (Archived)</h2>
+<ul>
+    {% for purchase in archived_purchases %}
+        <li>
+            <strong>محصول:</strong> {{ purchase.product }}<br>
+            <strong>مبلغ:</strong> {{ purchase.amount_paid }}<br>
+            <strong>تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
+        </li>
+    {% empty %}
+        <li>هیچ خرید آرشیو شده‌ای یافت نشد</li>
+    {% endfor %}
+</ul>
+
+<p>مجموع فروش‌های این ماه: {{ total_sales_this_month }}</p>
+
+<!-- لینک به صفحه لیست مشتریان -->
+<a href="{% url 'customer_list' %}">مشاهده لیست مشتریان</a>
