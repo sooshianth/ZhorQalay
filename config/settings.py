@@ -14,6 +14,13 @@ ALLOWED_HOSTS = []
 
 # Application definition
 
+GRAPH_MODELS = {
+    'all_applications': True,  # نمایش همه اپلیکیشن‌های نصب‌شده
+    'group_models': True,      # گروه‌بندی مدل‌ها بر اساس اپلیکیشن
+    'inheritance': True,       # نمایش ارث‌بری بین مدل‌ها
+    'fields': True,            # نمایش فیلدها
+}
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -21,6 +28,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_extensions',
     'core.apps.CoreConfig',
     'sales.apps.SalesConfig',
     # 'extensions',
