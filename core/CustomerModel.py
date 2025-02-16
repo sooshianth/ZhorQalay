@@ -75,10 +75,25 @@ class Customer(models.Model):
     def get_tasks_by_time(self):
         return self.tasks.order_by('due_date')
     
-    def __str__(self):
-        return f"{self.first_name} {self.last_name}"
+    def get_calls_by_time(self):
+        return self.calls.order_by('date')
 
+    def get_purchases_by_time(self):
+        return self.purchases.order_by('date')
+    
+    def get_purchases(self):
+        return self.purchases.all()
+    
+    def get_calls(self):
+        return self.calls.all()
+    
+    def get_tasks(self):
+        return self.tasks.all()
+    
     def get_full_name(self):
+        return self.name
+
+    def __str__(self):
         return f"{self.first_name} {self.last_name}"
     
     def clean(self):
