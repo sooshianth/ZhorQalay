@@ -40,7 +40,7 @@ class SalesAgent(models.Model):
     def get_all_active_sales(self):
         return self.customers.all().purchases_made.all().filter(is_archived=False, is_paid=True)
     # فروش‌های احتمالی و در جریان 
-    def get_all_active_sales(self):
+    def get_all_unpaid_sales(self):
         return self.customers.all().purchases_made.all().filter(is_archived=False)
     # همه فروش های آرشیو شده این کارشناس
     def get_all_archived_sales(self):
@@ -52,6 +52,9 @@ class SalesAgent(models.Model):
     # کل پیگیری های روز
     def get_today_tasks(self):
         return self.customers.all().tasks.all().filter(due_date__date=timezone.now().date())
+    
+    def get_all_tasks(self):
+        return self.customers.all().tasks.all()
 
     def __str__(self):
         return self.name
