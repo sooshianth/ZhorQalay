@@ -1,6 +1,6 @@
-{% extends 'base.html' %}
+{% comment %} {% extends 'base.html' %}
 
-{% block content %}
+{% block content %} {% endcomment %}
 <!-- بخش جستجو -->
 <form method="post">
     {% csrf_token %}
@@ -30,26 +30,29 @@
     <!-- فرم ثبت تسک -->
     <form method="post">
         {% csrf_token %}
-        <textarea name="task_description"></textarea>
+        <textarea name="task_description" placeholder="توضیحات تسک"></textarea>
         <input type="datetime-local" name="due_date">
         <button type="submit" name="create_task">ثبت تسک</button>
     </form>
 </div>
 
-<div id="calls" class="tab-content">
+<div id="calls" class="tab-content" style="display:none;">
     {% for call in calls %}
         <div class="call-item">{{ call.type }} - {{ call.status }}</div>
     {% endfor %}
     <!-- فرم ثبت تماس -->
     <form method="post">
         {% csrf_token %}
-        <select name="call_type">...</select>
-        <textarea name="note"></textarea>
+        <select name="call_type">
+            <option value="incoming">ورودی</option>
+            <option value="outgoing">خروجی</option>
+        </select>
+        <textarea name="note" placeholder="یادداشت"></textarea>
         <button type="submit" name="create_call">ثبت تماس</button>
     </form>
 </div>
 
-<div id="purchases" class="tab-content">
+<div id="purchases" class="tab-content" style="display:none;">
     {% for purchase in purchases %}
         <div class="purchase-item">{{ purchase.weight }}kg</div>
     {% endfor %}
@@ -57,14 +60,14 @@
     <form method="post">
         {% csrf_token %}
         <input type="text" name="cottage_number" placeholder="شماره کوتاژ">
-        <input type="number" name="weight">
+        <input type="number" name="weight" placeholder="وزن">
         <button type="submit" name="create_purchase">ثبت خرید</button>
     </form>
 </div>
 {% endif %}
 
 <script>
-// جاوااسکریپت ساده برای تب‌ها
+// جاوااسکریپت ساده برای تغییر تب‌ها
 function showTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.style.display = 'none';
@@ -72,4 +75,4 @@ function showTab(tabName) {
     document.getElementById(tabName).style.display = 'block';
 }
 </script>
-{% endblock %}
+{% comment %} {% endblock %} {% endcomment %}
