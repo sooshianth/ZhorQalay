@@ -72,6 +72,10 @@ class Customer(models.Model):
         verbose_name = _("مشتری")
         verbose_name_plural = _("مشتریان")
 
+    @staticmethod
+    def get_customer_by_phone(phone_number):
+        return Customer.objects.filter(phone_number=phone_number).first()
+
     def get_tasks_by_time(self):
         return self.tasks.order_by('due_date')
     

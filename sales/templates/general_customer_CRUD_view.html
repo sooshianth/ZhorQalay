@@ -1,48 +1,75 @@
-<!-- templates/dashboard.html -->
-{% extends "base.html" %}
+{% extends 'base.html' %}
 
-{% block search_section %}
-    <form method="POST">
+{% block content %}
+<!-- بخش جستجو -->
+<form method="post">
+    {% csrf_token %}
+    <input type="text" name="phone_number" placeholder="شماره تلفن">
+    <button type="submit" name="phone_search">جستجو</button>
+</form>
+
+{% if customer %}
+<!-- نمایش اطلاعات مشتری -->
+<div class="profile">
+    <h2>{{ customer.full_name }}</h2>
+    <p>تلفن: {{ customer.phone_number }}</p>
+</div>
+
+<!-- تب‌های اطلاعات -->
+<div class="tabs">
+    <button onclick="showTab('tasks')">تسک‌ها</button>
+    <button onclick="showTab('calls')">تماس‌ها</button>
+    <button onclick="showTab('purchases')">خریدها</button>
+</div>
+
+<!-- محتوای تب‌ها -->
+<div id="tasks" class="tab-content">
+    {% for task in tasks %}
+        <div class="task-item">{{ task.description }}</div>
+    {% endfor %}
+    <!-- فرم ثبت تسک -->
+    <form method="post">
         {% csrf_token %}
-        <input type="text" name="phone_number" placeholder="جستجو با شماره تلفن...">
-        <button type="submit">جستجو</button>
+        <textarea name="task_description"></textarea>
+        <input type="datetime-local" name="due_date">
+        <button type="submit" name="create_task">ثبت تسک</button>
     </form>
-{% endblock %}
+</div>
 
-{% block profile_section %}
-    {% if customer %}
-        <h2>پروفایل مشتری: {{ customer.name }}</h2>
-        <p>شماره تماس: {{ customer.phone_number }}</p>
-    {% endif %}
-{% endblock %}
+<div id="calls" class="tab-content">
+    {% for call in calls %}
+        <div class="call-item">{{ call.type }} - {{ call.status }}</div>
+    {% endfor %}
+    <!-- فرم ثبت تماس -->
+    <form method="post">
+        {% csrf_token %}
+        <select name="call_type">...</select>
+        <textarea name="note"></textarea>
+        <button type="submit" name="create_call">ثبت تماس</button>
+    </form>
+</div>
 
-{% block actions_section %}
-    {% if customer %}
-        <!-- لینک‌های ثبت عملیات -->
-        <a href="{% url 'call_session_create' customer.id %}">ثبت تماس جدید</a>
-        <a href="{% url 'task_create' customer.id %}">ثبت تسک جدید</a>
-        <a href="{% url 'purchase_register' customer.id %}">ثبت خرید جدید</a>
-    {% endif %}
-{% endblock %}
+<div id="purchases" class="tab-content">
+    {% for purchase in purchases %}
+        <div class="purchase-item">{{ purchase.weight }}kg</div>
+    {% endfor %}
+    <!-- فرم ثبت خرید -->
+    <form method="post">
+        {% csrf_token %}
+        <input type="text" name="cottage_number" placeholder="شماره کوتاژ">
+        <input type="number" name="weight">
+        <button type="submit" name="create_purchase">ثبت خرید</button>
+    </form>
+</div>
+{% endif %}
 
-{% block history_section %}
-    {% if customer %}
-        <!-- تاریخچه تسک‌ها -->
-        <h3>تسک‌ها</h3>
-        {% for task in tasks %}
-            <p>{{ task.description }} - وضعیت: {% if task.status %}انجام شده{% else %}در انتظار{% endif %}</p>
-        {% endfor %}
-
-        <!-- تاریخچه تماس‌ها -->
-        <h3>تماس‌ها</h3>
-        {% for call in call_sessions %}
-            <p>{{ call.type }} - {{ call.note }}</p>
-        {% endfor %}
-
-        <!-- تاریخچه خریدها -->
-        <h3>خریدها</h3>
-        {% for purchase in purchases %}
-            <p>{{ purchase.purchase_number }} - مبلغ: {{ purchase.amount_paid }}</p>
-        {% endfor %}
-    {% endif %}
+<script>
+// جاوااسکریپت ساده برای تب‌ها
+function showTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.style.display = 'none';
+    });
+    document.getElementById(tabName).style.display = 'block';
+}
+</script>
 {% endblock %}

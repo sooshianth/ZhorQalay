@@ -58,3 +58,7 @@ class CargoProduct(models.Model):
 
     def return_created(self):
         return utils.time_convertor(self.created_at)
+    
+    @staticmethod
+    def get_active_products():
+        return CargoProduct.objects.filter(status=True) 
