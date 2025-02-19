@@ -1,30 +1,25 @@
-<!-- customer_list.html -->
-<!DOCTYPE html>
-<html lang="fa">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لیست مشتریان</title>
-</head>
-<body>
-    <h1>لیست مشتریان</h1>
+{% extends 'base.html' %}
 
-    <!-- فرم جستجو -->
-    <form method="get" action="{% url 'customer_list' %}">
-        <input type="text" name="search" placeholder="جستجو بر اساس نام یا شماره موبایل" value="{{ request.GET.search }}">
-        <button type="submit">جستجو</button>
-    </form>
+{% block title %}لیست مشتریان{% endblock %}
 
-    <!-- نمایش لیست مشتریان -->
-    <ul>
-        {% for customer in customers %}
-            <li>{{ customer.name }} - {{ customer.phone_number }}</li>
-        {% empty %}
-            <li>مشتری‌ای یافت نشد</li>
-        {% endfor %}
-    </ul>
+{% block content %}
+<h1>لیست مشتریان</h1>
 
-    <!-- لینک بازگشت به پروفایل -->
-    <a href="{% url 'sales_agent_profile' %}">بازگشت به پروفایل</a>
-</body>
-</html>
+<!-- فرم جستجو -->
+<form method="get" action="{% url 'customer_list' %}">
+    <input type="text" name="search" placeholder="جستجو بر اساس نام یا شماره موبایل" value="{{ request.GET.search }}">
+    <button type="submit">جستجو</button>
+</form>
+
+<!-- نمایش لیست مشتریان -->
+<ul>
+    {% for customer in customers %}
+        <li>{{ customer.name }} - {{ customer.phone_number }}</li>
+    {% empty %}
+        <li>مشتری‌ای یافت نشد</li>
+    {% endfor %}
+</ul>
+
+<!-- لینک بازگشت به پروفایل -->
+<a href="{% url 'sales_agent_profile' %}">بازگشت به پروفایل</a>
+{% endblock %}

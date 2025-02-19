@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}سیستم CRM{% endblock %}</title>
+    <!-- لینک به فونت‌ها یا کتابخانه‌های دیگر -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- هدر -->
+    <header>
+        <div class="container">
+            <h1>سیستم مدیریت مشتریان (CRM)</h1>
+            <nav>
+                <ul>
+                    {% if request.user.is_authenticated %}
+                        {% if request.user.sales_agent %}
+                            <li><a href="{% url 'sales_agent_profile' %}">پروفایل من</a></li>
+                        {% endif %}
+                        <li><a href="{% url 'customer_list' %}">لیست مشتریان</a></li>
+                        <li><a href="{% url 'general_customer_CRUD' %}">مدیریت مشتریان</a></li>
+                        <li><a href="{% url 'logout' %}">خروج</a></li>
+                    {% else %}
+                        <li><a href="{% url 'sales_agent_login' %}">ورود کارشناسان فروش</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- بخش اصلی محتوا -->
+    <main class="container">
+        {% block content %}
+        <!-- محتوای خاص هر صفحه در اینجا قرار می‌گیرد -->
+        {% endblock %}
+    </main>
+
+    <!-- فوتر -->
+    <footer>
+        <div class="container">
+            <p>تمامی حقوق محفوظ است &copy; 2023</p>
+        </div>
+    </footer>
+    {% block extra_scripts %}
+    <!-- اسکریپت‌های اضافی برای صفحات خاص -->
+    {% endblock %}
+</body>
+</html>

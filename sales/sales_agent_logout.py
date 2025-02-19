@@ -1,0 +1,7 @@
+# views.py یا sales_agent_profile_view.py
+from django.contrib.auth import logout
+from django.shortcuts import redirect
+
+def logout_view(request):
+    logout(request)
+    return redirect('sales_agent_login')

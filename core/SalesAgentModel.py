@@ -18,7 +18,18 @@ class SalesAgent(models.Model):
 
     # لیست فروش‌های این ماه
     def get_this_month_sales(self):
-        return self.customers.all().purchases_made.all().filter(is_archived=False, is_paid=True, created_at__month=timezone.now().month)
+        from django.utils.timezone import now  # وارد کردن `now` برای گرفتن ماه فعلی
+        this_month_sales = []
+        
+        for customer in self.get_all_customers():  # بررسی تمام مشتری‌ها
+            this_month_sales.extend(customer.purchases_made.filter(
+                is_archived=False, 
+                is_paid=True, 
+                created_at__month=now().month
+            ))  # فیلتر کردن خریدهای این ماه برای هر مشتری
+
+        return this_month_sales
+
     # مجموع مبلغ فروش‌های این ماه
     def get_this_month_sales_amount(self):
         return sum([purchase.amount_paid for purchase in self.get_this_month_sales()])
@@ -36,15 +47,28 @@ class SalesAgent(models.Model):
     # فروش‌های احتمالی (کوتاژ ارسال شده هنوز خرید انجام نشده)
     def get_potentional_sales(self):
         return self.customers.all().purchases_made.all().filter(is_archived=False, is_paid=False)
-    # فروش‌های در جریان این کارشناس
-    def get_all_active_sales(self):
-        return self.customers.all().purchases_made.all().filter(is_archived=False, is_paid=True)
+    
     # فروش‌های احتمالی و در جریان 
     def get_all_unpaid_sales(self):
-        return self.customers.all().purchases_made.all().filter(is_archived=False)
+        unpaid_sales = []
+        customers = self.get_all_customers()  # اینجا تمام مشتری‌ها رو می‌گیریم
+        for customer in customers:
+            unpaid_sales.extend(customer.purchases_made.filter(is_paid=False))  # فیلتر خریدهای پرداخت نشده هر مشتری
+        return unpaid_sales
+
     # همه فروش های آرشیو شده این کارشناس
+    def get_all_active_sales(self):
+        active_sales = []
+        for customer in self.get_all_customers():  # بررسی تمام مشتری‌ها
+            active_sales.extend(customer.purchases_made.filter(is_archived=False, is_paid=True))  # فیلتر خریدهای فعال
+        return active_sales
+
     def get_all_archived_sales(self):
-        return self.customers.all().purchases_made.all().filter(is_archived=True, is_paid=True)
+        archived_sales = []
+        for customer in self.get_all_customers():  # بررسی تمام مشتری‌ها
+            archived_sales.extend(customer.purchases_made.filter(is_archived=True, is_paid=True))  # فیلتر خریدهای آرشیو شده
+        return archived_sales
+
 
     # پیگیری های انجام نشده
     def get_all_undone_tasks(self):
@@ -52,9 +76,12 @@ class SalesAgent(models.Model):
     # کل پیگیری های روز
     def get_today_tasks(self):
         return self.customers.all().tasks.all().filter(due_date__date=timezone.now().date())
-    
     def get_all_tasks(self):
-        return self.customers.all().tasks.all()
+        tasks = []
+        for customer in self.get_all_customers():
+            tasks.extend(customer.tasks.all())  # فیلتر کردن تسک‌ها برای هر مشتری
+        return tasks
+
 
     def __str__(self):
         return self.name
