@@ -1,50 +1,361 @@
-.container {
-    max-width: 600px;
-    margin: 40px auto;
-    padding: 20px;
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+/* Reset کلی برای حذف استایل‌های پیش‌فرض مرورگر */
+*
+
+
+{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-.title {
+/* تنظیم کلی برای راست‌چین شدن سایت */
+body {
+    direction: rtl;
+    text-align: right;
+}
+
+/* برای جلوگیری از به هم ریختگی متن‌ها در لیست‌ها */
+ul, ol {
+    padding-right: 0;
+}
+
+
+/* تعریف رنگ‌های اصلی */
+:root {
+    --primary-color: #939878; /* سبز پررنگ */
+    --hover-color: #9f8772; /* سبز تیره‌تر */
+    --background-color: #d8cba7; /* سبز ملایم */
+    --button-color: #283618; /* سبز پرانرژی */
+    --footer-color: #283618; /* سبز تیره‌تر */
+    --text-color: #dde5b6;
+}
+
+/* استایل‌های کلی برای بدنه سایت */
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+/* استایل‌های هدر */
+header {
+    background-color: var(--primary-color);
+    color: #4f3517;
+    padding: 20px 0;
     text-align: center;
-    margin-bottom: 20px;
-    color: #333;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-.form-container {
+header h1 {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+header nav ul {
+    list-style: none;
     display: flex;
-    flex-direction: column;
-    gap: 15px;
+    justify-content: center;
+    gap: 20px;
 }
 
-.btn {
-    padding: 10px 15px;
+/* تنظیم کانتینر برای قرار دادن تسک‌ها و خریدها کنار هم */
+.profile-container {
+    display: flex;
+    gap: 20px;
+    justify-content: space-between;
+}
+
+/* بخش تسک‌ها و خریدها */
+.tasks-section, .purchases-section {
+    flex: 1;  /* هر بخش نصف عرض صفحه رو می‌گیره */
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* اطمینان از راست‌چین بودن متن‌ها */
+.tasks-section h2, .purchases-section h2 {
+    text-align: right;
+    color: #2d9c72;  /* رنگ سبز */
+}
+
+.purchases-section h3 {
+    color: #237a5a; /* سبز تیره‌تر */
+    margin-top: 15px;
+}
+
+/* استایل لیست‌ها */
+.tasks-section ul, .purchases-section ul {
+    padding: 0;
+    list-style: none;
+}
+
+.tasks-section li, .purchases-section li {
+    background-color: #f9f9f9;
+    margin-bottom: 10px;
+    padding: 15px;
+    border-right: 5px solid #2d9c72;
+    border-radius: 5px;
+    text-align: right;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tasks-section li:hover, .purchases-section li:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+header nav ul li {
+    display: inline;
+}
+
+header nav ul li a {
+    color: #d8cba7;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+header nav ul li a:hover {
+    color: var(--hover-color);
+}
+
+/* استایل‌های محتوای اصلی */
+main.container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #866c46;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px #866c46;
+}
+
+/* استایل‌های فرم‌ها */
+form {
+    margin-bottom: 20px;
+}
+
+form input[type="text"],
+form input[type="password"],
+form input[type="number"],
+form textarea,
+form select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+form button {
+    padding: 10px 20px;
+    background-color: var(--button-color);
+    color: #d8cba7;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 16px;
-    margin-top: 10px;
+    transition: background-color 0.3s ease;
 }
 
-.btn-primary {
-    background-color: #28a745;
+form button:hover {
+    background-color: var(--hover-color);
+}
+
+/* استایل‌های لیست‌ها */
+ul {
+    list-style: none;
+    margin-bottom: 20px;
+}
+
+ul li {
+    background-color: #283618;
+    margin-bottom: 10px;
+    padding: 15px;
+    border-left: 5px solid var(--primary-color);
+    border-radius: 5px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+ul li:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* استایل‌های تب‌ها */
+.tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tabs button {
+    padding: 10px 20px;
+    background-color: var(--primary-color);
     color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
 }
 
-.btn-primary:hover {
-    background-color: #218838;
+.tabs button:hover {
+    background-color: var(--hover-color);
 }
 
-.btn-secondary {
-    background-color: #6c757d;
+.tab-content {
+    display: none;
+    padding: 20px;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* استایل‌های فوتر */
+footer {
+    background-color: var(--footer-color);
+    color: white;
+    text-align: center;
+    padding: 10px 0;
+    margin-top: 20px;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+}
+
+footer p {
+    margin: 0;
+}
+
+/* استایل‌های صفحه لاگین */
+.login-container {
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 20px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.login-container h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: var(--primary-color);
+}
+
+.login-container label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.login-container input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.login-container button {
+    width: 100%;
+    padding: 10px;
+    background-color: var(--button-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.login-container button:hover {
+    background-color: var(--hover-color);
+}
+
+/* استایل‌های صفحه پروفایل */
+.sales-agent-profile h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: var(--primary-color);
+}
+
+.sales-agent-profile ul li {
+    background-color: white;
+    margin-bottom: 10px;
+    padding: 15px;
+    border-left: 5px solid var(--primary-color);
+    border-radius: 5px;
+}
+
+.sales-agent-profile ul li strong {
+    color: var(--primary-color);
+}
+
+/* استایل جدول */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+table th, table td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: right;
+}
+
+table th {
+    background-color: #27ae60; /* سبز روشن */
+    color: white;
+    cursor: pointer;
+}
+
+table th a {
     color: white;
     text-decoration: none;
-    text-align: center;
-    display: inline-block;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 5px;
 }
 
-.btn-secondary:hover {
-    background-color: #5a6268;
+table th a:hover {
+    text-decoration: underline;
+}
+
+table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+table tr:hover {
+    background-color: #eafaf1; /* سبز ملایم */
+}
+
+/* تنظیم سرتیتر جدول برای قرارگیری فلش‌ها در کنار متن */
+.sortable {
+    display: flex;
+    align-items: center;
+    gap: 5px; /* فاصله بین متن و فلش‌ها */
+}
+
+/* استایل فلش‌های مرتب‌سازی */
+table th a.sort-btn {
+    text-decoration: none;
+    color: white;
+    font-size: 14px;
+    transition: opacity 0.2s ease;
+}
+
+table th a.sort-btn:hover {
+    opacity: 1;
+}
+
+/* فلش فعال رو هایلایت کنیم */
+table th a.sort-btn.active {
+    font-weight: bold;
+    color: yellow;
 }

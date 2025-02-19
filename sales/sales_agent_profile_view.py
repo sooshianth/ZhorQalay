@@ -35,27 +35,38 @@ def sales_agent_profile_view(request):
 
 @login_required
 def customer_list_view(request):
-    # بررسی کنیم که کاربر کارشناس فروش هست یا نه
     if not hasattr(request.user, 'sales_agent'):
         messages.error(request, "شما مجاز به مشاهده این بخش نیستید.")
         return redirect('sales_agent_login')
 
     sales_agent = request.user.sales_agent  
     search_query = request.GET.get('search', '')
+    sort_by = request.GET.get('sort', 'name')  # مقدار پیش‌فرض: نام مشتری
+    order = request.GET.get('order', 'asc')  # ترتیب پیش‌فرض: صعودی
 
     # دریافت لیست مشتریان این کارشناس فروش
     customers = sales_agent.get_all_customers()
 
-    # اعمال فیلتر جستجو در نام و شماره موبایل
+    # فیلتر جستجو
     if search_query:
         customers = customers.filter(
-            Q(name__icontains=search_query) |  
-            Q(phone_number__icontains=search_query)  
+            Q(name__icontains=search_query) |
+            Q(phone_number__icontains=search_query)
         )
+
+    # مرتب‌سازی لیست مشتریان
+    if sort_by == 'name':
+        customers = customers.order_by('name' if order == 'asc' else '-name')
+    elif sort_by == 'phone':
+        customers = customers.order_by('phone_number' if order == 'asc' else '-phone_number')
 
     context = {
         'customers': customers,
-        'search_query': search_query,  
+        'search_query': search_query,
+        'sort_by': sort_by,
+        'order': order,
     }
 
     return render(request, 'customer_list.html', context)
+
+

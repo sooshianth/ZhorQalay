@@ -11,14 +11,39 @@
     <button type="submit">جستجو</button>
 </form>
 
-<!-- نمایش لیست مشتریان -->
-<ul>
-    {% for customer in customers %}
-        <li>{{ customer.name }} - {{ customer.phone_number }}</li>
-    {% empty %}
-        <li>مشتری‌ای یافت نشد</li>
-    {% endfor %}
-</ul>
+<!-- نمایش لیست مشتریان در جدول -->
+<table>
+    <thead>
+        <tr>
+            <th>
+                <div class="sortable">
+                    نام 
+                    <a href="?search={{ search_query }}&sort=name&order=asc" class="sort-btn {% if sort_by == 'name' and order == 'asc' %}active{% endif %}">🔼</a>
+                    <a href="?search={{ search_query }}&sort=name&order=desc" class="sort-btn {% if sort_by == 'name' and order == 'desc' %}active{% endif %}">🔽</a>
+                </div>
+            </th>
+            <th>
+                <div class="sortable">
+                    شماره موبایل
+                    <a href="?search={{ search_query }}&sort=phone&order=asc" class="sort-btn {% if sort_by == 'phone' and order == 'asc' %}active{% endif %}">🔼</a>
+                    <a href="?search={{ search_query }}&sort=phone&order=desc" class="sort-btn {% if sort_by == 'phone' and order == 'desc' %}active{% endif %}">🔽</a>
+                </div>
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for customer in customers %}
+            <tr>
+                <td>{{ customer.name }}</td>
+                <td>{{ customer.phone_number }}</td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="2">مشتری‌ای یافت نشد</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
 
 <!-- لینک بازگشت به پروفایل -->
 <a href="{% url 'sales_agent_profile' %}">بازگشت به پروفایل</a>

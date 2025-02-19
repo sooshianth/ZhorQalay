@@ -4,11 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}سیستم CRM{% endblock %}</title>
-    <!-- لینک به فونت‌ها یا کتابخانه‌های دیگر -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
 </head>
 <body>
-    <!-- هدر -->
     <header>
         <div class="container">
             <h1>سیستم مدیریت مشتریان (CRM)</h1>
@@ -29,21 +28,14 @@
         </div>
     </header>
 
-    <!-- بخش اصلی محتوا -->
     <main class="container">
-        {% block content %}
-        <!-- محتوای خاص هر صفحه در اینجا قرار می‌گیرد -->
-        {% endblock %}
+        {% block content %}{% endblock %}
     </main>
 
-    <!-- فوتر -->
     <footer>
         <div class="container">
             <p>تمامی حقوق محفوظ است &copy; 2023</p>
         </div>
     </footer>
-    {% block extra_scripts %}
-    <!-- اسکریپت‌های اضافی برای صفحات خاص -->
-    {% endblock %}
 </body>
 </html>
