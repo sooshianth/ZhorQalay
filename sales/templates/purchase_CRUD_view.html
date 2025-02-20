@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>مدیریت خرید شماره {{ purchase.id }}</h2>
+    
+    <!-- نوار پیشرفت -->
+    <div class="progress-steps my-4">
+        {% for step in progress_steps %}
+        <div class="step {% if step.status %}completed{% endif %}">
+            <div class="step-circle"></div>
+            <div class="step-name">{{ step.name }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- فرم ویرایش -->
+    <form method="post">
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-md-6">
+                {{ form.as_p }}
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
+    </form>
+
+    <!-- تاریخچه تغییرات -->
+    <div class="history-log mt-5">
+        <h4>تاریخچه تغییرات:</h4>
+        <ul class="list-group">
+            {% for log in history_logs %}
+            <li class="list-group-item">
+                <small class="text-muted">{{ log.timestamp }}</small><br>
+                <strong>{{ log.user }}</strong>: {{ log.changes }}
+            </li>
+            {% empty %}
+            <li class="list-group-item">هیچ تغییری ثبت نشده است</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<style>
+.progress-steps {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+}
+.step {
+    text-align: center;
+    flex: 1;
+    position: relative;
+}
+.step-circle {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #ddd;
+    margin: 0 auto;
+}
+.step.completed .step-circle {
+    background: #28a745;
+}
+.step-name {
+    margin-top: 5px;
+    font-size: 0.9rem;
+}
+</style>
+{% endblock %}

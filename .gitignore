@@ -5,3 +5,4 @@
 /venv
 /core/migrations/__pycache__
 /core/extensions/__pycache__
+/sales/views/__pycache__

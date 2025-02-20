@@ -4,7 +4,6 @@ from django.utils import timezone
 from core.models import Customer, CargoProduct
 from .extensions import utils
 
-
 class Purchase(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.DO_NOTHING, verbose_name="مشتری", help_text="ارتباط یک‌به‌یک با مشتری از طریق شماره تلفن یا آیدی", related_name='purchases_made')
     address = models.TextField("آدرس", blank=True, null=True)
@@ -14,8 +13,10 @@ class Purchase(models.Model):
     cargo = models.ForeignKey(CargoProduct,on_delete=models.SET_NULL, verbose_name="کوتاژ", blank=True, null=True)
     amount_paid = models.PositiveBigIntegerField("مبلغ پرداختی(ریال)", blank=True, null=True)
     created_at = models.DateTimeField("تاریخ ثبت",default=timezone.now,editable=True)
-    updated_at = models.DateTimeField("تاریخ بروزرسانی",auto_now=True)
+    updated_at  = models.DateTimeField("تاریخ بروزرسانی",auto_now=True)
     is_paid = models.BooleanField("پرداخت شده", default=False)
+    is_takhsised = models.BooleanField("تخصیص شده", default=False)
+    is_sent_to_barbari = models.BooleanField("ارسال به باربری", default=False)
     is_sent = models.BooleanField("ارسال شده", default=False)
     is_delivered = models.BooleanField("تحویل داده شده", default=False)
     is_canceled = models.BooleanField("لغو شده", default=False)
@@ -91,3 +92,20 @@ class Purchase(models.Model):
 
         if errors:
             raise ValidationError(errors)
+
+
+
+from django.contrib.auth.models import User
+
+class PurchaseHistory(models.Model):
+    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    changes = models.TextField("تغییرات")
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "تاریخچه خرید"
+        verbose_name_plural = "تاریخچه خریدها"
+
+    def __str__(self):
+        return f"{self.timestamp} - {self.user}"

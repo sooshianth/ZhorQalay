@@ -149,6 +149,7 @@
                         <p>کوتاژ: {{ purchase.cargo.cottage }}</p>
                         <p>وزن: {{ purchase.weight }} کیلوگرم</p>
                         <p>وضعیت پرداخت: {{ purchase.is_paid|yesno:"✅,❌" }}</p>
+                        <p><a href="{% url 'purchase_CRUD' purchase.id %}">مشاهده جزئیات</a></p>
                     </div>
                 {% empty %}
                     <p class="empty-message">هیچ خریدی ثبت نشده است.</p>
