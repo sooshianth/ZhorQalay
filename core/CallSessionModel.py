@@ -2,6 +2,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _ 
 from .CustomerModel import Customer
+from .extensions import utils
 
 class CallSession(models.Model):
     
@@ -38,6 +39,9 @@ class CallSession(models.Model):
     def __str__(self):
         return f"{self.customer.name} - {self.date}"
     
+    def return_date(self):
+        return utils.time_convertor(self.date)
+
     def clean(self):
         if self.type not in dict(self.CALL_TYPE).keys():
             raise ValidationError(_('نوع تماس نامعتبر است.'))

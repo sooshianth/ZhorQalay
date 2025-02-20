@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from .SalesAgentModel import SalesAgent
 from .CargoProductModel import CargoProduct
 from django.contrib.postgres.fields import ArrayField
+from .extensions import utils
 
 
 FIELD_OF_ACTIVITY = [
@@ -66,6 +67,8 @@ class Customer(models.Model):
 
     #آخرین تماس با مشتری
     # last_contact_date = models.DateTimeField(_("تاریخ آخرین تماس"), blank=True, null=True)
+    created_at = models.DateTimeField(_("تاریخ ثبت"), auto_now_add=True, null=True,    blank=True)
+    updated_at = models.DateTimeField(_("تاریخ بروزرسانی"), auto_now=True, null=True, blank=True)   
 
 
     class Meta:
@@ -99,6 +102,11 @@ class Customer(models.Model):
     
     def get_sales_agent(self):
         return self.sales_agent
+
+    def return_created_at(self):
+        return utils.time_convertor(self.created_at)
+    def return_updated_at(self):
+        return utils.time_convertor(self.updated_at)
 
     def __str__(self):
         return f"{self.phone_number} {self.name}"

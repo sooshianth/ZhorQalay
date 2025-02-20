@@ -35,9 +35,9 @@ class Purchase(models.Model):
         return f"خرید {self.purchase_number} - {self.customer.name}"
 
 
-    def return_created(self):
+    def return_created_at(self):
         return utils.time_convertor(self.created_at)
-    def return_updated(self):
+    def return_updated_at(self):
         return utils.time_convertor(self.updated_at)
     
     def change_is_paid(self):

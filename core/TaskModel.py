@@ -4,6 +4,8 @@ from django.utils.translation import gettext_lazy as _
 from datetime import timedelta
 from .PurchaseModel import Purchase
 from .CustomerModel import Customer
+from .extensions import utils
+
 
 class Task(models.Model):
 
@@ -36,3 +38,8 @@ class Task(models.Model):
     def mark_as_not_done(self):
         self.status = False
         self.save()
+
+    def return_due_date(self):
+        return utils.time_convertor(self.due_date)
+    def return_create_time(self):
+        return utils.time_convertor(self.create_time)
