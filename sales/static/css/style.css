@@ -1,37 +1,24 @@
 /* Reset کلی برای حذف استایل‌های پیش‌فرض مرورگر */
-*
-
-
-{
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+
+/* تعریف رنگ‌های اصلی */
+:root {
+    --primary-color: #065F46;  /* سبز زمردی تیره */
+    --button-color: #22C55E;    /* سبز نئونی جذاب */
+    --hover-color: #86EFAC;     /* سبز فسفری ملایم */
+    --background-color: #ECFDF5; /* سبز مایل به خاکستری */
+    --footer-color: #064E3B;    /* سبز مشکی عمیق */
+    --text-color: #0F172A;      /* مشکی مات */
 }
 
 /* تنظیم کلی برای راست‌چین شدن سایت */
 body {
     direction: rtl;
     text-align: right;
-}
-
-/* برای جلوگیری از به هم ریختگی متن‌ها در لیست‌ها */
-ul, ol {
-    padding-right: 0;
-}
-
-
-/* تعریف رنگ‌های اصلی */
-:root {
-    --primary-color: #939878; /* سبز پررنگ */
-    --hover-color: #9f8772; /* سبز تیره‌تر */
-    --background-color: #d8cba7; /* سبز ملایم */
-    --button-color: #283618; /* سبز پرانرژی */
-    --footer-color: #283618; /* سبز تیره‌تر */
-    --text-color: #dde5b6;
-}
-
-/* استایل‌های کلی برای بدنه سایت */
-body {
     font-family: 'Roboto', sans-serif;
     background-color: var(--background-color);
     color: var(--text-color);
@@ -41,15 +28,16 @@ body {
 /* استایل‌های هدر */
 header {
     background-color: var(--primary-color);
-    color: #4f3517;
+    color: white;
     padding: 20px 0;
     text-align: center;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    border-bottom: 4px solid var(--button-color);
 }
 
 header h1 {
-    font-size: 2rem;
-    margin-bottom: 10px;
+    font-size: 2.2rem;
+    font-weight: bold;
 }
 
 header nav ul {
@@ -59,60 +47,12 @@ header nav ul {
     gap: 20px;
 }
 
-/* تنظیم کانتینر برای قرار دادن تسک‌ها و خریدها کنار هم */
-.profile-container {
-    display: flex;
-    gap: 20px;
-    justify-content: space-between;
-}
-
-/* بخش تسک‌ها و خریدها */
-.tasks-section, .purchases-section {
-    flex: 1;  /* هر بخش نصف عرض صفحه رو می‌گیره */
-    background-color: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-/* اطمینان از راست‌چین بودن متن‌ها */
-.tasks-section h2, .purchases-section h2 {
-    text-align: right;
-    color: #2d9c72;  /* رنگ سبز */
-}
-
-.purchases-section h3 {
-    color: #237a5a; /* سبز تیره‌تر */
-    margin-top: 15px;
-}
-
-/* استایل لیست‌ها */
-.tasks-section ul, .purchases-section ul {
-    padding: 0;
-    list-style: none;
-}
-
-.tasks-section li, .purchases-section li {
-    background-color: #f9f9f9;
-    margin-bottom: 10px;
-    padding: 15px;
-    border-right: 5px solid #2d9c72;
-    border-radius: 5px;
-    text-align: right;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.tasks-section li:hover, .purchases-section li:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
 header nav ul li {
     display: inline;
 }
 
 header nav ul li a {
-    color: #d8cba7;
+    color: var(--button-color);
     text-decoration: none;
     font-weight: bold;
     transition: color 0.3s ease;
@@ -127,9 +67,9 @@ main.container {
     max-width: 1200px;
     margin: 20px auto;
     padding: 20px;
-    background-color: #866c46;
+    background: white;
     border-radius: 10px;
-    box-shadow: 0 2px 10px #866c46;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.2);
 }
 
 /* استایل‌های فرم‌ها */
@@ -143,25 +83,29 @@ form input[type="number"],
 form textarea,
 form select {
     width: 100%;
-    padding: 10px;
+    padding: 12px;
     margin-bottom: 10px;
-    border: 1px solid #ddd;
+    border: 2px solid var(--button-color);
     border-radius: 5px;
     font-size: 1rem;
+    background-color: white;
+    color: var(--text-color);
 }
 
 form button {
-    padding: 10px 20px;
+    padding: 12px 20px;
     background-color: var(--button-color);
-    color: #d8cba7;
+    color: white;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    font-weight: bold;
+    transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
 form button:hover {
     background-color: var(--hover-color);
+    transform: translateY(-2px);
 }
 
 /* استایل‌های لیست‌ها */
@@ -171,50 +115,17 @@ ul {
 }
 
 ul li {
-    background-color: #283618;
+    background-color: white;
     margin-bottom: 10px;
     padding: 15px;
-    border-left: 5px solid var(--primary-color);
+    border-right: 5px solid var(--button-color);
     border-radius: 5px;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 ul li:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* استایل‌های تب‌ها */
-.tabs {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-.tabs button {
-    padding: 10px 20px;
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.tabs button:hover {
-    background-color: var(--hover-color);
-}
-
-.tab-content {
-    display: none;
-    padding: 20px;
-    background-color: white;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-}
-
-.tab-content.active {
-    display: block;
+    box-shadow: 0 4px 10px rgba(34, 197, 94, 0.2);
 }
 
 /* استایل‌های فوتر */
@@ -222,80 +133,18 @@ footer {
     background-color: var(--footer-color);
     color: white;
     text-align: center;
-    padding: 10px 0;
+    padding: 15px 0;
     margin-top: 20px;
-    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+    border-top: 4px solid var(--button-color);
 }
 
 footer p {
     margin: 0;
-}
-
-/* استایل‌های صفحه لاگین */
-.login-container {
-    max-width: 400px;
-    margin: 50px auto;
-    padding: 20px;
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.login-container h2 {
-    text-align: center;
-    margin-bottom: 20px;
-    color: var(--primary-color);
-}
-
-.login-container label {
-    display: block;
-    margin-bottom: 5px;
     font-weight: bold;
 }
 
-.login-container input {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-}
-
-.login-container button {
-    width: 100%;
-    padding: 10px;
-    background-color: var(--button-color);
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.login-container button:hover {
-    background-color: var(--hover-color);
-}
-
-/* استایل‌های صفحه پروفایل */
-.sales-agent-profile h1 {
-    text-align: center;
-    margin-bottom: 20px;
-    color: var(--primary-color);
-}
-
-.sales-agent-profile ul li {
-    background-color: white;
-    margin-bottom: 10px;
-    padding: 15px;
-    border-left: 5px solid var(--primary-color);
-    border-radius: 5px;
-}
-
-.sales-agent-profile ul li strong {
-    color: var(--primary-color);
-}
-
-/* استایل جدول */
+/* استایل‌های جدول */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -303,14 +152,15 @@ table {
 }
 
 table th, table td {
-    padding: 10px;
-    border: 1px solid #ddd;
+    padding: 12px;
+    border: 2px solid var(--button-color);
     text-align: right;
 }
 
 table th {
-    background-color: #27ae60; /* سبز روشن */
+    background-color: var(--button-color);
     color: white;
+    font-weight: bold;
     cursor: pointer;
 }
 
@@ -328,18 +178,18 @@ table th a:hover {
 }
 
 table tr:nth-child(even) {
-    background-color: #f9f9f9;
+    background-color: rgba(0, 255, 153, 0.1);
 }
 
 table tr:hover {
-    background-color: #eafaf1; /* سبز ملایم */
+    background-color: rgba(34, 197, 94, 0.1);
 }
 
 /* تنظیم سرتیتر جدول برای قرارگیری فلش‌ها در کنار متن */
 .sortable {
     display: flex;
     align-items: center;
-    gap: 5px; /* فاصله بین متن و فلش‌ها */
+    gap: 8px;
 }
 
 /* استایل فلش‌های مرتب‌سازی */
@@ -357,5 +207,5 @@ table th a.sort-btn:hover {
 /* فلش فعال رو هایلایت کنیم */
 table th a.sort-btn.active {
     font-weight: bold;
-    color: yellow;
+    color: var(--hover-color);
 }
