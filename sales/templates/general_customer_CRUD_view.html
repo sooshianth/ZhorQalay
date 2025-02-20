@@ -119,7 +119,7 @@
                         <option value="">-- انتخاب کنید --</option>
                         {% for product in active_products %}
                             <option value="{{ product.cottage }}">
-                                کوتاژ {{ product.cottage }} | {{ product.get_product_type_display }}
+                                کوتاژ {{ product.cottage }} | {{ product.get_product_type_display }} {{ product.get_country_display }} | {{ product.loading_time }}
                             </option>
                         {% endfor %}
                     </select>
@@ -130,7 +130,6 @@
                     <p id="product-type">نوع: </p>
                     <p id="product-country">کشور: </p>
                     <p id="product-weight">وزن موجود: </p>
-                    <p id="product-importer">صادرکننده: </p>
                 </div>
         
                 <div class="form-group">

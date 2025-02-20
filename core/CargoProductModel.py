@@ -41,6 +41,11 @@ class CargoProduct(models.Model):
     last_modified = models.DateTimeField(_('تاریخ آخرین ویرایش'), auto_now=True)
     status = models.BooleanField(_('فعال/غیرفعال'), default=True)
 
+    class Meta:
+        verbose_name = _('محصول')
+        verbose_name_plural = _('محصولات')
+
+
 
     def clean(self):
         if self.weight < 10000:
@@ -50,7 +55,7 @@ class CargoProduct(models.Model):
             raise ValidationError('کوتاژ باید ۸ رقمی باشد.')
         
     def __str__(self):
-        return f"{self.product_type} from {self.country} - {self.importer_name}"
+        return f"{self.product_type} از {self.country} - {self.cottage}"
     
     def change_status(self):
         temp = self.status
