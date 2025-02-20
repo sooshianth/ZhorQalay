@@ -35,7 +35,7 @@ class Customer(models.Model):
 
     # ترجیحات خرید
     purchase_preferences = models.CharField(_("ترجیحات پرداخت"), max_length=255, blank=True, null=True,
-        choices=[('cash', 'نقدری'), ('check', 'چک')]
+        choices=[('cash', 'نقدی'), ('check', 'چک')]
     )
     # ترحیجات کالایی
     product_preferences = models.CharField(_("ترجیحات کالایی"), max_length=255, blank=True, null=True,

@@ -34,7 +34,7 @@
     <tbody>
         {% for customer in customers %}
             <tr>
-                <td><a href="{% url 'general_customer_CRUD' %}?customer_id={{ customer.id }}" >{{ customer.name }}</a></td>
+                <td><a href="{% url 'general_customer_CRUD' %}?customer_id={{ customer.id }}" class="customer-link">{{ customer.name }}</a></td>
                 <td>{{ customer.phone_number }}</td>
             </tr>
         {% empty %}
@@ -46,5 +46,5 @@
 </table>
 
 <!-- لینک بازگشت به پروفایل -->
-<a href="{% url 'sales_agent_profile' %}">بازگشت به پروفایل</a>
+<a href="{% url 'sales_agent_profile' %}" class="button" aria-label="بازگشت به پروفایل">بازگشت به پروفایل</a>
 {% endblock %}

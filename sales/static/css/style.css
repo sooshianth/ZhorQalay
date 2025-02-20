@@ -291,3 +291,50 @@
   transform: translateY(-2px);
   box-shadow: 0 4px 10px rgba(34, 197, 94, 0.2);
 }
+
+:root {
+  --button-color: #4CAF50; /* سبز */
+  --hover-color: #367C39;  /* سبز تیره‌تر */
+  --font-main: 'Tahoma', sans-serif; /* فونت اصلی */
+}
+
+.button {
+  display: inline-block;
+  margin-top: 0.5em;
+  padding: 0.5em 1.0em; /* استفاده از em برای اندازه padding */
+  background-color: var(--button-color);
+  color: white;
+  border: 5px;
+  border-radius: 0.3em; /* استفاده از em برای radius */
+  cursor: pointer;
+  font-family: 'Roboto', sans-serif;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  text-decoration: none; /* حذف خط زیر لینک */
+}
+
+.button:hover {
+  background-color: var(--hover-color);
+  transform: translateY(-2px);
+}
+
+.button:focus {
+  outline: 2px solid var(--button-color); /* نمایش فوکوس */
+  outline-offset: 2px;
+}
+
+/* استایل برای دکمه‌های راست به چپ */
+[dir="rtl"] .button {
+  /* استایل‌های خاص برای راست به چپ */
+}
+
+.customer-link {
+  text-decoration: none; /* حذف خط زیر لینک */
+  color: #333; /* رنگ متن (به دلخواه) */
+  /* سایر استایل‌های دلخواه مانند فونت، پس‌زمینه و ... */
+}
+
+.customer-link:hover {
+  /* استایل‌های hover (وقتی موس روی لینک قرار می‌گیرد) */
+  color: #007bff; /* تغییر رنگ متن در حالت hover */
+  /* سایر استایل‌های hover دلخواه */
+}
