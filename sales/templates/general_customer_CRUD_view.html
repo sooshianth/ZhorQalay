@@ -55,11 +55,39 @@
     {% for purchase in purchases %}
         <div class="purchase-item">{{ purchase.weight }}kg</div>
     {% endfor %}
-    <!-- فرم ثبت خرید -->
-    <form method="post">
+    
+    <!-- فرم جدید ثبت خرید -->
+    <form method="post" id="purchase-form">
         {% csrf_token %}
-        <input type="text" name="cottage_number" placeholder="شماره کوتاژ">
-        <input type="number" name="weight">
+        
+        <!-- انتخاب کوتاژ از لیست محصولات فعال -->
+        <div class="form-group">
+            <label>انتخاب کوتاژ:</label>
+            <select name="cottage_number" id="cottage-select" onchange="showCargoDetails()" required>
+                <option value="">-- لطفا انتخاب کنید --</option>
+                {% for product in active_products %}
+                    <option value="{{ product.cottage }}">
+                        کوتاژ {{ product.cottage }} | {{ product.get_product_type_display }} | {{ product.get_country_display }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- نمایش جزئیات محصول انتخاب شده -->
+        <div id="cargo-details" style="display: none;">
+            <h4>مشخصات محصول:</h4>
+            <p id="product-type">نوع: </p>
+            <p id="product-country">کشور: </p>
+            <p id="product-weight">وزن موجود: </p>
+            <p id="product-importer">صادرکننده: </p>
+        </div>
+
+        <!-- فیلد وزن -->
+        <div class="form-group">
+            <label>وزن خرید (کیلوگرم):</label>
+            <input type="number" name="weight" min="1" required>
+        </div>
+
         <button type="submit" name="create_purchase">ثبت خرید</button>
     </form>
 </div>
@@ -72,6 +100,26 @@ function showTab(tabName) {
         tab.style.display = 'none';
     });
     document.getElementById(tabName).style.display = 'block';
+}
+
+// نمایش جزئیات کوتاژ انتخاب شده
+function showCargoDetails() {
+    const select = document.getElementById('cottage-select');
+    const detailsDiv = document.getElementById('cargo-details');
+    const selectedCottage = select.value;
+    
+    {% for product in active_products %}
+        if ("{{ product.cottage }}" === selectedCottage) {
+            detailsDiv.style.display = 'block';
+            document.getElementById('product-type').textContent = `نوع: {{ product.get_product_type_display }}`;
+            document.getElementById('product-country').textContent = `کشور: {{ product.get_country_display }}`;
+            document.getElementById('product-weight').textContent = `وزن موجود: {{ product.weight }} کیلوگرم`;
+            document.getElementById('product-importer').textContent = `صادرکننده: {{ product.importer_name }}`;
+            return;
+        }
+    {% endfor %}
+    
+    detailsDiv.style.display = 'none';
 }
 </script>
 {% endblock %}

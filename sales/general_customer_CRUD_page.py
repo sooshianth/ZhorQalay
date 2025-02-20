@@ -105,11 +105,14 @@ def general_customer_CRUD_view(request):
         except Exception as e:
             messages.error(request, f"خطا در خرید: {e}")
 
+    active_products = CargoProduct.get_active_products()
+
     context = {
         'customer': customer,
         'tasks': tasks,
         'calls': calls,
         'purchases': purchases,
         'cargo_product': cargo_product,
+        'active_products': active_products,
     }
     return render(request, 'general_customer_CRUD_view.html', context)

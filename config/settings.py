@@ -110,3 +110,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+DEFAULT_LOGIN_URL = 'sales_agent_login'
+DEFAULT_LOGOUT_URL = 'logout'
