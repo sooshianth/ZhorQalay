@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}لیست محصولات و کوتاژها{% endblock %}
+
+{% block content %}
+    <div class="cargo-product-list">
+        <h2>لیست محصولات و کوتاژها</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>کوتاژ</th>
+                    <th>نوع محصول</th>
+                    <th>کشور</th>
+                    <th>زمان بارگیری</th>
+                    <th>وضعیت</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in cargo_products %}
+                    <tr>
+                        <td>{{ product.cottage }}</td>
+                        <td>{{ product.get_product_type_display }}</td>
+                        <td>{{ product.get_country_display }}</td>
+                        <td>{{ product.loading_time }}</td>
+                        <td>{{ product.status|yesno:"فعال,غیرفعال" }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

@@ -7,10 +7,7 @@ from django.db.models import Q
 
 @login_required
 def sales_agent_profile_view(request):
-    # برای دیباگ لاگین، ببینیم چه کسی وارد شده
-    print(f"👤 ورود به پروفایل | یوزر فعلی: {request.user} | آیا SalesAgent دارد؟ {hasattr(request.user, 'sales_agent')}")
-
-    # بررسی کنیم که کاربر حتماً کارشناس فروش باشد
+    # بررسی کنید که کاربر کارشناس فروش باشد
     if not hasattr(request.user, 'sales_agent'):
         messages.error(request, "شما مجاز به مشاهده این صفحه نیستید. لطفاً با حساب کارشناس فروش وارد شوید.")
         return redirect('sales_agent_login')
@@ -68,5 +65,3 @@ def customer_list_view(request):
     }
 
     return render(request, 'customer_list.html', context)
-
-

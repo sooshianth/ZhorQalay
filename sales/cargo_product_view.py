@@ -1,0 +1,6 @@
+from django.shortcuts import render
+from core.models import CargoProduct
+
+def cargo_product_list(request):
+    cargo_products = CargoProduct.objects.all()
+    return render(request, 'cargo_product_view.html', {'cargo_products': cargo_products})
