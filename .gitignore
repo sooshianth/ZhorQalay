@@ -3,3 +3,5 @@
 /config/__pycache__
 /.idea
 /venv
+/core/migrations/__pycache__
+/core/extensions/__pycache__
