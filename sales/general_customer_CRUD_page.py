@@ -55,7 +55,7 @@ def general_customer_CRUD_view(request):
         new_call = CallSession(
             customer=customer,
             type=call_type,
-            status=call_status,
+            status='successful',
             note=note
         )
         try:

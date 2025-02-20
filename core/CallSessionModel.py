@@ -6,14 +6,14 @@ from .CustomerModel import Customer
 class CallSession(models.Model):
     
     CALL_TYPE = [
-        {'incoming','ورودی'},
-        {'outgoing','خروجی'},
+        ('incoming','ورودی'),
+        ('outgoing','خروجی'),
     ]
 
     CALL_STATUS = [
-        {'successful','موفق'},
-        {'pending','در انتظار'},
-        {'failed','ناموفق'},
+        ('successful','موفق'),
+        ('pending','در انتظار'),
+        ('failed','ناموفق'),
     ]
 
     #مشتری

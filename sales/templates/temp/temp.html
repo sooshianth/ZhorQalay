@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+
+{% block title %}مدیریت مشتریان{% endblock %}
+
+{% block content %}
+<!-- بخش جستجو -->
+<form method="post">
+    {% csrf_token %}
+    <input type="text" name="phone_number" placeholder="شماره تلفن">
+    <button type="submit" name="phone_search">جستجو</button>
+</form>
+
+{% if customer %}
+<!-- نمایش اطلاعات مشتری -->
+<div class="profile">
+    <h2>{{ customer.full_name }}</h2>
+    <p>تلفن: {{ customer.phone_number }}</p>
+</div>
+
+<!-- تب‌های اطلاعات -->
+<div class="tabs">
+    <button onclick="showTab('tasks')">تسک‌ها</button>
+    <button onclick="showTab('calls')">تماس‌ها</button>
+    <button onclick="showTab('purchases')">ثبت خرید</button>
+    <button onclick="showTab('purchase_history')">تاریخچه خریدها</button> <!-- تب جدید -->
+</div>
+
+<!-- محتوای تب‌ها -->
+<div id="tasks" class="tab-content">
+    {% for task in tasks %}
+        <div class="task-item">{{ task.description }} - {{ task.due_date|date:"Y/m/d H:i" }}</div>
+    {% endfor %}
+    <form method="post">
+        {% csrf_token %}
+        <textarea name="task_description" placeholder="توضیحات تسک"></textarea>
+        <input type="datetime-local" name="due_date">
+        <button type="submit" name="create_task">ثبت تسک</button>
+    </form>
+</div>
+
+<div id="calls" class="tab-content">
+    {% for call in calls %}
+        <div class="call-item">{{ call.get_type_display }} - {{ call.get_status_display }}</div>
+    {% endfor %}
+    <form method="post">
+        {% csrf_token %}
+        <select name="call_type">
+            <option value="incoming">ورودی</option>
+            <option value="outgoing">خروجی</option>
+        </select>
+        <textarea name="note" placeholder="یادداشت"></textarea>
+        <button type="submit" name="create_call">ثبت تماس</button>
+    </form>
+
+    <!-- تاریخچه تماس‌ها -->
+    <div class="call-history">
+        <h3>تاریخچه تماس‌ها</h3>
+        {% if calls %}
+            <div class="history-header">
+                <span>تاریخ</span>
+                <span>نوع</span>
+                <span>وضعیت</span>
+                <span>یادداشت</span>
+            </div>
+            {% for call in calls %}
+                <div class="call-item">
+                    <span class="call-date">{{ call.date|date:"Y/m/d H:i" }}</span>
+                    <span class="call-type">{{ call.get_type_display }}</span>
+                    <span class="call-status {{ call.status }}">{{ call.get_status_display }}</span>
+                    <span class="call-note">{{ call.note|default:"-" }}</span>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="empty-message">هیچ تماسی ثبت نشده است</p>
+        {% endif %}
+    </div>
+</div>
+
+<div id="purchases" class="tab-content">
+    <!-- فرم ثبت خرید جدید -->
+    <form method="post" id="purchase-form">
+        {% csrf_token %}
+        <div class="form-group">
+            <label>انتخاب کوتاژ:</label>
+            <select name="cottage_number" id="cottage-select" onchange="showCargoDetails()" required>
+                <option value="">-- انتخاب کنید --</option>
+                {% for product in active_products %}
+                    <option value="{{ product.cottage }}">
+                        کوتاژ {{ product.cottage }} | {{ product.get_product_type_display }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div id="cargo-details" style="display: none;">
+            <h4>مشخصات محصول:</h4>
+            <p id="product-type">نوع: </p>
+            <p id="product-country">کشور: </p>
+            <p id="product-weight">وزن موجود: </p>
+            <p id="product-importer">صادرکننده: </p>
+        </div>
+
+        <div class="form-group">
+            <label>وزن خرید (کیلوگرم):</label>
+            <input type="number" name="weight" min="100" step="100" required>
+        </div>
+
+        <button type="submit" name="create_purchase">ثبت خرید</button>
+    </form>
+</div>
+
+<!-- تب تاریخچه خریدها -->
+<div id="purchase_history" class="tab-content">
+    <div class="history-list">
+        {% for purchase in purchases %}
+            <div class="history-item">
+                <p>📅 {{ purchase.created_at|date:"Y/m/d H:i" }}</p>
+                <p>کوتاژ: {{ purchase.cargo.cottage }}</p>
+                <p>وزن: {{ purchase.weight }} کیلوگرم</p>
+                <p>وضعیت پرداخت: {{ purchase.is_paid|yesno:"✅,❌" }}</p>
+            </div>
+        {% empty %}
+            <p class="empty-message">هیچ خریدی ثبت نشده است.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<script>
+// مدیریت تب‌ها
+function showTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.style.display = 'none';
+    });
+    document.getElementById(tabName).style.display = 'block';
+}
+
+// نمایش جزئیات کوتاژ
+function showCargoDetails() {
+    const select = document.getElementById('cottage-select');
+    const detailsDiv = document.getElementById('cargo-details');
+    const selectedCottage = select.value;
+    
+    {% for product in active_products %}
+        if ("{{ product.cottage }}" === selectedCottage) {
+            detailsDiv.style.display = 'block';
+            document.getElementById('product-type').textContent = `نوع: {{ product.get_product_type_display }}`;
+            document.getElementById('product-country').textContent = `کشور: {{ product.get_country_display }}`;
+            document.getElementById('product-weight').textContent = `وزن موجود: {{ product.weight }} کیلوگرم`;
+            document.getElementById('product-importer').textContent = `صادرکننده: {{ product.importer_name }}`;
+            return;
+        }
+    {% endfor %}
+    
+    detailsDiv.style.display = 'none';
+}
+
+// نمایش تب پیش‌فرض
+document.addEventListener('DOMContentLoaded', () => {
+    showTab('tasks'); // یا تب مورد نظر دیگر
+});
+</script>
+
+<style>
+    /* استایل‌های پایه */
+    .tabs button {
+        padding: 10px 20px;
+        margin: 5px;
+        cursor: pointer;
+    }
+
+    .tab-content {
+        display: none;
+        padding: 20px;
+        border: 1px solid #ddd;
+    }
+
+    .history-item {
+        background: #f8f9fa;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 5px;
+    }
+
+    .empty-message {
+        color: #6c757d;
+        font-style: italic;
+}
+</style>
+{% endblock %}

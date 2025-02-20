@@ -3,85 +3,103 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-}
-
-/* تعریف رنگ‌های اصلی */
-:root {
+  }
+  
+  /* تعریف رنگ‌های اصلی */
+  :root {
     --primary-color: #065F46;  /* سبز زمردی تیره */
     --button-color: #22C55E;    /* سبز نئونی جذاب */
     --hover-color: #86EFAC;     /* سبز فسفری ملایم */
     --background-color: #ECFDF5; /* سبز مایل به خاکستری */
     --footer-color: #064E3B;    /* سبز مشکی عمیق */
     --text-color: #0F172A;      /* مشکی مات */
-}
-
-/* تنظیم کلی برای راست‌چین شدن سایت */
-body {
+  }
+  
+  /* تنظیم کلی برای راست‌چین و استایل پایه */
+  body {
     direction: rtl;
     text-align: right;
     font-family: 'Roboto', sans-serif;
     background-color: var(--background-color);
     color: var(--text-color);
     line-height: 1.6;
-}
-
-/* استایل‌های هدر */
-header {
+    padding-right: 270px; /* فضای خالی برای sidebar سمت راست */
+  }
+  
+  /* استایل هدر بالا */
+  header {
     background-color: var(--primary-color);
     color: white;
-    padding: 20px 0;
+    padding: 20px;
     text-align: center;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     border-bottom: 4px solid var(--button-color);
-}
-
-header h1 {
+  }
+  
+  header h1 {
     font-size: 2.2rem;
     font-weight: bold;
-}
-
-header nav ul {
+  }
+  
+  /* استایل نوار منو (ناوبری) به صورت sidebar ثابت در سمت راست */
+  nav {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 250px;
+    height: 100%;
+    background-color: var(--primary-color);
+    padding-top: 60px;
+    box-shadow: -2px 0 10px rgba(0,0,0,0.3);
+    z-index: 1000;
+  }
+  
+  nav ul {
     list-style: none;
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-}
-
-header nav ul li {
-    display: inline;
-}
-
-header nav ul li a {
+    padding: 0 20px;
+  }
+  
+  nav ul li {
+    margin: 20px 0;
+    text-align: center;
+  }
+  
+  nav ul li a {
     color: var(--button-color);
     text-decoration: none;
+    font-size: 1.1rem;
     font-weight: bold;
-    transition: color 0.3s ease;
-}
-
-header nav ul li a:hover {
-    color: var(--hover-color);
-}
-
-/* استایل‌های محتوای اصلی */
-main.container {
+    display: block;
+    padding: 10px 15px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  nav ul li a:hover {
+    background-color: var(--hover-color);
+    color: var(--primary-color);
+  }
+  
+  /* استایل بخش اصلی (محتوا) */
+  main.container {
     max-width: 1200px;
     margin: 20px auto;
     padding: 20px;
     background: white;
     border-radius: 10px;
     box-shadow: 0 2px 15px rgba(0, 0, 0, 0.2);
-}
-
-/* استایل‌های فرم‌ها */
-form {
+  }
+  
+  /* استایل فرم‌ها */
+  form {
     margin-bottom: 20px;
-}
-
-form input[type="text"],
-form input[type="password"],
-form input[type="number"],
-form textarea,
-form select {
+  }
+  
+  form input[type="text"],
+  form input[type="password"],
+  form input[type="number"],
+  form textarea,
+  form select {
     width: 100%;
     padding: 12px;
     margin-bottom: 10px;
@@ -90,9 +108,9 @@ form select {
     font-size: 1rem;
     background-color: white;
     color: var(--text-color);
-}
-
-form button {
+  }
+  
+  form button {
     padding: 12px 20px;
     background-color: var(--button-color);
     color: white;
@@ -101,111 +119,113 @@ form button {
     cursor: pointer;
     font-weight: bold;
     transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-form button:hover {
+  }
+  
+  form button:hover {
     background-color: var(--hover-color);
     transform: translateY(-2px);
-}
-
-/* استایل‌های لیست‌ها */
-ul {
+  }
+  
+  /* استایل لیست‌ها */
+  ul {
     list-style: none;
     margin-bottom: 20px;
-}
-
-ul li {
+  }
+  
+  ul li {
     background-color: white;
     margin-bottom: 10px;
     padding: 15px;
     border-right: 5px solid var(--button-color);
     border-radius: 5px;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-ul li:hover {
+  }
+  
+  ul li:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(34, 197, 94, 0.2);
-}
-
-/* استایل‌های فوتر */
-footer {
-    background-color: var(--footer-color);
-    color: white;
-    text-align: center;
-    padding: 15px 0;
-    margin-top: 20px;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
-    border-top: 4px solid var(--button-color);
-}
-
-footer p {
-    margin: 0;
-    font-weight: bold;
-}
-
-/* استایل‌های جدول */
-table {
+  }
+  
+  /* استایل جداول */
+  table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
-}
-
-table th, table td {
+  }
+  
+  table th,
+  table td {
     padding: 12px;
     border: 2px solid var(--button-color);
     text-align: right;
-}
-
-table th {
+  }
+  
+  table th {
     background-color: var(--button-color);
     color: white;
     font-weight: bold;
     cursor: pointer;
-}
-
-table th a {
+  }
+  
+  table th a {
     color: white;
     text-decoration: none;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 5px;
-}
-
-table th a:hover {
+  }
+  
+  table th a:hover {
     text-decoration: underline;
-}
-
-table tr:nth-child(even) {
+  }
+  
+  table tr:nth-child(even) {
     background-color: rgba(0, 255, 153, 0.1);
-}
-
-table tr:hover {
+  }
+  
+  table tr:hover {
     background-color: rgba(34, 197, 94, 0.1);
-}
-
-/* تنظیم سرتیتر جدول برای قرارگیری فلش‌ها در کنار متن */
-.sortable {
+  }
+  
+  /* تنظیم سرتیتر جدول برای قرارگیری فلش‌ها در کنار متن */
+  .sortable {
     display: flex;
     align-items: center;
     gap: 8px;
-}
-
-/* استایل فلش‌های مرتب‌سازی */
-table th a.sort-btn {
+  }
+  
+  /* استایل فلش‌های مرتب‌سازی */
+  table th a.sort-btn {
     text-decoration: none;
     color: white;
     font-size: 14px;
     transition: opacity 0.2s ease;
-}
-
-table th a.sort-btn:hover {
+  }
+  
+  table th a.sort-btn:hover {
     opacity: 1;
-}
-
-/* فلش فعال رو هایلایت کنیم */
-table th a.sort-btn.active {
+  }
+  
+  /* هایلایت فلش فعال */
+  table th a.sort-btn.active {
     font-weight: bold;
     color: var(--hover-color);
-}
+  }
+  
+  /* استایل فوتر */
+  footer {
+    background-color: var(--footer-color);
+    color: white;
+    text-align: center;
+    padding: 15px 20px;
+    margin-top: 20px;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+    border-top: 4px solid var(--button-color);
+  }
+  
+  footer .container {
+    max-width: calc(100% - 270px);
+    margin: 0 auto;
+  }
+  
