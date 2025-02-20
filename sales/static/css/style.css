@@ -209,3 +209,43 @@ table th a.sort-btn.active {
     font-weight: bold;
     color: var(--hover-color);
 }
+
+/* استایل‌های صفحه لیست محصولات و کوتاژها */
+.cargo-product-list {
+    margin-top: 20px;
+}
+
+.cargo-product-list h2 {
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+    color: var(--primary-color);
+}
+
+.cargo-product-list table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.cargo-product-list table th,
+.cargo-product-list table td {
+    padding: 12px;
+    border: 2px solid var(--button-color);
+    text-align: right;
+}
+
+.cargo-product-list table th {
+    background-color: var(--button-color);
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.cargo-product-list table tr:nth-child(even) {
+    background-color: rgba(0, 255, 153, 0.1);
+}
+
+.cargo-product-list table tr:hover {
+    background-color: rgba(34, 197, 94, 0.1);
+}
+

@@ -7,9 +7,7 @@
     <p>نام: {{ sales_agent.name }}</p>
     <p>شماره تلفن: {{ sales_agent.phone_number }}</p>
 
-    <!-- کانتینر برای نمایش تسک‌ها و خریدها در کنار هم -->
     <div class="profile-container">
-        <!-- بخش تسک‌ها -->
         <div class="tasks-section">
             <h2>همه تسک‌ها</h2>
             <ul>
@@ -25,7 +23,6 @@
             </ul>
         </div>
 
-        <!-- بخش خریدها -->
         <div class="purchases-section">
             <h2>خریدها</h2>
             
@@ -72,6 +69,5 @@
 
     <p>مجموع فروش‌های این ماه: {{ total_sales_this_month }}</p>
 
-    <!-- لینک به صفحه لیست مشتریان -->
-    <a href="{% url 'customer_list' %}">مشاهده لیست مشتریان</a>
+    <a href="{% url 'customer_list' %}" class="button">مشاهده لیست مشتریان</a>
 {% endblock %}

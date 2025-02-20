@@ -19,6 +19,7 @@
                         {% endif %}
                         <li><a href="{% url 'customer_list' %}">لیست مشتریان</a></li>
                         <li><a href="{% url 'general_customer_CRUD' %}">مدیریت مشتریان</a></li>
+                        <li><a href="{% url 'cargo_product_list' %}">لیست محصولات و کوتاژها</a></li>
                         <li><a href="{% url 'logout' %}">خروج</a></li>
                     {% else %}
                         <li><a href="{% url 'sales_agent_login' %}">ورود کارشناسان فروش</a></li>
