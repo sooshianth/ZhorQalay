@@ -42,9 +42,9 @@ def general_customer_CRUD_view(request):
         customer = get_object_or_404(Customer, id=customer_id)
         
         # بارگیری داده‌های مرتبط
-        tasks = customer.get_tasks_by_time
-        calls = customer.get_calls_by_time
-        purchases = customer.get_purchases_by_time
+        tasks = customer.get_tasks_by_time()
+        calls = customer.get_calls_by_time()
+        purchases = customer.get_purchases_by_time()
 
     # بخش ثبت تماس
     if request.method == "POST" and 'create_call' in request.POST and customer:

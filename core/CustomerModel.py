@@ -82,9 +82,8 @@ class Customer(models.Model):
     def get_calls_by_time(self):
         return self.calls.order_by('date')
 
-    @staticmethod
     def get_purchases_by_time(self):
-        return list(self.purchases.order_by('date'))
+        return list(self.purchases_made.order_by('created_at'))
     
     def get_purchases(self):
         return self.purchases.all()

@@ -21,59 +21,86 @@
 <div class="tabs">
     <button onclick="showTab('tasks')">تسک‌ها</button>
     <button onclick="showTab('calls')">تماس‌ها</button>
-    <button onclick="showTab('purchases')">خریدها</button>
+    <button onclick="showTab('purchases')">ثبت خرید</button>
+    <button onclick="showTab('purchase_history')">تاریخچه خریدها</button>
 </div>
 
 <!-- محتوای تب‌ها -->
 <div id="tasks" class="tab-content">
     {% for task in tasks %}
-        <div class="task-item">{{ task.description }}</div>
+        <div class="task-item">{{ task.description }} - {{ task.due_date|date:"Y/m/d H:i" }}</div>
     {% endfor %}
-    <!-- فرم ثبت تسک -->
     <form method="post">
         {% csrf_token %}
-        <textarea name="task_description"></textarea>
+        <textarea name="task_description" placeholder="توضیحات تسک"></textarea>
         <input type="datetime-local" name="due_date">
         <button type="submit" name="create_task">ثبت تسک</button>
     </form>
 </div>
 
 <div id="calls" class="tab-content">
-    {% for call in calls %}
-        <div class="call-item">{{ call.type }} - {{ call.status }}</div>
-    {% endfor %}
-    <!-- فرم ثبت تماس -->
-    <form method="post">
+    <!-- فرم ثبت تماس جدید -->
+    <form method="post" class="call-form">
         {% csrf_token %}
-        <select name="call_type">...</select>
-        <textarea name="note"></textarea>
-        <button type="submit" name="create_call">ثبت تماس</button>
+        <div class="form-row">
+            <select name="call_type" required>
+                <option value="">نوع تماس</option>
+                <option value="incoming">ورودی</option>
+                <option value="outgoing">خروجی</option>
+            </select>
+            
+            <select name="call_status" required>
+                <option value="">وضعیت تماس</option>
+                <option value="successful">موفق</option>
+                <option value="pending">در انتظار</option>
+                <option value="failed">ناموفق</option>
+            </select>
+        </div>
+        
+        <textarea name="note" placeholder="یادداشت تماس (اختیاری)" rows="3"></textarea>
+        <button type="submit" name="create_call" class="submit-btn">ثبت تماس جدید</button>
     </form>
+
+    <!-- تاریخچه تماس‌ها -->
+    <div class="call-history">
+        <h3>تاریخچه تماس‌ها</h3>
+        {% if calls %}
+            <div class="history-header">
+                <span>تاریخ</span>
+                <span>نوع</span>
+                <span>وضعیت</span>
+                <span>یادداشت</span>
+            </div>
+            {% for call in calls %}
+                <div class="call-item">
+                    <span class="call-date">{{ call.date|date:"Y/m/d H:i" }}</span>
+                    <span class="call-type">{{ call.get_type_display }}</span>
+                    <span class="call-status {{ call.status }}">{{ call.get_status_display }}</span>
+                    <span class="call-note">{{ call.note|default:"-" }}</span>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="empty-message">هیچ تماسی ثبت نشده است</p>
+        {% endif %}
+    </div>
 </div>
 
 <div id="purchases" class="tab-content">
-    {% for purchase in purchases %}
-        <div class="purchase-item">{{ purchase.weight }}kg</div>
-    {% endfor %}
-    
-    <!-- فرم جدید ثبت خرید -->
+    <!-- فرم ثبت خرید جدید -->
     <form method="post" id="purchase-form">
         {% csrf_token %}
-        
-        <!-- انتخاب کوتاژ از لیست محصولات فعال -->
         <div class="form-group">
             <label>انتخاب کوتاژ:</label>
             <select name="cottage_number" id="cottage-select" onchange="showCargoDetails()" required>
-                <option value="">-- لطفا انتخاب کنید --</option>
+                <option value="">-- انتخاب کنید --</option>
                 {% for product in active_products %}
                     <option value="{{ product.cottage }}">
-                        کوتاژ {{ product.cottage }} | {{ product.get_product_type_display }} | {{ product.get_country_display }}
+                        کوتاژ {{ product.cottage }} | {{ product.get_product_type_display }}
                     </option>
                 {% endfor %}
             </select>
         </div>
 
-        <!-- نمایش جزئیات محصول انتخاب شده -->
         <div id="cargo-details" style="display: none;">
             <h4>مشخصات محصول:</h4>
             <p id="product-type">نوع: </p>
@@ -82,19 +109,34 @@
             <p id="product-importer">صادرکننده: </p>
         </div>
 
-        <!-- فیلد وزن -->
         <div class="form-group">
             <label>وزن خرید (کیلوگرم):</label>
-            <input type="number" name="weight" min="1" required>
+            <input type="number" name="weight" min="100" step="100" required>
         </div>
 
         <button type="submit" name="create_purchase">ثبت خرید</button>
     </form>
 </div>
+
+<!-- تب تاریخچه خریدها -->
+<div id="purchase_history" class="tab-content">
+    <div class="history-list">
+        {% for purchase in purchases %}
+            <div class="history-item">
+                <p>📅 {{ purchase.created_at|date:"Y/m/d H:i" }}</p>
+                <p>کوتاژ: {{ purchase.cargo.cottage }}</p>
+                <p>وزن: {{ purchase.weight }} کیلوگرم</p>
+                <p>وضعیت پرداخت: {{ purchase.is_paid|yesno:"✅,❌" }}</p>
+            </div>
+        {% empty %}
+            <p class="empty-message">هیچ خریدی ثبت نشده است.</p>
+        {% endfor %}
+    </div>
+</div>
 {% endif %}
 
 <script>
-// جاوااسکریپت ساده برای تب‌ها
+// مدیریت تب‌ها
 function showTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.style.display = 'none';
@@ -102,7 +144,7 @@ function showTab(tabName) {
     document.getElementById(tabName).style.display = 'block';
 }
 
-// نمایش جزئیات کوتاژ انتخاب شده
+// نمایش جزئیات کوتاژ
 function showCargoDetails() {
     const select = document.getElementById('cottage-select');
     const detailsDiv = document.getElementById('cargo-details');
@@ -121,5 +163,102 @@ function showCargoDetails() {
     
     detailsDiv.style.display = 'none';
 }
+
+// نمایش تب پیش‌فرض
+document.addEventListener('DOMContentLoaded', () => {
+    showTab('tasks');
+});
 </script>
+
+<style>
+    /* استایل‌های پایه */
+    .tabs button {
+        padding: 10px 20px;
+        margin: 5px;
+        cursor: pointer;
+        background: #f0f0f0;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .tab-content {
+        display: none;
+        padding: 20px;
+        border: 1px solid #ddd;
+        margin-top: 10px;
+    }
+
+    /* استایل بخش تماس‌ها */
+    .call-form {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    select, textarea {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .submit-btn {
+        background: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    /* استایل تاریخچه تماس‌ها */
+    .call-history {
+        background: white;
+        border: 1px solid #eee;
+        border-radius: 8px;
+        padding: 15px;
+    }
+
+    .history-header {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 2fr;
+        gap: 10px;
+        font-weight: bold;
+        padding: 10px;
+        border-bottom: 2px solid #eee;
+    }
+
+    .call-item {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 2fr;
+        gap: 10px;
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .call-status {
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 0.9em;
+    }
+
+    .call-status.successful { background: #d4edda; color: #155724; }
+    .call-status.pending { background: #fff3cd; color: #856404; }
+    .call-status.failed { background: #f8d7da; color: #721c24; }
+
+    .empty-message {
+        color: #6c757d;
+        font-style: italic;
+        padding: 20px;
+        text-align: center;
+    }
+</style>
 {% endblock %}
