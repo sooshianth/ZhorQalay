@@ -22,7 +22,7 @@
     <button onclick="showTab('tasks')">تسک‌ها</button>
     <button onclick="showTab('calls')">تماس‌ها</button>
     <button onclick="showTab('purchases')">ثبت خرید</button>
-    <button onclick="showTab('purchase_history')">تاریخچه خریدها</button>
+    <button onclick="showTab('purchase_history')">تاریخچه خریدها</button> <!-- تب جدید -->
 </div>
 
 <!-- محتوای تب‌ها -->
@@ -39,26 +39,17 @@
 </div>
 
 <div id="calls" class="tab-content">
-    <!-- فرم ثبت تماس جدید -->
-    <form method="post" class="call-form">
+    {% for call in calls %}
+        <div class="call-item">{{ call.get_type_display }} - {{ call.get_status_display }}</div>
+    {% endfor %}
+    <form method="post">
         {% csrf_token %}
-        <div class="form-row">
-            <select name="call_type" required>
-                <option value="">نوع تماس</option>
-                <option value="incoming">ورودی</option>
-                <option value="outgoing">خروجی</option>
-            </select>
-            
-            <select name="call_status" required>
-                <option value="">وضعیت تماس</option>
-                <option value="successful">موفق</option>
-                <option value="pending">در انتظار</option>
-                <option value="failed">ناموفق</option>
-            </select>
-        </div>
-        
-        <textarea name="note" placeholder="یادداشت تماس (اختیاری)" rows="3"></textarea>
-        <button type="submit" name="create_call" class="submit-btn">ثبت تماس جدید</button>
+        <select name="call_type">
+            <option value="incoming">ورودی</option>
+            <option value="outgoing">خروجی</option>
+        </select>
+        <textarea name="note" placeholder="یادداشت"></textarea>
+        <button type="submit" name="create_call">ثبت تماس</button>
     </form>
 
     <!-- تاریخچه تماس‌ها -->
@@ -166,7 +157,7 @@ function showCargoDetails() {
 
 // نمایش تب پیش‌فرض
 document.addEventListener('DOMContentLoaded', () => {
-    showTab('tasks');
+    showTab('tasks'); // یا تب مورد نظر دیگر
 });
 </script>
 
@@ -176,89 +167,24 @@ document.addEventListener('DOMContentLoaded', () => {
         padding: 10px 20px;
         margin: 5px;
         cursor: pointer;
-        background: #f0f0f0;
-        border: 1px solid #ddd;
-        border-radius: 4px;
     }
 
     .tab-content {
         display: none;
         padding: 20px;
         border: 1px solid #ddd;
-        margin-top: 10px;
     }
 
-    /* استایل بخش تماس‌ها */
-    .call-form {
+    .history-item {
         background: #f8f9fa;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 30px;
-    }
-
-    .form-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 15px;
-        margin-bottom: 15px;
-    }
-
-    select, textarea {
-        width: 100%;
-        padding: 8px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-    }
-
-    .submit-btn {
-        background: #4CAF50;
-        color: white;
-        padding: 10px 20px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-    }
-
-    /* استایل تاریخچه تماس‌ها */
-    .call-history {
-        background: white;
-        border: 1px solid #eee;
-        border-radius: 8px;
         padding: 15px;
+        margin: 10px 0;
+        border-radius: 5px;
     }
-
-    .history-header {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr 2fr;
-        gap: 10px;
-        font-weight: bold;
-        padding: 10px;
-        border-bottom: 2px solid #eee;
-    }
-
-    .call-item {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr 2fr;
-        gap: 10px;
-        padding: 10px;
-        border-bottom: 1px solid #eee;
-    }
-
-    .call-status {
-        padding: 3px 8px;
-        border-radius: 12px;
-        font-size: 0.9em;
-    }
-
-    .call-status.successful { background: #d4edda; color: #155724; }
-    .call-status.pending { background: #fff3cd; color: #856404; }
-    .call-status.failed { background: #f8d7da; color: #721c24; }
 
     .empty-message {
         color: #6c757d;
         font-style: italic;
-        padding: 20px;
-        text-align: center;
-    }
+}
 </style>
 {% endblock %}

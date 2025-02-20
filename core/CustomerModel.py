@@ -83,7 +83,7 @@ class Customer(models.Model):
         return self.calls.order_by('date')
 
     def get_purchases_by_time(self):
-        return list(self.purchases_made.order_by('created_at'))
+        return self.purchases_made.order_by('created_at')
     
     def get_purchases(self):
         return self.purchases.all()
