@@ -1,79 +1,117 @@
 {% extends 'base.html' %}
 
-{% block title %}مدیریت مشتریان{% endblock %}
-
 {% block content %}
-<!-- بخش جستجو -->
-<form method="post" class="search-box">
-    {% csrf_token %}
-    <input type="text" name="phone_number" placeholder="شماره تلفن">
-    <button type="submit" name="phone_search">جستجو</button>
-</form>
+<div class="container">
+    <!-- جستجو -->
+    <form method="post" class="search-form">
+        {% csrf_token %}
+        <input type="text" name="phone_number" 
+            placeholder="شماره تلفن (مثال: 9123456789)"
+            pattern="9\d{9}"
+            required>
+        <button type="submit" name="phone_search">جستجو/ایجاد</button>
+    </form>
 
-{% if customer %}
-<div class="main-layout">
-    <!-- بخش شناسنامه مشتری - سمت راست -->
-    <div class="customer-profile">
-        <div class="profile-card">
-            <div class="profile-header">
-                <h2>📄 شناسنامه مشتری</h2>
-                <div class="profile-icon">👤</div>
+    {% if form %}
+    <!-- فرم مشتری -->
+    <form method="post" class="customer-form">
+        {% csrf_token %}
+        
+        <div class="form-section">
+            <h2>{% if is_new_customer %}مشتری جدید{% else %}ویرایش مشتری{% endif %}</h2>
+            
+            <div class="form-columns">
+                <div class="column">
+                    <div class="form-group">
+                        <label>شماره تلفن:</label>
+                        {{ form.phone_number }}
+                        {{ form.phone_number.errors }}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>نام:</label>
+                        {{ form.name }}
+                        {{ form.name.errors }}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>شهر:</label>
+                        {{ form.city }}
+                        {{ form.city.errors }}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>زمینه فعالیت:</label>
+                        {{ form.field_of_activity }}
+                        {{ form.field_of_activity.errors }}
+                    </div>
+                </div>
+
+                <div class="column">
+                    <div class="form-group">
+                        <label>کارشناس فروش:</label>
+                        {{ form.sales_agent }}
+                        {{ form.sales_agent.errors }}
+                    </div>
+                    
+                    <div class="time-group">
+                        <div class="form-group">
+                            <label>زمان شروع تماس:</label>
+                            {{ form.contact_start_time }}
+                        </div>
+                        <div class="form-group">
+                            <label>زمان پایان تماس:</label>
+                            {{ form.contact_end_time }}
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>شبکه‌های اجتماعی:</label>
+                        {{ form.social_media }}
+                    </div>
+                </div>
             </div>
-            <div class="profile-details">
-                <div class="detail-item">
-                    <span class="detail-label">نام :</span>
-                    <span class="detail-value">{{ customer.name }}</span>
+
+            <!-- سایر فیلدها -->
+            <div class="full-width">
+                <div class="form-group">
+                    <label>توضیحات تکمیلی:</label>
+                    {{ form.added_description }}
                 </div>
-                <div class="detail-item">
-                    <span class="detail-label">تلفن:</span>
-                    <span class="detail-value">{{ customer.phone_number }}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">شهر:</span>
-                    <span class="detail-value">{{ customer.city|default:"-" }}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">زمینه فعالیت:</span>
-                    <span class="detail-value">{{ customer.get_field_of_activity_display|default:"-" }}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">ترجیحات پرداخت:</span>
-                    <span class="detail-value">{{ customer.get_purchase_preferences_display|default:"-" }}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">ساعات تماس ترجیحی:</span>
-                    <span class="detail-value">
-                        {{ customer.contact_start_time|time:"H:i"|default:"-" }} تا 
-                        {{ customer.contact_end_time|time:"H:i"|default:"-" }}
-                    </span>
+                
+                <div class="checkbox-group">
+                    <label>
+                        {{ form.sms_preference }}
+                        دریافت پیامک
+                    </label>
                 </div>
             </div>
-        </div>
-        <a href="{% url 'customer_list' %}" class="button" aria-label="مشاهده لیست مشتریان">مشاهده لیست مشتریان</a>
-    </div>
-    
 
-    <!-- بخش اصلی محتوا - سمت چپ -->
-    <div class="main-content">
-        <!-- تب‌های اطلاعات -->
-        <div class="tabs">
-            <button onclick="showTab('tasks')">📋 تسک‌ها</button>
-            <button onclick="showTab('calls')">📞 تماس‌ها</button>
-            <button onclick="showTab('purchases')">🛒 ثبت خرید</button>
-            <button onclick="showTab('purchase_history')">📦 تاریخچه خریدها</button>
+            <button type="submit" name="save_customer" class="submit-btn">ذخیره اطلاعات</button>
+        </div>
+    </form>
+    {% endif %}
+
+    <!-- تب‌ها -->
+    {% if customer %}
+    <div class="tabs-container">
+        <div class="tab-buttons">
+            <button class="tab-btn active" data-target="tasks">تسک‌ها</button>
+            <button class="tab-btn" data-target="calls">تماس‌ها</button>
+            <button class="tab-btn" data-target="purchases">خرید جدید</button>
+            <button class="tab-btn" data-target="purchase_history">تاریخچه</button>
         </div>
 
-        <!-- محتوای تب‌ها (بدون تغییر) -->
-        <div id="tasks" class="tab-content">
-            {% for task in tasks %}
-                <div class="task-item">{{ task.description }} - {{ task.due_date|date:"Y/m/d H:i" }}</div>
-            {% endfor %}
+        <div id="tasks" class="tab-content active">
             <form method="post">
                 {% csrf_token %}
                 <textarea name="task_description" placeholder="توضیحات تسک"></textarea>
                 <input type="datetime-local" name="due_date">
                 <button type="submit" name="create_task">ثبت تسک</button>
             </form>
+            {% for task in tasks %}
+                <div class="task-item">{{ task.description }} - {{ task.due_date|date:"Y/m/d H:i" }}</div>
+            {% endfor %}
         </div>
         
         <div id="calls" class="tab-content">
@@ -140,38 +178,47 @@
                 </div>
         
                 <button type="submit" name="create_purchase">ثبت خرید</button>
-            </form>
+            </form>        
         </div>
         
         <div id="purchase_history" class="tab-content">
             <div class="history-list">
-                {% for purchase in purchases %}
-                    <div class="history-item">
-                        <p>📅 {{ purchase.created_at|date:"Y/m/d H:i" }}</p>
-                        <p>کوتاژ: {{ purchase.cargo.cottage }}</p>
-                        <p>وزن: {{ purchase.weight }} کیلوگرم</p>
-                        <p>وضعیت پرداخت: {{ purchase.is_paid|yesno:"✅,❌" }}</p>
-                        <p><a href="{% url 'purchase_CRUD' purchase.id %}">مشاهده جزئیات</a></p>
-                    </div>
-                {% empty %}
-                    <p class="empty-message">هیچ خریدی ثبت نشده است.</p>
-                {% endfor %}
+            {% for purchase in purchases %}
+                <div class="history-item">
+                    <p>📅 {{ purchase.created_at|date:"Y/m/d H:i" }}</p>
+                    <p>کوتاژ: {{ purchase.cargo.cottage }}</p>
+                    <p>وزن: {{ purchase.weight }} کیلوگرم</p>
+                    <p>وضعیت پرداخت: {{ purchase.is_paid|yesno:"✅,❌" }}</p>
+                    <p><a href="{% url 'purchase_CRUD' purchase.id %}">مشاهده جزئیات</a></p>
+                </div>
+            {% empty %}
+                <p class="empty-message">هیچ خریدی ثبت نشده است.</p>
+            {% endfor %}
             </div>
         </div>
-            </div>
+    </div>
+    {% endif %}
 </div>
-{% endif %}
 
-<!-- اسکریپت و استایل‌های موجود -->
+
 <script>
-    // مدیریت تب‌ها
-    function showTab(tabName) {
-        document.querySelectorAll('.tab-content').forEach(tab => {
-            tab.style.display = 'none';
+    // نمایش تب‌ها
+    document.addEventListener('DOMContentLoaded', function() {
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // حذف کلاس active از تمام دکمه‌ها و محتواها
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+
+                // افزودن کلاس active به دکمه و محتوای انتخاب شده
+                this.classList.add('active');
+                document.getElementById(this.getAttribute('data-target')).classList.add('active');
+            });
         });
-        document.getElementById(tabName).style.display = 'block';
-    }
-    
+    });
     // نمایش جزئیات کوتاژ
     function showCargoDetails() {
         const select = document.getElementById('cottage-select');
@@ -192,100 +239,143 @@
         detailsDiv.style.display = 'none';
     }
     
-    // نمایش تب پیش‌فرض
-    document.addEventListener('DOMContentLoaded', () => {
-        showTab('tasks'); // یا تب مورد نظر دیگر
-    });
-    </script>
-    
+</script>
+
 <style>
-/* استایل‌های جدید */
-.main-layout {
-    display: flex;
-    gap: 30px;
-    margin-top: 20px;
-}
-
-.customer-profile {
-    flex: 0 0 350px;
-}
-
-.main-content {
-    flex: 1;
-}
-
-.profile-card {
-    background: #fff;
-    border-radius: 15px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    padding: 25px;
-    border: 1px solid #e0e0e0;
-}
-
-.profile-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 2px solid #f0f0f0;
-    padding-bottom: 15px;
-    margin-bottom: 20px;
-}
-
-.profile-header h2 {
-    margin: 0;
-    color: #2c3e50;
-    font-size: 1.4rem;
-}
-
-.profile-icon {
-    font-size: 2rem;
-}
-
-.detail-item {
-    display: flex;
-    justify-content: space-between;
-    margin: 12px 0;
-    padding: 8px 0;
-    border-bottom: 1px solid #f5f5f5;
-}
-
-.detail-label {
-    color: #7f8c8d;
-    font-weight: 500;
-}
-
-.detail-value {
-    color: #2c3e50;
-    font-weight: 600;
-    max-width: 200px;
-    text-align: left;
-}
-
-/* بهبود استایل تب‌ها */
-.tabs button {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    transition: all 0.3s;
-    padding: 12px 25px;
-    margin: 0 5px;
-}
-
-.tabs button:hover {
-    background: #e9ecef;
-    transform: translateY(-2px);
-}
-
-/* استایل‌های واکنشگرا */
-@media (max-width: 768px) {
-    .main-layout {
-        flex-direction: column;
+    .container {
+        max-width: 1000px;
+        margin: 20px auto;
+        padding: 0 15px;
     }
-    
-    .customer-profile {
-        flex: none;
+
+    .search-form {
+        background: #f5f5f5;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+    }
+
+    .search-form input[type="text"] {
+        width: 300px;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-right: 10px;
+    }
+
+    .search-form button {
+        padding: 8px 20px;
+        background: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .customer-form {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 25px;
+    }
+
+    .form-columns {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    input, select, textarea {
         width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
     }
-}
+
+    textarea {
+        height: 80px;
+        resize: vertical;
+    }
+
+    .time-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+
+    .checkbox-group {
+        margin: 15px 0;
+    }
+
+    .submit-btn {
+        background: #2196F3;
+        color: white;
+        padding: 10px 25px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        float: left;
+    }
+
+    .tabs-container {
+        margin-top: 30px;
+    }
+
+    .tab-buttons {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .tab-btn {
+        padding: 10px 20px;
+        background: #eee;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .tab-btn.active {
+        background: #2196F3;
+        color: white;
+    }
+
+    .tab-content {
+        display: none;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    @media (max-width: 768px) {
+        .form-columns {
+            grid-template-columns: 1fr;
+        }
+        
+        .search-form input[type="text"] {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+    }
 </style>
+
+
 {% endblock %}

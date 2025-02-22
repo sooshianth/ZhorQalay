@@ -33,7 +33,7 @@ class Purchase(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"خرید {self.purchase_number} - {self.customer.name}"
+        return f"خرید {self.purchase_number} - {self.customer.name} در تاریخ {self.created_at}"
 
 
     def return_created_at(self):
