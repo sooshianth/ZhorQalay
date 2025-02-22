@@ -22,6 +22,9 @@ GRAPH_MODELS = {
 }
 
 INSTALLED_APPS = [
+    # 'grappelli',
+    'colorfield',
+    'admin_interface',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -32,7 +35,6 @@ INSTALLED_APPS = [
     'crispy_forms',
     'core.apps.CoreConfig',
     'sales.apps.SalesConfig',
-    # 'extensions',
 ]
 
 MIDDLEWARE = [
@@ -92,7 +94,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'fa-ir'
 
 TIME_ZONE = 'Asia/Tehran'
 
