@@ -31,6 +31,12 @@ class Task(models.Model):
     def set_auto_update(self):
         self.auto_follow_up_date = self.created_at + timedelta(minutes=15) 
 
+    def change_status(self):
+        if self.status:
+            self.mark_as_not_done()
+        else:
+            self.mark_as_done()
+            
     def mark_as_done(self):
         self.status = True
         self.save()

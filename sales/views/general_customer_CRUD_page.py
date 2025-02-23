@@ -42,6 +42,53 @@ def check_customer_sales_agent(customer, sales_agent):
     if customer.sales_agent != sales_agent:
         raise PermissionDenied("You do not have permission to access this customer.")
 
+
+from django.http import JsonResponse
+from core.CustomerModel import Customer  # Remove duplicate import
+from django.db.models import Q
+
+def change_task_status(request, pk):
+    task = get_object_or_404(Task, id=pk)
+    if request.method == "POST":
+        new_status = request.POST.get('status')
+        if new_status is not None:
+            try:
+                task.change_status()
+                task.full_clean()
+                task.save()
+                messages.success(request, "وضعیت تسک با موفقیت تغییر کرد")
+            except ValidationError as e:
+                messages.error(request, f"خطا در تغییر وضعیت تسک: {e}")
+        else:
+            messages.error(request, "وضعیت جدید معتبر نیست")
+    return redirect(reverse('general_customer_CRUD') + f'?customer_id={task.customer.id}')
+
+def customer_search(request):
+    query = request.GET.get('query', '')
+    results = []
+    
+    if query:
+        try:
+            # جستجو در شماره تلفن و نام
+            customers = Customer.objects.filter(
+                Q(phone_number__icontains=query) | 
+                Q(name__icontains=query)
+            )[:10]
+            
+            results = [
+                {
+                    'name': c.name,
+                    'phone_number': c.phone_number
+                }
+                for c in customers
+                
+            ]
+        except Exception as e:
+            print(f"Error during customer search: {e}")
+            results = []
+    return JsonResponse(results, safe=False)
+
+
 def general_customer_CRUD_view(request):
     """
     ویو جامع مدیریت مشتری شامل:
@@ -84,16 +131,29 @@ def general_customer_CRUD_view(request):
 
     # بخش جستجو
     elif request.method == "POST" and 'phone_search' in request.POST:
-        phone_number = request.POST.get('phone_number')
-        if phone_number:
-            customer = Customer.get_customer_by_phone(phone_number)
+        search_query = request.POST.get('search_query')
+        
+        if search_query:
+            # جستجو بر اساس شماره تلفن یا نام
+            if search_query.isdigit():
+                customer = Customer.get_customer_by_phone(search_query)
+            else:
+                customers = Customer.objects.filter(
+                    Q(phone_number__icontains=search_query) |
+                    Q(name__icontains=search_query)
+                )[:1]
+                customer = customers[0] if customers else None
+            
             if customer:
                 return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
             else:
-                # Create a preliminary instance for a new customer
-                customer = Customer(phone_number=phone_number)
-                form = CustomerForm(instance=customer, sales_agent=sales_agent)
-                is_new_customer = True
+                # ایجاد مشتری جدید اگر شماره تلفن معتبر باشد
+                if search_query.isdigit() and len(search_query) == 10 and search_query.startswith('9'):
+                    customer = Customer(phone_number=search_query)
+                    form = CustomerForm(instance=customer, sales_agent=sales_agent)
+                    is_new_customer = True
+                else:
+                    messages.error(request, "شماره تلفن معتبر نیست")
 
     # بارگیری مشتری موجود
     customer_id = request.GET.get('customer_id')
