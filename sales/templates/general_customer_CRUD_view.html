@@ -296,11 +296,10 @@
                         <span>${customer.name || 'بدون نام'}</span>
                         <span class="phone-number">${customer.phone_number}</span>
                     `;
-                        div.addEventListener('click', () => {
-                            document.getElementById('search-input').value = customer.phone_number;
-                            resultsContainer.style.display = 'none';
-                            document.getElementById('search-form').submit();
-                        });
+                    div.addEventListener('click', () => {
+                        document.getElementById('search-input').value = customer.phone_number;
+                        resultsContainer.style.display = 'none';
+                    });
                         resultsContainer.appendChild(div);
                     });
                     resultsContainer.style.display = 'block';

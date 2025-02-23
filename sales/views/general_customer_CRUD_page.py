@@ -69,7 +69,8 @@ def customer_search(request):
         try:
             customers = Customer.objects.filter(
                 Q(phone_number__icontains=query) | 
-                Q(name__icontains=query)
+                Q(name__icontains=query),
+                sales_agent__user=request.user
             )[:10]
             
             results = [
