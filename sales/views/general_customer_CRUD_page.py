@@ -67,7 +67,6 @@ def customer_search(request):
     
     if query:
         try:
-            # جستجو در شماره تلفن و نام
             customers = Customer.objects.filter(
                 Q(phone_number__icontains=query) | 
                 Q(name__icontains=query)
@@ -75,17 +74,15 @@ def customer_search(request):
             
             results = [
                 {
-                    'name': c.name,
+                    'name': c.name if c.name else 'بدون نام',
                     'phone_number': c.phone_number
                 }
                 for c in customers
-                
             ]
         except Exception as e:
             print(f"Error during customer search: {e}")
             results = []
     return JsonResponse(results, safe=False)
-
 
 def general_customer_CRUD_view(request):
     """
