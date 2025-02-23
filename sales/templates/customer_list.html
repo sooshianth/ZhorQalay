@@ -32,7 +32,7 @@
         </tr>
     </thead>
     <tbody>
-        {% for customer in customers %}
+        {% for customer in customers.object_list %}  {# استفاده از object_list برای دسترسی به لیست مشتریان در صفحه #}
             <tr>
                 <td><a href="{% url 'general_customer_CRUD' %}?customer_id={{ customer.id }}" class="customer-link">{{ customer.name }}</a></td>
                 <td>{{ customer.phone_number }}</td>
@@ -44,6 +44,23 @@
         {% endfor %}
     </tbody>
 </table>
+
+<!-- Pagination links -->
+<div class="pagination">
+    {% if customers.has_previous %}
+        <a href="?page=1&search={{ search_query }}&sort={{ sort_by }}&order={{ order }}">&laquo; اول</a>
+        <a href="?page={{ customers.previous_page_number }}&search={{ search_query }}&sort={{ sort_by }}&order={{ order }}">قبلی</a>
+    {% endif %}
+
+    <span class="current">
+        صفحه {{ customers.number }} از {{ customers.paginator.num_pages }}
+    </span>
+
+    {% if customers.has_next %}
+        <a href="?page={{ customers.next_page_number }}&search={{ search_query }}&sort={{ sort_by }}&order={{ order }}">بعدی</a>
+        <a href="?page={{ customers.paginator.num_pages }}&search={{ search_query }}&sort={{ sort_by }}&order={{ order }}">آخر &raquo;</a>
+    {% endif %}
+</div>
 
 <!-- لینک بازگشت به پروفایل -->
 <a href="{% url 'sales_agent_profile' %}" class="button" aria-label="بازگشت به پروفایل">بازگشت به پروفایل</a>

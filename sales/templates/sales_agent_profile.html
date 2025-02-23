@@ -6,68 +6,156 @@
     <h1>پروفایل کارشناس فروش</h1>
     <br>
 
-    <p>نام: {{ sales_agent.name }}</p>           <p>شماره تلفن: {{ sales_agent.phone_number }}</p>
+    <p>نام: {{ sales_agent.name }}</p>
+    <p>شماره تلفن: {{ sales_agent.phone_number }}</p>
     <br>
 
     <div class="profile-container">
         <!-- ستون تسک‌ها -->
         <div class="tasks-section">
             <h2>همه تسک‌ها</h2>
-            <ul>
-                {% for task in all_tasks %}
-                    <li>
-                        <strong>توضیحات:</strong> {{ task.description }}<br>
-                        <strong>تاریخ:</strong> {{ task.due_date|date:"Y-m-d H:i" }}<br>
-                        <strong>وضعیت:</strong> {% if task.status %}✅ انجام شده{% else %}❌ انجام نشده{% endif %}
+            <ul class="task-list">
+                {% for task in tasks %}
+                    <li class="task-item {% if task.status %}task-done{% else %}task-pending{% endif %}">
+                        <div class="task-content">
+                            <strong>توضیحات:</strong> {{ task.description }}<br>
+                            <strong>تاریخ:</strong> {{ task.due_date|date:"Y-m-d H:i" }}<br>
+                            <strong>وضعیت:</strong> 
+                            <span class="task-status">
+                                {% if task.status %}
+                                    <i class="fas fa-check-circle icon-done"></i> انجام شده
+                                {% else %}
+                                    <i class="fas fa-times-circle icon-pending"></i> انجام نشده
+                                {% endif %}
+                            </span>
+                        </div>
                     </li>
                 {% empty %}
-                    <li>هیچ تسکی یافت نشد</li>
+                    <li class="task-item empty-task">هیچ تسکی یافت نشد</li>
                 {% endfor %}
             </ul>
+            <!-- Pagination for tasks -->
+            <!-- Pagination for tasks -->
+        <div class="pagination">
+            <span class="step-links">
+                {% if tasks.has_previous %}
+                    <a href="?task_page=1">&laquo; اول</a>
+                    <a href="?task_page={{ tasks.previous_page_number }}">قبلی</a>
+                {% endif %}
+
+                <span class="current">
+                    صفحه {{ tasks.number }} از {{ tasks.paginator.num_pages }}
+                </span>
+
+                {% if tasks.has_next %}
+                    <a href="?task_page={{ tasks.next_page_number }}">بعدی</a>
+                    <a href="?task_page={{ tasks.paginator.num_pages }}">آخر &raquo;</a>
+                {% endif %}
+            </span>
+        </div>
         </div>
 
-        <!-- ستون خریدها -->
         <div class="purchases-section">
             <h2>خریدها</h2>
-            
+        
             <h3>پرداخت نشده (Unpaid)</h3>
-            <ul>
-                {% for purchase in unpaid_purchases %}
-                    <li>
-                        <strong>محصول:</strong> {{ purchase.product }}<br>
-                        <strong>مبلغ:</strong> {{ purchase.amount_paid }}<br>
-                        <strong>تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
+            <ul class="purchase-list">
+                {% for purchase in unpaid %}
+                    <li class="purchase-item unpaid">
+                        <div class="purchase-content">
+                            <strong><i class="fas fa-shopping-cart icon-product"></i> محصول:</strong> {{ purchase.product }}<br>
+                            <strong><i class="fas fa-money-bill-wave icon-amount"></i> مبلغ:</strong> {{ purchase.amount_paid }}<br>
+                            <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
+                        </div>
                     </li>
                 {% empty %}
-                    <li>هیچ خرید پرداخت نشده‌ای یافت نشد</li>
+                    <li class="purchase-item empty-purchase">هیچ خرید پرداخت نشده‌ای یافت نشد</li>
                 {% endfor %}
             </ul>
-
+            <!-- Pagination for unpaid purchases -->
+            <div class="pagination">
+                <span class="step-links">
+                    {% if unpaid.has_previous %}
+                        <a href="?unpaid_page=1">&laquo; اول</a>
+                        <a href="?unpaid_page={{ unpaid.previous_page_number }}">قبلی</a>
+                    {% endif %}
+        
+                    <span class="current">
+                        صفحه {{ unpaid.number }} از {{ unpaid.paginator.num_pages }}
+                    </span>
+        
+                    {% if unpaid.has_next %}
+                        <a href="?unpaid_page={{ unpaid.next_page_number }}">بعدی</a>
+                        <a href="?unpaid_page={{ unpaid.paginator.num_pages }}">آخر &raquo;</a>
+                    {% endif %}
+                </span>
+            </div>
+        
             <h3>فعال (Active)</h3>
-            <ul>
-                {% for purchase in active_purchases %}
-                    <li>
-                        <strong>محصول:</strong> {{ purchase.product }}<br>
-                        <strong>مبلغ:</strong> {{ purchase.amount_paid }}<br>
-                        <strong>تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
+            <ul class="purchase-list">
+                {% for purchase in active %}
+                    <li class="purchase-item active">
+                        <div class="purchase-content">
+                            <strong><i class="fas fa-shopping-cart icon-product"></i> محصول:</strong> {{ purchase.product }}<br>
+                            <strong><i class="fas fa-money-bill-wave icon-amount"></i> مبلغ:</strong> {{ purchase.amount_paid }}<br>
+                            <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
+                        </div>
                     </li>
                 {% empty %}
-                    <li>هیچ خرید فعالی یافت نشد</li>
+                    <li class="purchase-item empty-purchase">هیچ خرید فعالی یافت نشد</li>
                 {% endfor %}
             </ul>
-
+            <!-- Pagination for active purchases -->
+            <div class="pagination">
+                <span class="step-links">
+                    {% if active.has_previous %}
+                        <a href="?active_page=1">&laquo; اول</a>
+                        <a href="?active_page={{ active.previous_page_number }}">قبلی</a>
+                    {% endif %}
+        
+                    <span class="current">
+                        صفحه {{ active.number }} از {{ active.paginator.num_pages }}
+                    </span>
+        
+                    {% if active.has_next %}
+                        <a href="?active_page={{ active.next_page_number }}">بعدی</a>
+                        <a href="?active_page={{ active.paginator.num_pages }}">آخر &raquo;</a>
+                    {% endif %}
+                </span>
+            </div>
+        
             <h3>آرشیو شده (Archived)</h3>
-            <ul>
-                {% for purchase in archived_purchases %}
-                    <li>
-                        <strong>محصول:</strong> {{ purchase.product }}<br>
-                        <strong>مبلغ:</strong> {{ purchase.amount_paid }}<br>
-                        <strong>تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
+            <ul class="purchase-list">
+                {% for purchase in archived %}
+                    <li class="purchase-item archived">
+                        <div class="purchase-content">
+                            <strong><i class="fas fa-shopping-cart icon-product"></i> محصول:</strong> {{ purchase.product }}<br>
+                            <strong><i class="fas fa-money-bill-wave icon-amount"></i> مبلغ:</strong> {{ purchase.amount_paid }}<br>
+                            <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
+                        </div>
                     </li>
                 {% empty %}
-                    <li>هیچ خرید آرشیو شده‌ای یافت نشد</li>
+                    <li class="purchase-item empty-purchase">هیچ خرید آرشیو شده‌ای یافت نشد</li>
                 {% endfor %}
             </ul>
+            <!-- Pagination for archived purchases -->
+            <div class="pagination">
+                <span class="step-links">
+                    {% if archived.has_previous %}
+                        <a href="?archived_page=1">&laquo; اول</a>
+                        <a href="?archived_page={{ archived.previous_page_number }}">قبلی</a>
+                    {% endif %}
+        
+                    <span class="current">
+                        صفحه {{ archived.number }} از {{ archived.paginator.num_pages }}
+                    </span>
+        
+                    {% if archived.has_next %}
+                        <a href="?archived_page={{ archived.next_page_number }}">بعدی</a>
+                        <a href="?archived_page={{ archived.paginator.num_pages }}">آخر &raquo;</a>
+                    {% endif %}
+                </span>
+            </div>
         </div>
     </div>
     <br>

@@ -365,3 +365,154 @@ table tr:hover {
   text-align: center;
   padding: 20px;
 }
+
+/* استایل های Pagination */
+.pagination {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.pagination a,
+.pagination .current {
+  display: inline-block;
+  padding: 8px 16px;
+  margin: 0 5px;
+  text-decoration: none;
+  border-radius: 5px;
+  color: var(--primary-color);
+  background-color: #fff;
+  border: 1px solid var(--primary-color);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.pagination a:hover {
+  background-color: var(--hover-color);
+  color: var(--text-color);
+}
+
+.pagination .current {
+  background-color: var(--primary-color);
+  color: #fff;
+  border-color: var(--primary-color);
+}
+
+/* استایل‌های تسک‌ها */
+.task-list {
+  list-style: none;
+  padding: 0;
+}
+
+.task-item {
+  background-color: white;
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.task-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.task-done {
+  border-left: 4px solid #22C55E; /* سبز برای تسک‌های انجام شده */
+}
+
+.task-pending {
+  border-left: 4px solid #EF4444; /* قرمز برای تسک‌های انجام نشده */
+}
+
+.task-status {
+  font-weight: bold;
+}
+
+.empty-task {
+  text-align: center;
+  color: #64748b;
+  padding: 20px;
+  background-color: #f8fafc;
+  border: 1px dashed #e2e8f0;
+}
+
+/* استایل‌های خریدها */
+.purchase-list {
+  list-style: none;
+  padding: 0;
+}
+
+.purchase-item {
+  background-color: white;
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.purchase-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.purchase-item.unpaid {
+  border-left: 4px solid #EF4444; /* قرمز برای خریدهای پرداخت نشده */
+}
+
+.purchase-item.active {
+  border-left: 4px solid #3B82F6; /* آبی برای خریدهای فعال */
+}
+
+.purchase-item.archived {
+  border-left: 4px solid #6B7280; /* خاکستری برای خریدهای آرشیو شده */
+}
+
+.empty-purchase {
+  text-align: center;
+  color: #64748b;
+  padding: 20px;
+  background-color: #f8fafc;
+  border: 1px dashed #e2e8f0;
+}
+
+/* استایل‌های عمومی برای آیکون‌ها */
+nav ul li a i {
+  margin-left: 8px; /* فاصله بین آیکون و متن */
+  font-size: 1.1em; /* اندازه آیکون‌ها */
+}
+
+/* رنگ‌های اختصاصی برای هر آیکون */
+nav ul li a i.icon-profile { color: #4CAF50; } /* سبز برای پروفایل */
+nav ul li a i.icon-customers { color: #2196F3; } /* آبی برای لیست مشتریان */
+nav ul li a i.icon-management { color: #FF9800; } /* نارنجی برای مدیریت مشتریان */
+nav ul li a i.icon-products { color: #9C27B0; } /* بنفش برای لیست محصولات */
+nav ul li a i.icon-logout { color: #F44336; } /* قرمز برای خروج */
+nav ul li a i.icon-login { color: #00BCD4; } /* فیروزه‌ای برای ورود */
+
+/* تغییر رنگ آیکون‌ها هنگام hover */
+nav ul li a:hover i {
+  opacity: 0.8; /* کمی شفافیت هنگام hover */
+}
+
+/* استایل‌های آیکون‌های تسک‌ها */
+.icon-done {
+  color: #4CAF50; /* سبز برای تسک‌های انجام شده */
+}
+
+.icon-pending {
+  color: #F44336; /* قرمز برای تسک‌های انجام نشده */
+}
+
+/* استایل‌های آیکون‌های خریدها */
+.icon-product {
+  color: #2196F3; /* آبی برای آیکون محصول */
+}
+
+.icon-amount {
+  color: #FF9800; /* نارنجی برای آیکون مبلغ */
+}
+
+.icon-date {
+  color: #9C27B0; /* بنفش برای آیکون تاریخ */
+}
