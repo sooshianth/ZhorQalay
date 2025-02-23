@@ -67,3 +67,4 @@ class CargoProduct(models.Model):
     @staticmethod
     def get_active_products():
         return CargoProduct.objects.filter(status=True) 
+    

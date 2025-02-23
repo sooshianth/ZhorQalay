@@ -12,8 +12,10 @@
         <button type="submit" name="phone_search">جستجو/ایجاد</button>
     </form>
 
+    <div class="main-layout"> <!-- اضافه شده -->
     {% if form %}
     <!-- فرم مشتری -->
+    <div class="customer-form-section"> <!-- اضافه شده -->
     <form method="post" class="customer-form">
         {% csrf_token %}
         
@@ -91,9 +93,10 @@
         </div>
     </form>
     {% endif %}
-
+    </div>
     <!-- تب‌ها -->
     {% if customer %}
+    <div class="tabs-section"> <!-- اضافه شده -->
     <div class="tabs-container">
         <div class="tab-buttons">
             <button class="tab-btn active" data-target="tasks">تسک‌ها</button>
@@ -169,6 +172,7 @@
                     <h4>مشخصات محصول:</h4>
                     <p id="product-type">نوع: </p>
                     <p id="product-country">کشور: </p>
+                    <p id="product-loading">زمان بارگیری: </p>
                     <p id="product-weight">وزن موجود: </p>
                 </div>
         
@@ -198,6 +202,8 @@
         </div>
     </div>
     {% endif %}
+    </div>
+    </div>
 </div>
 
 
@@ -230,6 +236,7 @@
                 detailsDiv.style.display = 'block';
                 document.getElementById('product-type').textContent = `نوع: {{ product.get_product_type_display }}`;
                 document.getElementById('product-country').textContent = `کشور: {{ product.get_country_display }}`;
+                document.getElementById('product-loading').textContent = `زمان بارگیری: {{ product.loading_time }}`;
                 document.getElementById('product-weight').textContent = `وزن موجود: {{ product.weight }} کیلوگرم`;
                 document.getElementById('product-importer').textContent = `صادرکننده: {{ product.importer_name }}`;
                 return;
@@ -239,6 +246,17 @@
         detailsDiv.style.display = 'none';
     }
     
+    document.querySelectorAll('.call-item, .task-item, .history-item').forEach(item => {
+        item.addEventListener('mouseenter', () => {
+            item.style.transform = 'translateX(5px)';
+            item.style.boxShadow = '0 3px 8px rgba(0,0,0,0.1)';
+        });
+        
+        item.addEventListener('mouseleave', () => {
+            item.style.transform = 'none';
+            item.style.boxShadow = 'none';
+        });
+    });
 </script>
 
 <style>

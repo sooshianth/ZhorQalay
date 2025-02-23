@@ -12,6 +12,7 @@ from core.CargoProductModel import CargoProduct
 # core/forms.py
 from django import forms
 from core.SalesAgentModel import SalesAgent
+from django.core.exceptions import PermissionDenied
 
 class CustomerForm(forms.ModelForm):
     field_of_activity = forms.ChoiceField(
@@ -36,6 +37,10 @@ class CustomerForm(forms.ModelForm):
             'contact_end_time': forms.TimeInput(attrs={'type': 'time'}),
             'added_description': forms.Textarea(attrs={'rows': 3}),
         }
+
+def check_customer_sales_agent(customer, sales_agent):
+    if customer.sales_agent != sales_agent:
+        raise PermissionDenied("You do not have permission to access this customer.")
 
 def general_customer_CRUD_view(request):
     """
@@ -94,6 +99,7 @@ def general_customer_CRUD_view(request):
     customer_id = request.GET.get('customer_id')
     if customer_id and not form:
         customer = get_object_or_404(Customer, id=customer_id)
+        check_customer_sales_agent(customer=customer, sales_agent=sales_agent)
         form = CustomerForm(instance=customer, sales_agent=sales_agent)
         tasks = customer.get_tasks_by_time()
         calls = customer.get_calls_by_time()
