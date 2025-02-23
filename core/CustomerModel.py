@@ -60,7 +60,7 @@ class Customer(models.Model):
     )
 
     # سهمیه
-    quota = models.CharField(_("Quota"),max_length=244, blank=True)  # You might want a more specific field type
+    quota = models.CharField(_("سهمیه"),max_length=244, null=True, blank=True)  # You might want a more specific field type
 
     #آدرس
     #address = models.TextField(_("آدرس"), blank=True, null=True)

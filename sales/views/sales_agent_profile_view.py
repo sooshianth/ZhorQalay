@@ -17,7 +17,7 @@ def sales_agent_profile_view(request):
     unpaid_purchases = sales_agent.get_all_unpaid_sales()
     active_purchases = sales_agent.get_all_active_sales()
     archived_purchases = sales_agent.get_all_archived_sales()
-    total_sales_this_month = sales_agent.get_this_month_sales_amount()
+    total_sales_this_month = sales_agent.get_this_month_sales_weight()
 
     context = {
         'sales_agent': sales_agent,

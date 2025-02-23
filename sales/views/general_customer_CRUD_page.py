@@ -50,17 +50,15 @@ from django.db.models import Q
 def change_task_status(request, pk):
     task = get_object_or_404(Task, id=pk)
     if request.method == "POST":
-        new_status = request.POST.get('status')
-        if new_status is not None:
-            try:
-                task.change_status()
-                task.full_clean()
-                task.save()
-                messages.success(request, "وضعیت تسک با موفقیت تغییر کرد")
-            except ValidationError as e:
-                messages.error(request, f"خطا در تغییر وضعیت تسک: {e}")
-        else:
-            messages.error(request, "وضعیت جدید معتبر نیست")
+        try:
+            task.change_status()
+            task.full_clean()
+            task.save()
+            messages.success(request, "وضعیت تسک با موفقیت تغییر کرد")
+        except ValidationError as e:
+            messages.error(request, f"خطا در تغییر وضعیت تسک: {e}")
+    else:
+        messages.error(request, "وضعیت جدید معتبر نیست")
     return redirect(reverse('general_customer_CRUD') + f'?customer_id={task.customer.id}')
 
 def customer_search(request):

@@ -60,7 +60,7 @@
                         {{ form.sales_agent.errors }}
                     </div>
                     
-                    <div class="time-group">
+                    {% comment %} <div class="time-group">
                         <div class="form-group">
                             <label>زمان شروع تماس:</label>
                             {{ form.contact_start_time }}
@@ -69,12 +69,18 @@
                             <label>زمان پایان تماس:</label>
                             {{ form.contact_end_time }}
                         </div>
-                    </div>
+                    </div> {% endcomment %}
                     
                     <div class="form-group">
                         <label>شبکه‌های اجتماعی:</label>
                         {{ form.social_media }}
                     </div>
+
+                    <div class="form-group">
+                        <label>سهمیه: </label>
+                        {{ form.quota }}
+                    </div>
+
                 </div>
             </div>
 
@@ -117,13 +123,12 @@
                 <button type="submit" name="create_task">ثبت تسک</button>
             </form>
             {% for task in tasks %}
-                <div class="task-item">{{ task.description }} - {{ task.due_date|date:"Y/m/d H:i" }}</div>
                 <div class="task-item">
                     {{ task.description }} - {{ task.due_date|date:"Y/m/d H:i" }}
                     <form method="post" action="{% url 'change_task_status' task.id %}">
                         {% csrf_token %}
-                        <button type="submit" name="change_status">
-                            {% if task.status %}غیرفعال{% else %}فعال{% endif %}
+                        <button type="submit" name="change_status" style="background-color: {% if task.status %}green{% else %}red{% endif %}; color: white;">
+                            {% if task.status %}انجام شده{% else %}انجام نشده{% endif %}
                         </button>
                     </form>
                 </div>
@@ -314,6 +319,14 @@
 </script>
 
 <style>
+    .task-item {
+        background: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+        margin-bottom: 10px;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
     .container {
         max-width: 1000px;
         margin: 20px auto;

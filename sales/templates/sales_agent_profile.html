@@ -4,8 +4,10 @@
 
 {% block content %}
     <h1>پروفایل کارشناس فروش</h1>
-    <p>نام: {{ sales_agent.name }}</p>
-    <p>شماره تلفن: {{ sales_agent.phone_number }}</p>
+    <br>
+
+    <p>نام: {{ sales_agent.name }}</p>           <p>شماره تلفن: {{ sales_agent.phone_number }}</p>
+    <br>
 
     <div class="profile-container">
         <!-- ستون تسک‌ها -->
@@ -68,8 +70,9 @@
             </ul>
         </div>
     </div>
-
-    <p>مجموع فروش‌های این ماه: {{ total_sales_this_month }}</p>
+    <br>
+    <p>مجموع فروش‌های این ماه به کیلوگرم:  {{ total_sales_this_month }}</p>
+    <br>
 
     <a href="{% url 'customer_list' %}" class="button" aria-label="مشاهده لیست مشتریان">مشاهده لیست مشتریان</a>
 
