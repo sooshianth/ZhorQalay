@@ -13,15 +13,17 @@ def sales_agent_profile_view(request):
         return redirect('sales_agent_login')
 
     sales_agent = request.user.sales_agent  
-    all_tasks = sales_agent.get_all_tasks()
-    unpaid_purchases = sales_agent.get_all_unpaid_sales()
-    active_purchases = sales_agent.get_all_active_sales()
-    archived_purchases = sales_agent.get_all_archived_sales()
-    total_sales_this_month = sales_agent.get_this_month_sales_weight()
 
-    # Pagination for tasks
+    # دریافت تمام تسک‌ها
+    all_tasks = sales_agent.get_all_tasks()
+
+    # تقسیم تسک‌ها به انجام شده و انجام نشده
+    pending_tasks = [task for task in all_tasks if not task.status]  # تسک‌های انجام نشده
+    completed_tasks = [task for task in all_tasks if task.status]  # تسک‌های انجام شده
+
+    # Pagination برای تسک‌های انجام نشده
     task_page = request.GET.get('task_page', 1)
-    task_paginator = Paginator(all_tasks, 5)  # Show 10 tasks per page
+    task_paginator = Paginator(pending_tasks, 5)  # نمایش ۵ تسک در هر صفحه
     try:
         tasks = task_paginator.page(task_page)
     except PageNotAnInteger:
@@ -29,9 +31,14 @@ def sales_agent_profile_view(request):
     except EmptyPage:
         tasks = task_paginator.page(task_paginator.num_pages)
 
-    # Pagination for unpaid purchases
+    # Pagination برای خریدها (بدون تغییر)
+    unpaid_purchases = sales_agent.get_all_unpaid_sales()
+    active_purchases = sales_agent.get_all_active_sales()
+    archived_purchases = sales_agent.get_all_archived_sales()
+    total_sales_this_month = sales_agent.get_this_month_sales_weight()
+
     unpaid_page = request.GET.get('unpaid_page', 1)
-    unpaid_paginator = Paginator(unpaid_purchases, 3)  # Show 10 unpaid purchases per page
+    unpaid_paginator = Paginator(unpaid_purchases, 3)
     try:
         unpaid = unpaid_paginator.page(unpaid_page)
     except PageNotAnInteger:
@@ -39,9 +46,8 @@ def sales_agent_profile_view(request):
     except EmptyPage:
         unpaid = unpaid_paginator.page(unpaid_paginator.num_pages)
 
-    # Pagination for active purchases
     active_page = request.GET.get('active_page', 1)
-    active_paginator = Paginator(active_purchases, 3)  # Show 10 active purchases per page
+    active_paginator = Paginator(active_purchases, 3)
     try:
         active = active_paginator.page(active_page)
     except PageNotAnInteger:
@@ -49,9 +55,8 @@ def sales_agent_profile_view(request):
     except EmptyPage:
         active = active_paginator.page(active_paginator.num_pages)
 
-    # Pagination for archived purchases
     archived_page = request.GET.get('archived_page', 1)
-    archived_paginator = Paginator(archived_purchases, 10)  # Show 10 archived purchases per page
+    archived_paginator = Paginator(archived_purchases, 10)
     try:
         archived = archived_paginator.page(archived_page)
     except PageNotAnInteger:
@@ -61,7 +66,8 @@ def sales_agent_profile_view(request):
 
     context = {
         'sales_agent': sales_agent,
-        'tasks': tasks,
+        'tasks': tasks,  # تسک‌های انجام نشده
+        'completed_tasks': completed_tasks,  # تسک‌های انجام شده
         'unpaid': unpaid,
         'active': active,
         'archived': archived,

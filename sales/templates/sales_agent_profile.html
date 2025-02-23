@@ -16,17 +16,13 @@
             <h2>همه تسک‌ها</h2>
             <ul class="task-list">
                 {% for task in tasks %}
-                    <li class="task-item {% if task.status %}task-done{% else %}task-pending{% endif %}">
+                    <li class="task-item task-pending">
                         <div class="task-content">
                             <strong>توضیحات:</strong> {{ task.description }}<br>
                             <strong>تاریخ:</strong> {{ task.due_date|date:"Y-m-d H:i" }}<br>
                             <strong>وضعیت:</strong> 
                             <span class="task-status">
-                                {% if task.status %}
-                                    <i class="fas fa-check-circle icon-done"></i> انجام شده
-                                {% else %}
-                                    <i class="fas fa-times-circle icon-pending"></i> انجام نشده
-                                {% endif %}
+                                <i class="fas fa-times-circle icon-pending"></i> انجام نشده
                             </span>
                         </div>
                     </li>
@@ -34,25 +30,68 @@
                     <li class="task-item empty-task">هیچ تسکی یافت نشد</li>
                 {% endfor %}
             </ul>
-            <!-- Pagination for tasks -->
-            <!-- Pagination for tasks -->
-        <div class="pagination">
-            <span class="step-links">
-                {% if tasks.has_previous %}
-                    <a href="?task_page=1">&laquo; اول</a>
-                    <a href="?task_page={{ tasks.previous_page_number }}">قبلی</a>
-                {% endif %}
 
-                <span class="current">
-                    صفحه {{ tasks.number }} از {{ tasks.paginator.num_pages }}
+            <!-- Pagination برای تسک‌های انجام نشده -->
+            <div class="pagination">
+                <span class="step-links">
+                    {% if tasks.has_previous %}
+                        <a href="?task_page=1">&laquo; اول</a>
+                        <a href="?task_page={{ tasks.previous_page_number }}">قبلی</a>
+                    {% endif %}
+
+                    <span class="current">
+                        صفحه {{ tasks.number }} از {{ tasks.paginator.num_pages }}
+                    </span>
+
+                    {% if tasks.has_next %}
+                        <a href="?task_page={{ tasks.next_page_number }}">بعدی</a>
+                        <a href="?task_page={{ tasks.paginator.num_pages }}">آخر &raquo;</a>
+                    {% endif %}
                 </span>
+            </div>
 
-                {% if tasks.has_next %}
-                    <a href="?task_page={{ tasks.next_page_number }}">بعدی</a>
-                    <a href="?task_page={{ tasks.paginator.num_pages }}">آخر &raquo;</a>
-                {% endif %}
-            </span>
-        </div>
+            <!-- دکمه نمایش تسک‌های انجام شده -->
+            <button id="show-completed-tasks" class="button">نمایش تسک‌های انجام شده</button>
+
+            <!-- بخش تسک‌های انجام شده (مخفی شده) -->
+            <div id="completed-tasks-section" style="display: none;">
+                <h3>تسک‌های انجام شده</h3>
+                <ul class="task-list">
+                    {% for task in completed_tasks_page %}
+                        <li class="task-item task-done">
+                            <div class="task-content">
+                                <strong>توضیحات:</strong> {{ task.description }}<br>
+                                <strong>تاریخ:</strong> {{ task.due_date|date:"Y-m-d H:i" }}<br>
+                                <strong>وضعیت:</strong> 
+                                <span class="task-status">
+                                    <i class="fas fa-check-circle icon-done"></i> انجام شده
+                                </span>
+                            </div>
+                        </li>
+                    {% empty %}
+                        <li class="task-item empty-task">هیچ تسک انجام شده‌ای یافت نشد</li>
+                    {% endfor %}
+                </ul>
+
+                <!-- Pagination برای تسک‌های انجام شده -->
+                <div class="pagination">
+                    <span class="step-links">
+                        {% if completed_tasks_page.has_previous %}
+                            <a href="?completed_task_page=1">&laquo; اول</a>
+                            <a href="?completed_task_page={{ completed_tasks_page.previous_page_number }}">قبلی</a>
+                        {% endif %}
+
+                        <span class="current">
+                            صفحه {{ completed_tasks_page.number }} از {{ completed_tasks_page.paginator.num_pages }}
+                        </span>
+
+                        {% if completed_tasks_page.has_next %}
+                            <a href="?completed_task_page={{ completed_tasks_page.next_page_number }}">بعدی</a>
+                            <a href="?completed_task_page={{ completed_tasks_page.paginator.num_pages }}">آخر &raquo;</a>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
         </div>
 
         <div class="purchases-section">
@@ -163,5 +202,18 @@
     <br>
 
     <a href="{% url 'customer_list' %}" class="button" aria-label="مشاهده لیست مشتریان">مشاهده لیست مشتریان</a>
+    
+    <script>
+        document.getElementById('show-completed-tasks').addEventListener('click', function() {
+            var completedTasksSection = document.getElementById('completed-tasks-section');
+            if (completedTasksSection.style.display === 'none') {
+                completedTasksSection.style.display = 'block';
+                this.textContent = 'پنهان کردن تسک‌های انجام شده';
+            } else {
+                completedTasksSection.style.display = 'none';
+                this.textContent = 'نمایش تسک‌های انجام شده';
+            }
+        });
+    </script>
 
 {% endblock %}

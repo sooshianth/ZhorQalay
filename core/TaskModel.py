@@ -6,15 +6,13 @@ from .PurchaseModel import Purchase
 from .CustomerModel import Customer
 from .extensions import utils
 
-
 class Task(models.Model):
-
     TASK_STATUS = [
-        {True,'انجام شده'},
-        {False,'انجام نشده'},
+        (True, 'انجام شده'),
+        (False, 'انجام نشده'),
     ]
 
-    description  = models.TextField(_('توضیحات'), max_length=100)
+    description = models.TextField(_('توضیحات'), max_length=100)
     purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, null=True, blank=True, related_name='tasks')
     customer = models.ForeignKey(Customer, on_delete=models.DO_NOTHING, verbose_name=_('مشتری'), related_name='tasks')
     status = models.BooleanField(_('وضعیت پیگیری'), choices=TASK_STATUS, default=False)
@@ -27,16 +25,16 @@ class Task(models.Model):
 
     def __str__(self):
         return f"{self.customer.name}"
- 
+
     def set_auto_update(self):
-        self.auto_follow_up_date = self.created_at + timedelta(minutes=15) 
+        self.auto_follow_up_date = self.created_at + timedelta(minutes=15)
 
     def change_status(self):
         if self.status:
             self.mark_as_not_done()
         else:
             self.mark_as_done()
-            
+
     def mark_as_done(self):
         self.status = True
         self.save()
@@ -47,5 +45,6 @@ class Task(models.Model):
 
     def return_due_date(self):
         return utils.time_convertor(self.due_date)
+
     def return_create_time(self):
         return utils.time_convertor(self.create_time)
