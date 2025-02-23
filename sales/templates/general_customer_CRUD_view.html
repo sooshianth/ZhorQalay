@@ -119,9 +119,13 @@
             <form method="post">
                 {% csrf_token %}
                 <textarea name="task_description" placeholder="توضیحات تسک"></textarea>
+                <br>
                 <input type="datetime-local" name="due_date">
+                <br>
+                <br>
                 <button type="submit" name="create_task">ثبت تسک</button>
             </form>
+            <br>
             {% for task in tasks %}
                 <div class="task-item">
                     {{ task.description }} - {{ task.due_date|date:"Y/m/d H:i" }}
@@ -146,16 +150,17 @@
                 <button type="submit" name="create_call">ثبت تماس</button>
             </form>
         
+            <br>
             <!-- تاریخچه تماس‌ها -->
             <div class="call-history">
                 <h3>تاریخچه تماس‌ها</h3>
                 {% if calls %}
-                    <div class="history-header">
+                    {% comment %} <div class="history-header">
                         <span>تاریخ</span>
                         <span>نوع</span>
                         <span>وضعیت</span>
                         <span>یادداشت</span>
-                    </div>
+                    </div> {% endcomment %}
                     {% for call in calls %}
                         <div class="call-item">
                             <span class="call-date">{{ call.date|date:"Y/m/d H:i" }}</span>
@@ -191,11 +196,11 @@
                     <p id="product-type">نوع: </p>
                     <p id="product-country">کشور: </p>
                     <p id="product-loading">زمان بارگیری: </p>
-                    <p id="product-weight">وزن موجود: </p>
+                    {% comment %} <p id="product-weight">وزن موجود: </p> {% endcomment %}
                 </div>
         
                 <div class="form-group">
-                    <label>وزن خرید (کیلوگرم):</label>
+                    <label>وزن احتمالی خرید (کیلوگرم):</label>
                     <input type="number" name="weight" min="100" step="100" required>
                 </div>
         
@@ -208,7 +213,7 @@
             {% for purchase in purchases %}
                 <div class="history-item">
                     <p>📅 {{ purchase.created_at|date:"Y/m/d H:i" }}</p>
-                    <p>کوتاژ: {{ purchase.cargo.cottage }}</p>
+                    <p>کوتاژ: {{ purchase.cargo.cottage }} {{ purchase.cargo.get_product_type_display }} {{ purchase.cargo.get_country_display }}</p>
                     <p>وزن: {{ purchase.weight }} کیلوگرم</p>
                     <p>وضعیت پرداخت: {{ purchase.is_paid|yesno:"✅,❌" }}</p>
                     <p><a href="{% url 'purchase_CRUD' purchase.id %}" class="button">مشاهده جزئیات</a></p>

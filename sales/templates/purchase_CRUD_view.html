@@ -2,96 +2,253 @@
 
 {% block content %}
 <div class="container">
-    <h2>مدیریت خرید شماره {{ purchase.id }}</h2>
-    
+    <!-- هدر صفحه -->
+    <header class="page-header">
+        <h1 style="color: #333;">
+             خرید شماره {{ purchase.id }} <br>
+            {{ purchase.customer.name }} <br>
+            کوتاژ: {{ purchase.cargo.cottage }} {{ purchase.cargo.get_product_type_display }} {{ purchase.cargo.get_country_display }}
+        </h1>
+        
+        <div class="purchase-status {% if purchase.status == 'completed' %}completed{% else %}pending{% endif %}">
+            {{ purchase.get_status_display }}
+        </div>
+    </header>
+
     <!-- نوار پیشرفت -->
-    <div class="progress-steps my-4">
+    <div class="progress-tracker">
         {% for step in progress_steps %}
-        <div class="step {% if step.status %}completed{% endif %}">
-            <div class="step-circle"></div>
-            <div class="step-name">{{ step.name }}</div>
+        <div class="progress-step {% if step.status %}completed{% endif %}">
+            <div class="step-indicator">
+                <i class="fas fa-{% if step.status %}check-circle{% else %}circle-notch{% endif %}"></i>
+            </div>
+            <span class="step-label">{{ step.name }}</span>
         </div>
         {% endfor %}
     </div>
 
     <!-- فرم ویرایش -->
-    <form method="post">
+    <form method="post" class="purchase-form">
         {% csrf_token %}
-        <div class="row">
-            <div class="col-md-6">
-                {{ form.as_p }}
+        <div class="form-grid">
+            {% for field in form %}
+            <div class="form-group {% if field.errors %}has-error{% endif %}">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                <small class="form-helptext">{{ field.help_text }}</small>
+                {% endif %}
+                {% for error in field.errors %}
+                <span class="form-error">{{ error }}</span>
+                {% endfor %}
             </div>
+            {% endfor %}
         </div>
-        <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
+        <div class="form-actions">
+            <button type="submit" class="button save-button">
+                <i class="fas fa-save"></i>
+                ذخیره تغییرات
+            </button>
+        </div>
     </form>
 
     <!-- تاریخچه تغییرات -->
-    <div class="history-log mt-5">
-        <h4>تاریخچه تغییرات:</h4>
-        <ul class="list-group">
+    <section class="audit-log">
+        <h3 class="section-title">تاریخچه تغییرات</h3>
+        <div class="log-items">
             {% for log in history_logs %}
-            <li class="list-group-item">
-                <small class="text-muted">{{ log.timestamp }}</small><br>
-                <strong>{{ log.user }}</strong>: {{ log.changes }}
-            </li>
+            <div class="log-entry">
+                <div class="log-meta">
+                    <span class="log-timestamp">{{ log.timestamp|date:"Y/m/d H:i" }}</span>
+                    <span class="log-user">{{ log.user.get_full_name }}</span>
+                </div>
+                <div class="log-changes">
+                    <span class="change-badge">{{ log.changes }}</span>
+                </div>
+            </div>
             {% empty %}
-            <li class="list-group-item">هیچ تغییری ثبت نشده است</li>
+            <div class="empty-state">
+                <i class="fas fa-history"></i>
+                هیچ سابقه‌ای ثبت نشده است
+            </div>
             {% endfor %}
-        </ul>
-    </div>
+        </div>
+    </section>
 </div>
 
 <style>
-    .history-log {
-        background: #f9f9f9;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    /* استایل اختصاصی صفحه */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        background: var(--background-color);
+        border-radius: 10px;
+        margin-bottom: 2rem;
     }
-    .history-log h4 {
-        border-bottom: 2px solid #ddd;
-        padding-bottom: 10px;
-        margin-bottom: 20px;
+
+    .purchase-status {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 500;
     }
-    .history-log .list-group-item {
-        border: none;
-        border-bottom: 1px solid #eee;
-        padding: 15px 10px;
+    .purchase-status.completed {
+        background: var(--button-color);
+        color: white;
     }
-    .history-log .list-group-item:last-child {
-        border-bottom: none;
+    .purchase-status.pending {
+        background: #FEE2E2;
+        color: #DC2626;
     }
-    .history-log .list-group-item small {
+
+    /* نوار پیشرفت */
+    .progress-tracker {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1.5rem;
+        margin: 2rem 0;
+        position: relative;
+    }
+    .progress-step {
+        text-align: center;
+        position: relative;
+    }
+    .step-indicator {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #E5E7EB;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+    .progress-step.completed .step-indicator {
+        background: var(--button-color);
+        color: white;
+    }
+    .step-label {
         display: block;
-        color: #888;
-        margin-bottom: 5px;
+        margin-top: 0.5rem;
+        font-size: 0.9rem;
+        color: var(--text-color);
     }
-    .history-log .list-group-item strong {
-        color: #333;
+
+    /* فرم پیشرفته */
+    .purchase-form {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     }
-.progress-steps {
-    display: flex;
-    justify-content: space-between;
-    position: relative;
-}
-.step {
-    text-align: center;
-    flex: 1;
-    position: relative;
-}
-.step-circle {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: #ddd;
-    margin: 0 auto;
-}
-.step.completed .step-circle {
-    background: #28a745;
-}
-.step-name {
-    margin-top: 5px;
-    font-size: 0.9rem;
-}
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--primary-color);
+    }
+    .form-helptext {
+        display: block;
+        margin-top: 0.25rem;
+        color: #64748B;
+        font-size: 0.85rem;
+    }
+    .form-error {
+        color: #EF4444;
+        font-size: 0.85rem;
+        display: block;
+        margin-top: 0.25rem;
+    }
+    .form-actions {
+        margin-top: 2rem;
+        text-align: left;
+    }
+
+    /* تاریخچه تغییرات */
+    .audit-log {
+        margin-top: 3rem;
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    .section-title {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-color);
+        padding-bottom: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+    .log-entry {
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: #F8FAFC;
+        border-radius: 8px;
+        transition: transform 0.2s ease;
+    }
+    .log-entry:hover {
+        transform: translateX(5px);
+    }
+    .log-meta {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    .log-timestamp {
+        color: #64748B;
+        font-size: 0.85rem;
+    }
+    .log-user {
+        color: var(--primary-color);
+        font-weight: 500;
+    }
+    .log-changes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .change-badge {
+        background: var(--hover-color);
+        color: var(--primary-color);
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #64748B;
+        border: 2px dashed #E5E7EB;
+        border-radius: 8px;
+    }
+    .empty-state i {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        display: block;
+    }
+
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        .progress-tracker {
+            gap: 1rem;
+        }
+        .log-meta {
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+    }
 </style>
 {% endblock %}
