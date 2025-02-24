@@ -6,13 +6,13 @@
 <h1>لیست مشتریان</h1>
 
 <!-- فرم جستجو -->
-<form method="get" action="{% url 'customer_list' %}">
+<form method="get" action="{% url 'customer_list' %}" class="search-form">
     <input type="text" name="search" placeholder="جستجو بر اساس نام یا شماره موبایل" value="{{ request.GET.search }}">
-    <button type="submit">جستجو</button>
+    <button type="submit" class="search-button">جستجو</button>
 </form>
 
 <!-- نمایش لیست مشتریان در جدول -->
-<table>
+<table class="customer-table">
     <thead>
         <tr>
             <th>
@@ -32,14 +32,14 @@
         </tr>
     </thead>
     <tbody>
-        {% for customer in customers.object_list %}  {# استفاده از object_list برای دسترسی به لیست مشتریان در صفحه #}
-            <tr>
+        {% for customer in customers.object_list %}
+            <tr class="customer-row fade-in">
                 <td><a href="{% url 'general_customer_CRUD' %}?customer_id={{ customer.id }}" class="customer-link">{{ customer.name }}</a></td>
                 <td>{{ customer.phone_number }}</td>
             </tr>
         {% empty %}
             <tr>
-                <td colspan="2">مشتری‌ای یافت نشد</td>
+                <td colspan="2" class="empty-message fade-in">مشتری‌ای یافت نشد</td>
             </tr>
         {% endfor %}
     </tbody>
@@ -48,8 +48,8 @@
 <!-- Pagination links -->
 <div class="pagination">
     {% if customers.has_previous %}
-        <a href="?page=1&search={{ search_query }}&sort={{ sort_by }}&order={{ order }}">&laquo; اول</a>
-        <a href="?page={{ customers.previous_page_number }}&search={{ search_query }}&sort={{ sort_by }}&order={{ order }}">قبلی</a>
+        <a href="?page=1&search={{ search_query }}&sort={{ sort_by }}&order={{ order }}" class="pagination-link">&laquo; اول</a>
+        <a href="?page={{ customers.previous_page_number }}&search={{ search_query }}&sort={{ sort_by }}&order={{ order }}" class="pagination-link">قبلی</a>
     {% endif %}
 
     <span class="current">
@@ -57,11 +57,23 @@
     </span>
 
     {% if customers.has_next %}
-        <a href="?page={{ customers.next_page_number }}&search={{ search_query }}&sort={{ sort_by }}&order={{ order }}">بعدی</a>
-        <a href="?page={{ customers.paginator.num_pages }}&search={{ search_query }}&sort={{ sort_by }}&order={{ order }}">آخر &raquo;</a>
+        <a href="?page={{ customers.next_page_number }}&search={{ search_query }}&sort={{ sort_by }}&order={{ order }}" class="pagination-link">بعدی</a>
+        <a href="?page={{ customers.paginator.num_pages }}&search={{ search_query }}&sort={{ sort_by }}&order={{ order }}" class="pagination-link">آخر &raquo;</a>
     {% endif %}
 </div>
 
 <!-- لینک بازگشت به پروفایل -->
-<a href="{% url 'sales_agent_profile' %}" class="button" aria-label="بازگشت به پروفایل">بازگشت به پروفایل</a>
+<a href="{% url 'sales_agent_profile' %}" class="button back-button" aria-label="بازگشت به پروفایل">بازگشت به پروفایل</a>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // افزودن کلاس‌های انیمیشن به ردیف‌های جدول
+        const customerRows = document.querySelectorAll('.customer-row');
+        customerRows.forEach((row, index) => {
+            setTimeout(() => {
+                row.classList.add('fade-in');
+            }, index * 100);
+        });
+    });
+</script>
 {% endblock %}

@@ -16,7 +16,7 @@
             <h2>همه تسک‌ها</h2>
             <ul class="task-list">
                 {% for task in tasks %}
-                    <li class="task-item task-pending">
+                    <li class="task-item task-pending fade-in">
                         <div class="task-content">
                             <strong>توضیحات:</strong> {{ task.description }}<br>
                             <strong>تاریخ:</strong> {{ task.due_date|date:"Y-m-d H:i" }}<br>
@@ -27,7 +27,7 @@
                         </div>
                     </li>
                 {% empty %}
-                    <li class="task-item empty-task">هیچ تسکی یافت نشد</li>
+                    <li class="task-item empty-task fade-in">هیچ تسکی یافت نشد</li>
                 {% endfor %}
             </ul>
 
@@ -35,8 +35,8 @@
             <div class="pagination">
                 <span class="step-links">
                     {% if tasks.has_previous %}
-                        <a href="?task_page=1">&laquo; اول</a>
-                        <a href="?task_page={{ tasks.previous_page_number }}">قبلی</a>
+                        <a href="?task_page=1" class="pagination-link">&laquo; اول</a>
+                        <a href="?task_page={{ tasks.previous_page_number }}" class="pagination-link">قبلی</a>
                     {% endif %}
 
                     <span class="current">
@@ -44,8 +44,8 @@
                     </span>
 
                     {% if tasks.has_next %}
-                        <a href="?task_page={{ tasks.next_page_number }}">بعدی</a>
-                        <a href="?task_page={{ tasks.paginator.num_pages }}">آخر &raquo;</a>
+                        <a href="?task_page={{ tasks.next_page_number }}" class="pagination-link">بعدی</a>
+                        <a href="?task_page={{ tasks.paginator.num_pages }}" class="pagination-link">آخر &raquo;</a>
                     {% endif %}
                 </span>
             </div>
@@ -58,7 +58,7 @@
                 <h3>تسک‌های انجام شده</h3>
                 <ul class="task-list">
                     {% for task in completed_tasks_page %}
-                        <li class="task-item task-done">
+                        <li class="task-item task-done fade-in">
                             <div class="task-content">
                                 <strong>توضیحات:</strong> {{ task.description }}<br>
                                 <strong>تاریخ:</strong> {{ task.due_date|date:"Y-m-d H:i" }}<br>
@@ -69,7 +69,7 @@
                             </div>
                         </li>
                     {% empty %}
-                        <li class="task-item empty-task">هیچ تسک انجام شده‌ای یافت نشد</li>
+                        <li class="task-item empty-task fade-in">هیچ تسک انجام شده‌ای یافت نشد</li>
                     {% endfor %}
                 </ul>
 
@@ -77,8 +77,8 @@
                 <div class="pagination">
                     <span class="step-links">
                         {% if completed_tasks_page.has_previous %}
-                            <a href="?completed_task_page=1">&laquo; اول</a>
-                            <a href="?completed_task_page={{ completed_tasks_page.previous_page_number }}">قبلی</a>
+                            <a href="?completed_task_page=1" class="pagination-link">&laquo; اول</a>
+                            <a href="?completed_task_page={{ completed_tasks_page.previous_page_number }}" class="pagination-link">قبلی</a>
                         {% endif %}
 
                         <span class="current">
@@ -86,8 +86,8 @@
                         </span>
 
                         {% if completed_tasks_page.has_next %}
-                            <a href="?completed_task_page={{ completed_tasks_page.next_page_number }}">بعدی</a>
-                            <a href="?completed_task_page={{ completed_tasks_page.paginator.num_pages }}">آخر &raquo;</a>
+                            <a href="?completed_task_page={{ completed_tasks_page.next_page_number }}" class="pagination-link">بعدی</a>
+                            <a href="?completed_task_page={{ completed_tasks_page.paginator.num_pages }}" class="pagination-link">آخر &raquo;</a>
                         {% endif %}
                     </span>
                 </div>
@@ -100,7 +100,7 @@
             <h3>پرداخت نشده (Unpaid)</h3>
             <ul class="purchase-list">
                 {% for purchase in unpaid %}
-                    <li class="purchase-item unpaid">
+                    <li class="purchase-item unpaid slide-in">
                         <div class="purchase-content">
                             <strong><i class="fas fa-shopping-cart icon-product"></i> محصول:</strong> {{ purchase.product }}<br>
                             <strong><i class="fas fa-money-bill-wave icon-amount"></i> مبلغ:</strong> {{ purchase.amount_paid }}<br>
@@ -108,15 +108,15 @@
                         </div>
                     </li>
                 {% empty %}
-                    <li class="purchase-item empty-purchase">هیچ خرید پرداخت نشده‌ای یافت نشد</li>
+                    <li class="purchase-item empty-purchase slide-in">هیچ خرید پرداخت نشده‌ای یافت نشد</li>
                 {% endfor %}
             </ul>
             <!-- Pagination for unpaid purchases -->
             <div class="pagination">
                 <span class="step-links">
                     {% if unpaid.has_previous %}
-                        <a href="?unpaid_page=1">&laquo; اول</a>
-                        <a href="?unpaid_page={{ unpaid.previous_page_number }}">قبلی</a>
+                        <a href="?unpaid_page=1" class="pagination-link">&laquo; اول</a>
+                        <a href="?unpaid_page={{ unpaid.previous_page_number }}" class="pagination-link">قبلی</a>
                     {% endif %}
         
                     <span class="current">
@@ -124,8 +124,8 @@
                     </span>
         
                     {% if unpaid.has_next %}
-                        <a href="?unpaid_page={{ unpaid.next_page_number }}">بعدی</a>
-                        <a href="?unpaid_page={{ unpaid.paginator.num_pages }}">آخر &raquo;</a>
+                        <a href="?unpaid_page={{ unpaid.next_page_number }}" class="pagination-link">بعدی</a>
+                        <a href="?unpaid_page={{ unpaid.paginator.num_pages }}" class="pagination-link">آخر &raquo;</a>
                     {% endif %}
                 </span>
             </div>
@@ -133,7 +133,7 @@
             <h3>فعال (Active)</h3>
             <ul class="purchase-list">
                 {% for purchase in active %}
-                    <li class="purchase-item active">
+                    <li class="purchase-item active slide-in">
                         <div class="purchase-content">
                             <strong><i class="fas fa-shopping-cart icon-product"></i> محصول:</strong> {{ purchase.product }}<br>
                             <strong><i class="fas fa-money-bill-wave icon-amount"></i> مبلغ:</strong> {{ purchase.amount_paid }}<br>
@@ -141,15 +141,15 @@
                         </div>
                     </li>
                 {% empty %}
-                    <li class="purchase-item empty-purchase">هیچ خرید فعالی یافت نشد</li>
+                    <li class="purchase-item empty-purchase slide-in">هیچ خرید فعالی یافت نشد</li>
                 {% endfor %}
             </ul>
             <!-- Pagination for active purchases -->
             <div class="pagination">
                 <span class="step-links">
                     {% if active.has_previous %}
-                        <a href="?active_page=1">&laquo; اول</a>
-                        <a href="?active_page={{ active.previous_page_number }}">قبلی</a>
+                        <a href="?active_page=1" class="pagination-link">&laquo; اول</a>
+                        <a href="?active_page={{ active.previous_page_number }}" class="pagination-link">قبلی</a>
                     {% endif %}
         
                     <span class="current">
@@ -157,8 +157,8 @@
                     </span>
         
                     {% if active.has_next %}
-                        <a href="?active_page={{ active.next_page_number }}">بعدی</a>
-                        <a href="?active_page={{ active.paginator.num_pages }}">آخر &raquo;</a>
+                        <a href="?active_page={{ active.next_page_number }}" class="pagination-link">بعدی</a>
+                        <a href="?active_page={{ active.paginator.num_pages }}" class="pagination-link">آخر &raquo;</a>
                     {% endif %}
                 </span>
             </div>
@@ -166,7 +166,7 @@
             <h3>آرشیو شده (Archived)</h3>
             <ul class="purchase-list">
                 {% for purchase in archived %}
-                    <li class="purchase-item archived">
+                    <li class="purchase-item archived slide-in">
                         <div class="purchase-content">
                             <strong><i class="fas fa-shopping-cart icon-product"></i> محصول:</strong> {{ purchase.product }}<br>
                             <strong><i class="fas fa-money-bill-wave icon-amount"></i> مبلغ:</strong> {{ purchase.amount_paid }}<br>
@@ -174,15 +174,15 @@
                         </div>
                     </li>
                 {% empty %}
-                    <li class="purchase-item empty-purchase">هیچ خرید آرشیو شده‌ای یافت نشد</li>
+                    <li class="purchase-item empty-purchase slide-in">هیچ خرید آرشیو شده‌ای یافت نشد</li>
                 {% endfor %}
             </ul>
             <!-- Pagination for archived purchases -->
             <div class="pagination">
                 <span class="step-links">
                     {% if archived.has_previous %}
-                        <a href="?archived_page=1">&laquo; اول</a>
-                        <a href="?archived_page={{ archived.previous_page_number }}">قبلی</a>
+                        <a href="?archived_page=1" class="pagination-link">&laquo; اول</a>
+                        <a href="?archived_page={{ archived.previous_page_number }}" class="pagination-link">قبلی</a>
                     {% endif %}
         
                     <span class="current">
@@ -190,8 +190,8 @@
                     </span>
         
                     {% if archived.has_next %}
-                        <a href="?archived_page={{ archived.next_page_number }}">بعدی</a>
-                        <a href="?archived_page={{ archived.paginator.num_pages }}">آخر &raquo;</a>
+                        <a href="?archived_page={{ archived.next_page_number }}" class="pagination-link">بعدی</a>
+                        <a href="?archived_page={{ archived.paginator.num_pages }}" class="pagination-link">آخر &raquo;</a>
                     {% endif %}
                 </span>
             </div>
@@ -204,16 +204,37 @@
     <a href="{% url 'customer_list' %}" class="button" aria-label="مشاهده لیست مشتریان">مشاهده لیست مشتریان</a>
     
     <script>
-        document.getElementById('show-completed-tasks').addEventListener('click', function() {
-            var completedTasksSection = document.getElementById('completed-tasks-section');
-            if (completedTasksSection.style.display === 'none') {
-                completedTasksSection.style.display = 'block';
-                this.textContent = 'پنهان کردن تسک‌های انجام شده';
-            } else {
-                completedTasksSection.style.display = 'none';
-                this.textContent = 'نمایش تسک‌های انجام شده';
-            }
+        document.addEventListener('DOMContentLoaded', function() {
+            // افزودن کلاس‌های انیمیشن به عناصر
+            const taskItems = document.querySelectorAll('.task-item');
+            const purchaseItems = document.querySelectorAll('.purchase-item');
+
+            taskItems.forEach((item, index) => {
+                setTimeout(() => {
+                    item.classList.add('fade-in');
+                }, index * 100);
+            });
+
+            purchaseItems.forEach((item, index) => {
+                setTimeout(() => {
+                    item.classList.add('slide-in');
+                }, index * 100);
+            });
+
+            // نمایش/پنهان کردن بخش‌ها با انیمیشن
+            const showCompletedTasksButton = document.getElementById('show-completed-tasks');
+            const completedTasksSection = document.getElementById('completed-tasks-section');
+
+            showCompletedTasksButton.addEventListener('click', function() {
+                if (completedTasksSection.style.display === 'none') {
+                    completedTasksSection.style.display = 'block';
+                    completedTasksSection.classList.add('fade-in');
+                    this.textContent = 'پنهان کردن تسک‌های انجام شده';
+                } else {
+                    completedTasksSection.style.display = 'none';
+                    this.textContent = 'نمایش تسک‌های انجام شده';
+                }
+            });
         });
     </script>
-
 {% endblock %}

@@ -31,6 +31,16 @@ def sales_agent_profile_view(request):
     except EmptyPage:
         tasks = task_paginator.page(task_paginator.num_pages)
 
+    # Pagination برای تسک‌های انجام شده
+    completed_task_page = request.GET.get('completed_task_page', 1)
+    completed_task_paginator = Paginator(completed_tasks, 5)  # نمایش ۵ تسک در هر صفحه
+    try:
+        completed_tasks_page = completed_task_paginator.page(completed_task_page)
+    except PageNotAnInteger:
+        completed_tasks_page = completed_task_paginator.page(1)
+    except EmptyPage:
+        completed_tasks_page = completed_task_paginator.page(completed_task_paginator.num_pages)
+
     # Pagination برای خریدها (بدون تغییر)
     unpaid_purchases = sales_agent.get_all_unpaid_sales()
     active_purchases = sales_agent.get_all_active_sales()
@@ -67,7 +77,7 @@ def sales_agent_profile_view(request):
     context = {
         'sales_agent': sales_agent,
         'tasks': tasks,  # تسک‌های انجام نشده
-        'completed_tasks': completed_tasks,  # تسک‌های انجام شده
+        'completed_tasks_page': completed_tasks_page,  # تسک‌های انجام شده (صفحه‌بندی شده)
         'unpaid': unpaid,
         'active': active,
         'archived': archived,

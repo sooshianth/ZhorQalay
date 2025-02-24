@@ -24,6 +24,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from core.PurchaseModel import PurchaseHistory
+from django.db import transaction
 
 @login_required
 def purchase_CRUD_view(request, purchase_id):
@@ -42,28 +43,32 @@ def purchase_CRUD_view(request, purchase_id):
     if request.method == 'POST':
         form = PurchaseEditForm(request.POST, instance=purchase)
         if form.is_valid():
-            original_obj = Purchase.objects.get(id=purchase_id)
-            changed_fields = []
-            
-            # ثبت تغییرات
-            for field in form.changed_data:
-                old_value = getattr(original_obj, field)
-                new_value = form.cleaned_data.get(field)
-                changed_fields.append(f"{field} از {old_value} به {new_value}")
+            try:
+                with transaction.atomic():
+                    original_obj = Purchase.objects.get(id=purchase_id)
+                    changed_fields = []
+                    
+                    # ثبت تغییرات
+                    for field in form.changed_data:
+                        old_value = getattr(original_obj, field)
+                        new_value = form.cleaned_data.get(field)
+                        changed_fields.append(f"{field} از {old_value} به {new_value}")
 
-            obj = form.save(commit=False)
-            obj.save()
-            
-            if changed_fields:
-                change_message = " - ".join(changed_fields)
-                PurchaseHistory.objects.create(
-                    purchase=purchase,
-                    user=request.user,
-                    changes=change_message
-                )
-            
-            messages.success(request, 'تغییرات با موفقیت ذخیره شد')
-            return redirect('purchase_CRUD', purchase_id=purchase_id)
+                    obj = form.save(commit=False)
+                    obj.save()
+                    
+                    if changed_fields:
+                        change_message = " - ".join(changed_fields)
+                        PurchaseHistory.objects.create(
+                            purchase=purchase,
+                            user=request.user,
+                            changes=change_message
+                        )
+                    
+                    messages.success(request, 'تغییرات با موفقیت ذخیره شد')
+                    return redirect('purchase_CRUD', purchase_id=purchase_id)
+            except Exception as e:
+                messages.error(request, f'خطا در ذخیره تغییرات: {str(e)}')
     else:
         form = PurchaseEditForm(instance=purchase)
 

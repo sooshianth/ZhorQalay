@@ -1,11 +1,13 @@
 <!DOCTYPE html>
-<html lang="fa">
+<html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}سیستم CRM{% endblock %}</title>
     {% load static %}
     <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+    <!-- اضافه کردن فونت Vazir -->
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/font-face.css" rel="stylesheet" type="text/css">
     <!-- اضافه کردن لینک Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -27,7 +29,6 @@
                     {% endif %}
                 </ul>
             </nav>
-            
             <h1>سامانه جامع سیمرغ‌ افزار</h1>
         </div>
     </header>
@@ -35,6 +36,5 @@
     <main class="container">
         {% block content %}{% endblock %}
     </main>
-
 </body>
 </html>

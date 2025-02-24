@@ -206,20 +206,18 @@ def general_customer_CRUD_view(request):
         weight = request.POST.get('weight')
         
         try:
-            cargo = CargoProduct.objects.get(cottage=cottage_number) if cottage_number else None
-        except CargoProduct.DoesNotExist:
-            cargo = None
+            with transaction.atomic():
+                cargo = CargoProduct.objects.get(cottage=cottage_number) if cottage_number else None
 
-        new_purchase = Purchase(
-            customer=customer,
-            weight=weight,
-            cargo=cargo
-        )
-        try:
-            new_purchase.full_clean()
-            new_purchase.save()
-            messages.success(request, "خرید جدید ثبت شد")
-            return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
+                new_purchase = Purchase(
+                    customer=customer,
+                    weight=weight,
+                    cargo=cargo
+                )
+                new_purchase.full_clean()
+                new_purchase.save()
+                messages.success(request, "خرید جدید ثبت شد")
+                return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
         except Exception as e:
             messages.error(request, f"خطا در خرید: {e}")
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')

@@ -15,11 +15,23 @@
   --text-color: #0F172A;      /* مشکی مات */
 }
 
+/* تنظیم کلی برای راست‌چین و استایل پایه */
+body {
+  direction: rtl;
+  text-align: right;
+  font-family: 'Vazir', sans-serif; /* فونت جدید */
+  background-color: var(--background-color);
+  color: var(--text-color);
+  line-height: 1.6;
+  padding-top: 0;
+}
+
+
 /* تغییرات برای استایل هدر و عنوان */
 header {
   background-color: var(--primary-color);
   color: white;
-  padding: 20px;
+  padding: 25px 20px; /* افزایش padding برای فضای بیشتر */
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
   border-bottom: 4px solid var(--button-color);
 }
@@ -31,9 +43,9 @@ header .container {
 
 /* استایل جدید برای عنوان (h2) در هدر */
 header h2 {
-  font-size: 1.8rem;
+  font-size: 2rem; /* افزایش سایز فونت */
   font-weight: 500;
-  margin-bottom: 15px;
+  margin-bottom: 20px; /* افزایش فاصله */
   text-align: center;
 }
 
@@ -41,16 +53,16 @@ header h2 {
 nav {
   position: static; /* از fixed خارج شد */
   background-color: var(--primary-color);
-  padding: 10px 30px;
+  padding: 15px 30px; /* افزایش padding */
   border-radius: 0 0 8px 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  margin-bottom: 20px;
+  margin-bottom: 30px; /* افزایش فاصله */
 }
 
 /* حفظ استایل لیست و لینک‌های ناوبری */
 nav ul {
   display: flex;
-  gap: 25px;
+  gap: 30px; /* افزایش فاصله بین لینک‌ها */
   justify-content: center;
   list-style: none;
 }
@@ -61,16 +73,16 @@ nav ul li {
 
 nav ul li a {
   color: white;
-  font-size: 0.9rem;
-  padding: 8px 15px;
-  border-radius: 4px;
+  font-size: 1rem; /* افزایش سایز فونت */
+  padding: 10px 20px; /* افزایش padding */
+  border-radius: 6px; /* افزایش border-radius */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
 }
 
 nav ul li a:hover {
   background-color: rgba(255,255,255,0.12);
-  transform: translateY(-1px);
+  transform: translateY(-2px); /* افزایش افکت hover */
 }
 
 /* منوی آبشاری (دراپ‌داون) */
@@ -79,48 +91,9 @@ nav ul li a:hover {
   top: 100%;
   right: 0;
   background: white;
-  border-radius: 6px;
+  border-radius: 8px; /* افزایش border-radius */
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  min-width: 180px;
-  display: none;
-}
-
-nav ul li:hover .dropdown-menu {
-  display: block;
-}
-
-/* ادامه استایل‌های موجود بدون تغییر (برای سایر بخش‌ها) */
-
-/* Reset کلی برای حذف استایل‌های پیش‌فرض مرورگر */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-/* تنظیم کلی برای راست‌چین و استایل پایه */
-body {
-  direction: rtl;
-  text-align: right;
-  font-family: 'Roboto', sans-serif;
-  background-color: var(--background-color);
-  color: var(--text-color);
-  line-height: 1.6;
-  padding-top: 0; /* حذف فضای خالی اضافی از بالا به دلیل نبود موقعیت fixed */
-}nav ul li a:hover {
-  background-color: rgba(255,255,255,0.12);
-  transform: translateY(-1px);
-}
-
-/* منوی آبشاری */
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background: white;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  min-width: 180px;
+  min-width: 200px; /* افزایش عرض */
   display: none;
 }
 
@@ -131,21 +104,21 @@ nav ul li:hover .dropdown-menu {
 /* استایل بخش اصلی (محتوا) */
 main.container {
   max-width: 1200px;
-  margin: 20px auto;
-  padding: 20px;
+  margin: 30px auto; /* افزایش فاصله */
+  padding: 25px; /* افزایش padding */
   background: white;
-  border-radius: 10px;
+  border-radius: 12px; /* افزایش border-radius */
   box-shadow: 0 2px 15px rgba(0, 0, 0, 0.2);
 }
 
 /* دکمه‌های حرفه‌ای */
 button, .button {
-  padding: 8px 16px;
-  font-size: 0.85rem;
+  padding: 10px 20px; /* افزایش padding */
+  font-size: 1rem; /* افزایش سایز فونت */
   background-color: var(--button-color);
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px; /* افزایش border-radius */
   cursor: pointer;
   font-weight: 500;
   letter-spacing: 0.5px;
@@ -153,13 +126,13 @@ button, .button {
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px; /* افزایش فاصله بین آیکون و متن */
 }
 
 button:hover, .button:hover {
   background-color: var(--hover-color);
   box-shadow: 0 3px 6px rgba(0,0,0,0.15);
-  transform: translateY(-1px);
+  transform: translateY(-2px); /* افزایش افکت hover */
 }
 
 button:active, .button:active {
@@ -174,11 +147,11 @@ form input[type="number"],
 form textarea,
 form select {
   width: 100%;
-  padding: 10px 12px;
-  margin-bottom: 10px;
+  padding: 12px 15px; /* افزایش padding */
+  margin-bottom: 15px; /* افزایش فاصله */
   border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 0.9rem;
+  border-radius: 6px; /* افزایش border-radius */
+  font-size: 1rem; /* افزایش سایز فونت */
   background-color: white;
   color: var(--text-color);
   transition: border-color 0.3s ease;
@@ -189,19 +162,19 @@ form select:focus,
 form textarea:focus {
   border-color: var(--button-color);
   outline: none;
-  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2); /* افزایش سایه */
 }
 
 /* جداول مدرن */
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px;
+  margin-top: 25px; /* افزایش فاصله */
 }
 
 table th,
 table td {
-  padding: 12px;
+  padding: 15px; /* افزایش padding */
   border: 1px solid #ddd;
   text-align: right;
 }
@@ -210,7 +183,7 @@ table th {
   background-color: var(--primary-color);
   color: white;
   font-weight: bold;
-  font-size: 0.9rem;
+  font-size: 1rem; /* افزایش سایز فونت */
 }
 
 table tr:nth-child(even) {
@@ -224,22 +197,22 @@ table tr:hover {
 /* کارت‌های مدرن */
 .profile-container {
   display: flex;
-  gap: 20px;
-  margin-top: 20px;
+  gap: 25px; /* افزایش فاصله */
+  margin-top: 25px; /* افزایش فاصله */
 }
 
 .tasks-section, .purchases-section {
   flex: 1;
   background-color: white;
-  padding: 20px;
-  border-radius: 10px;
+  padding: 25px; /* افزایش padding */
+  border-radius: 12px; /* افزایش border-radius */
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .tasks-section h2, .purchases-section h2 {
-  margin-bottom: 15px;
+  margin-bottom: 20px; /* افزایش فاصله */
   color: var(--primary-color);
-  font-size: 1.3rem;
+  font-size: 1.5rem; /* افزایش سایز فونت */
 }
 
 /* لینک‌های پیشرفته */
@@ -249,7 +222,7 @@ table tr:hover {
   transition: color 0.3s ease;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px; /* افزایش فاصله */
 }
 
 .customer-link:hover {
@@ -260,7 +233,7 @@ table tr:hover {
 .main-layout {
   display: grid;
   grid-template-columns: 1fr 400px;
-  gap: 30px;
+  gap: 30px; /* افزایش فاصله */
   align-items: start;
 }
 
@@ -271,16 +244,16 @@ table tr:hover {
 
 .tabs-section {
   background: white;
-  padding: 20px;
-  border-radius: 8px;
+  padding: 25px; /* افزایش padding */
+  border-radius: 10px; /* افزایش border-radius */
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
 /* بهبود استایل فرم */
 .customer-form {
   background: white;
-  padding: 20px;
-  border-radius: 8px;
+  padding: 25px; /* افزایش padding */
+  border-radius: 10px; /* افزایش border-radius */
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
@@ -296,7 +269,7 @@ table tr:hover {
 .form-group select:focus,
 .form-group textarea:focus {
   border-color: var(--button-color);
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2); /* افزایش سایه */
 }
 
 /* بهبود تب‌ها */
@@ -305,7 +278,7 @@ table tr:hover {
 }
 
 .tab-buttons {
-  gap: 5px;
+  gap: 10px; /* افزایش فاصله */
   margin-bottom: 25px;
 }
 
@@ -323,8 +296,8 @@ table tr:hover {
 
 .tab-content {
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 15px;
+  border-radius: 10px; /* افزایش border-radius */
+  padding: 20px; /* افزایش padding */
   background: #f8fafc;
 }
 
@@ -343,44 +316,44 @@ table tr:hover {
 /* بهبود آیتم‌های تاریخچه */
 .call-item, .task-item, .history-item {
   background: white;
-  padding: 12px;
-  margin-bottom: 10px;
-  border-radius: 6px;
+  padding: 15px; /* افزایش padding */
+  margin-bottom: 15px; /* افزایش فاصله */
+  border-radius: 8px; /* افزایش border-radius */
   border: 1px solid #e2e8f0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 10px;
+  gap: 15px; /* افزایش فاصله */
 }
 
 .history-header {
   background: var(--primary-color);
   color: white;
-  padding: 10px;
-  border-radius: 6px;
-  margin-bottom: 10px;
+  padding: 15px; /* افزایش padding */
+  border-radius: 8px; /* افزایش border-radius */
+  margin-bottom: 15px; /* افزایش فاصله */
 }
 
 .empty-message {
   color: #64748b;
   text-align: center;
-  padding: 20px;
+  padding: 25px; /* افزایش padding */
 }
 
 /* استایل های Pagination */
 .pagination {
-  margin-top: 20px;
+  margin-top: 25px; /* افزایش فاصله */
   text-align: center;
 }
 
 .pagination a,
 .pagination .current {
   display: inline-block;
-  padding: 8px 16px;
+  padding: 10px 20px; /* افزایش padding */
   margin: 0 5px;
   text-decoration: none;
-  border-radius: 5px;
+  border-radius: 6px; /* افزایش border-radius */
   color: var(--primary-color);
-  background-color: #fff;
+  background-color: white;
   border: 1px solid var(--primary-color);
   transition: background-color 0.3s, color 0.3s;
 }
@@ -404,15 +377,15 @@ table tr:hover {
 
 .task-item {
   background-color: white;
-  padding: 15px;
-  margin-bottom: 10px;
-  border-radius: 8px;
+  padding: 20px; /* افزایش padding */
+  margin-bottom: 15px; /* افزایش فاصله */
+  border-radius: 10px; /* افزایش border-radius */
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .task-item:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px); /* افزایش افکت hover */
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
@@ -431,7 +404,7 @@ table tr:hover {
 .empty-task {
   text-align: center;
   color: #64748b;
-  padding: 20px;
+  padding: 25px; /* افزایش padding */
   background-color: #f8fafc;
   border: 1px dashed #e2e8f0;
 }
@@ -444,15 +417,15 @@ table tr:hover {
 
 .purchase-item {
   background-color: white;
-  padding: 15px;
-  margin-bottom: 10px;
-  border-radius: 8px;
+  padding: 20px; /* افزایش padding */
+  margin-bottom: 15px; /* افزایش فاصله */
+  border-radius: 10px; /* افزایش border-radius */
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .purchase-item:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px); /* افزایش افکت hover */
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
@@ -471,15 +444,15 @@ table tr:hover {
 .empty-purchase {
   text-align: center;
   color: #64748b;
-  padding: 20px;
+  padding: 25px; /* افزایش padding */
   background-color: #f8fafc;
   border: 1px dashed #e2e8f0;
 }
 
 /* استایل‌های عمومی برای آیکون‌ها */
 nav ul li a i {
-  margin-left: 8px; /* فاصله بین آیکون و متن */
-  font-size: 1.1em; /* اندازه آیکون‌ها */
+  margin-left: 10px; /* افزایش فاصله بین آیکون و متن */
+  font-size: 1.2em; /* افزایش اندازه آیکون‌ها */
 }
 
 /* رنگ‌های اختصاصی برای هر آیکون */
@@ -516,3 +489,76 @@ nav ul li a:hover i {
 .icon-date {
   color: #9C27B0; /* بنفش برای آیکون تاریخ */
 }
+
+/* انیمیشن‌های جدید */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.slide-in {
+  animation: slideIn 0.5s ease-out;
+}
+
+/* افکت‌های hover پیشرفته‌تر */
+.task-item:hover, .purchase-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* اسکریپت‌های جدید */
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // افزودن کلاس‌های انیمیشن به عناصر
+    const taskItems = document.querySelectorAll('.task-item');
+    const purchaseItems = document.querySelectorAll('.purchase-item');
+
+    taskItems.forEach((item, index) => {
+      setTimeout(() => {
+        item.classList.add('fade-in');
+      }, index * 100);
+    });
+
+    purchaseItems.forEach((item, index) => {
+      setTimeout(() => {
+        item.classList.add('slide-in');
+      }, index * 100);
+    });
+
+    // نمایش/پنهان کردن بخش‌ها با انیمیشن
+    const showCompletedTasksButton = document.getElementById('show-completed-tasks');
+    const completedTasksSection = document.getElementById('completed-tasks-section');
+
+    showCompletedTasksButton.addEventListener('click', function() {
+      if (completedTasksSection.style.display === 'none') {
+        completedTasksSection.style.display = 'block';
+        completedTasksSection.classList.add('fade-in');
+        this.textContent = 'پنهان کردن تسک‌های انجام شده';
+      } else {
+        completedTasksSection.style.display = 'none';
+        this.textContent = 'نمایش تسک‌های انجام شده';
+      }
+    });
+  });
+</script>

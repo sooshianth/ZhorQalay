@@ -1,4 +1,5 @@
 from django.db import models
+from django.db import models, transaction
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from core.models import Customer, CargoProduct
@@ -26,6 +27,7 @@ class Purchase(models.Model):
         verbose_name = "خرید"
         verbose_name_plural = "خریدها"
     
+    @transaction.atomic
     def save(self, *args, **kwargs):
         if self.is_paid and self.cargo:
             self.cargo.weight -= self.weight
