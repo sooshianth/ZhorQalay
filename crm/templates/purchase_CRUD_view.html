@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <!-- بخش گزارش عملیات -->
+    <table class="operations-table">
+        <tr>
+            <th colspan="5" class="section-header">گزارش عملیات</th>
+        </tr>
+        <tr>
+            <td><b>پژوهشی</b></td>
+            <td>مرحله</td>
+            <td>دپارتمان</td>
+            <td>تاریخ/ساعت</td>
+            <td>گزارش</td>
+        </tr>
+        {% for step in progress_steps %}
+        <tr>
+            <td></td>
+            <td>{{ step.name }}</td>
+            <td>
+                {% if "بازارگاه" in step.name %}لجستیک
+                {% elif "پرداخت" in step.name %}مالی
+                {% elif "تخصیص" in step.name %}فروش
+                {% endif %}
+            </td>
+            <td>{{ purchase.updated_at|date:"Y/m/d H:i" }}</td>
+            <td>{% if step.status %}✅{% else %}⌛{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <!-- بخش مشخصات خریدار -->
+    <table class="buyer-info">
+        <tr>
+            <th colspan="6">مشخصات خریدار</th>
+        </tr>
+        <tr>
+            <td rowspan="2">نام و نام خانوادگی</td>
+            <td colspan="2">{{ purchase.customer.name }}</td>
+            <td rowspan="1">شهر/استان</td>
+            <td colspan="2">{{ purchase.customer.city }}</td>
+        </tr>
+        <tr>
+            <td>شماره تماس</td>
+            <td>{{ purchase.customer.phone_number }}</td>
+            <td></td>
+        </tr>
+    </table>
+
+    <!-- بخش مشخصات خرید -->
+    <table class="purchase-details">
+        <tr>
+            <th colspan="6">مشخصات برگه خرید</th>
+        </tr>
+        <tr>
+            <td rowspan="3">شماره خرید</td>
+            <td>{{ purchase.id }}</td>
+            <td rowspan="3">واحد کالا</td>
+            <td colspan="2">{{ purchase.cargo.get_product_type_display }}</td>
+        </tr>
+        <tr>
+            <td>وزن</td>
+            <td colspan="2">{{ purchase.weight }} کیلوگرم</td>
+        </tr>
+        <tr>
+            <td>کشور مبدا</td>
+            <td colspan="2">{{ purchase.cargo.get_country_display }}</td>
+        </tr>
+    </table>
+
+    <!-- بخش تاییدیه‌ها -->
+    <table class="approval-table">
+        <tr>
+            <th colspan="4">تاییدیه واریز مالی</th>
+        </tr>
+        <tr>
+            <td>تاریخ</td>
+            <td>مبلغ</td>
+            <td>شماره پیگیری</td>
+            <td>وضعیت</td>
+        </tr>
+        <tr>
+            <td>{{ purchase.updated_at|date:"Y/m/d" }}</td>
+            <td>{{ purchase.amount_paid|default:"-" }} ریال</td>
+            <td>{{ purchase.tracking_number|default:"-" }}</td>
+            <td class="status-cell {% if purchase.is_paid %}completed{% else %}pending{% endif %}">
+                {{ purchase.get_status_display }}
+            </td>
+        </tr>
+    </table>
+
+    <!-- فرم ویرایش -->
+    <form method="post" class="purchase-form">
+        {% csrf_token %}
+        <div class="form-grid">
+            {% for field in form %}
+            <div class="form-group">
+                <label>{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                <small class="form-helptext">{{ field.help_text }}</small>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="button save-button">
+                <i class="fas fa-save"></i>
+                ذخیره تغییرات
+            </button>
+        </div>
+    </form>
+
+    <!-- تاریخچه تغییرات -->
+    <table class="history-table">
+        <tr>
+            <th colspan="4">تاریخچه تغییرات</th>
+        </tr>
+        <tr>
+            <td>تاریخ/زمان</td>
+            <td>کاربر</td>
+            <td>تغییرات</td>
+            <td>وضعیت</td>
+        </tr>
+        {% for log in history_logs %}
+        <tr>
+            <td>{{ log.timestamp|date:"Y/m/d H:i" }}</td>
+            <td>{{ log.user.get_full_name }}</td>
+            <td>{{ log.changes }}</td>
+            <td>✅</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4" class="empty-state">
+                <i class="fas fa-history"></i>
+                هیچ سابقه‌ای ثبت نشده است
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<style>
+    .container {
+        padding: 20px;
+        direction: rtl;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    th, td {
+        padding: 12px;
+        border: 1px solid #ddd;
+        text-align: center;
+    }
+
+    .section-header {
+        background: #f8f9fa;
+        font-size: 1.2em;
+        padding: 15px;
+    }
+
+    .status-cell {
+        font-weight: bold;
+    }
+    
+    .completed {
+        color: #28a745;
+        background: #e8f5e9;
+    }
+
+    .pending {
+        color: #dc3545;
+        background: #f8d7da;
+    }
+
+    .purchase-form {
+        margin-top: 30px;
+        padding: 20px;
+        background: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 20px;
+        color: #6c757d;
+    }
+
+    .button {
+        padding: 10px 20px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}

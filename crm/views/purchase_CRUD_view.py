@@ -27,18 +27,18 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         # محدودسازی فیلدها بر اساس نقش کاربر
         if user_role == 'sales_agent':
             allowed_fields = [
-                'weight', 'address', 'tracking_number',
-                'is_takhsised', 'is_address_sent_to_varedkonandeh'
+                'weight', 'address', 'tracking_number', 'purchase_date', 'purchase_number', 'amount_paid', 'cargo',
+                'is_takhsised', 'is_sarak_varized', 'does_salesman_approve',
             ]
         elif user_role == 'logistics_manager':
             allowed_fields = [
-                'tracking_number', 'is_bazaargahed',
-                'is_sent_to_barbari', 'is_barnamed', 'is_sent'
+                'weight', 'address', 'tracking_number', 'purchase_number', 'amount_paid', 'cargo',
+                'is_bazaargahed', 'is_takhsised_approved', 'is_address_sent_to_varedkonandeh', 'is_sent_to_barbari', 'is_barnamed', 'does_logistics_approve',
             ]
         elif user_role == 'financial_manager':
             allowed_fields = [
-                'amount_paid', 'is_paid', 'is_takhsised_approved',
-                'is_factorated', 'is_ekhtelaf_approved'
+                'amount_paid', 'cargo', 'purchase_date', 'purchase_number', 'tracking_number', 'address', 'weight',
+                'is_paid','is_tasvied_with_varedkonandeh','is_factorated', 'is_ekhtelaf_approved', 'is_kasri_varized', 'is_kasri_reciept_submited', 'does_financial_approve',
             ]
         else:
             allowed_fields = []

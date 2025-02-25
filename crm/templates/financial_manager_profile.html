@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}پروفایل مدیر مالی{% endblock %}
+
+{% block content %}
+    <div class="profile-container">
+        <h2>پروفایل مدیر مالی</h2>
+
+        <table class="profile-info">
+            <tr>
+                <td>نام و نام خانوادگی</td>
+                <td>{{ user.first_name }} {{ user.last_name }}</td>
+            </tr>
+            <tr>
+                <td>نام کاربری</td>
+                <td>{{ user.username }}</td>
+            </tr>
+            <tr>
+                <td>ایمیل</td>
+                <td>{{ user.email }}</td>
+            </tr>
+        </table>
+    </div>
+{% endblock %}

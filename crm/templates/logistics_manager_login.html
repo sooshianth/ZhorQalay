@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}ورود مدیران لجستیک{% endblock %}
+
+{% block content %}
+    <div class="login-container">
+        <h2>ورود به حساب مدیر لجستیک</h2>
+
+        {% if messages %}
+            {% for message in messages %}
+                <p style="color: red;">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+            <label for="username">نام کاربری:</label>
+            <input type="text" name="username" required>
+            
+            <label for="password">رمز عبور:</label>
+            <input type="password" name="password" required>
+            
+            <button type="submit">ورود</button>
+        </form>
+    </div>
+{% endblock %}

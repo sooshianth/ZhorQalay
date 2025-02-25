@@ -19,14 +19,23 @@
                     {% if request.user.is_authenticated %}
                         {% if request.user.sales_agent %}
                             <li><a href="{% url 'sales_agent_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
+                            <li><a href="{% url 'customer_list' %}"><i class="fas fa-users icon-customers"></i> لیست مشتریان</a></li>
+                            <li><a href="{% url 'general_customer_CRUD' %}"><i class="fas fa-tasks icon-management"></i> مدیریت مشتریان</a></li>
                         {% endif %}
-                        <li><a href="{% url 'customer_list' %}"><i class="fas fa-users icon-customers"></i> لیست مشتریان</a></li>
-                        <li><a href="{% url 'general_customer_CRUD' %}"><i class="fas fa-tasks icon-management"></i> مدیریت مشتریان</a></li>
+                        {% if request.user.logistics_manager %}
+                            <li><a href="{% url 'logistics_manager_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
+                        {% endif %}
+                        {% if request.user.financial_manager %}
+                            <li><a href="{% url 'financial_manager_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
+                        {% endif %}
                         <li><a href="{% url 'cargo_product_list' %}"><i class="fas fa-box icon-products"></i> لیست محصولات و کوتاژها</a></li>
                         <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt icon-logout"></i> خروج</a></li>
                     {% else %}
                         <li><a href="{% url 'sales_agent_login' %}"><i class="fas fa-sign-in-alt icon-login"></i> ورود کارشناسان فروش</a></li>
+                        <li><a href="{% url 'logistics_manager_login' %}"><i class="fas fa-sign-in-alt icon-login"></i> ورود مدیران لجستیک</a></li>
+                        <li><a href="{% url 'financial_manager_login' %}"><i class="fas fa-sign-in-alt icon-login"></i> ورود مدیران مالی</a></li>
                     {% endif %}
+                        
                 </ul>
             </nav>
             <h1>سامانه جامع سیمرغ‌ افزار</h1>
