@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 
 class FinancialManager(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='financial_manager', null=True, blank=True)
+    user = models.OneToOneField(User, on_delete=models.SET_NULL, related_name='financial_manager', null=True, blank=True)
     name = models.CharField(max_length=255, null=True, blank=True)
     email = models.EmailField(max_length=50, null=True, blank=True)
     phone_number = models.CharField(max_length=12, null=True, blank=True)

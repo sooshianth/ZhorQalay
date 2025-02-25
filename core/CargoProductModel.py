@@ -54,8 +54,12 @@ class CargoProduct(models.Model):
         if len(str(self.cottage)) != 8:
             raise ValidationError('کوتاژ باید ۸ رقمی باشد.')
         
+    def get_product_type_display(self):
+        return dict(self.PRODUCT_TYPES).get(self.product_type, _('نامشخص'))
+    def get_country_display(self):
+        return dict(self.COUNTRIES).get(self.country, _('نامشخص'))
     def __str__(self):
-        return f"{self.product_type} از {self.country} - {self.cottage}"
+        return f"{self.get_product_type_display()} {self.get_country_display()} - {self.cottage}"
     
     def change_status(self):
         temp = self.status

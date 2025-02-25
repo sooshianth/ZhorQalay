@@ -28,8 +28,8 @@ class Purchase(models.Model):
     is_takhsised = models.BooleanField("تخصیص شده", default=False)
     is_takhsised_approved = models.BooleanField("تایید تخصیص", default=False)
     is_tasvied_with_varedkonandeh = models.BooleanField("تسویه با واردکننده", default=False)
-    is_address_sent_to_varedkonandeh = models.BooleanField("ارسال آدرس به واردکننده", default=False)
 
+    is_address_sent_to_varedkonandeh = models.BooleanField("ارسال آدرس به واردکننده", default=False)
     is_sent_to_barbari = models.BooleanField("ارسال به باربری", default=False)
     is_barnamed = models.BooleanField("ارسال شده", default=False)
     is_factorated = models.BooleanField("صدور فاکتور", default=False)
@@ -52,6 +52,118 @@ class Purchase(models.Model):
 
     is_sent = models.BooleanField("ارسال شده", default=False)
     is_delivered = models.BooleanField("تحویل داده شده", default=False)
+
+
+
+
+    def check_is_bazaaraghed(self, user_role):
+        if user_role == 'logistics_manager':
+            self.is_bazaargahed = True
+        else:
+            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+
+    def check_is_paid(self, user_role):
+        if user_role == 'financial_manager' and self.is_bazaargahed:
+            self.is_paid = True
+        else:
+            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        
+    def check_is_takhsised(self, user_role):
+        if user_role == 'sales_agent' and self.is_paid:
+            self.is_takhsised = True
+        else:
+            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        
+        
+    def check_is_takhsised_approved(self, user_role):
+        if user_role == 'financial_manager' and self.is_takhsised:
+            self.is_takhsised_approved = True
+        else:
+            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+
+    def check_is_tasvied_with_varedkonandeh(self, user_role):
+        if user_role == 'logistics_manager' and self.is_takhsised_approved:
+            self.is_tasvied_with_varedkonandeh = True
+        else:
+            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+    
+    def check_is_address_sent_to_varedkonandeh(self, user_role):
+        if user_role == 'sales_agent' and self.is_tasvied_with_varedkonandeh:
+            self.is_address_sent_to_varedkonandeh = True
+        else:
+            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+
+    def check_is_sent_to_barbari(self, user_role):
+        if user_role == 'logistics_manager' and self.is_address_sent_to_varedkonandeh:
+            self.is_sent_to_barbari = True
+        else:
+            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        
+    def check_is_barnamed(self, user_role):
+        if user_role == 'logistics_manager' and self.is_sent_to_barbari:
+            self.is_barnamed = True
+        else:
+            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        
+    def check_is_factorated(self, user_role):
+        if user_role == 'financial_manager' and self.is_barnamed:
+            self.is_factorated = True
+        else:
+            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+    
+    def check_is_ekhtelaf_approved(self, user_role):
+        if user_role == 'financial_manager' and self.is_factorated:
+            self.is_ekhtelaf_approved = True
+        else:
+            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        
+    def check_is_kasri_varized(self, user_role):
+        if user_role == 'financial_manager' and self.is_ekhtelaf_approved:
+            self.is_kasri_varized = True
+        else:
+            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+    
+    def check_is_sarak_varized(self, user_role):
+        if user_role == 'sales_agent' and self.is_kasri_varized:
+            self.is_sarak_varized = True
+        else:
+            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        
+    def check_is_kasri_reciept_submited(self, user_role):
+        if user_role == 'financial_manager' and self.is_sarak_varized:
+            self.is_kasri_reciept_submited = True
+        else:
+            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+
+
+    def check_does_salesman_approve(self, user_role):
+        if user_role == 'sales_agent' and self.is_kasri_reciept_submited:
+            self.does_salesman_approve = True
+    def check_does_logistics_approve(self, user_role):
+        if user_role == 'logistics_manager' and self.is_kasri_reciept_submited:
+            self.does_logistics_approve = True
+    def check_does_financial_approve(self, user_role):
+        if user_role == 'financial_manager' and self.is_kasri_reciept_submited:
+            self.does_financial_approve = True
+
+
+    def check_is_urgent(self, user):
+        if user.is_superuser:
+            self.is_urgent = True
+        else:
+            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+    def check_is_canceled(self, user):
+        if user.is_superuser:
+            self.is_canceled = True
+        else:
+            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+    def check_is_archived(self, user):
+        if user.is_superuser:
+            self.is_archived = True
+        else:
+            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        
+
 
     class Meta:
         verbose_name = "خرید"
@@ -109,21 +221,6 @@ class Purchase(models.Model):
         if errors:
             raise ValidationError(errors)
 
-    def change_is_paid(self):
-        temp = self.is_paid
-        self.is_paid = not temp
-    def change_is_sent(self):
-        temp = self.is_sent
-        self.is_sent = not temp
-    def change_is_delivered(self):
-        temp = self.is_delivered
-        self.is_delivered = not temp
-    def change_is_canceled(self):
-        temp = self.is_canceled
-        self.is_canceled = not temp
-    def change_is_archived(self):
-        temp = self.is_archived
-        self.is_archived = not temp
 
 
 
@@ -140,3 +237,4 @@ class PurchaseHistory(models.Model):
 
     def __str__(self):
         return f"{self.timestamp} - {self.user}"
+

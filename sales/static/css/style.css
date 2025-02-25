@@ -114,7 +114,7 @@ main.container {
 /* دکمه‌های حرفه‌ای */
 button, .button {
   padding: 10px 20px; /* افزایش padding */
-  font-size: 1rem; /* افزایش سایز فونت */
+  font-size: 0.8rem; /* افزایش سایز فونت */
   background-color: var(--button-color);
   color: white;
   border: none;
