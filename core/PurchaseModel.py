@@ -15,13 +15,43 @@ class Purchase(models.Model):
     amount_paid = models.PositiveBigIntegerField("مبلغ پرداختی(ریال)", blank=True, null=True)
     created_at = models.DateTimeField("تاریخ ثبت",default=timezone.now,editable=True)
     updated_at  = models.DateTimeField("تاریخ بروزرسانی",auto_now=True)
-    is_paid = models.BooleanField("پرداخت شده", default=False)
+
+
+
+
+    #################################################
+    ##           BOOOOLLLEAAANNNNSSSSSSSSSS        ##
+    #################################################
+
+    is_bazaargahed = models.BooleanField("تایید بازارگاه ", default=False)
+    is_paid = models.BooleanField("تایید مالی", default=False)
     is_takhsised = models.BooleanField("تخصیص شده", default=False)
+    is_takhsised_approved = models.BooleanField("تایید تخصیص", default=False)
+    is_tasvied_with_varedkonandeh = models.BooleanField("تسویه با واردکننده", default=False)
+    is_address_sent_to_varedkonandeh = models.BooleanField("ارسال آدرس به واردکننده", default=False)
+
     is_sent_to_barbari = models.BooleanField("ارسال به باربری", default=False)
-    is_sent = models.BooleanField("ارسال شده", default=False)
-    is_delivered = models.BooleanField("تحویل داده شده", default=False)
+    is_barnamed = models.BooleanField("ارسال شده", default=False)
+    is_factorated = models.BooleanField("صدور فاکتور", default=False)
+    is_ekhtelaf_approved = models.BooleanField("تایید مبلغ اختلاف", default=False)
+
+    is_kasri_varized = models.BooleanField("واریز کسری", default=False)
+    is_sarak_varized = models.BooleanField("واریز سرک", default=False)
+    is_kasri_reciept_submited = models.BooleanField("ثبت رسید کسری", default=False)
+
+    does_salesman_approve = models.BooleanField("تایید واحد فروش", default=False)
+    does_logistics_approve = models.BooleanField("تایید واحد لجستیک", default=False)
+    does_financial_approve = models.BooleanField("تایید واحد مالی", default=False)
+
+
+    is_urgent = models.BooleanField("پیگیری فوری", default=False)
     is_canceled = models.BooleanField("لغو شده", default=False)
     is_archived = models.BooleanField("آرشیو شده", default=False)
+    
+    ################################################################3
+
+    is_sent = models.BooleanField("ارسال شده", default=False)
+    is_delivered = models.BooleanField("تحویل داده شده", default=False)
 
     class Meta:
         verbose_name = "خرید"
@@ -43,22 +73,6 @@ class Purchase(models.Model):
     def return_updated_at(self):
         return utils.time_convertor(self.updated_at)
     
-    def change_is_paid(self):
-        temp = self.is_paid
-        self.is_paid = not temp
-    def change_is_sent(self):
-        temp = self.is_sent
-        self.is_sent = not temp
-    def change_is_delivered(self):
-        temp = self.is_delivered
-        self.is_delivered = not temp
-    def change_is_canceled(self):
-        temp = self.is_canceled
-        self.is_canceled = not temp
-    def change_is_archived(self):
-        temp = self.is_archived
-        self.is_archived = not temp
-
     def clean(self):
         errors = {}
         if self.purchase_number:
@@ -95,10 +109,25 @@ class Purchase(models.Model):
         if errors:
             raise ValidationError(errors)
 
+    def change_is_paid(self):
+        temp = self.is_paid
+        self.is_paid = not temp
+    def change_is_sent(self):
+        temp = self.is_sent
+        self.is_sent = not temp
+    def change_is_delivered(self):
+        temp = self.is_delivered
+        self.is_delivered = not temp
+    def change_is_canceled(self):
+        temp = self.is_canceled
+        self.is_canceled = not temp
+    def change_is_archived(self):
+        temp = self.is_archived
+        self.is_archived = not temp
+
 
 
 from django.contrib.auth.models import User
-
 class PurchaseHistory(models.Model):
     purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)

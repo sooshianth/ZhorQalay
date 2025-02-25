@@ -13,6 +13,7 @@ from core.CargoProductModel import CargoProduct
 from django import forms
 from core.SalesAgentModel import SalesAgent
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 
 class CustomerForm(forms.ModelForm):
     field_of_activity = forms.ChoiceField(
