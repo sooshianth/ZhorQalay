@@ -1,8 +1,8 @@
 from django.db import models
+from django_jalali.db import models as jmodels
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _ 
 from .CustomerModel import Customer
-from .extensions import utils
 
 class CallSession(models.Model):
     
@@ -27,7 +27,7 @@ class CallSession(models.Model):
     status = models.CharField(_('وضعیت'), max_length=15, choices=CALL_STATUS)
 
     #زمان انجام شدن آن تماس
-    date = models.DateTimeField(_('تاریخ تماس') , auto_now_add=True)
+    date = jmodels.jDateTimeField(_('تاریخ تماس') , auto_now_add=True)
 
     #یادداشت در صورت لزوم
     note = models.TextField(_('یادداشت '), max_length=255, blank=True, null=True)
@@ -39,9 +39,6 @@ class CallSession(models.Model):
     def __str__(self):
         return f"{self.customer.name} - {self.date}"
     
-    def return_date(self):
-        return utils.time_convertor(self.date)
-
     def clean(self):
         if self.type not in dict(self.CALL_TYPE).keys():
             raise ValidationError(_('نوع تماس نامعتبر است.'))

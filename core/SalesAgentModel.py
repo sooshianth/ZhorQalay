@@ -1,4 +1,5 @@
 from django.db import models
+from django_jalali.db import models as jmodels
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 

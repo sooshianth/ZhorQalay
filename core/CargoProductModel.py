@@ -1,7 +1,7 @@
 from django.db import models
+from django_jalali.db import models as jmodels
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
-from .extensions import utils
 
 class CargoProduct(models.Model):
     PRODUCT_TYPES = [
@@ -37,8 +37,8 @@ class CargoProduct(models.Model):
     loading_time = models.CharField(_('زمان بارگیری'), max_length=50)
     description = models.CharField(_('توضیحات'), max_length=300, null=True, blank=True)
     weight = models.PositiveIntegerField(_('وزن موجود'), )
-    created_at = models.DateTimeField(_('تاریخ ثبت'), auto_now_add=True)
-    last_modified = models.DateTimeField(_('تاریخ آخرین ویرایش'), auto_now=True)
+    created_at = jmodels.jDateTimeField(_('تاریخ ثبت'), auto_now_add=True)
+    last_modified = jmodels.jDateTimeField(_('تاریخ آخرین ویرایش'), auto_now=True)
     status = models.BooleanField(_('فعال/غیرفعال'), default=True)
 
     class Meta:
@@ -65,8 +65,6 @@ class CargoProduct(models.Model):
         temp = self.status
         self.status = not temp
 
-    def return_created(self):
-        return utils.time_convertor(self.created_at)
     
     @staticmethod
     def get_active_products():

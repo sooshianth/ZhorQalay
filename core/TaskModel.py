@@ -1,10 +1,10 @@
 from django.db import models
+from django_jalali.db import models as jmodels
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from datetime import timedelta
 from .PurchaseModel import Purchase
 from .CustomerModel import Customer
-from .extensions import utils
 
 class Task(models.Model):
     TASK_STATUS = [
@@ -16,8 +16,8 @@ class Task(models.Model):
     purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, null=True, blank=True, related_name='tasks')
     customer = models.ForeignKey(Customer, on_delete=models.DO_NOTHING, verbose_name=_('مشتری'), related_name='tasks')
     status = models.BooleanField(_('وضعیت پیگیری'), choices=TASK_STATUS, default=False)
-    create_time = models.DateTimeField(_('زمان ایجاد شده'), auto_now_add=True)
-    due_date = models.DateTimeField(_('زمان مورد انتظار پیگیری'), null=True, blank=True)
+    create_time = jmodels.jDateTimeField(_('زمان ایجاد شده'), auto_now_add=True)
+    due_date = jmodels.jDateTimeField(_('زمان مورد انتظار پیگیری'), null=True, blank=True)
 
     class Meta:
         verbose_name = "وظیفه"
@@ -42,9 +42,3 @@ class Task(models.Model):
     def mark_as_not_done(self):
         self.status = False
         self.save()
-
-    def return_due_date(self):
-        return utils.time_convertor(self.due_date)
-
-    def return_create_time(self):
-        return utils.time_convertor(self.create_time)
