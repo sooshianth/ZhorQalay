@@ -456,12 +456,12 @@ nav ul li a i {
 }
 
 /* رنگ‌های اختصاصی برای هر آیکون */
-nav ul li a i.icon-profile { color: #4CAF50; } /* سبز برای پروفایل */
-nav ul li a i.icon-customers { color: #2196F3; } /* آبی برای لیست مشتریان */
-nav ul li a i.icon-management { color: #FF9800; } /* نارنجی برای مدیریت مشتریان */
-nav ul li a i.icon-products { color: #9C27B0; } /* بنفش برای لیست محصولات */
-nav ul li a i.icon-logout { color: #F44336; } /* قرمز برای خروج */
-nav ul li a i.icon-login { color: #00BCD4; } /* فیروزه‌ای برای ورود */
+nav ul li a i.icon-profile { color: #ffffff; } /* سبز برای پروفایل */
+nav ul li a i.icon-customers { color: #ffffff; } /* آبی برای لیست مشتریان */
+nav ul li a i.icon-management { color: #ffffff; } /* نارنجی برای مدیریت مشتریان */
+nav ul li a i.icon-products { color: #ffffff; } /* بنفش برای لیست محصولات */
+nav ul li a i.icon-logout { color: #ffffff; } /* قرمز برای خروج */
+nav ul li a i.icon-login { color: #ffffff; } /* فیروزه‌ای برای ورود */
 
 /* تغییر رنگ آیکون‌ها هنگام hover */
 nav ul li a:hover i {
@@ -500,6 +500,7 @@ body {
 
 main.container {
   flex: 1;
+  min-width: 150vh;
 }
 
 footer {
@@ -665,6 +666,21 @@ footer {
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
 }
 
+
+
+
+
+/* تنظیم رنگ تک‌رنگ برای آیکون‌های Font Awesome */
+nav ul li a i,
+.icon-done,
+.icon-pending,
+.icon-product,
+.icon-amount,
+.icon-date,
+.contact-icon,
+.link-icon {
+  color: rgb(0, 105, 56); /* رنگ سفید برای همه آیکون‌ها */
+}
 /* اسکریپت‌های جدید */
 <script>
   document.addEventListener('DOMContentLoaded', function() {
