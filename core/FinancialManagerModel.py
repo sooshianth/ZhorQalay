@@ -1,4 +1,5 @@
 from django.db import models
+from django_jalali.db import models as jmodels
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 
@@ -7,8 +8,8 @@ class FinancialManager(models.Model):
     name = models.CharField(max_length=255, null=True, blank=True)
     email = models.EmailField(max_length=50, null=True, blank=True)
     phone_number = models.CharField(max_length=12, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    created_at = jmodels.jDateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = jmodels.jDateTimeField(auto_now=True, null=True, blank=True)
 
     def clean(self):
         if not self.phone_number.isdigit() and len(str(self.phone_number)) != 11:

@@ -22,7 +22,6 @@ GRAPH_MODELS = {
 }
 
 INSTALLED_APPS = [
-    # 'grappelli',
     'colorfield',
     'admin_interface',
     'django.contrib.admin',
@@ -32,8 +31,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_extensions',
+    'django_jalali',
     'core.apps.CoreConfig',
     'sales.apps.SalesConfig',
+    'crm.apps.CrmConfig',
 ]
 
 MIDDLEWARE = [
@@ -107,6 +108,7 @@ STATIC_ROOT = BASE_DIR / 'static'
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / "sales/static",
+    BASE_DIR / "crm/static",
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -5,6 +5,11 @@
 {% block content %}
     <h1>پروفایل کارشناس فروش</h1>
     <br>
+    {% if messages %}
+    {% for message in messages %}
+        <p style="color: red;">{{ message }}</p>
+    {% endfor %}
+    {% endif %}
 
     <p>نام: {{ sales_agent.name }}</p>
     <p>شماره تلفن: {{ sales_agent.phone_number }}</p>

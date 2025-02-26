@@ -3,6 +3,13 @@
 {% block title %}لیست محصولات و کوتاژها{% endblock %}
 
 {% block content %}
+
+{% if messages %}
+{% for message in messages %}
+    <p style="color: red;">{{ message }}</p>
+{% endfor %}
+{% endif %}
+
     <div class="cargo-product-list">
         <h2>لیست محصولات و کوتاژها</h2>
         <table>

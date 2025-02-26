@@ -1,9 +1,8 @@
-from django.db import models
 from django.db import models, transaction
+from django_jalali.db import models as jmodels
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from core.models import Customer, CargoProduct
-from .extensions import utils
 
 class Purchase(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.DO_NOTHING, verbose_name="مشتری", help_text="ارتباط یک‌به‌یک با مشتری از طریق شماره تلفن یا آیدی", related_name='purchases_made')
@@ -13,8 +12,8 @@ class Purchase(models.Model):
     weight = models.PositiveIntegerField("وزن (کیلوگرم)")
     cargo = models.ForeignKey(CargoProduct,on_delete=models.SET_NULL, verbose_name="کوتاژ", blank=True, null=True)
     amount_paid = models.PositiveBigIntegerField("مبلغ پرداختی(ریال)", blank=True, null=True)
-    created_at = models.DateTimeField("تاریخ ثبت",default=timezone.now,editable=True)
-    updated_at  = models.DateTimeField("تاریخ بروزرسانی",auto_now=True)
+    created_at = jmodels.jDateTimeField("تاریخ ثبت",default=timezone.now,editable=True)
+    updated_at  = jmodels.jDateTimeField("تاریخ بروزرسانی",auto_now=True)
 
 
 
@@ -180,11 +179,6 @@ class Purchase(models.Model):
         return f"خرید {self.purchase_number} - {self.customer.name} در تاریخ {self.created_at}"
 
 
-    def return_created_at(self):
-        return utils.time_convertor(self.created_at)
-    def return_updated_at(self):
-        return utils.time_convertor(self.updated_at)
-    
     def clean(self):
         errors = {}
         if self.purchase_number:
