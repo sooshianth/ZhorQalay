@@ -29,6 +29,7 @@
                         {% if request.user.financial_manager %}
                             <li><a href="{% url 'financial_manager_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
                         {% endif %}
+                        <li><a href="{% url 'purchase_list' %}"><i class="fas fa-user icon-purchase"></i> خریدها</a></li>
                         <li><a href="{% url 'cargo_product_list' %}"><i class="fas fa-box icon-products"></i> لیست محصولات و کوتاژها</a></li>
                         <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt icon-logout"></i> خروج</a></li>
                     {% else %}
