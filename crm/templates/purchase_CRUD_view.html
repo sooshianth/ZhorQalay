@@ -2,102 +2,147 @@
 
 {% block content %}
 <div class="container">
-    <!-- بخش گزارش عملیات -->
+    <!-- ✅ تایم‌لاین مراحل خرید -->
+    <div class="timeline">
+        {% for step in progress_steps %}
+            <div class="timeline-step {% if step.status %}completed{% else %}pending{% endif %}" 
+                data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else %}- در انتظار {% endif %}">
+                <div class="circle">
+                    <i class="{% if 'بازارگاه' in step.name %}fas fa-warehouse{% elif 'پرداخت' in step.name %}fas fa-wallet{% elif 'تخصیص' in step.name %}fas fa-handshake{% elif 'بارنامه' in step.name %}fas fa-truck{% endif %}"></i>
+                </div>
+                <p>{{ step.name }}</p>
+            </div>
+            {% if not forloop.last %}
+                <div class="line {% if step.status %}completed{% endif %}"></div>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+
+        <!-- بخش گزارش عملیات -->
     <table class="operations-table">
         <tr>
-            <th colspan="5" class="section-header">گزارش عملیات</th>
+            <th colspan="5" class="section-header">📊 گزارش عملیات</th>
         </tr>
         <tr>
-            <td><b>پژوهشی</b></td>
-            <td>مرحله</td>
-            <td>دپارتمان</td>
-            <td>تاریخ/ساعت</td>
-            <td>گزارش</td>
+            <td> نوع</td>
+            <td> مرحله</td>
+            <td> دپارتمان</td>
+            <td> تاریخ</td>
+            <td> وضعیت</td>
         </tr>
         {% for step in progress_steps %}
         <tr>
-            <td></td>
+            <td> عملیات</td>
             <td>{{ step.name }}</td>
-            <td>
-                {% if "بازارگاه" in step.name %}لجستیک
-                {% elif "پرداخت" in step.name %}مالی
-                {% elif "تخصیص" in step.name %}فروش
-                {% endif %}
+            <td class="department">
+                {% if "بازارگاه" in step.name %} 🚛 لجستیک {% elif "پرداخت" in step.name %} 💰 مالی {% elif "تخصیص" in step.name %} 🛒 فروش {% endif %}
             </td>
             <td>{{ purchase.updated_at|date:"Y/m/d H:i" }}</td>
-            <td>{% if step.status %}✅{% else %}⌛{% endif %}</td>
+            <td class="status-cell {% if step.status %}completed{% else %}pending{% endif %}">
+                {% if step.status %}✔ انجام شد{% else %}⌛ در انتظار{% endif %}
+            </td>
         </tr>
         {% endfor %}
     </table>
 
-    <!-- بخش مشخصات خریدار -->
-    <table class="buyer-info">
-        <tr>
-            <th colspan="6">مشخصات خریدار</th>
-        </tr>
-        <tr>
-            <td rowspan="2">نام و نام خانوادگی</td>
-            <td colspan="2">{{ purchase.customer.name }}</td>
-            <td rowspan="1">شهر/استان</td>
-            <td colspan="2">{{ purchase.customer.city }}</td>
-        </tr>
-        <tr>
-            <td>شماره تماس</td>
-            <td>{{ purchase.customer.phone_number }}</td>
-            <td></td>
-        </tr>
-    </table>
 
-    <!-- بخش مشخصات خرید -->
-    <table class="purchase-details">
-        <tr>
-            <th colspan="6">مشخصات برگه خرید</th>
-        </tr>
-        <tr>
-            <td rowspan="3">شماره خرید</td>
-            <td>{{ purchase.id }}</td>
-            <td rowspan="3">واحد کالا</td>
-            <td colspan="2">{{ purchase.cargo.get_product_type_display }}</td>
-        </tr>
-        <tr>
-            <td>وزن</td>
-            <td colspan="2">{{ purchase.weight }} کیلوگرم</td>
-        </tr>
-        <tr>
-            <td>کشور مبدا</td>
-            <td colspan="2">{{ purchase.cargo.get_country_display }}</td>
-        </tr>
-    </table>
+    <div class="buyer-info">
+        <div class="buyer-card">
+            <h3>👤 نام مشتری</h3>
+            <p>{{ purchase.customer.name }}</p>
+        </div>
+        <div class="buyer-card">
+            <h3>📍 شهر/استان</h3>
+            <p>{{ purchase.customer.city }}</p>
+        </div>
+        <div class="buyer-card">
+            <h3>📞 شماره تماس</h3>
+            <p>{{ purchase.customer.phone_number }}</p>
+        </div>
+    </div>
 
-    <!-- بخش تاییدیه‌ها -->
+
+     <!-- ✅ نمایش اطلاعات خرید در قالب کارت‌های مدرن -->
+    <div class="purchase-info">
+        <div class="info-card">
+            <h3>📄 شماره خرید</h3>
+            <p>{{ purchase.id }}</p>
+        </div>
+        <div class="info-card">
+            <h3>🚚 کالا</h3>
+            <p>{{ purchase.cargo.get_product_type_display }}</p>
+        </div>
+        <div class="info-card">
+            <h3>🏳️ کشور</h3>
+            <p>{{ purchase.cargo.get_country_display }}</p>
+        </div>
+        <div class="info-card">
+            <h3>⚖️ وزن</h3>
+            <p>{{ purchase.weight }} کیلوگرم</p>
+        </div>
+        <div class="info-card">
+            <h3>💰 مبلغ پرداختی</h3>
+            <p>{{ purchase.amount_paid|default:"-" }} ریال</p>
+        </div>
+    </div>
+
+    <!-- ✅ نمایش اطلاعات مرحله -->
+    <div id="step-info-popup" class="hidden">
+        <p id="step-info-text"></p>
+    </div>
+
+    
+    <div class="button-group">
+        {% if user_role == "sales_agent" %}
+            <button class="button approve sales"> تایید فروش</button>
+        {% elif user_role == "logistics_manager" %}
+            <button class="button approve logistics"> تایید لجستیک</button>
+        {% elif user_role == "financial_manager" %}
+            <button class="button approve financial"> تایید مالی</button>
+        {% endif %}
+    </div>
+
     <table class="approval-table">
         <tr>
-            <th colspan="4">تاییدیه واریز مالی</th>
+            <th colspan="4"> تاییدیه واریز مالی</th>
         </tr>
         <tr>
-            <td>تاریخ</td>
-            <td>مبلغ</td>
-            <td>شماره پیگیری</td>
-            <td>وضعیت</td>
+            <td> تاریخ</td>
+            <td> مبلغ</td>
+            <td> شماره پیگیری</td>
+            <td> وضعیت</td>
         </tr>
         <tr>
             <td>{{ purchase.updated_at|date:"Y/m/d" }}</td>
             <td>{{ purchase.amount_paid|default:"-" }} ریال</td>
             <td>{{ purchase.tracking_number|default:"-" }}</td>
             <td class="status-cell {% if purchase.is_paid %}completed{% else %}pending{% endif %}">
-                {{ purchase.get_status_display }}
+                {% if purchase.is_paid %}✔ پرداخت شده{% else %}⌛ در انتظار{% endif %}
             </td>
         </tr>
     </table>
+    
 
-    <!-- فرم ویرایش -->
     <form method="post" class="purchase-form">
         {% csrf_token %}
         <div class="form-grid">
             {% for field in form %}
             <div class="form-group">
-                <label>{{ field.label }}</label>
-                {{ field }}
+                <label>
+                    <i class="{% if 'نام' in field.label %}fas fa-user{% elif 'شماره' in field.label %}fas fa-phone{% elif 'مبلغ' in field.label %}fas fa-wallet{% elif 'توضیحات' in field.label %}fas fa-file-alt{% elif field.field.widget.input_type == 'checkbox' %}fas fa-check-circle{% else %}fas fa-edit{% endif %}"></i>
+                    {{ field.label }}
+                </label>
+    
+                <div class="input-container">
+                    {% if field.field.widget.input_type == 'checkbox' %}
+                        <button type="button" class="button approve-btn" data-field="{{ field.name }}" data-action="approve">✔ تایید</button>
+                        <input type="hidden" name="{{ field.name }}" id="{{ field.name }}-hidden" value="{% if field.value %}true{% else %}false{% endif %}">
+                    {% else %}
+                        {{ field }}
+                    {% endif %}
+                </div>
+    
                 {% if field.help_text %}
                 <small class="form-helptext">{{ field.help_text }}</small>
                 {% endif %}
@@ -106,111 +151,89 @@
         </div>
         <div class="form-actions">
             <button type="submit" class="button save-button">
-                <i class="fas fa-save"></i>
-                ذخیره تغییرات
+                 ذخیره تغییرات
             </button>
         </div>
     </form>
 
-    <!-- تاریخچه تغییرات -->
+    <!-- ✅ جدول تاریخچه تغییرات -->
     <table class="history-table">
         <tr>
-            <th colspan="4">تاریخچه تغییرات</th>
-        </tr>
-        <tr>
-            <td>تاریخ/زمان</td>
-            <td>کاربر</td>
-            <td>تغییرات</td>
-            <td>وضعیت</td>
+            <th>📅 تاریخ</th>
+            <th>👤 کاربر</th>
+            <th>🔄 تغییرات</th>
+            <th>✅ وضعیت</th>
         </tr>
         {% for log in history_logs %}
         <tr>
             <td>{{ log.timestamp|date:"Y/m/d H:i" }}</td>
             <td>{{ log.user.get_full_name }}</td>
             <td>{{ log.changes }}</td>
-            <td>✅</td>
+            <td>✔</td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="4" class="empty-state">
-                <i class="fas fa-history"></i>
-                هیچ سابقه‌ای ثبت نشده است
-            </td>
+            <td colspan="4" class="empty-state">❌ هیچ سابقه‌ای ثبت نشده است</td>
         </tr>
         {% endfor %}
     </table>
+
 </div>
 
-<style>
-    .container {
-        padding: 20px;
-        direction: rtl;
-    }
+document.addEventListener("DOMContentLoaded", function () {
+    const steps = document.querySelectorAll(".timeline-step");
+    const popup = document.getElementById("step-info-popup");
+    const popupText = document.getElementById("step-info-text");
 
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 20px 0;
-        background: white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
+    steps.forEach(step => {
+        step.addEventListener("mouseenter", function (event) {
+            popupText.textContent = step.getAttribute("data-step-info");
+            popup.style.display = "block";
+            popup.style.top = event.clientY + "px";
+            popup.style.left = event.clientX + "px";
+        });
 
-    th, td {
-        padding: 12px;
-        border: 1px solid #ddd;
-        text-align: center;
-    }
+        step.addEventListener("mouseleave", function () {
+            popup.style.display = "none";
+        });
+    });
+});
 
-    .section-header {
-        background: #f8f9fa;
-        font-size: 1.2em;
-        padding: 15px;
-    }
+{% load static %}
+<script src="{% static 'js/script.js' %}"></script>
 
-    .status-cell {
-        font-weight: bold;
-    }
-    
-    .completed {
-        color: #28a745;
-        background: #e8f5e9;
-    }
+document.addEventListener("DOMContentLoaded", function () {
+    const approveButtons = document.querySelectorAll(".approve-btn");
+    const rejectButtons = document.querySelectorAll(".reject-btn");
 
-    .pending {
-        color: #dc3545;
-        background: #f8d7da;
-    }
+    approveButtons.forEach(button => {
+        button.addEventListener("click", function () {
+            handleApproval(this, true);
+        });
+    });
 
-    .purchase-form {
-        margin-top: 30px;
-        padding: 20px;
-        background: #fff;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
+    rejectButtons.forEach(button => {
+        button.addEventListener("click", function () {
+            handleApproval(this, false);
+        });
+    });
 
-    .form-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 15px;
-    }
+    function handleApproval(button, isApproved) {
+        const fieldName = button.getAttribute("data-field");
+        const hiddenInput = document.getElementById(`${fieldName}-hidden`);
 
-    .form-group {
-        margin-bottom: 15px;
-    }
+        // حذف کلاس‌های فعال از دکمه‌های این فیلد
+        document.querySelectorAll(`[data-field="${fieldName}"]`).forEach(btn => {
+            btn.classList.remove("active");
+        });
 
-    .empty-state {
-        text-align: center;
-        padding: 20px;
-        color: #6c757d;
-    }
+        // اضافه کردن کلاس فعال به دکمه کلیک شده
+        button.classList.add("active");
 
-    .button {
-        padding: 10px 20px;
-        background: #007bff;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
+        // مقدار فیلد مخفی رو تغییر بده تا در فرم ذخیره بشه
+        hiddenInput.value = isApproved ? "true" : "false";
     }
-</style>
+});
+
+
 {% endblock %}
