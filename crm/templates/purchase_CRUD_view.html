@@ -2,6 +2,14 @@
 
 {% block content %}
 <div class="container">
+
+    {% if messages %}
+    {% for message in messages %}
+        <p style="color: red;">{{ message }}</p>
+    {% endfor %}
+    {% endif %}
+
+    
     <!-- ✅ تایم‌لاین مراحل خرید -->
     <div class="timeline">
         {% for step in progress_steps %}
@@ -217,8 +225,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
-{% load static %}
-
 document.addEventListener("DOMContentLoaded", function () {
     const approveButtons = document.querySelectorAll(".approve-btn");
     const rejectButtons = document.querySelectorAll(".reject-btn");
@@ -251,6 +257,8 @@ document.addEventListener("DOMContentLoaded", function () {
         hiddenInput.value = isApproved ? "true" : "false";
     }
 });
+
+</script>
 
 
 {% endblock %}

@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from core.models import CargoProduct
 from core.PurchaseModel import Purchase, PurchaseHistory
+from django.core.exceptions import ValidationError
 
 def determine_user_role(user):
     if hasattr(user, 'financial_manager'):
@@ -15,16 +16,13 @@ def determine_user_role(user):
         return 'sales_agent'
     return None
 
-# فرم مخصوص با فیلدهای مجاز برای هر نقش
 class RoleBasedPurchaseForm(forms.ModelForm):
     class Meta:
         model = Purchase
         fields = '__all__'
     
-    
     def __init__(self, *args, user_role=None, **kwargs):
         super().__init__(*args, **kwargs)
-        # محدودسازی فیلدها بر اساس نقش کاربر
         if user_role == 'sales_agent':
             allowed_fields = [
                 'weight', 'address', 'tracking_number', 'purchase_date', 'purchase_number', 'amount_paid', 'cargo',
@@ -47,13 +45,24 @@ class RoleBasedPurchaseForm(forms.ModelForm):
             if field not in allowed_fields:
                 del self.fields[field]
 
+    def clean(self):
+        cleaned_data = super().clean()
+        instance = self.instance
+        try:
+            instance.clean()
+        except ValidationError as e:
+            for field, errors in e.message_dict.items():
+                for error in errors:
+                    self.add_error(field, error)
+            raise ValidationError("خطا در اعتبارسنجی مدل")
+        return cleaned_data
+
 @login_required
 def purchase_CRUD_view(request, purchase_id):
     purchase = get_object_or_404(Purchase, id=purchase_id)
     history_logs = PurchaseHistory.objects.filter(purchase=purchase).order_by('-timestamp')
-    user_role = determine_user_role(request.user)  # تابع تشخیص نقش کاربر
+    user_role = determine_user_role(request.user)
     
-    # نوار پیشرفت
     progress_steps = [
         {'name': 'بازارگاه', 'status': purchase.is_bazaargahed},
         {'name': 'پرداخت', 'status': purchase.is_paid},
@@ -67,30 +76,22 @@ def purchase_CRUD_view(request, purchase_id):
         {'name': 'تایید اختلاف', 'status': purchase.is_ekhtelaf_approved},
         {'name': 'کسری واریز شده', 'status': purchase.is_kasri_varized},
         {'name': 'سرک واریز شده', 'status': purchase.is_sarak_varized},
-        {'name': 'تایید مبلغ اختلاف', 'status': purchase.is_kasri_reciept_submited},
-
+        {'name': 'تایید رسید کسری', 'status': purchase.is_kasri_reciept_submited},
         {'name': 'تایید واحد فروش', 'status': purchase.does_salesman_approve},
         {'name': 'تایید واحد لجستیک', 'status': purchase.does_logistics_approve},
         {'name': 'تایید واحد مالی', 'status': purchase.does_financial_approve},
-
     ]
-
+    
     if request.method == 'POST':
-        form = RoleBasedPurchaseForm(
-            request.POST, 
-            instance=purchase,
-            user_role=user_role
-        )
-        
+        form = RoleBasedPurchaseForm(request.POST, instance=purchase, user_role=user_role)
         if form.is_valid():
             try:
                 with transaction.atomic():
                     original_obj = Purchase.objects.get(id=purchase_id)
                     changed_fields = []
                     
-                    # پردازش دکمه‌های خاص
                     if 'approve_bazaargah' in request.POST:
-                        purchase.check_is_bazaargahed(user_role)
+                        purchase.check_is_bazaaraghed(user_role)
                     elif 'approve_payment' in request.POST:
                         purchase.check_is_paid(user_role)
                     elif 'approve_allocation' in request.POST:
@@ -120,15 +121,12 @@ def purchase_CRUD_view(request, purchase_id):
                     elif 'approve_financial' in request.POST:
                         purchase.check_does_financial_approve(user_role)
                     
-                    
-                    # ذخیره تغییرات و ثبت تاریخچه
                     for field in form.changed_data:
                         old_value = getattr(original_obj, field)
                         new_value = form.cleaned_data.get(field)
                         changed_fields.append(f"{field}: {old_value} → {new_value}")
                     
                     form.save()
-                    
                     if changed_fields:
                         PurchaseHistory.objects.create(
                             purchase=purchase,
@@ -138,9 +136,15 @@ def purchase_CRUD_view(request, purchase_id):
                     
                     messages.success(request, 'تغییرات با موفقیت اعمال شد')
                     return redirect('purchase_CRUD', purchase_id=purchase_id)
-            
+            except ValidationError as e:
+                for field, errors in e.message_dict.items():
+                    for error in errors:
+                        form.add_error(field, error)
+                messages.error(request, 'خطا: ' + str(e))
             except Exception as e:
                 messages.error(request, f'خطا: {str(e)}')
+        else:
+            messages.error(request, 'لطفاً خطاهای فرم را برطرف کنید.')
 
     else:
         form = RoleBasedPurchaseForm(instance=purchase, user_role=user_role)
@@ -153,4 +157,3 @@ def purchase_CRUD_view(request, purchase_id):
         'user_role': user_role,
     }
     return render(request, 'purchase_CRUD_view.html', context)
-
