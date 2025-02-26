@@ -115,7 +115,7 @@ def customer_list_view(request):
 
     # Pagination
     page = request.GET.get('page', 1)
-    paginator = Paginator(customers, 5)  # نمایش 10 مشتری در هر صفحه
+    paginator = Paginator(customers, 10)  # نمایش 10 مشتری در هر صفحه
     try:
         customers_page = paginator.page(page)
     except PageNotAnInteger:

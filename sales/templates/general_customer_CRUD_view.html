@@ -225,17 +225,36 @@
         
         <div id="purchase_history" class="tab-content">
             <div class="history-list">
-            {% for purchase in purchases %}
-                <div class="history-item">
-                    <p>📅 {{ purchase.created_at|date:"Y/m/d H:i" }}</p>
-                    <p>کوتاژ: {{ purchase.cargo.cottage }} {{ purchase.cargo.get_product_type_display }} {{ purchase.cargo.get_country_display }}</p>
-                    <p>وزن: {{ purchase.weight }} کیلوگرم</p>
-                    <p>وضعیت پرداخت: {{ purchase.is_paid|yesno:"✅,❌" }}</p>
-                    <p><a href="{% url 'purchase_CRUD' purchase.id %}" class="button">مشاهده جزئیات</a></p>
-                </div>
-            {% empty %}
-                <p class="empty-message">هیچ خریدی ثبت نشده است.</p>
-            {% endfor %}
+                {% for purchase in purchases %}
+                    <div class="history-item">
+                        <p>📅 {{ purchase.created_at|date:"Y/m/d H:i" }}</p>
+                        <p>کوتاژ: {{ purchase.cargo.cottage }} {{ purchase.cargo.get_product_type_display }} {{ purchase.cargo.get_country_display }}</p>
+                        <p>وزن: {{ purchase.weight }} کیلوگرم</p>
+                        <p>وضعیت پرداخت: {{ purchase.is_paid|yesno:"✅,❌" }}</p>
+                        <p><a href="{% url 'purchase_CRUD' purchase.id %}" class="button">مشاهده جزئیات</a></p>
+                    </div>
+                {% empty %}
+                    <p class="empty-message">هیچ خریدی ثبت نشده است.</p>
+                {% endfor %}
+            </div>
+        
+            <!-- Pagination برای خرید‌ها -->
+            <div class="pagination">
+                <span class="step-links">
+                    {% if purchases.has_previous %}
+                        <a href="?customer_id={{ customer.id }}&purchase_page=1" class="pagination-link">&laquo; اول</a>
+                        <a href="?customer_id={{ customer.id }}&purchase_page={{ purchases.previous_page_number }}" class="pagination-link">قبلی</a>
+                    {% endif %}
+        
+                    <span class="current">
+                        صفحه {{ purchases.number }} از {{ purchases.paginator.num_pages }}
+                    </span>
+        
+                    {% if purchases.has_next %}
+                        <a href="?customer_id={{ customer.id }}&purchase_page={{ purchases.next_page_number }}" class="pagination-link">بعدی</a>
+                        <a href="?customer_id={{ customer.id }}&purchase_page={{ purchases.paginator.num_pages }}" class="pagination-link">آخر &raquo;</a>
+                    {% endif %}
+                </span>
             </div>
         </div>
     </div>

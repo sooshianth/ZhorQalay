@@ -19,32 +19,39 @@
     </div>
 
 
-        <!-- بخش گزارش عملیات -->
-    <table class="operations-table">
-        <tr>
-            <th colspan="5" class="section-header">📊 گزارش عملیات</th>
-        </tr>
-        <tr>
-            <td> نوع</td>
-            <td> مرحله</td>
-            <td> دپارتمان</td>
-            <td> تاریخ</td>
-            <td> وضعیت</td>
-        </tr>
-        {% for step in progress_steps %}
-        <tr>
-            <td> عملیات</td>
-            <td>{{ step.name }}</td>
-            <td class="department">
-                {% if "بازارگاه" in step.name %} 🚛 لجستیک {% elif "پرداخت" in step.name %} 💰 مالی {% elif "تخصیص" in step.name %} 🛒 فروش {% endif %}
-            </td>
-            <td>{{ purchase.updated_at|date:"Y/m/d H:i" }}</td>
-            <td class="status-cell {% if step.status %}completed{% else %}pending{% endif %}">
-                {% if step.status %}✔ انجام شد{% else %}⌛ در انتظار{% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
+        <!-- دکمه برای نمایش/پنهان کردن گزارش عملیات -->
+    <button id="toggle-operations-report" class="button">
+        نمایش گزارش عملیات
+    </button>
+
+    <!-- بخش گزارش عملیات -->
+    <div id="operations-report-section" style="display: none;">
+        <table class="operations-table">
+            <tr>
+                <th colspan="5" class="section-header">📊 گزارش عملیات</th>
+            </tr>
+            <tr>
+                <td> نوع</td>
+                <td> مرحله</td>
+                <td> دپارتمان</td>
+                <td> تاریخ</td>
+                <td> وضعیت</td>
+            </tr>
+            {% for step in progress_steps %}
+            <tr>
+                <td> عملیات</td>
+                <td>{{ step.name }}</td>
+                <td class="department">
+                    {% if "بازارگاه" in step.name %} 🚛 لجستیک {% elif "پرداخت" in step.name %} 💰 مالی {% elif "تخصیص" in step.name %} 🛒 فروش {% endif %}
+                </td>
+                <td>{{ purchase.updated_at|date:"Y/m/d H:i" }}</td>
+                <td class="status-cell {% if step.status %}completed{% else %}pending{% endif %}">
+                    {% if step.status %}✔ انجام شد{% else %}⌛ در انتظار{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
 
 
     <div class="buyer-info">
@@ -170,6 +177,26 @@
     </table>
 
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // دکمه و بخش گزارش عملیات
+        const toggleOperationsReportButton = document.getElementById('toggle-operations-report');
+        const operationsReportSection = document.getElementById('operations-report-section');
+
+        // افزودن رویداد کلیک به دکمه
+        toggleOperationsReportButton.addEventListener('click', function() {
+            if (operationsReportSection.style.display === 'none') {
+                operationsReportSection.style.display = 'block';
+                operationsReportSection.classList.add('fade-in');
+                this.textContent = 'پنهان کردن گزارش عملیات';
+            } else {
+                operationsReportSection.style.display = 'none';
+                this.textContent = 'نمایش گزارش عملیات';
+            }
+        });
+    });
+</script>
 
 document.addEventListener("DOMContentLoaded", function () {
     const steps = document.querySelectorAll(".timeline-step");

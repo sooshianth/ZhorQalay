@@ -8,6 +8,7 @@ from core.CallSessionModel import CallSession
 from core.TaskModel import Task
 from core.PurchaseModel import Purchase  
 from core.CargoProductModel import CargoProduct
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 
 # core/forms.py
 from django import forms
@@ -223,6 +224,16 @@ def general_customer_CRUD_view(request):
             messages.error(request, f"خطا در خرید: {e}")
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
     active_products = CargoProduct.get_active_products()
+
+    purchases = customer.get_purchases_by_time() if customer else []
+    purchase_page = request.GET.get('purchase_page', 1)  # دریافت شماره صفحه از URL
+    purchase_paginator = Paginator(purchases, 4)  # نمایش ۵ خرید در هر صفحه
+    try:
+        purchases = purchase_paginator.page(purchase_page)
+    except PageNotAnInteger:
+        purchases = purchase_paginator.page(1)
+    except EmptyPage:
+        purchases = purchase_paginator.page(purchase_paginator.num_pages)
 
     context = {
         'customer': customer,
