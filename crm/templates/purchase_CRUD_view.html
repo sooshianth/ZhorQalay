@@ -93,7 +93,7 @@
     </div>
 
     
-    <div class="button-group">
+    <!-- <div class="button-group">
         {% if user_role == "sales_agent" %}
             <button class="button approve sales"> تایید فروش</button>
         {% elif user_role == "logistics_manager" %}
@@ -101,7 +101,7 @@
         {% elif user_role == "financial_manager" %}
             <button class="button approve financial"> تایید مالی</button>
         {% endif %}
-    </div>
+    </div> -->
 
     <table class="approval-table">
         <tr>
@@ -129,20 +129,10 @@
         <div class="form-grid">
             {% for field in form %}
             <div class="form-group">
-                <label>
-                    <i class="{% if 'نام' in field.label %}fas fa-user{% elif 'شماره' in field.label %}fas fa-phone{% elif 'مبلغ' in field.label %}fas fa-wallet{% elif 'توضیحات' in field.label %}fas fa-file-alt{% elif field.field.widget.input_type == 'checkbox' %}fas fa-check-circle{% else %}fas fa-edit{% endif %}"></i>
-                    {{ field.label }}
-                </label>
-    
+                <label><i class="{% if 'نام' in field.label %}fas fa-user{% elif 'شماره' in field.label %}fas fa-phone{% elif 'مبلغ' in field.label %}fas fa-wallet{% elif 'توضیحات' in field.label %}fas fa-file-alt{% else %}fas fa-edit{% endif %}"></i> {{ field.label }}</label>
                 <div class="input-container">
-                    {% if field.field.widget.input_type == 'checkbox' %}
-                        <button type="button" class="button approve-btn" data-field="{{ field.name }}" data-action="approve">✔ تایید</button>
-                        <input type="hidden" name="{{ field.name }}" id="{{ field.name }}-hidden" value="{% if field.value %}true{% else %}false{% endif %}">
-                    {% else %}
-                        {{ field }}
-                    {% endif %}
+                    {{ field }}
                 </div>
-    
                 {% if field.help_text %}
                 <small class="form-helptext">{{ field.help_text }}</small>
                 {% endif %}
@@ -155,6 +145,7 @@
             </button>
         </div>
     </form>
+    
 
     <!-- ✅ جدول تاریخچه تغییرات -->
     <table class="history-table">
@@ -200,7 +191,6 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 {% load static %}
-<script src="{% static 'js/script.js' %}"></script>
 
 document.addEventListener("DOMContentLoaded", function () {
     const approveButtons = document.querySelectorAll(".approve-btn");
