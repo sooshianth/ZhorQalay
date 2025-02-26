@@ -59,108 +59,129 @@ class Purchase(models.Model):
         if user_role == 'logistics_manager':
             self.is_bazaargahed = True
         else:
-            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        self.save()
+        
     def check_is_paid(self, user_role):
         if user_role == 'financial_manager' and self.is_bazaargahed:
             self.is_paid = True
         else:
-            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        self.save()
         
     def check_is_takhsised(self, user_role):
         if user_role == 'sales_agent' and self.is_paid:
             self.is_takhsised = True
         else:
-            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        self.save()
         
         
     def check_is_takhsised_approved(self, user_role):
-        if user_role == 'financial_manager' and self.is_takhsised:
+        if user_role == 'logistics_manager' and self.is_takhsised:
             self.is_takhsised_approved = True
         else:
-            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        self.save()
 
     def check_is_tasvied_with_varedkonandeh(self, user_role):
-        if user_role == 'logistics_manager' and self.is_takhsised_approved:
+        if user_role == 'financial_manager' and self.is_takhsised_approved:
             self.is_tasvied_with_varedkonandeh = True
         else:
-            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        self.save()
     
     def check_is_address_sent_to_varedkonandeh(self, user_role):
-        if user_role == 'sales_agent' and self.is_tasvied_with_varedkonandeh:
+        if user_role == 'logistics_manager' and self.is_tasvied_with_varedkonandeh:
             self.is_address_sent_to_varedkonandeh = True
         else:
-            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        self.save()
 
     def check_is_sent_to_barbari(self, user_role):
         if user_role == 'logistics_manager' and self.is_address_sent_to_varedkonandeh:
             self.is_sent_to_barbari = True
         else:
-            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        self.save()
         
     def check_is_barnamed(self, user_role):
         if user_role == 'logistics_manager' and self.is_sent_to_barbari:
             self.is_barnamed = True
         else:
-            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        self.save()
         
     def check_is_factorated(self, user_role):
         if user_role == 'financial_manager' and self.is_barnamed:
             self.is_factorated = True
         else:
-            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        self.save()
     
     def check_is_ekhtelaf_approved(self, user_role):
         if user_role == 'financial_manager' and self.is_factorated:
             self.is_ekhtelaf_approved = True
         else:
-            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        self.save()
         
     def check_is_kasri_varized(self, user_role):
         if user_role == 'financial_manager' and self.is_ekhtelaf_approved:
             self.is_kasri_varized = True
         else:
-            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        self.save()
     
     def check_is_sarak_varized(self, user_role):
         if user_role == 'sales_agent' and self.is_kasri_varized:
             self.is_sarak_varized = True
         else:
-            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        self.save()
         
     def check_is_kasri_reciept_submited(self, user_role):
-        if user_role == 'financial_manager' and self.is_sarak_varized:
+        if user_role == 'financial_manager':
             self.is_kasri_reciept_submited = True
         else:
-            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        self.save()
 
 
     def check_does_salesman_approve(self, user_role):
         if user_role == 'sales_agent' and self.is_kasri_reciept_submited:
             self.does_salesman_approve = True
+        self.save()
     def check_does_logistics_approve(self, user_role):
         if user_role == 'logistics_manager' and self.is_kasri_reciept_submited:
             self.does_logistics_approve = True
+        self.save()
     def check_does_financial_approve(self, user_role):
         if user_role == 'financial_manager' and self.is_kasri_reciept_submited:
             self.does_financial_approve = True
+        self.save()
 
 
     def check_is_urgent(self, user):
         if user.is_superuser:
             self.is_urgent = True
         else:
-            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        self.save()
+
     def check_is_canceled(self, user):
         if user.is_superuser:
             self.is_canceled = True
         else:
-            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        self.save()
+
     def check_is_archived(self, user):
         if user.is_superuser:
             self.is_archived = True
         else:
-            return ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+        self.save()
         
 
 

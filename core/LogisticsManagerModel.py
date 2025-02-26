@@ -39,3 +39,34 @@ class LogisticsManager(models.Model):
     class Meta:
         verbose_name = 'مدیر لجستیک'
         verbose_name_plural = 'مدیران لجستیک'
+
+
+    def get_bazaargahed_purchases(self):
+        """Return all purchases that are bazaargahed (approved in bazaargah)"""
+        from core.PurchaseModel import Purchase
+        return Purchase.objects.filter(
+            is_bazaargahed=True,
+            is_canceled=False,
+            is_archived=False
+        ).order_by('-created_at')
+
+    def get_takhsised_purchases(self):
+        """Return all purchases that are takhsised (allocated)"""
+        from core.PurchaseModel import Purchase
+        return Purchase.objects.filter(
+            is_takhsised=True,
+            is_canceled=False,
+            is_archived=False
+        ).order_by('-created_at')
+
+
+
+    def get_other_active_purchases(self):
+        """Return all other active purchases that are neither bazaargahed nor takhsised"""
+        from core.PurchaseModel import Purchase
+        return Purchase.objects.filter(
+            is_bazaargahed=False,
+            is_takhsised=False,
+            is_canceled=False,
+            is_archived=False
+        ).order_by('-created_at')

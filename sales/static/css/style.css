@@ -682,40 +682,6 @@ footer {
 
 
 /* اسکریپت‌های جدید */
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // افزودن کلاس‌های انیمیشن به عناصر
-    const taskItems = document.querySelectorAll('.task-item');
-    const purchaseItems = document.querySelectorAll('.purchase-item');
-
-    taskItems.forEach((item, index) => {
-      setTimeout(() => {
-        item.classList.add('fade-in');
-      }, index * 100);
-    });
-
-    purchaseItems.forEach((item, index) => {
-      setTimeout(() => {
-        item.classList.add('slide-in');
-      }, index * 100);
-    });
-
-    // نمایش/پنهان کردن بخش‌ها با انیمیشن
-    const showCompletedTasksButton = document.getElementById('show-completed-tasks');
-    const completedTasksSection = document.getElementById('completed-tasks-section');
-
-    showCompletedTasksButton.addEventListener('click', function() {
-      if (completedTasksSection.style.display === 'none') {
-        completedTasksSection.style.display = 'block';
-        completedTasksSection.classList.add('fade-in');
-        this.textContent = 'پنهان کردن تسک‌های انجام شده';
-      } else {
-        completedTasksSection.style.display = 'none';
-        this.textContent = 'نمایش تسک‌های انجام شده';
-      }
-    });
-  });
-</script>
 
 /* ✅ کانتینر اصلی صفحه خرید */
 .purchase-container {
@@ -855,17 +821,6 @@ footer {
   transition: background 0.3s;
 }
 
-.button.sales {
-  background: #3B82F6;
-}
-
-.button.logistics {
-  background: #F59E0B;
-}
-
-.button.financial {
-  background: #10B981;
-}
 
 .button:hover {
   opacity: 0.8;
@@ -959,12 +914,12 @@ footer {
 }
 
 .status-cell.completed {
-  background: #28a745;
+  background: #00ff3c;
   color: white;
 }
 
 .status-cell.pending {
-  background: #ffc107;
+  background: #c2c2c2;
   color: black;
 }
 

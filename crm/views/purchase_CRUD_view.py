@@ -26,17 +26,17 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         if user_role == 'sales_agent':
             allowed_fields = [
                 'weight', 'address', 'tracking_number', 'purchase_date', 'purchase_number', 'amount_paid', 'cargo',
-                'is_takhsised', 'is_sarak_varized', 'does_salesman_approve',
+                # 'is_takhsised', 'is_sarak_varized', 'does_salesman_approve',
             ]
         elif user_role == 'logistics_manager':
             allowed_fields = [
                 'weight', 'address', 'tracking_number', 'purchase_number', 'amount_paid', 'cargo',
-                'is_bazaargahed', 'is_takhsised_approved', 'is_address_sent_to_varedkonandeh', 'is_sent_to_barbari', 'is_barnamed', 'does_logistics_approve',
+                # 'is_bazaargahed', 'is_takhsised_approved', 'is_address_sent_to_varedkonandeh', 'is_sent_to_barbari', 'is_barnamed', 'does_logistics_approve',
             ]
         elif user_role == 'financial_manager':
             allowed_fields = [
                 'amount_paid', 'cargo', 'purchase_date', 'purchase_number', 'tracking_number', 'address', 'weight',
-                'is_paid','is_tasvied_with_varedkonandeh','is_factorated', 'is_ekhtelaf_approved', 'is_kasri_varized', 'is_kasri_reciept_submited', 'does_financial_approve',
+                # 'is_paid','is_tasvied_with_varedkonandeh','is_factorated', 'is_ekhtelaf_approved', 'is_kasri_varized', 'is_kasri_reciept_submited', 'does_financial_approve',
             ]
         else:
             allowed_fields = []
@@ -64,22 +64,22 @@ def purchase_CRUD_view(request, purchase_id):
     user_role = determine_user_role(request.user)
     
     progress_steps = [
-        {'name': 'بازارگاه', 'status': purchase.is_bazaargahed},
-        {'name': 'پرداخت', 'status': purchase.is_paid},
-        {'name': 'تخصیص', 'status': purchase.is_takhsised},
+        {'name': 'تأیید خرید در بازارگاه', 'status': purchase.is_bazaargahed},
+        {'name': 'تأیید انجام پرداخت توسط واحد مالی', 'status': purchase.is_paid},
+        {'name': 'ثبت تخصیص توسط مشتری', 'status': purchase.is_takhsised},
         {'name': 'تایید تخصیص', 'status': purchase.is_takhsised_approved},
         {'name': 'تسویه با واردکننده', 'status': purchase.is_tasvied_with_varedkonandeh},
-        {'name': 'آدرس', 'status': purchase.is_address_sent_to_varedkonandeh},
-        {'name': 'ارسال به باربری', 'status': purchase.is_sent_to_barbari},
-        {'name': 'برنامه', 'status': purchase.is_barnamed},
-        {'name': 'فاکتور', 'status': purchase.is_factorated},
+        {'name': 'ارسال آدرس به واردکننده', 'status': purchase.is_address_sent_to_varedkonandeh},
+        {'name': 'ارسال آدرس به باربری', 'status': purchase.is_sent_to_barbari},
+        {'name': 'بارنامه صادر شده', 'status': purchase.is_barnamed},
+        {'name': 'صدور فاکتور', 'status': purchase.is_factorated},
         {'name': 'تایید اختلاف', 'status': purchase.is_ekhtelaf_approved},
         {'name': 'کسری واریز شده', 'status': purchase.is_kasri_varized},
         {'name': 'سرک واریز شده', 'status': purchase.is_sarak_varized},
-        {'name': 'تایید رسید کسری', 'status': purchase.is_kasri_reciept_submited},
-        {'name': 'تایید واحد فروش', 'status': purchase.does_salesman_approve},
-        {'name': 'تایید واحد لجستیک', 'status': purchase.does_logistics_approve},
-        {'name': 'تایید واحد مالی', 'status': purchase.does_financial_approve},
+        {'name': 'تایید رسید سرک یا کسری', 'status': purchase.is_kasri_reciept_submited},
+        {'name': 'تایید نهایی واحد فروش', 'status': purchase.does_salesman_approve},
+        {'name': 'تایید نهایی واحد لجستیک', 'status': purchase.does_logistics_approve},
+        {'name': 'تایید نهایی واحد مالی', 'status': purchase.does_financial_approve},
     ]
     
     if request.method == 'POST':
@@ -91,13 +91,15 @@ def purchase_CRUD_view(request, purchase_id):
                     changed_fields = []
                     
                     if 'approve_bazaargah' in request.POST:
-                        purchase.check_is_bazaaraghed(user_role)
+                        purchase.check_is_bazaaragahed(user_role)
                     elif 'approve_payment' in request.POST:
                         purchase.check_is_paid(user_role)
                     elif 'approve_allocation' in request.POST:
                         purchase.check_is_takhsised(user_role)
                     elif 'approve_allocation_approval' in request.POST:
                         purchase.check_is_takhsised_approved(user_role)
+                    elif 'approve_tasvied_with_vared_konandeh' in request.POST:
+                        purchase.check_is_tasvied_with_varedkonandeh(user_role)
                     elif 'approve_address' in request.POST:
                         purchase.check_is_address_sent_to_varedkonandeh(user_role)
                     elif 'approve_sent_to_barbari' in request.POST:
