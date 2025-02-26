@@ -3,318 +3,261 @@
 {% block content %}
 <div class="container">
 
-    {# ✅ سیستم نمایش پیام‌ها و خطاها #}
     {% if messages %}
-    <div class="message-container">
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% for message in messages %}
+        <p style="color: red;">{{ message }}</p>
+    {% endfor %}
+    {% endif %}
+
+    
+    <!-- ✅ تایم‌لاین مراحل خرید -->
+    <div class="timeline">
+        {% for step in progress_steps %}
+            <div class="timeline-step {% if step.status %}completed{% else %}pending{% endif %}" 
+                data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else %}- در انتظار {% endif %}">
+                <div class="circle">
+                    <i class="{% if 'بازارگاه' in step.name %}fas fa-warehouse{% elif 'پرداخت' in step.name %}fas fa-wallet{% elif 'تخصیص' in step.name %}fas fa-handshake{% elif 'بارنامه' in step.name %}fas fa-truck{% endif %}"></i>
+                </div>
+                <p>{{ step.name }}</p>
+            </div>
+            {% if not forloop.last %}
+                <div class="line {% if step.status %}completed{% endif %}"></div>
+            {% endif %}
         {% endfor %}
     </div>
-    {% endif %}
 
-    {# ✅ تایم‌لاین پیشرفت با قابلیت hover #}
-    <section class="timeline-section">
-        <h2 class="section-title">� روند پیشرفت خرید</h2>
-        <div class="timeline-wrapper">
+
+        <!-- دکمه برای نمایش/پنهان کردن گزارش عملیات -->
+    <button id="toggle-operations-report" class="button">
+        نمایش گزارش عملیات
+    </button>
+
+    <!-- بخش گزارش عملیات -->
+    <div id="operations-report-section" style="display: none;">
+        <table class="operations-table">
+            <tr>
+                <th colspan="5" class="section-header">📊 گزارش عملیات</th>
+            </tr>
+            <tr>
+                <td> نوع</td>
+                <td> مرحله</td>
+                {% comment %} <td> دپارتمان</td> {% endcomment %}
+                {% comment %} <td> تاریخ</td> {% endcomment %}
+                <td> وضعیت</td>
+            </tr>
             {% for step in progress_steps %}
-            <div class="timeline-step {% if step.status %}completed{% else %}pending{% endif %}" 
-                 data-step-status="{% if step.status %}تکمیل شده{% else %}در انتظار{% endif %}"
-                 data-step-name="{{ step.name }}">
-                <div class="step-indicator">
-                    <i class="step-icon 
-                        {% if 'بازارگاه' in step.name %}fas fa-warehouse
-                        {% elif 'پرداخت' in step.name %}fas fa-credit-card
-                        {% elif 'تخصیص' in step.name %}fas fa-hand-holding-hand
-                        {% elif 'بارنامه' in step.name %}fas fa-truck-moving{% endif %}"></i>
-                </div>
-                <span class="step-label">{{ step.name }}</span>
-            </div>
-            {% if not forloop.last %}<div class="timeline-connector {% if step.status %}active{% endif %}"></div>{% endif %}
+            <tr>
+                <td> عملیات</td>
+                <td>{{ step.name }}</td>
+                {% comment %} <td class="department">
+                    {% if "بازارگاه" in step.name %} 🚛 لجستیک {% elif "پرداخت" in step.name %} 💰 مالی {% elif "تخصیص" in step.name %} 🛒 فروش {% endif %}
+                </td> {% endcomment %}
+                {% comment %} <td>{{ purchase.updated_at|date:"Y/m/d H:i" }}</td> {% endcomment %}
+                <td class="status-cell {% if step.status %}completed{% else %}pending{% endif %}">
+                    {% if step.status %}✔ انجام شد{% else %}⌛ در انتظار{% endif %}
+                </td>
+            </tr>
             {% endfor %}
-        </div>
-    </section>
+        </table>
+    </div>
 
-    {# ✅ پنل گزارش عملیات با قابلیت toggle #}
-    <div class="operations-panel">
-        <button type="button" 
-                class="toggle-button" 
-                id="toggleOperations" 
-                aria-expanded="false"
-                aria-controls="operationsSection">
-            <i class="fas fa-chart-bar"></i>
-            <span class="button-text">گزارش عملیات</span>
-        </button>
-        
-        <div class="operations-content" id="operationsSection" hidden>
-            <table class="status-table">
-                <thead>
-                    <tr>
-                        <th colspan="5" class="table-header">
-                            <i class="fas fa-file-alt"></i>
-                            گزارش جامع عملیات
-                        </th>
-                    </tr>
-                    <tr class="column-headers">
-                        <th scope="col">نوع عملیات</th>
-                        <th scope="col">مرحله</th>
-                        <th scope="col">واحد مسئول</th>
-                        <th scope="col">تاریخ</th>
-                        <th scope="col">وضعیت</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for step in progress_steps %}
-                    <tr class="status-row">
-                        <td data-label="نوع">فرایند اصلی</td>
-                        <td data-label="مرحله">{{ step.name }}</td>
-                        <td data-label="واحد" class="department-cell">
-                            {% if "بازارگاه" in step.name %}� لجستیک
-                            {% elif "پرداخت" in step.name %}� مالی
-                            {% elif "تخصیص" in step.name %}� فروش{% endif %}
-                        </td>
-                        <td data-label="تاریخ">{{ purchase.updated_at|date:"Y/m/d - H:i" }}</td>
-                        <td data-label="وضعیت" 
-                            class="status-badge {% if step.status %}confirmed{% else %}pending{% endif %}">
-                            {{ step.status|yesno:"✔ انجام شده,⌛ در انتظار" }}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+
+    <div class="buyer-info">
+        <div class="buyer-card">
+            <h3>👤 نام مشتری</h3>
+            <p>{{ purchase.customer.name }}</p>
+        </div>
+        <div class="buyer-card">
+            <h3>📍 شهر/استان</h3>
+            <p>{{ purchase.customer.city }}</p>
+        </div>
+        <div class="buyer-card">
+            <h3>📞 شماره تماس</h3>
+            <p>{{ purchase.customer.phone_number }}</p>
         </div>
     </div>
 
-    {# ✅ کارت اطلاعات مشتری #}
-    <section class="customer-section">
-        <h2 class="section-title"><i class="fas fa-user-tag"></i> اطلاعات خریدار</h2>
-        <div class="customer-cards">
-            <div class="customer-card">
-                <div class="card-icon"><i class="fas fa-user"></i></div>
-                <div class="card-content">
-                    <h3>نام کامل</h3>
-                    <p>{{ purchase.customer.name|default:"-" }}</p>
-                </div>
-            </div>
-            <div class="customer-card">
-                <div class="card-icon"><i class="fas fa-map-marker-alt"></i></div>
-                <div class="card-content">
-                    <h3>موقعیت جغرافیایی</h3>
-                    <p>{{ purchase.customer.city|default:"ثبت نشده" }}</p>
-                </div>
-            </div>
-            <div class="customer-card">
-                <div class="card-icon"><i class="fas fa-phone"></i></div>
-                <div class="card-content">
-                    <h3>تماس</h3>
-                    <p dir="ltr">{{ purchase.customer.phone_number }}</p>
-                </div>
-            </div>
-        </div>
-    </section>
 
-    {# ✅ کارت اطلاعات خرید #}
-    <section class="purchase-details">
-        <h2 class="section-title"><i class="fas fa-shopping-cart"></i> جزئیات خرید</h2>
-        <div class="detail-grid">
-            <div class="detail-card">
-                <i class="fas fa-hashtag"></i>
-                <div class="detail-content">
-                    <h3>شناسه خرید</h3>
-                    <p>#{{ purchase.id }}</p>
-                </div>
-            </div>
-            <div class="detail-card">
-                <i class="fas fa-cube"></i>
-                <div class="detail-content">
-                    <h3>نوع کالا</h3>
-                    <p>{{ purchase.cargo.get_product_type_display|default:"-" }}</p>
-                </div>
-            </div>
-            <div class="detail-card">
-                <i class="fas fa-globe"></i>
-                <div class="detail-content">
-                    <h3>کشور مبدا</h3>
-                    <p>{{ purchase.cargo.get_country_display|default:"-" }}</p>
-                </div>
-            </div>
-            <div class="detail-card">
-                <i class="fas fa-weight-hanging"></i>
-                <div class="detail-content">
-                    <h3>وزن کل (kg)</h3>
-                    <p>{{ purchase.weight|default:"0" }}</p>
-                </div>
-            </div>
-            <div class="detail-card">
-                <i class="fas fa-coins"></i>
-                <div class="detail-content">
-                    <h3>مبلغ پرداختی</h3>
-                    <p>{{ purchase.amount_paid|default:"0" }} ریال</p>
-                </div>
-            </div>
+     <!-- ✅ نمایش اطلاعات خرید در قالب کارت‌های مدرن -->
+    <div class="purchase-info">
+        <div class="info-card">
+            <h3>📄 شماره خرید</h3>
+            <p>{{ purchase.id }}</p>
         </div>
-    </section>
+        <div class="info-card">
+            <h3>🚚 کالا</h3>
+            <p>{{ purchase.cargo.get_product_type_display }}</p>
+        </div>
+        <div class="info-card">
+            <h3>🏳️ کشور</h3>
+            <p>{{ purchase.cargo.get_country_display }}</p>
+        </div>
+        <div class="info-card">
+            <h3>⚖️ وزن</h3>
+            <p>{{ purchase.weight }} کیلوگرم</p>
+        </div>
+        <div class="info-card">
+            <h3>💰 مبلغ پرداختی</h3>
+            <p>{{ purchase.amount_paid|default:"-" }} ریال</p>
+        </div>
+    </div>
 
-    {# ✅ فرم اصلی با دسترسی مبتنی بر نقش #}
+    <!-- ✅ نمایش اطلاعات مرحله -->
+    <div id="step-info-popup" class="hidden">
+        <p id="step-info-text"></p>
+    </div>
+
+    
+    <!-- <div class="button-group">
+        {% if user_role == "sales_agent" %}
+            <button class="button approve sales"> تایید فروش</button>
+        {% elif user_role == "logistics_manager" %}
+            <button class="button approve logistics"> تایید لجستیک</button>
+        {% elif user_role == "financial_manager" %}
+            <button class="button approve financial"> تایید مالی</button>
+        {% endif %}
+    </div> -->
+
+    <table class="approval-table">
+        <tr>
+            <th colspan="4"> تاییدیه واریز مالی</th>
+        </tr>
+        <tr>
+            <td> تاریخ</td>
+            <td> مبلغ</td>
+            <td> شماره پیگیری</td>
+            <td> وضعیت</td>
+        </tr>
+        <tr>
+            <td>{{ purchase.updated_at|date:"Y/m/d" }}</td>
+            <td>{{ purchase.amount_paid|default:"-" }} ریال</td>
+            <td>{{ purchase.tracking_number|default:"-" }}</td>
+            <td class="status-cell {% if purchase.is_paid %}completed{% else %}pending{% endif %}">
+                {% if purchase.is_paid %}✔ پرداخت شده{% else %}⌛ در انتظار{% endif %}
+            </td>
+        </tr>
+    </table>
+    
+
     <form method="post" class="purchase-form">
         {% csrf_token %}
-        <div class="form-section">
-            <h2 class="form-title"><i class="fas fa-edit"></i> فرم ویرایش اطلاعات</h2>
-            
-            <div class="form-grid">
-                {% for field in form %}
-                <div class="form-group {% if field.errors %}has-error{% endif %}">
-                    <label for="{{ field.id_for_label }}" class="form-label">
-                        <i class="
-                            {% if 'نام' in field.label %}fas fa-signature
-                            {% elif 'شماره' in field.label %}fas fa-hashtag
-                            {% elif 'مبلغ' in field.label %}fas fa-money-bill-wave
-                            {% elif 'توضیحات' in field.label %}fas fa-comment-alt
-                            {% else %}fas fa-pen{% endif %}"></i>
-                        {{ field.label }}
-                    </label>
-                    
+        <div class="form-grid">
+            {% for field in form %}
+            <div class="form-group">
+                <label><i class="{% if 'نام' in field.label %}fas fa-user{% elif 'شماره' in field.label %}fas fa-phone{% elif 'مبلغ' in field.label %}fas fa-wallet{% elif 'توضیحات' in field.label %}fas fa-file-alt{% else %}fas fa-edit{% endif %}"></i> {{ field.label }}</label>
+                <div class="input-container">
                     {{ field }}
-                    
-                    {% if field.help_text %}
-                    <small class="form-helptext">{{ field.help_text }}</small>
-                    {% endif %}
-                    
-                    {% for error in field.errors %}
-                    <span class="form-error"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
-                    {% endfor %}
                 </div>
-                {% endfor %}
+                {% if field.help_text %}
+                <small class="form-helptext">{{ field.help_text }}</small>
+                {% endif %}
             </div>
-            
-            <div class="form-actions">
-                <button type="submit" class="form-submit">
-                    <i class="fas fa-save"></i>
-                    ذخیره تغییرات
-                </button>
-            </div>
+            {% endfor %}
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="button save-button">
+                 ذخیره تغییرات
+            </button>
         </div>
     </form>
+    
 
-    {# ✅ اقدامات تأیید بر اساس نقش کاربر #}
-    {% if available_approvals %}
-    <div class="approval-section">
-        <h2 class="section-title"><i class="fas fa-clipboard-check"></i> اقدامات تأیید</h2>
-        
-        <form method="post" class="approval-form">
-            {% csrf_token %}
-            <div class="approval-buttons">
-                {% for step in available_approvals %}
-                <button type="submit" 
-                        name="{{ step.post_key }}"
-                        class="approval-btn {{ step.role }}"
-                        title="تأیید مرحله: {{ step.label }}">
-                    <i class="
-                        {% if 'logistics' in step.role %}fas fa-truck
-                        {% elif 'sales' in step.role %}fas fa-handshake
-                        {% elif 'financial' in step.role %}fas fa-coins{% endif %}"></i>
-                    {{ step.label }}
-                </button>
-                {% endfor %}
-            </div>
-        </form>
-    </div>
-    {% endif %}
-
-    {# ✅ جدول تاریخچه تغییرات #}
-    <section class="history-section">
-        <h2 class="section-title"><i class="fas fa-history"></i> سوابق تغییرات</h2>
-        
-        <div class="table-responsive">
-            <table class="history-table">
-                <thead>
-                    <tr>
-                        <th>زمان</th>
-                        <th>کاربر</th>
-                        <th>جزئیات تغییرات</th>
-                        <th>تأیید</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for log in history_logs %}
-                    <tr>
-                        <td data-label="زمان">{{ log.timestamp|date:"Y/m/d - H:i" }}</td>
-                        <td data-label="کاربر">{{ log.user.get_full_name|default:"سیستم" }}</td>
-                        <td data-label="تغییرات">{{ log.changes }}</td>
-                        <td data-label="وضعات"><i class="fas fa-check-circle success"></i></td>
-                    </tr>
-                    {% empty %}
-                    <tr class="empty-row">
-                        <td colspan="4">
-                            <i class="fas fa-info-circle"></i>
-                            هیچ فعالیتی ثبت نشده است
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </section>
+    <!-- ✅ جدول تاریخچه تغییرات -->
+    <table class="history-table">
+        <tr>
+            <th>📅 تاریخ</th>
+            <th>👤 کاربر</th>
+            <th>🔄 تغییرات</th>
+            <th>✅ وضعیت</th>
+        </tr>
+        {% for log in history_logs %}
+        <tr>
+            <td>{{ log.timestamp|date:"Y/m/d H:i" }}</td>
+            <td>{{ log.user.get_full_name }}</td>
+            <td>{{ log.changes }}</td>
+            <td>✔</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4" class="empty-state">❌ هیچ سابقه‌ای ثبت نشده است</td>
+        </tr>
+        {% endfor %}
+    </table>
 
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    // مدیریت نمایش گزارش عملیات
-    const toggleButton = document.getElementById('toggleOperations');
-    const operationsSection = document.getElementById('operationsSection');
-    
-    toggleButton.addEventListener('click', () => {
-        const isExpanded = operationsSection.hidden === false;
-        operationsSection.hidden = !isExpanded;
-        toggleButton.setAttribute('aria-expanded', String(!isExpanded));
-        toggleButton.querySelector('.button-text').textContent = 
-            isExpanded ? 'نمایش گزارش عملیات' : 'بستن گزارش';
+    document.addEventListener('DOMContentLoaded', function() {
+        // دکمه و بخش گزارش عملیات
+        const toggleOperationsReportButton = document.getElementById('toggle-operations-report');
+        const operationsReportSection = document.getElementById('operations-report-section');
+
+        // افزودن رویداد کلیک به دکمه
+        toggleOperationsReportButton.addEventListener('click', function() {
+            if (operationsReportSection.style.display === 'none') {
+                operationsReportSection.style.display = 'block';
+                operationsReportSection.classList.add('fade-in');
+                this.textContent = 'پنهان کردن گزارش عملیات';
+            } else {
+                operationsReportSection.style.display = 'none';
+                this.textContent = 'نمایش گزارش عملیات';
+            }
+        });
     });
 
-    // مدیریت hover روی مراحل تایم‌لاین
-    const timelineSteps = document.querySelectorAll('.timeline-step');
-    const infoPopup = document.createElement('div');
-    infoPopup.className = 'step-info-popup';
-    document.body.appendChild(infoPopup);
+document.addEventListener("DOMContentLoaded", function () {
+    const steps = document.querySelectorAll(".timeline-step");
+    const popup = document.getElementById("step-info-popup");
+    const popupText = document.getElementById("step-info-text");
 
-    timelineSteps.forEach(step => {
-        step.addEventListener('mouseenter', (e) => {
-            const status = step.dataset.stepStatus;
-            const name = step.dataset.stepName;
-            const rect = e.currentTarget.getBoundingClientRect();
-            
-            infoPopup.innerHTML = `
-                <strong>${name}</strong><br>
-                <span>وضعیت: ${status}</span>
-            `;
-            
-            infoPopup.style.left = `${rect.left + window.scrollX}px`;
-            infoPopup.style.top = `${rect.bottom + window.scrollY + 10}px`;
-            infoPopup.classList.add('visible');
+    steps.forEach(step => {
+        step.addEventListener("mouseenter", function (event) {
+            popupText.textContent = step.getAttribute("data-step-info");
+            popup.style.display = "block";
+            popup.style.top = event.clientY + "px";
+            popup.style.left = event.clientX + "px";
         });
 
-        step.addEventListener('mouseleave', () => {
-            infoPopup.classList.remove('visible');
+        step.addEventListener("mouseleave", function () {
+            popup.style.display = "none";
         });
     });
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+    const approveButtons = document.querySelectorAll(".approve-btn");
+    const rejectButtons = document.querySelectorAll(".reject-btn");
+
+    approveButtons.forEach(button => {
+        button.addEventListener("click", function () {
+            handleApproval(this, true);
+        });
+    });
+
+    rejectButtons.forEach(button => {
+        button.addEventListener("click", function () {
+            handleApproval(this, false);
+        });
+    });
+
+    function handleApproval(button, isApproved) {
+        const fieldName = button.getAttribute("data-field");
+        const hiddenInput = document.getElementById(`${fieldName}-hidden`);
+
+        // حذف کلاس‌های فعال از دکمه‌های این فیلد
+        document.querySelectorAll(`[data-field="${fieldName}"]`).forEach(btn => {
+            btn.classList.remove("active");
+        });
+
+        // اضافه کردن کلاس فعال به دکمه کلیک شده
+        button.classList.add("active");
+
+        // مقدار فیلد مخفی رو تغییر بده تا در فرم ذخیره بشه
+        hiddenInput.value = isApproved ? "true" : "false";
+    }
+});
+
 </script>
 
-<style>
-/* ✅ استایل‌های سفارشی برای کامپوننت‌ها */
-.timeline-section .step-indicator {
-    background: #f8f9fa;
-    border: 3px solid #dee2e6;
-}
-    
-.approval-btn.logistics { background: linear-gradient(45deg, #4CAF50, #45a049); }
-.approval-btn.sales { background: linear-gradient(45deg, #2196F3, #1976D2); }
-.approval-btn.financial { background: linear-gradient(45deg, #9C27B0, #7B1FA2); }
-
-.form-group.has-error .form-label { 
-    color: #dc3545;
-    font-weight: bold;
-}
-</style>
 
 {% endblock %}
