@@ -15,6 +15,28 @@
     <p>شماره تلفن: {{ sales_agent.phone_number }}</p>
     <br>
 
+    <div class="notifications-section">
+        <button id="toggle-notifications" class="button">🔔 نمایش نوتیفیکیشن‌ها</button>
+        <div id="notifications-container" style="display: none;">
+            <ul class="notification-list">
+                {% for notification in notifications %}
+                    <li class="notification-item">
+                        <p>{{ notification.message }}</p>
+                        <form method="post" action="{% url 'mark_notification_as_read' notification.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="button">
+                                خواندم
+                            </button>
+                        </form>
+                    </li>
+                {% empty %}
+                    <li class="notification-item">هیچ نوتیفیکیشنی یافت نشد</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    
+
     <div class="profile-container">
         <!-- ستون تسک‌ها -->
         <div class="tasks-section">
@@ -111,6 +133,7 @@
                             <strong><i class="fas fa-money-bill-wave icon-amount"></i> مبلغ:</strong> {{ purchase.amount_paid }}<br>
                             <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
                         </div>
+                        <a href="{% url 'purchase_CRUD' purchase.id %}" class="button"> مشاهده جزئیات</a>
                     </li>
                 {% empty %}
                     <li class="purchase-item empty-purchase slide-in">هیچ خرید پرداخت نشده‌ای یافت نشد</li>
@@ -144,6 +167,7 @@
                             <strong><i class="fas fa-money-bill-wave icon-amount"></i> مبلغ:</strong> {{ purchase.amount_paid }}<br>
                             <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
                         </div>
+                        <a href="{% url 'purchase_CRUD' purchase.id %}" class="button"> مشاهده جزئیات</a>
                     </li>
                 {% empty %}
                     <li class="purchase-item empty-purchase slide-in">هیچ خرید فعالی یافت نشد</li>
@@ -177,6 +201,7 @@
                             <strong><i class="fas fa-money-bill-wave icon-amount"></i> مبلغ:</strong> {{ purchase.amount_paid }}<br>
                             <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
                         </div>
+                        <a href="{% url 'purchase_CRUD' purchase.id %}" class="button"> مشاهده جزئیات</a>
                     </li>
                 {% empty %}
                     <li class="purchase-item empty-purchase slide-in">هیچ خرید آرشیو شده‌ای یافت نشد</li>
@@ -242,4 +267,23 @@
             });
         });
     </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const toggleButton = document.getElementById("toggle-notifications");
+            const notificationsContainer = document.getElementById("notifications-container");
+
+            toggleButton.addEventListener("click", function () {
+                if (notificationsContainer.style.display === "none") {
+                    notificationsContainer.style.display = "block";
+                    toggleButton.textContent = "🔔 پنهان کردن نوتیفیکیشن‌ها";
+                } else {
+                    notificationsContainer.style.display = "none";
+                    toggleButton.textContent = "🔔 نمایش نوتیفیکیشن‌ها";
+                }
+            });
+        });
+    </script>
+
+
 {% endblock %}

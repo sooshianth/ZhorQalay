@@ -1,4 +1,4 @@
-from core.models import SalesAgent, Customer, Purchase, CargoProduct, CallSession
+from core.models import SalesAgent, Customer, Purchase, CargoProduct, CallSession, Notification
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -74,6 +74,8 @@ def sales_agent_profile_view(request):
     except EmptyPage:
         archived = archived_paginator.page(archived_paginator.num_pages)
 
+    notifications = Notification.objects.filter(user=request.user, is_read = False)
+
     context = {
         'sales_agent': sales_agent,
         'tasks': tasks,  # تسک‌های انجام نشده
@@ -82,6 +84,7 @@ def sales_agent_profile_view(request):
         'active': active,
         'archived': archived,
         'total_sales_this_month': total_sales_this_month,
+        'notifications': notifications,
     }
 
     return render(request, 'sales_agent_profile.html', context)
@@ -122,6 +125,7 @@ def customer_list_view(request):
         customers_page = paginator.page(1)
     except EmptyPage:
         customers_page = paginator.page(paginator.num_pages)
+
 
     context = {
         'customers': customers_page,  # ارسال صفحه مشتریان به جای لیست کامل

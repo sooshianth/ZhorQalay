@@ -7,6 +7,11 @@ from .LogisticsManagerModel import LogisticsManager
 from .PurchaseModel import Purchase, PurchaseHistory
 from .SalesAgentModel import SalesAgent
 from .TaskModel import Task
+from .NotificationModel import Notification
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ('user', 'message')
 
 # تنظیمات نمایش مدل CargoProduct در ادمین
 @admin.register(CargoProduct)

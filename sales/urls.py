@@ -2,7 +2,7 @@ from django.urls import path
 from django.views.generic.base import RedirectView
 
 from .views import cargo_product_view, general_customer_CRUD_page, sales_agent_login, sales_agent_logout, sales_agent_profile_view
-
+from .views import mark_notification_read
 
 
 urlpatterns = [
@@ -14,4 +14,5 @@ urlpatterns = [
     path('login/', sales_agent_login.sales_agent_login_view, name='sales_agent_login'),
     path('cargo_products/', cargo_product_view.cargo_product_list, name='cargo_product_list'),
     path('logout/', sales_agent_logout.logout_view, name='logout'),
+    path("mark-notification/<int:notif_id>/", mark_notification_read.mark_notification_as_read, name="mark_notification_as_read"),
 ]

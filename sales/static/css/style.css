@@ -1150,3 +1150,38 @@ footer {
       transform: translateY(0);
   }
 }
+
+.notifications-section {
+  margin-bottom: 20px;
+}
+
+.notification-list {
+  list-style-type: none;
+  padding: 0;
+}
+
+.notification-item {
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+}
+
+.notification-item p {
+  margin: 0;
+}
+
+.mark-read {
+  background-color: #22C55E;
+  color: white;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.mark-read:hover {
+  background-color: #16A34A;
+}
+

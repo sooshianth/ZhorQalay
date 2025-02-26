@@ -8,4 +8,5 @@ from .FinancialManagerModel import FinancialManager
 from .LogisticsManagerModel import LogisticsManager
 from .PurchaseModel import Purchase
 from .SalesAgentModel import SalesAgent
+from .NotificationModel import Notification
 
