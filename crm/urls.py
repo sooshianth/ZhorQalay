@@ -1,7 +1,7 @@
 from django.urls import path
 from django.views.generic.base import RedirectView
 
-from .views import managers_login, managers_logout, purchase_CRUD_view, managers_profile_view
+from .views import managers_login, managers_logout, purchase_CRUD_view, managers_profile_view, home_view
 
 urlpatterns = [
     path('financial_manager_login/', managers_login.financial_manager_login_view, name='financial_manager_login'),

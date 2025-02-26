@@ -4,4 +4,4 @@ from django.shortcuts import redirect
 
 def logout_view(request):
     logout(request)
-    return redirect('sales_agent_login')
+    return redirect('home_view')
