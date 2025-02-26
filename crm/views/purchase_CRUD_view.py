@@ -113,44 +113,36 @@ def purchase_CRUD_view(request, purchase_id):
     if request.method == 'POST':
         form = RoleBasedPurchaseForm(request.POST, instance=purchase, user_role=user_role)
         
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    original_state = model_to_dict(purchase)
-                    form.save()
+    if form.is_valid():
+        try:
+            with transaction.atomic():
+                original_state = model_to_dict(purchase)
+                purchase = form.save(commit=False)
+                purchase.full_clean()  # اعتبارسنجی مدل
+                purchase.save()
 
-                    # پردازش مراحل تأیید
-                    for post_key, role, prereq, field, label in APPROVAL_FLOW:
-                        if post_key in request.POST and user_role == role:
-                            if prereq and not getattr(purchase, prereq, False):
-                                raise ValidationError(f'پیشنیاز {label} برقرار نیست')
-                            
-                            approval_method = f'check_{field}'
-                            if hasattr(purchase, approval_method):
-                                getattr(purchase, approval_method)(user_role)
-                    
-                    # ثبت تغییرات در تاریخچه
-                    changes = [
-                        f"{f.verbose_name}: {original_state.get(f.name, None)} → {getattr(purchase, f.name, None)}"
-                        for f in purchase._meta.fields
-                        if original_state.get(f.name) != getattr(purchase, f.name)
-                    ]
-                    
-                    if changes:
-                        PurchaseHistory.objects.create(
-                            purchase=purchase,
-                            user=request.user,
-                            changes="\n".join(changes)
-                        )
-
-                    messages.success(request, 'تغییرات با موفقیت ثبت شد')
-                    return redirect('purchase_CRUD', purchase_id=purchase_id)
-            
-            except ValidationError as e:
-                messages.error(request, f'خطای اعتبارسنجی: {e}')
-            except Exception as e:
-                messages.error(request, f'خطای سیستمی: {str(e)}')
+                for post_key, role, prereq, field, lbl in APPROVAL_FLOW:
+                    if post_key in request.POST and user_role == role:
+                        if prereq and not getattr(purchase, prereq, False):
+                            raise ValidationError(f'پیشنیاز {lbl} برقرار نیست')
+                        
+                        approval_method = f'check_{field}'
+                        if hasattr(purchase, approval_method):
+                            result = getattr(purchase, approval_method)(user_role)
+                            if isinstance(result, ValidationError):
+                                raise result
                 
+                # ثبت تاریخچه تغییرات
+                changes = [
+                    f"{f.verbose_name}: {original_state.get(f.name)} → {getattr(purchase, f.name)}"
+                    for f in purchase._meta.fields
+                    if original_state.get(f.name) != getattr(purchase, f.name)
+                ]
+                if changes:
+                    PurchaseHistory.objects.create(...)
+
+        except ValidationError as e:
+            messages.error(request, f'خطا: {", ".join(e.messages)}')                
         else:
             messages.error(request, 'لطفاً اطلاعات فرم را اصلاح کنید')
 

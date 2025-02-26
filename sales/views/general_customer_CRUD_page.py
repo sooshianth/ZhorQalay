@@ -225,7 +225,11 @@ def general_customer_CRUD_view(request):
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
     active_products = CargoProduct.get_active_products()
 
-    purchases = customer.get_purchases_by_time() if customer else []
+    if customer:
+        try:
+            purchases = customer.get_purchases_by_time()
+        except:
+            purchases = []
     purchase_page = request.GET.get('purchase_page', 1)  # دریافت شماره صفحه از URL
     purchase_paginator = Paginator(purchases, 4)  # نمایش ۵ خرید در هر صفحه
     try:
