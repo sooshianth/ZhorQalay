@@ -490,7 +490,145 @@ nav ul li a:hover i {
   color: #9C27B0; /* بنفش برای آیکون تاریخ */
 }
 
-/* انیمیشن‌های جدید */
+
+/* فوتر چسبیده به کف صفحه */
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main.container {
+  flex: 1;
+}
+
+footer {
+  margin-top: auto;
+}
+/* استایل‌های جدید فوتر */
+footer {
+  background-color: var(--footer-color);
+  color: white;
+  padding: 40px 0 20px;
+  font-family: 'Vazir', sans-serif;
+  border-top: 3px solid var(--button-color);
+}
+
+.footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+  padding: 0 20px;
+}
+
+.footer-logo-section {
+  flex: 0 0 250px;
+}
+
+.footer-logo {
+  width: 200px;
+  height: auto;
+  filter: brightness(0) invert(1);
+  transition: transform 0.3s ease;
+}
+
+.footer-logo:hover {
+  transform: scale(1.05);
+}
+
+.footer-content {
+  flex: 1;
+  display: flex;
+  gap: 50px;
+}
+
+.footer-column {
+  flex: 1;
+}
+
+.footer-title {
+  font-size: 1.2rem;
+  color: var(--hover-color);
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid rgba(255,255,255,0.1);
+}
+
+.footer-description {
+  font-size: 0.9rem;
+  line-height: 1.8;
+  opacity: 0.9;
+  margin-bottom: 1.5rem;
+}
+
+.footer-contacts p {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  margin: 10px 0;
+}
+
+.contact-icon {
+  color: var(--button-color);
+  font-size: 1.1rem;
+}
+
+.footer-links {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-link {
+  color: white;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  transition: all 0.3s ease;
+}
+
+.footer-link:hover {
+  color: var(--hover-color);
+  transform: translateX(-5px);
+}
+
+.link-icon {
+  font-size: 0.8rem;
+  color: var(--button-color);
+}
+
+.footer-bottom {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  text-align: center;
+}
+
+.copyright {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+/* رسپانسیو برای موبایل */
+@media (max-width: 768px) {
+  .footer-container {
+      flex-direction: column;
+      gap: 30px;
+  }
+  
+  .footer-content {
+      flex-direction: column;
+      gap: 30px;
+  }
+  
+  .footer-logo {
+      width: 150px;
+  }
+}/* انیمیشن‌های جدید */
 @keyframes fadeIn {
   from {
     opacity: 0;

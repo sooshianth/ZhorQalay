@@ -38,6 +38,7 @@
                         
                 </ul>
             </nav>
+            <img src="{% static 'images/logo.png' %}" width='55px' alt="Logo" style="float: right; margin-left: 10px;">
             <h1>سامانه جامع سیمرغ‌ افزار</h1>
         </div>
     </header>
@@ -45,5 +46,36 @@
     <main class="container">
         {% block content %}{% endblock %}
     </main>
-</body>
+
+    <footer>
+        <div class="footer-container">
+            <div class="footer-logo-section">
+                <img src="{% static 'images/3.png' %}" alt="لوگوی شرکت" class="footer-logo">
+            </div>
+            
+            <div class="footer-content">
+                <div class="footer-column about-column">
+                    <h3 class="footer-title">شرکت تأمین نهاده سیمرغ</h3>
+                    <p class="footer-description">سامانه مدیریت یکپارچه منابع سازمانی</p>
+                    <div class="footer-contacts">
+                        <p><i class="fas fa-envelope contact-icon"></i> s.sedaghati@simurgh360.com</p>
+                        <p><i class="fas fa-phone-alt contact-icon"></i> 09003603014</p>
+                    </div>
+                </div>
+                
+                <div class="footer-column links-column">
+                    <h3 class="footer-title">دسترسی سریع به وبسایت شرکت</h3>
+                    <ul class="footer-links">
+                        <li><a href="https://www.simurgh360.com" class="footer-link"><i class="fas fa-angle-left link-icon"></i>خانه</a></li>
+                        <li><a href="https://simurgh360.com/about.html" class="footer-link"><i class="fas fa-angle-left link-icon"></i>درباره ما</a></li>
+                        <li><a href="https://simurgh360.com/contact" class="footer-link"><i class="fas fa-angle-left link-icon"></i>تماس با ما</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <p class="copyright">&copy; 1403 • تمامی حقوق برای شرکت تأمین نهاده سیمرغ محفوظ است</p>
+        </div>
+    </footer></body>
 </html>
