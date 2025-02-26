@@ -30,12 +30,12 @@ class CustomerAdmin(admin.ModelAdmin):
     ordering = ('-created_at',)
 
 # تنظیمات نمایش مدل Purchase در ادمین
-# @admin.register(Purchase)
-# class PurchaseAdmin(admin.ModelAdmin):
-#     list_display = ('purchase_number', 'customer', 'weight', 'amount_paid', 'is_paid', 'is_delivered', 'created_at')
-#     list_filter = ('is_paid', 'is_delivered', 'is_canceled', 'is_archived')
-#     search_fields = ('purchase_number', 'customer__name')
-#     ordering = ('-created_at',)
+@admin.register(Purchase)
+class PurchaseAdmin(admin.ModelAdmin):
+    list_display = ('purchase_number', 'customer', 'weight', 'amount_paid', 'is_paid', 'is_delivered', 'created_at')
+    list_filter = ('is_paid', 'is_delivered', 'is_canceled', 'is_archived')
+    search_fields = ('purchase_number', 'customer__name')
+    ordering = ('-created_at',)
 
 # تنظیمات نمایش مدل PurchaseHistory در ادمین
 @admin.register(PurchaseHistory)

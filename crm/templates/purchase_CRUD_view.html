@@ -156,10 +156,23 @@
         </div>
         <div class="form-actions">
             <button type="submit" class="button save-button">
-                 ذخیره تغییرات
+                ذخیره تغییرات
             </button>
         </div>
+        
     </form>
+    <div class="approval-actions">
+        <form method='post'>
+            {% csrf_token %}
+        {% for step in available_approvals %}
+            <button type="submit" 
+                    name="{{ step.post_key }}" 
+                    class="button {{ step.role }}">
+                {{ step.label }}
+            </button>
+        {% endfor %}
+        </form>
+    </div>
     
 
     <!-- ✅ جدول تاریخچه تغییرات -->
@@ -260,5 +273,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
 </script>
 
-
+<style>
+    .approval-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+        margin: 2rem 0;
+    }
+    
+    .button.logistics { background: #4CAF50; }
+    .button.sales { background: #2196F3; }
+    .button.financial { background: #9C27B0; }
+</style>
 {% endblock %}

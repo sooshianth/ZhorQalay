@@ -5,155 +5,172 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from core.models import CargoProduct
 from core.PurchaseModel import Purchase, PurchaseHistory
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, PermissionDenied
+from django.forms.models import model_to_dict
 
 def determine_user_role(user):
-    if hasattr(user, 'financial_manager'):
-        return 'financial_manager'
-    elif hasattr(user, 'logistics_manager'):
-        return 'logistics_manager'
-    elif hasattr(user, 'sales_agent'):
-        return 'sales_agent'
+    ROLE_ATTR_MAP = {
+        'financial_manager': 'financial_manager',
+        'logistics_manager': 'logistics_manager',
+        'sales_agent': 'sales_agent'
+    }
+    for attr, role in ROLE_ATTR_MAP.items():
+        if hasattr(user, attr):
+            return role
     return None
 
 class RoleBasedPurchaseForm(forms.ModelForm):
+    FIELD_PERMISSIONS = {
+        'sales_agent': {
+            'fields': ['weight', 'address', 'tracking_number', 
+                      'purchase_date', 'purchase_number', 
+                      'amount_paid', 'cargo'],
+            'defaults': {'amount_paid': 0, 'weight': 0}
+        },
+        'logistics_manager': {
+            'fields': ['weight', 'address', 'tracking_number',
+                      'purchase_number', 'amount_paid', 'cargo'],
+            'defaults': {}
+        },
+        'financial_manager': {
+            'fields': ['amount_paid', 'purchase_date', 'purchase_number',
+                      'tracking_number', 'address'],
+            'defaults': {}
+        }
+    }
+
     class Meta:
         model = Purchase
         fields = '__all__'
-    
+
     def __init__(self, *args, user_role=None, **kwargs):
         super().__init__(*args, **kwargs)
-        if user_role == 'sales_agent':
-            allowed_fields = [
-                'weight', 'address', 'tracking_number', 'purchase_date', 'purchase_number', 'amount_paid', 'cargo',
-                'is_takhsised', 'is_sarak_varized', 'does_salesman_approve',
-            ]
-        elif user_role == 'logistics_manager':
-            allowed_fields = [
-                'weight', 'address', 'tracking_number', 'purchase_number', 'amount_paid', 'cargo',
-                'is_bazaargahed', 'is_takhsised_approved', 'is_address_sent_to_varedkonandeh', 'is_sent_to_barbari', 'is_barnamed', 'does_logistics_approve',
-            ]
-        elif user_role == 'financial_manager':
-            allowed_fields = [
-                'amount_paid', 'cargo', 'purchase_date', 'purchase_number', 'tracking_number', 'address', 'weight',
-                'is_paid','is_tasvied_with_varedkonandeh','is_factorated', 'is_ekhtelaf_approved', 'is_kasri_varized', 'is_kasri_reciept_submited', 'does_financial_approve',
-            ]
-        else:
-            allowed_fields = []
+        config = self.FIELD_PERMISSIONS.get(user_role, {})
+        allowed_fields = config.get('fields', [])
         
         for field in list(self.fields):
             if field not in allowed_fields:
                 del self.fields[field]
+        
+        self.default_values = config.get('defaults', {})
 
     def clean(self):
         cleaned_data = super().clean()
-        instance = self.instance
-        try:
-            instance.clean()
-        except ValidationError as e:
-            for field, errors in e.message_dict.items():
-                for error in errors:
-                    self.add_error(field, error)
-            raise ValidationError("خطا در اعتبارسنجی مدل")
+        for field, value in self.default_values.items():
+            if field not in self.fields:
+                cleaned_data[field] = self.instance.__dict__.get(field, value)
         return cleaned_data
 
 @login_required
 def purchase_CRUD_view(request, purchase_id):
     purchase = get_object_or_404(Purchase, id=purchase_id)
-    history_logs = PurchaseHistory.objects.filter(purchase=purchase).order_by('-timestamp')
     user_role = determine_user_role(request.user)
     
-    progress_steps = [
-        {'name': 'بازارگاه', 'status': purchase.is_bazaargahed},
-        {'name': 'پرداخت', 'status': purchase.is_paid},
-        {'name': 'تخصیص', 'status': purchase.is_takhsised},
-        {'name': 'تایید تخصیص', 'status': purchase.is_takhsised_approved},
-        {'name': 'تسویه با واردکننده', 'status': purchase.is_tasvied_with_varedkonandeh},
-        {'name': 'آدرس', 'status': purchase.is_address_sent_to_varedkonandeh},
-        {'name': 'ارسال به باربری', 'status': purchase.is_sent_to_barbari},
-        {'name': 'برنامه', 'status': purchase.is_barnamed},
-        {'name': 'فاکتور', 'status': purchase.is_factorated},
-        {'name': 'تایید اختلاف', 'status': purchase.is_ekhtelaf_approved},
-        {'name': 'کسری واریز شده', 'status': purchase.is_kasri_varized},
-        {'name': 'سرک واریز شده', 'status': purchase.is_sarak_varized},
-        {'name': 'تایید رسید کسری', 'status': purchase.is_kasri_reciept_submited},
-        {'name': 'تایید واحد فروش', 'status': purchase.does_salesman_approve},
-        {'name': 'تایید واحد لجستیک', 'status': purchase.does_logistics_approve},
-        {'name': 'تایید واحد مالی', 'status': purchase.does_financial_approve},
+    # بررسی مجوز دسترسی
+    if user_role == 'sales_agent' and purchase.customer.sales_agent != request.user.sales_agent:
+        raise PermissionDenied('شما اجازه دسترسی به این صفحه خرید را ندارید')
+
+    # تنظیم مراحل پیشرفت
+    PROGRESS_STEPS = [
+        ('is_bazaargahed', 'بازارگاه'),
+        ('is_paid', 'پرداخت'),
+        ('is_takhsised', 'تخصیص'),
+        ('is_takhsised_approved', 'تایید تخصیص'),
+        ('is_tasvied_with_varedkonandeh', 'تسویه با واردکننده'),
+        ('is_address_sent_to_varedkonandeh', 'آدرس'),
+        ('is_sent_to_barbari', 'ارسال به باربری'),
+        ('is_barnamed', 'برنامه'),
+        ('is_factorated', 'فاکتور'),
+        ('is_ekhtelaf_approved', 'تایید اختلاف'),
+        ('is_kasri_varized', 'کسری واریز شده'),
+        ('is_sarak_varized', 'سرک واریز شده'),
+        ('is_kasri_reciept_submited', 'تایید رسید کسری'),
+        ('does_salesman_approve', 'تایید واحد فروش'),
+        ('does_logistics_approve', 'تایید واحد لجستیک'),
+        ('does_financial_approve', 'تایید واحد مالی'),
     ]
-    
+
+    # تنظیمات مراحل تأیید
+    APPROVAL_FLOW = [
+        ('approve_bazaargahed', 'logistics_manager', 'is_sms_sent', 'is_bazaargahed', 'تایید بازارگاه'),
+        ('approve_paid', 'financial_manager', 'is_bazaargahed', 'is_paid', 'تایید پرداخت'),
+        ('approve_takhsised', 'sales_agent', 'is_paid', 'is_takhsised', 'تایید تخصیص'),
+        ('approve_takhsised_approved', 'logistics_manager', 'is_takhsised', 'is_takhsised_approved', 'تایید تخصیص'),
+        ('approve_tasvied_with_varedkonandeh', 'financial_manager', 'is_takhsised_approved', 'is_tasvied_with_varedkonandeh', 'تایید تسویه با واردکننده'),
+        ('approve_address_sent_to_varedkonandeh', 'logistics_manager', 'is_tasvied_with_varedkonandeh', 'is_address_sent_to_varedkonandeh', 'تایید آدرس'),
+        ('approve_sent_to_barbari', 'logistics_manager', 'is_address_sent_to_varedkonandeh', 'is_sent_to_barbari', 'تایید ارسال به باربری'),
+        ('approve_barnamed', 'logistics_manager', 'is_sent_to_barbari', 'is_barnamed', 'تایید برنامه'),
+        ('approve_factorated', 'financial_manager', 'is_barnamed', 'is_factorated', 'تایید فاکتور'),
+        ('approve_ekhtelaf_approved', 'financial_manager', 'is_factorated', 'is_ekhtelaf_approved', 'تایید اختلاف'),
+        ('approve_kasri_varized', 'financial_manager', 'is_ekhtelaf_approved', 'is_kasri_varized', 'تایید کسری واریز شده'),
+        ('approve_sarak_varized', 'sales_agent', 'is_kasri_varized', 'is_sarak_varized', 'تایید سرک واریز شده'),
+        ('approve_kasri_reciept_submited', 'financial_manager', 'is_sarak_varized', 'is_kasri_reciept_submited', 'تایید رسید کسری'),
+        ('approve_salesman_approve', 'sales_agent', 'is_kasri_reciept_submited', 'does_salesman_approve', 'تایید واحد فروش'),
+        ('approve_logistics_approve', 'logistics_manager', 'does_salesman_approve', 'does_logistics_approve', 'تایید واحد لجستیک'),
+        ('approve_financial_approve', 'financial_manager', 'does_logistics_approve', 'does_financial_approve', 'تایید واحد مالی'),
+    ]
+
     if request.method == 'POST':
         form = RoleBasedPurchaseForm(request.POST, instance=purchase, user_role=user_role)
+        
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    original_obj = Purchase.objects.get(id=purchase_id)
-                    changed_fields = []
-                    
-                    if 'approve_bazaargah' in request.POST:
-                        purchase.check_is_bazaaraghed(user_role)
-                    elif 'approve_payment' in request.POST:
-                        purchase.check_is_paid(user_role)
-                    elif 'approve_allocation' in request.POST:
-                        purchase.check_is_takhsised(user_role)
-                    elif 'approve_allocation_approval' in request.POST:
-                        purchase.check_is_takhsised_approved(user_role)
-                    elif 'approve_address' in request.POST:
-                        purchase.check_is_address_sent_to_varedkonandeh(user_role)
-                    elif 'approve_sent_to_barbari' in request.POST:
-                        purchase.check_is_sent_to_barbari(user_role)
-                    elif 'approve_barnamed' in request.POST:
-                        purchase.check_is_barnamed(user_role)
-                    elif 'approve_factor' in request.POST:
-                        purchase.check_is_factorated(user_role)
-                    elif 'approve_ekhtelaf' in request.POST:
-                        purchase.check_is_ekhtelaf_approved(user_role)
-                    elif 'approve_kasri' in request.POST:
-                        purchase.check_is_kasri_varized(user_role)
-                    elif 'approve_sarak' in request.POST:
-                        purchase.check_is_sarak_varized(user_role)
-                    elif 'approve_kasri_reciept' in request.POST:
-                        purchase.check_is_kasri_reciept_submited(user_role)
-                    elif 'approve_salesman' in request.POST:
-                        purchase.check_does_salesman_approve(user_role)
-                    elif 'approve_logistics' in request.POST:
-                        purchase.check_does_logistics_approve(user_role)
-                    elif 'approve_financial' in request.POST:
-                        purchase.check_does_financial_approve(user_role)
-                    
-                    for field in form.changed_data:
-                        old_value = getattr(original_obj, field)
-                        new_value = form.cleaned_data.get(field)
-                        changed_fields.append(f"{field}: {old_value} → {new_value}")
-                    
+                    original_state = model_to_dict(purchase)
                     form.save()
-                    if changed_fields:
+
+                    # پردازش مراحل تأیید
+                    for post_key, role, prereq, field, label in APPROVAL_FLOW:
+                        if post_key in request.POST and user_role == role:
+                            if prereq and not getattr(purchase, prereq, False):
+                                raise ValidationError(f'پیشنیاز {label} برقرار نیست')
+                            
+                            approval_method = f'check_{field}'
+                            if hasattr(purchase, approval_method):
+                                getattr(purchase, approval_method)(user_role)
+                    
+                    # ثبت تغییرات در تاریخچه
+                    changes = [
+                        f"{f.verbose_name}: {original_state.get(f.name, None)} → {getattr(purchase, f.name, None)}"
+                        for f in purchase._meta.fields
+                        if original_state.get(f.name) != getattr(purchase, f.name)
+                    ]
+                    
+                    if changes:
                         PurchaseHistory.objects.create(
                             purchase=purchase,
                             user=request.user,
-                            changes=" | ".join(changed_fields)
+                            changes="\n".join(changes)
                         )
-                    
-                    messages.success(request, 'تغییرات با موفقیت اعمال شد')
-                    return redirect('purchase_CRUD', purchase_id=purchase_id)
-            except ValidationError as e:
-                for field, errors in e.message_dict.items():
-                    for error in errors:
-                        form.add_error(field, error)
-                messages.error(request, 'خطا: ' + str(e))
-            except Exception as e:
-                messages.error(request, f'خطا: {str(e)}')
-        else:
-            messages.error(request, 'لطفاً خطاهای فرم را برطرف کنید.')
 
-    else:
-        form = RoleBasedPurchaseForm(instance=purchase, user_role=user_role)
+                    messages.success(request, 'تغییرات با موفقیت ثبت شد')
+                    return redirect('purchase_CRUD', purchase_id=purchase_id)
+            
+            except ValidationError as e:
+                messages.error(request, f'خطای اعتبارسنجی: {e}')
+            except Exception as e:
+                messages.error(request, f'خطای سیستمی: {str(e)}')
+                
+        else:
+            messages.error(request, 'لطفاً اطلاعات فرم را اصلاح کنید')
+
+    # آماده سازی داده برای نمایش
+    progress_steps = [{'name': name, 'status': getattr(purchase, field)} for field, name in PROGRESS_STEPS]
+    available_approvals = [
+        {'post_key': pk, 'label': lbl} 
+        for pk, role, prereq, field, lbl in APPROVAL_FLOW 
+        if user_role == role 
+        and (not prereq or getattr(purchase, prereq)) 
+        and not getattr(purchase, field)
+    ]
 
     context = {
         'purchase': purchase,
-        'form': form,
+        'form': RoleBasedPurchaseForm(instance=purchase, user_role=user_role),
         'progress_steps': progress_steps,
-        'history_logs': history_logs,
-        'user_role': user_role,
+        'history_logs': PurchaseHistory.objects.filter(purchase=purchase).order_by('-timestamp'),
+        'available_approvals': available_approvals,
+        'user_role': user_role
     }
+    
     return render(request, 'purchase_CRUD_view.html', context)

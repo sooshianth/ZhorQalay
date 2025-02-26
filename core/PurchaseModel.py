@@ -9,7 +9,7 @@ class Purchase(models.Model):
     address = models.TextField("آدرس", blank=True, null=True)
     purchase_number = models.CharField("شماره خرید", max_length=255, blank=True, null=True)
     tracking_number = models.CharField("شماره پیگیری", max_length=255, blank=True, null=True)
-    weight = models.PositiveIntegerField("وزن (کیلوگرم)")
+    weight = models.PositiveIntegerField("وزن (کیلوگرم)",)
     cargo = models.ForeignKey(CargoProduct,on_delete=models.SET_NULL, verbose_name="کوتاژ", blank=True, null=True)
     amount_paid = models.PositiveBigIntegerField("مبلغ پرداختی(ریال)", blank=True, null=True)
     created_at = jmodels.jDateTimeField("تاریخ ثبت",default=timezone.now,editable=True)
@@ -21,7 +21,7 @@ class Purchase(models.Model):
     #################################################
     ##           BOOOOLLLEAAANNNNSSSSSSSSSS        ##
     #################################################
-
+    is_sms_sent = models.BooleanField("پیامک ارسال شده", default=True)
     is_bazaargahed = models.BooleanField("تایید بازارگاه ", default=False)
     is_paid = models.BooleanField("تایید مالی", default=False)
     is_takhsised = models.BooleanField("تخصیص شده", default=False)
@@ -55,7 +55,7 @@ class Purchase(models.Model):
 
 
 
-    def check_is_bazaaraghed(self, user_role):
+    def check_is_bazaaragahed(self, user_role):
         if user_role == 'logistics_manager':
             self.is_bazaargahed = True
         else:
@@ -198,13 +198,7 @@ class Purchase(models.Model):
 
         if self.weight <= 10000:
             errors['weight'] = 'وزن باید بزرگتر از 10 تن باشد'
-
-        if self.is_delivered and not self.is_sent:
-            errors['is_delivered'] = 'کالای تحویل شده باید ابتدا ارسال شده باشد'
         
-        if self.is_canceled and self.is_delivered:
-            errors['is_canceled'] = 'کالای تحویل شده قابل لغو نیست'
-
         if not self.customer:
             errors['customer'] = 'انتخاب مشتری الزامی است'
         
@@ -223,7 +217,7 @@ class PurchaseHistory(models.Model):
     purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     changes = models.TextField("تغییرات")
-    timestamp = models.DateTimeField(auto_now_add=True)
+    timestamp = jmodels.jDateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = "تاریخچه خرید"
