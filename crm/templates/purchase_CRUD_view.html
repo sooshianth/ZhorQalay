@@ -2,6 +2,13 @@
 
 {% block content %}
 <div class="container">
+
+    {% if messages %}
+    {% for message in messages %}
+        <p style="color: red;">{{ message }}</p>
+    {% endfor %}
+    {% endif %}
+
     <!-- بخش گزارش عملیات -->
     <table class="operations-table">
         <tr>

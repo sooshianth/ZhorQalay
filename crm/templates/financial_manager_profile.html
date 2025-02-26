@@ -5,6 +5,13 @@
     <div class="profile-container">
         <h2>پروفایل مدیر مالی</h2>
 
+        {% if messages %}
+        {% for message in messages %}
+            <p style="color: red;">{{ message }}</p>
+        {% endfor %}
+        {% endif %}
+    
+
         <table class="profile-info">
             <tr>
                 <td>نام و نام خانوادگی</td>
