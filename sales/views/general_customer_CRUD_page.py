@@ -15,6 +15,12 @@ from django import forms
 from core.SalesAgentModel import SalesAgent
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from jdatetime import datetime, date
+
+def jalali_to_gregorian(jalali_date):
+    jalali_datetime = datetime.strptime(jalali_date, "%Y/%m/%d").date()
+    gregorian_datetime = jalali_datetime.togregorian()
+    return gregorian_datetime
 
 class CustomerForm(forms.ModelForm):
     field_of_activity = forms.ChoiceField(
@@ -191,7 +197,8 @@ def general_customer_CRUD_view(request):
         new_task = Task(
             description=task_description,
             customer=customer,
-            due_date=datetime.strptime(due_date_str, '%Y-%m-%dT%H:%M') if due_date_str else None,  # توجه به فرمت datetime-local HTML
+            due_date = jalali_to_gregorian(due_date_str),
+            # due_date=datetime.strptime(due_date_str, '%Y-%m-%dT%H:%M') if due_date_str else None,  # توجه به فرمت datetime-local HTML
             status=False
         )
         try:

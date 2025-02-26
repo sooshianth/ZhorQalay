@@ -135,8 +135,7 @@
                 {% csrf_token %}
                 <textarea name="task_description" placeholder="توضیحات تسک"></textarea>
                 <br>
-                <input type="datetime-local" name="due_date">
-                <br>
+                <input type="text" data-jdp name="due_date" autocomplete="off">                <br>
                 <br>
                 <button type="submit" name="create_task">ثبت تسک</button>
             </form>
@@ -539,5 +538,7 @@
     }
 </style>
 
-
+<script>
+    jalaliDatepicker.startWatch();
+</script>
 {% endblock %}
