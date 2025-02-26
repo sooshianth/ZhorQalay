@@ -479,15 +479,15 @@ nav ul li a:hover i {
 
 /* استایل‌های آیکون‌های خریدها */
 .icon-product {
-  color: #2196F3; /* آبی برای آیکون محصول */
+  color: #008563; /* آبی برای آیکون محصول */
 }
 
 .icon-amount {
-  color: #FF9800; /* نارنجی برای آیکون مبلغ */
+  color: #008563; /* نارنجی برای آیکون مبلغ */
 }
 
 .icon-date {
-  color: #9C27B0; /* بنفش برای آیکون تاریخ */
+  color: #008563; /* بنفش برای آیکون تاریخ */
 }
 
 
@@ -670,17 +670,6 @@ footer {
 
 
 
-/* تنظیم رنگ تک‌رنگ برای آیکون‌های Font Awesome */
-nav ul li a i,
-.icon-done,
-.icon-pending,
-.icon-product,
-.icon-amount,
-.icon-date,
-.contact-icon,
-.link-icon {
-  color: rgb(0, 105, 56); /* رنگ سفید برای همه آیکون‌ها */
-}
 /* اسکریپت‌های جدید */
 <script>
   document.addEventListener('DOMContentLoaded', function() {
