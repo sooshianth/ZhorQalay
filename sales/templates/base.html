@@ -48,6 +48,13 @@
             <img src="{% static 'images/3.png' %}" width='55px' alt="Logo" style="float: right; margin-left: 10px;   filter: brightness(0) invert(1);
 ">
             <h1>سامانه جامع سیمرغ‌ افزار</h1>
+            <div class="toggle-container" id="dark-mode-toggle">
+                <span>🌙</span>
+                <div class="toggle-switch">
+                    <div class="toggle-circle"></div>
+                </div>
+                <span>🌞</span>
+            </div>
         </div>
     </header>
 
@@ -86,4 +93,26 @@
             <p class="copyright">&copy; 1403 • تمامی حقوق برای شرکت تأمین نهاده سیمرغ محفوظ است</p>
         </div>
     </footer></body>
+
+    <script>
+       document.addEventListener("DOMContentLoaded", function() {
+        const toggleBtn = document.getElementById("dark-mode-toggle");
+
+        // بررسی ذخیره‌شده در Local Storage
+        if (localStorage.getItem("theme") === "dark") {
+            document.body.classList.add("dark-mode");
+        }
+
+        toggleBtn.addEventListener("click", function() {
+            document.body.classList.toggle("dark-mode");
+
+            if (document.body.classList.contains("dark-mode")) {
+                localStorage.setItem("theme", "dark");
+            } else {
+                localStorage.setItem("theme", "light");
+            }
+        });
+    });
+    </script>
+
 </html>

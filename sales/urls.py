@@ -15,4 +15,5 @@ urlpatterns = [
     path('cargo_products/', cargo_product_view.cargo_product_list, name='cargo_product_list'),
     path('logout/', sales_agent_logout.logout_view, name='logout'),
     path("mark-notification/<int:notif_id>/", mark_notification_read.mark_notification_as_read, name="mark_notification_as_read"),
+    path('get-related-products/', general_customer_CRUD_page.get_related_products, name='get_related_products'),
 ]

@@ -99,6 +99,11 @@
                 </div>
             </div>
 
+            <div id="related-products" style="display: none;">
+                <h3>محصولات مرتبط:</h3>
+                <ul id="related-products-list"></ul>
+            </div>
+
             <!-- سایر فیلدها -->
             <div class="full-width">
                 <div class="form-group">
@@ -351,6 +356,34 @@
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.autocomplete-container')) {
             document.getElementById('autocomplete-results').style.display = 'none';
+        }
+    });
+</script>
+
+<script>
+    function fetchRelatedProducts(customerId) {
+        fetch(`/get-related-products/?customer_id=${customerId}`)
+            .then(response => response.json())
+            .then(data => {
+                const list = document.getElementById('related-products-list');
+                list.innerHTML = '';
+                data.forEach(product => {
+                    const li = document.createElement('li');
+                    li.innerText = `کوتاژ: ${product.cottage}, نوع: ${product.product_type}, کشور: ${product.country}`;
+                    list.appendChild(li);
+                });
+                document.getElementById('related-products').style.display = 'block'; // نمایش محصولات مرتبط
+            })
+            .catch(error => {
+                console.error('Error fetching related products:', error);
+            });
+    }
+
+    // بارگذاری محصولات مرتبط بعد از بارگذاری صفحه
+    document.addEventListener('DOMContentLoaded', function() {
+        const customerId = '{{ customer.id }}'; // اطمینان حاصل کنید که ID مشتری در دسترس است
+        if (customerId) {
+            fetchRelatedProducts(customerId);
         }
     });
 </script>

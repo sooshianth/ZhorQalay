@@ -9,6 +9,7 @@ from core.TaskModel import Task
 from core.PurchaseModel import Purchase  
 from core.CargoProductModel import CargoProduct
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.http import JsonResponse
 
 # core/forms.py
 from django import forms
@@ -16,6 +17,34 @@ from core.SalesAgentModel import SalesAgent
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from jdatetime import datetime, date
+
+def get_related_products(request):
+    customer_id = request.GET.get('customer_id')
+
+    if not customer_id:
+        return JsonResponse({'error': 'No customer ID provided'}, status=400)
+
+    try:
+        purchases = Purchase.objects.filter(customer_id=customer_id).select_related("cargo")
+        
+        # جمع‌آوری شناسه یا نوع محصولات خریداری شده
+        purchased_product_types = [purchase.cargo.product_type for purchase in purchases if purchase.cargo]
+
+        # پیدا کردن محصولات مرتبط
+        related_products = CargoProduct.objects.filter(product_type__in=purchased_product_types).exclude(cottage__in=[p.cottage for p in purchases])
+
+        # ساختار داده برای خروجی
+        product_data = [{
+            'cottage': product.cottage,
+            'product_type': product.get_product_type_display(),
+            'country': product.get_country_display(),
+            'loading_time': product.loading_time,
+        } for product in related_products]
+
+        return JsonResponse(product_data, safe=False)
+    
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 def jalali_to_gregorian(jalali_date):
     jalali_datetime = datetime.strptime(jalali_date, "%Y/%m/%d").date()
