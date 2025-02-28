@@ -14,9 +14,11 @@ class Purchase(models.Model):
     amount_paid = models.PositiveBigIntegerField("مبلغ پرداختی(ریال)", blank=True, null=True)
     created_at = jmodels.jDateTimeField("تاریخ ثبت",default=timezone.now,editable=True)
     updated_at  = jmodels.jDateTimeField("تاریخ بروزرسانی",auto_now=True)
+    is_weight_costed = models.BooleanField("آیا وزن خرید از وزن موجود محصول کاسته شده است؟", default=False)
 
-
-
+    extelaf_type = models.CharField("نوع اختلاف (کسری یا سرک)", max_length=4, choices=[('کسری', 'کسری'), ('سرک', 'سرک')], null=True, blank=True)
+    extelaf_weight = models.PositiveIntegerField("وزن اختلاف به کیلوگرم", null=True, blank=True)
+    extelaf_amount = models.PositiveBigIntegerField("مبلغ اختلاف به ریال", null=True, blank=True)
 
     #################################################
     ##           BOOOOLLLEAAANNNNSSSSSSSSSS        ##
@@ -60,21 +62,22 @@ class Purchase(models.Model):
             self.is_bazaargahed = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-        self.save()
         
     def check_is_paid(self, user_role):
-        if user_role == 'financial_manager' and self.is_bazaargahed:
+        if user_role == 'financial_manager' and self.is_bazaargahed and (type(self.amount_paid) == int and self.amount_paid > 10000000):
             self.is_paid = True
+            if not self.is_weight_costed:
+                self.is_weight_costed = True
+                self.cargo.weight -= self.weight
+                self.cargo.save()
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-        self.save()
         
     def check_is_takhsised(self, user_role):
-        if user_role == 'sales_agent' and self.is_paid:
+        if user_role == 'sales_agent':
             self.is_takhsised = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-        self.save()
         
         
     def check_is_takhsised_approved(self, user_role):
@@ -82,84 +85,71 @@ class Purchase(models.Model):
             self.is_takhsised_approved = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-        self.save()
 
     def check_is_tasvied_with_varedkonandeh(self, user_role):
-        if user_role == 'financial_manager' and self.is_takhsised_approved:
+        if user_role == 'financial_manager':
             self.is_tasvied_with_varedkonandeh = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-        self.save()
     
     def check_is_address_sent_to_varedkonandeh(self, user_role):
         if user_role == 'logistics_manager' and self.is_tasvied_with_varedkonandeh:
             self.is_address_sent_to_varedkonandeh = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-        self.save()
 
     def check_is_sent_to_barbari(self, user_role):
         if user_role == 'logistics_manager' and self.is_address_sent_to_varedkonandeh:
             self.is_sent_to_barbari = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-        self.save()
         
     def check_is_barnamed(self, user_role):
-        if user_role == 'logistics_manager' and self.is_sent_to_barbari:
+        if user_role == 'logistics_manager':
             self.is_barnamed = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-        self.save()
         
     def check_is_factorated(self, user_role):
         if user_role == 'financial_manager' and self.is_barnamed:
             self.is_factorated = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-        self.save()
     
     def check_is_ekhtelaf_approved(self, user_role):
         if user_role == 'financial_manager' and self.is_factorated:
             self.is_ekhtelaf_approved = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-        self.save()
         
     def check_is_kasri_varized(self, user_role):
         if user_role == 'financial_manager' and self.is_ekhtelaf_approved:
             self.is_kasri_varized = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-        self.save()
     
     def check_is_sarak_varized(self, user_role):
         if user_role == 'sales_agent' and self.is_kasri_varized:
             self.is_sarak_varized = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-        self.save()
         
     def check_is_kasri_reciept_submited(self, user_role):
         if user_role == 'financial_manager':
             self.is_kasri_reciept_submited = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-        self.save()
 
 
     def check_does_salesman_approve(self, user_role):
         if user_role == 'sales_agent' and self.is_kasri_reciept_submited:
             self.does_salesman_approve = True
-        self.save()
     def check_does_logistics_approve(self, user_role):
         if user_role == 'logistics_manager' and self.is_kasri_reciept_submited:
             self.does_logistics_approve = True
-        self.save()
     def check_does_financial_approve(self, user_role):
         if user_role == 'financial_manager' and self.is_kasri_reciept_submited:
             self.does_financial_approve = True
-        self.save()
 
 
     def check_is_urgent(self, user):
@@ -167,21 +157,18 @@ class Purchase(models.Model):
             self.is_urgent = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-        self.save()
 
     def check_is_canceled(self, user):
         if user.is_superuser:
             self.is_canceled = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-        self.save()
 
     def check_is_archived(self, user):
         if user.is_superuser:
             self.is_archived = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-        self.save()
         
 
 
@@ -189,13 +176,6 @@ class Purchase(models.Model):
         verbose_name = "خرید"
         verbose_name_plural = "خریدها"
     
-    @transaction.atomic
-    def save(self, *args, **kwargs):
-        if self.is_paid and self.cargo:
-            self.cargo.weight -= self.weight
-            self.cargo.save()
-        super().save(*args, **kwargs)
-
     def __str__(self):
         return f"خرید {self.purchase_number} - {self.customer.name} در تاریخ {self.created_at}"
 

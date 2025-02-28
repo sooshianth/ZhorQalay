@@ -40,7 +40,8 @@ class RoleBasedPurchaseForm(forms.ModelForm):
             ]
         else:
             allowed_fields = []
-        
+        if self.instance.is_barnamed :
+            allowed_fields += ['extelaf_type', 'extelaf_weight', 'extelaf_amount']
         for field in list(self.fields):
             if field not in allowed_fields:
                 del self.fields[field]
@@ -64,7 +65,7 @@ def purchase_CRUD_view(request, purchase_id):
     user_role = determine_user_role(request.user)
     
     progress_steps = [
-        {'name': 'تأیید خرید در بازارگاه', 'status': purchase.is_bazaargahed},
+        {'name': 'تأیید ثبت خرید در بازارگاه', 'status': purchase.is_bazaargahed},
         {'name': 'تأیید انجام پرداخت توسط واحد مالی', 'status': purchase.is_paid},
         {'name': 'ثبت تخصیص توسط مشتری', 'status': purchase.is_takhsised},
         {'name': 'تایید تخصیص', 'status': purchase.is_takhsised_approved},
