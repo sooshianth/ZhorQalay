@@ -12,6 +12,7 @@ class Purchase(models.Model):
     weight = models.PositiveIntegerField("وزن (کیلوگرم)",)
     cargo = models.ForeignKey(CargoProduct,on_delete=models.SET_NULL, verbose_name="کوتاژ", blank=True, null=True)
     amount_paid = models.PositiveBigIntegerField("مبلغ پرداختی(ریال)", blank=True, null=True)
+    payment_method = models.CharField("شیوۀ پرداخت", max_length=6, choices=[('نقدی', 'نقدی'), ('توافقی', 'توافقی')], default="نقدی")
     created_at = jmodels.jDateTimeField("تاریخ ثبت",default=timezone.now,editable=True)
     updated_at  = jmodels.jDateTimeField("تاریخ بروزرسانی",auto_now=True)
     is_weight_costed = models.BooleanField("آیا وزن خرید از وزن موجود محصول کاسته شده است؟", default=False)
