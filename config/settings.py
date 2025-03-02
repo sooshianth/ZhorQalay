@@ -23,6 +23,7 @@ GRAPH_MODELS = {
 
 INSTALLED_APPS = [
     'colorfield',
+    'captcha',
     'admin_interface',
     'django.contrib.admin',
     'django.contrib.auth',

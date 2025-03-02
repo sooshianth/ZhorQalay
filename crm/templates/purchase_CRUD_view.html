@@ -66,6 +66,7 @@ data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else 
 </div>
 </div>
 
+{% load custom_filters %}
 
 <!-- ✅ نمایش اطلاعات خرید در قالب کارت‌های مدرن -->
 <div class="purchase-info">
@@ -83,11 +84,13 @@ data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else 
 </div>
 <div class="info-card">
 <h3>⚖️ وزن</h3>
-<p>{{ purchase.weight }} کیلوگرم</p>
+<p>{{ purchase.weight|add_commas }} کیلوگرم</p>
+<p>({{purchase.weight|to_persian_words_weight}})</p>
 </div>
 <div class="info-card">
 <h3>💰 مبلغ پرداختی</h3>
-<p>{{ purchase.amount_paid|default:"-" }} ریال</p>
+<p>{{ purchase.amount_paid|add_commas}} ریال</p>
+<p>({{ purchase.amount_paid|to_persian_words }})</p>
 </div>
 </div>
 

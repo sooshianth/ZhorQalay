@@ -1,6 +1,6 @@
 from django.urls import path
 from django.views.generic.base import RedirectView
-
+from django.urls import path, include
 from .views import cargo_product_view, general_customer_CRUD_page, sales_agent_login, sales_agent_logout, sales_agent_profile_view
 from .views import mark_notification_read
 
@@ -16,4 +16,5 @@ urlpatterns = [
     path('logout/', sales_agent_logout.logout_view, name='logout'),
     path("mark-notification/<int:notif_id>/", mark_notification_read.mark_notification_as_read, name="mark_notification_as_read"),
     path('get-related-products/', general_customer_CRUD_page.get_related_products, name='get_related_products'),
+    path('captcha/', include('captcha.urls')), 
 ]

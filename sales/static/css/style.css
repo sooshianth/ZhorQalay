@@ -1217,7 +1217,7 @@ footer {
 
 .dark-mode .tasks-section,
 .dark-mode .purchases-section{
-  background: rgba(97, 118, 148, 0.85); /* خاکستری تیره‌تر */
+  background: rgba(180, 187, 196, 0.674); /* خاکستری تیره‌تر */
   color: var(--text-color); /* متن روشن */
   border-radius: 12px;
   box-shadow: 0 5px 15px rgba(255, 152, 0, 0.2);

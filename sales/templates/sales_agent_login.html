@@ -14,12 +14,7 @@
     
         <form method="POST">
             {% csrf_token %}
-            <label for="username">نام کاربری:</label>
-            <input type="text" name="username" required>
-            
-            <label for="password">رمز عبور:</label>
-            <input type="password" name="password" required>
-            
+            {{ form.as_p }}  <!-- نمایش خودکار فرم شامل کپچا -->
             <button type="submit">ورود</button>
         </form>
     </div>
