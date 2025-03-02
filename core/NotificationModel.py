@@ -3,6 +3,7 @@ from django_jalali.db import models as jmodels
 from django.contrib.auth.models import User
 from django.utils import timezone
 
+
 class Notification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
     message = models.TextField("پیام نوتیفیکیشن")

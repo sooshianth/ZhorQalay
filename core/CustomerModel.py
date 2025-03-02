@@ -15,58 +15,29 @@ FIELD_OF_ACTIVITY = [
     ('fish', 'پرورش آبزیان'),
 ]
 class Customer(models.Model):
-
-    # شماره تلفن
     phone_number = models.CharField(_("تلفن همراه"), max_length=20, unique=True)
-
-    # کارشناس فروش
     sales_agent = models.ForeignKey(SalesAgent, on_delete=models.SET_NULL, verbose_name=_("کارشناس فروش"), blank=True, null=True, related_name='customers')
-
-    # اسم
     name = models.CharField(_("نام"), max_length=100, null=True, blank=True)
-
-    # شهر
     city = models.CharField(_("شهر"), max_length=100, null=True, blank=True)
-
-    # زمینه فعالیت
     field_of_activity = models.CharField(_("حیطه فعالیت"), max_length=255, blank=True, null=True,
         choices=FIELD_OF_ACTIVITY
     )
-
-    # ترجیحات خرید
     purchase_preferences = models.CharField(_("ترجیحات پرداخت"), max_length=255, blank=True, null=True,
         choices=[('cash', 'نقدی'), ('check', 'چک')]
     )
-    # ترحیجات کالایی
     product_preferences = models.CharField(_("ترجیحات کالایی"), max_length=255, blank=True, null=True,
         choices=CargoProduct.PRODUCT_TYPES
     )
-
-    # ترجیحات ساعت تماس
     contact_start_time = models.TimeField(_("زمان شروع تماس"), blank=True, null=True)
     contact_end_time = models.TimeField(_("زمان پایان تماس"), blank=True, null=True)
-
-    # فضای مجازی
     social_media = models.CharField(_("شبکات اجتماعی"), max_length=255, blank=True, null=True,
         help_text=_("مثلا: ایتا و تلگرام، اینستاگرام: آیدیش")
     )
-
-    # توضیحات بیشتر
     added_description = models.TextField(_("توضیحات تکمیلی شناسنامه"), blank=True)
-
-    # ترجیحات پیامکی
     sms_preference = models.BooleanField(_("SMS Preference"), default=True,
         help_text=_("تمایل به دریافت پیامک دارد؟")
     )
-
-    # سهمیه
-    quota = models.CharField(_("سهمیه"),max_length=244, null=True, blank=True)  # You might want a more specific field type
-
-    #آدرس
-    #address = models.TextField(_("آدرس"), blank=True, null=True)
-
-    #آخرین تماس با مشتری
-    # last_contact_date = models.DateTimeField(_("تاریخ آخرین تماس"), blank=True, null=True)
+    quota = models.CharField(_("سهمیه"),max_length=244, null=True, blank=True)  
     created_at = jmodels.jDateTimeField(_("تاریخ ثبت"), auto_now_add=True, null=True,    blank=True)
     updated_at = jmodels.jDateTimeField(_("تاریخ بروزرسانی"), auto_now=True, null=True, blank=True)   
 
@@ -103,6 +74,8 @@ class Customer(models.Model):
     def get_sales_agent(self):
         return self.sales_agent
 
+    def get_last_contact_datetime(self):
+        return self.calls.last().date if self.calls.exists() else None
 
     def __str__(self):
         return f"{self.phone_number} {self.name}"

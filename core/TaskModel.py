@@ -3,8 +3,8 @@ from django_jalali.db import models as jmodels
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from datetime import timedelta
-from .PurchaseModel import Purchase
 from .CustomerModel import Customer
+from .PurchaseModel import Purchase
 from .NotificationModel import Notification
 
 class Task(models.Model):

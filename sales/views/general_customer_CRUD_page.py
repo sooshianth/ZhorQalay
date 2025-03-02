@@ -2,15 +2,11 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.urls import reverse
-from datetime import datetime
-from core.CustomerModel import Customer, FIELD_OF_ACTIVITY
-from core.CallSessionModel import CallSession
-from core.TaskModel import Task
-from core.PurchaseModel import Purchase  
-from core.CargoProductModel import CargoProduct
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.http import JsonResponse
 from persiantools.jdatetime import JalaliDateTime
+from core._models import Customer, CallSession, Task, Purchase, CargoProduct
+from core.CustomerModel import FIELD_OF_ACTIVITY
 
 # core/forms.py
 from django import forms

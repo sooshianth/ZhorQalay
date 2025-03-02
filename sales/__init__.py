@@ -1,1 +1,0 @@
-# bazam kalan bazam kalaaaan

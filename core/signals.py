@@ -2,8 +2,8 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 from datetime import timedelta
-from .PurchaseModel import Purchase
-from .TaskModel import Task
+from core._models import Purchase, Task
+
 
 @receiver(post_save, sender=Purchase)
 def create_task_for_purchase(sender, instance, created, **kwargs):

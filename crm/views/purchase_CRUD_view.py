@@ -3,9 +3,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from core.models import CargoProduct
-from core.PurchaseModel import Purchase, PurchaseHistory
 from django.core.exceptions import ValidationError
+from core._models import CargoProduct, Purchase
+from core.PurchaseModel import PurchaseHistory
 
 def determine_user_role(user):
     if hasattr(user, 'financial_manager'):

@@ -12,6 +12,7 @@ class SalesAgentLoginForm(AuthenticationForm):
             raise forms.ValidationError('لطفا کد را وارد کنید')
         return captcha
     
+    
 class LogisticsManagerLoginForm(AuthenticationForm):
     captcha = CaptchaField(label='کد امنیتی')
 
@@ -20,6 +21,7 @@ class LogisticsManagerLoginForm(AuthenticationForm):
         if not captcha:
             raise forms.ValidationError('لطفا کد را وارد کنید')
         return captcha
+
 
 class FinancialManagerLoginForm(AuthenticationForm):
     captcha = CaptchaField(label='کد امنیتی')

@@ -1,7 +1,7 @@
 # views.py
 from django.shortcuts import render
-from core.PurchaseModel import Purchase
 from django.contrib.auth.decorators import login_required
+from core._models import Purchase
 
 @login_required
 def purchase_list(request):

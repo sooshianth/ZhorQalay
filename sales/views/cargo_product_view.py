@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from core.models import CargoProduct
+from core._models import CargoProduct
 
 def cargo_product_list(request):
     cargo_products = CargoProduct.objects.all()

@@ -1,6 +1,6 @@
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from core.models import Notification
+from core._models import Notification
 
 @login_required
 def mark_notification_as_read(request, notif_id):

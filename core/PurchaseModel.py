@@ -2,7 +2,8 @@ from django.db import models, transaction
 from django_jalali.db import models as jmodels
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from core.models import Customer, CargoProduct
+from .CustomerModel import Customer
+from .CargoProductModel import CargoProduct
 
 class Purchase(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.DO_NOTHING, verbose_name="مشتری", help_text="ارتباط یک‌به‌یک با مشتری از طریق شماره تلفن یا آیدی", related_name='purchases_made')

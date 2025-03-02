@@ -3,6 +3,7 @@ from django_jalali.db import models as jmodels
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 
+
 class LogisticsManager(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='logistics_manager', null=True, blank=True)
     name = models.CharField(max_length=255, null=True, blank=True, verbose_name='نام')

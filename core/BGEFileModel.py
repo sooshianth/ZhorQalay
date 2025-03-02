@@ -1,9 +1,10 @@
 from django.db import models
 from django_jalali.db import models as jmodels
-from core.CargoProductModel import CargoProduct
+from .CargoProductModel import CargoProduct
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 import os
+
 
 class BGEFile(models.Model):
     user = models.OneToOneField(User, on_delete=models.DO_NOTHING, related_name='users_bge_files')
