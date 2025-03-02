@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.core.exceptions import ValidationError
-from core._models import CargoProduct, Purchase
+from core._models import Purchase
 from core.PurchaseModel import PurchaseHistory
 
 def determine_user_role(user):

@@ -1,8 +1,7 @@
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from core.forms.forms import SalesAgentLoginForm  # فرم جدید را ایمپورت کنید
+from core.forms.forms import SalesAgentLoginForm
 
 def sales_agent_login_view(request):
     if request.user.is_authenticated:

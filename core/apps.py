@@ -7,4 +7,4 @@ class CoreConfig(AppConfig):
 
     def ready(self):
         # اتصال سیگنال‌ها
-        import core.signals
+        import core.zignals
