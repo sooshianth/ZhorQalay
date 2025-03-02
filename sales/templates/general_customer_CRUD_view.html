@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% load custom_filters %}
+
 {% block content %}
 <div class="container">
     <!-- جستجو -->
@@ -233,7 +235,7 @@
                     <div class="history-item">
                         <p>📅 {{ purchase.created_at|date:"Y/m/d H:i" }}</p>
                         <p>کوتاژ: {{ purchase.cargo.cottage }} {{ purchase.cargo.get_product_type_display }} {{ purchase.cargo.get_country_display }}</p>
-                        <p>وزن: {{ purchase.weight }} کیلوگرم</p>
+                        <p>وزن: {{ purchase.weight|add_commas }} کیلوگرم</p>
                         <p>وضعیت پرداخت: {{ purchase.is_paid|yesno:"✅,❌" }}</p>
                         <p><a href="{% url 'purchase_CRUD' purchase.id %}" class="button">مشاهده جزئیات</a></p>
                     </div>

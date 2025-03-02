@@ -89,6 +89,8 @@ def sales_agent_profile_view(request):
 
     return render(request, 'sales_agent_profile.html', context)
 
+
+
 @login_required
 def customer_list_view(request):
     if not hasattr(request.user, 'sales_agent'):

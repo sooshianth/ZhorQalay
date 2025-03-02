@@ -7,6 +7,7 @@
 /core/__pycache__
 /core/migrations/__pycache__
 /core/extensions/__pycache__
+/core/templatetags/__pycache__
 
 /sales/__pycache__
 /sales/views/__pycache__
@@ -15,3 +16,4 @@
 /crm/views/__pycache__
 /crm/__pycache__
 /crm/migrations/__pycache__
+

@@ -3,6 +3,8 @@
 
 {% block content %}
 
+{% load custom_filters %}
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.rtl.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 <style>
@@ -151,7 +153,7 @@ margin-bottom: 15px;
 <strong>مشتری:</strong> {{ purchase.customer.name }}
 </p>
 <p class="card-text mb-1">
-<strong>وزن:</strong> {{ purchase.weight }} کیلوگرم
+<strong>وزن:</strong> {{ purchase.weight|add_commas }} کیلوگرم
 </p>
 {% if purchase.tracking_number %}
 <p class="card-text mb-1">
@@ -160,7 +162,7 @@ margin-bottom: 15px;
 {% endif %}
 {% if purchase.amount_paid %}
 <p class="card-text mb-1">
-<strong>مبلغ پرداختی:</strong> {{ purchase.amount_paid }} ریال
+<strong>مبلغ پرداختی:</strong> {{ purchase.amount_paid|add_commas }} ریال
 </p>
 {% endif %}
 </div>
@@ -236,7 +238,7 @@ margin-bottom: 15px;
 <strong>مشتری:</strong> {{ purchase.customer.name }}
 </p>
 <p class="card-text mb-1">
-<strong>وزن:</strong> {{ purchase.weight }} کیلوگرم
+<strong>وزن:</strong> {{ purchase.weight|add_commas }} کیلوگرم
 </p>
 {% if purchase.tracking_number %}
 <p class="card-text mb-1">
@@ -245,7 +247,7 @@ margin-bottom: 15px;
 {% endif %}
 {% if purchase.amount_paid %}
 <p class="card-text mb-1">
-<strong>مبلغ پرداختی:</strong> {{ purchase.amount_paid }} ریال
+<strong>مبلغ پرداختی:</strong> {{ purchase.amount_paid|add_commas }} ریال
 </p>
 {% endif %}
 </div>

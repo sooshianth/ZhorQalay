@@ -2,6 +2,8 @@
 
 {% block title %}پروفایل کارشناس فروش{% endblock %}
 
+{% load custom_filters %}
+
 {% block content %}
     <h1>پروفایل کارشناس فروش</h1>
     <br>
@@ -51,6 +53,13 @@
                             <span class="task-status">
                                 <i class="fas fa-times-circle icon-pending"></i> انجام نشده
                             </span>
+                            <form method="post" action="{% url 'change_task_status' task.id %}">
+                                {% csrf_token %}
+                                <button type="submit" name="change_status" style="background-color: {% if task.status %}red{% else %}green{% endif %}; color: white;">
+                                    {% if task.status %}لغو انجام{% else %}انجام شد{% endif %}
+                                </button>
+                            </form>
+            
                         </div>
                     </li>
                 {% empty %}
@@ -93,6 +102,13 @@
                                 <span class="task-status">
                                     <i class="fas fa-check-circle icon-done"></i> انجام شده
                                 </span>
+                                <form method="post" action="{% url 'change_task_status' task.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" name="change_status" style="background-color: {% if task.status %}red{% else %}green{% endif %}; color: white;">
+                                        {% if task.status %}لغو انجام{% else %}انجام شد{% endif %}
+                                    </button>
+                                </form>
+    
                             </div>
                         </li>
                     {% empty %}
@@ -130,7 +146,7 @@
                     <li class="purchase-item unpaid slide-in">
                         <div class="purchase-content">
                             <strong><i class="fas fa-shopping-cart icon-product"></i> محصول:</strong> {{ purchase.product }}<br>
-                            <strong><i class="fas fa-money-bill-wave icon-amount"></i> مبلغ:</strong> {{ purchase.amount_paid }}<br>
+                            <strong><i class="fas fa-money-bill-wave icon-amount"></i> مبلغ:</strong> {{ purchase.amount_paid|add_commas }}<br>
                             <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
                         </div>
                         <a href="{% url 'purchase_CRUD' purchase.id %}" class="button"> مشاهده جزئیات</a>
@@ -164,7 +180,7 @@
                     <li class="purchase-item active slide-in">
                         <div class="purchase-content">
                             <strong><i class="fas fa-shopping-cart icon-product"></i> محصول:</strong> {{ purchase.product }}<br>
-                            <strong><i class="fas fa-money-bill-wave icon-amount"></i> مبلغ:</strong> {{ purchase.amount_paid }}<br>
+                            <strong><i class="fas fa-money-bill-wave icon-amount"></i> مبلغ:</strong> {{ purchase.amount_paid|add_commas }}<br>
                             <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
                         </div>
                         <a href="{% url 'purchase_CRUD' purchase.id %}" class="button"> مشاهده جزئیات</a>
@@ -198,7 +214,7 @@
                     <li class="purchase-item archived slide-in">
                         <div class="purchase-content">
                             <strong><i class="fas fa-shopping-cart icon-product"></i> محصول:</strong> {{ purchase.product }}<br>
-                            <strong><i class="fas fa-money-bill-wave icon-amount"></i> مبلغ:</strong> {{ purchase.amount_paid }}<br>
+                            <strong><i class="fas fa-money-bill-wave icon-amount"></i> مبلغ:</strong> {{ purchase.amount_paid|add_commas }}<br>
                             <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
                         </div>
                         <a href="{% url 'purchase_CRUD' purchase.id %}" class="button"> مشاهده جزئیات</a>

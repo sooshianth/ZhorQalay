@@ -96,7 +96,9 @@ def change_task_status(request, pk):
             messages.error(request, f"خطا در تغییر وضعیت تسک: {e}")
     else:
         messages.error(request, "وضعیت جدید معتبر نیست")
-    return redirect(reverse('general_customer_CRUD') + f'?customer_id={task.customer.id}')
+
+    
+    return redirect(request.META.get('HTTP_REFERER'))
 
 def customer_search(request):
     query = request.GET.get('query', '')

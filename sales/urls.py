@@ -7,7 +7,8 @@ from .views import mark_notification_read
 
 urlpatterns = [
     path('', RedirectView.as_view(url='/sales/login/', permanent=False)),  # صفحه پیش‌فرض به لاگین
-    path('customer_search/', general_customer_CRUD_page.customer_search, name='customer_search'),    path('change_status/<int:pk>', general_customer_CRUD_page.change_task_status, name='change_task_status'),
+    path('customer_search/', general_customer_CRUD_page.customer_search, name='customer_search'),
+    path('change_status/<int:pk>', general_customer_CRUD_page.change_task_status, name='change_task_status'),
     path('gccrudp/', general_customer_CRUD_page.general_customer_CRUD_view, name='general_customer_CRUD'),
     path('profile/', sales_agent_profile_view.sales_agent_profile_view, name='sales_agent_profile'),
     path('customers/', sales_agent_profile_view.customer_list_view, name='customer_list'),

@@ -7,7 +7,7 @@ from core.models import Customer, CargoProduct
 class Purchase(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.DO_NOTHING, verbose_name="مشتری", help_text="ارتباط یک‌به‌یک با مشتری از طریق شماره تلفن یا آیدی", related_name='purchases_made')
     address = models.TextField("آدرس", blank=True, null=True)
-    purchase_number = models.CharField("شماره خرید", max_length=255, blank=True, null=True)
+    purchase_number = models.CharField("شماره خرید بازارگاه", max_length=255, blank=True, null=True)
     tracking_number = models.CharField("شماره پیگیری", max_length=255, blank=True, null=True)
     weight = models.PositiveIntegerField("وزن (کیلوگرم)",)
     cargo = models.ForeignKey(CargoProduct,on_delete=models.SET_NULL, verbose_name="کوتاژ", blank=True, null=True)
@@ -191,7 +191,7 @@ class Purchase(models.Model):
             if len(str(self.tracking_number)) != 6 or not self.tracking_number.isdigit():
                 errors['tracking_number'] = 'شماره پیگیری باید دقیقاً 6 رقم عددی باشد'
         
-        if len(str(self.amount_paid)) > 11 and len(self.amount_paid) < 7:
+        if len(str(self.amount_paid)) > 12 and len(str(self.amount_paid)) < 7:
             errors['amount_paid'] = 'مبلغ پرداختی باید بین 7 و 11 رقم باشد'
         if self.is_paid and not self.amount_paid:
             errors['amount_paid'] = 'برای خریدهای پرداخت شده مبلغ الزامی است'

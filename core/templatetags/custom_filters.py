@@ -47,16 +47,16 @@ def number_to_words(num):
 @register.filter
 def to_persian_words(value):
     try:
-        num = int(value)
-        return number_to_words(num) + " ریال"
+        num = int(value)//10
+        return number_to_words(num) + " تومان"
     except (ValueError, TypeError):
         return value
 
 @register.filter
 def to_persian_words_weight(value):
     try:
-        num = int(value)
-        return number_to_words(num) + " کیلوگرم"
+        num = int(value)//1000
+        return number_to_words(num) + " تن"
     except (ValueError, TypeError):
         return value
 

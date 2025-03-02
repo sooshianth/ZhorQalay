@@ -3,6 +3,7 @@
 {% block content %}
 <div class="container">
 
+{% load custom_filters %}
 
 
 <!-- ✅ تایم‌لاین مراحل خرید -->
@@ -66,12 +67,11 @@ data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else 
 </div>
 </div>
 
-{% load custom_filters %}
 
 <!-- ✅ نمایش اطلاعات خرید در قالب کارت‌های مدرن -->
 <div class="purchase-info">
 <div class="info-card">
-<h3>📄 شماره خرید</h3>
+<h3>📄 شماره خرید سازمان</h3>
 <p>{{ purchase.id }}</p>
 </div>
 <div class="info-card">
@@ -111,7 +111,7 @@ data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else 
 </tr>
 <tr>
 <td>{{ purchase.updated_at|date:"Y/m/d" }}</td>
-<td>{{ purchase.amount_paid|default:"-" }} ریال</td>
+<td>{{ purchase.amount_paid|add_commas|default:"-" }} ریال</td>
 <td>{{ purchase.tracking_number|default:"-" }}</td>
 <td class="status-cell {% if purchase.is_paid %}completed{% else %}pending{% endif %}">
 {% if purchase.is_paid %}✔ پرداخت شده{% else %}⌛ در انتظار{% endif %}
@@ -127,7 +127,11 @@ data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else 
 <div class="form-group">
 <label><i class="{% if 'نام' in field.label %}fas fa-user{% elif 'شماره' in field.label %}fas fa-phone{% elif 'مبلغ' in field.label %}fas fa-wallet{% elif 'توضیحات' in field.label %}fas fa-file-alt{% else %}fas fa-edit{% endif %}"></i> {{ field.label }}</label>
 <div class="input-container">
-{{ field }}
+    {% if field.name == 'amount_paid' %}
+        {{ field|add_commas }}
+    {% else %}
+        {{ field }}
+    {% endif %}
 </div>
 {% if field.help_text %}
 <small class="form-helptext">{{ field.help_text }}</small>
