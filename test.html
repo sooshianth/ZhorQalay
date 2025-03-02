@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <!-- منابع -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
+</head>
+<body>
+    <input type="text" id="testPicker">
+    
+    <script>
+        $(document).ready(function(){
+            $('#testPicker').persianDatepicker({
+                format: 'YYYY/MM/DD HH:mm',
+                timePicker: { enabled: true }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -142,7 +142,12 @@
                 {% csrf_token %}
                 <textarea name="task_description" placeholder="توضیحات تسک"></textarea>
                 <br>
-                <input type="text" data-jdp name="due_date" autocomplete="off">                <br>
+                <input type="text" 
+                name="due_date" 
+                id="due_date"
+                class="form-control eng-digits" 
+                autocomplete="off"
+                data-english-digits="true">
                 <br>
                 <button type="submit" name="create_task">ثبت تسک</button>
             </form>
@@ -268,10 +273,45 @@
     </div>
     </div>
 </div>
-
-
 <script>
-    // نمایش تب‌ها
+    $(document).ready(function(){
+        // تنظیمات اصلی فارسی
+        $.fn.persianDatepicker.defaults = {
+            persian: {
+                lang: 'en', // تغییر زبان پایه به انگلیسی
+                numbers: '1234567890', // استفاده از ارقام انگلیسی
+                locale: 'en',
+                ical: true
+            },
+            timePicker: {
+                enabled: true
+            }
+        };
+
+        // فعالسازی datepicker
+        $('#due_date').persianDatepicker({
+            format: 'YYYY/MM/DD HH:mm',
+            observer: true,
+            timePicker: {
+                enabled: true,
+                meridiem: {
+                    enabled: false // غیرفعالسازی AM/PM
+                }
+            }
+        });
+    });
+
+    $(document).on('click', '#due_date', function() {
+        $('.pds-c-day-cell').each(function() {
+            const persianNumbers = ['۱','۲','۳','۴','۵','۶','۷','۸','۹','۰'];
+            const englishNumbers = $(this).text().split('').map(char => 
+                persianNumbers.indexOf(char) > -1 ? persianNumbers.indexOf(char) : char
+            ).join('');
+            $(this).text(englishNumbers);
+        });
+    });
+</script>
+<script>
     document.addEventListener('DOMContentLoaded', function() {
         const tabButtons = document.querySelectorAll('.tab-btn');
         const tabContents = document.querySelectorAll('.tab-content');
@@ -573,7 +613,4 @@
     }
 </style>
 
-<script>
-    jalaliDatepicker.startWatch();
-</script>
 {% endblock %}

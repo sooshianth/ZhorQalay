@@ -10,6 +10,7 @@ from core.PurchaseModel import Purchase
 from core.CargoProductModel import CargoProduct
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.http import JsonResponse
+from persiantools.jdatetime import JalaliDateTime
 
 # core/forms.py
 from django import forms
@@ -20,44 +21,45 @@ from jdatetime import datetime, date
 
 def get_related_products(request):
     customer_id = request.GET.get('customer_id')
-
     if not customer_id:
         return JsonResponse({'error': 'No customer ID provided'}, status=400)
-
     try:
         purchases = Purchase.objects.filter(customer_id=customer_id).select_related("cargo")
-        
-        # جمع‌آوری شناسه یا نوع محصولات خریداری شده
         purchased_product_types = [purchase.cargo.product_type for purchase in purchases if purchase.cargo]
-
-        # پیدا کردن محصولات مرتبط
         related_products = CargoProduct.objects.filter(product_type__in=purchased_product_types).exclude(cottage__in=[p.cottage for p in purchases])
-
-        # ساختار داده برای خروجی
         product_data = [{
             'cottage': product.cottage,
             'product_type': product.get_product_type_display(),
             'country': product.get_country_display(),
             'loading_time': product.loading_time,
         } for product in related_products]
-
         return JsonResponse(product_data, safe=False)
-    
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+    
+def persian_digits_to_english(persian_text):
+    """تبدیل اعداد فارسی به انگلیسی در یک رشته."""
+    persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+    english_digits = "0123456789"
+    translation_table = str.maketrans(persian_digits, english_digits)
+    return persian_text.translate(translation_table)
+def jalali_to_gregorian(jalali_datetime_str):
+    """تبدیل رشته جلالی (با اعداد فارسی) به DateTime گرگوریان."""
+    try:
+        # تبدیل اعداد فارسی به انگلیسی
+        jalali_datetime_str_en = persian_digits_to_english(jalali_datetime_str)
 
-def jalali_to_gregorian(jalali_date):
-    jalali_datetime = datetime.strptime(jalali_date, "%Y/%m/%d").date()
-    gregorian_datetime = jalali_datetime.togregorian()
-    return gregorian_datetime
-
+        # تلاش برای تبدیل با فرمت صحیح
+        return JalaliDateTime.strptime(jalali_datetime_str_en, "%Y/%m/%d %H:%M").to_gregorian()
+    except Exception as e:
+        raise ValueError(f"فرمت تاریخ نامعتبر است: {jalali_datetime_str} - خطای اصلی: {str(e)}")
+ 
 class CustomerForm(forms.ModelForm):
     field_of_activity = forms.ChoiceField(
         choices=FIELD_OF_ACTIVITY,
         label="حیطه فعالیت",
         required=False
     )
-
     def __init__(self, *args, **kwargs):
         sales_agent = kwargs.pop('sales_agent', None)
         super().__init__(*args, **kwargs)
@@ -83,7 +85,6 @@ def check_customer_sales_agent(customer, sales_agent):
 from django.http import JsonResponse
 from core.CustomerModel import Customer  # Remove duplicate import
 from django.db.models import Q
-
 def change_task_status(request, pk):
     task = get_object_or_404(Task, id=pk)
     if request.method == "POST":
@@ -223,8 +224,8 @@ def general_customer_CRUD_view(request):
     # بخش ثبت تسک
     if request.method == "POST" and 'create_task' in request.POST and customer:
         task_description = request.POST.get('task_description')
-        due_date_str = request.POST.get('due_date')
-        
+        due_date_str = request.POST.get('due_date', '').strip()
+
         new_task = Task(
             description=task_description,
             customer=customer,

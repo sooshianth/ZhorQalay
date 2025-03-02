@@ -48,7 +48,7 @@
                     <li class="task-item task-pending fade-in">
                         <div class="task-content">
                             <strong>توضیحات:</strong> {{ task.description }}<br>
-                            <strong>تاریخ:</strong> {{ task.due_date|date:"Y-m-d H:i" }}<br>
+                            <strong>تاریخ:</strong> {{ task.due_date|date:"Y/m/d H:i" }}<br>
                             <strong>وضعیت:</strong> 
                             <span class="task-status">
                                 <i class="fas fa-times-circle icon-pending"></i> انجام نشده
@@ -97,7 +97,7 @@
                         <li class="task-item task-done fade-in">
                             <div class="task-content">
                                 <strong>توضیحات:</strong> {{ task.description }}<br>
-                                <strong>تاریخ:</strong> {{ task.due_date|date:"Y-m-d H:i" }}<br>
+                                <strong>تاریخ:</strong> {{ task.due_date|date:"Y/m/d H:i" }}<br>
                                 <strong>وضعیت:</strong> 
                                 <span class="task-status">
                                     <i class="fas fa-check-circle icon-done"></i> انجام شده
