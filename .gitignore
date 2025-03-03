@@ -8,6 +8,7 @@
 /core/migrations/__pycache__
 /core/extensions/__pycache__
 /core/templatetags/__pycache__
+/core/forms/__pycache__
 
 /sales/__pycache__
 /sales/views/__pycache__
@@ -17,3 +18,4 @@
 /crm/__pycache__
 /crm/migrations/__pycache__
 
+/excel_files

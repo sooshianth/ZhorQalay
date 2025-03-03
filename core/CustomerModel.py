@@ -40,7 +40,7 @@ class Customer(models.Model):
     quota = models.CharField(_("سهمیه"),max_length=244, null=True, blank=True)  
     created_at = jmodels.jDateTimeField(_("تاریخ ثبت"), auto_now_add=True, null=True,    blank=True)
     updated_at = jmodels.jDateTimeField(_("تاریخ بروزرسانی"), auto_now=True, null=True, blank=True)   
-
+    is_bazaargah_enjoyer = models.BooleanField(_("داخل بازارگاه؟"), default=True)
 
     class Meta:
         verbose_name = _("مشتری")
