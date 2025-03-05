@@ -19,7 +19,7 @@ def sales_agent_profile_view(request):
 
     # تقسیم تسک‌ها به انجام شده و انجام نشده
     pending_tasks = [task for task in all_tasks if not task.status]  # تسک‌های انجام نشده
-    completed_tasks = [task for task in all_tasks if task.status]  # تسک‌های انجام شده
+    completed_tasks = [task for task in all_tasks if task.status]
 
     # Pagination برای تسک‌های انجام نشده
     task_page = request.GET.get('task_page', 1)

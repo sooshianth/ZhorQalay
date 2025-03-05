@@ -1,40 +1,49 @@
 {% extends 'base.html' %}
+{% load static custom_filters %}
 
 {% block title %}پروفایل کارشناس فروش{% endblock %}
 
-{% load custom_filters %}
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+{% endblock %}
 
 {% block content %}
-    <h1>پروفایل کارشناس فروش</h1>
-    <br>
+<div class="container mx-auto p-6">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">پروفایل کارشناس فروش</h1>
+    
+    <!-- پیام‌ها -->
     {% if messages %}
-    {% for message in messages %}
-        <p style="color: red;">{{ message }}</p>
-    {% endfor %}
+        {% for message in messages %}
+            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded">{{ message }}</div>
+        {% endfor %}
     {% endif %}
 
-    <p>نام: {{ sales_agent.name }}</p>
-    <p>شماره تلفن: {{ sales_agent.phone_number }}</p>
-    <br>
+    <!-- اطلاعات پروفایل -->
+    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+        <p class="text-lg"><strong>نام:</strong> {{ sales_agent.name }}</p>
+        <p class="text-lg"><strong>شماره تلفن:</strong> {{ sales_agent.phone_number }}</p>
+        <a href="{% url 'sales_dashboard' %}" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 transition inline-block mb-6">
+            مشاهده داشبورد فروش
+        </a>
+    </div>
 
-    <div class="notifications-section">
-        <button id="toggle-notifications" class="button">🔔 نمایش نوتیفیکیشن‌ها</button>
-        <div id="notifications-container" style="display: none;">
-            <ul class="notification-list">
-                {% for notification in notifications %}
-                    <li class="notification-item">
-                        <p>{{ notification.message }}</p>
-                        <form method="post" action="{% url 'mark_notification_as_read' notification.id %}">
-                            {% csrf_token %}
-                            <button type="submit" class="button">
-                                خواندم
-                            </button>
-                        </form>
-                    </li>
-                {% empty %}
-                    <li class="notification-item">هیچ نوتیفیکیشنی یافت نشد</li>
-                {% endfor %}
-            </ul>
+    <!-- نوتیفیکیشن‌ها -->
+    <div class="relative mb-6">
+        <button id="toggle-notifications" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
+            🔔 نوتیفیکیشن‌ها ({{ notifications.count }})
+        </button>
+        <div id="notifications-container" class="absolute right-0 mt-2 w-80 hidden z-10">
+            {% for notification in notifications %}
+                <div class="bg-white p-4 rounded-lg shadow-md border-l-4 border-blue-500 mb-2 animate-fade-in">
+                    <p class="text-sm">{{ notification.message }}</p>
+                    <form method="post" action="{% url 'mark_notification_as_read' notification.id %}" class="mt-2">
+                        {% csrf_token %}
+                        <button type="submit" class="text-blue-500 hover:underline text-sm">خواندم</button>
+                    </form>
+                </div>
+            {% empty %}
+                <div class="bg-gray-100 p-4 rounded-lg">هیچ نوتیفیکیشنی نیست</div>
+            {% endfor %}
         </div>
     </div>
     

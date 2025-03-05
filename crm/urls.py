@@ -17,4 +17,5 @@ urlpatterns = [
     path('logistics/preview-bge-file/<int:file_id>/', bgef_view.preview_bge_file, name='preview_bge_file'),
     path('logistics/approve-bge-file/<int:file_id>/', bgef_view.approve_bge_file, name='approve_bge_file'),
     path('logistics/download-bge-file/<int:file_id>/', bgef_view.download_bge_file, name='download_bge_file'),
+    path('preview_bge_file/<int:file_id>/', bgef_view.preview_bge_file, name='preview_bge_file'),
 ]

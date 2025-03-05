@@ -44,61 +44,95 @@
 </style>
 
 <div class="container-lg py-4">
-    <!-- Hidden CSRF Token Form -->
-    <form id="csrf-form" style="display: none;">{% csrf_token %}</form>
-    
-    <div class="card border-0 shadow-lg">
-        <!-- بقیه کدهای هدر و بدنه بدون تغییر -->
-        
-        <!-- پاورقی عملیات با بهبودهای UI -->
-        <div class="action-footer">
-            <div class="container">
-                <div class="row g-3 align-items-center">
-                    <div class="col-6 col-md-4">
-                        <a href="{% url 'download_bge_file' bge_file.id %}" 
-                           class="btn btn-secondary w-100 py-2 hover-effect"
-                           data-bs-toggle="tooltip" 
-                           title="دانلود فایل خام">
-                            <i class="bi bi-file-earmark-arrow-down me-2"></i>دانلود
-                        </a>
-                    </div>
-                    <div class="col-6 col-md-8">
-                        {% if not bge_file.is_approved %}
-                        <button class="btn btn-success w-100 py-2 hover-effect" 
-                                id="approveTrigger"
-                                data-file-id="{{ bge_file.id }}"
-                                data-cargo-name="{{ bge_file.cargo }}"
-                                data-bs-toggle="tooltip"
-                                title="پس از تأیید امکان ویرایش وجود نخواهد داشت">
-                            <span class="approve-loader" style="display:none;">
-                                <span class="spinner-border spinner-border-sm" role="status"></span>
-                                در حال تأیید...
-                            </span>
-                            <span class="approve-text">
-                                <i class="bi bi-shield-check me-2"></i>تایید نهایی فایل
-                            </span>
-                        </button>
-                        {% else %}
-                        <div class="alert alert-success mb-0 text-center">
-                            <i class="bi bi-file-lock2 me-2"></i>
-                            این فایل در تاریخ {{ bge_file.updated_at|date:"Y/m/d H:i" }} تایید شده است
+    <!-- فایل‌های در انتظار تایید -->
+    <div class="card border-0 shadow-sm mb-5">
+        <div class="card-header bg-warning py-3">
+            <h5 class="mb-0 d-flex align-items-center">
+                <i class="bi bi-clock-history me-2"></i>
+                <span class="section-title">در انتظار تایید</span>
+                <span class="badge bg-dark rounded-pill ms-auto">{{ pending_files|length }}</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            <!-- داخل بخش در انتظار تأیید -->
+            {% if pending_files %}
+            <div class="row g-4">
+                {% for file in pending_files %}
+                <div class="col-md-6 col-lg-4">
+                    <div class="file-card h-100">
+                        <div class="card-body position-relative">
+                            <div class="status-badge">در انتظار</div>
+                            <h6 class="card-title text-truncate mb-3">{{ file.cargo }}</h6>
+                            <div class="text-muted small mb-3">
+                                <div><i class="bi bi-file-earmark"></i> {{ file.file.name|truncatechars:25 }}</div>
+                                <div><i class="bi bi-person"></i> {{ file.user.get_full_name|default:file.user.username }}</div>
+                                <div><i class="bi bi-calendar"></i> {{ file.created_at|date:"Y/m/d" }}</div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-info preview-btn" data-file-id="{{ file.id }}">پیش‌نمایش</button>
+                                <a href="{% url 'download_bge_file' file.id %}" class="btn btn-secondary">دانلود</a>
+                            </div>
                         </div>
-                        {% endif %}
                     </div>
                 </div>
+                {% endfor %}
             </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- فایل‌های تایید شده -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-success text-white py-3">
+            <h5 class="mb-0 d-flex align-items-center">
+                <i class="bi bi-check2-circle me-2"></i>
+                <span class="section-title">تایید شده‌ها</span>
+                <span class="badge bg-light text-dark rounded-pill ms-auto">{{ approved_files|length }}</span>
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            {% if approved_files %}
+            <div class="table-responsive">
+                <table class="table table-hover approved-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>محصول</th>
+                            <th>نام فایل</th>
+                            <th>تاریخ آپلود</th>
+                            <th>عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for file in approved_files %}
+                        <tr>
+                            <td>{{ file.cargo }}</td>
+                            <td class="text-truncate" style="max-width: 200px;">{{ file.file.name }}</td>
+                            <td>{{ file.created_at|date:"Y/m/d" }}</td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-info preview-btn" data-file-id="{{ file.id }}">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <a href="{% url 'download_bge_file' file.id %}" class="btn btn-sm btn-secondary">
+                                        <i class="bi bi-download"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info m-3">
+                <i class="bi bi-info-circle me-2"></i>
+                فایل تایید شده‌ای وجود ندارد
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
-<!-- بهبود یافته Modal تایید -->
-<div class="modal fade" id="approvalModal" data-bs-backdrop="static" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <!-- محتوای Modal بدون تغییر -->
-        </div>
-    </div>
-</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}داشبورد فروش{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">داشبورد فروش</h1>
+
+    <!-- آمار کلی -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white p-6 rounded-lg shadow-md text-center">
+            <h3 class="text-lg font-semibold text-gray-700">تسک‌های انجام‌نشده</h3>
+            <p class="text-3xl font-bold text-red-500">{{ task_stats.pending }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md text-center">
+            <h3 class="text-lg font-semibold text-gray-700">تسک‌های انجام‌شده</h3>
+            <p class="text-3xl font-bold text-green-500">{{ task_stats.completed }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md text-center">
+            <h3 class="text-lg font-semibold text-gray-700">فروش این ماه</h3>
+            <p class="text-3xl font-bold text-blue-500">{{ this_month_sales_weight }} کیلوگرم</p>
+        </div>
+    </div>
+
+    <!-- نمودار فروش 6 ماه گذشته -->
+    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">فروش ۶ ماه گذشته (کیلوگرم)</h2>
+        <canvas id="salesChart" class="w-full h-64"></canvas>
+    </div>
+
+    <!-- پیش‌بینی و تعداد فروش -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white p-6 rounded-lg shadow-md text-center">
+            <h3 class="text-lg font-semibold text-gray-700">پیش‌بینی فروش ماه بعد</h3>
+            <p class="text-3xl font-bold text-purple-500">{{ sales_prediction }} کیلوگرم</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md text-center">
+            <h3 class="text-lg font-semibold text-gray-700">تعداد فروش این ماه</h3>
+            <p class="text-3xl font-bold text-teal-500">{{ this_month_sales_count }}</p>
+        </div>
+    </div>
+    <a href="{% url 'sales_agent_profile' %}" class="button">
+        بازگشت به پروفایل
+    </a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('salesChart').getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: [{% for sale in monthly_sales %}'{{ sale.month }}',{% endfor %}],
+        datasets: [{
+            label: 'فروش ماهانه',
+            data: [{% for sale in monthly_sales %}{{ sale.sales }},{% endfor %}],
+            backgroundColor: 'rgba(79, 70, 229, 0.8)', // رنگ indigo
+            borderColor: 'rgba(79, 70, 229, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        scales: { y: { beginAtZero: true } },
+        plugins: { legend: { position: 'top' } }
+    }
+});
+</script>
+{% endblock %}

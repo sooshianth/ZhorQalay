@@ -1341,3 +1341,157 @@ footer {
   background: var(--hover-color);
 }
 
+/* استایل لودینگ */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* بقیه استایل‌ها */
+body {
+  direction: rtl;
+  font-family: 'Vazir', sans-serif;
+}
+
+.container-lg {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.card {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  background: white;
+  margin-bottom: 30px;
+  transition: transform 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+}
+
+.card-header {
+  padding: 15px 20px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: white;
+}
+
+.card-header.bg-primary { background-color: #065F46; }
+.card-header.bg-warning { background-color: #f59e0b; }
+.card-header.bg-success { background-color: #10b981; }
+
+.card-body {
+  padding: 20px;
+}
+
+.btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.btn-info {
+  background-color: #065F46;
+  color: white;
+}
+
+.btn-info:hover {
+  background-color: #047857;
+}
+
+.btn-secondary {
+  background-color: #6b7280;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #4b5563;
+}
+
+.file-card {
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  background: white;
+  padding: 15px;
+  transition: transform 0.2s ease;
+}
+
+.file-card:hover {
+  transform: translateY(-3px);
+}
+
+.status-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.approved-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  background: white;
+}
+
+.approved-table th,
+.approved-table td {
+  padding: 12px 15px;
+  text-align: right;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.approved-table th {
+  background-color: #10b981;
+  color: white;
+  font-weight: 600;
+}
+
+.approved-table tr:hover {
+  background-color: #f3f4f6;
+}
+
+.preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.preview-table th,
+.preview-table td {
+  padding: 12px 15px;
+  text-align: right;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.preview-table th {
+  background-color: #065F46;
+  color: white;
+  font-weight: 600;
+}
+
+.preview-table tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+.preview-table tr:hover {
+  background-color: #f3f4f6;
+}

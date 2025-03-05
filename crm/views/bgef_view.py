@@ -156,58 +156,44 @@ def logistics_bge_files_view(request):
     return render(request, 'bge_files_list.html', context)
 
 
+import pandas as pd
+from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse
+from core._models import BGEFile
+
 @login_required
 def preview_bge_file(request, file_id):
-    """
-    پیش‌نمایش فایل اکسل بازارگاه
-    """
-    # بررسی اینکه کاربر کارشناس لجستیک است یا خیر
     logistics_manager = LogisticsManager.find_logistics_manager_by_user(request.user)
     if not logistics_manager:
-        return redirect('home')
-    
-    # دریافت فایل مورد نظر
+        return JsonResponse({'error': 'شما دسترسی لازم را ندارید'}, status=403)
+
     bge_file = get_object_or_404(BGEFile, id=file_id)
-    
     try:
-        # خواندن فایل اکسل با پانداس
-        df = pd.read_excel(f"{bge_file.file.path}")
-        
-        # محدود کردن تعداد سطرها برای پیش‌نمایش (مثلاً 50 سطر اول)
-        preview_rows = min(50, len(df))
+        df = pd.read_excel(bge_file.file.path)
+        preview_rows = min(10, len(df))
         df_preview = df.head(preview_rows)
-        
-        # تبدیل دیتافریم به HTML
-        table_html = df_preview.to_html(classes=['table', 'table-striped', 'table-bordered', 'table-hover'], index=False)
-        
-        # اطلاعات اضافی برای نمایش
+        table_html = df_preview.to_html(
+            classes=['table', 'table-striped', 'table-bordered', 'table-hover'],
+            index=False,
+            border=0
+        )
         total_rows = len(df)
         total_columns = len(df.columns)
-        file_size = os.path.getsize(bge_file.file.path) / 1024  # سایز فایل به کیلوبایت
-        
+        file_size = os.path.getsize(bge_file.file.path) / 1024
+
         context = {
-            'logistics_manager': logistics_manager,
             'bge_file': bge_file,
             'table_html': table_html,
             'total_rows': total_rows,
             'preview_rows': preview_rows,
             'total_columns': total_columns,
             'file_size': f"{file_size:.2f} KB",
-            'columns': df.columns.tolist(),
+            'file_id': file_id,  # برای دکمه تأیید
         }
-        
-        return render(request, 'bge_file_preview.html', context)
-    
+        return render(request, 'partials/preview_content.html', context)
     except Exception as e:
-        # در صورت بروز خطا
-        context = {
-            'logistics_manager': logistics_manager,
-            'bge_file': bge_file,
-            'error': f"خطا در خواندن فایل: {str(e)}",
-        }
-        
-        return render(request, 'bge_file_preview.html', context)
-
+        return JsonResponse({'error': f'خطا در خواندن فایل: {str(e)}'}, status=500)
+        return JsonResponse({'error': f'خطا در خواندن فایل: {str(e)}'}, status=500)
 
 @login_required
 @require_http_methods(["POST"])

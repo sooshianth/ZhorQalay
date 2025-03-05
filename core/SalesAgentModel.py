@@ -72,17 +72,20 @@ class SalesAgent(models.Model):
         return archived_sales
 
 
-    # پیگیری های انجام نشده
-    def get_all_undone_tasks(self):
-        return self.customers.all().tasks.all().filter(status=False)
     # کل پیگیری های روز
     def get_today_tasks(self):
         return self.customers.all().tasks.all().filter(due_date__date=timezone.now().date())
-    def get_all_tasks(self):
-        tasks = []
+    def get_all_undone_tasks(self):
+        undone_tasks = []
         for customer in self.get_all_customers():
-            tasks.extend(customer.tasks.all())  # فیلتر کردن تسک‌ها برای هر مشتری
-        return tasks
+            undone_tasks.extend(customer.tasks.filter(status=False))
+        return undone_tasks
+
+    def get_all_tasks(self):
+        all_tasks = []
+        for customer in self.get_all_customers():
+            all_tasks.extend(customer.tasks.all())
+        return all_tasks
 
 
     def __str__(self):
