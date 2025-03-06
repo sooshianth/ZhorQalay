@@ -17,7 +17,6 @@ class CargoProduct(models.Model):
         ('cotton_seed', 'دان پنبه'),
         ('alfalfa', 'یونجه'),
     ]
-
     COUNTRIES = [
         ('argentina', 'آرژانتین'),
         ('brazil', 'برزیل'),
@@ -29,12 +28,19 @@ class CargoProduct(models.Model):
         ('canada', 'کانادا'),
         ('australia', 'استرالیا'),
         ('serbia', 'صربستان'),
+        ['iran', 'ایران']
     ]
+    PORTS = [
+        ('جنوب', 'جنوب'),
+        ('شمال', 'شمال'),
+    ]
+
 
     cottage = models.PositiveIntegerField(_('کوتاژ'), primary_key=True)
     product_type = models.CharField(_('نوع محصول'), max_length=25, choices=PRODUCT_TYPES, )
     country = models.CharField(_('کشور'), max_length=20, choices=COUNTRIES)
-    importer_name = models.CharField(_('نام صادرکننده'), max_length=100)
+    importer_name = models.CharField(_('نام واردکننده/کارخانه'), max_length=100, blank=True, null=True)
+    port = models.CharField(_("محل بارگیری"), max_length=25, choices=PORTS, default='جنوب')
     loading_time = models.CharField(_('زمان بارگیری'), max_length=50)
     description = models.CharField(_('توضیحات'), max_length=300, null=True, blank=True)
     weight = models.PositiveIntegerField(_('وزن موجود'), )
@@ -49,7 +55,7 @@ class CargoProduct(models.Model):
 
 
     def clean(self):
-        if self.weight < 10000:
+        if self.weight < 0:
             raise ValidationError('وزن باید حداقل 10000 کیلوگرم باشد.')
         self.weight = round(self.weight / 100) * 100
         if len(str(self.cottage)) != 8:

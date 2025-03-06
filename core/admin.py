@@ -24,8 +24,8 @@ class NotificationAdmin(admin.ModelAdmin):
 # تنظیمات نمایش مدل CargoProduct در ادمین
 @admin.register(CargoProduct)
 class CargoProductAdmin(admin.ModelAdmin):
-    list_display = ('cottage', 'product_type', 'country', 'importer_name', 'weight', 'status')
-    list_filter = ('product_type', 'country', 'status')
+    list_display = ('cottage', 'product_type', 'country', 'importer_name', 'port', 'weight', 'status')
+    list_filter = ('product_type', 'country', 'importer_name', 'port', 'status')
     search_fields = ('cottage', 'importer_name')
     ordering = ('-created_at',)
 
@@ -63,10 +63,10 @@ class SalesAgentAdmin(admin.ModelAdmin):
 # تنظیمات نمایش مدل Task در ادمین
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
-    list_display = ('customer', 'description', 'status', 'due_date', 'create_time')
+    list_display = ('customer', 'description', 'status', 'due_date', 'customer__sales_agent', 'create_time')
     list_filter = ('status', 'customer__sales_agent')
     search_fields = ('customer__name', 'description')
-    ordering = ('-create_time',)
+    ordering = ('due_date',)
 
 # تنظیمات نمایش مدل CallSession در ادمین
 @admin.register(CallSession)

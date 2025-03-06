@@ -8,8 +8,8 @@ from .CargoProductModel import CargoProduct
 class Purchase(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.DO_NOTHING, verbose_name="مشتری", help_text="ارتباط یک‌به‌یک با مشتری از طریق شماره تلفن یا آیدی", related_name='purchases_made')
     address = models.TextField("آدرس", blank=True, null=True)
-    purchase_number = models.CharField("شماره خرید بازارگاه", max_length=255, blank=True, null=True)
-    tracking_number = models.CharField("شماره پیگیری", max_length=255, blank=True, null=True)
+    purchase_number = models.CharField("شماره خرید بازارگاه", max_length=255, blank=True, null=True, unique=True)
+    tracking_number = models.CharField("شماره پیگیری", max_length=255, blank=True, null=True, unique=True)
     weight = models.PositiveIntegerField("وزن (کیلوگرم)",)
     cargo = models.ForeignKey(CargoProduct,on_delete=models.SET_NULL, verbose_name="کوتاژ", blank=True, null=True)
     amount_paid = models.PositiveBigIntegerField("مبلغ پرداختی(ریال)", blank=True, null=True)
