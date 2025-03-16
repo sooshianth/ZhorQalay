@@ -6,10 +6,12 @@ from collections import defaultdict
 from core._models import Customer, Purchase
 import logging
 import json
+import os
 
 logger = logging.getLogger(__name__)
 
-with open('sales/static/iran_cities_fa.json', 'r', encoding='utf-8') as file:
+file_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'iran_cities_fa.json')
+with open(file_path, 'r', encoding='utf-8') as file:
     data = json.load(file)
 
 def normalize_city_name(city_name):
