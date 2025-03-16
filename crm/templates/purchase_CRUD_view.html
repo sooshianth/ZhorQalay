@@ -223,7 +223,25 @@ data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else 
 </div>
 </form>
 
+{% if not purchase.is_paid %}
+<form method="post" action="{% url 'purchase_delete' purchase.id %}" class="delete-form">
+    {% csrf_token %}
+    <button type="submit" class="button delete-button" onclick="return confirm('آیا مطمئن هستید که می‌خواهید این خرید را حذف کنید؟');">
+        حذف خرید
+    </button>
+</form>
+{% endif %}
 
+<style>
+.delete-button {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.delete-button:hover {
+    background-color: #c0392b;
+}
+</style>
 <!-- ✅ جدول تاریخچه تغییرات -->
 <table class="history-table">
 <tr>

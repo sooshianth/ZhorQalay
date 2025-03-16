@@ -165,3 +165,16 @@ def purchase_CRUD_view(request, purchase_id):
         'user_role': user_role,
     }
     return render(request, 'purchase_CRUD_view.html', context)
+
+@login_required
+def delete_purchase_view(request, purchase_id):
+    purchase = get_object_or_404(Purchase, id=purchase_id)
+    if request.method == 'POST':
+        purchase.delete()
+        messages.success(request, 'خرید با موفقیت حذف شد')
+        return redirect('purchase_list')  # Adjust the redirect as needed
+
+    context = {
+        'purchase': purchase,
+    }
+    return render(request, 'confirm_delete.html', context)

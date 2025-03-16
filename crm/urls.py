@@ -11,6 +11,7 @@ urlpatterns = [
     path('financial_manager_profile/', managers_profile_view.financial_manager_profile_view, name='financial_manager_profile'),
     path('purchase_CRUD/<int:purchase_id>/', purchase_CRUD_view.purchase_CRUD_view, name='purchase_CRUD'),
     path('purchase_list/', purchase_list_view.purchase_list, name='purchase_list' ),
+    path('purchase_delete/<int:purchase_id>/', purchase_CRUD_view.delete_purchase_view, name='purchase_delete' ),
     path('bgef/', bgef_view.upload_bge_file_view, name='BGEF' ),
     path('api/search-cargo-products/', bgef_view.search_cargo_products, name='search_cargo_products'),
     path('bge-files/', bgef_view.logistics_bge_files_view, name='logistics_bge_files'),
