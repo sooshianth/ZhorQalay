@@ -21,7 +21,7 @@
 /excel_files
 
 /static
-/config/settings.py
+/config
 /media
 /web.config
 /db.sqlite3
