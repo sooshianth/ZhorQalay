@@ -33,6 +33,21 @@
         <canvas id="salesChart" class="w-full h-64"></canvas>
     </div>
 
+    <div class="bg-white p-6 rounded-lg shadow-md text-center">
+        <h3 class="text-lg font-semibold text-gray-700">مشتریان جدید این ماه</h3>
+        <p class="text-3xl font-bold text-orange-500">{{ new_customers_this_month }}</p>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow-md text-center">
+        <h3 class="text-lg font-semibold text-gray-700">نوع مشتریان خرید کننده</h3>
+        <canvas id="customerPieChart" class="w-full h-64"></canvas>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">هیت‌مپ خریدهای ماه (بر اساس استان)</h2>
+        <div id="heatmap" style="height: 500px;"></div>
+    </div>
+
     <!-- پیش‌بینی و تعداد فروش -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div class="bg-white p-6 rounded-lg shadow-md text-center">
@@ -70,4 +85,99 @@ new Chart(ctx, {
     }
 });
 </script>
+
+<script>
+    const customerPieCtx = document.getElementById('customerPieChart').getContext('2d');
+    new Chart(customerPieCtx, {
+        type: 'pie',
+        data: {
+            labels: ['یک بار خرید', 'دو بار خرید', 'سه بار یا بیشتر'],
+            datasets: [{
+                label: 'تعداد مشتریان',
+                data: [{{ purchase_types.1 }}, {{ purchase_types.2 }}, {{ purchase_types.3 }}],
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.8)',
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 206, 86, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            plugins: { legend: { position: 'top' } }
+        }
+    });
+</script>
+
+<script>
+    // داده‌های خرید بر اساس استان
+    const provincePurchases = {{ province_purchases|safe }};
+    
+        // تابع محاسبه رنگ
+        // تابع نرمال‌سازی نام استان‌ها
+    function normalizeProvinceName(name) {
+        return name.replace(/[\s\u200C]/g, '').toLowerCase();
+    }
+
+    // نرمال‌سازی provincePurchases
+    const normalizedProvincePurchases = {};
+    for (const [province, count] of Object.entries(provincePurchases)) {
+        normalizedProvincePurchases[normalizeProvinceName(province)] = count;
+    }
+
+    console.log("normalizedProvincePurchases:", normalizedProvincePurchases);
+
+    // تابع محاسبه رنگ
+    function getColor(purchaseCount, maxPurchases) {
+        const opacity = purchaseCount / maxPurchases;
+        return `rgba(255, 0, 0, ${opacity})`;
+    }
+
+    // محاسبه حداکثر تعداد خریدها
+    const maxPurchases = Math.max(...Object.values(normalizedProvincePurchases));
+    console.log("حداکثر تعداد خریدها:", maxPurchases);
+
+    // ایجاد نقشه
+    const map = L.map('heatmap').setView([32.4279, 53.6880], 5);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // بارگذاری فایل GeoJSON استان‌های ایران
+    fetch("{% static 'iran_provinces.geojson' %}")
+        .then(response => response.json())
+        .then(data => {
+            console.log("GeoJSON استان‌ها:", data.features.map(f => f.properties.name));
+
+            // رنگ‌آمیزی استان‌ها
+            L.geoJSON(data, {
+                style: function(feature) {
+                    const provinceName = normalizeProvinceName(feature.properties.name);
+                    const purchaseCount = normalizedProvincePurchases[provinceName] || 0;
+                    const color = getColor(purchaseCount, maxPurchases);
+                    return {
+                        fillColor: color,
+                        weight: 2,
+                        opacity: 1,
+                        color: 'white',
+                        fillOpacity: 0.7
+                    };
+                },
+                onEachFeature: function(feature, layer) {
+                    const provinceName = normalizeProvinceName(feature.properties.name);
+                    const purchaseCount = normalizedProvincePurchases[provinceName] || 0;
+                    layer.bindPopup(`<b>${feature.properties.name}</b><br>تعداد خرید: ${purchaseCount}`);
+                }
+            }).addTo(map);
+        })
+        .catch(error => {
+            console.error("خطا در بارگذاری فایل GeoJSON:", error);
+        });
+    </script>
 {% endblock %}
