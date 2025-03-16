@@ -19,3 +19,9 @@
 /crm/migrations/__pycache__
 
 /excel_files
+
+/static
+/config/settings.py
+/media
+/web.config
+/db.sqlite3
