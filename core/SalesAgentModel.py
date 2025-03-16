@@ -78,14 +78,14 @@ class SalesAgent(models.Model):
     def get_all_undone_tasks(self):
         undone_tasks = []
         for customer in self.get_all_customers():
-            undone_tasks.extend(customer.tasks.filter(status=False))
+            undone_tasks.extend(customer.tasks.filter(status=False).order_by('due_date'))
         return undone_tasks
 
     def get_all_tasks(self):
         all_tasks = []
         for customer in self.get_all_customers():
             all_tasks.extend(customer.tasks.all())
-        return all_tasks
+        return sorted(all_tasks, key=lambda task: task.due_date)
 
 
     def __str__(self):
