@@ -5,6 +5,10 @@ from django.utils.translation import gettext_lazy as _
 
 
 class CargoProduct(models.Model):
+    PURCHASE_TYPES = [
+        ('bazaargah', 'خرید بازارگاه'),
+        ('non_bazaargah', 'خرید خارج از بازارگاه'),
+]
     PRODUCT_TYPES = [
         ('corn', 'ذرت'),
         ('barley', 'جو'),
@@ -34,9 +38,10 @@ class CargoProduct(models.Model):
         ('جنوب', 'جنوب'),
         ('شمال', 'شمال'),
     ]
-
-
-    cottage = models.PositiveIntegerField(_('کوتاژ'), primary_key=True)
+    
+    type = models.CharField(_('نوع خرید'), max_length=25, choices=PURCHASE_TYPES, default='bazaargah')
+    cottage = models.CharField(_('کوتاژ'), unique=True, max_length=8, null=True, blank=True)
+    price = models.PositiveIntegerField(_('قیمت'), default=0)
     product_type = models.CharField(_('نوع محصول'), max_length=25, choices=PRODUCT_TYPES, )
     country = models.CharField(_('کشور'), max_length=20, choices=COUNTRIES)
     importer_name = models.CharField(_('نام واردکننده/کارخانه'), max_length=100, blank=True, null=True)
@@ -58,8 +63,8 @@ class CargoProduct(models.Model):
         if self.weight < 0:
             raise ValidationError('وزن باید حداقل 10000 کیلوگرم باشد.')
         self.weight = round(self.weight / 100) * 100
-        if len(str(self.cottage)) != 8:
-            raise ValidationError('کوتاژ باید ۸ رقمی باشد.')
+        if self.type == 'bazaargah' and not self.cottage.isdigit() and not len(str(self.cottage)) == 8:
+            raise ValidationError('کوتاژ برای خرید بازارگاه باید ۸ رقم عددی باشد.')
         
     def get_product_type_display(self):
         return dict(self.PRODUCT_TYPES).get(self.product_type, _('نامشخص'))

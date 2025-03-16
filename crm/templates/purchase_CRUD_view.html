@@ -57,6 +57,12 @@ data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else 
 <h3>👤 نام مشتری</h3>
 <p>{{ purchase.customer.name }}</p>
 </div>
+
+<div class="buyer-card">
+    <h3>نوع خرید</h3>
+    <p>{{ purchase.cargo.get_type_display }}</p>
+</div>
+    
 <div class="buyer-card">
 <h3>📍 شهر/استان</h3>
 <p>{{ purchase.customer.city }}</p>
@@ -153,9 +159,11 @@ data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else 
 
 <!-- ✅ دکمه‌های مخصوص فروش -->
 {% if user_role == "sales_agent" %}
+{% if purchase.type == 'bazaargah' %}
 <button type="submit" name="approve_allocation" class="button approve-btn sales">
 🛒 مشتری تخصیص را ثبت کرده است
 </button>
+{% endif %}
 <button type="submit" name="approve_sarak" class="button approve-btn sales">
 💰 تأیید واریز شدن سرک از طرف مشتری
 </button>
@@ -166,12 +174,14 @@ data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else 
 
 <!-- ✅ دکمه‌های مخصوص لجستیک -->
 {% if user_role == "logistics_manager" %}
+{% if purchase.type == 'bazaargah' %}
 <button type="submit" name="approve_bazaargah" class="button approve-btn logistics">
 ✅ تأیید کردن ثبت شدن در بازارگاه
 </button>
 <button type="submit" name="approve_allocation_approval" class="button approve-btn logistics">
 🛒 تأیید کردن تخصیص
 </button>
+{% endif %}
 <button type="submit" name="approve_address" class="button approve-btn logistics">
 📍 تأیید ارسال آدرس به واردکننده
 </button>

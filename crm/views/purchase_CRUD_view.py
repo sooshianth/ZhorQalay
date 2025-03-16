@@ -45,7 +45,9 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         for field in list(self.fields):
             if field not in allowed_fields:
                 del self.fields[field]
-
+        if self.instance.type == 'non_bazaargah':
+            del self.fields['purchase_number']
+            del self.fields['tracking_number']
     def clean(self):
         cleaned_data = super().clean()
         instance = self.instance
@@ -82,7 +84,10 @@ def purchase_CRUD_view(request, purchase_id):
         {'name': 'تایید نهایی واحد لجستیک', 'status': purchase.does_logistics_approve},
         {'name': 'تایید نهایی واحد مالی', 'status': purchase.does_financial_approve},
     ]
-    
+    if purchase.cargo.type == 'non_bazaargah':
+        progress_steps = [step for i, step in enumerate(progress_steps) if i not in [0, 2, 3]]
+
+
     if request.method == 'POST':
         form = RoleBasedPurchaseForm(request.POST, instance=purchase, user_role=user_role)
         if form.is_valid():

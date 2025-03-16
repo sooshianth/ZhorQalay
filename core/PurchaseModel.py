@@ -11,7 +11,9 @@ class Purchase(models.Model):
     purchase_number = models.CharField("شماره خرید بازارگاه", max_length=255, blank=True, null=True, unique=True)
     tracking_number = models.CharField("شماره پیگیری", max_length=255, blank=True, null=True, unique=True)
     weight = models.PositiveIntegerField("وزن (کیلوگرم)",)
-    cargo = models.ForeignKey(CargoProduct,on_delete=models.SET_NULL, verbose_name="کوتاژ", blank=True, null=True)
+    cargo = models.ForeignKey(CargoProduct,on_delete=models.SET_NULL, verbose_name="کوتاژ", null=True, blank=True, related_name='purchases')
+    type = models.CharField("نوع خرید", max_length=25, default='bazaargah')
+    price = models.PositiveIntegerField("قیمت خرید", default=0)
     amount_paid = models.PositiveBigIntegerField("مبلغ پرداختی(ریال)", blank=True, null=True)
     payment_method = models.CharField("شیوۀ پرداخت", max_length=6, choices=[('نقدی', 'نقدی'), ('توافقی', 'توافقی')], default="نقدی")
     created_at = jmodels.jDateTimeField("تاریخ ثبت",default=timezone.now,editable=True)
@@ -35,12 +37,13 @@ class Purchase(models.Model):
     is_address_sent_to_varedkonandeh = models.BooleanField("ارسال آدرس به واردکننده", default=False)
     is_sent_to_barbari = models.BooleanField("ارسال به باربری", default=False)
     is_barnamed = models.BooleanField("ارسال شده", default=False)
-    is_factorated = models.BooleanField("صدور فاکتور", default=False)
     is_ekhtelaf_approved = models.BooleanField("تایید مبلغ اختلاف", default=False)
 
     is_kasri_varized = models.BooleanField("واریز کسری", default=False)
     is_sarak_varized = models.BooleanField("واریز سرک", default=False)
     is_kasri_reciept_submited = models.BooleanField("ثبت رسید کسری", default=False)
+
+    is_factorated = models.BooleanField("صدور فاکتور", default=False)
 
     does_salesman_approve = models.BooleanField("تایید واحد فروش", default=False)
     does_logistics_approve = models.BooleanField("تایید واحد لجستیک", default=False)
@@ -60,20 +63,36 @@ class Purchase(models.Model):
 
 
     def check_is_bazaaragahed(self, user_role):
-        if user_role == 'logistics_manager':
-            self.is_bazaargahed = True
+        if self.type == 'bazaargah':
+            if self.purchase_number:
+                if user_role == 'logistics_manager':
+                    self.is_bazaargahed = True
+                else:
+                    raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            else:
+                raise ValidationError('شماره خرید الزامی است')
         else:
-            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-        
+            raise ValidationError('این خرید خارج از بازارگاه است')
+                
     def check_is_paid(self, user_role):
-        if user_role == 'financial_manager' and self.is_bazaargahed and (type(self.amount_paid) == int and self.amount_paid > 10000000):
-            self.is_paid = True
-            if not self.is_weight_costed:
-                self.is_weight_costed = True
-                self.cargo.weight -= self.weight
-                self.cargo.save()
+        if self.type == 'bazaargah':
+            if user_role == 'financial_manager' and self.is_bazaargahed and (type(self.amount_paid) == int and self.amount_paid > 10000000):
+                self.is_paid = True
+                if not self.is_weight_costed:
+                    self.is_weight_costed = True
+                    self.cargo.weight -= self.weight
+                    self.cargo.save()
+            else:
+                raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
         else:
-            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            if user_role == 'financial_manager' and (type(self.amount_paid) == int and self.amount_paid > 10000000):
+                self.is_paid = True
+                if not self.is_weight_costed:
+                    self.is_weight_costed = True
+                    self.cargo.weight -= self.weight
+                    self.cargo.save()
+            else:
+                raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
         
     def check_is_takhsised(self, user_role):
         if user_role == 'sales_agent':
@@ -89,7 +108,7 @@ class Purchase(models.Model):
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
 
     def check_is_tasvied_with_varedkonandeh(self, user_role):
-        if user_role == 'financial_manager':
+        if user_role == 'financial_manager' and self.is_paid:
             self.is_tasvied_with_varedkonandeh = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
@@ -98,7 +117,7 @@ class Purchase(models.Model):
         if user_role == 'logistics_manager' and self.is_tasvied_with_varedkonandeh:
             self.is_address_sent_to_varedkonandeh = True
         else:
-            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('این خرید هنوز با واردکننده تسویه نشده است')
 
     def check_is_sent_to_barbari(self, user_role):
         if user_role == 'logistics_manager' and self.is_address_sent_to_varedkonandeh:
@@ -109,18 +128,14 @@ class Purchase(models.Model):
     def check_is_barnamed(self, user_role):
         if user_role == 'logistics_manager':
             self.is_barnamed = True
+            self.is_sent = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
         
-    def check_is_factorated(self, user_role):
-        if user_role == 'financial_manager' and self.is_barnamed:
-            self.is_factorated = True
-        else:
-            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-    
     def check_is_ekhtelaf_approved(self, user_role):
-        if user_role == 'financial_manager' and self.is_factorated:
+        if user_role == 'financial_manager' and self.is_barnamed:
             self.is_ekhtelaf_approved = True
+            self.is_delivered = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
         
@@ -131,14 +146,20 @@ class Purchase(models.Model):
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
     
     def check_is_sarak_varized(self, user_role):
-        if user_role == 'sales_agent' and self.is_kasri_varized:
+        if user_role == 'sales_agent' and self.is_ekhtelaf_approved:
             self.is_sarak_varized = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
         
     def check_is_kasri_reciept_submited(self, user_role):
-        if user_role == 'financial_manager':
+        if user_role == 'financial_manager' and (self.is_kasri_varized or self.is_sarak_varized):
             self.is_kasri_reciept_submited = True
+        else:
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+
+    def check_is_factorated(self, user_role):
+        if user_role == 'financial_manager' and self.is_kasri_reciept_submited:
+            self.is_factorated = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
 
@@ -150,7 +171,7 @@ class Purchase(models.Model):
         if user_role == 'logistics_manager' and self.is_kasri_reciept_submited:
             self.does_logistics_approve = True
     def check_does_financial_approve(self, user_role):
-        if user_role == 'financial_manager' and self.is_kasri_reciept_submited:
+        if user_role == 'financial_manager' and self.is_factorated:
             self.does_financial_approve = True
 
 
@@ -172,15 +193,12 @@ class Purchase(models.Model):
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
         
-
-
     class Meta:
         verbose_name = "خرید"
         verbose_name_plural = "خریدها"
     
     def __str__(self):
         return f"خرید {self.purchase_number} - {self.customer.name} در تاریخ {self.created_at}"
-
 
     def clean(self):
         errors = {}
@@ -211,9 +229,12 @@ class Purchase(models.Model):
 
         if errors:
             raise ValidationError(errors)
-
-
-
+    def save(self, *args, **kwargs):
+        if self.cargo:
+            self.type = self.cargo.type
+            if self.price == 0:
+                self.price = self.cargo.price
+        super().save(*args, **kwargs)
 
 from django.contrib.auth.models import User
 class PurchaseHistory(models.Model):
