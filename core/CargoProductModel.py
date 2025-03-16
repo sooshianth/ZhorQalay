@@ -65,6 +65,8 @@ class CargoProduct(models.Model):
         self.weight = round(self.weight / 100) * 100
         if self.type == 'bazaargah' and not self.cottage.isdigit() and not len(str(self.cottage)) == 8:
             raise ValidationError('کوتاژ برای خرید بازارگاه باید ۸ رقم عددی باشد.')
+        if self.type == 'non_bazaargah' and not self.cottage.isdigit() and not len(str(self.cottage)) == 3:
+            raise ValidationError('کوتاژ برای خرید خارج از بازارگاه باید ۳ رقم عددی باشد.')
         
     def get_product_type_display(self):
         return dict(self.PRODUCT_TYPES).get(self.product_type, _('نامشخص'))
