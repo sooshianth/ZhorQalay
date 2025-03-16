@@ -103,7 +103,6 @@ nav ul li:hover .dropdown-menu {
 
 /* استایل بخش اصلی (محتوا) */
 main.container {
-  max-width: 1200px;
   margin: 30px auto; /* افزایش فاصله */
   padding: 25px; /* افزایش padding */
   background: white;
@@ -520,7 +519,6 @@ body {
 
 main.container {
   flex: 1;
-  min-width: 150vh;
 }
 
 footer {
