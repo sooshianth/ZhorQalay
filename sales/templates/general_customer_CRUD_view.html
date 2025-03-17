@@ -138,13 +138,14 @@
     <!-- تب‌ها -->
     {% if customer %}
     <div class="tabs-section"> <!-- اضافه شده -->
-    <div class="tabs-container">
-        <div class="tab-buttons">
-            <button class="tab-btn active" data-target="tasks">تسک‌ها</button>
-            <button class="tab-btn" data-target="calls">تماس‌ها</button>
-            <button class="tab-btn" data-target="purchases">خرید جدید</button>
-            <button class="tab-btn" data-target="purchase_history">تاریخچه</button>
-        </div>
+        <div class="tabs-container mt-8">
+            <div class="tab-buttons flex flex-wrap gap-2 mb-4">
+                <button class="tab-btn active px-4 py-2 bg-gray-200 rounded cursor-pointer min-w-[100px] text-center hover:bg-blue-500 hover:text-white" data-target="tasks">تسک‌ها</button>
+                <button class="tab-btn px-4 py-2 bg-gray-200 rounded cursor-pointer min-w-[100px] text-center hover:bg-blue-500 hover:text-white" data-target="calls">تماس‌ها</button>
+                <button class="tab-btn px-4 py-2 bg-gray-200 rounded cursor-pointer min-w-[100px] text-center hover:bg-blue-500 hover:text-white" data-target="purchases">خرید جدید</button>
+                <button class="tab-btn px-4 py-2 bg-gray-200 rounded cursor-pointer min-w-[100px] text-center hover:bg-blue-500 hover:text-white" data-target="purchase_history">تاریخچه</button>
+                <button class="tab-btn px-4 py-2 bg-gray-200 rounded cursor-pointer min-w-[100px] text-center hover:bg-blue-500 hover:text-white" data-target="prediction">پیش‌بینی خرید</button>
+            </div>
 
         <div id="tasks" class="tab-content active">
             <form method="post">
@@ -172,6 +173,24 @@
                     </form>
                 </div>
             {% endfor %}
+                <!-- Pagination برای خرید‌ها -->
+            <div class="pagination">
+                <span class="step-links">
+                    {% if tasks.has_previous %}
+                        <a href="?customer_id={{ customer.id }}&task_page=1" class="pagination-link">&laquo; اول</a>
+                        <a href="?customer_id={{ customer.id }}&task_page={{ tasks.previous_page_number }}" class="pagination-link">قبلی</a>
+                    {% endif %}
+        
+                    <span class="current">
+                        صفحه {{ tasks.number }} از {{ tasks.paginator.num_pages }}
+                    </span>
+        
+                    {% if purchases.has_next %}
+                        <a href="?customer_id={{ customer.id }}&task_page={{ tasks.next_page_number }}" class="pagination-link">بعدی</a>
+                        <a href="?customer_id={{ customer.id }}&task_page={{ tasks.paginator.num_pages }}" class="pagination-link">آخر &raquo;</a>
+                    {% endif %}
+                </span>
+            </div>
         </div>
         
         <div id="calls" class="tab-content">
@@ -277,11 +296,128 @@
                 </span>
             </div>
         </div>
-    </div>
+        <div id="prediction" class="tab-content space-y-6">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">پیش‌بینی خرید بعدی</h3>
+                <div id="prediction-loading" class="text-gray-500">در حال بارگذاری...</div>
+                <div id="prediction-content" class="hidden space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-gray-600"><strong>محصول احتمالی:</strong> <span id="predict-product"></span></p>
+                            <p class="text-gray-600"><strong>تاریخ تقریبی:</strong> <span id="predict-date"></span></p>
+                            <p class="text-gray-600"><strong>وزن تقریبی:</strong> <span id="predict-weight"></span> کیلوگرم</p>
+                            <p class="text-gray-600"><strong>اطمینان:</strong> <span id="predict-confidence"></span>%</p>
+                        </div>
+                        <div>
+                            <canvas id="purchase-trend-chart" class="w-full h-48"></canvas>
+                        </div>
+                    </div>
+                    <button id="suggest-product" class="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">پیشنهاد محصول مرتبط</button>
+                    <div id="suggested-products" class="mt-4 hidden">
+                        <h4 class="text-lg font-semibold text-gray-700">محصولات پیشنهادی:</h4>
+                        <ul id="suggested-products-list" class="space-y-2"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
     {% endif %}
     </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function loadPrediction(customerId) {
+    const loading = document.getElementById('prediction-loading');
+    const content = document.getElementById('prediction-content');
+    fetch(`/sales/predict-next-purchase/?customer_id=${customerId}`)
+        .then(response => response.json())
+        .then(data => {
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+
+            if (data.prediction) {
+                document.getElementById('predict-product').textContent = data.prediction.product_type_display;
+                document.getElementById('predict-date').textContent = data.prediction.next_date;
+                document.getElementById('predict-weight').textContent = data.prediction.avg_weight;
+                document.getElementById('predict-confidence').textContent = (data.prediction.confidence * 100).toFixed(0);
+
+                const ctx = document.getElementById('purchase-trend-chart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.prediction.history.map(h => h.date),
+                        datasets: [{
+                            label: 'وزن خرید (کیلوگرم)',
+                            data: data.prediction.history.map(h => h.weight),
+                            borderColor: '#4F46E5',
+                            fill: false,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: { beginAtZero: true },
+                            x: { title: { display: true, text: 'تاریخ' } }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+
+                // وقتی دکمه پیشنهاد زده می‌شه
+                document.getElementById('suggest-product').addEventListener('click', function() {
+                    fetch(`/sales/get-related-products/?customer_id=${customerId}&type=${data.prediction.product_type}`)
+                        .then(response => response.json())
+                        .then(suggestions => {
+                            const list = document.getElementById('suggested-products-list');
+                            list.innerHTML = '';
+                            if (suggestions.products.length) {
+                                suggestions.products.forEach(product => {
+                                    const li = document.createElement('li');
+                                    li.className = 'p-2 bg-gray-100 rounded';
+                                    li.innerHTML = `
+                                        <span>${product.cottage} - ${product.product_type} (${product.country})</span>
+                                        <span class="text-sm text-gray-600">موجود: ${product.available_weight} کیلوگرم</span>
+                                    `;
+                                    list.appendChild(li);
+                                });
+                                document.getElementById('suggested-products').classList.remove('hidden');
+                            } else {
+                                list.innerHTML = '<li class="text-gray-500">محصولی یافت نشد.</li>';
+                                document.getElementById('suggested-products').classList.remove('hidden');
+                            }
+                        });
+                });
+            } else {
+                content.innerHTML = `<p class="text-gray-500">${data.message}</p>`;
+            }
+        })
+        .catch(error => {
+            loading.classList.add('hidden');
+            content.innerHTML = '<p class="text-red-500">خطا در بارگذاری پیش‌بینی.</p>';
+            console.error('Error:', error);
+        });
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const customerId = '{{ customer.id }}';
+    const predictionTab = document.querySelector('[data-target="prediction"]');
+    let predictionLoaded = false;
+
+    predictionTab.addEventListener('click', function() {
+        if (customerId && !predictionLoaded) {
+            loadPrediction(customerId);
+            predictionLoaded = true;
+        }
+    });
+
+    // لود خودکار اگه تب پیش‌فرض بود
+    if (customerId && predictionTab.classList.contains('active')) {
+        loadPrediction(customerId);
+        predictionLoaded = true;
+    }
+});
+</script>
+
 <script>
     $(document).ready(function(){
         // تنظیمات اصلی فارسی

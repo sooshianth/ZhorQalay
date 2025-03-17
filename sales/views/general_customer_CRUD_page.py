@@ -15,24 +15,6 @@ from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from jdatetime import datetime, date
 
-def get_related_products(request):
-    customer_id = request.GET.get('customer_id')
-    if not customer_id:
-        return JsonResponse({'error': 'No customer ID provided'}, status=400)
-    try:
-        purchases = Purchase.objects.filter(customer_id=customer_id).select_related("cargo")
-        purchased_product_types = [purchase.cargo.product_type for purchase in purchases if purchase.cargo]
-        related_products = CargoProduct.objects.filter(product_type__in=purchased_product_types).exclude(cottage__in=[p.cottage for p in purchases])
-        product_data = [{
-            'cottage': product.cottage,
-            'product_type': product.get_product_type_display(),
-            'country': product.get_country_display(),
-            'loading_time': product.loading_time,
-        } for product in related_products]
-        return JsonResponse(product_data, safe=False)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-    
 def persian_digits_to_english(persian_text):
     """تبدیل اعداد فارسی به انگلیسی در یک رشته."""
     persian_digits = "۰۱۲۳۴۵۶۷۸۹"
@@ -142,22 +124,17 @@ def general_customer_CRUD_view(request):
     form = None
     is_new_customer = False
 
-    # بخش مدیریت فرم مشتری
     if request.method == "POST" and 'save_customer' in request.POST:
         phone = request.POST.get('phone_number')
         customer = Customer.get_customer_by_phone(phone)
-        
-        if customer:  # Update existing
-            form = CustomerForm(request.POST, instance=customer, sales_agent=sales_agent)
-        else:  # Create new
-            form = CustomerForm(request.POST, sales_agent=sales_agent)
-            is_new_customer = True
-            
-        if form.is_valid():
-            saved_customer = form.save()
-            msg = "مشتری با موفقیت بروزرسانی شد" if customer else "مشتری جدید ایجاد شد"
-            messages.success(request, msg)
-            return redirect(reverse('general_customer_CRUD') + f'?customer_id={saved_customer.id}')
+        form = CustomerForm(request.POST, instance=customer, sales_agent=sales_agent) if customer else CustomerForm(request.POST, sales_agent=sales_agent)
+        redirect_response = handle_form_submission(
+            request, form,
+            "مشتری با موفقیت بروزرسانی شد" if customer else "مشتری جدید ایجاد شد",
+            reverse('general_customer_CRUD') + f'?customer_id={form.instance.id}'
+        )
+        if redirect_response:
+            return redirect_response
         else:
             messages.error(request, "خطا در فرم - لطفا مقادیر را بررسی کنید")
 
@@ -274,6 +251,22 @@ def general_customer_CRUD_view(request):
     except EmptyPage:
         purchases = purchase_paginator.page(purchase_paginator.num_pages)
 
+
+    if customer:
+        try:
+            tasks = customer.get_tasks_by_time()
+        except:
+            tasks = []
+    task_page = request.GET.get('task_page', 1)  
+    task_paginator = Paginator(tasks, 4)  
+    try:
+        tasks = task_paginator.page(task_page)
+    except PageNotAnInteger:
+        tasks = task_paginator.page(1)
+    except EmptyPage:
+        tasks = task_paginator.page(task_paginator.num_pages)
+
+
     context = {
         'customer': customer,
         'form': form,
@@ -287,3 +280,120 @@ def general_customer_CRUD_view(request):
 
     print( context )
     return render(request, 'general_customer_CRUD_view.html', context)
+
+def get_related_products(request):
+    customer_id = request.GET.get('customer_id')
+    country_filter = request.GET.get('country', '')
+    type_filter = request.GET.get('type', '')  # این می‌تونه از پیش‌بینی بیاد
+    if not customer_id:
+        return JsonResponse({'error': 'No customer ID provided'}, status=400)
+    try:
+        purchases = Purchase.objects.filter(customer_id=customer_id).select_related("cargo")
+        purchased_types = set(p.cargo.product_type for p in purchases if p.cargo)
+        purchased_cottages = set(p.cargo.cottage for p in purchases if p.cargo)
+
+        related_products = CargoProduct.objects.filter(
+            product_type__in=purchased_types
+        ).exclude(cottage__in=purchased_cottages)
+        
+        if country_filter:
+            related_products = related_products.filter(country=country_filter)
+        if type_filter:
+            related_products = related_products.filter(product_type=type_filter)
+
+        product_scores = {}
+        for purchase in purchases:
+            if purchase.cargo:
+                key = (purchase.cargo.product_type, purchase.cargo.country)
+                if key not in product_scores:
+                    product_scores[key] = {'count': 0, 'weight': 0}
+                product_scores[key]['count'] += 1
+                product_scores[key]['weight'] += purchase.weight or 0
+
+        product_data = []
+        for product in related_products:
+            key = (product.product_type, product.country)
+            score = product_scores.get(key, {'count': 0, 'weight': 0})
+            product_data.append({
+                'cottage': product.cottage,
+                'product_type': product.get_product_type_display(),
+                'product_type_code': product.product_type,
+                'country': product.get_country_display(),
+                'country_code': product.country,
+                'loading_time': product.loading_time,
+                'score': score['count'] * 10 + score['weight'] / 1000,
+                'available_weight': product.weight or 0
+            })
+        product_data.sort(key=lambda x: x['score'], reverse=True)
+        return JsonResponse({
+            'products': product_data[:5],
+            'countries': list(set(p['country_code'] for p in product_data)),
+            'types': list(set(p['product_type_code'] for p in product_data))
+        }, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+def handle_form_submission(request, form, success_msg, redirect_url):
+    if form.is_valid():
+        instance = form.save()
+        messages.success(request, success_msg)
+        return redirect(redirect_url)
+    else:
+        for field, errors in form.errors.items():
+            messages.error(request, f"خطا در {form.fields[field].label}: {', '.join(errors)}")
+        return None
+    
+from django.http import JsonResponse
+from django.db.models import Avg, Count
+from datetime import timedelta
+from core._models import Purchase
+from django.utils import timezone
+
+def predict_next_purchase(request):
+    customer_id = request.GET.get('customer_id')
+    if not customer_id:
+        return JsonResponse({'error': 'No customer ID provided'}, status=400)
+    
+    try:
+        # خریدهای مشتری
+        purchases = Purchase.objects.filter(customer_id=customer_id).select_related('cargo').order_by('created_at')
+        if not purchases.exists():
+            return JsonResponse({'prediction': None, 'message': 'هیچ خریدی برای پیش‌بینی وجود ندارد.'})
+
+        # تحلیل ساده
+        # 1. نوع محصول پرطرفدار
+        product_types = purchases.values('cargo__product_type').annotate(
+            count=Count('cargo__product_type'),
+            total_weight=Avg('weight')
+        ).order_by('-count')
+        top_product = product_types.first()
+        
+        # 2. میانگین فاصله زمانی بین خریدها
+        purchase_dates = [p.created_at for p in purchases]
+        if len(purchase_dates) > 1:
+            time_diffs = [(purchase_dates[i+1] - purchase_dates[i]).days for i in range(len(purchase_dates)-1)]
+            avg_time_diff = sum(time_diffs) / len(time_diffs)
+            last_purchase_date = purchase_dates[-1]
+            next_purchase_date = last_purchase_date + timedelta(days=avg_time_diff)
+        else:
+            next_purchase_date = purchase_dates[0] + timedelta(days=7)  # فرض پیش‌فرض: ۷ روز بعد
+
+        # 3. میانگین وزن خرید
+        avg_weight = purchases.aggregate(avg_weight=Avg('weight'))['avg_weight']
+
+        # داده‌های پیش‌بینی
+        prediction = {
+            'product_type': top_product['cargo__product_type'] if top_product else None,
+            'product_type_display': CargoProduct.objects.filter(product_type=top_product['cargo__product_type']).first().get_product_type_display() if top_product else 'نامشخص',
+            'next_date': next_purchase_date.strftime('%Y-%m-%d'),
+            'avg_weight': round(avg_weight, 2),
+            'confidence': min(0.9, 0.5 + (len(purchases) / 10)),  # یه معیار ساده برای اطمینان
+            'history': [{
+                'date': p.created_at.strftime('%Y-%m-%d'),
+                'weight': p.weight,
+                'product_type': p.cargo.get_product_type_display() if p.cargo else 'نامشخص'
+            } for p in purchases[:5]]  # ۵ خرید آخر برای نمودار
+        }
+        return JsonResponse({'prediction': prediction})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
