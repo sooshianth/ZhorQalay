@@ -117,11 +117,14 @@ new Chart(ctx, {
 <script>
     // داده‌های خرید بر اساس استان
     const provincePurchases = {{ province_purchases|safe }};
-    
-        // تابع محاسبه رنگ
-        // تابع نرمال‌سازی نام استان‌ها
+
+    // تابع نرمال‌سازی نام استان‌ها
     function normalizeProvinceName(name) {
-        return name.replace(/[\s\u200C]/g, '').toLowerCase();
+        return name
+            .replace(/[\s\u200C]/g, '')
+            .replace('ي', 'ی')
+            .replace('ك', 'ک')
+            .toLowerCase();
     }
 
     // نرمال‌سازی provincePurchases
@@ -129,44 +132,47 @@ new Chart(ctx, {
     for (const [province, count] of Object.entries(provincePurchases)) {
         normalizedProvincePurchases[normalizeProvinceName(province)] = count;
     }
+    console.log("داده‌های نرمال‌شده:", normalizedProvincePurchases);
 
-    console.log("normalizedProvincePurchases:", normalizedProvincePurchases);
-
-    // تابع محاسبه رنگ
-    function getColor(purchaseCount, maxPurchases) {
-        const opacity = purchaseCount / maxPurchases;
-        return `rgba(255, 0, 0, ${opacity})`;
+    // تابع محاسبه رنگ بر اساس رنج
+    function getColor(purchaseCount) {
+        if (purchaseCount <= 0) return 'rgba(255, 0, 0, 0)'; // بدون خرید: شفاف
+        else if (purchaseCount <= 5) return 'rgba(255, 100, 100, 0.3)'; // ۱-۵: قرمز روشن
+        else if (purchaseCount <= 10) return 'rgba(255, 50, 50, 0.5)'; // ۵-۱۰: کمی تیره‌تر
+        else if (purchaseCount <= 15) return 'rgba(255, 0, 0, 0.7)'; // ۱۰-۱۵: قرمز متوسط
+        else if (purchaseCount <= 20) return 'rgba(200, 0, 0, 0.9)'; // ۱۵-۲۰: قرمز تیره
+        else return 'rgba(150, 0, 0, 1)'; // بالای ۲۰: قرمز خیلی تیره
     }
 
-    // محاسبه حداکثر تعداد خریدها
+    // محاسبه حداکثر تعداد خریدها (برای دیباگ)
     const maxPurchases = Math.max(...Object.values(normalizedProvincePurchases));
     console.log("حداکثر تعداد خریدها:", maxPurchases);
 
     // ایجاد نقشه
     const map = L.map('heatmap').setView([32.4279, 53.6880], 5);
-
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
+        attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // بارگذاری فایل GeoJSON استان‌های ایران
+    // بارگذاری فایل GeoJSON
     fetch("{% static 'iran_provinces.geojson' %}")
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) throw new Error("فایل GeoJSON یافت نشد.");
+            return response.json();
+        })
         .then(data => {
-            console.log("GeoJSON استان‌ها:", data.features.map(f => f.properties.name));
-
-            // رنگ‌آمیزی استان‌ها
             L.geoJSON(data, {
                 style: function(feature) {
                     const provinceName = normalizeProvinceName(feature.properties.name);
                     const purchaseCount = normalizedProvincePurchases[provinceName] || 0;
-                    const color = getColor(purchaseCount, maxPurchases);
+                    const color = getColor(purchaseCount);
+                    console.log(`استان: ${provinceName}, تعداد خرید: ${purchaseCount}, رنگ: ${color}`);
                     return {
                         fillColor: color,
-                        weight: 2,
+                        weight: 1,
                         opacity: 1,
-                        color: 'white',
-                        fillOpacity: 0.7
+                        color: 'black',
+                        fillOpacity: 0.7 // می‌تونی اینو هم با رنگ هماهنگ کنی
                     };
                 },
                 onEachFeature: function(feature, layer) {
@@ -176,8 +182,6 @@ new Chart(ctx, {
                 }
             }).addTo(map);
         })
-        .catch(error => {
-            console.error("خطا در بارگذاری فایل GeoJSON:", error);
-        });
-    </script>
+        .catch(error => console.error("خطا در بارگذاری GeoJSON:", error));
+</script>
 {% endblock %}

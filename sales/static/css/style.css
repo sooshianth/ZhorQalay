@@ -116,6 +116,7 @@ button, .button {
   font-size: 0.8rem; /* افزایش سایز فونت */
   background-color: var(--button-color);
   color: white;
+  margin-top: 5px;
   border: none;
   border-radius: 6px; /* افزایش border-radius */
   cursor: pointer;
