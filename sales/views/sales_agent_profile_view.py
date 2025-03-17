@@ -1,4 +1,4 @@
-from core._models import Notification
+from core._models import Notification, Customer
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -110,30 +110,49 @@ def customer_list_view(request):
         messages.error(request, "شما مجاز به مشاهده این بخش نیستید.")
         return redirect('sales_agent_login')
 
-    sales_agent = request.user.sales_agent  
+    sales_agent = request.user.sales_agent
     search_query = request.GET.get('search', '')
-    sort_by = request.GET.get('sort', 'name')  # مقدار پیش‌فرض: نام مشتری
-    order = request.GET.get('order', 'asc')  # ترتیب پیش‌فرض: صعودی
+    sort_by = request.GET.get('sort', 'name')
+    order = request.GET.get('order', 'asc')
+    city_filter = request.GET.get('city', '')
+    activity_filter = request.GET.get('activity', '')
+    purchase_filter = request.GET.get('purchase', '')  # مثلاً: has_purchase, no_purchase
 
-    # دریافت لیست مشتریان این کارشناس فروش
     customers = sales_agent.get_all_customers()
 
     # فیلتر جستجو
     if search_query:
-        customers = customers.filter(
-            Q(name__icontains=search_query) |
-            Q(phone_number__icontains=search_query)
-        )
+        customers = customers.filter(Q(name__icontains=search_query) | Q(phone_number__icontains=search_query))
 
-    # مرتب‌سازی لیست مشتریان
+    # فیلتر شهر
+    if city_filter:
+        customers = customers.filter(city__icontains=city_filter)
+
+    # فیلتر حیطه فعالیت
+    if activity_filter:
+        customers = customers.filter(field_of_activity=activity_filter)
+
+    # فیلتر بر اساس خرید
+    if purchase_filter == 'has_purchase':
+        customers = customers.filter(purchases_made__created_at__month=timezone.now().month).distinct()
+    elif purchase_filter == 'no_purchase':
+        customers = customers.exclude(purchases_made__created_at__month=timezone.now().month).distinct()
+
+    # مرتب‌سازی
     if sort_by == 'name':
         customers = customers.order_by('name' if order == 'asc' else '-name')
     elif sort_by == 'phone':
         customers = customers.order_by('phone_number' if order == 'asc' else '-phone_number')
+    elif sort_by == 'city':
+        customers = customers.order_by('city' if order == 'asc' else '-city')
+
+    # تعداد خریدهای هر مشتری این ماه
+    from django.db.models import Count
+    customers = customers.annotate(purchase_count=Count('purchases_made', filter=Q(purchases_made__created_at__month=timezone.now().month)))
 
     # Pagination
+    paginator = Paginator(customers, 10)
     page = request.GET.get('page', 1)
-    paginator = Paginator(customers, 10)  # نمایش 10 مشتری در هر صفحه
     try:
         customers_page = paginator.page(page)
     except PageNotAnInteger:
@@ -141,12 +160,51 @@ def customer_list_view(request):
     except EmptyPage:
         customers_page = paginator.page(paginator.num_pages)
 
-
     context = {
-        'customers': customers_page,  # ارسال صفحه مشتریان به جای لیست کامل
+        'customers': customers_page,
         'search_query': search_query,
         'sort_by': sort_by,
         'order': order,
+        'city_filter': city_filter,
+        'activity_filter': activity_filter,
+        'purchase_filter': purchase_filter,
     }
-
     return render(request, 'customer_list.html', context)
+
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+import pandas as pd
+from io import BytesIO
+import logging
+
+logger = logging.getLogger(__name__)
+
+@login_required
+def export_customers_to_excel(request):
+    if not hasattr(request.user, 'sales_agent'):
+        logger.warning(f"Unauthorized access attempt by user {request.user.username}")
+        return redirect('sales_agent_login')
+
+    try:
+        sales_agent = request.user.sales_agent
+        customers = sales_agent.get_all_customers().values('name', 'phone_number', 'city', 'field_of_activity')
+        
+        if not customers:
+            return HttpResponse("هیچ مشتری‌ای برای دانلود وجود ندارد.", content_type='text/plain')
+
+        df = pd.DataFrame(list(customers))
+        df.columns = ['نام', 'شماره موبایل', 'شهر', 'حیطه فعالیت']
+        
+        buffer = BytesIO()
+        df.to_excel(buffer, index=False, engine='openpyxl')
+        buffer.seek(0)
+
+        response = HttpResponse(
+            buffer.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename="customer_list.xlsx"'
+        return response
+    except Exception as e:
+        logger.error(f"Error exporting customers to Excel: {str(e)}")
+        return HttpResponse(f"خطا در تولید فایل اکسل: {str(e)}", status=500)

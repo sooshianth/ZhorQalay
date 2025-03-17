@@ -18,5 +18,6 @@ urlpatterns = [
     path("mark-notification/<int:notif_id>/", mark_notification_read.mark_notification_as_read, name="mark_notification_as_read"),
     path('get-related-products/', general_customer_CRUD_page.get_related_products, name='get_related_products'),
     path('dashboard/', sales_dashboard_view.sales_dashboard_view, name='sales_dashboard'),
+    path('export/', sales_agent_profile_view.export_customers_to_excel, name='export_customers'),
     path('captcha/', include('captcha.urls')), 
 ]

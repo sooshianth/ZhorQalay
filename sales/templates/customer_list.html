@@ -12,10 +12,16 @@
 {% endfor %}
 {% endif %}
 
-<!-- فرم جستجو -->
-<form method="get" action="{% url 'customer_list' %}" class="search-form">
-    <input type="text" name="search" placeholder="جستجو بر اساس نام یا شماره موبایل" value="{{ request.GET.search }}">
-    <button type="submit" class="search-button">جستجو</button>
+<!-- فرم فیلتر و جستجو -->
+<form method="get" class="mb-6 flex flex-col md:flex-row gap-4">
+    <input type="text" name="search" value="{{ search_query }}" placeholder="جستجو بر اساس نام یا شماره" class="p-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 flex-1">
+    <input type="text" name="city" value="{{ city_filter }}" placeholder="فیلتر بر اساس شهر" class="p-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 w-full md:w-1/4">
+    <select name="purchase" class="p-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 w-full md:w-1/4">
+        <option value="">همه</option>
+        <option value="has_purchase" {% if purchase_filter == 'has_purchase' %}selected{% endif %}>خرید این ماه</option>
+        <option value="no_purchase" {% if purchase_filter == 'no_purchase' %}selected{% endif %}>بدون خرید این ماه</option>
+    </select>
+    <button type="submit" class="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">فیلتر</button>
 </form>
 
 <!-- نمایش لیست مشتریان در جدول -->
@@ -36,6 +42,13 @@
                     <a href="?search={{ search_query }}&sort=phone&order=desc" class="sort-btn {% if sort_by == 'phone' and order == 'desc' %}active{% endif %}">🔽</a>
                 </div>
             </th>
+            <th>
+                <div>
+                    شهر
+                    <a href="?search={{ search_query }}&sort=city&order=asc&city={{ city_filter }}&activity={{ activity_filter }}&purchase={{ purchase_filter }}" class="{% if sort_by == 'city' and order == 'asc' %}active{% endif %}">🔼</a>
+                    <a href="?search={{ search_query }}&sort=city&order=desc&city={{ city_filter }}&activity={{ activity_filter }}&purchase={{ purchase_filter }}" class="{% if sort_by == 'city' and order == 'desc' %}active{% endif %}">🔽</a>
+                </div>
+            </th>
         </tr>
     </thead>
     <tbody>
@@ -43,6 +56,7 @@
             <tr class="customer-row fade-in">
                 <td><a href="{% url 'general_customer_CRUD' %}?customer_id={{ customer.id }}" class="customer-link">{{ customer.name }}</a></td>
                 <td>{{ customer.phone_number }}</td>
+                <td>{{customer.city}}</td>
             </tr>
         {% empty %}
             <tr>
@@ -71,6 +85,7 @@
 
 <!-- لینک بازگشت به پروفایل -->
 <a href="{% url 'sales_agent_profile' %}" class="button back-button" aria-label="بازگشت به پروفایل">بازگشت به پروفایل</a>
+<a href="{%url 'export_customers' %}" class="button back-button">اکسل مشتریان</a>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
