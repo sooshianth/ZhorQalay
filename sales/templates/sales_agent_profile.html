@@ -47,6 +47,15 @@
         </div>
     </div>
     
+    <div class="mb-4 flex items-center gap-4">
+        <label for="taskFilter" class="text-gray-700 font-semibold">فیلتر تسک‌ها:</label>
+        <select id="taskFilter" name="task_filter" class="p-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500">
+            <option value="all" {% if request.GET.task_filter == 'all' %}selected{% endif %}>همه</option>
+            <option value="today" {% if request.GET.task_filter == 'today' %}selected{% endif %}>امروز</option>
+            <option value="overdue" {% if request.GET.task_filter == 'overdue' %}selected{% endif %}>سررسیده</option>
+        </select>
+        <input type="text" id="taskSearch" class="p-2 border rounded-lg shadow-sm w-full max-w-xs focus:ring-2 focus:ring-blue-500" placeholder="جستجو در تسک‌ها...">
+    </div>
 
     <div class="profile-container">
         <!-- ستون تسک‌ها -->
@@ -313,5 +322,43 @@
         });
     </script>
 
+    <script>
+        document.getElementById('taskFilter').addEventListener('change', filterTasks);
+        document.getElementById('taskSearch').addEventListener('input', filterTasks);
 
+        function filterTasks() {
+            const filter = document.getElementById('taskFilter').value;
+            const search = document.getElementById('taskSearch').value.toLowerCase();
+            const taskItems = document.querySelectorAll('.task-item');
+
+            taskItems.forEach(item => {
+                const desc = item.querySelector('.task-content').textContent.toLowerCase();
+                const isPending = item.classList.contains('task-pending');
+                let show = true;
+
+                if (filter === 'today' && !desc.includes(new Date().toLocaleDateString('fa-IR'))) show = false;
+                if (filter === 'overdue' && !isPending) show = false;
+                if (search && !desc.includes(search)) show = false;
+
+                item.style.display = show ? 'block' : 'none';
+            });
+        }
+    </script>
+    <script>
+        document.getElementById('taskFilter').addEventListener('change', function() {
+            const url = new URL(window.location);
+            url.searchParams.set('task_filter', this.value);
+            url.searchParams.set('task_page', 1); // ریست صفحه به 1
+            window.location = url;
+        });
+
+        document.getElementById('taskSearch').addEventListener('input', function() {
+            const search = this.value.toLowerCase();
+            const taskItems = document.querySelectorAll('.task-item');
+            taskItems.forEach(item => {
+                const desc = item.querySelector('.task-content').textContent.toLowerCase();
+                item.style.display = desc.includes(search) ? 'block' : 'none';
+            });
+        });
+    </script>
 {% endblock %}

@@ -18,7 +18,13 @@ def sales_agent_profile_view(request):
     all_tasks = sales_agent.get_all_tasks()
 
     # تقسیم تسک‌ها به انجام شده و انجام نشده
-    pending_tasks = [task for task in all_tasks if not task.status]  # تسک‌های انجام نشده
+    task_filter = request.GET.get('task_filter', 'all')  # all, today, overdue
+    if task_filter == 'today':
+        pending_tasks = [task for task in all_tasks if not task.status and task.due_date.date() == timezone.now().date()]
+    elif task_filter == 'overdue':
+        pending_tasks = [task for task in all_tasks if not task.status and task.due_date < timezone.now()]
+    else:
+        pending_tasks = [task for task in all_tasks if not task.status]
     completed_tasks = [task for task in all_tasks if task.status]
 
     # Pagination برای تسک‌های انجام نشده
@@ -76,6 +82,11 @@ def sales_agent_profile_view(request):
 
     notifications = Notification.objects.filter(user=request.user, is_read = False)
 
+    weekly_trend = sales_agent.get_weekly_sales_trend()
+    top_customers = sales_agent.get_top_customers()
+
+    sales_agent.check_task_deadlines()
+
     context = {
         'sales_agent': sales_agent,
         'tasks': tasks,  # تسک‌های انجام نشده
@@ -83,6 +94,8 @@ def sales_agent_profile_view(request):
         'unpaid': unpaid,
         'active': active,
         'archived': archived,
+        'weekly_trend': weekly_trend,
+        'top_customers': top_customers,
         'total_sales_this_month': total_sales_this_month,
         'notifications': notifications,
     }

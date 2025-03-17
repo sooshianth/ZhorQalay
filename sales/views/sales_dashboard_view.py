@@ -94,10 +94,6 @@ def sales_dashboard_view(request):
         else:
             purchase_types['3+'] += 1
 
-    test_city = "تبريز"  # یا "تبریز"
-    province_name = find_province_by_city(test_city)
-    print(f"استان مربوط به شهر {test_city}: {province_name}")
-
     # محاسبه خریدها بر اساس استان
     province_purchases = defaultdict(int)
     purchases_this_month = Purchase.objects.filter(

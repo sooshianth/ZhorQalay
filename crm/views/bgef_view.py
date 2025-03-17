@@ -97,7 +97,13 @@ def preview_bge_file(request, file_id):
     bge_file = get_object_or_404(BGEFile, id=file_id)
     try:
         df = pd.read_excel(bge_file.file.path)
-        preview_rows = min(10, len(df))
+        required_columns = ['شناسه تخصیص', 'کد خرید']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            return JsonResponse({'error': f'ستون‌های {missing_columns} در فایل یافت نشدند'}, status=400)
+
+        preview_rows = int(request.GET.get('rows', 10))
+        preview_rows = min(preview_rows, len(df))
         df_preview = df.head(preview_rows)
         table_html = df_preview.to_html(
             classes=['table', 'table-striped', 'table-bordered', 'table-hover'],
@@ -115,11 +121,10 @@ def preview_bge_file(request, file_id):
             'preview_rows': preview_rows,
             'total_columns': total_columns,
             'file_size': f"{file_size:.2f} KB",
-            'file_id': file_id,  # برای دکمه تأیید
+            'file_id': file_id,
         }
         return render(request, 'partials/preview_content.html', context)
     except Exception as e:
-        return JsonResponse({'error': f'خطا در خواندن فایل: {str(e)}'}, status=500)
         return JsonResponse({'error': f'خطا در خواندن فایل: {str(e)}'}, status=500)
 
 @login_required

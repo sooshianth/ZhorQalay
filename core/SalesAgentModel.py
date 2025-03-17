@@ -2,7 +2,8 @@ from django.db import models
 from django_jalali.db import models as jmodels
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-
+from .NotificationModel import Notification
+from datetime import timedelta
 
 class SalesAgent(models.Model):
     user = models.OneToOneField('auth.User', on_delete=models.DO_NOTHING, related_name='sales_agent')
@@ -87,6 +88,31 @@ class SalesAgent(models.Model):
             all_tasks.extend(customer.tasks.all())
         return sorted(all_tasks, key=lambda task: task.due_date)
 
+    def get_weekly_sales_trend(self):
+        from django.utils.timezone import now, timedelta
+        from collections import defaultdict
+        trend = defaultdict(int)
+        start_of_week = now() - timedelta(days=now().weekday() + 7)  # شروع دو هفته پیش
+        purchases = self.get_all_active_sales() + self.get_all_archived_sales()
+        for purchase in purchases:
+            if purchase.created_at >= start_of_week:
+                week = purchase.created_at.isocalendar()[1]  # شماره هفته
+                trend[week] += purchase.weight
+        return dict(trend)  
+
+    def get_top_customers(self, limit=5):
+        from django.db.models import Sum
+        customers = self.get_all_customers().annotate(total_weight=Sum('purchases_made__weight')).order_by('-total_weight')[:limit]
+        return customers
+
+    def check_task_deadlines(self):
+        for task in self.get_all_undone_tasks():
+            if task.due_date - timezone.now() < timedelta(hours=24) and not Notification.objects.filter(user=self.user, message__contains=task.description).exists():
+                Notification.objects.create(
+                    user=self.user,
+                    message=f"تسک '{task.description}' تا کمتر از ۲۴ ساعت دیگر به پایان می‌رسد!",
+                    is_read=False
+                )
 
     def __str__(self):
         return self.name
