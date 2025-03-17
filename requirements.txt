@@ -12,6 +12,7 @@ django-jalali==7.3.0
 django-ranged-response==0.2.0
 django-redis==5.4.0
 django-simple-captcha==0.6.2
+et_xmlfile==2.0.0
 executing==2.2.0
 ipykernel==6.29.5
 ipython==9.0.1
@@ -25,6 +26,7 @@ leaflet==0.0.3
 matplotlib-inline==0.1.7
 nest-asyncio==1.6.0
 numpy==2.2.3
+openpyxl==3.1.5
 packaging==24.2
 pandas==2.2.3
 parso==0.8.4
