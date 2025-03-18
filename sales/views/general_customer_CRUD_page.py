@@ -56,7 +56,7 @@ class CustomerForm(forms.ModelForm):
         }
 
 def check_customer_sales_agent(customer, sales_agent):
-    if customer.sales_agent != sales_agent:
+    if sales_agent not in customer.sales_agent.all():
         raise PermissionDenied("You do not have permission to access this customer.")
 
 

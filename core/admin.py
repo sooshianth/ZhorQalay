@@ -32,8 +32,8 @@ class CargoProductAdmin(admin.ModelAdmin):
 # تنظیمات نمایش مدل Customer در ادمین
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    list_display = ('name', 'phone_number', 'city', 'field_of_activity', 'sales_agent', 'created_at')
-    list_filter = ('field_of_activity', 'city', 'sales_agent')
+    list_display = ('name', 'phone_number', 'city', 'field_of_activity', 'created_at')
+    list_filter = ('field_of_activity', 'city')
     search_fields = ('name', 'phone_number')
     ordering = ('-created_at',)
 
@@ -63,8 +63,8 @@ class SalesAgentAdmin(admin.ModelAdmin):
 # تنظیمات نمایش مدل Task در ادمین
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
-    list_display = ('customer', 'description', 'status', 'due_date', 'customer__sales_agent', 'create_time')
-    list_filter = ('status', 'customer__sales_agent')
+    list_display = ('customer', 'description', 'status', 'due_date',  'create_time')
+    list_filter = ('status',)
     search_fields = ('customer__name', 'description')
     ordering = ('due_date',)
 
