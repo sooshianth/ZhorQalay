@@ -25,17 +25,17 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if user_role == 'sales_agent':
             allowed_fields = [
-                'weight', 'address', 'tracking_number', 'purchase_date', 'purchase_number','payment_method', 'amount_paid', 'cargo',
+                'weight', 'description', 'tracking_number', 'purchase_date', 'purchase_number','payment_method', 'customer_price','amount_paid', 'cargo', 'shenase_takhsis', 'code_melli_tahvil', 'bazaargah_phone_number', 'tahvil_phone_number',
                 # 'is_takhsised', 'is_sarak_varized', 'does_salesman_approve',
             ]
         elif user_role == 'logistics_manager':
             allowed_fields = [
-                'weight', 'address', 'tracking_number', 'purchase_number', 'amount_paid','payment_method', 'cargo',
+                'weight', 'description', 'tracking_number', 'purchase_number', 'amount_paid', 'customer_price', 'payment_method', 'cargo', 'shenase_takhsis', 'code_melli_tahvil', 'bazaargah_phone_number', 'tahvil_phone_number',
                 # 'is_bazaargahed', 'is_takhsised_approved', 'is_address_sent_to_varedkonandeh', 'is_sent_to_barbari', 'is_barnamed', 'does_logistics_approve',
             ]
         elif user_role == 'financial_manager':
             allowed_fields = [
-                'payment_method', 'amount_paid', 'cargo', 'purchase_date', 'purchase_number', 'tracking_number', 'address', 'weight',
+                'description', 'payment_method', 'company_price', 'customer_price', 'amount_paid', 'cargo', 'purchase_date', 'purchase_number', 'tracking_number', 'weight',
                 # 'is_paid','is_tasvied_with_varedkonandeh','is_factorated', 'is_ekhtelaf_approved', 'is_kasri_varized', 'is_kasri_reciept_submited', 'does_financial_approve',
             ]
         else:

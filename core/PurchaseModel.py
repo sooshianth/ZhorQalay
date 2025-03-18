@@ -6,20 +6,29 @@ from .CustomerModel import Customer
 from .CargoProductModel import CargoProduct
 
 class Purchase(models.Model):
+    id = models.CharField(max_length=20, primary_key=True, editable=False, unique=True)
     customer = models.ForeignKey(Customer, on_delete=models.DO_NOTHING, verbose_name="مشتری", help_text="ارتباط یک‌به‌یک با مشتری از طریق شماره تلفن یا آیدی", related_name='purchases_made')
     address = models.TextField("آدرس", blank=True, null=True)
+    description = models.TextField("توضیحات", blank=True, null=True)
+    company_price = models.PositiveIntegerField("فی خرید(ریال)", default=0)
+    customer_price = models.PositiveIntegerField("فی فروش(ریال)", default=0)
+
     purchase_number = models.CharField("شماره خرید بازارگاه", max_length=255, blank=True, null=True, unique=True)
     tracking_number = models.CharField("شماره پیگیری", max_length=255, blank=True, null=True, unique=True)
-    weight = models.PositiveIntegerField("وزن (کیلوگرم)",)
+    shenase_takhsis = models.CharField("شناسه تخصیص", max_length=255, blank=True, null=True, unique=True)
+    code_melli_tahvil = models.CharField("کد ملی تحویل", max_length=255, blank=True, null=True, unique=True)
+    bazaargah_phone_number = models.CharField("شماره تلفن بازارگاه", max_length=255, blank=True, null=True)
+    tahvil_phone_number = models.CharField("شماره تلفن تحویل", max_length=255, blank=True, null=True)
+
+    weight = models.PositiveIntegerField("وزن (کیلوگرم)", default=0)
     cargo = models.ForeignKey(CargoProduct,on_delete=models.SET_NULL, verbose_name="کوتاژ", null=True, blank=True, related_name='purchases')
     type = models.CharField("نوع خرید", max_length=25, default='bazaargah')
-    price = models.PositiveIntegerField("قیمت خرید", default=0)
     amount_paid = models.PositiveBigIntegerField("مبلغ پرداختی(ریال)", blank=True, null=True)
     payment_method = models.CharField("شیوۀ پرداخت", max_length=6, choices=[('نقدی', 'نقدی'), ('توافقی', 'توافقی')], default="نقدی")
     created_at = jmodels.jDateTimeField("تاریخ ثبت",default=timezone.now,editable=True)
     updated_at  = jmodels.jDateTimeField("تاریخ بروزرسانی",auto_now=True)
     is_weight_costed = models.BooleanField("آیا وزن خرید از وزن موجود محصول کاسته شده است؟", default=False)
-
+    is_ap_af = models.BooleanField("آیا مبلغ خرید اتوکامپلیت شده است؟", default=False)
     extelaf_type = models.CharField("نوع اختلاف (کسری یا سرک)", max_length=4, choices=[('کسری', 'کسری'), ('سرک', 'سرک')], null=True, blank=True)
     extelaf_weight = models.PositiveIntegerField("وزن اختلاف به کیلوگرم", null=True, blank=True)
     extelaf_amount = models.PositiveBigIntegerField("مبلغ اختلاف به ریال", null=True, blank=True)
@@ -226,14 +235,30 @@ class Purchase(models.Model):
         if self.is_archived:
             if self.is_paid or self.is_sent or self.is_delivered or self.is_canceled:
                 errors['is_archived'] = 'خرید آرشیو شده نمی‌تواند پرداخت شده، ارسال شده، تحویل داده شده یا لغو شده باشد.'
+        if self.customer_price != 0 and (self.customer_price < 50000 or self.customer_price > 300000):
+            raise ValidationError('فی فروش عددی غیرواقعی است.')
+        if self.company_price != 0 and (self.company_price < 50000 or self.company_price > 300000):
+            raise ValidationError('فی خرید عددی غیرواقعی است.')
 
         if errors:
             raise ValidationError(errors)
     def save(self, *args, **kwargs):
+        if not self.id:
+            factor_code = self.customer.sales_agent.factor_code
+            last_purchase = Purchase.objects.filter(id__startswith=factor_code).order_by('-id').first()
+            if last_purchase:
+                last_serial = str(last_purchase.id)[2:]
+                new_serial = int(last_serial) + 1
+            else:
+                new_serial = 1
+            self.id = f"{factor_code}{str(new_serial).zfill(4)}"
+
         if self.cargo:
             self.type = self.cargo.type
-            if self.price == 0:
-                self.price = self.cargo.price
+            if self.customer_price == 0:
+                self.price = self.cargo.customer_price
+            if self.company_price == 0:
+                self.company_price = self.cargo.company_price
         super().save(*args, **kwargs)
 
 from django.contrib.auth.models import User

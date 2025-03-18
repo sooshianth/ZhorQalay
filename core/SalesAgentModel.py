@@ -9,6 +9,7 @@ class SalesAgent(models.Model):
     user = models.OneToOneField('auth.User', on_delete=models.DO_NOTHING, related_name='sales_agent')
     name = models.CharField(max_length=100)
     phone_number = models.CharField(max_length=20, unique=True)
+    factor_code = models.CharField(max_length=2, unique=True, null=True, blank=True)
 
     class Meta:
         verbose_name = 'کارشناس فروش'
@@ -118,8 +119,6 @@ class SalesAgent(models.Model):
         return self.name
     
     def clean(self):
-        if SalesAgent.objects.filter(phone_number=self.phone_number).exists():
-            raise ValidationError('شماره تلفن تکراری است.')
         if len(self.phone_number) < 11:
             raise ValidationError('شماره تلفن باید 11 رقم باشد.')
         if not self.phone_number.isdigit():
@@ -131,3 +130,8 @@ class SalesAgent(models.Model):
         if len(self.name) > 100:
             raise ValidationError('نام نمی‌تواند بیشتر از 100 حرف باشد.')
         
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        if not self.factor_code:
+            self.factor_code = self.phone_number[-2:]
+        super().save(*args, **kwargs)

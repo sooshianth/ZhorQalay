@@ -41,7 +41,8 @@ class CargoProduct(models.Model):
     
     type = models.CharField(_('نوع خرید'), max_length=25, choices=PURCHASE_TYPES, default='bazaargah')
     cottage = models.CharField(_('کوتاژ'), unique=True, max_length=8, null=True, blank=True)
-    price = models.PositiveIntegerField(_('قیمت'), default=0)
+    company_price = models.PositiveIntegerField("فی خرید(ریال)", default=0)
+    customer_price = models.PositiveIntegerField("فی فروش(ریال)", default=0)
     product_type = models.CharField(_('نوع محصول'), max_length=25, choices=PRODUCT_TYPES, )
     country = models.CharField(_('کشور'), max_length=20, choices=COUNTRIES)
     importer_name = models.CharField(_('نام واردکننده/کارخانه'), max_length=100, blank=True, null=True)
@@ -67,6 +68,10 @@ class CargoProduct(models.Model):
             raise ValidationError('کوتاژ برای خرید بازارگاه باید ۸ رقم عددی باشد.')
         if self.type == 'non_bazaargah' and not self.cottage.isdigit() and not len(str(self.cottage)) == 3:
             raise ValidationError('کوتاژ برای خرید خارج از بازارگاه باید ۳ رقم عددی باشد.')
+        if self.customer_price != 0 and (self.customer_price < 50000 or self.customer_price > 300000):
+            raise ValidationError('فی فروش عددی غیرواقعی است.')
+        if self.company_price != 0 and (self.company_price < 50000 or self.company_price > 300000):
+            raise ValidationError('فی خرید عددی غیرواقعی است.')
         
     def get_product_type_display(self):
         return dict(self.PRODUCT_TYPES).get(self.product_type, _('نامشخص'))
