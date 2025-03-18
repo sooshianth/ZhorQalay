@@ -127,14 +127,17 @@ def general_customer_CRUD_view(request):
     if request.method == "POST" and 'save_customer' in request.POST:
         phone = request.POST.get('phone_number')
         customer = Customer.get_customer_by_phone(phone)
-        form = CustomerForm(request.POST, instance=customer, sales_agent=sales_agent) if customer else CustomerForm(request.POST, sales_agent=sales_agent)
-        redirect_response = handle_form_submission(
-            request, form,
-            "مشتری با موفقیت بروزرسانی شد" if customer else "مشتری جدید ایجاد شد",
-            reverse('general_customer_CRUD') + f'?customer_id={form.instance.id}'
-        )
-        if redirect_response:
-            return redirect_response
+        if customer:  # Update existing
+            form = CustomerForm(request.POST, instance=customer, sales_agent=sales_agent)
+        else:  # Create new
+            form = CustomerForm(request.POST, sales_agent=[sales_agent])
+            is_new_customer = True
+            
+        if form.is_valid():
+            saved_customer = form.save()
+            msg = "مشتری با موفقیت بروزرسانی شد" if customer else "مشتری جدید ایجاد شد"
+            messages.success(request, msg)
+            return redirect(reverse('general_customer_CRUD') + f'?customer_id={saved_customer.id}')
         else:
             messages.error(request, "خطا در فرم - لطفا مقادیر را بررسی کنید")
 
