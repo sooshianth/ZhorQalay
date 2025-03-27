@@ -24,6 +24,5 @@
 /static
 
 /media
-/web.config
 /db.sqlite3
 config/settings.py
