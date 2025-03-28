@@ -18,10 +18,38 @@
     <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
 <body>
+    <!-- منوی پویای موبایل که با اسکرول نمایش داده می‌شود -->
+    <div class="mobile-header" id="mobile-header">
+        <img src="{% static 'images/3-min.png' %}" loading='lazy' alt="Logo" class="mobile-header-logo">
+        <h2 class="mobile-header-title">سیمرغ افزار</h2>
+        <div class="mobile-header-controls">
+            <button class="menu-toggle" id="mobile-menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </div>
+    
     <header>
         <div class="container">
+            <div class="header-top">
+                <img src="{% static 'images/3-min.png' %}" loading='lazy' width='55px' alt="Logo" class="header-logo">
+                <h1>سامانه جامع سیمرغ‌ افزار</h1>
+                <div class="mobile-controls">
+                    <div class="toggle-container" id="dark-mode-toggle">
+                        <span>🌙</span>
+                        <div class="toggle-switch">
+                            <div class="toggle-circle"></div>
+                        </div>
+                        <span>🌞</span>
+                    </div>
+                    <button class="menu-toggle" id="menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+            
             <nav>
-                <ul>
+                <ul id="nav-menu">
                     {% if request.user.is_authenticated %}
                         {% if request.user.sales_agent %}
                             <li><a href="{% url 'sales_agent_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
@@ -49,16 +77,6 @@
                         
                 </ul>
             </nav>
-            <img src="{% static 'images/3-min.png' %}" loading='lazy' width='55px' alt="Logo" style="float: right; margin-left: 10px;   filter: brightness(0) invert(1);
-">
-            <h1>سامانه جامع سیمرغ‌ افزار</h1>
-            <div class="toggle-container" id="dark-mode-toggle">
-                <span>🌙</span>
-                <div class="toggle-switch">
-                    <div class="toggle-circle"></div>
-                </div>
-                <span>🌞</span>
-            </div>
         </div>
     </header>
 
@@ -100,6 +118,7 @@
 
     <script>
        document.addEventListener("DOMContentLoaded", function() {
+        // تنظیمات دارک مود
         const toggleBtn = document.getElementById("dark-mode-toggle");
 
         // بررسی ذخیره‌شده در Local Storage
@@ -114,6 +133,64 @@
                 localStorage.setItem("theme", "dark");
             } else {
                 localStorage.setItem("theme", "light");
+            }
+        });
+
+        // منوی موبایل
+        const menuToggle = document.getElementById("menu-toggle");
+        const mobileMenuToggle = document.getElementById("mobile-menu-toggle");
+        const navMenu = document.getElementById("nav-menu");
+        const mobileHeader = document.getElementById("mobile-header");
+
+        // تنظیم هر دو دکمه منو (اصلی و استیکی)
+        const toggleMenu = function() {
+            navMenu.classList.toggle("active");
+            this.classList.toggle("active");
+        };
+
+        menuToggle.addEventListener("click", toggleMenu);
+        mobileMenuToggle.addEventListener("click", toggleMenu);
+
+        // بستن منو با کلیک روی هر لینک در موبایل
+        const navLinks = document.querySelectorAll("#nav-menu a");
+        navLinks.forEach(link => {
+            link.addEventListener("click", function() {
+                if (window.innerWidth <= 768) {
+                    navMenu.classList.remove("active");
+                    menuToggle.classList.remove("active");
+                    mobileMenuToggle.classList.remove("active");
+                }
+            });
+        });
+
+        // منطق نمایش/مخفی کردن منوی استیکی
+        let lastScrollTop = 0;
+        const header = document.querySelector('header');
+        const headerHeight = header.offsetHeight;
+        
+        window.addEventListener("scroll", function() {
+            if (window.innerWidth <= 768) {
+                let currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+                
+                // وقتی کاربر اسکرول به پایین می‌کند و از هدر اصلی عبور کرده است
+                if (currentScroll > headerHeight) {
+                    // اسکرول به بالا: نمایش منوی استیکی
+                    if (currentScroll < lastScrollTop) {
+                        mobileHeader.classList.add("visible");
+                    } 
+                    // اسکرول به پایین: مخفی کردن منوی استیکی
+                    else {
+                        mobileHeader.classList.remove("visible");
+                        navMenu.classList.remove("active");
+                        menuToggle.classList.remove("active");
+                        mobileMenuToggle.classList.remove("active");
+                    }
+                } else {
+                    // در بالای صفحه هستیم
+                    mobileHeader.classList.remove("visible");
+                }
+                
+                lastScrollTop = currentScroll <= 0 ? 0 : currentScroll; // برای مرورگرهای مختلف
             }
         });
     });

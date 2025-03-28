@@ -31,7 +31,7 @@ body {
 header {
   background-color: var(--primary-color);
   color: white;
-  padding: 25px 20px; /* افزایش padding برای فضای بیشتر */
+  padding: 15px 20px; /* کاهش padding */
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
   border-bottom: 4px solid var(--button-color);
 }
@@ -41,22 +41,62 @@ header .container {
   margin: auto;
 }
 
-/* استایل جدید برای عنوان (h2) در هدر */
-header h2 {
-  font-size: 2rem; /* افزایش سایز فونت */
-  font-weight: 500;
-  margin-bottom: 20px; /* افزایش فاصله */
-  text-align: center;
+/* استایل برای قسمت بالای هدر */
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
 }
 
-/* استایل جدید نوار ناوبری، حذف موقعیت fixed */
+.header-logo {
+  width: 55px;
+  height: auto;
+  filter: brightness(0) invert(1);
+  margin-left: 10px;
+}
+
+/* استایل جدید برای عنوان در هدر */
+header h1 {
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin: 0;
+  flex-grow: 1;
+  text-align: right;
+}
+
+/* کنترل‌های موبایل */
+.mobile-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+/* استایل دکمه منو */
+.menu-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 5px;
+  transition: all 0.3s ease;
+}
+
+.menu-toggle:hover {
+  transform: scale(1.1);
+}
+
+.menu-toggle.active {
+  color: var(--hover-color);
+}
+
+/* استایل جدید نوار ناوبری */
 nav {
-  position: static; /* از fixed خارج شد */
   background-color: var(--primary-color);
-  padding: 15px 30px; /* افزایش padding */
-  border-radius: 0 0 8px 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  margin-bottom: 30px; /* افزایش فاصله */
+  border-radius: 8px;
+  transition: all 0.3s ease;
 }
 
 /* حفظ استایل لیست و لینک‌های ناوبری */
@@ -65,6 +105,8 @@ nav ul {
   gap: 30px; /* افزایش فاصله بین لینک‌ها */
   justify-content: center;
   list-style: none;
+  flex-wrap: wrap;
+  padding: 10px 0;
 }
 
 nav ul li {
@@ -78,6 +120,9 @@ nav ul li a {
   border-radius: 6px; /* افزایش border-radius */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
 }
 
 nav ul li a:hover {
@@ -551,10 +596,12 @@ footer {
 
 .footer-logo-section {
   flex: 0 0 250px;
+  text-align: center;
 }
 
 .footer-logo {
   width: 200px;
+  max-width: 100%;
   height: auto;
   filter: brightness(0) invert(1);
   transition: transform 0.3s ease;
@@ -600,6 +647,7 @@ footer {
 .contact-icon {
   color: var(--button-color);
   font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
 .footer-links {
@@ -625,6 +673,7 @@ footer {
 .link-icon {
   font-size: 0.8rem;
   color: var(--button-color);
+  flex-shrink: 0;
 }
 
 .footer-bottom {
@@ -639,22 +688,118 @@ footer {
   opacity: 0.8;
 }
 
-/* رسپانسیو برای موبایل */
+/* حالت موبایل - استایل‌های رسپانسیو */
 @media (max-width: 768px) {
+  /* سربرگ و منو */
+  header h1 {
+    font-size: 1.2rem;
+  }
+  
+  .menu-toggle {
+    display: block;
+  }
+  
+  nav {
+    position: relative;
+    margin-bottom: 15px;
+    padding: 0;
+  }
+  
+  nav ul {
+    flex-direction: column;
+    gap: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease;
+    padding: 0;
+  }
+  
+  nav ul.active {
+    max-height: 1000px;
+  }
+  
+  nav ul li {
+    width: 100%;
+  }
+  
+  nav ul li a {
+    width: 100%;
+    padding: 12px 15px;
+    border-radius: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  
+  nav ul li:last-child a {
+    border-bottom: none;
+  }
+  
+  /* دراپ‌داون در موبایل */
+  .dropdown-menu {
+    position: static;
+    width: 100%;
+    box-shadow: none;
+    border-radius: 0;
+  }
+  
+  /* فوتر رسپانسیو */
   .footer-container {
-      flex-direction: column;
-      gap: 30px;
+    flex-direction: column;
+    gap: 30px;
+    text-align: center;
+  }
+  
+  .footer-logo-section {
+    flex: 0 0 auto;
+    width: 100%;
   }
   
   .footer-content {
-      flex-direction: column;
-      gap: 30px;
+    flex-direction: column;
+    gap: 30px;
   }
   
-  .footer-logo {
-      width: 150px;
+  .footer-contacts p {
+    justify-content: center;
   }
-}/* انیمیشن‌های جدید */
+  
+  .footer-link {
+    justify-content: center;
+  }
+  
+  .footer-link:hover {
+    transform: none;
+  }
+  
+  /* تغییرات برای محتوای اصلی */
+  main.container {
+    padding: 15px;
+    margin: 15px auto;
+  }
+  
+  /* تغییرات برای کارت‌ها */
+  .profile-container {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .tasks-section, .purchases-section {
+    padding: 15px;
+  }
+  
+  /* تغییرات برای جداول */
+  table th, table td {
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+  
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+/* انیمیشن‌های جدید */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -1520,8 +1665,8 @@ body {
   }
 
   /* تغییرات برای هدر */
-  header h2 {
-    font-size: 1.5rem;
+  header h1 {
+    font-size: 1.2rem;
   }
 
   /* تغییرات برای محتوای اصلی */
@@ -1781,5 +1926,67 @@ body {
   .dark-mode .tasks-section,
   .dark-mode .purchases-section {
     padding: 15px;
+  }
+}
+
+/* ✅ استایل برای منوی پویای موبایل با اسکرول */
+.mobile-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--primary-color);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  border-bottom: 3px solid var(--button-color);
+  transform: translateY(-100%);
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.mobile-header.visible {
+  transform: translateY(0);
+}
+
+.mobile-header-logo {
+  width: 40px;
+  height: auto;
+  filter: brightness(0) invert(1);
+}
+
+.mobile-header-title {
+  font-size: 1.2rem;
+  color: white;
+  margin: 0;
+  flex-grow: 1;
+  margin-right: 10px;
+}
+
+.mobile-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* تنظیمات نمایش منوی موبایل فقط در حالت موبایل */
+.mobile-header {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-header {
+    display: flex;
+  }
+  
+  body {
+    padding-top: 0; /* حذف پدینگ اضافی در بالای صفحه */
+  }
+  
+  /* تنظیم فاصله برای تگ هدر اصلی در موبایل */
+  header {
+    margin-top: 0;
   }
 }

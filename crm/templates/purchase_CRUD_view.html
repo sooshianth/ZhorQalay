@@ -232,16 +232,6 @@ data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else 
 </form>
 {% endif %}
 
-<style>
-.delete-button {
-    background-color: #e74c3c;
-    color: white;
-}
-
-.delete-button:hover {
-    background-color: #c0392b;
-}
-</style>
 <!-- ✅ جدول تاریخچه تغییرات -->
 <table class="history-table">
 <tr>
@@ -274,6 +264,218 @@ margin: 0 auto;
 padding: 20px;
 direction: rtl;
 font-family: 'Vazir', 'Tahoma', sans-serif;
+width: 100%;
+box-sizing: border-box;
+}
+
+/* دکمه تغییر حالت دارک مود */
+.theme-toggle-container {
+    position: fixed;
+    top: 80px;
+    left: 20px;
+    z-index: 999;
+}
+
+.toggle-container {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: bold;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 8px 12px;
+    border-radius: 30px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.toggle-switch {
+    width: 50px;
+    height: 25px;
+    background: #ddd;
+    border-radius: 50px;
+    position: relative;
+    transition: background 0.3s;
+}
+
+.toggle-circle {
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 3px;
+    transform: translateY(-50%);
+    transition: left 0.3s ease, background 0.3s;
+}
+
+/* استایل‌های دارک مود */
+.dark-mode {
+    --primary-color: #1A1F28;
+    --button-color: #FF7043;
+    --hover-color: #FFB74D;
+    --background-color: #121212;
+    --footer-color: #1A1F28;
+    --text-color: #E0E0E0;
+}
+
+.dark-mode body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+.dark-mode .container {
+    background-color: rgba(26, 31, 40, 0.9);
+    color: var(--text-color);
+}
+
+.dark-mode .toggle-container {
+    background: rgba(26, 31, 40, 0.8);
+    color: var(--text-color);
+}
+
+.dark-mode .toggle-switch {
+    background: var(--button-color);
+}
+
+.dark-mode .toggle-circle {
+    left: 27px;
+    background: var(--hover-color);
+}
+
+.dark-mode .timeline-step .circle {
+    background: rgba(26, 31, 40, 0.9);
+}
+
+.dark-mode .timeline-step.completed .circle { 
+    background-color: var(--button-color);
+    border-color: var(--hover-color);
+}
+
+.dark-mode .line {
+    background-color: #444;
+}
+
+.dark-mode .line.completed {
+    background-color: var(--button-color);
+}
+
+.dark-mode .buyer-card, .dark-mode .info-card {
+    background-color: rgba(26, 31, 40, 0.9);
+    color: var(--text-color);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode .buyer-card h3, .dark-mode .info-card h3 {
+    color: var(--hover-color);
+}
+
+.dark-mode .approval-table, 
+.dark-mode .history-table, 
+.dark-mode .operations-table {
+    background-color: rgba(26, 31, 40, 0.9);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode .approval-table th, 
+.dark-mode .history-table th, 
+.dark-mode .operations-table th {
+    background-color: var(--primary-color);
+    color: var(--hover-color);
+}
+
+.dark-mode .approval-table td, 
+.dark-mode .history-table td, 
+.dark-mode .operations-table td {
+    border-top: 1px solid #444;
+    color: var(--text-color);
+}
+
+.dark-mode .status-cell.completed {
+    color: var(--hover-color);
+    background-color: rgba(26, 31, 40, 0.9);
+}
+
+.dark-mode .status-cell.pending {
+    color: #999;
+    background-color: rgba(26, 31, 40, 0.9);
+}
+
+.dark-mode .purchase-form {
+    background-color: rgba(26, 31, 40, 0.9);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode .form-group label {
+    color: var(--hover-color);
+}
+
+.dark-mode .form-group input, 
+.dark-mode .form-group select, 
+.dark-mode .form-group textarea {
+    background-color: #1E1E1E;
+    color: var(--text-color);
+    border: 1px solid #444;
+}
+
+.dark-mode .button,
+.dark-mode button {
+    background: linear-gradient(135deg, var(--button-color), var(--hover-color));
+    color: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .button:hover,
+.dark-mode button:hover {
+    background: linear-gradient(135deg, var(--hover-color), var(--button-color));
+    box-shadow: 0 0 10px rgba(255, 112, 67, 0.6);
+}
+
+.dark-mode .save-button {
+    background: linear-gradient(135deg, var(--button-color), var(--hover-color));
+}
+
+.dark-mode .empty-state {
+    color: #888;
+}
+
+.dark-mode #step-info-popup {
+    background-color: rgba(26, 31, 40, 0.95);
+    color: var(--text-color);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* مدیا کوئری برای صفحات کوچکتر */
+@media screen and (max-width: 768px) {
+  .container {
+    padding: 10px;
+  }
+  
+  .theme-toggle-container {
+    top: 70px;
+    left: 10px;
+  }
+  
+  .toggle-container {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  
+  .toggle-switch {
+    width: 40px;
+    height: 20px;
+  }
+  
+  .toggle-circle {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .dark-mode .toggle-circle {
+    left: 21px;
+  }
 }
 
 /* استایل‌های تایم‌لاین */
@@ -284,6 +486,7 @@ align-items: center;
 margin: 30px 0;
 overflow-x: auto;
 padding: 20px 0;
+width: 100%;
 }
 
 .timeline-step {
@@ -293,6 +496,17 @@ align-items: center;
 position: relative;
 min-width: 80px;
 cursor: pointer;
+padding: 0 5px;
+}
+
+@media screen and (max-width: 576px) {
+  .timeline {
+    padding: 15px 0;
+  }
+  
+  .timeline-step {
+    min-width: 60px;
+  }
 }
 
 .circle {
@@ -308,6 +522,13 @@ transition: all 0.3s ease;
 border: 2px solid #ddd;
 }
 
+@media screen and (max-width: 576px) {
+  .circle {
+    width: 30px;
+    height: 30px;
+  }
+}
+
 .timeline-step.completed .circle { 
 background-color:rgb(8, 159, 111);
 border-color:rgb(4, 99, 69);
@@ -319,6 +540,13 @@ font-size: 12px;
 text-align: center;
 margin: 0;
 max-width: 80px;
+}
+
+@media screen and (max-width: 576px) {
+  .timeline-step p {
+    font-size: 10px;
+    max-width: 60px;
+  }
 }
 
 .line {
@@ -347,6 +575,14 @@ transform: translate(-50%, -100%);
 display: none;
 }
 
+@media screen and (max-width: 576px) {
+  #step-info-popup {
+    font-size: 12px;
+    max-width: 200px;
+    padding: 6px 12px;
+  }
+}
+
 /* استایل‌های کارت اطلاعات */
 .buyer-info, .purchase-info {
 display: flex;
@@ -363,6 +599,20 @@ box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 flex: 1;
 min-width: 150px;
 transition: transform 0.3s ease;
+}
+
+@media screen and (max-width: 768px) {
+  .buyer-card, .info-card {
+    min-width: calc(50% - 15px);
+    flex: 0 0 calc(50% - 15px);
+  }
+}
+
+@media screen and (max-width: 576px) {
+  .buyer-card, .info-card {
+    min-width: 100%;
+    flex: 0 0 100%;
+  }
 }
 
 .buyer-card:hover, .info-card:hover {
@@ -390,10 +640,25 @@ background-color: white;
 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 border-radius: 8px;
 overflow: hidden;
+overflow-x: auto;
+display: block;
+}
+
+@media screen and (max-width: 768px) {
+  .approval-table, .history-table, .operations-table {
+    font-size: 14px;
+  }
+}
+
+@media screen and (max-width: 576px) {
+  .approval-table, .history-table, .operations-table {
+    font-size: 12px;
+  }
 }
 
 .approval-table th, .history-table th, .operations-table th {
 background-color:rgb(4, 99, 69);
+color: white;
 padding: 12px 15px;
 text-align: right;
 }
@@ -403,8 +668,15 @@ padding: 10px 15px;
 border-top: 1px solid #eee;
 }
 
+@media screen and (max-width: 576px) {
+  .approval-table th, .history-table th, .operations-table th,
+  .approval-table td, .history-table td, .operations-table td {
+    padding: 8px 10px;
+  }
+}
+
 .section-header {
-background-color:rgb(4, 99, 69); !important;
+background-color:rgb(4, 99, 69);
 color: white;
 text-align: center !important;
 }
@@ -436,10 +708,28 @@ box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 margin: 20px 0;
 }
 
+@media screen and (max-width: 576px) {
+  .purchase-form {
+    padding: 15px;
+  }
+}
+
 .form-grid {
 display: grid;
 grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
 gap: 15px;
+}
+
+@media screen and (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+@media screen and (max-width: 576px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .form-group {
@@ -459,6 +749,7 @@ padding: 8px 12px;
 border: 1px solid #ddd;
 border-radius: 4px;
 font-family: inherit;
+box-sizing: border-box;
 }
 
 .form-helptext {
@@ -477,6 +768,12 @@ margin-top: 20px;
 justify-content: flex-end;
 }
 
+@media screen and (max-width: 768px) {
+  .form-actions {
+    justify-content: center;
+  }
+}
+
 .button {
 padding: 10px 15px;
 border: none;
@@ -485,6 +782,15 @@ cursor: pointer;
 font-family: inherit;
 font-size: 14px;
 transition: all 0.3s ease;
+}
+
+@media screen and (max-width: 576px) {
+  .button {
+    padding: 8px 12px;
+    font-size: 13px;
+    width: 100%;
+    margin-bottom: 5px;
+  }
 }
 
 .save-button {
@@ -549,6 +855,28 @@ margin: 15px 0;
 #toggle-operations-report:hover {
 background-color:rgb(12, 63, 38);
 }
+
+/* استایل دکمه حذف */
+.delete-button {
+    background-color: #e74c3c;
+    color: white;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.delete-button:hover {
+    background-color: #c0392b;
+}
+
+.delete-form {
+    margin-bottom: 20px;
+}
+
+@media screen and (max-width: 576px) {
+  .delete-form {
+    margin-bottom: 15px;
+  }
+}
 </style>
 
 <script>
@@ -568,9 +896,27 @@ operationsReportSection.style.display = 'none';
 this.textContent = 'نمایش گزارش عملیات';
 }
 });
+
+// تغییر حالت دارک مود
+const themeToggle = document.getElementById('theme-toggle');
+const htmlElement = document.documentElement;
+
+// بررسی حالت ذخیره شده در localStorage
+if (localStorage.getItem('darkMode') === 'enabled') {
+    htmlElement.classList.add('dark-mode');
+}
+
+themeToggle.addEventListener('click', function() {
+    if (htmlElement.classList.contains('dark-mode')) {
+        htmlElement.classList.remove('dark-mode');
+        localStorage.setItem('darkMode', 'disabled');
+    } else {
+        htmlElement.classList.add('dark-mode');
+        localStorage.setItem('darkMode', 'enabled');
+    }
 });
 
-document.addEventListener("DOMContentLoaded", function () {
+// تایم‌لاین هاور
 const steps = document.querySelectorAll(".timeline-step");
 const popup = document.getElementById("step-info-popup");
 const popupText = document.getElementById("step-info-text");
