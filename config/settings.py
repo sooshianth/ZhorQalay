@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'core.apps.CoreConfig',
     'sales.apps.SalesConfig',
     'crm.apps.CrmConfig',
+    'excel_manager.apps.ExcelManagerConfig',
 ]
 
 MIDDLEWARE = [
@@ -115,6 +116,7 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / "sales/static",
     BASE_DIR / "crm/static",
+    BASE_DIR / "excel_manager/static",
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -123,3 +125,48 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 DEFAULT_LOGIN_URL = 'sales_agent_login'
 DEFAULT_LOGOUT_URL = 'logout'
+
+# تنظیمات آپلود فایل
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# تنظیمات لاگینگ
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'debug.log'),
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'excel_manager': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}

@@ -8,14 +8,6 @@ from .PurchaseModel import Purchase, PurchaseHistory
 from .SalesAgentModel import SalesAgent
 from .TaskModel import Task
 from .NotificationModel import Notification
-from .BGEFileModel import BGEFile
-
-@admin.register(BGEFile)
-class BGEFileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'cargo', 'file', 'created_at')
-    list_filter = ('user', 'cargo','created_at')
-    ordering = ('-created_at',)
-    search_fields = ('user', 'cargo') 
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):

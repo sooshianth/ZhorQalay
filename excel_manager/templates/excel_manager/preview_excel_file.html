@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="page-title">پیش‌نمایش فایل {{ excel_file.title }}</h2>
+        </div>
+        <div class="col-md-4 text-left">
+            <a href="{% url 'excel_manager:excel_files_list' %}" class="btn btn-secondary">
+                <i class="fa fa-arrow-right"></i> بازگشت به لیست
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0">اطلاعات فایل</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <p><strong>عنوان:</strong> {{ excel_file.title }}</p>
+                </div>
+                <div class="col-md-3">
+                    <p><strong>نوع فایل:</strong> 
+                        {% if excel_file.file_type == 'bge' %}
+                            بازارگاه
+                        {% elif excel_file.file_type == 'customer' %}
+                            مشتریان
+                        {% elif excel_file.file_type == 'purchase' %}
+                            خرید
+                        {% else %}
+                            سایر
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="col-md-3">
+                    <p><strong>تاریخ آپلود:</strong> {{ excel_file.created_at|date:"Y/m/d" }}</p>
+                </div>
+                <div class="col-md-3">
+                    <p><strong>حجم فایل:</strong> {{ file_size }}</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <p><strong>تعداد سطرها:</strong> {{ total_rows }}</p>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>تعداد ستون‌ها:</strong> {{ total_columns }}</p>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>نمایش:</strong> {{ preview_rows }} سطر از {{ total_rows }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">محتوای فایل</h5>
+            <div class="btn-group">
+                <a href="{% url 'excel_manager:download_excel_file' excel_file.id %}" class="btn btn-sm btn-success">
+                    <i class="fa fa-download"></i> دانلود فایل
+                </a>
+                {% if not excel_file.is_processed %}
+                <a href="{% url 'excel_manager:process_excel_file' excel_file.id %}" class="btn btn-sm btn-primary">
+                    <i class="fa fa-cogs"></i> پردازش فایل
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <form class="mb-3">
+                    <div class="form-row align-items-center">
+                        <div class="col-auto">
+                            <label for="previewRows">تعداد سطرها:</label>
+                        </div>
+                        <div class="col-auto">
+                            <select class="form-control form-control-sm" id="previewRows" name="rows">
+                                <option value="10" {% if preview_rows == 10 %}selected{% endif %}>10</option>
+                                <option value="25" {% if preview_rows == 25 %}selected{% endif %}>25</option>
+                                <option value="50" {% if preview_rows == 50 %}selected{% endif %}>50</option>
+                                <option value="100" {% if preview_rows == 100 %}selected{% endif %}>100</option>
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-sm btn-primary">نمایش</button>
+                        </div>
+                    </div>
+                </form>
+                
+                <div class="table-container">
+                    {{ table_html|safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table-container {
+        overflow-x: auto;
+    }
+    
+    .table th {
+        white-space: nowrap;
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Make the table sortable
+        $('.table-container table').addClass('sortable');
+        
+        // Auto submit form when changing preview rows
+        $('#previewRows').change(function() {
+            $(this).closest('form').submit();
+        });
+    });
+</script>
+{% endblock %} 
