@@ -33,3 +33,5 @@
 /media
 /db.sqlite3
 config/settings.py
+
+/sslkeys
