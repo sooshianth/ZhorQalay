@@ -7,3 +7,7 @@ class SmsLog(models.Model):
 
     def __str__(self):
         return f"SMS to {self.recipient_number} at {self.sent_at}"
+
+    class Meta:
+        verbose_name = "تاریخچه پیامک"
+        verbose_name_plural = "تاریخچه پیامک‌ها"
