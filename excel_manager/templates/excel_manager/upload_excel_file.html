@@ -28,7 +28,20 @@
             </ul>
         </div>
         <div class="card-body">
-            <form id="uploadForm" class="needs-validation" novalidate enctype="multipart/form-data">
+            {% if messages %}
+            <div class="messages mb-4">
+                {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <form method="post" enctype="multipart/form-data" action="{% url 'excel_manager:upload_excel_file' %}">
                 {% csrf_token %}
                 <div class="form-row">
                     <div class="form-group col-md-6">
@@ -84,49 +97,6 @@
         $('#excel_file').change(function() {
             const fileName = $(this).val().split('\\').pop();
             $(this).next('.custom-file-label').html(fileName);
-        });
-        
-        // Form validation and submission
-        $('#uploadForm').submit(function(e) {
-            e.preventDefault();
-            
-            const form = $(this)[0];
-            if (form.checkValidity() === false) {
-                e.stopPropagation();
-                form.classList.add('was-validated');
-                return;
-            }
-            
-            // Create FormData
-            const formData = new FormData(form);
-            
-            $.ajax({
-                url: "{% url 'excel_manager:upload_excel_file' %}",
-                type: 'POST',
-                data: formData,
-                contentType: false,
-                processData: false,
-                beforeSend: function() {
-                    // Show loading
-                    $('button[type="submit"]').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> در حال آپلود...');
-                },
-                success: function(response) {
-                    // Show success message
-                    toastr.success('فایل با موفقیت آپلود شد');
-                    
-                    // Redirect to excel file list page after a short delay
-                    setTimeout(function() {
-                        window.location.href = "{% url 'excel_manager:excel_files_list' %}";
-                    }, 1500);
-                },
-                error: function(xhr) {
-                    // Enable button
-                    $('button[type="submit"]').prop('disabled', false).html('<i class="fa fa-upload"></i> آپلود فایل');
-                    
-                    // Show error message
-                    toastr.error(xhr.responseJSON.message || 'خطا در آپلود فایل');
-                }
-            });
         });
     });
 </script>

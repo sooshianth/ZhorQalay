@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from django.contrib import messages
 from ..models import ExcelFile, BGExcelFile, ExcelProcessingLog
 from core._models import CargoProduct, Purchase
 from django.conf import settings
@@ -47,19 +48,15 @@ def upload_bge_file(request):
             # بررسی داده‌های اجباری
             if not cargo_id or not title or not excel_file:
                 logger.warning("داده‌های اجباری دریافت نشد")
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'لطفا تمام فیلدهای اجباری را پر کنید'
-                }, status=400)
+                messages.error(request, 'لطفا تمام فیلدهای اجباری را پر کنید')
+                return redirect('excel_manager:upload_bge_file')
             
             # بررسی نوع فایل
             file_extension = os.path.splitext(excel_file.name)[1].lower()
             if file_extension not in ['.xlsx', '.xls']:
                 logger.warning(f"فرمت فایل نامعتبر: {file_extension}")
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'لطفا یک فایل اکسل معتبر (.xlsx یا .xls) آپلود کنید'
-                }, status=400)
+                messages.error(request, 'لطفا یک فایل اکسل معتبر (.xlsx یا .xls) آپلود کنید')
+                return redirect('excel_manager:upload_bge_file')
             
             try:
                 # بررسی و دریافت محصول
@@ -68,10 +65,8 @@ def upload_bge_file(request):
                     logger.debug(f"محصول یافت شد: {cargo_product}")
                 except CargoProduct.DoesNotExist:
                     logger.warning(f"محصولی با شناسه {cargo_id} یافت نشد")
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': f'محصولی با شناسه {cargo_id} یافت نشد'
-                    }, status=404)
+                    messages.error(request, f'محصولی با شناسه {cargo_id} یافت نشد')
+                    return redirect('excel_manager:upload_bge_file')
                 
                 # بررسی وجود پوشه‌های لازم
                 media_dir = os.path.join(settings.BASE_DIR, 'media')
@@ -83,10 +78,8 @@ def upload_bge_file(request):
                             logger.debug(f"پوشه ایجاد شد: {dir_path}")
                         except Exception as e:
                             logger.error(f"خطا در ایجاد پوشه {dir_path}: {str(e)}")
-                            return JsonResponse({
-                                'status': 'error',
-                                'message': f'خطا در ایجاد پوشه: {str(e)}'
-                            }, status=500)
+                            messages.error(request, f'خطا در ایجاد پوشه: {str(e)}')
+                            return redirect('excel_manager:upload_bge_file')
                 
                 # بررسی وجود فایل قبلی برای این محصول
                 existing_file = BGExcelFile.objects.filter(cargo=cargo_product).first()
@@ -127,18 +120,14 @@ def upload_bge_file(request):
                 
                 if not file_obj:
                     logger.error("خطا: شیء فایل ایجاد نشد")
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': 'خطا در ذخیره فایل'
-                    }, status=500)
+                    messages.error(request, 'خطا در ذخیره فایل')
+                    return redirect('excel_manager:upload_bge_file')
                 
                 # اطمینان از ذخیره فایل
                 if not file_obj.file or not hasattr(file_obj.file, 'path'):
                     logger.error("خطا: فایل به درستی ذخیره نشده است")
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': 'خطا در ذخیره فایل'
-                    }, status=500)
+                    messages.error(request, 'خطا در ذخیره فایل')
+                    return redirect('excel_manager:upload_bge_file')
                 
                 # تغییر نام فایل به فرمت مناسب
                 try:
@@ -152,25 +141,19 @@ def upload_bge_file(request):
                     logger.error(f"خطا در تغییر نام فایل: {str(rename_error)}")
                     # حتی اگر تغییر نام با خطا مواجه شود، فایل در دیتابیس ذخیره شده است
                 
-                return JsonResponse({
-                    'status': 'success',
-                    'message': 'فایل اکسل بازارگاه با موفقیت آپلود شد',
-                    'file_id': file_obj.id
-                })
+                # ارسال پیام موفقیت و هدایت به صفحه لیست
+                messages.success(request, 'فایل اکسل بازارگاه با موفقیت آپلود شد')
+                return redirect('excel_manager:bge_files_list')
                 
             except Exception as e:
                 logger.error(f"خطا در آپلود فایل: {str(e)}", exc_info=True)
-                return JsonResponse({
-                    'status': 'error',
-                    'message': f'خطا در آپلود فایل: {str(e)}'
-                }, status=500)
+                messages.error(request, f'خطا در آپلود فایل: {str(e)}')
+                return redirect('excel_manager:upload_bge_file')
         
         except Exception as e:
             logger.error(f"خطا در دریافت داده‌های فرم: {str(e)}", exc_info=True)
-            return JsonResponse({
-                'status': 'error',
-                'message': f'خطا در دریافت داده‌های فرم: {str(e)}'
-            }, status=500)
+            messages.error(request, f'خطا در دریافت داده‌های فرم: {str(e)}')
+            return redirect('excel_manager:upload_bge_file')
     
     # دریافت لیست محصولات برای انتخاب
     cargo_products = CargoProduct.objects.all().order_by('-cottage')
@@ -192,18 +175,78 @@ def process_bge_file(request, file_id):
     
     if request.method == 'POST':
         try:
-            # خواندن فایل اکسل
+            # بررسی وجود فایل
             file_path = bge_file.file.path
+            if not os.path.exists(file_path):
+                logger.error(f"فایل در مسیر {file_path} وجود ندارد")
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'فایل مورد نظر در سرور یافت نشد'
+                }, status=404)
             
-            # تعیین موتور پردازش براساس پسوند فایل
+            # بررسی نوع فایل
             file_extension = os.path.splitext(file_path)[1].lower()
-            engine = 'openpyxl' if file_extension == '.xlsx' else 'xlrd'
-                
-            logger.debug(f"خواندن فایل اکسل با موتور {engine}: {file_path}")
+            logger.debug(f"پسوند فایل: {file_extension}")
+            logger.debug(f"اندازه فایل: {os.path.getsize(file_path)} بایت")
             
             try:
-                df = pd.read_excel(file_path, engine=engine)
+                # تلاش برای خواندن فایل با کتابخانه‌های مختلف
+                df = None
+                excel_error = None
+                
+                # تلاش اول: با openpyxl برای xlsx
+                if file_extension == '.xlsx':
+                    try:
+                        logger.debug("تلاش برای خواندن با openpyxl")
+                        import openpyxl
+                        df = pd.read_excel(file_path, engine='openpyxl', header=1)
+                    except Exception as e:
+                        logger.error(f"خطا در خواندن با openpyxl: {str(e)}")
+                        excel_error = str(e)
+                
+                # تلاش دوم: با xlrd برای xls قدیمی
+                elif file_extension == '.xls':
+                    try:
+                        logger.debug("تلاش برای خواندن با xlrd")
+                        import xlrd
+                        df = pd.read_excel(file_path, engine='xlrd', header=1)
+                    except Exception as e:
+                        logger.error(f"خطا در خواندن با xlrd: {str(e)}")
+                        excel_error = str(e)
+                
+                # اگر هنوز موفق نشده‌ایم
+                if df is None:
+                    # تلاش آخر با کتابخانه اصلی پاندا
+                    try:
+                        logger.debug("تلاش نهایی با پاندا")
+                        df = pd.read_excel(file_path, header=1)
+                    except Exception as e:
+                        logger.error(f"خطا در خواندن نهایی: {str(e)}")
+                        if excel_error:
+                            error_message = f"خطا در خواندن فایل: {excel_error}"
+                        else:
+                            error_message = f"خطا در خواندن فایل: {str(e)}"
+                        return JsonResponse({
+                            'status': 'error',
+                            'message': error_message
+                        }, status=500)
+                
+                # بررسی موفقیت خواندن فایل
+                if df is None or len(df) == 0:
+                    logger.error("فایل اکسل خالی است یا به درستی خوانده نشده است")
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': 'فایل اکسل خالی است یا ساختار معتبری ندارد'
+                    }, status=400)
+                
                 logger.debug(f"فایل با موفقیت خوانده شد. تعداد سطرها: {len(df)}")
+                logger.debug(f"ستون‌های موجود: {df.columns.tolist()}")
+                
+                # اگر ستون 'کد' وجود دارد ولی 'کد خرید' وجود ندارد، آن را تغییر نام دهیم
+                if 'کد' in df.columns and 'کد خرید' not in df.columns:
+                    logger.debug("تغییر نام ستون 'کد' به 'کد خرید'")
+                    df = df.rename(columns={'کد': 'کد خرید'})
+                    logger.debug(f"ستون‌ها پس از تغییر نام: {df.columns.tolist()}")
                 
                 # بررسی وجود ستون‌های مورد نیاز
                 required_columns = ['شناسه تخصیص', 'کد خرید']
@@ -217,162 +260,176 @@ def process_bge_file(request, file_id):
                         'status': 'error',
                         'message': error_message
                     }, status=400)
-            except Exception as excel_error:
-                logger.error(f"خطا در خواندن فایل: {str(excel_error)}", exc_info=True)
-                return JsonResponse({
-                    'status': 'error',
-                    'message': f'خطا در خواندن فایل: {str(excel_error)}'
-                }, status=500)
-            
-            # متغیرهای ثبت گزارش
-            records_processed = len(df)
-            records_updated = 0
-            records_failed = 0
-            success = True
-            log_messages = []
-            
-            # ۱. حذف رکوردهای تکراری شناسه تخصیص
-            if 'شناسه تخصیص' in df.columns:
-                initial_records = len(df)
-                df.drop_duplicates(subset=['شناسه تخصیص'], keep='first', inplace=True)
-                duplicate_removed = initial_records - len(df)
-                if duplicate_removed > 0:
-                    log_messages.append(f"{duplicate_removed} رکورد تکراری حذف شد")
-            
-            # ۲. پردازش و به‌روزرسانی Purchase
-            try:
-                # نگاشت نام ستون‌های فایل اکسل به فیلدهای مدل
-                column_mapping = {
-                    'شناسه تخصیص': 'shenase_takhsis',
-                    'کد خرید': 'purchase_number',
-                    'کد ملی تحویل گیرنده': 'code_melli_tahvil',
-                    'شماره همراه': 'bazaargah_phone_number',
-                    'شماره تماس': 'tahvil_phone_number',
-                    'آدرس': 'address'
-                }
                 
-                # تبدیل ستون‌ها به نام‌های فیلدهای مدل
-                df_renamed = df.rename(columns=column_mapping, errors='ignore')
+                # متغیرهای ثبت گزارش
+                records_processed = len(df)
+                records_updated = 0
+                records_failed = 0
+                success = True
+                log_messages = []
                 
-                # فیلدهای موجود در دیتافریم که با مدل مطابقت دارند
-                model_fields = set(column_mapping.values())
-                available_fields = set(df_renamed.columns).intersection(model_fields)
+                # ۱. حذف رکوردهای تکراری شناسه تخصیص
+                if 'شناسه تخصیص' in df.columns:
+                    initial_records = len(df)
+                    df.drop_duplicates(subset=['شناسه تخصیص'], keep='first', inplace=True)
+                    duplicate_removed = initial_records - len(df)
+                    if duplicate_removed > 0:
+                        log_messages.append(f"{duplicate_removed} رکورد تکراری حذف شد")
                 
-                # عملیات بروزرسانی
-                with transaction.atomic():
-                    for _, row in df_renamed.iterrows():
-                        try:
-                            # بررسی وجود شناسه تخصیص
-                            if 'shenase_takhsis' not in available_fields or pd.isna(row.get('shenase_takhsis')):
-                                records_failed += 1
-                                continue
+                # ۲. پردازش و به‌روزرسانی Purchase
+                try:
+                    # نگاشت نام ستون‌های فایل اکسل به فیلدهای مدل
+                    column_mapping = {
+                        'شناسه تخصیص': 'shenase_takhsis',
+                        'کد خرید': 'purchase_number',
+                        'کد': 'purchase_number',  # اضافه کردن 'کد' به عنوان معادل 'کد خرید'
+                        'کد ملی تحویل': 'code_melli_tahvil',
+                        'شماره همراه خریدار': 'bazaargah_phone_number',
+                        'شماره هماهنگی تحویل': 'tahvil_phone_number',
+                        'آدرس تحویل': 'address'
+                    }
+                    
+                    # تبدیل ستون‌ها به نام‌های فیلدهای مدل
+                    df_renamed = df.rename(columns=column_mapping, errors='ignore')
+                    
+                    # فیلدهای موجود در دیتافریم که با مدل مطابقت دارند
+                    model_fields = set(column_mapping.values())
+                    available_fields = set(df_renamed.columns).intersection(model_fields)
+                    
+                    # عملیات بروزرسانی
+                    with transaction.atomic():
+                        for _, row in df_renamed.iterrows():
+                            try:
+                                # بررسی وجود شناسه تخصیص
+                                if 'shenase_takhsis' not in available_fields or pd.isna(row.get('shenase_takhsis')):
+                                    records_failed += 1
+                                    continue
+                                    
+                                shenase_takhsis = str(row['shenase_takhsis']).strip()
                                 
-                            shenase_takhsis = str(row['shenase_takhsis']).strip()
-                            
-                            # جستجوی رکورد خرید بر اساس شناسه تخصیص
-                            purchase = None
-                            if shenase_takhsis:
-                                try:
-                                    purchase = Purchase.objects.get(shenase_takhsis=shenase_takhsis)
-                                except Purchase.DoesNotExist:
-                                    # اگر بر اساس شناسه تخصیص پیدا نشد، سعی می‌کنیم با شماره خرید پیدا کنیم
-                                    if 'purchase_number' in available_fields and not pd.isna(row.get('purchase_number')):
-                                        purchase_number = str(row['purchase_number']).strip()
-                                        try:
-                                            purchase = Purchase.objects.get(purchase_number=purchase_number)
-                                        except Purchase.DoesNotExist:
-                                            # خرید پیدا نشد
-                                            records_failed += 1
+                                # جستجوی رکورد خرید بر اساس شناسه تخصیص
+                                purchase = None
+                                if shenase_takhsis:
+                                    try:
+                                        purchase = Purchase.objects.get(shenase_takhsis=shenase_takhsis)
+                                    except Purchase.DoesNotExist:
+                                        # اگر بر اساس شناسه تخصیص پیدا نشد، سعی می‌کنیم با شماره خرید پیدا کنیم
+                                        if 'purchase_number' in available_fields and not pd.isna(row.get('purchase_number')):
+                                            purchase_number = str(row['purchase_number']).strip()
+                                            try:
+                                                purchase = Purchase.objects.get(purchase_number=purchase_number)
+                                            except Purchase.DoesNotExist:
+                                                # خرید پیدا نشد
+                                                records_failed += 1
+                                                continue
+                                
+                                if purchase:
+                                    updated = False
+                                    # بروزرسانی فیلدهای موجود
+                                    for field in available_fields:
+                                        if field == 'shenase_takhsis' and purchase.shenase_takhsis is not None:
+                                            # اگر شناسه تخصیص قبلاً تنظیم شده، آن را تغییر نمی‌دهیم
                                             continue
-                            
-                            if purchase:
-                                updated = False
-                                # بروزرسانی فیلدهای موجود
-                                for field in available_fields:
-                                    if field == 'shenase_takhsis' and purchase.shenase_takhsis is not None:
-                                        # اگر شناسه تخصیص قبلاً تنظیم شده، آن را تغییر نمی‌دهیم
-                                        continue
-                                        
-                                    if not pd.isna(row.get(field)):
-                                        field_value = str(row[field]).strip()
-                                        if getattr(purchase, field) != field_value:
-                                            setattr(purchase, field, field_value)
-                                            updated = True
-                                
-                                # اگر به روزرسانی شده، تغییرات را ذخیره می‌کنیم
-                                if updated:
-                                    purchase.save()
-                                    records_updated += 1
-                            else:
+                                            
+                                        if not pd.isna(row.get(field)):
+                                            field_value = str(row[field]).strip()
+                                            if getattr(purchase, field) != field_value:
+                                                setattr(purchase, field, field_value)
+                                                updated = True
+                                    
+                                    # اگر به روزرسانی شده، تغییرات را ذخیره می‌کنیم
+                                    if updated:
+                                        purchase.save()
+                                        records_updated += 1
+                                else:
+                                    records_failed += 1
+                                    
+                            except Exception as e:
+                                logger.error(f"خطا در پردازش رکورد: {str(e)}", exc_info=True)
                                 records_failed += 1
-                                
-                        except Exception as e:
-                            logger.error(f"خطا در پردازش رکورد: {str(e)}", exc_info=True)
-                            records_failed += 1
-            
+                
+                except Exception as e:
+                    logger.error(f"خطا در به‌روزرسانی دیتابیس: {str(e)}", exc_info=True)
+                    log_messages.append(f"خطا در به‌روزرسانی دیتابیس: {str(e)}")
+                    success = False
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': f'خطا در به‌روزرسانی دیتابیس: {str(e)}'
+                    }, status=500)
+                
+                # ۳. ایجاد و ذخیره فایل پردازش شده
+                try:
+                    output_file_path = os.path.splitext(file_path)[0] + "_processed.xlsx"
+                    df.to_excel(output_file_path, index=False)
+                    
+                    # ذخیره فایل پردازش شده
+                    with open(output_file_path, 'rb') as f:
+                        file_content = f.read()
+                        file_name = os.path.basename(bge_file.file.name).replace(".xlsx", "_processed.xlsx").replace(".xls", "_processed.xlsx")
+                        bge_file.file.save(file_name, ContentFile(file_content), save=False)
+                    
+                    # بروزرسانی وضعیت فایل
+                    bge_file.is_processed = True
+                    bge_file.save()
+                    
+                    # ثبت گزارش پردازش
+                    log_message = "\n".join(log_messages)
+                    ExcelProcessingLog.objects.create(
+                        excel_file=bge_file,
+                        processed_by=request.user,
+                        success=success,
+                        records_processed=records_processed,
+                        records_updated=records_updated,
+                        records_failed=records_failed,
+                        log_message=log_message
+                    )
+                    
+                    return JsonResponse({
+                        'status': 'success',
+                        'message': 'فایل اکسل بازارگاه با موفقیت پردازش شد',
+                        'records_processed': records_processed,
+                        'records_updated': records_updated,
+                        'records_failed': records_failed
+                    })
+                    
+                except Exception as e:
+                    logger.error(f"خطا در ایجاد فایل پردازش شده: {str(e)}", exc_info=True)
+                    
+                    # ثبت خطا در گزارش
+                    ExcelProcessingLog.objects.create(
+                        excel_file=bge_file,
+                        processed_by=request.user,
+                        success=False,
+                        records_processed=records_processed,
+                        records_updated=records_updated,
+                        records_failed=records_failed,
+                        log_message=f"خطا در ایجاد فایل پردازش شده: {str(e)}\n" + "\n".join(log_messages)
+                    )
+                    
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': f'خطا در ایجاد فایل پردازش شده: {str(e)}'
+                    }, status=500)
+                
             except Exception as e:
-                logger.error(f"خطا در به‌روزرسانی دیتابیس: {str(e)}", exc_info=True)
-                log_messages.append(f"خطا در به‌روزرسانی دیتابیس: {str(e)}")
-                success = False
-                return JsonResponse({
-                    'status': 'error',
-                    'message': f'خطا در به‌روزرسانی دیتابیس: {str(e)}'
-                }, status=500)
-            
-            # ۳. ایجاد و ذخیره فایل پردازش شده
-            try:
-                output_file_path = os.path.splitext(file_path)[0] + "_processed.xlsx"
-                df.to_excel(output_file_path, index=False)
-                
-                # ذخیره فایل پردازش شده
-                with open(output_file_path, 'rb') as f:
-                    file_content = f.read()
-                    file_name = os.path.basename(bge_file.file.name).replace(".xlsx", "_processed.xlsx").replace(".xls", "_processed.xlsx")
-                    bge_file.file.save(file_name, ContentFile(file_content), save=False)
-                
-                # بروزرسانی وضعیت فایل
-                bge_file.is_processed = True
-                bge_file.save()
-                
-                # ثبت گزارش پردازش
-                log_message = "\n".join(log_messages)
-                ExcelProcessingLog.objects.create(
-                    excel_file=bge_file,
-                    processed_by=request.user,
-                    success=success,
-                    records_processed=records_processed,
-                    records_updated=records_updated,
-                    records_failed=records_failed,
-                    log_message=log_message
-                )
-                
-                return JsonResponse({
-                    'status': 'success',
-                    'message': 'فایل اکسل بازارگاه با موفقیت پردازش شد',
-                    'records_processed': records_processed,
-                    'records_updated': records_updated,
-                    'records_failed': records_failed
-                })
-                
-            except Exception as e:
-                logger.error(f"خطا در ایجاد فایل پردازش شده: {str(e)}", exc_info=True)
-                
                 # ثبت خطا در گزارش
+                logger.error(f"خطا در پردازش فایل: {str(e)}", exc_info=True)
+                
                 ExcelProcessingLog.objects.create(
                     excel_file=bge_file,
                     processed_by=request.user,
                     success=False,
-                    records_processed=records_processed,
-                    records_updated=records_updated,
-                    records_failed=records_failed,
-                    log_message=f"خطا در ایجاد فایل پردازش شده: {str(e)}\n" + "\n".join(log_messages)
+                    records_processed=0,
+                    records_updated=0,
+                    records_failed=0,
+                    log_message=f"خطا در پردازش فایل: {str(e)}"
                 )
                 
                 return JsonResponse({
                     'status': 'error',
-                    'message': f'خطا در ایجاد فایل پردازش شده: {str(e)}'
+                    'message': f'خطا در پردازش فایل: {str(e)}'
                 }, status=500)
-                
+        
         except Exception as e:
             # ثبت خطا در گزارش
             logger.error(f"خطا در پردازش فایل: {str(e)}", exc_info=True)

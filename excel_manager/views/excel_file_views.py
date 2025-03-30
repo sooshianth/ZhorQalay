@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from django.contrib import messages
 from io import BytesIO
 from ..models import ExcelFile, ExcelProcessingLog
 
@@ -56,18 +57,14 @@ def upload_excel_file(request):
         excel_file = request.FILES.get('excel_file')
         
         if not title or not excel_file or not file_type:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'لطفاً تمام فیلدهای ضروری را پر کنید'
-            }, status=400)
+            messages.error(request, 'لطفاً تمام فیلدهای ضروری را پر کنید')
+            return redirect('excel_manager:upload_excel_file')
         
         # بررسی پسوند فایل
         file_extension = os.path.splitext(excel_file.name)[1].lower()
         if file_extension not in ['.xlsx', '.xls']:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'فقط فایل‌های اکسل (.xlsx, .xls) مجاز هستند'
-            }, status=400)
+            messages.error(request, 'فقط فایل‌های اکسل (.xlsx, .xls) مجاز هستند')
+            return redirect('excel_manager:upload_excel_file')
         
         try:
             # ذخیره فایل
@@ -79,17 +76,12 @@ def upload_excel_file(request):
                 description=description
             )
             
-            return JsonResponse({
-                'status': 'success',
-                'message': 'فایل اکسل با موفقیت آپلود شد',
-                'file_id': excel_file_obj.id
-            })
+            messages.success(request, 'فایل اکسل با موفقیت آپلود شد')
+            return redirect('excel_manager:excel_files_list')
             
         except Exception as e:
-            return JsonResponse({
-                'status': 'error',
-                'message': f'خطا در آپلود فایل: {str(e)}'
-            }, status=500)
+            messages.error(request, f'خطا در آپلود فایل: {str(e)}')
+            return redirect('excel_manager:upload_excel_file')
     
     context = {
         'page_title': 'آپلود فایل اکسل',
@@ -152,9 +144,23 @@ def process_excel_file(request, file_id):
             # خواندن فایل اکسل
             file_path = excel_file.file.path
             file_extension = os.path.splitext(file_path)[1].lower()
-            engine = 'openpyxl' if file_extension == '.xlsx' else 'xlrd'
             
-            df = pd.read_excel(excel_file.file.path, engine=engine)
+            try:
+                # خواندن فایل بر اساس پسوند
+                if file_extension == '.xlsx':
+                    df = pd.read_excel(file_path, engine='openpyxl')
+                elif file_extension == '.xls':
+                    df = pd.read_excel(file_path, engine='xlrd')
+                else:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': 'فرمت فایل پشتیبانی نمی‌شود. فقط xlsx و xls مجاز هستند'
+                    }, status=400)
+            except Exception as read_error:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'خطا در خواندن فایل: {str(read_error)}'
+                }, status=500)
             
             # متغیرهای ثبت گزارش
             records_processed = len(df)

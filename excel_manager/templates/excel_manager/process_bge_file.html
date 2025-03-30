@@ -189,6 +189,9 @@
                 url: '{% url "excel_manager:process_bge_file" bge_file.id %}',
                 type: 'POST',
                 data: $(this).serialize(),
+                headers: {
+                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
                 success: function(response) {
                     // نمایش نتیجه موفقیت‌آمیز
                     var resultHtml = '<div class="alert alert-success">' +
@@ -224,7 +227,10 @@
                         if (response.message) {
                             errorMsg = response.message;
                         }
-                    } catch(e) {}
+                    } catch(e) {
+                        console.error('خطا در تجزیه پاسخ: ', e);
+                        console.log('متن پاسخ: ', xhr.responseText);
+                    }
                     
                     var resultHtml = '<div class="alert alert-danger">' +
                         '<h5><i class="fa fa-exclamation-triangle"></i> خطا در پردازش</h5>' +

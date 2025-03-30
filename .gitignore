@@ -14,6 +14,10 @@
 /sales/views/__pycache__
 /sales/migrations/__pycache__
 
+/excel_manager/__pycache__
+/excel_manager/views/__pycache__
+/excel_manager/migrations/__pycache__
+
 /crm/views/__pycache__
 /crm/__pycache__
 /crm/migrations/__pycache__
