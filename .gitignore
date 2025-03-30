@@ -22,6 +22,9 @@
 /crm/__pycache__
 /crm/migrations/__pycache__
 
+/sms_api/__pycache__
+/sms_api/migrations/__pycache__
+
 /excel_files
 
 

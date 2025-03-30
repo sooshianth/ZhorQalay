@@ -24,6 +24,7 @@ GRAPH_MODELS = {
 INSTALLED_APPS = [
     'colorfield',
     'captcha',
+    'sms_ir',
     'admin_interface',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -37,6 +38,7 @@ INSTALLED_APPS = [
     'sales.apps.SalesConfig',
     'crm.apps.CrmConfig',
     'excel_manager.apps.ExcelManagerConfig',
+    'sms_api.apps.SmsApiConfig',
 ]
 
 MIDDLEWARE = [
@@ -114,6 +116,7 @@ CRISPY_TEMPLATE_PACK = 'bootstrap4'
 STATIC_ROOT = BASE_DIR / 'static'
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
+    BASE_DIR / "core/static",
     BASE_DIR / "sales/static",
     BASE_DIR / "crm/static",
     BASE_DIR / "excel_manager/static",
