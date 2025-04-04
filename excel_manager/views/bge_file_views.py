@@ -442,29 +442,25 @@ def process_bge_file(request, file_id):
             
             # ۳. ایجاد و ذخیره فایل پردازش شده
             try:
-                output_file_path = os.path.splitext(file_path)[0] + "_processed.xlsx"
+                # خواندن محتوای HTML اصلی
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    original_html = f.read()
                 
-                # تبدیل به DataFrame و ذخیره با openpyxl
-                df.to_excel(output_file_path, index=False, engine='openpyxl')
+                # استخراج بخش‌های HTML
+                html_parts = original_html.split('<table')
+                header = html_parts[0]  # بخش قبل از جدول
+                table_content = '<table' + html_parts[1]  # بخش جدول
                 
-                # تبدیل XLSX به XLS با استفاده از win32com
-                try:
-                    import win32com.client
-                    excel = win32com.client.Dispatch("Excel.Application")
-                    excel.Visible = False
-                    wb = excel.Workbooks.Open(output_file_path)
-                    output_xls_path = os.path.splitext(file_path)[0] + "_processed.xls"
-                    wb.SaveAs(output_xls_path, FileFormat=56)  # 56 is for xls format
-                    wb.Close()
-                    excel.Quit()
-                    
-                    # حذف فایل XLSX موقت
-                    if os.path.exists(output_file_path):
-                        os.remove(output_file_path)
-                        
-                    output_file_path = output_xls_path
-                except Exception as e:
-                    logger.warning(f"خطا در تبدیل به XLS: {str(e)}. استفاده از فایل XLSX")
+                # تبدیل DataFrame به HTML
+                df_html = df.to_html(index=False, classes='trFormat', border=1, justify='center')
+                
+                # جایگزینی محتوای جدول
+                processed_html = header + df_html
+                
+                # ذخیره فایل HTML
+                output_file_path = os.path.splitext(file_path)[0] + "_processed.xls"
+                with open(output_file_path, 'w', encoding='utf-8') as f:
+                    f.write(processed_html)
                 
                 # ذخیره فایل پردازش شده
                 with open(output_file_path, 'rb') as f:
