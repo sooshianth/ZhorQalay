@@ -53,9 +53,69 @@ def upload_bge_file(request):
             
             # بررسی نوع فایل
             file_extension = os.path.splitext(excel_file.name)[1].lower()
-            if file_extension not in ['.xlsx', '.xls']:
+            if file_extension != '.xls':
                 logger.warning(f"فرمت فایل نامعتبر: {file_extension}")
-                messages.error(request, 'لطفا یک فایل اکسل معتبر (.xlsx یا .xls) آپلود کنید')
+                messages.error(request, 'لطفا یک فایل اکسل معتبر (.xls) آپلود کنید')
+                return redirect('excel_manager:upload_bge_file')
+            
+            # بررسی محتوای فایل
+            try:
+                # اول سعی می‌کنیم با pandas read_html بخونیم
+                logger.debug("تلاش برای خواندن با pandas read_html")
+                content = excel_file.read().decode('utf-8')
+                excel_file.seek(0)  # برگرداندن اشاره‌گر فایل به ابتدا
+                
+                if '<html' in content.lower():
+                    logger.debug("فایل HTML شناسایی شد")
+                    # خواندن اولین جدول از فایل HTML بدون تعیین header
+                    df = pd.read_html(content)[0]
+                    
+                    # پیدا کردن ردیف header (معمولاً ردیفی که شامل "کد" یا "شناسه تخصیص" است)
+                    header_row = None
+                    for idx, row in df.iterrows():
+                        # بررسی اینکه آیا این سطر شامل "ثبت اطلاعات حمل" است
+                        if any('ثبت اطلاعات حمل' in str(val) for val in row.values):
+                            continue
+                        if any(col in str(row.values) for col in ['کد', 'شناسه تخصیص']):
+                            header_row = idx
+                            break
+                    
+                    if header_row is not None:
+                        # تنظیم ستون‌های جدید
+                        df.columns = df.iloc[header_row]
+                        # حذف ردیف‌های اضافی و سطر اول که شامل "ثبت اطلاعات حمل" است
+                        df = df.iloc[header_row + 1:].reset_index(drop=True)
+                    
+                    logger.debug(f"ستون‌های شناسایی شده: {df.columns.tolist()}")
+                else:
+                    # اگر HTML نبود، با xlrd امتحان می‌کنیم
+                    logger.debug("تلاش برای خواندن با xlrd")
+                    import xlrd
+                    wb = xlrd.open_workbook(file_contents=excel_file.read())
+                    excel_file.seek(0)
+                
+                if len(df.columns) == 0:
+                    raise ValueError("فایل خالی است یا ساختار معتبری ندارد")
+                    
+                logger.debug(f"فایل با موفقیت خوانده شد. تعداد ستون‌ها: {len(df.columns)}")
+                logger.debug(f"ستون‌های موجود: {df.columns.tolist()}")
+                
+                # تمیز کردن نام ستون‌ها
+                df.columns = df.columns.str.strip()
+                
+                # بررسی و تصحیح نام ستون‌ها
+                column_corrections = {
+                    'کد': 'کد خرید',
+                    'شماره خرید': 'کد خرید',
+                    'شماره خرید بازارگاه': 'کد خرید',
+                    'شناسه': 'شناسه تخصیص'
+                }
+                
+                df = df.rename(columns=column_corrections)
+                
+            except Exception as e:
+                logger.error(f"خطا در خواندن فایل: {str(e)}")
+                messages.error(request, f'خطا در خواندن فایل: {str(e)}')
                 return redirect('excel_manager:upload_bge_file')
             
             try:
@@ -131,7 +191,7 @@ def upload_bge_file(request):
                 
                 # تغییر نام فایل به فرمت مناسب
                 try:
-                    new_filename = f"BGE_{cargo_product.cottage}_{cargo_product.get_product_type_display()}.xlsx"
+                    new_filename = f"BGE_{cargo_product.cottage}_{cargo_product.get_product_type_display()}.xls"
                     rename_result = file_obj.change_file_name(new_filename)
                     if rename_result:
                         logger.debug(f"نام فایل تغییر یافت به: {new_filename}")
@@ -190,246 +250,271 @@ def process_bge_file(request, file_id):
             logger.debug(f"اندازه فایل: {os.path.getsize(file_path)} بایت")
             
             try:
-                # تلاش برای خواندن فایل با کتابخانه‌های مختلف
-                df = None
-                excel_error = None
+                # اول سعی می‌کنیم با pandas read_html بخونیم
+                logger.debug("تلاش برای خواندن با pandas read_html")
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
                 
-                # تلاش اول: با openpyxl برای xlsx
-                if file_extension == '.xlsx':
-                    try:
-                        logger.debug("تلاش برای خواندن با openpyxl")
-                        import openpyxl
-                        df = pd.read_excel(file_path, engine='openpyxl', header=1)
-                    except Exception as e:
-                        logger.error(f"خطا در خواندن با openpyxl: {str(e)}")
-                        excel_error = str(e)
+                if '<html' in content.lower():
+                    logger.debug("فایل HTML شناسایی شد")
+                    # خواندن اولین جدول از فایل HTML بدون تعیین header
+                    df = pd.read_html(content)[0]
+                    
+                    # پیدا کردن ردیف header (معمولاً ردیفی که شامل "کد" یا "شناسه تخصیص" است)
+                    header_row = None
+                    for idx, row in df.iterrows():
+                        # بررسی اینکه آیا این سطر شامل "ثبت اطلاعات حمل" است
+                        if any('ثبت اطلاعات حمل' in str(val) for val in row.values):
+                            continue
+                        if any(col in str(row.values) for col in ['کد', 'شناسه تخصیص']):
+                            header_row = idx
+                            break
+                    
+                    if header_row is not None:
+                        # تنظیم ستون‌های جدید
+                        df.columns = df.iloc[header_row]
+                        # حذف ردیف‌های اضافی و سطر اول که شامل "ثبت اطلاعات حمل" است
+                        df = df.iloc[header_row + 1:].reset_index(drop=True)
+                    
+                    logger.debug(f"ستون‌های شناسایی شده: {df.columns.tolist()}")
+                else:
+                    # اگر HTML نبود، با xlrd امتحان می‌کنیم
+                    logger.debug("تلاش برای خواندن با xlrd")
+                    import xlrd
+                    wb = xlrd.open_workbook(file_path)
+                    df = pd.read_excel(file_path, engine='xlrd', header=1)
                 
-                # تلاش دوم: با xlrd برای xls قدیمی
-                elif file_extension == '.xls':
-                    try:
-                        logger.debug("تلاش برای خواندن با xlrd")
-                        import xlrd
-                        df = pd.read_excel(file_path, engine='xlrd', header=1)
-                    except Exception as e:
-                        logger.error(f"خطا در خواندن با xlrd: {str(e)}")
-                        excel_error = str(e)
-                
-                # اگر هنوز موفق نشده‌ایم
-                if df is None:
-                    # تلاش آخر با کتابخانه اصلی پاندا
-                    try:
-                        logger.debug("تلاش نهایی با پاندا")
-                        df = pd.read_excel(file_path, header=1)
-                    except Exception as e:
-                        logger.error(f"خطا در خواندن نهایی: {str(e)}")
-                        if excel_error:
-                            error_message = f"خطا در خواندن فایل: {excel_error}"
-                        else:
-                            error_message = f"خطا در خواندن فایل: {str(e)}"
-                        return JsonResponse({
-                            'status': 'error',
-                            'message': error_message
-                        }, status=500)
-                
-                # بررسی موفقیت خواندن فایل
-                if df is None or len(df) == 0:
-                    logger.error("فایل اکسل خالی است یا به درستی خوانده نشده است")
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': 'فایل اکسل خالی است یا ساختار معتبری ندارد'
-                    }, status=400)
-                
-                logger.debug(f"فایل با موفقیت خوانده شد. تعداد سطرها: {len(df)}")
+                # بررسی ساختار فایل
+                if len(df.columns) == 0:
+                    raise ValueError("فایل خالی است یا ساختار معتبری ندارد")
+                    
+                logger.debug(f"فایل با موفقیت خوانده شد. تعداد ستون‌ها: {len(df.columns)}")
                 logger.debug(f"ستون‌های موجود: {df.columns.tolist()}")
                 
-                # اگر ستون 'کد' وجود دارد ولی 'کد خرید' وجود ندارد، آن را تغییر نام دهیم
-                if 'کد' in df.columns and 'کد خرید' not in df.columns:
-                    logger.debug("تغییر نام ستون 'کد' به 'کد خرید'")
-                    df = df.rename(columns={'کد': 'کد خرید'})
-                    logger.debug(f"ستون‌ها پس از تغییر نام: {df.columns.tolist()}")
+                # تمیز کردن نام ستون‌ها
+                df.columns = df.columns.str.strip()
                 
-                # بررسی وجود ستون‌های مورد نیاز
-                required_columns = ['شناسه تخصیص', 'کد خرید']
-                missing_columns = [col for col in required_columns if col not in df.columns]
+                # بررسی و تصحیح نام ستون‌ها
+                column_corrections = {
+                    'کد': 'کد خرید',
+                    'شماره خرید': 'کد خرید',
+                    'شماره خرید بازارگاه': 'کد خرید',
+                    'شناسه': 'شناسه تخصیص'
+                }
                 
-                if missing_columns:
-                    missing_cols_str = ', '.join(missing_columns)
-                    error_message = f"ستون‌های ضروری در فایل وجود ندارند: {missing_cols_str}"
-                    logger.error(error_message)
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': error_message
-                    }, status=400)
-                
-                # متغیرهای ثبت گزارش
-                records_processed = len(df)
-                records_updated = 0
-                records_failed = 0
-                success = True
-                log_messages = []
-                
-                # ۱. حذف رکوردهای تکراری شناسه تخصیص
-                if 'شناسه تخصیص' in df.columns:
-                    initial_records = len(df)
-                    df.drop_duplicates(subset=['شناسه تخصیص'], keep='first', inplace=True)
-                    duplicate_removed = initial_records - len(df)
-                    if duplicate_removed > 0:
-                        log_messages.append(f"{duplicate_removed} رکورد تکراری حذف شد")
-                
-                # ۲. پردازش و به‌روزرسانی Purchase
-                try:
-                    # نگاشت نام ستون‌های فایل اکسل به فیلدهای مدل
-                    column_mapping = {
-                        'شناسه تخصیص': 'shenase_takhsis',
-                        'کد خرید': 'purchase_number',
-                        'کد': 'purchase_number',  # اضافه کردن 'کد' به عنوان معادل 'کد خرید'
-                        'کد ملی تحویل': 'code_melli_tahvil',
-                        'شماره همراه خریدار': 'bazaargah_phone_number',
-                        'شماره هماهنگی تحویل': 'tahvil_phone_number',
-                        'آدرس تحویل': 'address'
-                    }
-                    
-                    # تبدیل ستون‌ها به نام‌های فیلدهای مدل
-                    df_renamed = df.rename(columns=column_mapping, errors='ignore')
-                    
-                    # فیلدهای موجود در دیتافریم که با مدل مطابقت دارند
-                    model_fields = set(column_mapping.values())
-                    available_fields = set(df_renamed.columns).intersection(model_fields)
-                    
-                    # عملیات بروزرسانی
-                    with transaction.atomic():
-                        for _, row in df_renamed.iterrows():
-                            try:
-                                # بررسی وجود شناسه تخصیص
-                                if 'shenase_takhsis' not in available_fields or pd.isna(row.get('shenase_takhsis')):
-                                    records_failed += 1
-                                    continue
-                                    
-                                shenase_takhsis = str(row['shenase_takhsis']).strip()
-                                
-                                # جستجوی رکورد خرید بر اساس شناسه تخصیص
-                                purchase = None
-                                if shenase_takhsis:
-                                    try:
-                                        purchase = Purchase.objects.get(shenase_takhsis=shenase_takhsis)
-                                    except Purchase.DoesNotExist:
-                                        # اگر بر اساس شناسه تخصیص پیدا نشد، سعی می‌کنیم با شماره خرید پیدا کنیم
-                                        if 'purchase_number' in available_fields and not pd.isna(row.get('purchase_number')):
-                                            purchase_number = str(row['purchase_number']).strip()
-                                            try:
-                                                purchase = Purchase.objects.get(purchase_number=purchase_number)
-                                            except Purchase.DoesNotExist:
-                                                # خرید پیدا نشد
-                                                records_failed += 1
-                                                continue
-                                
-                                if purchase:
-                                    updated = False
-                                    # بروزرسانی فیلدهای موجود
-                                    for field in available_fields:
-                                        if field == 'shenase_takhsis' and purchase.shenase_takhsis is not None:
-                                            # اگر شناسه تخصیص قبلاً تنظیم شده، آن را تغییر نمی‌دهیم
-                                            continue
-                                            
-                                        if not pd.isna(row.get(field)):
-                                            field_value = str(row[field]).strip()
-                                            if getattr(purchase, field) != field_value:
-                                                setattr(purchase, field, field_value)
-                                                updated = True
-                                    
-                                    # اگر به روزرسانی شده، تغییرات را ذخیره می‌کنیم
-                                    if updated:
-                                        purchase.save()
-                                        records_updated += 1
-                                else:
-                                    records_failed += 1
-                                    
-                            except Exception as e:
-                                logger.error(f"خطا در پردازش رکورد: {str(e)}", exc_info=True)
-                                records_failed += 1
-                
-                except Exception as e:
-                    logger.error(f"خطا در به‌روزرسانی دیتابیس: {str(e)}", exc_info=True)
-                    log_messages.append(f"خطا در به‌روزرسانی دیتابیس: {str(e)}")
-                    success = False
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': f'خطا در به‌روزرسانی دیتابیس: {str(e)}'
-                    }, status=500)
-                
-                # ۳. ایجاد و ذخیره فایل پردازش شده
-                try:
-                    output_file_path = os.path.splitext(file_path)[0] + "_processed.xlsx"
-                    df.to_excel(output_file_path, index=False)
-                    
-                    # ذخیره فایل پردازش شده
-                    with open(output_file_path, 'rb') as f:
-                        file_content = f.read()
-                        file_name = os.path.basename(bge_file.file.name).replace(".xlsx", "_processed.xlsx").replace(".xls", "_processed.xlsx")
-                        bge_file.file.save(file_name, ContentFile(file_content), save=False)
-                    
-                    # بروزرسانی وضعیت فایل
-                    bge_file.is_processed = True
-                    bge_file.save()
-                    
-                    # ثبت گزارش پردازش
-                    log_message = "\n".join(log_messages)
-                    ExcelProcessingLog.objects.create(
-                        excel_file=bge_file,
-                        processed_by=request.user,
-                        success=success,
-                        records_processed=records_processed,
-                        records_updated=records_updated,
-                        records_failed=records_failed,
-                        log_message=log_message
-                    )
-                    
-                    return JsonResponse({
-                        'status': 'success',
-                        'message': 'فایل اکسل بازارگاه با موفقیت پردازش شد',
-                        'records_processed': records_processed,
-                        'records_updated': records_updated,
-                        'records_failed': records_failed
-                    })
-                    
-                except Exception as e:
-                    logger.error(f"خطا در ایجاد فایل پردازش شده: {str(e)}", exc_info=True)
-                    
-                    # ثبت خطا در گزارش
-                    ExcelProcessingLog.objects.create(
-                        excel_file=bge_file,
-                        processed_by=request.user,
-                        success=False,
-                        records_processed=records_processed,
-                        records_updated=records_updated,
-                        records_failed=records_failed,
-                        log_message=f"خطا در ایجاد فایل پردازش شده: {str(e)}\n" + "\n".join(log_messages)
-                    )
-                    
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': f'خطا در ایجاد فایل پردازش شده: {str(e)}'
-                    }, status=500)
+                df = df.rename(columns=column_corrections)
                 
             except Exception as e:
-                # ثبت خطا در گزارش
-                logger.error(f"خطا در پردازش فایل: {str(e)}", exc_info=True)
+                logger.error(f"خطا در خواندن فایل: {str(e)}")
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'خطا در خواندن فایل: {str(e)}'
+                }, status=500)
+            
+            # بررسی موفقیت خواندن فایل
+            if df is None or len(df) == 0:
+                logger.error("فایل اکسل خالی است یا به درستی خوانده نشده است")
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'فایل اکسل خالی است یا ساختار معتبری ندارد'
+                }, status=400)
+            
+            logger.debug(f"فایل با موفقیت خوانده شد. تعداد سطرها: {len(df)}")
+            logger.debug(f"ستون‌های موجود: {df.columns.tolist()}")
+            
+            # اگر ستون 'کد' وجود دارد ولی 'کد خرید' وجود ندارد، آن را تغییر نام دهیم
+            if 'کد' in df.columns and 'کد خرید' not in df.columns:
+                logger.debug("تغییر نام ستون 'کد' به 'کد خرید'")
+                df = df.rename(columns={'کد': 'کد خرید'})
+                logger.debug(f"ستون‌ها پس از تغییر نام: {df.columns.tolist()}")
+            
+            # بررسی وجود ستون‌های مورد نیاز
+            required_columns = ['شناسه تخصیص', 'کد خرید']
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            
+            if missing_columns:
+                missing_cols_str = ', '.join(missing_columns)
+                error_message = f"ستون‌های ضروری در فایل وجود ندارند: {missing_cols_str}"
+                logger.error(error_message)
+                return JsonResponse({
+                    'status': 'error',
+                    'message': error_message
+                }, status=400)
+            
+            # متغیرهای ثبت گزارش
+            records_processed = len(df)
+            records_updated = 0
+            records_failed = 0
+            success = True
+            log_messages = []
+            
+            # ۱. حذف رکوردهای تکراری شناسه تخصیص
+            if 'شناسه تخصیص' in df.columns:
+                initial_records = len(df)
+                df.drop_duplicates(subset=['شناسه تخصیص'], keep='first', inplace=True)
+                duplicate_removed = initial_records - len(df)
+                if duplicate_removed > 0:
+                    log_messages.append(f"{duplicate_removed} رکورد تکراری حذف شد")
+            
+            # ۲. پردازش و به‌روزرسانی Purchase
+            try:
+                # نگاشت نام ستون‌های فایل اکسل به فیلدهای مدل
+                column_mapping = {
+                    'شناسه تخصیص': 'shenase_takhsis',
+                    'کد خرید': 'purchase_number',
+                    'کد': 'purchase_number',  # اضافه کردن 'کد' به عنوان معادل 'کد خرید'
+                    'کد ملی تحویل': 'code_melli_tahvil',
+                    'شماره همراه خریدار': 'bazaargah_phone_number',
+                    'شماره هماهنگی تحویل': 'tahvil_phone_number',
+                    'آدرس تحویل': 'address'
+                }
                 
+                # تبدیل ستون‌ها به نام‌های فیلدهای مدل
+                df_renamed = df.rename(columns=column_mapping, errors='ignore')
+                
+                # فیلدهای موجود در دیتافریم که با مدل مطابقت دارند
+                model_fields = set(column_mapping.values())
+                available_fields = set(df_renamed.columns).intersection(model_fields)
+                
+                # عملیات بروزرسانی
+                with transaction.atomic():
+                    # اول، پاکسازی رکوردهای قدیمی که شناسه تخصیص دارند
+                    existing_shenase_takhsis = [str(row['shenase_takhsis']).strip() 
+                                             for _, row in df_renamed.iterrows() 
+                                             if 'shenase_takhsis' in row and not pd.isna(row['shenase_takhsis'])]
+                    Purchase.objects.filter(shenase_takhsis__in=existing_shenase_takhsis).delete()
+                    
+                    for _, row in df_renamed.iterrows():
+                        try:
+                            # بررسی وجود کد خرید
+                            if 'purchase_number' not in available_fields or pd.isna(row.get('purchase_number')):
+                                records_failed += 1
+                                continue
+                                
+                            purchase_number = str(row['purchase_number']).strip()
+                            shenase_takhsis = str(row['shenase_takhsis']).strip() if 'shenase_takhsis' in available_fields and not pd.isna(row.get('shenase_takhsis')) else None
+                            
+                            # جستجوی رکورد خرید بر اساس شماره خرید
+                            purchase = None
+                            if purchase_number:
+                                try:
+                                    purchase = Purchase.objects.get(purchase_number=purchase_number)
+                                except Purchase.DoesNotExist:
+                                    # اگر رکورد وجود نداشت، یک رکورد جدید ایجاد می‌کنیم
+                                    purchase_data = {}
+                                    for field in available_fields:
+                                        if not pd.isna(row.get(field)):
+                                            purchase_data[field] = str(row[field]).strip()
+                                    
+                                    purchase = Purchase.objects.create(**purchase_data)
+                                    records_updated += 1
+                                    continue
+                            
+                            if purchase:
+                                updated = False
+                                # بروزرسانی فیلدهای موجود
+                                for field in available_fields:
+                                    if not pd.isna(row.get(field)):
+                                        field_value = str(row[field]).strip()
+                                        if getattr(purchase, field) != field_value:
+                                            setattr(purchase, field, field_value)
+                                            updated = True
+                                
+                                # اگر به روزرسانی شده، تغییرات را ذخیره می‌کنیم
+                                if updated:
+                                    purchase.save()
+                                    records_updated += 1
+                            else:
+                                records_failed += 1
+                                
+                        except Exception as e:
+                            logger.error(f"خطا در پردازش رکورد: {str(e)}", exc_info=True)
+                            records_failed += 1
+            
+            except Exception as e:
+                logger.error(f"خطا در به‌روزرسانی دیتابیس: {str(e)}", exc_info=True)
+                log_messages.append(f"خطا در به‌روزرسانی دیتابیس: {str(e)}")
+                success = False
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'خطا در به‌روزرسانی دیتابیس: {str(e)}'
+                }, status=500)
+            
+            # ۳. ایجاد و ذخیره فایل پردازش شده
+            try:
+                output_file_path = os.path.splitext(file_path)[0] + "_processed.xlsx"
+                
+                # تبدیل به DataFrame و ذخیره با openpyxl
+                df.to_excel(output_file_path, index=False, engine='openpyxl')
+                
+                # تبدیل XLSX به XLS با استفاده از win32com
+                try:
+                    import win32com.client
+                    excel = win32com.client.Dispatch("Excel.Application")
+                    excel.Visible = False
+                    wb = excel.Workbooks.Open(output_file_path)
+                    output_xls_path = os.path.splitext(file_path)[0] + "_processed.xls"
+                    wb.SaveAs(output_xls_path, FileFormat=56)  # 56 is for xls format
+                    wb.Close()
+                    excel.Quit()
+                    
+                    # حذف فایل XLSX موقت
+                    if os.path.exists(output_file_path):
+                        os.remove(output_file_path)
+                        
+                    output_file_path = output_xls_path
+                except Exception as e:
+                    logger.warning(f"خطا در تبدیل به XLS: {str(e)}. استفاده از فایل XLSX")
+                
+                # ذخیره فایل پردازش شده
+                with open(output_file_path, 'rb') as f:
+                    file_content = f.read()
+                    file_name = os.path.basename(bge_file.file.name).replace(".xls", "_processed.xls")
+                    bge_file.file.save(file_name, ContentFile(file_content), save=False)
+                
+                # بروزرسانی وضعیت فایل
+                bge_file.is_processed = True
+                bge_file.save()
+                
+                # ثبت گزارش پردازش
+                log_message = "\n".join(log_messages)
+                ExcelProcessingLog.objects.create(
+                    excel_file=bge_file,
+                    processed_by=request.user,
+                    success=success,
+                    records_processed=records_processed,
+                    records_updated=records_updated,
+                    records_failed=records_failed,
+                    log_message=log_message
+                )
+                
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'فایل اکسل بازارگاه با موفقیت پردازش شد',
+                    'records_processed': records_processed,
+                    'records_updated': records_updated,
+                    'records_failed': records_failed
+                })
+                
+            except Exception as e:
+                logger.error(f"خطا در ایجاد فایل پردازش شده: {str(e)}", exc_info=True)
+                
+                # ثبت خطا در گزارش
                 ExcelProcessingLog.objects.create(
                     excel_file=bge_file,
                     processed_by=request.user,
                     success=False,
-                    records_processed=0,
-                    records_updated=0,
-                    records_failed=0,
-                    log_message=f"خطا در پردازش فایل: {str(e)}"
+                    records_processed=records_processed,
+                    records_updated=records_updated,
+                    records_failed=records_failed,
+                    log_message=f"خطا در ایجاد فایل پردازش شده: {str(e)}\n" + "\n".join(log_messages)
                 )
                 
                 return JsonResponse({
                     'status': 'error',
-                    'message': f'خطا در پردازش فایل: {str(e)}'
+                    'message': f'خطا در ایجاد فایل پردازش شده: {str(e)}'
                 }, status=500)
-        
+            
         except Exception as e:
             # ثبت خطا در گزارش
             logger.error(f"خطا در پردازش فایل: {str(e)}", exc_info=True)

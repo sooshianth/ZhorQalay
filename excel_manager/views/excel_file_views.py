@@ -62,8 +62,8 @@ def upload_excel_file(request):
         
         # بررسی پسوند فایل
         file_extension = os.path.splitext(excel_file.name)[1].lower()
-        if file_extension not in ['.xlsx', '.xls']:
-            messages.error(request, 'فقط فایل‌های اکسل (.xlsx, .xls) مجاز هستند')
+        if file_extension != '.xls':
+            messages.error(request, 'فقط فایل‌های اکسل (.xls) مجاز هستند')
             return redirect('excel_manager:upload_excel_file')
         
         try:
@@ -146,16 +146,8 @@ def process_excel_file(request, file_id):
             file_extension = os.path.splitext(file_path)[1].lower()
             
             try:
-                # خواندن فایل بر اساس پسوند
-                if file_extension == '.xlsx':
-                    df = pd.read_excel(file_path, engine='openpyxl')
-                elif file_extension == '.xls':
-                    df = pd.read_excel(file_path, engine='xlrd')
-                else:
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': 'فرمت فایل پشتیبانی نمی‌شود. فقط xlsx و xls مجاز هستند'
-                    }, status=400)
+                # خواندن فایل با xlrd
+                df = pd.read_excel(file_path, engine='xlrd')
             except Exception as read_error:
                 return JsonResponse({
                     'status': 'error',
@@ -193,13 +185,13 @@ def process_excel_file(request, file_id):
             
             # ایجاد فایل اکسل پردازش شده
             try:
-                output_file_path = os.path.splitext(file_path)[0] + "_processed.xlsx"
-                df.to_excel(output_file_path, index=False)
+                output_file_path = os.path.splitext(file_path)[0] + "_processed.xls"
+                df.to_excel(output_file_path, index=False, engine='xlwt')
                 
                 # ذخیره فایل پردازش شده
                 with open(output_file_path, 'rb') as f:
                     file_content = f.read()
-                    file_name = os.path.basename(excel_file.file.name).replace(".xlsx", "_processed.xlsx").replace(".xls", "_processed.xlsx")
+                    file_name = os.path.basename(excel_file.file.name).replace(".xls", "_processed.xls")
                     excel_file.file.save(file_name, ContentFile(file_content), save=False)
                 
                 # بروزرسانی وضعیت فایل
@@ -287,7 +279,7 @@ def download_excel_file(request, file_id):
         with open(file_path, 'rb') as f:
             response = HttpResponse(
                 f.read(),
-                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                content_type='application/vnd.ms-excel'
             )
             response['Content-Disposition'] = f'attachment; filename="{os.path.basename(excel_file.file.name)}"'
             return response
