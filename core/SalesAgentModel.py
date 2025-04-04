@@ -4,11 +4,13 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from .NotificationModel import Notification
 from datetime import timedelta
+import random
+import string
 
 class SalesAgent(models.Model):
     user = models.OneToOneField('auth.User', on_delete=models.DO_NOTHING, related_name='sales_agent')
     name = models.CharField(max_length=100)
-    phone_number = models.CharField(max_length=20, unique=True)
+    phone_number = models.CharField(max_length=20, unique=True, null=True, blank=True)
     factor_code = models.CharField(max_length=2, unique=True, null=True, blank=True)
 
     class Meta:
@@ -119,10 +121,11 @@ class SalesAgent(models.Model):
         return self.name
     
     def clean(self):
-        if len(self.phone_number) < 11:
-            raise ValidationError('شماره تلفن باید 11 رقم باشد.')
-        if not self.phone_number.isdigit():
-            raise ValidationError('شماره تلفن باید عدد باشد.')
+        if self.phone_number:
+            if len(self.phone_number) < 11:
+                raise ValidationError('شماره تلفن باید 11 رقم باشد.')
+            if not self.phone_number.isdigit():
+                raise ValidationError('شماره تلفن باید عدد باشد.')
         if not self.name:
             raise ValidationError('نام نمی‌تواند خالی باشد.')
         if len(self.name) < 3:
@@ -132,6 +135,9 @@ class SalesAgent(models.Model):
         
     def save(self, *args, **kwargs):
         self.full_clean()
-        if not self.factor_code:
+        if not self.factor_code and self.phone_number:
             self.factor_code = self.phone_number[-2:]
+        elif not self.factor_code:
+            # اگر کد فاکتور و شماره تلفن خالی است یک کد تصادفی ایجاد می‌کنیم
+            self.factor_code = ''.join(random.choices(string.ascii_uppercase, k=2))
         super().save(*args, **kwargs)
