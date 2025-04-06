@@ -13,6 +13,10 @@ from core._models import CargoProduct, Purchase
 from core.CustomerModel import Customer, FIELD_OF_ACTIVITY
 from django.conf import settings
 from django.db import transaction
+from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from django.db import connection
+from django.utils import timezone
 
 # ایجاد یک لاگر برای دیباگ
 logger = logging.getLogger(__name__)
@@ -69,6 +73,68 @@ def upload_bge_file(request):
                     logger.warning(f"محصولی با شناسه {cargo_id} یافت نشد")
                     messages.error(request, f'محصولی با شناسه {cargo_id} یافت نشد')
                     return redirect('excel_manager:upload_bge_file')
+                
+                # بررسی تطابق کوتاژ محصول با کوتاژ داخل فایل اکسل
+                # ذخیره موقت فایل
+                temp_file_path = os.path.join(settings.MEDIA_ROOT, 'temp_excel.xls')
+                with open(temp_file_path, 'wb+') as destination:
+                    for chunk in excel_file.chunks():
+                        destination.write(chunk)
+                
+                # خواندن محتوای فایل اکسل
+                with open(temp_file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # بررسی وجود HTML در فایل
+                if '<html' not in content.lower():
+                    logger.warning(f"محتوای فایل نامعتبر است: HTML یافت نشد")
+                    messages.error(request, 'فایل اکسل باید مبتنی بر HTML باشد')
+                    os.remove(temp_file_path)  # حذف فایل موقت
+                    return redirect('excel_manager:upload_bge_file')
+                
+                # استفاده از pandas برای خواندن جدول HTML
+                tables = pd.read_html(content)
+                if not tables:
+                    logger.warning(f"جدولی در فایل اکسل یافت نشد")
+                    messages.error(request, 'جدولی در فایل اکسل یافت نشد')
+                    os.remove(temp_file_path)  # حذف فایل موقت
+                    return redirect('excel_manager:upload_bge_file')
+                
+                # بررسی ستون‌های جدول
+                df = tables[0]
+                
+                # بررسی وجود ستون کد کوتاژ
+                if 'کد کوتاژ' not in df.columns and 'کوتاژ' not in df.columns:
+                    logger.warning(f"ستون کد کوتاژ در فایل یافت نشد")
+                    messages.error(request, 'ستون کد کوتاژ در فایل یافت نشد')
+                    os.remove(temp_file_path)  # حذف فایل موقت
+                    return redirect('excel_manager:upload_bge_file')
+                
+                # ستون کوتاژ را پیدا کن
+                cottage_column = 'کد کوتاژ' if 'کد کوتاژ' in df.columns else 'کوتاژ'
+                
+                # بررسی مقادیر کوتاژ در هر ردیف
+                cottage_mismatch = False
+                mismatched_cottages = []
+                
+                for idx, row in df.iterrows():
+                    if pd.notna(row[cottage_column]):
+                        file_cottage = str(row[cottage_column]).strip()
+                        # اگر کوتاژ فایل با کوتاژ محصول متفاوت باشد
+                        if file_cottage != cargo_product.cottage:
+                            cottage_mismatch = True
+                            mismatched_cottages.append(file_cottage)
+                
+                # اگر کوتاژها مطابقت نداشته باشند، خطا نمایش بده
+                if cottage_mismatch:
+                    unique_cottages = list(set(mismatched_cottages))
+                    logger.warning(f"کوتاژ محصول ({cargo_product.cottage}) با کوتاژ رکوردهای فایل مطابقت ندارد: {unique_cottages}")
+                    messages.error(request, f'کوتاژ محصول ({cargo_product.cottage}) با کوتاژ برخی رکوردهای فایل مطابقت ندارد. کوتاژهای مشاهده شده در فایل: {", ".join(unique_cottages[:5])}{" و ..." if len(unique_cottages) > 5 else ""} - لطفاً فایل صحیح را آپلود کنید یا محصول با کوتاژ مناسب را انتخاب نمایید.')
+                    os.remove(temp_file_path)  # حذف فایل موقت
+                    return redirect('excel_manager:upload_bge_file')
+                
+                # حذف فایل موقت
+                os.remove(temp_file_path)
                 
                 # بررسی وجود پوشه‌های لازم
                 media_dir = os.path.join(settings.BASE_DIR, 'media')
@@ -169,345 +235,6 @@ def upload_bge_file(request):
 
 
 @login_required
-def process_bge_file(request, file_id):
-    """
-    پردازش فایل اکسل بازارگاه و به‌روزرسانی رکوردهای Purchase
-    """
-    bge_file = get_object_or_404(BGExcelFile, id=file_id)
-    
-    if request.method == 'POST':
-        try:
-            # بررسی وجود فایل
-            file_path = bge_file.file.path
-            if not os.path.exists(file_path):
-                logger.error(f"فایل در مسیر {file_path} وجود ندارد")
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'فایل مورد نظر در سرور یافت نشد'
-                }, status=404)
-            
-            # بررسی نوع فایل
-            file_extension = os.path.splitext(file_path)[1].lower()
-            logger.debug(f"پسوند فایل: {file_extension}")
-            logger.debug(f"اندازه فایل: {os.path.getsize(file_path)} بایت")
-            
-            try:
-                # تست خواندن ستون‌ها
-                columns = test_read_excel_columns(file_path)
-                logger.debug(f"ستون‌های موجود در فایل: {columns}")
-
-                # نگاشت دقیق ستون‌ها با تمام حالت‌های ممکن
-                column_mapping = {
-                    'کد': 'purchase_number',  # شماره خرید بازارگاه
-                    'کد خرید': 'purchase_number',
-                    'شماره خرید': 'purchase_number',
-                    'شماره خرید بازارگاه': 'purchase_number',
-                    'وزن کل خرید': 'weight',
-                    'قیمت هر واحد': 'company_price',
-                    'شماره پیگیری': 'tracking_number',
-                    'مبلغ پرداختی': 'amount_paid',
-                    'توضیحات': 'description',
-                    'شیوه پرداخت': 'payment_method',
-                    'شناسه تخصیص': 'shenase_takhsis',
-                    'شناسه': 'shenase_takhsis',
-                    'نام خریدار': 'customer_name',
-                    'شماره همراه خریدار': 'customer_phone',
-                    'نوع کاربری خریدار': 'customer_type',
-                    'شهرستان': 'city',
-                    'کد ملی تحویل': 'code_melli_tahvil',
-                    'شماره هماهنگی تحویل': 'tahvil_phone_number',
-                    'آدرس تحویل': 'address',
-                    'آدرس خریدار': 'address',
-                    'آدرس  خریدار': 'address'
-                }
-                
-                # اول سعی می‌کنیم با pandas read_html بخونیم
-                logger.debug("تلاش برای خواندن با pandas read_html")
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                
-                if '<html' in content.lower():
-                    logger.debug("فایل HTML شناسایی شد")
-                    # خواندن اولین جدول از فایل HTML بدون تعیین header
-                    df = pd.read_html(content)[0]
-                    
-                    # پیدا کردن ردیف header (معمولاً ردیفی که شامل "کد" یا "شناسه تخصیص" است)
-                    header_row = None
-                    for idx, row in df.iterrows():
-                        # بررسی اینکه آیا این سطر شامل "ثبت اطلاعات حمل" است
-                        if any('ثبت اطلاعات حمل' in str(val) for val in row.values):
-                            continue
-                        if any(col in str(row.values) for col in ['کد', 'شناسه تخصیص', 'شناسه']):
-                            header_row = idx
-                            break
-                    
-                    if header_row is not None:
-                        # تنظیم ستون‌های جدید
-                        df.columns = df.iloc[header_row]
-                        # حذف ردیف‌های اضافی و سطر اول که شامل "ثبت اطلاعات حمل" است
-                        df = df.iloc[header_row + 1:].reset_index(drop=True)
-                    
-                    logger.debug(f"ستون‌های شناسایی شده قبل از نگاشت: {df.columns.tolist()}")
-                    
-                    # تمیز کردن نام ستون‌ها
-                    df.columns = df.columns.str.strip()
-                    
-                    # نگاشت ستون‌ها
-                    df = df.rename(columns=column_mapping, errors='ignore')
-                    
-                    logger.debug(f"ستون‌های شناسایی شده بعد از نگاشت: {df.columns.tolist()}")
-                    
-                    # بررسی وجود ستون‌های مورد نیاز با نام‌های مختلف
-                    has_purchase_number = any(col in df.columns for col in ['کد', 'کد خرید', 'شماره خرید', 'شماره خرید بازارگاه', 'purchase_number'])
-                    has_shenase = any(col in df.columns for col in ['شناسه تخصیص', 'شناسه', 'shenase_takhsis'])
-                    
-                    logger.debug(f"وجود کد خرید: {has_purchase_number}")
-                    logger.debug(f"وجود شناسه تخصیص: {has_shenase}")
-                    
-                    if not (has_purchase_number or has_shenase):
-                        error_message = "حداقل یکی از ستون‌های 'کد خرید' یا 'شناسه تخصیص' باید در فایل وجود داشته باشد"
-                        logger.error(error_message)
-                        logger.error(f"ستون‌های موجود: {df.columns.tolist()}")
-                        return JsonResponse({
-                            'status': 'error',
-                            'message': error_message
-                        }, status=400)
-                    
-                    # بررسی ساختار فایل
-                    if len(df.columns) == 0:
-                        raise ValueError("فایل خالی است یا ساختار معتبری ندارد")
-                    
-                    # متغیرهای ثبت گزارش
-                    records_processed = len(df)
-                    records_updated = 0
-                    records_failed = 0
-                    success = True
-                    log_messages = []
-                    
-                    # ۱. حذف رکوردهای تکراری شناسه تخصیص
-                    if 'shenase_takhsis' in df.columns:
-                        initial_records = len(df)
-                        df.drop_duplicates(subset=['shenase_takhsis'], keep='first', inplace=True)
-                        duplicate_removed = initial_records - len(df)
-                        if duplicate_removed > 0:
-                            log_messages.append(f"{duplicate_removed} رکورد تکراری حذف شد")
-                    
-                    # ۲. پردازش و به‌روزرسانی Purchase
-                    try:
-                        # یافتن یک sales_agent برای اختصاص به مشتری‌ها
-                        from core.SalesAgentModel import SalesAgent
-                        default_sales_agent = None
-                        try:
-                            default_sales_agent = SalesAgent.objects.first()
-                            if default_sales_agent:
-                                logger.debug(f"نماینده فروش پیش‌فرض یافت شد: {default_sales_agent.id}")
-                            else:
-                                logger.warning("هیچ نماینده فروشی در سیستم یافت نشد")
-                                # ایجاد یک نماینده فروش به صورت خودکار
-                                try:
-                                    from django.contrib.auth.models import User
-                                    admin_user = User.objects.filter(is_superuser=True).first()
-                                    if admin_user:
-                                        # استفاده از get_or_create برای جلوگیری از ایجاد نماینده‌های تکراری
-                                        default_sales_agent, created = SalesAgent.objects.get_or_create(
-                                            user=admin_user,
-                                            defaults={
-                                                'name': "نماینده فروش پیش‌فرض",
-                                                'factor_code': "AA"  # کد فاکتور اتوماتیک
-                                            }
-                                        )
-                                        logger.debug(f"نماینده فروش پیش‌فرض {'ایجاد' if created else 'بازیابی'} شد: {default_sales_agent.id}")
-                                    else:
-                                        logger.error("هیچ کاربر ادمینی برای ایجاد نماینده فروش یافت نشد")
-                                except Exception as e:
-                                    logger.error(f"خطا در ایجاد نماینده فروش پیش‌فرض: {str(e)}")
-                        except Exception as e:
-                            logger.warning(f"خطا در یافتن نماینده فروش پیش‌فرض: {str(e)}")
-                            
-                            # اگر هنوز نماینده فروش نداریم، یک نماینده اضطراری ایجاد می‌کنیم
-                            try:
-                                from django.contrib.auth.models import User
-                                admin_user = User.objects.filter(is_superuser=True).first()
-                                if admin_user:
-                                    default_sales_agent, created = SalesAgent.objects.get_or_create(
-                                        user=admin_user,
-                                        name="نماینده فروش اضطراری",
-                                        defaults={'factor_code': "88"}
-                                    )
-                                    logger.debug(f"نماینده فروش اضطراری {'ایجاد' if created else 'بازیابی'} شد: {default_sales_agent.id}")
-                            except Exception as e:
-                                logger.error(f"خطا در ایجاد نماینده فروش اضطراری: {str(e)}")
-                                records_failed += 1
-                                pass
-                        
-                        # عملیات بروزرسانی
-                        with transaction.atomic():
-                            for idx, row in df.iterrows():
-                                try:
-                                    # محدود کردن تعداد رکوردها برای تست
-                                    if idx > 100:  # فقط 100 رکورد اول پردازش می‌شوند
-                                        break
-                                        
-                                    # بررسی وجود کد خرید یا شناسه تخصیص
-                                    purchase_number = None
-                                    logger.debug(f"بررسی مقادیر ردیف {idx}: {row.to_dict()}")
-                                    
-                                    # بررسی ستون‌های نگاشت شده
-                                    if 'purchase_number' in row and not pd.isna(row['purchase_number']):
-                                        purchase_number = str(row['purchase_number']).strip()
-                                        logger.debug(f"شماره خرید از ستون 'purchase_number': {purchase_number}")
-                                    elif 'shenase_takhsis' in row and not pd.isna(row['shenase_takhsis']):
-                                        purchase_number = str(row['shenase_takhsis']).strip()
-                                        logger.debug(f"شماره خرید از ستون 'shenase_takhsis': {purchase_number}")
-                                    
-                                    if not purchase_number:
-                                        logger.error("شماره خرید یا شناسه تخصیص یافت نشد")
-                                        records_failed += 1
-                                        continue
-                                    
-                                    # اطمینان از اینکه شماره خرید 7 رقم است
-                                    if len(purchase_number) != 7 or not purchase_number.isdigit():
-                                        logger.warning(f"شماره خرید {purchase_number} معتبر نیست (باید 7 رقم عددی باشد) - تلاش برای اصلاح")
-                                        # تبدیل به عدد و افزودن صفر به ابتدا در صورت نیاز
-                                        purchase_number = re.sub(r'\D', '', purchase_number)
-                                        if len(purchase_number) > 7:
-                                            purchase_number = purchase_number[:7]
-                                        if len(purchase_number) < 7:
-                                            purchase_number = purchase_number.zfill(7)
-                                        logger.debug(f"شماره خرید اصلاح شده: {purchase_number}")
-
-                                    # بررسی وجود شماره تلفن
-                                    phone_number = None
-                                    if 'customer_phone' in row and not pd.isna(row['customer_phone']):
-                                        phone_number = str(row['customer_phone']).strip()
-                                        # حذف صفر ابتدایی و پاکسازی
-                                        phone_number = re.sub(r'\D', '', phone_number)  # حذف همه کاراکترهای غیرعددی
-                                        phone_number = re.sub(r'^0', '', phone_number)  # حذف صفر ابتدایی
-                                        # اطمینان از اینکه 10 رقم است
-                                        if len(phone_number) > 10:
-                                            phone_number = phone_number[-10:]
-                                        logger.debug(f"شماره تلفن: {phone_number}")
-                                    
-                                    if not phone_number or len(phone_number) != 10:
-                                        logger.error(f"شماره همراه خریدار برای رکورد {purchase_number} معتبر نیست: {phone_number}")
-                                        records_failed += 1
-                                        continue
-                                    
-                                    # ایجاد/آپدیت مشتری
-                                    customer_data = {
-                                        'field_of_activity': 'chicken'  # تنظیم همه مشتری‌ها به مرغدار
-                                    }
-                                    
-                                    if 'customer_name' in row and not pd.isna(row['customer_name']):
-                                        customer_data['name'] = str(row['customer_name']).strip()
-                                    else:
-                                        # نام پیش‌فرض اگر نام خریدار خالی باشد
-                                        customer_data['name'] = "خریدار " + phone_number[-4:]
-                                    
-                                    if 'city' in row and not pd.isna(row['city']):
-                                        customer_data['city'] = str(row['city']).strip()
-                                    
-                                    logger.debug(f"داده‌های مشتری: {customer_data}")
-                                    try:
-                                        # ایجاد یا به‌روزرسانی مشتری
-                                        customer, customer_created = Customer.objects.update_or_create(
-                                            phone_number=phone_number,
-                                            defaults=customer_data
-                                        )
-                                        
-                                        logger.debug(f"وضعیت نماینده فروش قبل از اختصاص: {customer.sales_agent.exists()}")
-                                        
-                                        # اختصاص نماینده فروش پیش‌فرض به مشتری در صورت نیاز
-                                        if not customer.sales_agent.exists():
-                                            logger.error(f"تمام تلاش‌ها برای اختصاص نماینده فروش به مشتری با شماره {phone_number} ناموفق بود")
-                                            records_failed += 1
-                                        continue
-                                    
-                                    except Exception as e:
-                                        logger.error(f"خطا در ایجاد/به‌روزرسانی مشتری: {str(e)}", exc_info=True)
-                                        records_failed += 1
-                                        pass
-                                except Exception as e:
-                                    logger.error(f"خطا در پردازش رکورد: {str(e)}", exc_info=True)
-                                    records_failed += 1
-                    except Exception as e:
-                        logger.error(f"خطا در پردازش رکورد: {str(e)}", exc_info=True)
-                        records_failed += 1
-                        pass
-            except Exception as e:
-                logger.error(f"خطا در خواندن فایل: {str(e)}")
-                return JsonResponse({
-                    'status': 'error',
-                    'message': f'خطا در خواندن فایل: {str(e)}'
-                }, status=500)
-            
-            # بررسی موفقیت خواندن فایل
-            if 'df' not in locals() or df is None or len(df) == 0:
-                logger.error("فایل اکسل خالی است یا به درستی خوانده نشده است")
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'فایل اکسل خالی است یا ساختار معتبری ندارد'
-                }, status=400)
-            
-            logger.debug(f"فایل با موفقیت خوانده شد. تعداد سطرها: {len(df)}")
-            logger.debug(f"ستون‌های موجود: {df.columns.tolist()}")
-            
-            # ثبت گزارش پردازش
-            log_message = "\n".join(log_messages)
-            ExcelProcessingLog.objects.create(
-                excel_file=bge_file,
-                processed_by=request.user,
-                success=success,
-                records_processed=records_processed,
-                records_updated=records_updated,
-                records_failed=records_failed,
-                log_message=log_message
-            )
-            
-            # به‌روزرسانی وضعیت پردازش فایل
-            bge_file.is_processed = True
-            bge_file.save()
-            
-            return JsonResponse({
-                'status': 'success',
-                'message': 'فایل اکسل بازارگاه با موفقیت پردازش شد',
-                'records_processed': records_processed,
-                'records_updated': records_updated,
-                'records_failed': records_failed
-            })
-            
-        except Exception as e:
-            # ثبت خطا در گزارش
-            logger.error(f"خطا در پردازش فایل: {str(e)}", exc_info=True)
-            
-            ExcelProcessingLog.objects.create(
-                excel_file=bge_file,
-                processed_by=request.user,
-                success=False,
-                records_processed=0,
-                records_updated=0,
-                records_failed=0,
-                log_message=f"خطا در پردازش فایل: {str(e)}"
-            )
-            
-            return JsonResponse({
-                'status': 'error',
-                'message': f'خطا در پردازش فایل: {str(e)}'
-            }, status=500)
-    
-    # پاسخ به درخواست GET
-    # دریافت داده‌های مورد نیاز برای صفحه
-    cargo_product = bge_file.cargo
-    
-    context = {
-        'bge_file': bge_file,
-        'cargo_product': cargo_product,
-        'page_title': f'پردازش فایل {bge_file.title}',
-    }
-    return render(request, 'excel_manager/process_bge_file.html', context)
-
-
-@login_required
 def search_cargo_products(request):
     """
     جستجوی محصولات برای API
@@ -529,6 +256,375 @@ def search_cargo_products(request):
         })
     
     return JsonResponse({'results': results})
+
+
+@login_required
+def process_bge_file(request, file_id):
+    """
+    پردازش فایل اکسل بازارگاه و به‌روزرسانی رکوردهای Purchase
+    """
+    bge_file = get_object_or_404(BGExcelFile, id=file_id)
+    
+    if request.method == 'POST':
+        try:
+            # دریافت فایل بازارگاه
+            file_path = bge_file.file.path
+            
+            # ایجاد لاگ پردازش
+            processing_log = ExcelProcessingLog.objects.create(
+                excel_file=bge_file,
+                processed_by=request.user,
+                success=False,  # پیش‌فرض ناموفق، در صورت موفقیت به‌روزرسانی می‌شود
+                records_processed=0,
+                records_updated=0,
+                records_failed=0,
+                log_message=""
+            )
+            
+            try:
+                # خواندن محتوای فایل اکسل مبتنی بر HTML
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                if '<html' not in content.lower():
+                    messages.error(request, 'فایل اکسل باید مبتنی بر HTML باشد.')
+                    processing_log.log_message = "فایل اکسل باید مبتنی بر HTML باشد."
+                    processing_log.save()
+                    return redirect('excel_manager:bge_files_list')
+                
+                # استفاده از pandas برای خواندن جدول HTML
+                tables = pd.read_html(content)
+                if not tables:
+                    messages.error(request, 'جدولی در فایل اکسل یافت نشد.')
+                    processing_log.log_message = "جدولی در فایل اکسل یافت نشد."
+                    processing_log.save()
+                    return redirect('excel_manager:bge_files_list')
+                
+                # گزارش دیباگ برای تعداد ردیف‌ها
+                df = tables[0]
+                logger.debug(f"تعداد ردیف‌های خوانده شده: {len(df)}")
+                logger.debug(f"ستون‌های موجود در فایل: {df.columns.tolist()}")
+                
+                # بررسی وجود ستون‌های ضروری
+                required_columns = ['کد', 'شناسه تخصیص', 'وزن کل خرید', 'کد ملی تحویل', 'شماره هماهنگی تحویل', 'شماره همراه خریدار', 
+                                    'نام خریدار', 'آدرس تحویل', 'مبلغ پرداختی', 'شیوه پرداخت']
+                
+                # بررسی اینکه آیا ستون‌های مورد نیاز در دیتافریم وجود دارند
+                missing_columns = [col for col in required_columns if col not in df.columns]
+                if missing_columns:
+                    error_msg = f"ستون‌های زیر در فایل اکسل یافت نشد: {', '.join(missing_columns)}"
+                    logger.error(error_msg)
+                    messages.error(request, error_msg)
+                    processing_log.log_message = error_msg
+                    processing_log.save()
+                    return redirect('excel_manager:bge_files_list')
+                
+                # لیست رکوردهایی که باید از اکسل حذف شوند
+                rows_to_remove = []
+                
+                # تعریف کاربر superuser برای تخصیص به مشتریان جدید
+                super_user = User.objects.filter(is_superuser=True).first()
+                super_agent = None
+                if super_user and hasattr(super_user, 'sales_agent'):
+                    super_agent = super_user.sales_agent
+                
+                # پردازش رکوردها
+                records_processed = 0
+                records_updated = 0
+                records_created = 0
+                records_failed = 0
+                error_messages = []
+                
+                # پردازش هر رکورد جداگانه
+                for idx, row in df.iterrows():
+                    logger.debug(f"شروع پردازش رکورد {idx+1}")
+                    
+                    try:
+                        records_processed += 1
+                        
+                        # استخراج اطلاعات ضروری
+                        purchase_number = str(row['کد']).strip() if pd.notna(row['کد']) else None
+                        shenase_takhsis = str(row['شناسه تخصیص']).strip() if pd.notna(row['شناسه تخصیص']) else None
+                        code_melli_tahvil = str(row['کد ملی تحویل']).strip() if pd.notna(row['کد ملی تحویل']) else None
+                        tahvil_phone_number = str(row['شماره هماهنگی تحویل']).strip() if pd.notna(row['شماره هماهنگی تحویل']) else None
+                        bazaargah_phone_number = str(row['شماره همراه خریدار']).strip() if pd.notna(row['شماره همراه خریدار']) else None
+                        customer_name = str(row['نام خریدار']).strip() if pd.notna(row['نام خریدار']) else None
+                        address = str(row['آدرس تحویل']).strip() if pd.notna(row['آدرس تحویل']) else None
+                        weight = int(float(row['وزن کل خرید'])) if pd.notna(row['وزن کل خرید']) else 0
+                        amount_paid = int(float(row['مبلغ پرداختی'])) if pd.notna(row['مبلغ پرداختی']) else None
+                        payment_method = 'نقدی' if pd.notna(row['شیوه پرداخت']) and row['شیوه پرداخت'] == 'نقدی' else 'توافقی'
+                        
+                        # نرمالایز کردن شماره تلفن
+                        if bazaargah_phone_number:
+                            bazaargah_phone_number = re.sub(r'\D', '', bazaargah_phone_number)
+                            if bazaargah_phone_number.startswith('0'):
+                                bazaargah_phone_number = bazaargah_phone_number[1:]
+                            elif bazaargah_phone_number.startswith('98'):
+                                bazaargah_phone_number = bazaargah_phone_number[2:]
+                        
+                        if tahvil_phone_number:
+                            tahvil_phone_number = re.sub(r'\D', '', tahvil_phone_number)
+                            if tahvil_phone_number.startswith('0'):
+                                tahvil_phone_number = tahvil_phone_number[1:]
+                            elif tahvil_phone_number.startswith('98'):
+                                tahvil_phone_number = tahvil_phone_number[2:]
+                        
+                        # بررسی وجود خرید با شماره خرید مشابه
+                        purchase = Purchase.objects.filter(purchase_number=purchase_number).first()
+                        
+                        # بررسی قبلاً ثبت شدن شناسه تخصیص
+                        if shenase_takhsis and Purchase.objects.filter(shenase_takhsis=shenase_takhsis).exists():
+                            rows_to_remove.append(idx)
+                            continue
+                        
+                        # هر پردازش در یک بلاک atomic جداگانه انجام می‌شود
+                        with transaction.atomic():
+                            if purchase:
+                                try:
+                                    # به‌روزرسانی خرید موجود - استفاده از update به جای save برای دور زدن validation
+                                    Purchase.objects.filter(id=purchase.id).update(
+                                        shenase_takhsis=shenase_takhsis,
+                                        code_melli_tahvil=code_melli_tahvil,
+                                        tahvil_phone_number=tahvil_phone_number,
+                                        bazaargah_phone_number=bazaargah_phone_number,
+                                        address=address,
+                                        weight=weight,
+                                        cargo=bge_file.cargo,
+                                        amount_paid=amount_paid,
+                                        payment_method=payment_method,
+                                        is_takhsised=True if shenase_takhsis else purchase.is_takhsised
+                                    )
+                                    records_updated += 1
+                                except Exception as e:
+                                    records_failed += 1
+                                    error_messages.append(f"خطا در به‌روزرسانی خرید {purchase_number}: {str(e)}")
+                                    logger.error(f"خطا در به‌روزرسانی خرید {purchase_number}: {str(e)}")
+                                    raise
+                            else:
+                                # ایجاد مشتری جدید اگر وجود ندارد
+                                customer = None
+                                try:
+                                    if bazaargah_phone_number:
+                                        customer = Customer.objects.filter(phone_number=bazaargah_phone_number).first()
+                                        if not customer:
+                                            # ایجاد مشتری جدید با SQL مستقیم برای اطمینان از دور زدن validation
+                                            cursor = connection.cursor()
+                                            try:
+                                                customer_name = customer_name if customer_name else "مشتری جدید"
+                                                
+                                                # ایجاد مشتری جدید
+                                                cursor.execute("""
+                                                INSERT INTO core_customer 
+                                                (phone_number, name, field_of_activity, sms_preference, is_bazaargah_enjoyer, created_at, updated_at)
+                                                VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                                                RETURNING id
+                                                """, [bazaargah_phone_number, customer_name, 'chicken', True, True])
+                                                
+                                                customer_id = cursor.fetchone()[0]
+                                                logger.debug(f"مشتری جدید ایجاد شد با شناسه: {customer_id}")
+                                                
+                                                # دریافت نمونه مشتری
+                                                customer = Customer.objects.get(id=customer_id)
+                                                
+                                                # اضافه کردن کارشناس فروش به مشتری
+                                                if super_agent:
+                                                    logger.debug(f"افزودن کارشناس فروش {super_agent.id} به مشتری {customer_id}")
+                                                    cursor.execute("""
+                                                    INSERT INTO core_customer_sales_agent 
+                                                    (customer_id, salesagent_id)
+                                                    VALUES (%s, %s)
+                                                    """, [customer_id, super_agent.id])
+                                            except Exception as ce:
+                                                logger.error(f"خطا در ایجاد مشتری با SQL مستقیم: {str(ce)}", exc_info=True)
+                                                raise
+                                    
+                                    if customer:
+                                        # ایجاد شناسه منحصر به فرد برای خرید
+                                        factor_code = "88"  # استفاده از کد ثابت برای جلوگیری از مشکلات
+                                        
+                                        # یافتن آخرین خرید
+                                        try:
+                                            last_purchase = Purchase.objects.filter(id__startswith=factor_code).order_by('-id').first()
+                                            if last_purchase:
+                                                last_serial = str(last_purchase.id)[2:]
+                                                new_serial = int(last_serial) + 1
+                                            else:
+                                                new_serial = 1
+                                            
+                                            purchase_id = f"{factor_code}{str(new_serial).zfill(4)}"
+                                            logger.debug(f"شناسه خرید جدید: {purchase_id}")
+                                            
+                                            # ایجاد خرید جدید با SQL مستقیم برای دور زدن تمام مشکلات
+                                            cursor = connection.cursor()
+                                            
+                                            # لاگ دیتای ورودی برای دیباگ
+                                            logger.debug(f"داده های ورودی برای ایجاد خرید: {purchase_id}, {customer.id}, {purchase_number}")
+                                            
+                                            try:
+                                                # اجرای SQL برای ایجاد خرید جدید
+                                                sql_query = """
+                                                INSERT INTO core_purchase 
+                                                (id, customer_id, purchase_number, shenase_takhsis, code_melli_tahvil, 
+                                                tahvil_phone_number, bazaargah_phone_number, address, weight, cargo_id,
+                                                amount_paid, payment_method, type, is_bazaargahed, is_takhsised,
+                                                company_price, customer_price, created_at, updated_at, 
+                                                is_sms_sent, is_paid, is_weight_costed, is_ap_af, is_archived, is_canceled,
+                                                is_urgent, is_delivered, is_sent, is_sent_to_barbari, is_barnamed,
+                                                is_takhsised_approved, is_tasvied_with_varedkonandeh, 
+                                                is_address_sent_to_varedkonandeh, is_ekhtelaf_approved,
+                                                is_kasri_varized, is_sarak_varized, is_kasri_reciept_submited,
+                                                is_factorated, does_salesman_approve, does_logistics_approve, does_financial_approve,
+                                                description)
+                                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
+                                                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                                                %s)
+                                                """
+                                                
+                                                params = [
+                                                    purchase_id, customer.id, purchase_number, shenase_takhsis, code_melli_tahvil,
+                                                    tahvil_phone_number, bazaargah_phone_number, address, weight, bge_file.cargo.id,
+                                                    amount_paid, payment_method, 'bazaargah', True, True if shenase_takhsis else False,
+                                                    bge_file.cargo.company_price, bge_file.cargo.customer_price,
+                                                    # 20 مقدار برای فیلدهای بولین
+                                                    True,  # is_sms_sent
+                                                    True,  # is_paid
+                                                    True,  # is_weight_costed
+                                                    False, # is_ap_af
+                                                    False, # is_archived
+                                                    False, # is_canceled
+                                                    False, # is_urgent
+                                                    True,  # is_delivered
+                                                    True,  # is_sent
+                                                    True,  # is_sent_to_barbari
+                                                    True,  # is_barnamed
+                                                    True,  # is_takhsised_approved
+                                                    True,  # is_tasvied_with_varedkonandeh
+                                                    True,  # is_address_sent_to_varedkonandeh
+                                                    True,  # is_ekhtelaf_approved
+                                                    True,  # is_kasri_varized
+                                                    True,  # is_sarak_varized
+                                                    True,  # is_kasri_reciept_submited
+                                                    True,  # is_factorated
+                                                    True,  # does_salesman_approve
+                                                    True,  # does_logistics_approve
+                                                    True,  # does_financial_approve
+                                                    ""     # description (ستون جا افتاده)
+                                                ]
+                                                
+                                                # دیباگ: بررسی تعداد پلیس‌هولدرها و پارامترها
+                                                placeholder_count = sql_query.count('%s')
+                                                params_count = len(params)
+                                                logger.debug(f"تعداد پلیس‌هولدرها: {placeholder_count}, تعداد پارامترها: {params_count}")
+                                                
+                                                # بررسی دقیق‌تر فیلدهای جدول و پارامترها
+                                                fields_count = sql_query.count(',') + 1  # تعداد فیلدها در SQL (جدا شده با کاما + 1)
+                                                logger.debug(f"تعداد فیلدهای مشخص شده در SQL: {fields_count}")
+                                                
+                                                if placeholder_count != params_count:
+                                                    logger.error(f"عدم تطابق: تعداد پلیس‌هولدرها ({placeholder_count}) با تعداد پارامترها ({params_count}) مطابقت ندارد")
+                                                
+                                                try:
+                                                    cursor.execute(sql_query, params)
+                                                    # لاگ تایید اجرای موفق
+                                                    logger.debug(f"SQL خرید با موفقیت اجرا شد: {purchase_id}")
+                                                    records_created += 1
+                                                except Exception as e:
+                                                    logger.error(f"خطا در اجرای SQL: {str(e)}")
+                                                    raise
+                                            except Exception as id_error:
+                                                logger.error(f"خطا در ایجاد شناسه خرید: {str(id_error)}", exc_info=True)
+                                                raise
+                                        except Exception as id_error:
+                                            logger.error(f"خطا در ایجاد شناسه خرید: {str(id_error)}", exc_info=True)
+                                            raise
+                                    else:
+                                        logger.error(f"ایجاد مشتری با شماره {bazaargah_phone_number} ناموفق بود")
+                                        records_failed += 1
+                                        error_messages.append(f"خطا در ایجاد مشتری برای خرید {purchase_number}: مشتری ایجاد نشد")
+                                except Exception as e:
+                                    records_failed += 1
+                                    error_messages.append(f"خطا در ایجاد خرید جدید {purchase_number}: {str(e)}")
+                                    logger.error(f"خطا در ایجاد خرید جدید {purchase_number}: {str(e)}", exc_info=True)
+                    except Exception as e:
+                        records_failed += 1
+                        error_messages.append(f"خطا در پردازش رکورد {idx+1}: {str(e)}")
+                        logger.error(f"خطا در پردازش رکورد {idx+1}: {str(e)}")
+                
+                # حذف رکوردهای با شناسه تخصیص تکراری
+                if rows_to_remove:
+                    df = df.drop(rows_to_remove).reset_index(drop=True)
+                
+                # ذخیره فایل اکسل تمیز شده
+                cleaned_filename = f"cleaned_{os.path.basename(file_path)}"
+                cleaned_file_path = os.path.join(os.path.dirname(file_path), cleaned_filename)
+                
+                # بازسازی فایل HTML
+                html_content = """<html><head><meta http-equiv=Content-Type content='text/html; charset=utf-8'><style> .text { mso-number-format:\\@; } .trFormat{color:Black;background-color:#DEDFDE;}</style></head>"""
+                html_content += """<div style="direction:rtl;padding:5px 0"><span style="font:bold 12px tahoma; color:#008B00;line-height:180%"> ثبت اطلاعات حمل</span></div>"""
+                
+                # تبدیل پاندس به HTML و ذخیره
+                table_html = df.to_html(index=False, border=1, classes='table')
+                table_html = table_html.replace('<table', '<table dir="rtl" cellspacing="0" cellpadding="7" style="font-family:Tahoma;font-size:11px;width:70%;"')
+                
+                # جایگزین کردن عناوین ردیف اول با استایل مناسب
+                thead_html = """<thead><tr style='color:#E7E7FF;background-color:#4A3C8C;font-weight:bold;'>"""
+                for col in df.columns:
+                    thead_html += f"<th>{col}</th>"
+                thead_html += "</tr></thead>"
+                
+                table_html = re.sub(r'<thead>.*?</thead>', thead_html, table_html, flags=re.DOTALL)
+                
+                # ایجاد استایل برای ردیف‌های داده
+                table_html = table_html.replace('<tr>', '<tr class="trFormat">')
+                table_html = table_html.replace('<td>', '<td align="center">')
+                
+                html_content += table_html + "</html>"
+                
+                with open(cleaned_file_path, 'w', encoding='utf-8') as f:
+                    f.write(html_content)
+                
+                # به‌روزرسانی لاگ پردازش
+                processing_log.success = records_failed == 0
+                processing_log.records_processed = records_processed
+                processing_log.records_updated = records_updated
+                processing_log.records_failed = records_failed
+                log_message = f"تعداد کل رکوردها: {records_processed}\n"
+                log_message += f"تعداد رکوردهای به‌روزرسانی شده: {records_updated}\n"
+                log_message += f"تعداد رکوردهای ایجاد شده: {records_created}\n"
+                log_message += f"تعداد رکوردهای ناموفق: {records_failed}\n"
+                
+                if error_messages:
+                    log_message += "خطاها:\n" + "\n".join(error_messages)
+                
+                processing_log.log_message = log_message
+                processing_log.save()
+                
+                # به‌روزرسانی وضعیت فایل
+                bge_file.is_processed = True
+                bge_file.save()
+                
+                messages.success(request, f"فایل با موفقیت پردازش شد. {records_updated} رکورد به‌روزرسانی شد و {records_created} رکورد جدید ایجاد شد.")
+                return redirect('excel_manager:bge_files_list')
+                
+            except Exception as e:
+                logger.error(f"خطا در پردازش فایل: {str(e)}")
+                processing_log.log_message = f"خطا در پردازش فایل: {str(e)}"
+                processing_log.save()
+                messages.error(request, f'خطا در پردازش فایل: {str(e)}')
+                return redirect('excel_manager:bge_files_list')
+                
+        except Exception as e:
+            logger.error(f"خطای کلی در پردازش فایل: {str(e)}")
+            messages.error(request, f'خطای کلی در پردازش فایل: {str(e)}')
+            return redirect('excel_manager:bge_files_list')
+    
+    # نمایش جزئیات فایل برای پردازش
+    context = {
+        'bge_file': bge_file,
+        'page_title': 'پردازش فایل اکسل بازارگاه',
+    }
+    return render(request, 'excel_manager/process_bge_file.html', context)
+
 
 def get_excel_columns(file_path):
     """نمایش ستون‌های موجود در فایل اکسل"""
@@ -557,64 +653,3 @@ def get_excel_columns(file_path):
         logger.error(f"خطا در خواندن ستون‌های فایل: {str(e)}")
         return []
 
-def test_read_excel_columns(file_path):
-    """تست خواندن ستون‌های فایل اکسل"""
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-        
-        if '<html' in content.lower():
-            logger.debug("محتوای HTML شناسایی شد")
-            df = pd.read_html(content)[0]
-            
-            # پیدا کردن ردیف header
-            header_row = None
-            for idx, row in df.iterrows():
-                row_values = [str(val).strip() for val in row.values]
-                logger.debug(f"بررسی ردیف {idx}: {row_values}")
-                
-                # بررسی اینکه آیا این سطر شامل "ثبت اطلاعات حمل" است
-                if any('ثبت اطلاعات حمل' in str(val) for val in row_values):
-                    logger.debug(f"ردیف {idx} شامل 'ثبت اطلاعات حمل' است - نادیده گرفته شد")
-                    continue
-                
-                # بررسی وجود هر یک از ستون‌های کلیدی
-                key_columns = ['کد', 'کد خرید', 'شماره خرید', 'شماره خرید بازارگاه', 'شناسه تخصیص', 'شناسه']
-                found_columns = [col for col in key_columns if any(col in str(val) for val in row_values)]
-                
-                if found_columns:
-                    logger.debug(f"ردیف {idx} به عنوان header انتخاب شد. ستون‌های کلیدی یافت شده: {found_columns}")
-                    header_row = idx
-                    break
-            
-            if header_row is not None:
-                df.columns = df.iloc[header_row]
-                df = df.iloc[header_row + 1:].reset_index(drop=True)
-                
-                # تمیز کردن نام ستون‌ها
-                df.columns = df.columns.str.strip()
-                logger.debug(f"ستون‌های نهایی پس از تمیز کردن: {df.columns.tolist()}")
-                
-                # بررسی وجود ستون‌های کلیدی
-                has_purchase_number = any(col in df.columns for col in ['کد', 'کد خرید', 'شماره خرید', 'شماره خرید بازارگاه', 'purchase_number'])
-                has_shenase = any(col in df.columns for col in ['شناسه تخصیص', 'شناسه', 'shenase_takhsis'])
-                
-                logger.debug(f"وجود کد خرید: {has_purchase_number}")
-                logger.debug(f"وجود شناسه تخصیص: {has_shenase}")
-                
-                # بررسی ساختار فایل
-                if len(df.columns) == 0:
-                    raise ValueError("فایل خالی است یا ساختار معتبری ندارد")
-                
-                logger.debug(f"ستون‌ها پس از تغییر نام: {df.columns.tolist()}")
-                
-                return df.columns.tolist()
-            else:
-                logger.warning("هیچ ردیف header مناسبی پیدا نشد")
-                return []
-        else:
-            logger.warning("فایل در قالب HTML نیست")
-            return []
-    except Exception as e:
-        logger.error(f"خطا در خواندن ستون‌های فایل: {str(e)}")
-        return [] 

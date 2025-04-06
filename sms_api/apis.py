@@ -103,7 +103,7 @@ def send_barnameh_notification(purchase):
         number = '0' + number
     
     message = (
-        f"مشتری گرامی {purchase.customer.name}،\n"
+        f"مشتری گرامی {purchase.customer.number}،\n"
         f"بارنامه برای سفارش {purchase.purchase_number} صادر شد.\n"
         f"به زودی محموله شما ارسال خواهد شد.\n"
         f"شرکت تأمین نهاده سیمرغ"

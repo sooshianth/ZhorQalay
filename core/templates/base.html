@@ -5,22 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}سیستم CRM{% endblock %}</title>
     {% load static %}
-    <link rel="icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}">
+    <link rel="icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}" loading="lazy">
     <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" loading="lazy"></script>
     <!-- اضافه کردن فونت Vazir -->
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/font-face.css" rel="stylesheet" type="text/css">
     <!-- اضافه کردن لینک Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" loading="lazy"></script>
+    <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js" loading="lazy"></script>
+    <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js" loading="lazy"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
 <body>
     <!-- منوی پویای موبایل که با اسکرول نمایش داده می‌شود -->
     <div class="mobile-header" id="mobile-header">
-        <img src="{% static 'images/3-min.webp' %}" loading='lazy' alt="Logo" class="mobile-header-logo">
+        <img src="{% static 'images/3-min.webp' %}" loading="lazy" alt="Logo" class="mobile-header-logo">
         <h2 class="mobile-header-title">سیمرغ افزار</h2>
         <div class="mobile-header-controls">
             <button class="menu-toggle" id="mobile-menu-toggle">
@@ -32,7 +32,7 @@
     <header>
         <div class="container">
             <div class="header-top">
-                <img src="{% static 'images/3-min.webp' %}" loading='lazy' width='55px' alt="Logo" class="header-logo">
+                <img src="{% static 'images/3-min.webp' %}" loading="lazy" width='55px' alt="Logo" class="header-logo">
                 <h1>سامانه جامع سیمرغ‌ افزار</h1>
                 <div class="mobile-controls">
                     <div class="toggle-container" id="dark-mode-toggle">
@@ -87,7 +87,7 @@
     <footer>
         <div class="footer-container">
             <div class="footer-logo-section">
-                <img src="{% static 'images/3-min.webp' %}" alt="لوگوی شرکت" class="footer-logo" loading='lazy'>
+                <img src="{% static 'images/3-min.webp' %}" alt="لوگوی شرکت" class="footer-logo" loading="lazy">
             </div>
             
             <div class="footer-content">
