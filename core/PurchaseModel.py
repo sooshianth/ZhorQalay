@@ -4,6 +4,13 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from .CustomerModel import Customer
 from .CargoProductModel import CargoProduct
+from sms_api.apis import (
+    send_new_purchase_notification, 
+    send_payment_confirmation, 
+    send_address_notification, 
+    send_barnameh_notification, 
+    send_extelaf_notification
+)
 
 class Purchase(models.Model):
     id = models.CharField(max_length=20, primary_key=True, editable=False, unique=True)
@@ -91,6 +98,8 @@ class Purchase(models.Model):
                     self.is_weight_costed = True
                     self.cargo.weight -= self.weight
                     self.cargo.save()
+                # Send SMS notification for payment confirmation
+                send_payment_confirmation(self)
             else:
                 raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
         else:
@@ -100,6 +109,8 @@ class Purchase(models.Model):
                     self.is_weight_costed = True
                     self.cargo.weight -= self.weight
                     self.cargo.save()
+                # Send SMS notification for payment confirmation
+                send_payment_confirmation(self)
             else:
                 raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
         
@@ -125,6 +136,8 @@ class Purchase(models.Model):
     def check_is_address_sent_to_varedkonandeh(self, user_role):
         if user_role == 'logistics_manager' and self.is_tasvied_with_varedkonandeh:
             self.is_address_sent_to_varedkonandeh = True
+            # Send SMS notification for address sent to importer
+            send_address_notification(self)
         else:
             raise ValidationError('این خرید هنوز با واردکننده تسویه نشده است')
 
@@ -135,9 +148,11 @@ class Purchase(models.Model):
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
         
     def check_is_barnamed(self, user_role):
-        if user_role == 'logistics_manager':
+        if user_role == 'logistics_manager' and self.barnameh:
             self.is_barnamed = True
             self.is_sent = True
+            # Send SMS notification for barnameh (shipping info)
+            send_barnameh_notification(self)
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
         
@@ -145,6 +160,9 @@ class Purchase(models.Model):
         if user_role == 'financial_manager' and self.is_barnamed:
             self.is_ekhtelaf_approved = True
             self.is_delivered = True
+            # If there's a weight difference (extelaf) of type "sarak", send notification
+            if self.extelaf_type == 'سرک' and self.extelaf_weight and self.extelaf_amount:
+                send_extelaf_notification(self)
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
         
@@ -242,9 +260,15 @@ class Purchase(models.Model):
 
         if errors:
             raise ValidationError(errors)
+            
     def save(self, *args, **kwargs):
+        is_new = not self.pk  # Check if this is a new instance
+        
         if not self.id:
-            factor_code = self.customer.sales_agent.factor_code
+            if len(self.customer.sales_agent) > 1:
+                factor_code = 88
+            else:
+                factor_code = self.customer.sales_agent.factor_code
             last_purchase = Purchase.objects.filter(id__startswith=factor_code).order_by('-id').first()
             if last_purchase:
                 last_serial = str(last_purchase.id)[2:]
@@ -259,7 +283,12 @@ class Purchase(models.Model):
                 self.price = self.cargo.customer_price
             if self.company_price == 0:
                 self.company_price = self.cargo.company_price
+                
         super().save(*args, **kwargs)
+        
+        # Send SMS notification for new purchase only on creation
+        if is_new and self.customer.sms_preference:
+            send_new_purchase_notification(self)
 
 from django.contrib.auth.models import User
 class PurchaseHistory(models.Model):
