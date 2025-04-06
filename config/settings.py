@@ -119,7 +119,8 @@ STATICFILES_DIRS = [
     BASE_DIR / "core/static",
     BASE_DIR / "sales/static",
     BASE_DIR / "crm/static",
-    BASE_DIR / "excel_manager/static",
+    # BASE_DIR / "excel_manager/static",
+    # BASE_DIR / "sms_api/static",
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -60,66 +60,6 @@ def upload_bge_file(request):
                 messages.error(request, 'لطفا یک فایل اکسل معتبر (.xls) آپلود کنید')
                 return redirect('excel_manager:upload_bge_file')
             
-            # بررسی محتوای فایل
-            try:
-                # اول سعی می‌کنیم با pandas read_html بخونیم
-                logger.debug("تلاش برای خواندن با pandas read_html")
-                content = excel_file.read().decode('utf-8')
-                excel_file.seek(0)  # برگرداندن اشاره‌گر فایل به ابتدا
-                
-                if '<html' in content.lower():
-                    logger.debug("فایل HTML شناسایی شد")
-                    # خواندن اولین جدول از فایل HTML بدون تعیین header
-                    df = pd.read_html(content)[0]
-                    
-                    # پیدا کردن ردیف header (معمولاً ردیفی که شامل "کد" یا "شناسه تخصیص" است)
-                    header_row = None
-                    for idx, row in df.iterrows():
-                        # بررسی اینکه آیا این سطر شامل "ثبت اطلاعات حمل" است
-                        if any('ثبت اطلاعات حمل' in str(val) for val in row.values):
-                            continue
-                        if any(col in str(row.values) for col in ['کد', 'شناسه تخصیص']):
-                            header_row = idx
-                            break
-                    
-                    if header_row is not None:
-                        # تنظیم ستون‌های جدید
-                        df.columns = df.iloc[header_row]
-                        # حذف ردیف‌های اضافی و سطر اول که شامل "ثبت اطلاعات حمل" است
-                        df = df.iloc[header_row + 1:].reset_index(drop=True)
-                    
-                    logger.debug(f"ستون‌های شناسایی شده: {df.columns.tolist()}")
-                else:
-                    # اگر HTML نبود، با xlrd امتحان می‌کنیم
-                    logger.debug("تلاش برای خواندن با xlrd")
-                    import xlrd
-                    wb = xlrd.open_workbook(file_contents=excel_file.read())
-                    excel_file.seek(0)
-                
-                if len(df.columns) == 0:
-                    raise ValueError("فایل خالی است یا ساختار معتبری ندارد")
-                    
-                logger.debug(f"فایل با موفقیت خوانده شد. تعداد ستون‌ها: {len(df.columns)}")
-                logger.debug(f"ستون‌های موجود: {df.columns.tolist()}")
-                
-                # تمیز کردن نام ستون‌ها
-                df.columns = df.columns.str.strip()
-                
-                # بررسی و تصحیح نام ستون‌ها
-                column_corrections = {
-                    'کد': 'کد خرید',
-                    'شماره خرید': 'کد خرید',
-                    'شماره خرید بازارگاه': 'کد خرید',
-                    'شناسه': 'شناسه تخصیص'
-                }
-                
-                df = df.rename(columns=column_corrections)
-                
-            except Exception as e:
-                logger.error(f"خطا در خواندن فایل: {str(e)}")
-                messages.error(request, f'خطا در خواندن فایل: {str(e)}')
-                return redirect('excel_manager:upload_bge_file')
-            
             try:
                 # بررسی و دریافت محصول
                 try:
@@ -174,7 +114,6 @@ def upload_bge_file(request):
                     file_obj = BGExcelFile.objects.create(
                         user=request.user,
                         cargo=cargo_product,
-            
                         title=title,
                         file=excel_file,
                         description=description
@@ -204,356 +143,19 @@ def upload_bge_file(request):
                     logger.error(f"خطا در تغییر نام فایل: {str(rename_error)}")
                     # حتی اگر تغییر نام با خطا مواجه شود، فایل در دیتابیس ذخیره شده است
                 
-                # نگاشت ستون‌ها
-                column_mapping = {
-                    'کد': 'purchase_number',
-                    'کد خرید': 'purchase_number',
-                    'شماره خرید': 'purchase_number',
-                    'شماره خرید بازارگاه': 'purchase_number',
-                    'وزن کل خرید': 'weight',
-                    'قیمت هر واحد': 'company_price',
-                    'شماره پیگیری': 'tracking_number',
-                    'مبلغ پرداختی': 'amount_paid',
-                    'توضیحات': 'description',
-                    'شیوه پرداخت': 'payment_method',
-                    'شناسه تخصیص': 'shenase_takhsis',
-                    'شناسه': 'shenase_takhsis',
-                    'نام خریدار': 'customer_name',
-                    'شماره همراه خریدار': 'customer_phone',
-                    'نوع کاربری خریدار': 'customer_type',
-                    'شهرستان': 'city',
-                    'کد ملی تحویل': 'code_melli_tahvil',
-                    'شماره هماهنگی تحویل': 'tahvil_phone_number',
-                    'آدرس تحویل': 'address',
-                    'آدرس خریدار': 'address'
-                }
-
-                # تمیز کردن نام ستون‌ها
-                df.columns = df.columns.str.strip()
+                # پیام موفقیت
+                messages.success(request, 'فایل با موفقیت آپلود شد. اکنون می‌توانید آن را پردازش کنید.')
+                return redirect('excel_manager:bge_files_list')
                 
-                # نگاشت ستون‌ها
-                df = df.rename(columns=column_mapping)
-                
-                logger.debug(f"ستون‌های شناسایی شده بعد از نگاشت: {df.columns.tolist()}")
-                
-                # متغیرهای ثبت گزارش
-                records_processed = len(df)
-                records_updated = 0
-                records_failed = 0
-                success = True
-                log_messages = []
-                
-                # پردازش و به‌روزرسانی Purchase
-                try:
-                    with transaction.atomic():
-                        for _, row in df.iterrows():
-                            try:
-                                # بررسی وجود کد خرید یا شناسه تخصیص
-                                purchase_number = None
-                                logger.debug(f"بررسی ستون‌های موجود در ردیف: {row.index}")
-                                logger.debug(f"مقادیر ردیف: {row.to_dict()}")
-                                
-                                # بررسی ستون‌های نگاشت شده
-                                if not pd.isna(row.get('purchase_number')):
-                                    purchase_number = str(row['purchase_number']).strip()
-                                    logger.debug(f"شماره خرید از ستون 'purchase_number': {purchase_number}")
-                                elif not pd.isna(row.get('shenase_takhsis')):
-                                    purchase_number = str(row['shenase_takhsis']).strip()
-                                    logger.debug(f"شماره خرید از ستون 'shenase_takhsis': {purchase_number}")
-                                
-                                if not purchase_number:
-                                    logger.error("شماره خرید یا شناسه تخصیص یافت نشد")
-                                    records_failed += 1
-                                    continue
-
-                                # بررسی وجود شماره تلفن
-                                phone_number = None
-                                if 'customer_phone' in row and not pd.isna(row['customer_phone']):
-                                    phone_number = str(row['customer_phone']).strip()
-                                    # حذف صفر ابتدایی و پاکسازی
-                                    phone_number = re.sub(r'\D', '', phone_number)  # حذف همه کاراکترهای غیرعددی
-                                    phone_number = re.sub(r'^0', '', phone_number)  # حذف صفر ابتدایی
-                                    # اطمینان از اینکه 10 رقم است
-                                    if len(phone_number) > 10:
-                                        phone_number = phone_number[-10:]
-                                    logger.debug(f"شماره تلفن: {phone_number}")
-                                
-                                if not phone_number or len(phone_number) != 10:
-                                    logger.error(f"شماره همراه خریدار برای رکورد {purchase_number} معتبر نیست: {phone_number}")
-                                    records_failed += 1
-                                    continue
-                                
-                                # ایجاد/آپدیت مشتری
-                                customer_data = {
-                                    'field_of_activity': 'chicken'  # تنظیم پیش‌فرض به مرغدار
-                                }
-                                
-                                if 'customer_name' in row and not pd.isna(row['customer_name']):
-                                    customer_data['name'] = str(row['customer_name']).strip()
-                                else:
-                                    # نام پیش‌فرض اگر نام خریدار خالی باشد
-                                    customer_data['name'] = "خریدار " + phone_number[-4:]
-                                
-                                if 'city' in row and not pd.isna(row['city']):
-                                    customer_data['city'] = str(row['city']).strip()
-                                
-                                if 'customer_type' in row and not pd.isna(row['customer_type']):
-                                    activity_type = map_activity_type(str(row['customer_type']).strip())
-                                    if activity_type:
-                                        customer_data['field_of_activity'] = activity_type
-                                        logger.debug(f"نوع فعالیت: {activity_type}")
-                                
-                                logger.debug(f"داده‌های مشتری: {customer_data}")
-                                try:
-                                    # ایجاد یا به‌روزرسانی مشتری
-                                    customer, customer_created = Customer.objects.update_or_create(
-                                        phone_number=phone_number,
-                                        defaults=customer_data
-                                    )
-                                    
-                                    logger.debug(f"وضعیت نماینده فروش قبل از اختصاص: {customer.sales_agent.exists()}")
-                                    
-                                    # اختصاص نماینده فروش پیش‌فرض به مشتری در صورت نیاز
-                                    if not customer.sales_agent.exists():
-                                        logger.error(f"تمام تلاش‌ها برای اختصاص نماینده فروش به مشتری با شماره {phone_number} ناموفق بود")
-                                        records_failed += 1
-                                        continue
-                                
-                                except Exception as e:
-                                    logger.error(f"خطا در ایجاد/به‌روزرسانی مشتری: {str(e)}", exc_info=True)
-                                    records_failed += 1
-                                    continue
-
-                                # ایجاد/آپدیت داده‌های خرید - بخش اصلی که باید اصلاح شود
-                                purchase_data = {
-                                    'customer': customer,
-                                    'bazaargah_phone_number': phone_number,
-                                    'type': 'bazaargah'  # تنظیم نوع خرید به بازارگاه
-                                }
-                                
-                                # تنظیم کوتاژ
-                                if bge_file.cargo:
-                                    purchase_data['cargo'] = bge_file.cargo
-
-                                # اضافه کردن وزن با مقدار پیش‌فرض مناسب
-                                if 'weight' in row and not pd.isna(row['weight']):
-                                    try:
-                                        weight = str(row['weight']).strip().replace(',', '')
-                                        purchase_data['weight'] = int(float(weight))
-                                        # اطمینان از اینکه وزن بیشتر از 10 تن است
-                                        if purchase_data['weight'] <= 10000:
-                                            purchase_data['weight'] = 15000
-                                    except Exception as e:
-                                        logger.warning(f"خطا در تبدیل وزن: {str(e)}")
-                                        purchase_data['weight'] = 15000  # مقدار پیش‌فرض برای وزن (بالای 10000)
-                                else:
-                                    purchase_data['weight'] = 15000  # مقدار پیش‌فرض برای وزن
-
-                                # تنظیم قیمت شرکت
-                                if 'company_price' in row and not pd.isna(row['company_price']):
-                                    try:
-                                        price = str(row['company_price']).strip().replace(',', '')
-                                        purchase_data['company_price'] = int(float(price))
-                                        # اطمینان از اینکه قیمت در محدوده مجاز است
-                                        if purchase_data['company_price'] < 50000 or purchase_data['company_price'] > 300000:
-                                            purchase_data['company_price'] = 95000
-                                    except Exception as e:
-                                        logger.warning(f"خطا در تبدیل قیمت شرکت: {str(e)}")
-                                        purchase_data['company_price'] = 95000  # مقدار پیش‌فرض برای قیمت
-                                else:
-                                    purchase_data['company_price'] = 95000  # مقدار پیش‌فرض برای قیمت
-
-                                # تنظیم فی فروش
-                                purchase_data['customer_price'] = purchase_data['company_price']
-                                
-                                # اضافه کردن شماره پیگیری
-                                if 'tracking_number' in row and not pd.isna(row['tracking_number']):
-                                    tracking_number = str(row['tracking_number']).strip()
-                                    # شماره پیگیری باید 6 رقم باشد
-                                    tracking_number = re.sub(r'\D', '', tracking_number)  # حذف کاراکترهای غیرعددی
-                                    if len(tracking_number) > 6:
-                                        tracking_number = tracking_number[:6]
-                                    if len(tracking_number) < 6:
-                                        tracking_number = tracking_number.zfill(6)
-                                    purchase_data['tracking_number'] = tracking_number
-                                
-                                # اضافه کردن مبلغ پرداختی
-                                if 'amount_paid' in row and not pd.isna(row['amount_paid']):
-                                    try:
-                                        amount = str(row['amount_paid']).strip().replace(',', '')
-                                        purchase_data['amount_paid'] = int(float(amount))
-                                    except Exception as e:
-                                        logger.warning(f"خطا در تبدیل مبلغ پرداختی: {str(e)}")
-                                
-                                # اضافه کردن توضیحات
-                                if 'description' in row and not pd.isna(row['description']):
-                                    purchase_data['description'] = str(row['description']).strip()
-                                
-                                # اضافه کردن روش پرداخت
-                                if 'payment_method' in row and not pd.isna(row['payment_method']):
-                                    payment_method = str(row['payment_method']).strip()
-                                    purchase_data['payment_method'] = 'نقدی' if payment_method == 'نقدی' else 'توافقی'
-                                else:
-                                    purchase_data['payment_method'] = 'نقدی'  # مقدار پیش‌فرض
-                                
-                                # اضافه کردن شناسه تخصیص
-                                if 'shenase_takhsis' in row and not pd.isna(row['shenase_takhsis']):
-                                    purchase_data['shenase_takhsis'] = str(row['shenase_takhsis']).strip()
-                                
-                                # اضافه کردن کد ملی تحویل
-                                if 'code_melli_tahvil' in row and not pd.isna(row['code_melli_tahvil']):
-                                    purchase_data['code_melli_tahvil'] = str(row['code_melli_tahvil']).strip()
-                                
-                                # اضافه کردن شماره تماس تحویل
-                                if 'tahvil_phone_number' in row and not pd.isna(row['tahvil_phone_number']):
-                                    purchase_data['tahvil_phone_number'] = str(row['tahvil_phone_number']).strip()
-                                
-                                # اضافه کردن آدرس
-                                if 'address' in row and not pd.isna(row['address']):
-                                    purchase_data['address'] = str(row['address']).strip()
-                                
-                                logger.debug(f"داده‌های خرید آماده شده: {purchase_data}")
-                                
-                                try:
-                                    # بررسی وجود نماینده فروش برای مشتری
-                                    sales_agent = customer.sales_agent.first()
-                                    if not sales_agent:
-                                        logger.error(f"مشتری با شماره {phone_number} هیچ نماینده فروشی ندارد")
-                                        records_failed += 1
-                                        continue
-                                    
-                                    # ابتدا بررسی می‌کنیم آیا خریدی با این شماره وجود دارد
-                                    existing_purchase = Purchase.objects.filter(purchase_number=purchase_number).first()
-                                    
-                                    if existing_purchase:
-                                        # اگر موجود است، فیلدها را به‌روز می‌کنیم
-                                        for key, value in purchase_data.items():
-                                            setattr(existing_purchase, key, value)
-                                        existing_purchase.save()
-                                        logger.debug(f"خرید با شماره {purchase_number} به‌روزرسانی شد با آیدی {existing_purchase.id}")
-                                        # افزایش شمارنده رکوردهای به‌روزرسانی شده
-                                        records_updated += 1
-                                    else:
-                                        # ایجاد آیدی برای خرید جدید
-                                        purchase_id = None
-                                        if sales_agent and sales_agent.factor_code:
-                                            # ایجاد آیدی با استفاده از factor_code نماینده فروش
-                                            factor_code = sales_agent.factor_code
-                                            # بررسی آخرین خرید با این کد فاکتور
-                                            last_purchase = Purchase.objects.filter(id__startswith=factor_code).order_by('-id').first()
-                                            if last_purchase:
-                                                last_serial = str(last_purchase.id)[len(factor_code):]
-                                                # تمیز کردن و استخراج عدد آخرین سریال
-                                                digits_only = ''.join(filter(str.isdigit, last_serial))
-                                                if digits_only:
-                                                    last_serial_number = int(digits_only)
-                                                    new_serial = last_serial_number + 1
-                                                else:
-                                                    new_serial = 1
-                                            else:
-                                                new_serial = 1
-                                            
-                                            purchase_id = f"{factor_code}{str(new_serial).zfill(4)}"
-                                            logger.debug(f"آیدی خرید جدید ایجاد شد: {purchase_id}")
-                                        
-                                        try:
-                                            if purchase_id:
-                                                # ایجاد خرید جدید با آیدی مشخص
-                                                new_purchase = Purchase(
-                                                    id=purchase_id,
-                                                    purchase_number=purchase_number,
-                                                    **purchase_data
-                                                )
-                                                new_purchase.save()
-                                                logger.debug(f"خرید جدید با شماره {purchase_number} و آیدی {purchase_id} ایجاد شد")
-                                            else:
-                                                # در صورت مشکل در ایجاد آیدی، استفاده از روش معمولی
-                                                new_purchase = Purchase.objects.create(
-                                                    purchase_number=purchase_number,
-                                                    **purchase_data
-                                                )
-                                                logger.debug(f"خرید جدید با شماره {purchase_number} ایجاد شد با آیدی سیستمی {new_purchase.id}")
-                                            
-                                            # افزایش شمارنده رکوردهای به‌روزرسانی شده
-                                            records_updated += 1
-                                        except Exception as e:
-                                            logger.error(f"خطا در ایجاد خرید جدید: {str(e)}")
-                                            records_failed += 1
-                                            continue
-                                except Exception as e:
-                                    logger.error(f"خطا در ایجاد/به‌روزرسانی خرید: {str(e)}", exc_info=True)
-                                    records_failed += 1
-                                    continue
-
-                            except Exception as e:
-                                logger.error(f"خطا در پردازش رکورد: {str(e)}", exc_info=True)
-                                records_failed += 1
-            
-                except Exception as e:
-                    logger.error(f"خطا در به‌روزرسانی دیتابیس: {str(e)}", exc_info=True)
-                    log_messages.append(f"خطا در به‌روزرسانی دیتابیس: {str(e)}")
-                    success = False
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': f'خطا در به‌روزرسانی دیتابیس: {str(e)}'
-                    }, status=500)
-            
             except Exception as e:
-                logger.error(f"خطا در خواندن فایل: {str(e)}")
-                return JsonResponse({
-                    'status': 'error',
-                    'message': f'خطا در خواندن فایل: {str(e)}'
-                }, status=500)
-            
-            # بررسی موفقیت خواندن فایل
-            if df is None or len(df) == 0:
-                logger.error("فایل اکسل خالی است یا به درستی خوانده نشده است")
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'فایل اکسل خالی است یا ساختار معتبری ندارد'
-                }, status=400)
-            
-            logger.debug(f"فایل با موفقیت خوانده شد. تعداد سطرها: {len(df)}")
-            logger.debug(f"ستون‌های موجود: {df.columns.tolist()}")
-            
-            # ثبت گزارش پردازش
-            log_message = "\n".join(log_messages)
-            ExcelProcessingLog.objects.create(
-                excel_file=file_obj,
-                processed_by=request.user,
-                success=success,
-                records_processed=records_processed,
-                records_updated=records_updated,
-                records_failed=records_failed,
-                log_message=log_message
-            )
-            
-            return JsonResponse({
-                'status': 'success',
-                'message': 'فایل اکسل بازارگاه با موفقیت پردازش شد',
-                'records_processed': records_processed,
-                'records_updated': records_updated,
-                'records_failed': records_failed
-            })
-            
+                logger.error(f"خطا در آپلود فایل: {str(e)}")
+                messages.error(request, f'خطا در آپلود فایل: {str(e)}')
+                return redirect('excel_manager:upload_bge_file')
+                
         except Exception as e:
-            # ثبت خطا در گزارش
-            logger.error(f"خطا در پردازش فایل: {str(e)}", exc_info=True)
-            
-            ExcelProcessingLog.objects.create(
-                excel_file=file_obj,
-                processed_by=request.user,
-                success=False,
-                records_processed=0,
-                records_updated=0,
-                records_failed=0,
-                log_message=f"خطا در پردازش فایل: {str(e)}"
-            )
-            
-            return JsonResponse({
-                'status': 'error',
-                'message': f'خطا در پردازش فایل: {str(e)}'
-            }, status=500)
+            logger.error(f"خطای کلی در آپلود فایل: {str(e)}")
+            messages.error(request, f'خطای کلی در آپلود فایل: {str(e)}')
+            return redirect('excel_manager:upload_bge_file')
     
     # دریافت لیست محصولات برای انتخاب
     cargo_products = CargoProduct.objects.all().order_by('-cottage')
@@ -730,7 +332,7 @@ def process_bge_file(request, file_id):
                                     default_sales_agent, created = SalesAgent.objects.get_or_create(
                                         user=admin_user,
                                         name="نماینده فروش اضطراری",
-                                        defaults={'factor_code': "ZQ"}
+                                        defaults={'factor_code': "88"}
                                     )
                                     logger.debug(f"نماینده فروش اضطراری {'ایجاد' if created else 'بازیابی'} شد: {default_sales_agent.id}")
                             except Exception as e:
@@ -793,7 +395,7 @@ def process_bge_file(request, file_id):
                                     
                                     # ایجاد/آپدیت مشتری
                                     customer_data = {
-                                        'field_of_activity': 'chicken'  # تنظیم پیش‌فرض به مرغدار
+                                        'field_of_activity': 'chicken'  # تنظیم همه مشتری‌ها به مرغدار
                                     }
                                     
                                     if 'customer_name' in row and not pd.isna(row['customer_name']):
@@ -804,12 +406,6 @@ def process_bge_file(request, file_id):
                                     
                                     if 'city' in row and not pd.isna(row['city']):
                                         customer_data['city'] = str(row['city']).strip()
-                                    
-                                    if 'customer_type' in row and not pd.isna(row['customer_type']):
-                                        activity_type = map_activity_type(str(row['customer_type']).strip())
-                                        if activity_type:
-                                            customer_data['field_of_activity'] = activity_type
-                                            logger.debug(f"نوع فعالیت: {activity_type}")
                                     
                                     logger.debug(f"داده‌های مشتری: {customer_data}")
                                     try:
@@ -825,7 +421,7 @@ def process_bge_file(request, file_id):
                                         if not customer.sales_agent.exists():
                                             logger.error(f"تمام تلاش‌ها برای اختصاص نماینده فروش به مشتری با شماره {phone_number} ناموفق بود")
                                             records_failed += 1
-                                            continue
+                                        continue
                                     
                                     except Exception as e:
                                         logger.error(f"خطا در ایجاد/به‌روزرسانی مشتری: {str(e)}", exc_info=True)
@@ -933,12 +529,6 @@ def search_cargo_products(request):
         })
     
     return JsonResponse({'results': results})
-
-def map_activity_type(activity_type):
-    """نگاشت نوع فعالیت به مقادیر مجاز"""
-    # برگرداندن مقدار پیش‌فرض 'chicken' (مرغدار) برای همه حالت‌ها
-    logger.debug(f"نوع فعالیت دریافتی: '{activity_type}' - استفاده از مقدار پیش‌فرض 'chicken'")
-    return 'chicken'
 
 def get_excel_columns(file_path):
     """نمایش ستون‌های موجود در فایل اکسل"""
