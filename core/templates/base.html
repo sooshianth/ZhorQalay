@@ -32,8 +32,10 @@
     <header>
         <div class="container">
             <div class="header-top">
-                <img src="{% static 'images/3-min.webp' %}" loading="lazy" width='55px' alt="Logo" class="header-logo">
-                <h1>سامانه جامع سیمرغ‌ افزار</h1>
+                <a href="{% url 'home_view' %}">
+                    <img src="{% static 'images/3-min.webp' %}" loading="lazy" width='55px' alt="Logo" class="header-logo">
+                </a>
+                    <h1>سامانه جامع سیمرغ‌ افزار</h1>
                 <div class="mobile-controls">
                     <div class="toggle-container" id="dark-mode-toggle">
                         <span>🌙</span>
@@ -87,7 +89,9 @@
     <footer>
         <div class="footer-container">
             <div class="footer-logo-section">
-                <img src="{% static 'images/3-min.webp' %}" alt="لوگوی شرکت" class="footer-logo" loading="lazy">
+                <a href="{% url 'home_view' %}">
+                    <img src="{% static 'images/3-min.webp' %}" alt="لوگوی شرکت" class="footer-logo" loading="lazy">
+                </a>
             </div>
             
             <div class="footer-content">
@@ -112,7 +116,7 @@
         </div>
         
         <div class="footer-bottom">
-            <p class="copyright">&copy; 1403 • تمامی حقوق برای شرکت تأمین نهاده سیمرغ محفوظ است</p>
+            <p class="copyright"> 1404 - 1403 &copy; تمامی حقوق برای شرکت تأمین نهاده سیمرغ محفوظ است</p>
         </div>
     </footer></body>
 
