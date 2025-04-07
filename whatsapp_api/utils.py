@@ -1,4 +1,6 @@
 from django.template.loader import render_to_string
+from django.db import models
+from django.db.models import F
 from django.utils import timezone
 import pywhatkit as kit
 import time
@@ -6,16 +8,16 @@ from core._models import CargoProduct, Customer
 from .models import WhatsappNumber, WhatsappLog
 
 def generate_message(customer):
-    products = CargoProduct.objects.filter(stock__gt=0)
-    product_list = "\n".join([f"➤ {p.name}: {p.price} تومان" for p in products])
-    message = render_to_string("core/templates/whatsapp_template.txt", {
+    products = CargoProduct.objects.all()
+    product_list = "\n".join([f"➤ {p.product_type}: {p.customer_price} تومان" for p in products])
+    message = render_to_string("whatsapp_api/whatsapp_template.txt", {
         "نام مشتری": customer.name,
         "لیست_کالاها": product_list,
     })
     return message
 
 def send_whatsapp_message(customer):
-    assigned_number = WhatsappNumber.objects.filter(is_active=True, sent_today__lt=models.F('daily_limit')).first()
+    assigned_number = WhatsappNumber.objects.filter(is_active=True, sent_today__lt=F('daily_limit')).first()
     if not assigned_number:
         print("هیچ شماره WhatsApp فعالی با ظرفیت باقی‌مونده وجود ندارد!")
         return False
