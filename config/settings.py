@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from celery.schedules import crontab
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -25,7 +26,8 @@ INSTALLED_APPS = [
     'colorfield',
     'captcha',
     'sms_ir',
-    'admin_interface',
+    'django_celery_beat',
+    'whatsapp_api.apps.WhatsappApiConfig',  
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -173,5 +175,22 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
+    },
+}
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+
+CELERY_BEAT_SCHEDULE = {
+    'send-weekly-whatsapp-messages': {
+        'task': 'sms_api.tasks.send_weekly_whatsapp_messages',
+        'schedule': crontab(day_of_week=1, hour=9, minute=0),  # دوشنبه‌ها ساعت 9
+    },
+    'reset-daily-limits': {
+        'task': 'sms_api.tasks.reset_daily_limits',
+        'schedule': crontab(hour=0, minute=0),  # هر روز نیمه‌شب
     },
 }
