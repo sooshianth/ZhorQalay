@@ -27,6 +27,8 @@
 
 /excel_files
 
+/whatsapp_api/__pycache__
+/whatsapp_api/migrations/__pycache__
 
 /static
 
