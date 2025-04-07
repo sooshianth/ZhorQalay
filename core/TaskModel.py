@@ -29,11 +29,12 @@ class Task(models.Model):
         super().save(*args, **kwargs)
 
         if is_new:
-            # ارسال نوتیفیکیشن به کارشناس فروش
-            Notification.objects.create(
-                user=self.customer.sales_agent.user,  
-                message=f"یک تسک جدید برای مشتری {self.customer.name} ایجاد شد."
-            )
+            for sales_agent in self.customer.sales_agent.all():
+                # ارسال نوتیفیکیشن به کارشناس فروش
+                Notification.objects.create(
+                    user=sales_agent.user,  
+                    message=f"یک تسک جدید برای مشتری {self.customer.name} ایجاد شد."
+                )
     
     def __str__(self):
         return f"{self.customer.name}"

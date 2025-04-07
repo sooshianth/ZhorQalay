@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from .CustomerModel import Customer
 from .CargoProductModel import CargoProduct
+from .SalesAgentModel import SalesAgent
 from sms_api.apis import (
     send_new_purchase_notification, 
     send_payment_confirmation, 
@@ -13,7 +14,8 @@ from sms_api.apis import (
 )
 
 class Purchase(models.Model):
-    id = models.CharField(max_length=20, primary_key=True, editable=False, unique=True)
+    id = models.AutoField(primary_key=True)
+    invoice_id = models.CharField(max_length=20, unique=True, editable=False, blank=True, null=True)
     customer = models.ForeignKey(Customer, on_delete=models.DO_NOTHING, verbose_name="مشتری", help_text="ارتباط یک‌به‌یک با مشتری از طریق شماره تلفن یا آیدی", related_name='purchases_made')
     address = models.TextField("آدرس", blank=True, null=True)
     description = models.TextField("توضیحات", blank=True, null=True)
@@ -264,18 +266,20 @@ class Purchase(models.Model):
     def save(self, *args, **kwargs):
         is_new = not self.pk  # Check if this is a new instance
         
-        if not self.id:
-            if len(self.customer.sales_agent) > 1:
-                factor_code = 88
+        if not self.invoice_id:
+            if len(self.customer.sales_agent.all()) > 1:
+                factor_code = '88'
             else:
-                factor_code = self.customer.sales_agent.factor_code
-            last_purchase = Purchase.objects.filter(id__startswith=factor_code).order_by('-id').first()
+                for sales_agent in SalesAgent.objects.all():
+                    if sales_agent in self.customer.sales_agent.all():
+                        factor_code = sales_agent.factor_code
+            last_purchase = Purchase.objects.filter(invoice_id__startswith=factor_code).order_by('-invoice_id').first()
             if last_purchase:
-                last_serial = str(last_purchase.id)[2:]
+                last_serial = str(last_purchase.invoice_id)[2:]
                 new_serial = int(last_serial) + 1
             else:
                 new_serial = 1
-            self.id = f"{factor_code}{str(new_serial).zfill(4)}"
+            self.invoice_id = f"{factor_code}{str(new_serial).zfill(4)}"
 
         if self.cargo:
             self.type = self.cargo.type

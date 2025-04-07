@@ -52,7 +52,11 @@ class SalesAgent(models.Model):
 
     # فروش‌های احتمالی (کوتاژ ارسال شده هنوز خرید انجام نشده)
     def get_potentional_sales(self):
-        return self.customers.all().purchases_made.all().filter(is_archived=False, is_paid=False)
+        potentional_sales = []
+        customers = self.get_all_customers()
+        for customer in customers:
+            potentional_sales.extend(customer.purchases_made.filter(is_archived=False, is_paid=False))
+        return potentional_sales
     
     # فروش‌های احتمالی و در جریان 
     def get_all_unpaid_sales(self):
@@ -78,7 +82,11 @@ class SalesAgent(models.Model):
 
     # کل پیگیری های روز
     def get_today_tasks(self):
-        return self.customers.all().tasks.all().filter(due_date__date=timezone.now().date())
+        today_tasks = []
+        for customer in self.get_all_customers():
+            today_tasks.extend(customer.tasks.filter(due_date__date=timezone.now().date()))
+        return today_tasks
+
     def get_all_undone_tasks(self):
         undone_tasks = []
         for customer in self.get_all_customers():

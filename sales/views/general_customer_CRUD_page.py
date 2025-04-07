@@ -41,14 +41,15 @@ class CustomerForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         sales_agent = kwargs.pop('sales_agent', None)
         super().__init__(*args, **kwargs)
-        if sales_agent:
-            self.fields['sales_agent'].initial = sales_agent
-            self.fields['sales_agent'].disabled = True
+        
+        # حذف فیلد sales_agent از فرم، چون ما آن را خودمان مدیریت می‌کنیم
+        if 'sales_agent' in self.fields:
+            del self.fields['sales_agent']
 
     class Meta:
         model = Customer
         fields = '__all__'
-        exclude = ['created_at', 'updated_at',  'contact_start_time', 'contact_end_time']
+        exclude = ['created_at', 'updated_at', 'contact_start_time', 'contact_end_time', 'sales_agent']
         widgets = {
             'contact_start_time': forms.TimeInput(attrs={'type': 'time'}),
             'contact_end_time': forms.TimeInput(attrs={'type': 'time'}),
@@ -85,10 +86,13 @@ def customer_search(request):
     
     if query:
         try:
+            # جستجوی کاربران مرتبط با این مدیر فروش
+            sales_agent = SalesAgent.objects.get(user=request.user)
+            # جستجوی مشتریانی که این کارشناس فروش را دارند
             customers = Customer.objects.filter(
                 Q(phone_number__icontains=query) | 
                 Q(name__icontains=query),
-                sales_agent__user=request.user
+                sales_agent=sales_agent
             )[:10]
             
             results = [
@@ -130,11 +134,15 @@ def general_customer_CRUD_view(request):
         if customer:  # Update existing
             form = CustomerForm(request.POST, instance=customer, sales_agent=sales_agent)
         else:  # Create new
-            form = CustomerForm(request.POST, sales_agent=[sales_agent])
+            form = CustomerForm(request.POST, sales_agent=sales_agent)  # طبق ManyToMany باید یک SalesAgent باشد نه لیست
             is_new_customer = True
             
         if form.is_valid():
             saved_customer = form.save()
+            # اگر مشتری جدید ایجاد شده، کارشناس فروش را به آن اضافه می‌کنیم
+            if is_new_customer and sales_agent:
+                saved_customer.sales_agent.add(sales_agent)
+                saved_customer.save()
             msg = "مشتری با موفقیت بروزرسانی شد" if customer else "مشتری جدید ایجاد شد"
             messages.success(request, msg)
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={saved_customer.id}')
@@ -222,26 +230,26 @@ def general_customer_CRUD_view(request):
         cottage_number = request.POST.get('cottage_number')
         weight = request.POST.get('weight')
         
-        try:
-            with transaction.atomic():
-                cargo = CargoProduct.objects.get(cottage=cottage_number) if cottage_number else None
+        # try:
+        with transaction.atomic():
+            cargo = CargoProduct.objects.get(cottage=cottage_number) if cottage_number else None
 
-                new_purchase = Purchase(
-                    customer=customer,
-                    weight=weight,
-                    cargo=cargo
-                )
-                new_purchase.full_clean()
-                new_purchase.save()
-                new_purchase.customer_price = new_purchase.cargo.customer_price
-                new_purchase.company_price = new_purchase.cargo.company_price
-                new_purchase.amount_paid = new_purchase.customer_price * new_purchase.weight
-                new_purchase.save()
-                messages.success(request, "خرید جدید ثبت شد")
-                return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
-        except Exception as e:
-            messages.error(request, f"خطا در خرید: {e}")
+            new_purchase = Purchase(
+                customer=customer,
+                weight=weight,
+                cargo=cargo
+            )
+            new_purchase.full_clean()
+            new_purchase.save()
+            new_purchase.customer_price = new_purchase.cargo.customer_price
+            new_purchase.company_price = new_purchase.cargo.company_price
+            new_purchase.amount_paid = new_purchase.customer_price * new_purchase.weight
+            new_purchase.save()
+            messages.success(request, "خرید جدید ثبت شد")
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
+        # except Exception as e:
+        #     messages.error(request, f"خطا در خرید: {e}")
+        #     return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
     active_products = CargoProduct.get_active_products()
 
     if customer:

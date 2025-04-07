@@ -42,9 +42,9 @@ def send_new_purchase_notification(purchase):
     country = cargo.get_country_display()
     
     message = (
-        f"مشتری گرامی {purchase.customer.number}،\n"
+        f"مشتری گرامی {purchase.customer.phone_number}،\n"
         f"سفارش شما برای {product_name} {country} به وزن {purchase.weight} کیلوگرم "
-        f"با کد درون سازمانی  {purchase.id} ثبت گردید.\n"
+        f"با کد درون سازمانی  {purchase.invoice_id} ثبت گردید.\n"
         f"قیمت هر کیلو: {purchase.customer_price} ریال\n"
         f"شرکت تأمین نهاده سیمرغ"
     )
@@ -63,8 +63,8 @@ def send_payment_confirmation(purchase):
         number = '0' + number
     
     message = (
-        f"مشتری گرامی {purchase.customer.number}،\n"
-        f"پرداخت شما برای سفارش {purchase.id} تأیید شد.\n"
+        f"مشتری گرامی {purchase.customer.phone_number}،\n"
+        f"پرداخت شما برای سفارش {purchase.invoice_id} تأیید شد.\n"
         f"به زودی اطلاعات ارسال برای شما پیامک می‌شود.\n"
         f"شرکت تأمین نهاده سیمرغ"
     )
@@ -83,7 +83,7 @@ def send_address_notification(purchase):
         number = '0' + number
     
     message = (
-        f"مشتری گرامی {purchase.customer.number}،\n"
+        f"مشتری گرامی {purchase.customer.phone_number}،\n"
         f"آدرس ارسال برای سفارش {purchase.purchase_number} به واردکننده ارسال شد.\n"
         f"به زودی شماره بارنامه برای شما پیامک می‌شود.\n"
         f"شرکت تأمین نهاده سیمرغ"
@@ -103,7 +103,7 @@ def send_barnameh_notification(purchase):
         number = '0' + number
     
     message = (
-        f"مشتری گرامی {purchase.customer.number}،\n"
+        f"مشتری گرامی {purchase.customer.phone_number}،\n"
         f"بارنامه برای سفارش {purchase.purchase_number} صادر شد.\n"
         f"به زودی محموله شما ارسال خواهد شد.\n"
         f"شرکت تأمین نهاده سیمرغ"
@@ -123,7 +123,7 @@ def send_extelaf_notification(purchase):
         number = '0' + number
     
     message = (
-        f"مشتری گرامی {purchase.customer.number}،\n"
+        f"مشتری گرامی {purchase.customer.phone_number}،\n"
         f"سفارش {purchase.purchase_number} با اختلاف وزن (سرک) به میزان {purchase.extelaf_weight} کیلوگرم "
         f"تحویل شده است.\n"
         f"مبلغ قابل پرداخت: {purchase.extelaf_amount} ریال\n"
