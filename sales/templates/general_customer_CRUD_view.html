@@ -589,7 +589,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     body {
-        font-family: Tahoma, Arial, sans-serif;
+        font-family: Vazir, sans-serif;
         direction: rtl;
         line-height: 1.6;
     }
@@ -601,49 +601,6 @@ document.addEventListener('DOMContentLoaded', function() {
         padding: 0 15px;
     }
 
-    /* دکمه تغییر حالت دارک مود */
-    .theme-toggle-container {
-        position: fixed;
-        top: 80px;
-        left: 20px;
-        z-index: 999;
-    }
-
-    .toggle-container {
-        display: flex;
-        align-items: center;
-        cursor: pointer;
-        gap: 10px;
-        font-size: 14px;
-        font-weight: bold;
-        background: rgba(255, 255, 255, 0.8);
-        padding: 8px 12px;
-        border-radius: 30px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease;
-    }
-
-    .toggle-switch {
-        width: 50px;
-        height: 25px;
-        background: #ddd;
-        border-radius: 50px;
-        position: relative;
-        transition: background 0.3s;
-    }
-
-    .toggle-circle {
-        width: 20px;
-        height: 20px;
-        background: white;
-        border-radius: 50%;
-        position: absolute;
-        top: 50%;
-        left: 3px;
-        transform: translateY(-50%);
-        transition: left 0.3s ease, background 0.3s;
-    }
-    
     /* استایل‌های دارک مود */
     .dark-mode {
         --primary-color: #1A1F28;
@@ -664,20 +621,6 @@ document.addEventListener('DOMContentLoaded', function() {
         color: var(--text-color);
     }
 
-    .dark-mode .toggle-container {
-        background: rgba(26, 31, 40, 0.8);
-        color: var(--text-color);
-    }
-
-    .dark-mode .toggle-switch {
-        background: var(--button-color);
-    }
-
-    .dark-mode .toggle-circle {
-        left: 27px;
-        background: var(--hover-color);
-    }
-    
     .dark-mode .search-form {
         background: rgba(26, 31, 40, 0.8);
     }
