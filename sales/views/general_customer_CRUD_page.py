@@ -237,13 +237,12 @@ def general_customer_CRUD_view(request):
             new_purchase = Purchase(
                 customer=customer,
                 weight=weight,
-                cargo=cargo
+                cargo=cargo,
+                customer_price=cargo.customer_price,
+                company_price=cargo.company_price,
             )
             new_purchase.full_clean()
             new_purchase.save()
-            new_purchase.customer_price = new_purchase.cargo.customer_price
-            new_purchase.company_price = new_purchase.cargo.company_price
-            new_purchase.amount_paid = new_purchase.customer_price * new_purchase.weight
             new_purchase.save()
             messages.success(request, "خرید جدید ثبت شد")
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')

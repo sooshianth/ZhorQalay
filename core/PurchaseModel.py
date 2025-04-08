@@ -13,6 +13,17 @@ from sms_api.apis import (
     send_extelaf_notification
 )
 
+class ShenaseTakhsis(models.Model):
+    shenase = models.CharField("شناسه تخصیص", max_length=255, unique=True)
+    created_at = jmodels.jDateTimeField("تاریخ ثبت", default=timezone.now)
+    
+    class Meta:
+        verbose_name = "شناسه تخصیص"
+        verbose_name_plural = "شناسه‌های تخصیص"
+    
+    def __str__(self):
+        return self.shenase
+
 class Purchase(models.Model):
     id = models.AutoField(primary_key=True)
     invoice_id = models.CharField(max_length=20, unique=True, editable=False, blank=True, null=True)
@@ -24,7 +35,8 @@ class Purchase(models.Model):
 
     purchase_number = models.CharField("شماره خرید بازارگاه", max_length=255, blank=True, null=True, unique=True)
     tracking_number = models.CharField("شماره پیگیری", max_length=255, blank=True, null=True, unique=True)
-    shenase_takhsis = models.CharField("شناسه تخصیص", max_length=255, blank=True, null=True, unique=True)
+    shenase_takhsis = models.ManyToManyField(ShenaseTakhsis, verbose_name="شناسه‌های تخصیص", blank=True)
+    barbari_number = models.CharField("شماره باربری", max_length=255, blank=True, null=True, unique=True)
     code_melli_tahvil = models.CharField("کد ملی تحویل", max_length=255, blank=True, null=True, unique=True)
     bazaargah_phone_number = models.CharField("شماره تلفن بازارگاه", max_length=255, blank=True, null=True)
     tahvil_phone_number = models.CharField("شماره تلفن تحویل", max_length=255, blank=True, null=True)

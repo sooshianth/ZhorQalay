@@ -7,9 +7,9 @@ linenumber=90008316
 
 
 sms_account = SmsIr(api_key, linenumber)
-def send_instant_sms(number:str, message:str, sms_account=sms_account):
+def send_instant_sms(number:str, message:str, linenumber=linenumber, sms_account=sms_account):
     try:
-        result = sms_account.send_sms(number, message, sms_account.linenumber)
+        result = sms_account.send_sms(number, message, linenumber)
         SmsLog.objects.create(
             recipient_number=number,
             message=message
@@ -42,10 +42,15 @@ def send_new_purchase_notification(purchase):
     country = cargo.get_country_display()
     
     message = (
-        f"مشتری گرامی {purchase.customer.name}،\n"
-        f"سفارش شما برای {product_name} {country} به وزن {purchase.weight} کیلوگرم "
-        f"با کد درون سازمانی  {purchase.invoice_id} ثبت گردید.\n"
-        f"قیمت هر کیلو: {purchase.customer_price} ریال\n"
+        f"اطلاعات محصول درخواستی شما:\n"
+        f"{product_name} {country}\n"
+        f"قیمت هر کیلو: {cargo.customer_price} ریال\n"
+        f"\n"
+        f"کوتاژ: {cargo.cottage}\n"
+        f"\n"
+
+        f"شما درخواست این محصول به وزن {purchase.weight} کیلوگرم و مبلغ کل {cargo.customer_price * purchase.weight} ریال را ثبت کردید.\n"
+        f"وارد سامانه بازارگاه شده و با استفاده از کوتاژ فوق خرید {purchase.payment_method} خود را انجام دهید و سپس رسید را برای کارشناسان ما ارسال کنید\n"
         f"شرکت تأمین نهاده سیمرغ"
     )
     
@@ -64,7 +69,7 @@ def send_payment_confirmation(purchase):
     
     message = (
         f"مشتری گرامی {purchase.customer.phone_number}،\n"
-        f"پرداخت شما برای سفارش {purchase.invoice_id} تأیید شد.\n"
+        f"پرداخت شما برای سفارش {purchase.purchase_number} تأیید شد.\n"
         f"به زودی اطلاعات ارسال برای شما پیامک می‌شود.\n"
         f"شرکت تأمین نهاده سیمرغ"
     )
@@ -83,8 +88,8 @@ def send_address_notification(purchase):
         number = '0' + number
     
     message = (
-        f"مشتری گرامی {purchase.customer.phone_number}،\n"
-        f"آدرس ارسال برای سفارش {purchase.purchase_number} به واردکننده ارسال شد.\n"
+        f"مشتری گرامی \n"
+        f"آدرس ارسال برای سفارش {purchase.purchase_number} به باربری ارسال شد.\n"
         f"به زودی شماره بارنامه برای شما پیامک می‌شود.\n"
         f"شرکت تأمین نهاده سیمرغ"
     )
@@ -102,10 +107,12 @@ def send_barnameh_notification(purchase):
     if not number.startswith('09'):
         number = '0' + number
     
+    shenase_list = "\n".join([s.shenase for s in purchase.shenase_takhsis.all()])
+    
     message = (
-        f"مشتری گرامی {purchase.customer.phone_number}،\n"
+        f"مشتری گرامی\n"
         f"بارنامه برای سفارش {purchase.purchase_number} صادر شد.\n"
-        f" شناسه تخصیص: {purchase.shenase_takhsis}\n"
+        f"شناسه‌های تخصیص:\n{shenase_list}\n"
         f"به زودی محموله شما ارسال خواهد شد.\n"
         f"شرکت تأمین نهاده سیمرغ"
     )
@@ -127,6 +134,7 @@ def send_extelaf_notification(purchase):
         f"مشتری گرامی {purchase.customer.phone_number}،\n"
         f"سفارش {purchase.purchase_number} با اختلاف وزن (سرک) به میزان {purchase.extelaf_weight} کیلوگرم "
         f"تحویل شده است.\n"
+        f"وزن اختلاف: {purchase.extelaf_weight} کیلوگرم\n"
         f"مبلغ قابل پرداخت: {purchase.extelaf_amount} ریال\n"
         f"لطفا نسبت به پرداخت مبلغ اقدام فرمایید.\n"
         f"شرکت تأمین نهاده سیمرغ"

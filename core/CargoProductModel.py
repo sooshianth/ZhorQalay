@@ -50,9 +50,11 @@ class CargoProduct(models.Model):
     loading_time = models.CharField(_('زمان بارگیری'), max_length=50)
     description = models.CharField(_('توضیحات'), max_length=300, null=True, blank=True)
     weight = models.PositiveIntegerField(_('وزن موجود'), )
+    barbari = models.CharField(_('شرکت باربری'), max_length=100, blank=True, null=True)
     created_at = jmodels.jDateTimeField(_('تاریخ ثبت'), auto_now_add=True)
     last_modified = jmodels.jDateTimeField(_('تاریخ آخرین ویرایش'), auto_now=True)
     status = models.BooleanField(_('فعال/غیرفعال'), default=True)
+    
 
     class Meta:
         verbose_name = _('محصول')
