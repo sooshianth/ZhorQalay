@@ -3,7 +3,7 @@ from .models import SmsLog
 
 
 api_key='mbdRODVCB2JHUX5c3IpetXsiDXFIT6bo7JZo0PhiTFWkuIN4'
-linenumber=30000000
+linenumber=90008316
 
 
 sms_account = SmsIr(api_key, linenumber)
@@ -42,7 +42,7 @@ def send_new_purchase_notification(purchase):
     country = cargo.get_country_display()
     
     message = (
-        f"مشتری گرامی {purchase.customer.phone_number}،\n"
+        f"مشتری گرامی {purchase.customer.name}،\n"
         f"سفارش شما برای {product_name} {country} به وزن {purchase.weight} کیلوگرم "
         f"با کد درون سازمانی  {purchase.invoice_id} ثبت گردید.\n"
         f"قیمت هر کیلو: {purchase.customer_price} ریال\n"
@@ -105,6 +105,7 @@ def send_barnameh_notification(purchase):
     message = (
         f"مشتری گرامی {purchase.customer.phone_number}،\n"
         f"بارنامه برای سفارش {purchase.purchase_number} صادر شد.\n"
+        f" شناسه تخصیص: {purchase.shenase_takhsis}\n"
         f"به زودی محموله شما ارسال خواهد شد.\n"
         f"شرکت تأمین نهاده سیمرغ"
     )
