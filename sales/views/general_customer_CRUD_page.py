@@ -49,7 +49,7 @@ class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
         fields = '__all__'
-        exclude = ['created_at', 'updated_at', 'contact_start_time', 'contact_end_time', 'sales_agent']
+        exclude = ['created_at', 'updated_at', 'contact_start_time', 'contact_end_time']
         widgets = {
             'contact_start_time': forms.TimeInput(attrs={'type': 'time'}),
             'contact_end_time': forms.TimeInput(attrs={'type': 'time'}),
