@@ -1,11 +1,14 @@
-from django.shortcuts import redirect, get_object_or_404
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from core._models import Notification
 
 @login_required
-def mark_notification_as_read(request, notif_id):
-    """نوتیفیکیشن موردنظر را به عنوان خوانده‌شده علامت‌گذاری می‌کند."""
-    notif = get_object_or_404(Notification, id=notif_id, user=request.user)
-    notif.is_read = True
-    notif.save()
-    return redirect('sales_agent_profile')  # بعد از تغییر وضعیت، به پروفایل برمی‌گردد
+@require_POST
+def delete_notification(request, notification_id):
+    try:
+        notification = Notification.objects.get(id=notification_id, user=request.user)
+        notification.delete()
+        return JsonResponse({'status': 'success'})
+    except Notification.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Notification not found'}, status=404)

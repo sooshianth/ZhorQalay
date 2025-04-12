@@ -27,10 +27,13 @@
         </div>
     </div>
 
-    <!-- نمودار فروش 6 ماه گذشته -->
-    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
-        <h2 class="text-xl font-semibold text-gray-800 mb-4">فروش ۶ ماه گذشته (کیلوگرم)</h2>
-        <canvas id="salesChart" class="w-full h-64"></canvas>
+    <div class="dashboard-actions">
+        <button id="addWidgetBtn" class="button">+ افزودن ویجت</button>
+        <button id="resetLayoutBtn" class="button">بازنشانی چیدمان</button>
+    </div>
+    
+    <div class="dashboard-grid" id="dashboardGrid">
+        <!-- ویجت‌ها به صورت داینامیک اضافه می‌شوند -->
     </div>
 
     <div class="bg-white p-6 rounded-lg shadow-md text-center">
@@ -183,5 +186,134 @@ new Chart(ctx, {
             }).addTo(map);
         })
         .catch(error => console.error("خطا در بارگذاری GeoJSON:", error));
+</script>
+
+<script>
+    // لیست ویجت‌های موجود
+    const availableWidgets = [
+        {
+            id: 'salesChart',
+            title: 'نمودار فروش',
+            content: '<canvas id="salesChart"></canvas>'
+        },
+        {
+            id: 'customerStats',
+            title: 'آمار مشتریان',
+            content: '<div class="customer-stats"></div>'
+        },
+        // ویجت‌های دیگر...
+    ];
+    
+    // بارگذاری چیدمان از localStorage
+    function loadLayout() {
+        const savedLayout = JSON.parse(localStorage.getItem('dashboardLayout')) || [];
+        const grid = document.getElementById('dashboardGrid');
+        grid.innerHTML = '';
+        
+        savedLayout.forEach(widgetId => {
+            const widget = availableWidgets.find(w => w.id === widgetId);
+            if (widget) {
+                addWidgetToGrid(widget);
+            }
+        });
+    }
+    
+    // ذخیره چیدمان در localStorage
+    function saveLayout() {
+        const widgetIds = Array.from(document.querySelectorAll('.widget'))
+            .map(w => w.dataset.widgetId);
+        localStorage.setItem('dashboardLayout', JSON.stringify(widgetIds));
+    }
+    
+    // اضافه کردن ویجت جدید
+    function addWidgetToGrid(widgetConfig) {
+        const widgetHTML = `
+            <div class="widget" data-widget-id="${widgetConfig.id}">
+                <div class="widget-header">
+                    <h3>${widgetConfig.title}</h3>
+                    <button class="widget-close">&times;</button>
+                </div>
+                <div class="widget-content">${widgetConfig.content}</div>
+            </div>
+        `;
+        
+        document.getElementById('dashboardGrid').insertAdjacentHTML('beforeend', widgetHTML);
+        initWidget(document.querySelector(`[data-widget-id="${widgetConfig.id}"]`));
+    }
+    
+    // فعال کردن drag و drop
+    function initWidget(widget) {
+        widget.draggable = true;
+        
+        widget.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', widget.dataset.widgetId);
+            widget.classList.add('dragging');
+        });
+        
+        widget.addEventListener('dragend', () => {
+            widget.classList.remove('dragging');
+            saveLayout();
+        });
+        
+        widget.querySelector('.widget-close').addEventListener('click', () => {
+            widget.remove();
+            saveLayout();
+        });
+    }
+    
+    // رویدادهای کلیک برای دکمه‌ها
+    document.getElementById('addWidgetBtn').addEventListener('click', () => {
+        // نمایش لیست ویجت‌های موجود برای انتخاب
+        // (پیاده‌سازی این بخش بستگی به UI شما دارد)
+    });
+    
+    document.getElementById('resetLayoutBtn').addEventListener('click', () => {
+        if (confirm('آیا از بازنشانی چیدمان داشبورد مطمئن هستید؟')) {
+            localStorage.removeItem('dashboardLayout');
+            loadDefaultLayout();
+        }
+    });
+    
+    // بارگذاری اولیه
+    document.addEventListener('DOMContentLoaded', () => {
+        if (document.getElementById('dashboardGrid')) {
+            loadLayout();
+            
+            // اگر چیدمانی ذخیره نشده بود، چیدمان پیش‌فرض را بارگذاری کن
+            if (!localStorage.getItem('dashboardLayout')) {
+                loadDefaultLayout();
+            }
+        }
+    });
+    </script>
+
+<script>
+    // تابع نمایش اسکلتون
+function showSkeleton(element) {
+    element.classList.add('skeleton-loading');
+    element.innerHTML = '';
+}
+
+// تابع مخفی کردن اسکلتون
+function hideSkeleton(element, content) {
+    element.classList.remove('skeleton-loading');
+    element.innerHTML = content;
+}
+
+// مثال استفاده:
+const taskList = document.querySelector('.task-list');
+showSkeleton(taskList);
+
+// بعد از دریافت داده از سرور
+fetch('/api/tasks/')
+    .then(response => response.json())
+    .then(data => {
+        const content = data.map(task => `
+            <li class="task-item">
+                ${task.description}
+            </li>
+        `).join('');
+        hideSkeleton(taskList, content);
+    });
 </script>
 {% endblock %}

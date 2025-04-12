@@ -15,10 +15,10 @@ urlpatterns = [
     path('login/', sales_agent_login.sales_agent_login_view, name='sales_agent_login'),
     path('cargo_products/', cargo_product_view.cargo_product_list, name='cargo_product_list'),
     path('logout/', sales_agent_logout.logout_view, name='logout'),
-    path("mark-notification/<int:notif_id>/", mark_notification_read.mark_notification_as_read, name="mark_notification_as_read"),
     path('get-related-products/', general_customer_CRUD_page.get_related_products, name='get_related_products'),
     path('dashboard/', sales_dashboard_view.sales_dashboard_view, name='sales_dashboard'),
     path('export_customers/', sales_agent_profile_view.export_customers_to_excel, name='export_customers'),
     path('predict-next-purchase/', general_customer_CRUD_page.predict_next_purchase, name='predict_next_purchase'),
+    path('notifications/delete/<int:notification_id>/', mark_notification_read.delete_notification, name='delete_notification'),
     path('captcha/', include('captcha.urls')), 
 ]

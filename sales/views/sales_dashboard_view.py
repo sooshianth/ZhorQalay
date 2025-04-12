@@ -31,6 +31,63 @@ def find_province_by_city(target_city):
     print(f"شهر {target_city} یافت نشد.")
     return None
 
+import numpy as np
+from sklearn.ensemble import RandomForestRegressor
+from django.core.cache import cache
+import logging
+
+def calculate_ml_prediction(sales_agent, monthly_sales):
+    # کش برای کاهش بار محاسباتی
+    cache_key = f"sales_pred_{sales_agent.id}_{monthly_sales[-1]['month']}"
+    cached_pred = cache.get(cache_key)
+    if cached_pred:
+        return cached_pred
+    
+    try:
+        # آماده‌سازی داده‌های آموزشی
+        X = []
+        y = []
+        
+        # ساخت ویژگی‌های مبتنی بر توالی زمانی
+        for i in range(1, len(monthly_sales)):
+            prev_month = monthly_sales[i-1]
+            current_month = monthly_sales[i]
+            
+            # ویژگی‌ها: ماه قبل، میانگین متحرک ۳ ماهه، روند
+            features = [
+                prev_month['sales'],  # فروش ماه قبل
+                np.mean([m['sales'] for m in monthly_sales[max(0,i-3):i]]),  # میانگین ۳ ماهه
+                i  # روند زمانی
+            ]
+            
+            X.append(features)
+            y.append(current_month['sales'])
+        
+        if len(X) < 3:
+            raise ValueError("داده کافی برای آموزش مدل وجود ندارد")
+        
+        # آموزش مدل جنگل تصادفی
+        model = RandomForestRegressor(n_estimators=100, random_state=42)
+        model.fit(X, y)
+        
+        # پیش‌بینی برای ماه بعد
+        last_month_features = [
+            monthly_sales[-1]['sales'],  # آخرین فروش
+            np.mean([m['sales'] for m in monthly_sales[-3:]]),  # میانگین ۳ ماه آخر
+            len(monthly_sales)  # ادامه روند
+        ]
+        
+        prediction = model.predict([last_month_features])[0]
+        
+        # ذخیره در کش به مدت ۱ هفته
+        cache.set(cache_key, prediction, 604800)
+        return prediction
+        
+    except Exception as e:
+        logger.error(f"خطا در پیش‌بینی هوش مصنوعی: {str(e)}")
+        # فال‌بک به میانگین ساده در صورت خطا
+        return np.mean([m['sales'] for m in monthly_sales]) if monthly_sales else 0
+
 @login_required
 def sales_dashboard_view(request):
     if not hasattr(request.user, 'sales_agent'):
@@ -61,8 +118,8 @@ def sales_dashboard_view(request):
 
     # پیش‌بینی فروش ماه بعد (میانگین 6 ماه گذشته)
     total_sales = sum(m['sales'] for m in monthly_sales)
-    sales_prediction = total_sales / len(monthly_sales) if monthly_sales else 0
-
+    sales_prediction = calculate_ml_prediction(sales_agent, monthly_sales)
+    
     # تعداد مشتریان جدید این ماه
     new_customers_this_month = Customer.objects.filter(
         sales_agent=sales_agent,

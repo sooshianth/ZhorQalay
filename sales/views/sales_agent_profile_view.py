@@ -3,6 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
+from datetime import timedelta
 from django.db.models import Q
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
@@ -120,31 +121,54 @@ def customer_list_view(request):
 
     customers = sales_agent.get_all_customers()
 
-    # فیلتر جستجو
-    if search_query:
-        customers = customers.filter(Q(name__icontains=search_query) | Q(phone_number__icontains=search_query))
-
-    # فیلتر شهر
+    city_filter = request.GET.getlist('city', [])
+    activity_filter = request.GET.getlist('activity', [])
+    min_purchases = request.GET.get('min_purchases', 0)
+    last_purchase_days = request.GET.get('last_purchase_days', 0)
+    
+    # ساخت کوئری‌ست پایه
+    customers = sales_agent.get_all_customers()
+    
+    # ساخت Q objects برای فیلترها
+    q_objects = Q()
+    
+    # فیلتر شهرها
     if city_filter:
-        customers = customers.filter(city__icontains=city_filter)
-
-    # فیلتر حیطه فعالیت
+        q_objects &= Q(city__in=city_filter)
+    
+    # فیلتر حوزه فعالیت
     if activity_filter:
-        customers = customers.filter(field_of_activity=activity_filter)
+        q_objects &= Q(field_of_activity__in=activity_filter)
+    
+    # فیلتر حداقل تعداد خریدها
+    if min_purchases:
+        customers = customers.annotate(
+            total_purchases=Count('purchases_made')
+        ).filter(total_purchases__gte=int(min_purchases))
+    
+    # فیلتر آخرین خرید در X روز گذشته
+    if last_purchase_days:
+        date_threshold = timezone.now() - timedelta(days=int(last_purchase_days))
+        customers = customers.filter(
+            purchases_made__created_at__gte=date_threshold
+        ).distinct()
+    
+    # اعمال فیلترهای ترکیبی
+    customers = customers.filter(q_objects)
+    
+    # مرتب‌سازی پیشرفته
+    SORT_MAP = {
+        'name_asc': 'name',
+        'name_desc': '-name',
+        'purchases_asc': 'total_purchases',
+        'purchases_desc': '-total_purchases',
+        'last_purchase_asc': 'last_purchase_date',
+        'last_purchase_desc': '-last_purchase_date'
+    }
+    
+    sort_key = request.GET.get('sort', 'name_asc')
+    sort_field = SORT_MAP.get(sort_key, 'name')
 
-    # فیلتر بر اساس خرید
-    if purchase_filter == 'has_purchase':
-        customers = customers.filter(purchases_made__created_at__month=timezone.now().month).distinct()
-    elif purchase_filter == 'no_purchase':
-        customers = customers.exclude(purchases_made__created_at__month=timezone.now().month).distinct()
-
-    # مرتب‌سازی
-    if sort_by == 'name':
-        customers = customers.order_by('name' if order == 'asc' else '-name')
-    elif sort_by == 'phone':
-        customers = customers.order_by('phone_number' if order == 'asc' else '-phone_number')
-    elif sort_by == 'city':
-        customers = customers.order_by('city' if order == 'asc' else '-city')
 
     # تعداد خریدهای هر مشتری این ماه
     from django.db.models import Count
