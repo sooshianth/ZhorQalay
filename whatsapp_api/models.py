@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 class WhatsappLog(models.Model):
     recipient_number = models.CharField(max_length=20)
@@ -20,6 +21,24 @@ class WhatsappNumber(models.Model):
     sent_today = models.IntegerField(default=0)
     messages_sent = models.PositiveIntegerField(default=0)
     description = models.CharField(max_length=100, blank=True, null=True)
+    priority = models.IntegerField(default=1, help_text="اولویت استفاده از این شماره (اعداد کمتر اولویت بالاتر دارند)")
+    working_days = models.CharField(
+        max_length=13, 
+        default="1,2,3,4,5,6,7",
+        help_text="روزهای فعال هفته (1-7 که 1=شنبه و 7=جمعه است) به صورت کاما جدا شده"
+    )
+    chrome_profile = models.CharField(
+        max_length=50,
+        default='Default',
+        help_text="نام پروفایل کروم مربوط به این شماره (مثال: Profile 1, Profile 2)"
+    )
+    
+    def is_available_today(self):
+        today = timezone.now().isoweekday()
+        return str(today) in self.working_days.split(',')
+    
+    def can_send_more(self):
+        return self.is_active and self.is_available_today() and self.sent_today < self.daily_limit
 
     def __str__(self):
         return self.phone_number

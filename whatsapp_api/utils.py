@@ -31,10 +31,19 @@ from selenium.webdriver.common.keys import Keys
 from webdriver_manager.chrome import ChromeDriverManager
 import time
 
+def get_available_number():
+    # اول شماره‌هایی که امروز فعال هستند و ظرفیت دارند را با اولویت بالاتر انتخاب می‌کنیم
+    return WhatsappNumber.objects.filter(
+        is_active=True,
+        sent_today__lt=F('daily_limit')
+    ).filter(
+        working_days__contains=str(timezone.now().isoweekday())
+    ).order_by('priority', 'sent_today').first()
+
 def send_whatsapp_message(customer):
-    assigned_number = WhatsappNumber.objects.filter(is_active=True, sent_today__lt=F('daily_limit')).first()
+    assigned_number = get_available_number()
     if not assigned_number:
-        print("هیچ شماره WhatsApp فعالی با ظرفیت باقی‌مونده وجود ندارد!")
+        print("هیچ شماره WhatsApp فعالی با ظرفیت باقی‌مونده برای امروز وجود ندارد!")
         return False
 
     message = generate_message(customer)
@@ -44,7 +53,7 @@ def send_whatsapp_message(customer):
         # تنظیمات کروم با پروفایل
         options = webdriver.ChromeOptions()
         options.add_argument(r"--user-data-dir=C:\Users\Asus\AppData\Local\Google\Chrome\User Data")
-        options.add_argument(r"--profile-directory=Profile 4")
+        options.add_argument(rf"--profile-directory={assigned_number.chrome_profile}")  # استفاده از پروفایل متناسب با شماره
         
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
@@ -79,8 +88,8 @@ def send_whatsapp_message(customer):
             message=message,
             sent_from=assigned_number
         )
-        assigned_number.sent_today += 1
-        assigned_number.messages_sent += 1
+        assigned_number.sent_today = F('sent_today') + 1
+        assigned_number.messages_sent = F('messages_sent') + 1
         assigned_number.save()
 
         driver.quit()
