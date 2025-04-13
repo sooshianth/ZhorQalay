@@ -1,12 +1,13 @@
-# whatsapp_api/views.py
-from django.http import JsonResponse
+from django.http import HttpResponse
 from core._models import Customer
-from .utils import send_whatsapp_message
+from whatsapp_api.utils import send_whatsapp_message
 
-def send_message_to_customer(request, customer_id):
-    try:
-        customer = Customer.objects.get(id=customer_id)
+def test_whatsapp_sending(request):
+    results = []
+    customers = Customer.objects.filter(whatsapp_preference=True)[:10]  # 10 مشتری اول
+    
+    for customer in customers:
         success = send_whatsapp_message(customer)
-        return JsonResponse({"status": "success" if success else "failed"})
-    except Customer.DoesNotExist:
-        return JsonResponse({"status": "not found"})
+        results.append(f"{customer.phone_number}: {'✅ موفق' if success else '❌ ناموفق'}")
+    
+    return HttpResponse("<br>".join(results))

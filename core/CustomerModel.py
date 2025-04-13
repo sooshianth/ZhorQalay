@@ -19,7 +19,7 @@ class Customer(models.Model):
     sales_agent = models.ManyToManyField(SalesAgent, verbose_name=_("کارشناسان فروش"), blank=True, related_name='customers')
     name = models.CharField(_("نام"), max_length=100, null=True, blank=True)
     city = models.CharField(_("شهر"), max_length=100, null=True, blank=True)
-    whatsapp_preference = models.BooleanField(_("WhatsApp Preference"), default=True, help_text=_("تمایل به دریافت پیام واتساپ دارد؟"))
+    whatsapp_preference = models.BooleanField(_("WhatsApp Preference"), default=False, help_text=_("تمایل به دریافت پیام واتساپ دارد؟"))
     field_of_activity = models.CharField(_("حیطه فعالیت"), max_length=255, blank=True, null=True,
         choices=FIELD_OF_ACTIVITY
     )

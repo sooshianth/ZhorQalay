@@ -183,14 +183,3 @@ CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
-
-CELERY_BEAT_SCHEDULE = {
-    'send-weekly-whatsapp-messages': {
-        'task': 'sms_api.tasks.send_weekly_whatsapp_messages',
-        'schedule': crontab(day_of_week=1, hour=9, minute=0),  # دوشنبه‌ها ساعت 9
-    },
-    'reset-daily-limits': {
-        'task': 'sms_api.tasks.reset_daily_limits',
-        'schedule': crontab(hour=0, minute=0),  # هر روز نیمه‌شب
-    },
-}

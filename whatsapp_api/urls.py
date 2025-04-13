@@ -1,6 +1,6 @@
 from django.urls import path
-from . import views
+from .views import test_whatsapp_sending
 
 urlpatterns = [
-    path("send/<int:customer_id>/", views.send_message_to_customer),
+    path('test-whatsapp/', test_whatsapp_sending),
 ]
