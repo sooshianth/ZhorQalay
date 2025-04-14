@@ -24,6 +24,7 @@
 
 /sms_api/__pycache__
 /sms_api/migrations/__pycache__
+/sms_api/management/__pycache__
 
 /excel_files
 

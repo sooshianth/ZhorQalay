@@ -46,18 +46,15 @@ class RoleBasedPurchaseForm(forms.ModelForm):
             if field not in allowed_fields:
                 del self.fields[field]
         if self.instance.type == 'non_bazaargah':
-            del self.fields['purchase_number']
-            del self.fields['tracking_number']
+            if 'purchase_number' in self.fields:
+                del self.fields['purchase_number']
+            if 'tracking_number' in self.fields:
+                del self.fields['tracking_number']
+                
     def clean(self):
         cleaned_data = super().clean()
-        instance = self.instance
-        try:
-            instance.clean()
-        except ValidationError as e:
-            for field, errors in e.message_dict.items():
-                for error in errors:
-                    self.add_error(field, error)
-            raise ValidationError("خطا در اعتبارسنجی مدل")
+        # We'll let the model validation happen only during save
+        # This prevents duplicate validation errors
         return cleaned_data
 
 @login_required
@@ -96,43 +93,73 @@ def purchase_CRUD_view(request, purchase_id):
                     original_obj = Purchase.objects.get(id=purchase_id)
                     changed_fields = []
                     
-                    if 'approve_bazaargah' in request.POST:
-                        purchase.check_is_bazaaragahed(user_role)
-                    elif 'approve_payment' in request.POST:
-                        purchase.check_is_paid(user_role)
-                    elif 'approve_allocation' in request.POST:
-                        purchase.check_is_takhsised(user_role)
-                    elif 'approve_allocation_approval' in request.POST:
-                        purchase.check_is_takhsised_approved(user_role)
-                    elif 'approve_tasvied_with_vared_konandeh' in request.POST:
-                        purchase.check_is_tasvied_with_varedkonandeh(user_role)
-                    elif 'approve_address' in request.POST:
-                        purchase.check_is_address_sent_to_varedkonandeh(user_role)
-                    elif 'approve_sent_to_barbari' in request.POST:
-                        purchase.check_is_sent_to_barbari(user_role)
-                    elif 'approve_barnamed' in request.POST:
-                        purchase.check_is_barnamed(user_role)
-                    elif 'approve_factor' in request.POST:
-                        purchase.check_is_factorated(user_role)
-                    elif 'approve_ekhtelaf' in request.POST:
-                        purchase.check_is_ekhtelaf_approved(user_role)
-                    elif 'approve_kasri' in request.POST:
-                        purchase.check_is_kasri_varized(user_role)
-                    elif 'approve_sarak' in request.POST:
-                        purchase.check_is_sarak_varized(user_role)
-                    elif 'approve_kasri_reciept' in request.POST:
-                        purchase.check_is_kasri_reciept_submited(user_role)
-                    elif 'approve_salesman' in request.POST:
-                        purchase.check_does_salesman_approve(user_role)
-                    elif 'approve_logistics' in request.POST:
-                        purchase.check_does_logistics_approve(user_role)
-                    elif 'approve_financial' in request.POST:
-                        purchase.check_does_financial_approve(user_role)
+                    # Process role-based actions/approvals
+                    action_taken = False
+                    try:
+                        if 'approve_bazaargah' in request.POST:
+                            purchase.check_is_bazaaragahed(user_role)
+                            action_taken = True
+                        elif 'approve_payment' in request.POST:
+                            purchase.check_is_paid(user_role)
+                            action_taken = True
+                        elif 'approve_allocation' in request.POST:
+                            purchase.check_is_takhsised(user_role)
+                            action_taken = True
+                        elif 'approve_allocation_approval' in request.POST:
+                            purchase.check_is_takhsised_approved(user_role)
+                            action_taken = True
+                        elif 'approve_tasvied_with_vared_konandeh' in request.POST:
+                            purchase.check_is_tasvied_with_varedkonandeh(user_role)
+                            action_taken = True
+                        elif 'approve_address' in request.POST:
+                            purchase.check_is_address_sent_to_varedkonandeh(user_role)
+                            action_taken = True
+                        elif 'approve_sent_to_barbari' in request.POST:
+                            purchase.check_is_sent_to_barbari(user_role)
+                            action_taken = True
+                        elif 'approve_barnamed' in request.POST:
+                            purchase.check_is_barnamed(user_role)
+                            action_taken = True
+                        elif 'approve_factor' in request.POST:
+                            purchase.check_is_factorated(user_role)
+                            action_taken = True
+                        elif 'approve_ekhtelaf' in request.POST:
+                            purchase.check_is_ekhtelaf_approved(user_role)
+                            action_taken = True
+                        elif 'approve_kasri' in request.POST:
+                            purchase.check_is_kasri_varized(user_role)
+                            action_taken = True
+                        elif 'approve_sarak' in request.POST:
+                            purchase.check_is_sarak_varized(user_role)
+                            action_taken = True
+                        elif 'approve_kasri_reciept' in request.POST:
+                            purchase.check_is_kasri_reciept_submited(user_role)
+                            action_taken = True
+                        elif 'approve_salesman' in request.POST:
+                            purchase.check_does_salesman_approve(user_role)
+                            action_taken = True
+                        elif 'approve_logistics' in request.POST:
+                            purchase.check_does_logistics_approve(user_role)
+                            action_taken = True
+                        elif 'approve_financial' in request.POST:
+                            purchase.check_does_financial_approve(user_role)
+                            action_taken = True
+                    except ValidationError as action_error:
+                        # Display the validation error as a user-friendly message
+                        if hasattr(action_error, 'message'):
+                            messages.error(request, action_error.message)
+                        else:
+                            for field, errors in action_error.message_dict.items():
+                                for error in errors:
+                                    messages.error(request, error)
+                        return redirect('purchase_CRUD', purchase_id=purchase_id)
                     
-                    for field in form.changed_data:
-                        old_value = getattr(original_obj, field)
-                        new_value = form.cleaned_data.get(field)
-                        changed_fields.append(f"{field}: {old_value} → {new_value}")
+                    # Handle form changes only if no action button was pressed or if action was successful
+                    if not action_taken or (action_taken and request.POST.get('save_changes')):
+                        for field in form.changed_data:
+                            old_value = getattr(original_obj, field)
+                            new_value = form.cleaned_data.get(field)
+                            changed_fields.append(f"{field}: {old_value} → {new_value}")
                     
                     form.save()
                     if changed_fields:
@@ -145,14 +172,19 @@ def purchase_CRUD_view(request, purchase_id):
                     messages.success(request, 'تغییرات با موفقیت اعمال شد')
                     return redirect('purchase_CRUD', purchase_id=purchase_id)
             except ValidationError as e:
-                for field, errors in e.message_dict.items():
-                    for error in errors:
-                        form.add_error(field, error)
-                messages.error(request, 'خطا: ' + str(e))
+                # Handle form validation errors
+                if hasattr(e, 'message'):
+                    messages.error(request, e.message)
+                else:
+                    for field, errors in e.message_dict.items():
+                        for error in errors:
+                            messages.error(request, error)
             except Exception as e:
                 messages.error(request, f'خطا: {str(e)}')
         else:
-            messages.error(request, 'لطفاً خطاهای فرم را برطرف کنید.')
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
 
     else:
         form = RoleBasedPurchaseForm(instance=purchase, user_role=user_role)

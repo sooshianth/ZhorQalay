@@ -5,6 +5,17 @@
 
 {% load custom_filters %}
 
+<!-- Display error and success messages in a styled box -->
+{% if messages %}
+<div class="messages-container">
+    {% for message in messages %}
+    <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
+        <i class="{% if message.tags == 'success' %}fas fa-check-circle{% else %}fas fa-exclamation-triangle{% endif %}"></i>
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 
 <!-- ✅ تایم‌لاین مراحل خرید -->
 <div class="timeline">
@@ -145,12 +156,6 @@ data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else 
 </div>
 {% endfor %}
 </div>
-
-{% if messages %}
-{% for message in messages %}
-<p style="color: red;">{{ message }}</p>
-{% endfor %}
-{% endif %}
 
 <!-- دکمه‌های کنترلی براساس نقش کاربر -->
 <div class="form-actions">
@@ -876,6 +881,71 @@ background-color:rgb(12, 63, 38);
   .delete-form {
     margin-bottom: 15px;
   }
+}
+
+/* Message styles */
+.messages-container {
+    margin: 10px 0 20px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.message {
+    padding: 12px 15px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.message i {
+    margin-left: 10px;
+    font-size: 18px;
+}
+
+.message.success {
+    background-color: rgba(39, 174, 96, 0.1);
+    color: #27ae60;
+    border-right: 4px solid #27ae60;
+}
+
+.message.error {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+    border-right: 4px solid #e74c3c;
+}
+
+.message.info {
+    background-color: rgba(52, 152, 219, 0.1);
+    color: #3498db;
+    border-right: 4px solid #3498db;
+}
+
+.message.warning {
+    background-color: rgba(243, 156, 18, 0.1);
+    color: #f39c12;
+    border-right: 4px solid #f39c12;
+}
+
+/* Dark mode support for messages */
+.dark-mode .message.success {
+    background-color: rgba(39, 174, 96, 0.2);
+    color: #2ecc71;
+}
+
+.dark-mode .message.error {
+    background-color: rgba(231, 76, 60, 0.2);
+    color: #ff6b6b;
+}
+
+.dark-mode .message.info {
+    background-color: rgba(52, 152, 219, 0.2);
+    color: #74b9ff;
+}
+
+.dark-mode .message.warning {
+    background-color: rgba(243, 156, 18, 0.2);
+    color: #feca57;
 }
 </style>
 

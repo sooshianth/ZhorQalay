@@ -5,6 +5,7 @@ from django.utils import timezone
 from .CustomerModel import Customer
 from .CargoProductModel import CargoProduct
 from .SalesAgentModel import SalesAgent
+from django.contrib import messages
 from sms_api.apis import (
     send_new_purchase_notification, 
     send_payment_confirmation, 
@@ -22,20 +23,20 @@ class Purchase(models.Model):
     company_price = models.PositiveIntegerField("فی خرید(ریال)", default=0)
     customer_price = models.PositiveIntegerField("فی فروش(ریال)", default=0)
 
-    purchase_number = models.CharField("شماره خرید بازارگاه", max_length=255, blank=True, null=True, unique=True)
-    tracking_number = models.CharField("شماره پیگیری", max_length=255, blank=True, null=True, unique=True)
+    purchase_number = models.CharField("شماره خرید بازارگاه", max_length=7, blank=True, null=True, unique=True)
+    tracking_number = models.CharField("شماره پیگیری", max_length=6, blank=True, null=True, unique=True)
     shenase_takhsis = models.CharField("شناسه تخصیص", max_length=255, blank=True, null=True, unique=True)
     code_melli_tahvil = models.CharField("کد ملی تحویل", max_length=255, blank=True, null=True, unique=True)
-    bazaargah_phone_number = models.CharField("شماره تلفن بازارگاه", max_length=255, blank=True, null=True)
-    tahvil_phone_number = models.CharField("شماره تلفن تحویل", max_length=255, blank=True, null=True)
+    bazaargah_phone_number = models.CharField("شماره تلفن بازارگاه", max_length=11, blank=True, null=True)
+    tahvil_phone_number = models.CharField("شماره تلفن تحویل", max_length=11, blank=True, null=True)
 
     weight = models.PositiveIntegerField("وزن (کیلوگرم)", default=0)
     cargo = models.ForeignKey(CargoProduct,on_delete=models.SET_NULL, verbose_name="کوتاژ", null=True, blank=True, related_name='purchases')
     type = models.CharField("نوع خرید", max_length=25, default='bazaargah')
     amount_paid = models.PositiveBigIntegerField("مبلغ پرداختی(ریال)", blank=True, null=True)
     payment_method = models.CharField("شیوۀ پرداخت", max_length=6, choices=[('نقدی', 'نقدی'), ('توافقی', 'توافقی')], default="نقدی")
-    created_at = jmodels.jDateTimeField("تاریخ ثبت",default=timezone.now,editable=True)
-    updated_at  = jmodels.jDateTimeField("تاریخ بروزرسانی",auto_now=True)
+    created_at = jmodels.jDateTimeField("تاریخ ثبت", default=timezone.now)
+    updated_at  = jmodels.jDateTimeField("تاریخ بروزرسانی", auto_now=True, blank=True, null=True)
     is_weight_costed = models.BooleanField("آیا وزن خرید از وزن موجود محصول کاسته شده است؟", default=False)
     is_ap_af = models.BooleanField("آیا مبلغ خرید اتوکامپلیت شده است؟", default=False)
     extelaf_type = models.CharField("نوع اختلاف (کسری یا سرک)", max_length=4, choices=[('کسری', 'کسری'), ('سرک', 'سرک')], null=True, blank=True)
@@ -103,7 +104,7 @@ class Purchase(models.Model):
                 # Send SMS notification for payment confirmation
                 send_payment_confirmation(self)
             else:
-                raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+                raise ValidationError('مبلغ هنوز وارد نشده است')
         else:
             if user_role == 'financial_manager' and (type(self.amount_paid) == int and self.amount_paid > 10000000):
                 self.is_paid = True
@@ -114,7 +115,7 @@ class Purchase(models.Model):
                 # Send SMS notification for payment confirmation
                 send_payment_confirmation(self)
             else:
-                raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+                raise ValidationError('مبلغ هنوز وارد نشده است')
         
     def check_is_takhsised(self, user_role):
         if user_role == 'sales_agent':
@@ -124,8 +125,9 @@ class Purchase(models.Model):
         
         
     def check_is_takhsised_approved(self, user_role):
-        if user_role == 'logistics_manager' and self.is_takhsised:
+        if user_role == 'logistics_manager':
             self.is_takhsised_approved = True
+            self.is_takhsised = True
         else:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
 
@@ -133,7 +135,7 @@ class Purchase(models.Model):
         if user_role == 'financial_manager' and self.is_paid:
             self.is_tasvied_with_varedkonandeh = True
         else:
-            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('این خرید هنوز پرداخت نشده است')
     
     def check_is_address_sent_to_varedkonandeh(self, user_role):
         if user_role == 'logistics_manager' and self.is_tasvied_with_varedkonandeh:
@@ -147,7 +149,7 @@ class Purchase(models.Model):
         if user_role == 'logistics_manager' and self.is_address_sent_to_varedkonandeh:
             self.is_sent_to_barbari = True
         else:
-            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('آدرس این خرید هنوز ارسال نشده است')
         
     def check_is_barnamed(self, user_role):
         if user_role == 'logistics_manager' and self.barnameh:
@@ -156,7 +158,7 @@ class Purchase(models.Model):
             # Send SMS notification for barnameh (shipping info)
             send_barnameh_notification(self)
         else:
-            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('شماره بارنامه این خرید هنوز ثبت نشده است')
         
     def check_is_ekhtelaf_approved(self, user_role):
         if user_role == 'financial_manager' and self.is_barnamed:
@@ -166,19 +168,19 @@ class Purchase(models.Model):
             if self.extelaf_type == 'سرک' and self.extelaf_weight and self.extelaf_amount:
                 send_extelaf_notification(self)
         else:
-            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('بار هنوز به مشتری تحویل داده نشده است')
         
     def check_is_kasri_varized(self, user_role):
         if user_role == 'financial_manager' and self.is_ekhtelaf_approved:
             self.is_kasri_varized = True
         else:
-            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('مبلغ و مقدار اختلاف در سیستم ثبت نشده است')
     
     def check_is_sarak_varized(self, user_role):
         if user_role == 'sales_agent' and self.is_ekhtelaf_approved:
             self.is_sarak_varized = True
         else:
-            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('مبلغ و مقدار اختلاف در سیستم ثبت نشده است')
         
     def check_is_kasri_reciept_submited(self, user_role):
         if user_role == 'financial_manager' and (self.is_kasri_varized or self.is_sarak_varized):
@@ -190,7 +192,7 @@ class Purchase(models.Model):
         if user_role == 'financial_manager' and self.is_kasri_reciept_submited:
             self.is_factorated = True
         else:
-            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            raise ValidationError('تایید اختلاف هنوز انجام نشده است')
 
 
     def check_does_salesman_approve(self, user_role):
