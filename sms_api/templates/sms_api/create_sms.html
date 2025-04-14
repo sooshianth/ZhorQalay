@@ -1,0 +1,361 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ایجاد پیامک جدید{% endblock %}
+
+{% block content %}
+<div class="create-sms-container">
+    <div class="form-header">
+        <h1>ایجاد پیامک جدید</h1>
+        <a href="{% url 'sms_api:sms_dashboard' %}" class="back-button">
+            <i class="fas fa-arrow-right"></i>
+            بازگشت به داشبورد
+        </a>
+    </div>
+
+    <div class="form-container">
+        <form method="post" class="sms-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="notification_type">نوع اطلاع رسانی:</label>
+                <select id="notification_type" name="notification_type" class="form-control">
+                    {% for id, name in notification_types %}
+                        <option value="{{ id }}">{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="recipient_number">شماره گیرنده:</label>
+                <input type="text" id="recipient_number" name="recipient_number" class="form-control" placeholder="مثال: 09123456789" required>
+                <small class="help-text">شماره را بدون کد کشور (+98) وارد کنید</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="message">متن پیام:</label>
+                <textarea id="message" name="message" class="form-control" rows="5" maxlength="255" required></textarea>
+                <div class="char-counter">
+                    <span id="char-count">0</span>/255
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="scheduled_for">زمان ارسال:</label>
+                <input type="datetime-local" id="scheduled_for" name="scheduled_for" class="form-control">
+                <small class="help-text">اگر خالی باشد، پیام در اولین فرصت ارسال می‌شود</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="purchase_id">شناسه خرید (اختیاری):</label>
+                <input type="number" id="purchase_id" name="purchase_id" class="form-control">
+            </div>
+            
+            <div class="template-section">
+                <h3>قالب‌های پیش‌فرض</h3>
+                <div class="template-buttons">
+                    <button type="button" class="template-btn" data-template="اطلاع رسانی خرید جدید">اطلاع رسانی خرید</button>
+                    <button type="button" class="template-btn" data-template="تایید پرداخت">تایید پرداخت</button>
+                    <button type="button" class="template-btn" data-template="اطلاع رسانی آدرس">اطلاع رسانی آدرس</button>
+                    <button type="button" class="template-btn" data-template="اطلاع رسانی بارنامه">اطلاع رسانی بارنامه</button>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="submit-btn">
+                    <i class="fas fa-paper-plane"></i>
+                    ایجاد پیامک
+                </button>
+                <button type="reset" class="reset-btn">
+                    <i class="fas fa-undo"></i>
+                    پاک کردن فرم
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // کنترل تعداد کاراکترهای پیام
+        const messageTextarea = document.getElementById('message');
+        const charCount = document.getElementById('char-count');
+        
+        messageTextarea.addEventListener('input', function() {
+            charCount.textContent = this.value.length;
+            
+            // اعمال کلاس برای نمایش هشدار در صورت نزدیک شدن به محدودیت
+            if (this.value.length > 230) {
+                charCount.classList.add('char-limit-warning');
+            } else {
+                charCount.classList.remove('char-limit-warning');
+            }
+        });
+        
+        // انتخاب قالب‌های پیش‌فرض
+        const templateButtons = document.querySelectorAll('.template-btn');
+        const notificationTypeSelect = document.getElementById('notification_type');
+        
+        const templates = {
+            'اطلاع رسانی خرید جدید': {
+                type: 'new_purchase',
+                text: 'مشتری گرامی، خرید شما با موفقیت ثبت شد. کد سفارش: [CODE]. لطفا جهت پیگیری از این کد استفاده نمایید. با تشکر، شرکت سیمرغ'
+            },
+            'تایید پرداخت': {
+                type: 'payment_confirmation',
+                text: 'مشتری گرامی، پرداخت شما با موفقیت انجام شد. شماره پیگیری: [TRACKING]. سفارش شما در حال پردازش است. با تشکر، شرکت سیمرغ'
+            },
+            'اطلاع رسانی آدرس': {
+                type: 'address_notification',
+                text: 'مشتری گرامی، سفارش شما آماده ارسال است. لطفا آدرس دقیق خود را با کد پستی ارسال نمایید. با تشکر، شرکت سیمرغ'
+            },
+            'اطلاع رسانی بارنامه': {
+                type: 'barnameh_notification',
+                text: 'مشتری گرامی، سفارش شما ارسال شد. کد رهگیری بارنامه: [BARCODE]. زمان تقریبی تحویل: [DATE]. با تشکر، شرکت سیمرغ'
+            }
+        };
+        
+        templateButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const templateName = this.dataset.template;
+                const template = templates[templateName];
+                
+                if (template) {
+                    // یافتن مقدار options برای انتخاب نوع اطلاع رسانی مناسب
+                    for (let i = 0; i < notificationTypeSelect.options.length; i++) {
+                        if (notificationTypeSelect.options[i].value === template.type) {
+                            notificationTypeSelect.selectedIndex = i;
+                            break;
+                        }
+                    }
+                    
+                    // تنظیم متن پیام
+                    messageTextarea.value = template.text;
+                    charCount.textContent = template.text.length;
+                    
+                    // اعمال افکت انتخاب شدن روی دکمه
+                    templateButtons.forEach(b => b.classList.remove('selected'));
+                    this.classList.add('selected');
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* متغیرهای رنگی سبزآبی (Teal) */
+    :root {
+        --teal-primary: #009688;
+        --teal-secondary: #4DB6AC;
+        --teal-dark: #00796B;
+        --teal-light: #B2DFDB;
+        --teal-ultra-light: #E0F2F1;
+        --cyan: #00BCD4;
+    }
+
+    .create-sms-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+
+    .form-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--teal-light);
+    }
+
+    .form-header h1 {
+        color: var(--teal-dark);
+        margin: 0;
+        font-size: 1.8rem;
+    }
+
+    .back-button {
+        display: flex;
+        align-items: center;
+        color: var(--teal-primary);
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+
+    .back-button i {
+        margin-left: 0.5rem;
+    }
+
+    .back-button:hover {
+        color: var(--teal-dark);
+    }
+
+    .form-container {
+        background-color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .sms-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-group label {
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .form-control {
+        padding: 0.8rem 1rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-family: 'Vazir', sans-serif;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--teal-primary);
+        box-shadow: 0 0 0 3px var(--teal-light);
+    }
+
+    textarea.form-control {
+        resize: vertical;
+    }
+
+    .help-text {
+        margin-top: 0.3rem;
+        font-size: 0.8rem;
+        color: #666;
+    }
+
+    .char-counter {
+        text-align: left;
+        margin-top: 0.5rem;
+        font-size: 0.8rem;
+        color: #666;
+    }
+
+    .char-limit-warning {
+        color: #f44336;
+        font-weight: bold;
+    }
+
+    .template-section {
+        margin-top: 1rem;
+        padding: 1.5rem;
+        background-color: var(--teal-ultra-light);
+        border-radius: 8px;
+    }
+
+    .template-section h3 {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        color: var(--teal-dark);
+        font-size: 1.2rem;
+    }
+
+    .template-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.8rem;
+    }
+
+    .template-btn {
+        padding: 0.6rem 1rem;
+        background-color: white;
+        border: 1px solid var(--teal-secondary);
+        border-radius: 6px;
+        color: var(--teal-primary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .template-btn:hover {
+        background-color: var(--teal-light);
+        color: var(--teal-dark);
+    }
+
+    .template-btn.selected {
+        background-color: var(--teal-primary);
+        color: white;
+        border-color: var(--teal-dark);
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .submit-btn, .reset-btn {
+        padding: 0.8rem 1.5rem;
+        border: none;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s ease;
+    }
+
+    .submit-btn {
+        background-color: var(--teal-primary);
+        color: white;
+        flex: 2;
+    }
+
+    .reset-btn {
+        background-color: #f5f5f5;
+        color: #555;
+        flex: 1;
+    }
+
+    .submit-btn:hover {
+        background-color: var(--teal-dark);
+    }
+
+    .reset-btn:hover {
+        background-color: #e0e0e0;
+    }
+
+    .submit-btn i, .reset-btn i {
+        margin-left: 0.5rem;
+    }
+
+    /* پاسخگویی موبایل */
+    @media (max-width: 768px) {
+        .form-header {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .form-container {
+            padding: 1.5rem;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .template-buttons {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}

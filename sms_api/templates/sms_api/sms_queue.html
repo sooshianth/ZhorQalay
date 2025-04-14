@@ -1,0 +1,583 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}صف پیامک ها{% endblock %}
+
+{% block content %}
+<div class="sms-queue-container">
+    <div class="page-header">
+        <h1>صف پیامک ها</h1>
+        <div class="header-actions">
+            <a href="{% url 'sms_api:create_sms' %}" class="action-button create">
+                <i class="fas fa-plus"></i>
+                ایجاد پیامک جدید
+            </a>
+            <a href="{% url 'sms_api:sms_dashboard' %}" class="action-button back">
+                <i class="fas fa-home"></i>
+                داشبورد
+            </a>
+        </div>
+    </div>
+
+    <div class="filter-section">
+        <form method="get" class="filter-form">
+            <div class="filter-group">
+                <label for="status">وضعیت:</label>
+                <select id="status" name="status" class="filter-control">
+                    <option value="">همه</option>
+                    <option value="pending" {% if status == 'pending' %}selected{% endif %}>در انتظار ارسال</option>
+                    <option value="sent" {% if status == 'sent' %}selected{% endif %}>ارسال شده</option>
+                    <option value="failed" {% if status == 'failed' %}selected{% endif %}>ارسال ناموفق</option>
+                    <option value="suspended" {% if status == 'suspended' %}selected{% endif %}>معلق</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="notification_type">نوع اطلاع رسانی:</label>
+                <select id="notification_type" name="notification_type" class="filter-control">
+                    <option value="">همه</option>
+                    {% for id, name in notification_types %}
+                        <option value="{{ id }}" {% if notification_type == id %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="search">جستجو:</label>
+                <input type="text" id="search" name="search" class="filter-control" placeholder="شماره موبایل یا متن پیام" value="{{ search }}">
+            </div>
+            <button type="submit" class="filter-button">
+                <i class="fas fa-filter"></i>
+                اعمال فیلتر
+            </button>
+        </form>
+    </div>
+
+    <div class="queue-cards">
+        <div class="status-nav">
+            <a href="?status=pending" class="status-tab {% if status == 'pending' or not status %}active{% endif %}">
+                در انتظار ارسال
+                <span class="count">{{ pending_count }}</span>
+            </a>
+            <a href="?status=sent" class="status-tab {% if status == 'sent' %}active{% endif %}">
+                ارسال شده
+                <span class="count">{{ sent_count }}</span>
+            </a>
+            <a href="?status=failed" class="status-tab {% if status == 'failed' %}active{% endif %}">
+                ارسال ناموفق
+                <span class="count">{{ failed_count }}</span>
+            </a>
+            <a href="?status=suspended" class="status-tab {% if status == 'suspended' %}active{% endif %}">
+                معلق
+                <span class="count">{{ suspended_count }}</span>
+            </a>
+        </div>
+
+        <div class="queue-list">
+            {% for sms in queue_items %}
+            <div class="sms-card status-{{ sms.status }}">
+                <div class="card-header">
+                    <div class="recipient">
+                        <i class="fas fa-user"></i>
+                        <span class="number">{{ sms.recipient_number }}</span>
+                    </div>
+                    <div class="status-badge status-{{ sms.status }}">
+                        {{ sms.get_status_display }}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="message-content">{{ sms.message }}</div>
+                    <div class="sms-meta">
+                        <div class="meta-item">
+                            <i class="fas fa-tag"></i>
+                            <span>{{ sms.get_notification_type_display }}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>{{ sms.scheduled_for|date:"Y/m/d H:i" }}</span>
+                        </div>
+                        {% if sms.sent_at %}
+                        <div class="meta-item">
+                            <i class="fas fa-paper-plane"></i>
+                            <span>{{ sms.sent_at|date:"Y/m/d H:i" }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <a href="{% url 'sms_api:sms_detail' sms.id %}" class="card-action view">
+                        <i class="fas fa-eye"></i>
+                        مشاهده
+                    </a>
+                    {% if sms.status == 'pending' or sms.status == 'suspended' %}
+                    <a href="{% url 'sms_api:edit_sms' sms.id %}" class="card-action edit">
+                        <i class="fas fa-edit"></i>
+                        ویرایش
+                    </a>
+                    {% endif %}
+                    {% if sms.status == 'pending' %}
+                    <a href="{% url 'sms_api:suspend_sms' sms.id %}" class="card-action suspend">
+                        <i class="fas fa-pause"></i>
+                        تعلیق
+                    </a>
+                    {% elif sms.status == 'suspended' %}
+                    <a href="{% url 'sms_api:resume_sms' sms.id %}" class="card-action resume">
+                        <i class="fas fa-play"></i>
+                        از سرگیری
+                    </a>
+                    {% endif %}
+                    {% if sms.status == 'pending' or sms.status == 'suspended' %}
+                    <a href="{% url 'sms_api:delete_sms' sms.id %}" class="card-action delete" onclick="return confirm('آیا از حذف این پیام اطمینان دارید؟')">
+                        <i class="fas fa-trash"></i>
+                        حذف
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <i class="fas fa-inbox empty-icon"></i>
+                <p>هیچ پیامکی یافت نشد</p>
+                <a href="{% url 'sms_api:create_sms' %}" class="empty-action">ایجاد پیامک جدید</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if queue_items.has_other_pages %}
+    <div class="pagination">
+        {% if queue_items.has_previous %}
+        <a href="?page={{ queue_items.previous_page_number }}{% if status %}&status={{ status }}{% endif %}{% if notification_type %}&notification_type={{ notification_type }}{% endif %}{% if search %}&search={{ search }}{% endif %}" class="pagination-link">
+            <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+        
+        <span class="pagination-info">
+            صفحه {{ queue_items.number }} از {{ queue_items.paginator.num_pages }}
+        </span>
+        
+        {% if queue_items.has_next %}
+        <a href="?page={{ queue_items.next_page_number }}{% if status %}&status={{ status }}{% endif %}{% if notification_type %}&notification_type={{ notification_type }}{% endif %}{% if search %}&search={{ search }}{% endif %}" class="pagination-link">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* تم رنگی سبزآبی (Teal) */
+    :root {
+        --teal-primary: #009688;
+        --teal-secondary: #4DB6AC;
+        --teal-dark: #00796B;
+        --teal-light: #B2DFDB;
+        --teal-ultra-light: #E0F2F1;
+        --cyan: #00BCD4;
+    }
+
+    .sms-queue-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--teal-light);
+    }
+
+    .page-header h1 {
+        color: var(--teal-dark);
+        margin: 0;
+        font-size: 1.8rem;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.8rem;
+    }
+
+    .action-button {
+        display: flex;
+        align-items: center;
+        padding: 0.6rem 1rem;
+        border-radius: 6px;
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+
+    .action-button i {
+        margin-left: 0.5rem;
+    }
+
+    .action-button.create {
+        background-color: var(--teal-primary);
+    }
+
+    .action-button.back {
+        background-color: var(--teal-secondary);
+    }
+
+    .action-button:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+
+    .filter-section {
+        background-color: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .filter-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-end;
+    }
+
+    .filter-group {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .filter-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .filter-control {
+        width: 100%;
+        padding: 0.7rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-family: 'Vazir', sans-serif;
+    }
+
+    .filter-button {
+        padding: 0.7rem 1.5rem;
+        background-color: var(--teal-primary);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+    }
+
+    .filter-button i {
+        margin-left: 0.5rem;
+    }
+
+    .status-nav {
+        display: flex;
+        border-bottom: 1px solid #eee;
+        margin-bottom: 1.5rem;
+        overflow-x: auto;
+    }
+
+    .status-tab {
+        padding: 1rem 1.5rem;
+        color: #666;
+        text-decoration: none;
+        position: relative;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+
+    .status-tab.active {
+        color: var(--teal-primary);
+        font-weight: 600;
+    }
+
+    .status-tab.active::after {
+        content: "";
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background-color: var(--teal-primary);
+    }
+
+    .status-tab:hover {
+        color: var(--teal-dark);
+    }
+
+    .count {
+        display: inline-block;
+        background-color: #eee;
+        color: #666;
+        border-radius: 50px;
+        padding: 0.2rem 0.6rem;
+        font-size: 0.8rem;
+        margin-right: 0.5rem;
+    }
+
+    .status-tab.active .count {
+        background-color: var(--teal-light);
+        color: var(--teal-dark);
+    }
+
+    .queue-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .sms-card {
+        background-color: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border-top: 4px solid #ccc;
+    }
+
+    .sms-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .sms-card.status-pending {
+        border-top-color: #FFA000;
+    }
+
+    .sms-card.status-sent {
+        border-top-color: var(--teal-primary);
+    }
+
+    .sms-card.status-failed {
+        border-top-color: #F44336;
+    }
+
+    .sms-card.status-suspended {
+        border-top-color: #9E9E9E;
+    }
+
+    .card-header {
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #eee;
+    }
+
+    .recipient {
+        display: flex;
+        align-items: center;
+    }
+
+    .recipient i {
+        margin-left: 0.5rem;
+        color: #555;
+    }
+
+    .number {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .status-badge {
+        padding: 0.3rem 0.7rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .status-badge.status-pending {
+        background-color: #FFF3E0;
+        color: #FFA000;
+    }
+
+    .status-badge.status-sent {
+        background-color: var(--teal-ultra-light);
+        color: var(--teal-dark);
+    }
+
+    .status-badge.status-failed {
+        background-color: #FFEBEE;
+        color: #F44336;
+    }
+
+    .status-badge.status-suspended {
+        background-color: #F5F5F5;
+        color: #616161;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    .message-content {
+        margin-bottom: 1rem;
+        line-height: 1.5;
+        max-height: 100px;
+        overflow-y: auto;
+    }
+
+    .sms-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        font-size: 0.85rem;
+        color: #666;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+    }
+
+    .meta-item i {
+        margin-left: 0.3rem;
+    }
+
+    .card-actions {
+        padding: 1rem;
+        display: flex;
+        border-top: 1px solid #eee;
+        background-color: #fafafa;
+    }
+
+    .card-action {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem;
+        color: #555;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        font-size: 0.9rem;
+    }
+
+    .card-action i {
+        margin-left: 0.3rem;
+    }
+
+    .card-action.view:hover {
+        color: var(--teal-primary);
+    }
+
+    .card-action.edit:hover {
+        color: #2196F3;
+    }
+
+    .card-action.suspend:hover {
+        color: #FF9800;
+    }
+
+    .card-action.resume:hover {
+        color: #4CAF50;
+    }
+
+    .card-action.delete:hover {
+        color: #F44336;
+    }
+
+    .empty-state {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 3rem;
+        background-color: white;
+        border-radius: 8px;
+        text-align: center;
+    }
+
+    .empty-icon {
+        font-size: 3rem;
+        color: #ccc;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state p {
+        color: #666;
+        margin-bottom: 1.5rem;
+    }
+
+    .empty-action {
+        padding: 0.8rem 1.5rem;
+        background-color: var(--teal-primary);
+        color: white;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+
+    .empty-action:hover {
+        background-color: var(--teal-dark);
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 2rem;
+    }
+
+    .pagination-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: white;
+        color: #555;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .pagination-link:hover {
+        background-color: var(--teal-light);
+        color: var(--teal-dark);
+    }
+
+    .pagination-info {
+        margin: 0 1rem;
+        color: #666;
+    }
+
+    /* پاسخگویی موبایل */
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .header-actions {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .filter-form {
+            flex-direction: column;
+        }
+
+        .filter-group {
+            width: 100%;
+        }
+
+        .queue-list {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %} 

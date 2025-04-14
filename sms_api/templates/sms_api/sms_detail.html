@@ -1,0 +1,508 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}جزئیات پیامک{% endblock %}
+
+{% block content %}
+<div class="sms-detail-container">
+    <div class="detail-header">
+        <div class="header-title">
+            <h1>جزئیات پیامک</h1>
+            <div class="status-badge status-{{ sms.status }}">
+                {{ sms.get_status_display }}
+            </div>
+        </div>
+        <div class="header-actions">
+            <a href="{{ request.META.HTTP_REFERER|default:'javascript:history.back()' }}" class="action-button back">
+                <i class="fas fa-arrow-right"></i>
+                بازگشت
+            </a>
+            {% if sms.status == 'pending' or sms.status == 'suspended' %}
+            <a href="{% url 'sms_api:edit_sms' sms.id %}" class="action-button edit">
+                <i class="fas fa-edit"></i>
+                ویرایش
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="detail-card">
+        <div class="card-section">
+            <div class="recipient-info">
+                <div class="icon-circle">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="recipient-detail">
+                    <h3>اطلاعات گیرنده</h3>
+                    <p class="phone-number">{{ sms.recipient_number }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-section message-box">
+            <h3>متن پیام</h3>
+            <div class="message-content">{{ sms.message }}</div>
+            <div class="message-meta">
+                <span class="char-count">{{ sms.message|length }} کاراکتر</span>
+            </div>
+        </div>
+
+        <div class="card-section info-grid">
+            <div class="info-item">
+                <span class="info-label">نوع اطلاع رسانی</span>
+                <span class="info-value">{{ sms.get_notification_type_display }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">تاریخ ایجاد</span>
+                <span class="info-value">{{ sms.created_at|date:"Y/m/d H:i" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">زمان ارسال</span>
+                <span class="info-value">{{ sms.scheduled_for|date:"Y/m/d H:i" }}</span>
+            </div>
+            {% if sms.sent_at %}
+            <div class="info-item">
+                <span class="info-label">زمان ارسال شده</span>
+                <span class="info-value">{{ sms.sent_at|date:"Y/m/d H:i" }}</span>
+            </div>
+            {% endif %}
+            <div class="info-item">
+                <span class="info-label">تعداد تلاش مجدد</span>
+                <span class="info-value">{{ sms.retry_count }}</span>
+            </div>
+            {% if sms.purchase_id %}
+            <div class="info-item">
+                <span class="info-label">شناسه خرید مرتبط</span>
+                <span class="info-value">
+                    <a href="{% url 'purchase_detail' sms.purchase_id %}" class="purchase-link">
+                        {{ sms.purchase_id }}
+                        <i class="fas fa-external-link-alt"></i>
+                    </a>
+                </span>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if sms.status == 'failed' %}
+        <div class="card-section error-section">
+            <h3>اطلاعات خطا</h3>
+            <div class="error-box">
+                <i class="fas fa-exclamation-triangle error-icon"></i>
+                <div class="error-details">
+                    ارسال پیامک ناموفق بوده است. لطفا وضعیت اتصال به سرویس پیامکی را بررسی کنید.
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card-section action-section">
+            {% if sms.status == 'pending' %}
+            <button class="detail-action-btn send-now" onclick="location.href='{% url 'sms_api:send_now' sms.id %}'">
+                <i class="fas fa-paper-plane"></i>
+                ارسال فوری
+            </button>
+            <button class="detail-action-btn suspend" onclick="location.href='{% url 'sms_api:suspend_sms' sms.id %}'">
+                <i class="fas fa-pause"></i>
+                تعلیق ارسال
+            </button>
+            {% elif sms.status == 'suspended' %}
+            <button class="detail-action-btn resume" onclick="location.href='{% url 'sms_api:resume_sms' sms.id %}'">
+                <i class="fas fa-play"></i>
+                از سرگیری ارسال
+            </button>
+            {% elif sms.status == 'failed' %}
+            <button class="detail-action-btn retry" onclick="location.href='{% url 'sms_api:retry_sms' sms.id %}'">
+                <i class="fas fa-redo"></i>
+                تلاش مجدد
+            </button>
+            {% endif %}
+            
+            {% if sms.status == 'pending' or sms.status == 'suspended' %}
+            <button class="detail-action-btn delete" onclick="if(confirm('آیا از حذف این پیام اطمینان دارید؟')) location.href='{% url 'sms_api:delete_sms' sms.id %}'">
+                <i class="fas fa-trash"></i>
+                حذف پیامک
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if logs %}
+    <div class="logs-section">
+        <h2 class="section-title">تاریخچه ارسال</h2>
+        <div class="table-container">
+            <table class="logs-table">
+                <thead>
+                    <tr>
+                        <th>تاریخ</th>
+                        <th>عملیات</th>
+                        <th>وضعیت</th>
+                        <th>جزئیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ log.timestamp|date:"Y/m/d H:i:s" }}</td>
+                        <td>{{ log.action }}</td>
+                        <td>
+                            <span class="log-status status-{{ log.status }}">{{ log.get_status_display }}</span>
+                        </td>
+                        <td>{{ log.details }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* تم رنگی سبزآبی (Teal) */
+    :root {
+        --teal-primary: #009688;
+        --teal-secondary: #4DB6AC;
+        --teal-dark: #00796B;
+        --teal-light: #B2DFDB;
+        --teal-ultra-light: #E0F2F1;
+        --cyan: #00BCD4;
+    }
+
+    .sms-detail-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+
+    .detail-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--teal-light);
+    }
+
+    .header-title {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .header-title h1 {
+        color: var(--teal-dark);
+        margin: 0;
+        font-size: 1.8rem;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.8rem;
+    }
+
+    .action-button {
+        display: flex;
+        align-items: center;
+        padding: 0.6rem 1rem;
+        border-radius: 6px;
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+
+    .action-button i {
+        margin-left: 0.5rem;
+    }
+
+    .action-button.back {
+        background-color: var(--teal-secondary);
+    }
+
+    .action-button.edit {
+        background-color: #2196F3;
+    }
+
+    .action-button:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+
+    .status-badge {
+        padding: 0.4rem 0.8rem;
+        border-radius: 50px;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .status-badge.status-pending {
+        background-color: #FFF3E0;
+        color: #FFA000;
+    }
+
+    .status-badge.status-sent {
+        background-color: var(--teal-ultra-light);
+        color: var(--teal-dark);
+    }
+
+    .status-badge.status-failed {
+        background-color: #FFEBEE;
+        color: #F44336;
+    }
+
+    .status-badge.status-suspended {
+        background-color: #F5F5F5;
+        color: #616161;
+    }
+
+    .detail-card {
+        background-color: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-section {
+        padding: 1.5rem;
+        border-bottom: 1px solid #eee;
+    }
+
+    .card-section:last-child {
+        border-bottom: none;
+    }
+
+    .recipient-info {
+        display: flex;
+        align-items: center;
+    }
+
+    .icon-circle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: var(--teal-ultra-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: 1.5rem;
+    }
+
+    .icon-circle i {
+        color: var(--teal-dark);
+        font-size: 1.8rem;
+    }
+
+    .recipient-detail h3 {
+        color: #333;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .phone-number {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #333;
+        margin: 0;
+    }
+
+    .message-box {
+        background-color: var(--teal-ultra-light);
+    }
+
+    .message-box h3 {
+        color: var(--teal-dark);
+        margin-top: 0;
+        margin-bottom: 1rem;
+    }
+
+    .message-content {
+        background-color: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        line-height: 1.6;
+        margin-bottom: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .message-meta {
+        text-align: left;
+    }
+
+    .char-count {
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .info-label {
+        font-size: 0.9rem;
+        color: #666;
+        margin-bottom: 0.3rem;
+    }
+
+    .info-value {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .purchase-link {
+        color: var(--teal-primary);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+    }
+
+    .purchase-link i {
+        font-size: 0.8rem;
+        margin-right: 0.3rem;
+    }
+
+    .error-section {
+        background-color: #FFEBEE;
+    }
+
+    .error-section h3 {
+        color: #D32F2F;
+        margin-top: 0;
+    }
+
+    .error-box {
+        background-color: white;
+        padding: 1rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .error-icon {
+        color: #D32F2F;
+        font-size: 1.5rem;
+        margin-left: 1rem;
+    }
+
+    .action-section {
+        display: flex;
+        gap: 1rem;
+        background-color: #fafafa;
+    }
+
+    .detail-action-btn {
+        flex: 1;
+        padding: 0.8rem;
+        border: none;
+        border-radius: 6px;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+
+    .detail-action-btn i {
+        margin-left: 0.5rem;
+    }
+
+    .detail-action-btn.send-now {
+        background-color: var(--teal-primary);
+    }
+
+    .detail-action-btn.suspend {
+        background-color: #FF9800;
+    }
+
+    .detail-action-btn.resume {
+        background-color: #4CAF50;
+    }
+
+    .detail-action-btn.retry {
+        background-color: #2196F3;
+    }
+
+    .detail-action-btn.delete {
+        background-color: #F44336;
+    }
+
+    .detail-action-btn:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+
+    .section-title {
+        color: var(--teal-dark);
+        font-size: 1.5rem;
+        margin: 2rem 0 1rem;
+        padding-right: 1rem;
+        border-right: 4px solid var(--teal-primary);
+    }
+
+    .table-container {
+        background-color: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .logs-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .logs-table th, .logs-table td {
+        padding: 1rem;
+        text-align: right;
+        border-bottom: 1px solid #eee;
+    }
+
+    .logs-table th {
+        background-color: var(--teal-light);
+        color: var(--teal-dark);
+        font-weight: 600;
+    }
+
+    .logs-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .log-status {
+        display: inline-block;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+    }
+
+    /* پاسخگویی موبایل */
+    @media (max-width: 768px) {
+        .detail-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .header-actions {
+            width: 100%;
+        }
+
+        .action-section {
+            flex-direction: column;
+        }
+
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %} 

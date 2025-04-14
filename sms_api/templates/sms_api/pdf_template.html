@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+    <style>
+        @font-face {
+            font-family: 'Vazir';
+            src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/Vazir.woff2') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+        }
+        body {
+            font-family: 'Vazir', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: white;
+        }
+        .report-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #009688;
+        }
+        .report-title {
+            color: #00796B;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        .report-date {
+            color: #666;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: right;
+        }
+        th {
+            background-color: #B2DFDB;
+            color: #00796B;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .status-sent {
+            color: #00796B;
+            font-weight: bold;
+        }
+        .status-failed {
+            color: #D32F2F;
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+        }
+        .row-number {
+            text-align: center;
+            font-weight: bold;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="report-header">
+        <h1 class="report-title">{{ title }}</h1>
+        <p class="report-date">تاریخ گزارش: {{ date }}</p>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th width="5%">ردیف</th>
+                <th width="15%">شماره گیرنده</th>
+                <th width="20%">نوع اطلاع رسانی</th>
+                <th width="15%">تاریخ ارسال</th>
+                <th width="10%">وضعیت</th>
+                <th width="35%">متن پیام</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sms in log_items %}
+            <tr>
+                <td class="row-number">{{ forloop.counter }}</td>
+                <td>{{ sms.recipient_number }}</td>
+                <td>{{ sms.get_notification_type_display }}</td>
+                <td>{{ sms.sent_at|date:"Y/m/d H:i" }}</td>
+                <td class="status-{{ sms.status }}">
+                    {{ sms.get_status_display }}
+                </td>
+                <td>{{ sms.message|truncatechars:70 }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" style="text-align: center;">هیچ پیامکی یافت نشد</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="footer">
+        گزارش تاریخچه پیامک‌ها - سیستم مدیریت پیامک شرکت سیمرغ
+        <br>
+        صفحه 1 از 1
+    </div>
+</body>
+</html> 

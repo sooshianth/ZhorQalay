@@ -1,0 +1,320 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}پنل مدیریت پیامک ها{% endblock %}
+
+{% block content %}
+<div class="sms-dashboard">
+    <h1 class="dashboard-title">سامانه مدیریت پیامک ها</h1>
+    
+    <div class="dashboard-stats">
+        <div class="stat-card teal">
+            <i class="fas fa-paper-plane stat-icon"></i>
+            <div class="stat-info">
+                <h3>{{ pending_count }}</h3>
+                <p>در انتظار ارسال</p>
+            </div>
+        </div>
+        <div class="stat-card light-teal">
+            <i class="fas fa-check-circle stat-icon"></i>
+            <div class="stat-info">
+                <h3>{{ sent_count }}</h3>
+                <p>ارسال شده</p>
+            </div>
+        </div>
+        <div class="stat-card dark-teal">
+            <i class="fas fa-times-circle stat-icon"></i>
+            <div class="stat-info">
+                <h3>{{ failed_count }}</h3>
+                <p>ارسال ناموفق</p>
+            </div>
+        </div>
+        <div class="stat-card cyan">
+            <i class="fas fa-pause-circle stat-icon"></i>
+            <div class="stat-info">
+                <h3>{{ suspended_count }}</h3>
+                <p>معلق شده</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-actions">
+        <a href="{% url 'sms_api:create_sms' %}" class="action-button teal">
+            <i class="fas fa-plus"></i>
+            ایجاد پیامک جدید
+        </a>
+        <a href="{% url 'sms_api:sms_queue' %}" class="action-button light-teal">
+            <i class="fas fa-list"></i>
+            مشاهده صف پیامک ها
+        </a>
+        <a href="{% url 'sms_api:sms_log' %}" class="action-button dark-teal">
+            <i class="fas fa-history"></i>
+            تاریخچه ارسال پیامک
+        </a>
+    </div>
+
+    <div class="recent-sms-section">
+        <h2 class="section-title">آخرین پیامک های ارسال شده</h2>
+        <div class="table-container">
+            <table class="sms-table">
+                <thead>
+                    <tr>
+                        <th>شماره گیرنده</th>
+                        <th>نوع پیام</th>
+                        <th>تاریخ ارسال</th>
+                        <th>وضعیت</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sms in recent_sms %}
+                    <tr>
+                        <td>{{ sms.recipient_number }}</td>
+                        <td>{{ sms.get_notification_type_display }}</td>
+                        <td>{{ sms.sent_at|date:"Y/m/d H:i" }}</td>
+                        <td>
+                            <span class="status-badge status-{{ sms.status }}">
+                                {{ sms.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'sms_api:sms_detail' sms.id %}" class="action-link view">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="empty-message">هیچ پیامکی یافت نشد</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* تم رنگی سبزآبی (Teal) */
+    :root {
+        --teal-primary: #009688;
+        --teal-secondary: #4DB6AC;
+        --teal-dark: #00796B;
+        --teal-light: #B2DFDB;
+        --cyan: #00BCD4;
+        --cyan-dark: #0097A7;
+    }
+
+    .sms-dashboard {
+        padding: 2rem 0;
+    }
+
+    .dashboard-title {
+        color: var(--teal-dark);
+        text-align: center;
+        margin-bottom: 2rem;
+        font-size: 2rem;
+        border-bottom: 2px solid var(--teal-light);
+        padding-bottom: 1rem;
+    }
+
+    .dashboard-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .stat-card {
+        display: flex;
+        align-items: center;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        color: white;
+    }
+
+    .stat-card.teal {
+        background-color: var(--teal-primary);
+    }
+
+    .stat-card.light-teal {
+        background-color: var(--teal-secondary);
+    }
+
+    .stat-card.dark-teal {
+        background-color: var(--teal-dark);
+    }
+
+    .stat-card.cyan {
+        background-color: var(--cyan);
+    }
+
+    .stat-icon {
+        font-size: 2.5rem;
+        margin-left: 1rem;
+    }
+
+    .stat-info h3 {
+        font-size: 1.8rem;
+        margin: 0;
+        font-weight: 700;
+    }
+
+    .stat-info p {
+        margin: 0.5rem 0 0;
+        font-size: 1rem;
+    }
+
+    .dashboard-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 2.5rem;
+        justify-content: center;
+    }
+
+    .action-button {
+        display: flex;
+        align-items: center;
+        padding: 0.8rem 1.5rem;
+        border-radius: 6px;
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .action-button i {
+        margin-left: 0.5rem;
+    }
+
+    .action-button.teal {
+        background-color: var(--teal-primary);
+    }
+
+    .action-button.light-teal {
+        background-color: var(--teal-secondary);
+    }
+
+    .action-button.dark-teal {
+        background-color: var(--teal-dark);
+    }
+
+    .action-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .section-title {
+        color: var(--teal-dark);
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+        padding-right: 1rem;
+        border-right: 4px solid var(--teal-primary);
+    }
+
+    .table-container {
+        overflow-x: auto;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .sms-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .sms-table th, .sms-table td {
+        padding: 1rem;
+        text-align: right;
+        border-bottom: 1px solid #eee;
+    }
+
+    .sms-table th {
+        background-color: var(--teal-light);
+        color: var(--teal-dark);
+        font-weight: 600;
+    }
+
+    .sms-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .sms-table tr:hover {
+        background-color: rgba(178, 223, 219, 0.2);
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 0.3rem 0.7rem;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .status-sent {
+        background-color: var(--teal-light);
+        color: var(--teal-dark);
+    }
+
+    .status-pending {
+        background-color: #FFE082;
+        color: #FF8F00;
+    }
+
+    .status-failed {
+        background-color: #FFCDD2;
+        color: #D32F2F;
+    }
+
+    .status-suspended {
+        background-color: #E0E0E0;
+        color: #616161;
+    }
+
+    .action-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        color: white;
+        margin: 0 0.2rem;
+    }
+
+    .action-link.view {
+        background-color: var(--teal-primary);
+    }
+
+    .action-link:hover {
+        opacity: 0.9;
+        transform: scale(1.1);
+    }
+
+    .empty-message {
+        text-align: center;
+        color: #757575;
+        padding: 2rem;
+    }
+
+    /* پاسخگویی موبایل */
+    @media (max-width: 768px) {
+        .dashboard-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .dashboard-actions {
+            flex-direction: column;
+        }
+
+        .action-button {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ویرایش پیامک{% endblock %}
+
+{% block content %}
+<div class="edit-sms-container">
+    <div class="form-header">
+        <h1>ویرایش پیامک</h1>
+        <a href="{% url 'sms_api:sms_detail' sms.id %}" class="back-button">
+            <i class="fas fa-arrow-right"></i>
+            بازگشت به جزئیات
+        </a>
+    </div>
+
+    <div class="form-container">
+        <form method="post" class="sms-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="notification_type">نوع اطلاع رسانی:</label>
+                <select id="notification_type" name="notification_type" class="form-control">
+                    {% for id, name in notification_types %}
+                        <option value="{{ id }}" {% if sms.notification_type == id %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="recipient_number">شماره گیرنده:</label>
+                <input type="text" id="recipient_number" name="recipient_number" class="form-control" value="{{ sms.recipient_number }}" placeholder="مثال: 09123456789" required>
+                <small class="help-text">شماره را بدون کد کشور (+98) وارد کنید</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="message">متن پیام:</label>
+                <textarea id="message" name="message" class="form-control" rows="5" maxlength="255" required>{{ sms.message }}</textarea>
+                <div class="char-counter">
+                    <span id="char-count">{{ sms.message|length }}</span>/255
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="scheduled_for">زمان ارسال:</label>
+                <input type="datetime-local" id="scheduled_for" name="scheduled_for" class="form-control" value="{{ scheduled_for }}">
+                <small class="help-text">اگر خالی باشد، پیام در اولین فرصت ارسال می‌شود</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="purchase_id">شناسه خرید (اختیاری):</label>
+                <input type="number" id="purchase_id" name="purchase_id" class="form-control" value="{{ sms.purchase_id|default:'' }}">
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="submit-btn">
+                    <i class="fas fa-save"></i>
+                    ذخیره تغییرات
+                </button>
+                <a href="{% url 'sms_api:sms_detail' sms.id %}" class="cancel-btn">
+                    <i class="fas fa-times"></i>
+                    انصراف
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // کنترل تعداد کاراکترهای پیام
+        const messageTextarea = document.getElementById('message');
+        const charCount = document.getElementById('char-count');
+        
+        messageTextarea.addEventListener('input', function() {
+            charCount.textContent = this.value.length;
+            
+            // اعمال کلاس برای نمایش هشدار در صورت نزدیک شدن به محدودیت
+            if (this.value.length > 230) {
+                charCount.classList.add('char-limit-warning');
+            } else {
+                charCount.classList.remove('char-limit-warning');
+            }
+        });
+    });
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* متغیرهای رنگی سبزآبی (Teal) */
+    :root {
+        --teal-primary: #009688;
+        --teal-secondary: #4DB6AC;
+        --teal-dark: #00796B;
+        --teal-light: #B2DFDB;
+        --teal-ultra-light: #E0F2F1;
+        --cyan: #00BCD4;
+    }
+
+    .edit-sms-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+
+    .form-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--teal-light);
+    }
+
+    .form-header h1 {
+        color: var(--teal-dark);
+        margin: 0;
+        font-size: 1.8rem;
+    }
+
+    .back-button {
+        display: flex;
+        align-items: center;
+        color: var(--teal-primary);
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+
+    .back-button i {
+        margin-left: 0.5rem;
+    }
+
+    .back-button:hover {
+        color: var(--teal-dark);
+    }
+
+    .form-container {
+        background-color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .sms-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-group label {
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .form-control {
+        padding: 0.8rem 1rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-family: 'Vazir', sans-serif;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--teal-primary);
+        box-shadow: 0 0 0 3px var(--teal-light);
+    }
+
+    textarea.form-control {
+        resize: vertical;
+    }
+
+    .help-text {
+        margin-top: 0.3rem;
+        font-size: 0.8rem;
+        color: #666;
+    }
+
+    .char-counter {
+        text-align: left;
+        margin-top: 0.5rem;
+        font-size: 0.8rem;
+        color: #666;
+    }
+
+    .char-limit-warning {
+        color: #f44336;
+        font-weight: bold;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .submit-btn, .cancel-btn {
+        padding: 0.8rem 1.5rem;
+        border-radius: 6px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s ease;
+    }
+
+    .submit-btn {
+        background-color: var(--teal-primary);
+        color: white;
+        border: none;
+        cursor: pointer;
+        flex: 2;
+    }
+
+    .cancel-btn {
+        background-color: #f5f5f5;
+        color: #555;
+        text-decoration: none;
+        border: 1px solid #ddd;
+        justify-content: center;
+        flex: 1;
+    }
+
+    .submit-btn:hover {
+        background-color: var(--teal-dark);
+    }
+
+    .cancel-btn:hover {
+        background-color: #e0e0e0;
+    }
+
+    .submit-btn i, .cancel-btn i {
+        margin-left: 0.5rem;
+    }
+
+    /* پاسخگویی موبایل */
+    @media (max-width: 768px) {
+        .form-header {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .form-container {
+            padding: 1.5rem;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %} 
