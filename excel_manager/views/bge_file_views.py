@@ -15,7 +15,6 @@ from django.conf import settings
 from django.db import transaction
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.db import connection
 from django.utils import timezone
 
 # ایجاد یک لاگر برای دیباگ
@@ -407,35 +406,24 @@ def process_bge_file(request, file_id):
                                     if bazaargah_phone_number:
                                         customer = Customer.objects.filter(phone_number=bazaargah_phone_number).first()
                                         if not customer:
-                                            # ایجاد مشتری جدید با SQL مستقیم برای اطمینان از دور زدن validation
-                                            cursor = connection.cursor()
                                             try:
-                                                customer_name = customer_name if customer_name else "مشتری جدید"
+                                                # ایجاد مشتری جدید با ORM جنگو به جای SQL مستقیم
+                                                customer = Customer.objects.create(
+                                                    phone_number=bazaargah_phone_number,
+                                                    name=customer_name if customer_name else "مشتری جدید",
+                                                    field_of_activity='chicken',
+                                                    sms_preference=True,
+                                                    is_bazaargah_enjoyer=True
+                                                )
                                                 
-                                                # ایجاد مشتری جدید
-                                                cursor.execute("""
-                                                INSERT INTO core_customer 
-                                                (phone_number, name, field_of_activity, sms_preference, is_bazaargah_enjoyer, created_at, updated_at)
-                                                VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                                                RETURNING id
-                                                """, [bazaargah_phone_number, customer_name, 'chicken', True, True])
-                                                
-                                                customer_id = cursor.fetchone()[0]
-                                                logger.debug(f"مشتری جدید ایجاد شد با شناسه: {customer_id}")
-                                                
-                                                # دریافت نمونه مشتری
-                                                customer = Customer.objects.get(id=customer_id)
+                                                logger.debug(f"مشتری جدید ایجاد شد با شناسه: {customer.id}")
                                                 
                                                 # اضافه کردن کارشناس فروش به مشتری
                                                 if super_agent:
-                                                    logger.debug(f"افزودن کارشناس فروش {super_agent.id} به مشتری {customer_id}")
-                                                    cursor.execute("""
-                                                    INSERT INTO core_customer_sales_agent 
-                                                    (customer_id, salesagent_id)
-                                                    VALUES (%s, %s)
-                                                    """, [customer_id, super_agent.id])
+                                                    logger.debug(f"افزودن کارشناس فروش {super_agent.id} به مشتری {customer.id}")
+                                                    customer.sales_agent.add(super_agent)
                                             except Exception as ce:
-                                                logger.error(f"خطا در ایجاد مشتری با SQL مستقیم: {str(ce)}", exc_info=True)
+                                                logger.error(f"خطا در ایجاد مشتری با ORM: {str(ce)}", exc_info=True)
                                                 raise
                                     
                                     if customer:
@@ -454,88 +442,57 @@ def process_bge_file(request, file_id):
                                             purchase_id = f"{factor_code}{str(new_serial).zfill(4)}"
                                             logger.debug(f"شناسه خرید جدید: {purchase_id}")
                                             
-                                            # ایجاد خرید جدید با SQL مستقیم برای دور زدن تمام مشکلات
-                                            cursor = connection.cursor()
+                                            # ایجاد خرید جدید با ORM جنگو به جای SQL مستقیم
+                                            new_purchase = Purchase(
+                                                id=purchase_id,
+                                                customer=customer,
+                                                purchase_number=purchase_number,
+                                                shenase_takhsis=shenase_takhsis,
+                                                code_melli_tahvil=code_melli_tahvil,
+                                                tahvil_phone_number=tahvil_phone_number,
+                                                bazaargah_phone_number=bazaargah_phone_number,
+                                                address=address,
+                                                weight=weight,
+                                                cargo=bge_file.cargo,
+                                                amount_paid=amount_paid,
+                                                payment_method=payment_method,
+                                                type='bazaargah',
+                                                is_bazaargahed=True,
+                                                is_takhsised=True if shenase_takhsis else False,
+                                                company_price=bge_file.cargo.company_price,
+                                                customer_price=bge_file.cargo.customer_price,
+                                                # Boolean fields
+                                                is_sms_sent=True,
+                                                is_paid=True,
+                                                is_weight_costed=True,
+                                                is_ap_af=False,
+                                                is_archived=False,
+                                                is_canceled=False,
+                                                is_urgent=False,
+                                                is_delivered=True,
+                                                is_sent=True,
+                                                is_sent_to_barbari=True,
+                                                is_barnamed=True,
+                                                is_takhsised_approved=True,
+                                                is_tasvied_with_varedkonandeh=True,
+                                                is_address_sent_to_varedkonandeh=True,
+                                                is_ekhtelaf_approved=True,
+                                                is_kasri_varized=True,
+                                                is_sarak_varized=True,
+                                                is_kasri_reciept_submited=True,
+                                                is_factorated=True,
+                                                does_salesman_approve=True,
+                                                does_logistics_approve=True,
+                                                does_financial_approve=True,
+                                                description=""
+                                            )
                                             
-                                            # لاگ دیتای ورودی برای دیباگ
-                                            logger.debug(f"داده های ورودی برای ایجاد خرید: {purchase_id}, {customer.id}, {purchase_number}")
-                                            
-                                            try:
-                                                # اجرای SQL برای ایجاد خرید جدید
-                                                sql_query = """
-                                                INSERT INTO core_purchase 
-                                                (id, customer_id, purchase_number, shenase_takhsis, code_melli_tahvil, 
-                                                tahvil_phone_number, bazaargah_phone_number, address, weight, cargo_id,
-                                                amount_paid, payment_method, type, is_bazaargahed, is_takhsised,
-                                                company_price, customer_price, created_at, updated_at, 
-                                                is_sms_sent, is_paid, is_weight_costed, is_ap_af, is_archived, is_canceled,
-                                                is_urgent, is_delivered, is_sent, is_sent_to_barbari, is_barnamed,
-                                                is_takhsised_approved, is_tasvied_with_varedkonandeh, 
-                                                is_address_sent_to_varedkonandeh, is_ekhtelaf_approved,
-                                                is_kasri_varized, is_sarak_varized, is_kasri_reciept_submited,
-                                                is_factorated, does_salesman_approve, does_logistics_approve, does_financial_approve,
-                                                description)
-                                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
-                                                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                                                %s)
-                                                """
-                                                
-                                                params = [
-                                                    purchase_id, customer.id, purchase_number, shenase_takhsis, code_melli_tahvil,
-                                                    tahvil_phone_number, bazaargah_phone_number, address, weight, bge_file.cargo.id,
-                                                    amount_paid, payment_method, 'bazaargah', True, True if shenase_takhsis else False,
-                                                    bge_file.cargo.company_price, bge_file.cargo.customer_price,
-                                                    # 20 مقدار برای فیلدهای بولین
-                                                    True,  # is_sms_sent
-                                                    True,  # is_paid
-                                                    True,  # is_weight_costed
-                                                    False, # is_ap_af
-                                                    False, # is_archived
-                                                    False, # is_canceled
-                                                    False, # is_urgent
-                                                    True,  # is_delivered
-                                                    True,  # is_sent
-                                                    True,  # is_sent_to_barbari
-                                                    True,  # is_barnamed
-                                                    True,  # is_takhsised_approved
-                                                    True,  # is_tasvied_with_varedkonandeh
-                                                    True,  # is_address_sent_to_varedkonandeh
-                                                    True,  # is_ekhtelaf_approved
-                                                    True,  # is_kasri_varized
-                                                    True,  # is_sarak_varized
-                                                    True,  # is_kasri_reciept_submited
-                                                    True,  # is_factorated
-                                                    True,  # does_salesman_approve
-                                                    True,  # does_logistics_approve
-                                                    True,  # does_financial_approve
-                                                    ""     # description (ستون جا افتاده)
-                                                ]
-                                                
-                                                # دیباگ: بررسی تعداد پلیس‌هولدرها و پارامترها
-                                                placeholder_count = sql_query.count('%s')
-                                                params_count = len(params)
-                                                logger.debug(f"تعداد پلیس‌هولدرها: {placeholder_count}, تعداد پارامترها: {params_count}")
-                                                
-                                                # بررسی دقیق‌تر فیلدهای جدول و پارامترها
-                                                fields_count = sql_query.count(',') + 1  # تعداد فیلدها در SQL (جدا شده با کاما + 1)
-                                                logger.debug(f"تعداد فیلدهای مشخص شده در SQL: {fields_count}")
-                                                
-                                                if placeholder_count != params_count:
-                                                    logger.error(f"عدم تطابق: تعداد پلیس‌هولدرها ({placeholder_count}) با تعداد پارامترها ({params_count}) مطابقت ندارد")
-                                                
-                                                try:
-                                                    cursor.execute(sql_query, params)
-                                                    # لاگ تایید اجرای موفق
-                                                    logger.debug(f"SQL خرید با موفقیت اجرا شد: {purchase_id}")
-                                                    records_created += 1
-                                                except Exception as e:
-                                                    logger.error(f"خطا در اجرای SQL: {str(e)}")
-                                                    raise
-                                            except Exception as id_error:
-                                                logger.error(f"خطا در ایجاد شناسه خرید: {str(id_error)}", exc_info=True)
-                                                raise
-                                        except Exception as id_error:
-                                            logger.error(f"خطا در ایجاد شناسه خرید: {str(id_error)}", exc_info=True)
+                                            # Bypass validation when saving
+                                            new_purchase.save(force_insert=True)
+                                            logger.debug(f"خرید جدید با موفقیت ایجاد شد: {purchase_id}")
+                                            records_created += 1
+                                        except Exception as e:
+                                            logger.error(f"خطا در ایجاد خرید جدید {purchase_number}: {str(e)}")
                                             raise
                                     else:
                                         logger.error(f"ایجاد مشتری با شماره {bazaargah_phone_number} ناموفق بود")
