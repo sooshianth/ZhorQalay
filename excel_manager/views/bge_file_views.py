@@ -587,25 +587,31 @@ def process_bge_file(request, file_id):
                                         customer = Customer.objects.filter(phone_number=bazaargah_phone_number).first()
                                         if not customer:
                                             try:
-                                                # ایجاد مشتری جدید با ORM جنگو به جای SQL مستقیم
+                                                # استخراج زمینه فعالیت بر اساس اکسل:
+                                                field_of_activity_raw = None
+                                                for fieldname in ['نوع کاربری خریدار', 'زمینه فعالیت', 'حیطه فعالیت']:
+                                                    if fieldname in row and pd.notna(row[fieldname]):
+                                                        field_of_activity_raw = str(row[fieldname]).strip()
+                                                        break
+
+                                                field_of_activity = map_excel_field_to_model(field_of_activity_raw)
+
                                                 customer = Customer.objects.create(
                                                     phone_number=bazaargah_phone_number,
                                                     name=customer_name if customer_name else "مشتری جدید",
-                                                    field_of_activity='chicken',
+                                                    field_of_activity=field_of_activity if field_of_activity else 'chicken',
                                                     sms_preference=True,
                                                     is_bazaargah_enjoyer=True
                                                 )
-                                                
+
                                                 logger.debug(f"مشتری جدید ایجاد شد با شناسه: {customer.id}")
-                                                
-                                                # اضافه کردن کارشناس فروش به مشتری
+                                                # اضافه کردن کارشناس فروش
                                                 if super_agent:
-                                                    logger.debug(f"افزودن کارشناس فروش {super_agent.id} به مشتری {customer.id}")
                                                     customer.sales_agent.add(super_agent)
                                             except Exception as ce:
                                                 logger.error(f"خطا در ایجاد مشتری با ORM: {str(ce)}", exc_info=True)
-                                                raise
-                                    
+                                                raise 
+
                                     if customer:
                                         # ایجاد شناسه منحصر به فرد برای خرید
                                         factor_code = "88"  # استفاده از کد ثابت برای جلوگیری از مشکلات
@@ -845,3 +851,32 @@ def fix_excel_headers(df):
     # اگر سربرگ‌ها پیدا نشدند، دیتافریم را بدون تغییر برگردان
     return df
 
+def map_excel_field_to_model(field_value):
+    """
+    نگاشت نوع کاربری اکسل به فیلد مدل
+    این نگاشت را بسته به دیتا اکسل خود کامل و اصلاح کن
+    """
+    # اگر مقدار None یا تهی بود
+    if not field_value or not isinstance(field_value, str):
+        return 'chicken'  # مقدار پیش‌فرض
+
+    field_value = field_value.strip()
+    FIELD_MAP = {
+        'مرغداری': 'chicken',
+        'دامداری': 'livestock',
+        'گاوداری': 'livestock',
+        'تولیدی مرغ': 'chicken',
+        'تعاونی': 'corporation', # یا بر اساس دیتا واقعی؛ ممکن است نیازمند تفکیک دقیق‌تر باشد!
+        'دلال': 'trader',
+        'بازرگان': 'trader',
+        'کارخانه': 'factory',
+        'کارخانه خوراک': 'factory',
+        'آبزی': 'fish',
+        'پرورش آبزیان': 'fish',
+        'ماهی': 'fish',
+    }
+    for k, v in FIELD_MAP.items():
+        if k in field_value:
+            return v
+    # اگر پیدا نشد
+    return 'chicken'

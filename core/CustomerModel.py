@@ -13,6 +13,7 @@ FIELD_OF_ACTIVITY = [
     ('factory', 'کارخانه خوراک'),
     ('trader', 'دلال'),
     ('fish', 'پرورش آبزیان'),
+    ('corporation', 'تعاونی')
 ]
 class Customer(models.Model):
     phone_number = models.CharField(_("تلفن همراه"), max_length=20, unique=True)
