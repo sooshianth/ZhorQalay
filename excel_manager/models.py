@@ -26,6 +26,8 @@ class ExcelFile(models.Model):
     updated_at = jmodels.jDateTimeField(auto_now=True, verbose_name=_('تاریخ بروزرسانی'))
     is_processed = models.BooleanField(default=False, verbose_name=_('پردازش شده'))
     is_approved = models.BooleanField(default=False, verbose_name=_('تأیید شده'))
+    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_excel_files', verbose_name=_('تأیید شده توسط'))
+    approved_at = jmodels.jDateTimeField(null=True, blank=True, verbose_name=_('تاریخ تأیید'))
 
     class Meta:
         verbose_name = _('فایل اکسل')

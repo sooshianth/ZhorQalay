@@ -25,7 +25,8 @@
                             <th scope="col">محصول</th>
                             <th scope="col">تاریخ آپلود</th>
                             <th scope="col">کاربر</th>
-                            <th scope="col">وضعیت</th>
+                            <th scope="col">وضعیت پردازش</th>
+                            <th scope="col">وضعیت تأیید</th>
                             <th scope="col">عملیات</th>
                         </tr>
                     </thead>
@@ -46,12 +47,30 @@
                                 {% endif %}
                             </td>
                             <td>
+                                {% if file.is_approved %}
+                                <span class="badge bg-success">تأیید شده</span>
+                                {% if file.approved_by %}
+                                <small class="d-block text-muted">توسط: {{ file.approved_by.get_full_name|default:file.approved_by.username }}</small>
+                                {% endif %}
+                                {% else %}
+                                <span class="badge bg-warning text-dark">منتظر تأیید</span>
+                                {% endif %}
+                            </td>
+                            <td>
                                 <div class="btn-group btn-group-sm">
                                     <a href="{% url 'excel_manager:process_bge_file' file.id %}" class="btn btn-outline-primary" title="پردازش">
                                         <i class="fa fa-cogs"></i>
                                     </a>
+                                    {% if not file.is_approved and request.user.logistics_manager %}
+                                    <a href="{% url 'excel_manager:approve_bge_file' file.id %}" class="btn btn-outline-success" title="تأیید فایل">
+                                        <i class="fa fa-check"></i>
+                                    </a>
+                                    {% endif %}
                                     {% if file.file %}
-                                    <a href="{{ file.file.url }}" class="btn btn-outline-info" title="دانلود" target="_blank">
+                                    <a href="{% url 'excel_manager:view_excel_file' file.id %}" class="btn btn-outline-info" title="مشاهده فایل" target="_blank">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                    <a href="{{ file.file.url }}" class="btn btn-outline-secondary" title="دانلود" download>
                                         <i class="fa fa-download"></i>
                                     </a>
                                     {% endif %}

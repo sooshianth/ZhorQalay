@@ -16,7 +16,7 @@ from sms_api.apis import (
 
 class Purchase(models.Model):
     id = models.AutoField(primary_key=True)
-    invoice_id = models.CharField(max_length=20, unique=True, editable=False, blank=True, null=True)
+    invoice_id = models.CharField(max_length=20, verbose_name='کد درون سازمانی', unique=True, editable=False, blank=True, null=True)
     customer = models.ForeignKey(Customer, on_delete=models.DO_NOTHING, verbose_name="مشتری", help_text="ارتباط یک‌به‌یک با مشتری از طریق شماره تلفن یا آیدی", related_name='purchases_made')
     address = models.TextField("آدرس", blank=True, null=True)
     description = models.TextField("توضیحات", blank=True, null=True)

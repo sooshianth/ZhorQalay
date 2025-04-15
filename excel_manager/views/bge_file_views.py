@@ -880,3 +880,103 @@ def map_excel_field_to_model(field_value):
             return v
     # اگر پیدا نشد
     return 'chicken'
+
+@login_required
+def approve_bge_file(request, file_id):
+    """
+    تایید فایل اکسل بازارگاه توسط کارشناسان لجستیک
+    """
+    # بررسی دسترسی کاربر
+    if not hasattr(request.user, 'logistics_manager'):
+        messages.error(request, 'شما دسترسی لازم برای تایید فایل اکسل را ندارید.')
+        return redirect('excel_manager:bge_files_list')
+    
+    # بازیابی فایل
+    file_obj = get_object_or_404(BGExcelFile, id=file_id)
+    
+    if request.method == 'POST':
+        # تایید فایل
+        file_obj.is_approved = True
+        file_obj.approved_by = request.user
+        file_obj.approved_at = timezone.now()
+        file_obj.save()
+        
+        messages.success(request, 'فایل با موفقیت تایید شد.')
+        return redirect('excel_manager:bge_files_list')
+    
+    # نمایش صفحه تایید
+    context = {
+        'excel_file': file_obj,
+        'page_title': 'تایید فایل اکسل بازارگاه'
+    }
+    return render(request, 'excel_manager/approve_bge_file.html', context)
+
+
+@login_required
+def view_excel_file(request, file_id):
+    """
+    نمایش محتوای فایل اکسل در مرورگر بدون نیاز به دانلود
+    """
+    # بازیابی فایل
+    excel_file = get_object_or_404(ExcelFile, id=file_id)
+    
+    try:
+        file_path = excel_file.file.path
+        file_name = os.path.basename(file_path)
+        file_extension = os.path.splitext(file_path)[1].lower()
+        
+        # خواندن محتوای فایل بر اساس نوع آن
+        if file_extension == '.xls':
+            try:
+                # بررسی اگر فایل xls حاوی HTML است
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                if '<html' in content.lower():
+                    # اگر فایل حاوی HTML است، آن را به عنوان یک DataFrame بخوان
+                    tables = pd.read_html(content)
+                    if not tables:
+                        messages.error(request, 'جدولی در فایل اکسل یافت نشد.')
+                        return redirect('excel_manager:bge_files_list')
+                    df = tables[0]
+                    
+                    # برگرداندن مستقیم محتوای HTML با استایل‌های لازم
+                    # حذف اسکریپت‌ها و محتوای غیر امن
+                    safe_content = content.replace('<script', '<!-- script').replace('</script>', '</script -->')
+                    
+                    context = {
+                        'excel_file': excel_file,
+                        'page_title': f'مشاهده فایل: {excel_file.title}',
+                        'html_content': safe_content,
+                        'is_html_file': True
+                    }
+                    return render(request, 'excel_manager/view_excel_file.html', context)
+                else:
+                    # فایل xls عادی است
+                    df = pd.read_excel(file_path)
+            except UnicodeDecodeError:
+                # فایل باینری است
+                df = pd.read_excel(file_path)
+        else:  # فایل xlsx
+            df = pd.read_excel(file_path)
+        
+        # بررسی و پیدا کردن ردیف header اگر لازم باشد
+        df = fix_excel_headers(df)
+        
+        # تبدیل DataFrame به HTML
+        html_table = df.to_html(index=False, classes='table table-striped table-bordered table-hover', 
+                               escape=False, na_rep='-', table_id='excel-table')
+        
+        context = {
+            'excel_file': excel_file,
+            'page_title': f'مشاهده فایل: {excel_file.title}',
+            'file_name': file_name,
+            'html_table': html_table,
+            'is_html_file': False
+        }
+        return render(request, 'excel_manager/view_excel_file.html', context)
+        
+    except Exception as e:
+        logger.error(f"خطا در نمایش فایل اکسل: {str(e)}")
+        messages.error(request, f'خطا در نمایش فایل اکسل: {str(e)}')
+        return redirect('excel_manager:bge_files_list')

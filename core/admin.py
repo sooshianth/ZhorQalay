@@ -26,7 +26,7 @@ class CargoProductAdmin(admin.ModelAdmin):
 class CustomerAdmin(admin.ModelAdmin):
     list_display = ('name', 'phone_number', 'city', 'field_of_activity', 'created_at')
     list_filter = ('field_of_activity', 'city')
-    search_fields = ('name', 'phone_number')
+    search_fields = ('name', 'phone_number', 'city')
     ordering = ('-created_at',)
 
 class ShenaseTakhsisInline(admin.TabularInline):
@@ -38,9 +38,9 @@ class ShenaseTakhsisInline(admin.TabularInline):
 # تنظیمات نمایش مدل Purchase در ادمین
 @admin.register(Purchase)
 class PurchaseAdmin(admin.ModelAdmin):
-    list_display = ('pk', 'invoice_id', 'purchase_number', 'customer', 'weight', 'amount_paid', 'is_paid', 'is_delivered', 'created_at')
-    list_filter = ('is_paid', 'is_delivered', 'is_canceled', 'is_archived')
-    search_fields = ('purchase_number', 'customer__name')
+    list_display = ('invoice_id', 'purchase_number', 'customer', 'weight', 'amount_paid', 'is_paid', 'is_barnamed', 'created_at')
+    list_filter = ('customer', 'is_paid', 'is_delivered', 'is_canceled', 'is_archived')
+    search_fields = ('invoice_id', 'purchase_number', 'customer__name', 'customer__phone_number', 'customer__sales_agent__name')
     ordering = ('-created_at',)
     inlines = [ShenaseTakhsisInline]
 
@@ -76,11 +76,11 @@ class SalesAgentAdmin(admin.ModelAdmin):
 #     ordering = ('due_date',)
 
 # تنظیمات نمایش مدل CallSession در ادمین
-# @admin.register(CallSession)
-# class CallSessionAdmin(admin.ModelAdmin):
-#     list_display = ('customer', 'date')
-#     list_filter = ('date', 'customer__sales_agent')
-#     ordering = ('-date',)
+@admin.register(CallSession)
+class CallSessionAdmin(admin.ModelAdmin):
+    list_display = ('customer', 'date')
+    list_filter = ('date', 'customer__sales_agent')
+    ordering = ('-date',)
 
 # تنظیمات نمایش مدل FinancialManager در ادمین
 @admin.register(FinancialManager)
