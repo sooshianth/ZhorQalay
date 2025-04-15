@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="page-title">تایید آپلود فایل با کوتاژهای مختلف</h2>
+        </div>
+        <div class="col-md-4 text-left">
+            <a href="{% url 'excel_manager:upload_bge_file' %}" class="btn btn-secondary">
+                <i class="fa fa-arrow-right"></i> بازگشت به فرم آپلود
+            </a>
+        </div>
+    </div>
+
+    <div class="card border-warning">
+        <div class="card-header bg-warning">
+            <h4 class="card-title text-dark mb-0">
+                <i class="fa fa-exclamation-triangle"></i> هشدار: تفاوت در کوتاژها
+            </h4>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning">
+                <p>
+                    <strong>کوتاژ محصول انتخاب شده:</strong> {{ cargo_product.cottage }} ({{ cargo_product.get_product_type_display }})
+                </p>
+                <p>
+                    <strong>کوتاژهای موجود در فایل:</strong>
+                    {% for cottage in mismatched_cottages %}
+                        <span class="badge bg-secondary">{{ cottage }}</span>
+                    {% endfor %}
+                    {% if total_mismatched > 10 %}
+                        <span class="badge bg-secondary">و {{ total_mismatched|add:"-10" }} مورد دیگر</span>
+                    {% endif %}
+                </p>
+                <p>
+                    کوتاژهای موجود در فایل با کوتاژ محصول انتخاب شده مطابقت ندارند. آیا مطمئن هستید که می‌خواهید این فایل را به این محصول متصل کنید؟
+                </p>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" action="{% url 'excel_manager:upload_bge_file' %}">
+                {% csrf_token %}
+                <input type="hidden" name="cargo_id" value="{{ cargo_product.id }}">
+                <input type="hidden" name="title" value="{{ title }}">
+                <input type="hidden" name="description" value="{{ description }}">
+                <input type="hidden" name="force_upload" value="true">
+                
+                <!-- فایل را دوباره آپلود کنید -->
+                <div class="mb-3">
+                    <label for="excel_file" class="form-label">لطفاً فایل را دوباره انتخاب کنید</label>
+                    <input type="file" class="form-control" id="excel_file" name="excel_file" accept=".xls,.xlsx" required>
+                    <div class="invalid-feedback">
+                        لطفا فایل را دوباره انتخاب کنید
+                    </div>
+                    <small class="form-text text-muted">فرمت‌های قابل قبول: .xls و .xlsx</small>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <a href="{% url 'excel_manager:upload_bge_file' %}" class="btn btn-secondary btn-block">
+                            <i class="fa fa-times"></i> انصراف
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <button type="submit" class="btn btn-warning btn-block">
+                            <i class="fa fa-check"></i> تایید و ادامه آپلود
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -10,6 +10,7 @@ from django.core.files.base import ContentFile
 from django.contrib import messages
 from ..models import ExcelFile, BGExcelFile, ExcelProcessingLog
 from core._models import CargoProduct, Purchase
+from core.PurchaseModel import ShenaseTakhsis
 from core.CustomerModel import Customer, FIELD_OF_ACTIVITY
 from django.conf import settings
 from django.db import transaction
@@ -47,8 +48,9 @@ def upload_bge_file(request):
             title = request.POST.get('title')
             description = request.POST.get('description', '')
             excel_file = request.FILES.get('excel_file')
+            force_upload = request.POST.get('force_upload') == 'true'  # بررسی آپلود اجباری
             
-            logger.debug(f"داده‌های دریافتی: cargo_id={cargo_id}, title={title}, excel_file={excel_file}")
+            logger.debug(f"داده‌های دریافتی: cargo_id={cargo_id}, title={title}, excel_file={excel_file}, force_upload={force_upload}")
             
             # بررسی داده‌های اجباری
             if not cargo_id or not title or not excel_file:
@@ -58,9 +60,9 @@ def upload_bge_file(request):
             
             # بررسی نوع فایل
             file_extension = os.path.splitext(excel_file.name)[1].lower()
-            if file_extension != '.xls':
+            if file_extension not in ['.xls', '.xlsx']:
                 logger.warning(f"فرمت فایل نامعتبر: {file_extension}")
-                messages.error(request, 'لطفا یک فایل اکسل معتبر (.xls) آپلود کنید')
+                messages.error(request, 'لطفا یک فایل اکسل معتبر (.xls یا .xlsx) آپلود کنید')
                 return redirect('excel_manager:upload_bge_file')
             
             try:
@@ -75,42 +77,62 @@ def upload_bge_file(request):
                 
                 # بررسی تطابق کوتاژ محصول با کوتاژ داخل فایل اکسل
                 # ذخیره موقت فایل
-                temp_file_path = os.path.join(settings.MEDIA_ROOT, 'temp_excel.xls')
+                temp_file_path = os.path.join(settings.MEDIA_ROOT, f'temp_excel{file_extension}')
                 with open(temp_file_path, 'wb+') as destination:
                     for chunk in excel_file.chunks():
                         destination.write(chunk)
                 
                 # خواندن محتوای فایل اکسل
-                with open(temp_file_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
+                try:
+                    # خواندن محتوای فایل اکسل با توجه به نوع آن
+                    if file_extension == '.xls':
+                        try:
+                            # ابتدا تلاش برای خواندن به عنوان HTML
+                            with open(temp_file_path, 'r', encoding='utf-8') as f:
+                                content = f.read()
+                            
+                            if '<html' in content.lower():
+                                # این فایل xls حاوی HTML است
+                                tables = pd.read_html(content)
+                                if not tables:
+                                    logger.warning(f"جدولی در فایل اکسل یافت نشد")
+                                    messages.error(request, 'جدولی در فایل اکسل یافت نشد')
+                                    os.remove(temp_file_path)  # حذف فایل موقت
+                                    return redirect('excel_manager:upload_bge_file')
+                                df = tables[0]
+                            else:
+                                # این یک فایل xls معمولی است
+                                df = pd.read_excel(temp_file_path)
+                                # بررسی و پیدا کردن ردیف header
+                                df = fix_excel_headers(df)
+                        except UnicodeDecodeError:
+                            # این یک فایل باینری است، نه فایل متنی
+                            df = pd.read_excel(temp_file_path)
+                            # بررسی و پیدا کردن ردیف header
+                            df = fix_excel_headers(df)
+                    else:  # فایل xlsx
+                        df = pd.read_excel(temp_file_path)
+                        # بررسی و پیدا کردن ردیف header
+                        df = fix_excel_headers(df)
                 
-                # بررسی وجود HTML در فایل
-                if '<html' not in content.lower():
-                    logger.warning(f"محتوای فایل نامعتبر است: HTML یافت نشد")
-                    messages.error(request, 'فایل اکسل باید مبتنی بر HTML باشد')
+                except Exception as e:
+                    logger.error(f"خطا در خواندن فایل اکسل: {str(e)}")
+                    messages.error(request, f'خطا در خواندن فایل اکسل: {str(e)}')
                     os.remove(temp_file_path)  # حذف فایل موقت
                     return redirect('excel_manager:upload_bge_file')
-                
-                # استفاده از pandas برای خواندن جدول HTML
-                tables = pd.read_html(content)
-                if not tables:
-                    logger.warning(f"جدولی در فایل اکسل یافت نشد")
-                    messages.error(request, 'جدولی در فایل اکسل یافت نشد')
-                    os.remove(temp_file_path)  # حذف فایل موقت
-                    return redirect('excel_manager:upload_bge_file')
-                
-                # بررسی ستون‌های جدول
-                df = tables[0]
                 
                 # بررسی وجود ستون کد کوتاژ
-                if 'کد کوتاژ' not in df.columns and 'کوتاژ' not in df.columns:
+                cottage_column = None
+                for column_name in ['کد کوتاژ', 'کوتاژ']:
+                    if column_name in df.columns:
+                        cottage_column = column_name
+                        break
+                
+                if not cottage_column:
                     logger.warning(f"ستون کد کوتاژ در فایل یافت نشد")
                     messages.error(request, 'ستون کد کوتاژ در فایل یافت نشد')
                     os.remove(temp_file_path)  # حذف فایل موقت
                     return redirect('excel_manager:upload_bge_file')
-                
-                # ستون کوتاژ را پیدا کن
-                cottage_column = 'کد کوتاژ' if 'کد کوتاژ' in df.columns else 'کوتاژ'
                 
                 # بررسی مقادیر کوتاژ در هر ردیف
                 cottage_mismatch = False
@@ -124,13 +146,24 @@ def upload_bge_file(request):
                             cottage_mismatch = True
                             mismatched_cottages.append(file_cottage)
                 
-                # اگر کوتاژها مطابقت نداشته باشند، خطا نمایش بده
-                if cottage_mismatch:
+                # اگر کوتاژها مطابقت نداشته باشند و آپلود اجباری نباشد، هشدار نمایش بده
+                if cottage_mismatch and not force_upload:
                     unique_cottages = list(set(mismatched_cottages))
                     logger.warning(f"کوتاژ محصول ({cargo_product.cottage}) با کوتاژ رکوردهای فایل مطابقت ندارد: {unique_cottages}")
-                    messages.error(request, f'کوتاژ محصول ({cargo_product.cottage}) با کوتاژ برخی رکوردهای فایل مطابقت ندارد. کوتاژهای مشاهده شده در فایل: {", ".join(unique_cottages[:5])}{" و ..." if len(unique_cottages) > 5 else ""} - لطفاً فایل صحیح را آپلود کنید یا محصول با کوتاژ مناسب را انتخاب نمایید.')
-                    os.remove(temp_file_path)  # حذف فایل موقت
-                    return redirect('excel_manager:upload_bge_file')
+                    
+                    # فایل موقت را حذف کن
+                    os.remove(temp_file_path)
+                    
+                    # پیام هشدار و درخواست تایید برای آپلود
+                    context = {
+                        'cargo_product': cargo_product,
+                        'title': title,
+                        'description': description,
+                        'mismatched_cottages': unique_cottages[:10],  # نمایش حداکثر 10 کوتاژ متفاوت
+                        'total_mismatched': len(unique_cottages),
+                        'page_title': 'تایید آپلود فایل با کوتاژهای مختلف',
+                    }
+                    return render(request, 'excel_manager/confirm_upload_bge_file.html', context)
                 
                 # حذف فایل موقت
                 os.remove(temp_file_path)
@@ -198,7 +231,7 @@ def upload_bge_file(request):
                 
                 # تغییر نام فایل به فرمت مناسب
                 try:
-                    new_filename = f"BGE_{cargo_product.cottage}_{cargo_product.get_product_type_display()}.xls"
+                    new_filename = f"BGE_{cargo_product.cottage}_{cargo_product.get_product_type_display()}{file_extension}"
                     rename_result = file_obj.change_file_name(new_filename)
                     if rename_result:
                         logger.debug(f"نام فایل تغییر یافت به: {new_filename}")
@@ -268,6 +301,7 @@ def process_bge_file(request, file_id):
         try:
             # دریافت فایل بازارگاه
             file_path = bge_file.file.path
+            file_extension = os.path.splitext(file_path)[1].lower()
             
             # ایجاد لاگ پردازش
             processing_log = ExcelProcessingLog.objects.create(
@@ -281,32 +315,61 @@ def process_bge_file(request, file_id):
             )
             
             try:
-                # خواندن محتوای فایل اکسل مبتنی بر HTML
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                
-                if '<html' not in content.lower():
-                    messages.error(request, 'فایل اکسل باید مبتنی بر HTML باشد.')
-                    processing_log.log_message = "فایل اکسل باید مبتنی بر HTML باشد."
-                    processing_log.save()
-                    return redirect('excel_manager:bge_files_list')
-                
-                # استفاده از pandas برای خواندن جدول HTML
-                tables = pd.read_html(content)
-                if not tables:
-                    messages.error(request, 'جدولی در فایل اکسل یافت نشد.')
-                    processing_log.log_message = "جدولی در فایل اکسل یافت نشد."
-                    processing_log.save()
-                    return redirect('excel_manager:bge_files_list')
+                # خواندن محتوای فایل اکسل با توجه به نوع آن
+                if file_extension == '.xls':
+                    try:
+                        # ابتدا تلاش برای خواندن به عنوان HTML
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                        
+                        if '<html' in content.lower():
+                            # این فایل xls حاوی HTML است
+                            tables = pd.read_html(content)
+                            if not tables:
+                                messages.error(request, 'جدولی در فایل اکسل یافت نشد.')
+                                processing_log.log_message = "جدولی در فایل اکسل یافت نشد."
+                                processing_log.save()
+                                return redirect('excel_manager:bge_files_list')
+                            df = tables[0]
+                        else:
+                            # این یک فایل xls معمولی است
+                            df = pd.read_excel(file_path)
+                            # بررسی و پیدا کردن ردیف header
+                            df = fix_excel_headers(df)
+                    except UnicodeDecodeError:
+                        # این یک فایل باینری است، نه فایل متنی
+                        df = pd.read_excel(file_path)
+                        # بررسی و پیدا کردن ردیف header
+                        df = fix_excel_headers(df)
+                else:  # فایل xlsx
+                    df = pd.read_excel(file_path)
+                    # بررسی و پیدا کردن ردیف header
+                    df = fix_excel_headers(df)
                 
                 # گزارش دیباگ برای تعداد ردیف‌ها
-                df = tables[0]
                 logger.debug(f"تعداد ردیف‌های خوانده شده: {len(df)}")
                 logger.debug(f"ستون‌های موجود در فایل: {df.columns.tolist()}")
                 
                 # بررسی وجود ستون‌های ضروری
                 required_columns = ['کد', 'شناسه تخصیص', 'وزن کل خرید', 'کد ملی تحویل', 'شماره هماهنگی تحویل', 'شماره همراه خریدار', 
                                     'نام خریدار', 'آدرس تحویل', 'مبلغ پرداختی', 'شیوه پرداخت']
+                
+                # بررسی ستون کوتاژ
+                has_cottage_column = False
+                cottage_column = None
+                for column in ['کد کوتاژ', 'کوتاژ']:
+                    if column in df.columns:
+                        has_cottage_column = True
+                        cottage_column = column
+                        break
+                
+                if not has_cottage_column:
+                    error_msg = "ستون کوتاژ در فایل یافت نشد"
+                    logger.error(error_msg)
+                    messages.error(request, error_msg)
+                    processing_log.log_message = error_msg
+                    processing_log.save()
+                    return redirect('excel_manager:bge_files_list')
                 
                 # بررسی اینکه آیا ستون‌های مورد نیاز در دیتافریم وجود دارند
                 missing_columns = [col for col in required_columns if col not in df.columns]
@@ -327,11 +390,15 @@ def process_bge_file(request, file_id):
                 if super_user and hasattr(super_user, 'sales_agent'):
                     super_agent = super_user.sales_agent
                 
+                # ذخیره CargoProduct های جدید ایجاد شده
+                created_cargo_products = {}
+                
                 # پردازش رکوردها
                 records_processed = 0
                 records_updated = 0
                 records_created = 0
                 records_failed = 0
+                cargo_products_created = 0
                 error_messages = []
                 
                 # پردازش هر رکورد جداگانه
@@ -353,6 +420,9 @@ def process_bge_file(request, file_id):
                         amount_paid = int(float(row['مبلغ پرداختی'])) if pd.notna(row['مبلغ پرداختی']) else None
                         payment_method = 'نقدی' if pd.notna(row['شیوه پرداخت']) and row['شیوه پرداخت'] == 'نقدی' else 'توافقی'
                         
+                        # استخراج کوتاژ از فایل
+                        current_cottage = str(row[cottage_column]).strip() if pd.notna(row[cottage_column]) else None
+                        
                         # نرمالایز کردن شماره تلفن
                         if bazaargah_phone_number:
                             bazaargah_phone_number = re.sub(r'\D', '', bazaargah_phone_number)
@@ -372,9 +442,112 @@ def process_bge_file(request, file_id):
                         purchase = Purchase.objects.filter(purchase_number=purchase_number).first()
                         
                         # بررسی قبلاً ثبت شدن شناسه تخصیص
-                        if shenase_takhsis and Purchase.objects.filter(shenase_takhsis=shenase_takhsis).exists():
+                        existing_shenase = ShenaseTakhsis.objects.filter(code=shenase_takhsis).exists() if shenase_takhsis else False
+                        if existing_shenase:
                             rows_to_remove.append(idx)
                             continue
+                        
+                        # تعیین محصول (CargoProduct) براساس کوتاژ
+                        cargo_product = None
+                        
+                        # ابتدا بررسی می‌کنیم آیا کوتاژ در محصول آپلود شده وجود دارد
+                        if current_cottage == bge_file.cargo.cottage:
+                            cargo_product = bge_file.cargo
+                        # سپس بررسی می‌کنیم آیا کوتاژ در محصولات موجود وجود دارد
+                        elif current_cottage:
+                            # بررسی در محصولات قبلاً ایجاد شده در این پردازش
+                            if current_cottage in created_cargo_products:
+                                cargo_product = created_cargo_products[current_cottage]
+                            else:
+                                # بررسی در دیتابیس
+                                try:
+                                    cargo_product = CargoProduct.objects.get(cottage=current_cottage)
+                                except CargoProduct.DoesNotExist:
+                                    # ایجاد محصول جدید براساس کوتاژ
+                                    try:
+                                        with transaction.atomic():
+                                            # تعیین نوع محصول از فایل اکسل
+                                            product_type = None
+                                            
+                                            # بررسی وجود ستون "عنوان کالا" یا مشابه آن
+                                            product_name_column = None
+                                            for column in ['عنوان کالا', 'نام کالا', 'محصول', 'کالا']:
+                                                if column in df.columns:
+                                                    product_name_column = column
+                                                    break
+                                            
+                                            if product_name_column and pd.notna(row[product_name_column]):
+                                                product_name = str(row[product_name_column]).strip().lower()
+                                                
+                                                # تشخیص نوع محصول بر اساس نام کالا
+                                                if 'ذرت' in product_name:
+                                                    product_type = 'corn'
+                                                elif 'جو' in product_name:
+                                                    product_type = 'barley'
+                                                elif 'کنجاله سویا' in product_name:
+                                                    product_type = 'soy_meal'
+                                                elif 'کنجاله آفتابگردان' in product_name:
+                                                    product_type = 'sunflower_meal'
+                                                elif 'کنجاله کلزا' in product_name:
+                                                    product_type = 'rapeseed_meal'
+                                                elif 'سویا استحصالی داخلی' in product_name:
+                                                    product_type = 'local_extracted_soy'
+                                                elif 'سویا استحصالی خارجی' in product_name:
+                                                    product_type = 'foreign_extracted_soy'
+                                                elif 'دان سویا' in product_name or 'سویا' in product_name:
+                                                    product_type = 'soy_grain'
+                                                elif 'دان پنبه' in product_name or 'پنبه دانه' in product_name:
+                                                    product_type = 'cotton_seed'
+                                                elif 'یونجه' in product_name:
+                                                    product_type = 'alfalfa'
+                                            
+                                            # اگر نوع محصول از فایل تشخیص داده نشد، از محصول موجود استفاده کن
+                                            if not product_type:
+                                                product_type = bge_file.cargo.product_type
+                                                logger.info(f"نوع محصول از فایل تشخیص داده نشد، استفاده از نوع محصول {bge_file.cargo.get_product_type_display()}")
+                                            
+                                            # تعیین قیمت خرید و فروش
+                                            company_price = 0
+                                            customer_price = 0
+                                            
+                                            # تلاش برای استخراج قیمت از فایل
+                                            if 'قیمت هر واحد' in df.columns and pd.notna(row['قیمت هر واحد']):
+                                                try:
+                                                    price_per_unit = int(float(row['قیمت هر واحد']))
+                                                    company_price = price_per_unit
+                                                    customer_price = price_per_unit
+                                                except (ValueError, TypeError):
+                                                    # اگر تبدیل به عدد با خطا مواجه شد، از مقادیر محصول اصلی استفاده کن
+                                                    logger.warning(f"قیمت در فایل با فرمت نامعتبر: {row['قیمت هر واحد']}")
+                                            
+                                            # استفاده از مقادیر محصول فعلی برای ایجاد محصول جدید
+                                            new_cargo_product = CargoProduct.objects.create(
+                                                type='bazaargah',  # نوع خرید بازارگاه
+                                                cottage=current_cottage,  # کوتاژ جدید
+                                                company_price=company_price,  # قیمت خرید
+                                                customer_price=customer_price,  # قیمت فروش
+                                                product_type=product_type,  # نوع محصول
+                                                country=bge_file.cargo.country,  # کشور مشابه
+                                                importer_name=bge_file.cargo.importer_name,  # نام واردکننده مشابه
+                                                port=bge_file.cargo.port,  # محل بارگیری مشابه
+                                                loading_time=bge_file.cargo.loading_time,  # زمان بارگیری مشابه
+                                                description=f"ایجاد شده به صورت خودکار در پردازش فایل {bge_file.title}",
+                                                weight=bge_file.cargo.weight,  # وزن مشابه
+                                                status=True  # فعال
+                                            )
+                                            cargo_products_created += 1
+                                            created_cargo_products[current_cottage] = new_cargo_product
+                                            cargo_product = new_cargo_product
+                                            logger.info(f"محصول جدید با کوتاژ {current_cottage} و نوع {cargo_product.get_product_type_display()} ایجاد شد")
+                                    except Exception as ce:
+                                        logger.error(f"خطا در ایجاد محصول جدید با کوتاژ {current_cottage}: {str(ce)}")
+                                        error_messages.append(f"خطا در ایجاد محصول با کوتاژ {current_cottage}: {str(ce)}")
+                                        records_failed += 1
+                                        continue
+                        
+                        # اگر هنوز محصول تعیین نشده، از محصول فعلی استفاده می‌کنیم
+                        if not cargo_product:
+                            cargo_product = bge_file.cargo
                         
                         # هر پردازش در یک بلاک atomic جداگانه انجام می‌شود
                         with transaction.atomic():
@@ -382,17 +555,24 @@ def process_bge_file(request, file_id):
                                 try:
                                     # به‌روزرسانی خرید موجود - استفاده از update به جای save برای دور زدن validation
                                     Purchase.objects.filter(id=purchase.id).update(
-                                        shenase_takhsis=shenase_takhsis,
                                         code_melli_tahvil=code_melli_tahvil,
                                         tahvil_phone_number=tahvil_phone_number,
                                         bazaargah_phone_number=bazaargah_phone_number,
                                         address=address,
                                         weight=weight,
-                                        cargo=bge_file.cargo,
+                                        cargo=cargo_product,
                                         amount_paid=amount_paid,
                                         payment_method=payment_method,
                                         is_takhsised=True if shenase_takhsis else purchase.is_takhsised
                                     )
+                                    
+                                    # افزودن شناسه تخصیص جدید به خرید
+                                    if shenase_takhsis and not ShenaseTakhsis.objects.filter(purchase=purchase, code=shenase_takhsis).exists():
+                                        ShenaseTakhsis.objects.create(
+                                            purchase=purchase,
+                                            code=shenase_takhsis
+                                        )
+                                        
                                     records_updated += 1
                                 except Exception as e:
                                     records_failed += 1
@@ -447,20 +627,19 @@ def process_bge_file(request, file_id):
                                                 id=purchase_id,
                                                 customer=customer,
                                                 purchase_number=purchase_number,
-                                                shenase_takhsis=shenase_takhsis,
                                                 code_melli_tahvil=code_melli_tahvil,
                                                 tahvil_phone_number=tahvil_phone_number,
                                                 bazaargah_phone_number=bazaargah_phone_number,
                                                 address=address,
                                                 weight=weight,
-                                                cargo=bge_file.cargo,
+                                                cargo=cargo_product,
                                                 amount_paid=amount_paid,
                                                 payment_method=payment_method,
                                                 type='bazaargah',
                                                 is_bazaargahed=True,
                                                 is_takhsised=True if shenase_takhsis else False,
-                                                company_price=bge_file.cargo.company_price,
-                                                customer_price=bge_file.cargo.customer_price,
+                                                company_price=cargo_product.company_price,
+                                                customer_price=cargo_product.customer_price,
                                                 # Boolean fields
                                                 is_sms_sent=True,
                                                 is_paid=True,
@@ -490,6 +669,14 @@ def process_bge_file(request, file_id):
                                             # Bypass validation when saving
                                             new_purchase.save(force_insert=True)
                                             logger.debug(f"خرید جدید با موفقیت ایجاد شد: {purchase_id}")
+                                            
+                                            # افزودن شناسه تخصیص به خرید جدید
+                                            if shenase_takhsis:
+                                                ShenaseTakhsis.objects.create(
+                                                    purchase=new_purchase,
+                                                    code=shenase_takhsis
+                                                )
+                                                
                                             records_created += 1
                                         except Exception as e:
                                             logger.error(f"خطا در ایجاد خرید جدید {purchase_number}: {str(e)}")
@@ -515,30 +702,35 @@ def process_bge_file(request, file_id):
                 cleaned_filename = f"cleaned_{os.path.basename(file_path)}"
                 cleaned_file_path = os.path.join(os.path.dirname(file_path), cleaned_filename)
                 
-                # بازسازی فایل HTML
-                html_content = """<html><head><meta http-equiv=Content-Type content='text/html; charset=utf-8'><style> .text { mso-number-format:\\@; } .trFormat{color:Black;background-color:#DEDFDE;}</style></head>"""
-                html_content += """<div style="direction:rtl;padding:5px 0"><span style="font:bold 12px tahoma; color:#008B00;line-height:180%"> ثبت اطلاعات حمل</span></div>"""
-                
-                # تبدیل پاندس به HTML و ذخیره
-                table_html = df.to_html(index=False, border=1, classes='table')
-                table_html = table_html.replace('<table', '<table dir="rtl" cellspacing="0" cellpadding="7" style="font-family:Tahoma;font-size:11px;width:70%;"')
-                
-                # جایگزین کردن عناوین ردیف اول با استایل مناسب
-                thead_html = """<thead><tr style='color:#E7E7FF;background-color:#4A3C8C;font-weight:bold;'>"""
-                for col in df.columns:
-                    thead_html += f"<th>{col}</th>"
-                thead_html += "</tr></thead>"
-                
-                table_html = re.sub(r'<thead>.*?</thead>', thead_html, table_html, flags=re.DOTALL)
-                
-                # ایجاد استایل برای ردیف‌های داده
-                table_html = table_html.replace('<tr>', '<tr class="trFormat">')
-                table_html = table_html.replace('<td>', '<td align="center">')
-                
-                html_content += table_html + "</html>"
-                
-                with open(cleaned_file_path, 'w', encoding='utf-8') as f:
-                    f.write(html_content)
+                # ذخیره فایل بر اساس نوع آن
+                if file_extension == '.xls' and '<html' in content.lower():
+                    # بازسازی فایل HTML
+                    html_content = """<html><head><meta http-equiv=Content-Type content='text/html; charset=utf-8'><style> .text { mso-number-format:\\@; } .trFormat{color:Black;background-color:#DEDFDE;}</style></head>"""
+                    html_content += """<div style="direction:rtl;padding:5px 0"><span style="font:bold 12px tahoma; color:#008B00;line-height:180%"> ثبت اطلاعات حمل</span></div>"""
+                    
+                    # تبدیل پاندس به HTML و ذخیره
+                    table_html = df.to_html(index=False, border=1, classes='table')
+                    table_html = table_html.replace('<table', '<table dir="rtl" cellspacing="0" cellpadding="7" style="font-family:Tahoma;font-size:11px;width:70%;"')
+                    
+                    # جایگزین کردن عناوین ردیف اول با استایل مناسب
+                    thead_html = """<thead><tr style='color:#E7E7FF;background-color:#4A3C8C;font-weight:bold;'>"""
+                    for col in df.columns:
+                        thead_html += f"<th>{col}</th>"
+                    thead_html += "</tr></thead>"
+                    
+                    table_html = re.sub(r'<thead>.*?</thead>', thead_html, table_html, flags=re.DOTALL)
+                    
+                    # ایجاد استایل برای ردیف‌های داده
+                    table_html = table_html.replace('<tr>', '<tr class="trFormat">')
+                    table_html = table_html.replace('<td>', '<td align="center">')
+                    
+                    html_content += table_html + "</html>"
+                    
+                    with open(cleaned_file_path, 'w', encoding='utf-8') as f:
+                        f.write(html_content)
+                else:
+                    # ذخیره به عنوان فایل اکسل
+                    df.to_excel(cleaned_file_path, index=False)
                 
                 # به‌روزرسانی لاگ پردازش
                 processing_log.success = records_failed == 0
@@ -548,6 +740,7 @@ def process_bge_file(request, file_id):
                 log_message = f"تعداد کل رکوردها: {records_processed}\n"
                 log_message += f"تعداد رکوردهای به‌روزرسانی شده: {records_updated}\n"
                 log_message += f"تعداد رکوردهای ایجاد شده: {records_created}\n"
+                log_message += f"تعداد محصولات ایجاد شده: {cargo_products_created}\n"
                 log_message += f"تعداد رکوردهای ناموفق: {records_failed}\n"
                 
                 if error_messages:
@@ -560,7 +753,11 @@ def process_bge_file(request, file_id):
                 bge_file.is_processed = True
                 bge_file.save()
                 
-                messages.success(request, f"فایل با موفقیت پردازش شد. {records_updated} رکورد به‌روزرسانی شد و {records_created} رکورد جدید ایجاد شد.")
+                success_message = f"فایل با موفقیت پردازش شد. {records_updated} رکورد به‌روزرسانی شد و {records_created} رکورد جدید ایجاد شد."
+                if cargo_products_created > 0:
+                    success_message += f" همچنین {cargo_products_created} محصول جدید براساس کوتاژهای موجود در فایل ایجاد شد."
+                
+                messages.success(request, success_message)
                 return redirect('excel_manager:bge_files_list')
                 
             except Exception as e:
@@ -609,4 +806,42 @@ def get_excel_columns(file_path):
     except Exception as e:
         logger.error(f"خطا در خواندن ستون‌های فایل: {str(e)}")
         return []
+
+
+def fix_excel_headers(df):
+    """
+    تابعی برای تشخیص و اصلاح سربرگ‌های فایل اکسل.
+    در برخی فایل‌ها، سربرگ‌ها در ردیف اول یا دوم قرار دارند.
+    """
+    # بررسی اینکه آیا ستون‌های مهم در فایل وجود دارند
+    important_columns = ['کد', 'شناسه تخصیص', 'کد کوتاژ', 'کوتاژ']
+    has_headers = any(col in df.columns for col in important_columns)
+    
+    if has_headers:
+        # سربرگ‌ها به درستی شناسایی شده‌اند
+        return df
+    
+    # بررسی ردیف‌های اول برای یافتن سربرگ‌ها
+    for idx in range(min(5, len(df))):  # بررسی 5 ردیف اول
+        # بررسی وجود متن "ثبت اطلاعات حمل" که معمولا قبل از سربرگ‌ها است
+        row_values = df.iloc[idx].astype(str).tolist()
+        if any('ثبت اطلاعات حمل' in str(val) for val in row_values):
+            # ردیف بعدی احتمالا سربرگ‌ها هستند
+            if idx + 1 < len(df):
+                header_idx = idx + 1
+                # تنظیم سربرگ‌ها و حذف ردیف‌های اضافی
+                df.columns = df.iloc[header_idx]
+                df = df.iloc[header_idx + 1:].reset_index(drop=True)
+                return df
+        
+        # بررسی وجود ستون‌های مهم در ردیف
+        row = df.iloc[idx].astype(str)
+        if any(col in row.values for col in important_columns):
+            # این ردیف احتمالا سربرگ‌ها هستند
+            df.columns = df.iloc[idx]
+            df = df.iloc[idx + 1:].reset_index(drop=True)
+            return df
+    
+    # اگر سربرگ‌ها پیدا نشدند، دیتافریم را بدون تغییر برگردان
+    return df
 

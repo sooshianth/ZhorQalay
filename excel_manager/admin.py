@@ -2,12 +2,12 @@ from django.contrib import admin
 from .models import ExcelFile, BGExcelFile, ExcelProcessingLog
 
 
-@admin.register(ExcelFile)
-class ExcelFileAdmin(admin.ModelAdmin):
-    list_display = ('title', 'user', 'file_type', 'created_at', 'is_processed', 'is_approved')
-    list_filter = ('file_type', 'is_processed', 'is_approved', 'created_at')
-    search_fields = ('title', 'description', 'user__username')
-    readonly_fields = ('created_at', 'updated_at')
+# @admin.register(ExcelFile)
+# class ExcelFileAdmin(admin.ModelAdmin):
+#     list_display = ('title', 'user', 'file_type', 'created_at', 'is_processed', 'is_approved')
+#     list_filter = ('file_type', 'is_processed', 'is_approved', 'created_at')
+#     search_fields = ('title', 'description', 'user__username')
+#     readonly_fields = ('created_at', 'updated_at')
 
 
 @admin.register(BGExcelFile)

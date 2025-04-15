@@ -25,7 +25,7 @@ class Purchase(models.Model):
 
     purchase_number = models.CharField("شماره خرید بازارگاه", max_length=7, blank=True, null=True, unique=True)
     tracking_number = models.CharField("شماره پیگیری", max_length=6, blank=True, null=True, unique=True)
-    shenase_takhsis = models.CharField("شناسه تخصیص", max_length=255, blank=True, null=True, unique=True)
+    shenase_takhsis = models.CharField("شناسه تخصیص", max_length=255, blank=True, null=True, unique=False)
     code_melli_tahvil = models.CharField("کد ملی تحویل", max_length=255, blank=True, null=True, unique=True)
     bazaargah_phone_number = models.CharField("شماره تلفن بازارگاه", max_length=11, blank=True, null=True)
     tahvil_phone_number = models.CharField("شماره تلفن تحویل", max_length=11, blank=True, null=True)
@@ -309,4 +309,17 @@ class PurchaseHistory(models.Model):
 
     def __str__(self):
         return f"{self.timestamp} - {self.user}"
+
+class ShenaseTakhsis(models.Model):
+    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='shenase_takhsis_set', verbose_name="خرید مرتبط")
+    code = models.CharField("شناسه تخصیص", max_length=255, unique=True)
+    created_at = jmodels.jDateTimeField("تاریخ ثبت", auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "شناسه تخصیص"
+        verbose_name_plural = "شناسه‌های تخصیص"
+        unique_together = ['purchase', 'code']
+    
+    def __str__(self):
+        return f"شناسه تخصیص {self.code} برای خرید {self.purchase.id}"
 

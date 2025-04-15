@@ -25,7 +25,6 @@ GRAPH_MODELS = {
 INSTALLED_APPS = [
     'colorfield',
     'captcha',
-    'sms_ir',
     'django_celery_beat',
     'whatsapp_api.apps.WhatsappApiConfig',
     'admin_interface',  
@@ -37,6 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_extensions',
     'django_jalali',
+    'sms_ir',
     'core.apps.CoreConfig',
     'sales.apps.SalesConfig',
     'crm.apps.CrmConfig',
