@@ -13,7 +13,8 @@ class FinancialManager(models.Model):
     updated_at = jmodels.jDateTimeField(auto_now=True, null=True, blank=True)
 
     def clean(self):
-        if not self.phone_number.isdigit() and len(str(self.phone_number)) != 11:
+        
+        if self.phone_number and not self.phone_number.isdigit() and len(str(self.phone_number)) != 11:
             raise ValidationError('شماره تلفن باید یک عدد 11 رقمی باشد')
         if not self.name:
             raise ValidationError('وارد کردن نام الزامی است')

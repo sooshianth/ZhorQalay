@@ -119,8 +119,8 @@ def send_new_purchase_notification(purchase):
         f"به نام شرکت تأمین نهاده سیمرغ\n\n"
         f"طی مذاکره تلفنی درخواست خرید شما به وزن {purchase.weight} کیلوگرم و معادل {purchase.weight * purchase.customer_price} ریال میباشد، لطفا درخواست خرید به صورت نقدی از طریق سامانه بازارگاه ثبت گردد.\n\n"
         f"پشتیبان تلفنی شما:\n"
-        f"{purchase.customer.sales_agent.phone_number}\n"
-        f"{purchase.customer.sales_agent.name}"
+        f"{', '.join([sa.phone_number for sa in purchase.customer.sales_agent.all()])}\n"
+        f"{', '.join([sa.name for sa in purchase.customer.sales_agent.all()])}"
     )
     
     return queue_sms(number, message, notification_type='new_purchase', purchase_id=purchase.id)
