@@ -9,21 +9,22 @@
         <div class="col-md-8">
             <h2 class="page-title">آپلود فایل اکسل بازارگاه</h2>
         </div>
-        <div class="col-md-4 text-left">
-            <a href="{% url 'excel_manager:bge_files_list' %}" class="btn btn-secondary">
-                <i class="fa fa-arrow-right"></i> بازگشت به لیست
-            </a>
-        </div>
     </div>
 
     <div class="card">
         <div class="card-header bg-light">
+    
             <ul class="nav nav-tabs card-header-tabs">
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'excel_manager:upload_excel_file' %}">فایل عمومی</a>
+                    
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link active" href="{% url 'excel_manager:upload_bge_file' %}">فایل بازارگاه</a>
+                    <div class="col-md-4 text-left">
+                        <a href="{% url 'excel_manager:bge_files_list' %}" class="btn btn-secondary">
+                            <i class="fa fa-arrow-right"></i> بازگشت به لیست
+                        </a>
+                    </div>
+        
                 </li>
             </ul>
         </div>
