@@ -6,6 +6,7 @@ class WhatsappLog(models.Model):
     message = models.TextField(max_length=255)
     sent_at = models.DateTimeField(auto_now_add=True)
     sent_from = models.ForeignKey('WhatsappNumber', on_delete=models.SET_NULL, null=True, blank=True)
+    template_type = models.CharField(max_length=20, null=True, blank=True)
 
     def __str__(self):
         return f"WhatsApp to {self.recipient_number} at {self.sent_at}"
@@ -46,3 +47,31 @@ class WhatsappNumber(models.Model):
     class Meta:
         verbose_name = "شماره واتساپ"
         verbose_name_plural = "شماره های واتساپ"
+
+
+class WhatsappTemplate(models.Model):
+    TEMPLATE_TYPES = [
+        ('WELCOME', 'پیام خوشامدگویی'),
+        ('ORDER_CONFIRM', 'تایید سفارش'),
+        ('PAYMENT', 'اطلاع رسانی پرداخت'),
+        ('SHIPMENT', 'پیام ارسال مرسوله'),
+        ('DELIVERY', 'تحویل سفارش'),
+        ('PROMOTION', 'پیام تبلیغاتی'),
+    ]
+    
+    name = models.CharField(max_length=100, verbose_name="نام تمپلیت")
+    template_type = models.CharField(max_length=20, choices=TEMPLATE_TYPES, verbose_name="نوع تمپلیت")
+    content = models.TextField(verbose_name="محتوا")
+    variables = models.JSONField(default=dict, verbose_name="متغیرهای قابل استفاده")
+    is_active = models.BooleanField(default=True, verbose_name="فعال")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.get_template_type_display()})"
+
+    class Meta:
+        verbose_name = "تمپلیت واتساپ"
+        verbose_name_plural = "تمپلیت‌های واتساپ"
+        ordering = ['template_type', 'name']
+

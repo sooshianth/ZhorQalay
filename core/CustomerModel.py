@@ -38,6 +38,11 @@ class Customer(models.Model):
     sms_preference = models.BooleanField(_("SMS Preference"), default=True,
         help_text=_("تمایل به دریافت پیامک دارد؟")
     )
+    day_of_week = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="روز هفته برای ارسال پیام (1-7 که 1=شنبه و 7=جمعه است)"
+    )
     quota = models.CharField(_("سهمیه"),max_length=244, null=True, blank=True)
     created_at = jmodels.jDateTimeField(_("تاریخ ثبت"), auto_now_add=True, null=True,    blank=True)
     updated_at = jmodels.jDateTimeField(_("تاریخ بروزرسانی"), auto_now=True, null=True, blank=True)

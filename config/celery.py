@@ -11,7 +11,7 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 app.conf.beat_schedule = {
     'send_daily_messages': {
         'task': 'whatsapp_api.tasks.send_daily_whatsapp_messages',
-        'schedule': crontab(hour=16, minute= 41),  # ساعت 16:10 (4:10 بعدازظهر)
+        'schedule': crontab(hour=16, minute= 41),
         'kwargs': {'test_mode': True}  # فعال کردن حالت تست
     },    
     'reset-daily-limits': {
@@ -22,7 +22,11 @@ app.conf.beat_schedule = {
         'task': 'whatsapp_api.tasks.monitor_whatsapp_numbers',
         'schedule': crontab(minute='*/30'),  # هر 30 دقیقه
     },
-    
+    'assign-customers': {
+        'task': 'whatsapp_api.tasks.assign_customers_to_days',
+        'schedule': crontab(hour=0, minute=5),  # هر روز ساعت 00:05
+    },
+
     'process-sms-queue': {
         'task': 'sms_api.tasks.process_sms_queue_task',
         'schedule': crontab(minute='*/5'),  # هر 5 دقیقه

@@ -3,33 +3,51 @@ from django.db import models
 from django.db.models import F
 from django.utils import timezone
 import pywhatkit as kit
-import time
 from core._models import CargoProduct, Customer
-from .models import WhatsappNumber, WhatsappLog
+from .models import WhatsappNumber, WhatsappLog, WhatsappTemplate
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
-import time
-
-def generate_message(customer):
-    products = CargoProduct.objects.all()
-    product_list = "\n".join([f"➤ {p.product_type}: {p.customer_price} تومان" for p in products])
-    message = render_to_string("whatsapp_api/whatsapp_template.txt", {
-        "name": customer.name,  # تغییر به نام_مشتری
-        "list": product_list,  # بدون تغییر
-    })
-    return message
-
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from webdriver_manager.chrome import ChromeDriverManager
 import time
+
+# در فایل utils.py
+from django.template import Template, Context
+
+def generate_message(customer, template_type, context=None):
+    """
+    تولید پیام بر اساس تمپلیت مشخص
+    :param customer: شیء مشتری
+    :param template_type: نوع تمپلیت (از TEMPLATE_TYPES)
+    :param context: دیکشنری حاوی متغیرهای اضافی
+    :return: متن پیام رندر شده
+    """
+    try:
+        template = WhatsappTemplate.objects.get(template_type=template_type, is_active=True)
+        
+        # ایجاد context پیش‌فرض
+        default_context = {
+            'customer_name': customer.name,
+            'customer_phone': customer.phone_number,
+            'today': timezone.now().strftime("%Y-%m-%d"),
+        }
+        
+        # ادغام با context ورودی
+        if context:
+            default_context.update(context)
+        
+        # رندر پیام
+        message = Template(template.content).render(Context(default_context))
+        return message
+        
+    except WhatsappTemplate.DoesNotExist:
+        raise ValueError(f"تمپلیتی از نوع {template_type} یافت نشد")
+    except Exception as e:
+        raise ValueError(f"خطا در تولید پیام: {str(e)}")
 
 def get_available_number():
     # اول شماره‌هایی که امروز فعال هستند و ظرفیت دارند را با اولویت بالاتر انتخاب می‌کنیم
@@ -40,24 +58,27 @@ def get_available_number():
         working_days__contains=str(timezone.now().isoweekday())
     ).order_by('priority', 'sent_today').first()
 
-def send_whatsapp_message(customer):
+def send_whatsapp_message(customer, template_type, context = None):
     assigned_number = get_available_number()
     if not assigned_number:
         print("هیچ شماره WhatsApp فعالی با ظرفیت باقی‌مونده برای امروز وجود ندارد!")
         return False
 
-    message = generate_message(customer)
-    to_number = customer.phone_number if customer.phone_number.startswith('+') else f'+98{customer.phone_number}'
-
     try:
-        # تنظیمات کروم با پروفایل
+        message = generate_message(customer, template_type, context)
+        assigned_number = get_available_number()
+        
+        if not assigned_number:
+            raise ValueError("شماره واتساپ فعالی یافت نشد")
+            
+        # کدهای ارسال پیام (مانند قبل)
+        to_number = customer.phone_number if customer.phone_number.startswith('+') else f'+98{customer.phone_number}'
+        
         options = webdriver.ChromeOptions()
         options.add_argument(r"--user-data-dir=C:\Users\Asus\AppData\Local\Google\Chrome\User Data")
-        options.add_argument(rf"--profile-directory={assigned_number.chrome_profile}")  # استفاده از پروفایل متناسب با شماره
+        options.add_argument(rf"--profile-directory={assigned_number.chrome_profile}")
         
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-
-        # باز کردن لینک مستقیم واتس‌اپ
         whatsapp_url = f"https://web.whatsapp.com/send?phone={to_number}&text={message}"
         driver.get(whatsapp_url)
         print("صفحه واتس‌اپ باز شد، منتظر لود شدن...")
@@ -86,7 +107,8 @@ def send_whatsapp_message(customer):
         WhatsappLog.objects.create(
             recipient_number=to_number,
             message=message,
-            sent_from=assigned_number
+            sent_from=assigned_number,
+            template_type=template_type
         )
         assigned_number.sent_today = F('sent_today') + 1
         assigned_number.messages_sent = F('messages_sent') + 1
