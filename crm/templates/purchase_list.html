@@ -121,6 +121,23 @@ margin-bottom: 15px;
 .dark-mode .empty-state {
     color: #adb5bd;
 }
+
+.table-status-badge {
+    font-size: 0.85rem;
+    margin: 0 2px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    display: inline-block;
+}
+
+.urgent-row {
+    border-right: 4px solid #dc3545 !important;
+    background: #fff0f0;
+}
+
+.canceled-row {
+    background-color: #fbeaea;
+}
 </style>
 </head>
 <body>
@@ -130,86 +147,79 @@ margin-bottom: 15px;
 <!-- Active Purchases Section -->
 <h3 class="mb-4"><i class="fas fa-shopping-cart me-2"></i>خریدهای فعال</h3>
 
-<div class="row">
 {% if active_purchases %}
-{% for purchase in active_purchases %}
-<div class="col-md-6 col-lg-4">
-<div class="card purchase-card-active {% if purchase.is_urgent %}urgent-purchase{% endif %} {% if purchase.is_canceled %}canceled-purchase{% endif %}">
-<div class="card-header d-flex justify-content-between align-items-center">
-<span>{{ purchase.customer.name }}</span>
-<span>{{ purchase.customer.sales_agent.name }}</span>
-<small class="text-muted">{{ purchase.created_at|date:"Y/m/d" }}</small>
+<div class="table-responsive">
+<table class="table table-bordered table-striped align-middle text-center">
+    <thead class="table-light">
+        <tr>
+            <th>تاریخ</th>
+            <th>مشتری</th>
+            <th>نماینده فروش</th>
+            <th>شماره خرید</th>
+            <th>وزن (کیلوگرم)</th>
+            <th>مبلغ پرداختی (ریال)</th>
+            <th>کوتاژ</th>
+            <th>وضعیت‌ها</th>
+            <th>جزئیات</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for purchase in active_purchases %}
+        <tr class="{% if purchase.is_urgent %}urgent-row{% endif %} {% if purchase.is_canceled %}canceled-row{% endif %}">
+            <td>{{ purchase.created_at|date:"Y/m/d" }}</td>
+            <td>{{ purchase.customer.name }}</td>
+            <td>{% for agent in purchase.customer.sales_agent.all %}{{ agent.name }}{% if not forloop.last %}، {% endif %}{% empty %}-{% endfor %}</td>
+            <td>{{ purchase.purchase_number|default:"تعیین نشده" }}</td>
+            <td>{{ purchase.weight|add_commas }}</td>
+            <td>{% if purchase.amount_paid %}{{ purchase.amount_paid|add_commas }}{% else %}-{% endif %}</td>
+            <td>{% if purchase.cargo and purchase.cargo.cottage %}{{ purchase.cargo.cottage }}{% else %}-{% endif %}</td>
+            <td>
+                {# Only show the latest status #}
+                {% if purchase.is_canceled %}
+                    <span class="table-status-badge bg-danger text-white">لغو شده</span>
+                {% elif purchase.is_delivered %}
+                    <span class="table-status-badge bg-primary text-white">تحویل داده شده</span>
+                {% elif purchase.is_sent %}
+                    <span class="table-status-badge bg-info text-white">ارسال شده</span>
+                {% elif purchase.is_barnamed %}
+                    <span class="table-status-badge bg-info text-white">بارنامه صادر شده</span>
+                {% elif purchase.is_sent_to_barbari %}
+                    <span class="table-status-badge bg-info text-white">ارسال به باربری</span>
+                {% elif purchase.is_address_sent_to_varedkonandeh %}
+                    <span class="table-status-badge bg-info text-white">آدرس ارسال شد</span>
+                {% elif purchase.is_tasvied_with_varedkonandeh %}
+                    <span class="table-status-badge bg-info text-white">تسویه با واردکننده</span>
+                {% elif purchase.is_takhsised_approved %}
+                    <span class="table-status-badge bg-warning text-dark">تایید تخصیص</span>
+                {% elif purchase.is_takhsised %}
+                    <span class="table-status-badge bg-warning text-dark">تخصیص شده</span>
+                {% elif purchase.is_paid %}
+                    <span class="table-status-badge bg-success text-white">پرداخت شده</span>
+                {% elif purchase.is_bazaargahed %}
+                    <span class="table-status-badge bg-secondary text-white">تایید بازارگاه</span>
+                {% elif purchase.is_urgent %}
+                    <span class="table-status-badge bg-danger text-white">فوری</span>
+                {% else %}
+                    <span class="table-status-badge bg-light text-dark">در انتظار</span>
+                {% endif %}
+            </td>
+            <td>
+                <a href="{% url 'purchase_CRUD' purchase.id %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-eye me-1"></i> مشاهده
+                </a>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
 </div>
-<div class="card-body">
-<h5 class="card-title">
-شماره خرید: {{ purchase.purchase_number|default:"تعیین نشده" }}
-{% if purchase.is_urgent %}
-<span class="badge bg-danger">فوری</span>
-{% endif %}
-</h5>
-
-<div class="mt-2">
-<p class="card-text mb-1">
-<strong>مشتری:</strong> {{ purchase.customer.name }}
-</p>
-<p class="card-text mb-1">
-<strong>وزن:</strong> {{ purchase.weight|add_commas }} کیلوگرم
-</p>
-{% if purchase.tracking_number %}
-<p class="card-text mb-1">
-<strong>شماره پیگیری:</strong> {{ purchase.tracking_number }}
-</p>
-{% endif %}
-{% if purchase.amount_paid %}
-<p class="card-text mb-1">
-<strong>مبلغ پرداختی:</strong> {{ purchase.amount_paid|add_commas }} ریال
-</p>
-{% endif %}
-</div>
-
-<div class="purchase-status mb-3">
-{% if purchase.is_paid %}
-<span class="badge bg-success status-badge">پرداخت شده</span>
-{% endif %}
-
-{% if purchase.is_sent %}
-<span class="badge bg-info status-badge">ارسال شده</span>
-{% endif %}
-
-{% if purchase.is_delivered %}
-<span class="badge bg-primary status-badge">تحویل داده شده</span>
-{% endif %}
-
-{% if purchase.is_canceled %}
-<span class="badge bg-danger status-badge">لغو شده</span>
-{% endif %}
-
-{% if purchase.is_bazaargahed %}
-<span class="badge bg-secondary status-badge">تایید بازارگاه</span>
-{% endif %}
-
-{% if purchase.is_takhsised %}
-<span class="badge bg-warning text-dark status-badge">تخصیص شده</span>
-{% endif %}
-</div>
-
-<a href="{% url 'purchase_CRUD' purchase.id %}" class="btn btn-seconday details-btn w-100" >
-<i class="fas fa-eye me-1"></i> مشاهده جزئیات
-</a>
-</div>
-</div>
-</div>
-{% endfor %}
 {% else %}
-<div class="col-12">
 <div class="empty-state">
-<i class="fas fa-inbox"></i>
-<h4>هیچ خرید فعالی یافت نشد</h4>
-<p>در حال حاضر هیچ خرید فعالی وجود ندارد</p>
-</div>
+    <i class="fas fa-inbox"></i>
+    <h4>هیچ خرید فعالی یافت نشد</h4>
+    <p>در حال حاضر هیچ خرید فعالی وجود ندارد</p>
 </div>
 {% endif %}
-</div>
 
 <!-- Archived Purchases Section -->
 <div class="archive-section mt-5">
@@ -217,62 +227,47 @@ margin-bottom: 15px;
 <h3 class="mb-0"><i class="fas fa-archive me-2"></i>خریدهای آرشیو شده</h3>
 <i class="fas fa-chevron-down" id="archiveIcon"></i>
 </div>
-
 <div id="archivedContent" style="display: none;">
-<div class="row">
 {% if archived_purchases %}
-{% for purchase in archived_purchases %}
-<div class="col-md-6 col-lg-4">
-<div class="card purchase-card-archived">
-<div class="card-header d-flex justify-content-between align-items-center">
-<span>{{ purchase.customer.name }}</span>
-<small class="text-muted">{{ purchase.created_at|date:"Y/m/d" }}</small>
+<div class="table-responsive">
+<table class="table table-bordered table-striped align-middle text-center">
+    <thead class="table-light">
+        <tr>
+            <th>تاریخ</th>
+            <th>مشتری</th>
+            <th>شماره خرید</th>
+            <th>وزن (کیلوگرم)</th>
+            <th>مبلغ پرداختی (ریال)</th>
+            <th>وضعیت</th>
+            <th>جزئیات</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for purchase in archived_purchases %}
+        <tr>
+            <td>{{ purchase.created_at|date:"Y/m/d" }}</td>
+            <td>{{ purchase.customer.name }}</td>
+            <td>{{ purchase.purchase_number|default:"تعیین نشده" }}</td>
+            <td>{{ purchase.weight|add_commas }}</td>
+            <td>{% if purchase.amount_paid %}{{ purchase.amount_paid|add_commas }}{% else %}-{% endif %}</td>
+            <td><span class="table-status-badge bg-secondary text-white">آرشیو شده</span></td>
+            <td>
+                <a href="{% url 'purchase_CRUD' purchase.id %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-eye me-1"></i> مشاهده
+                </a>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
 </div>
-<div class="card-body">
-<h5 class="card-title">
-شماره خرید: {{ purchase.purchase_number|default:"تعیین نشده" }}
-</h5>
-
-<div class="mt-2">
-<p class="card-text mb-1">
-<strong>مشتری:</strong> {{ purchase.customer.name }}
-</p>
-<p class="card-text mb-1">
-<strong>وزن:</strong> {{ purchase.weight|add_commas }} کیلوگرم
-</p>
-{% if purchase.tracking_number %}
-<p class="card-text mb-1">
-<strong>شماره پیگیری:</strong> {{ purchase.tracking_number }}
-</p>
-{% endif %}
-{% if purchase.amount_paid %}
-<p class="card-text mb-1">
-<strong>مبلغ پرداختی:</strong> {{ purchase.amount_paid|add_commas }} ریال
-</p>
-{% endif %}
-</div>
-
-<div class="purchase-status mb-3">
-<span class="badge bg-secondary status-badge">آرشیو شده</span>
-</div>
-
-<a href="{% url 'purchase_CRUD' purchase.id %}" class="btn btn-outline-secondary details-btn w-100">
-<i class="fas fa-eye me-1"></i> مشاهده جزئیات
-</a>
-</div>
-</div>
-</div>
-{% endfor %}
 {% else %}
-<div class="col-12">
 <div class="empty-state">
-<i class="fas fa-archive"></i>
-<h4>هیچ خرید آرشیوی یافت نشد</h4>
-<p>در حال حاضر هیچ خرید آرشیو شده‌ای وجود ندارد</p>
-</div>
+    <i class="fas fa-archive"></i>
+    <h4>هیچ خرید آرشیوی یافت نشد</h4>
+    <p>در حال حاضر هیچ خرید آرشیو شده‌ای وجود ندارد</p>
 </div>
 {% endif %}
-</div>
 </div>
 </div>
 </div>

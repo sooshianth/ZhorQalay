@@ -292,8 +292,15 @@ class Purchase(models.Model):
                 
         super().save(*args, **kwargs)
         
+        sales_agents = self.customer.sales_agent.all()
+        has_non_admin = False
+        for agent in sales_agents:
+            if not agent.user.is_superuser:
+                has_non_admin = True
+                break
+
         # Send SMS notification for new purchase only on creation
-        if is_new and self.customer.sms_preference:
+        if is_new and self.customer.sms_preference and has_non_admin:
             send_new_purchase_notification(self)
 
 from django.contrib.auth.models import User
