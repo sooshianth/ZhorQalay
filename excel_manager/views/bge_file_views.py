@@ -296,8 +296,17 @@ def process_bge_file(request, file_id):
     پردازش فایل اکسل بازارگاه و به‌روزرسانی رکوردهای Purchase
     """
     bge_file = get_object_or_404(BGExcelFile, id=file_id)
-    
+
     if request.method == 'POST':
+        if bge_file.is_processed:
+            messages.error(request, 'این فایل قبلا پردازش شده است')
+            context = {
+        'bge_file': bge_file,
+        'page_title': 'پردازش فایل اکسل بازارگاه',
+    }
+            return render(request, 'excel_manager/process_bge_file.html', context)
+
+
         try:
             # دریافت فایل بازارگاه
             file_path = bge_file.file.path

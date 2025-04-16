@@ -6,7 +6,7 @@ from crm.views import home_view
 from sms_api.views import sms_dashboard
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('ewdfsrgtyuiougyjgtrdthugghuji/', admin.site.urls),
     path('sales/', include('sales.urls')),
     path('crm/', include('crm.urls')),
     path('excel/', include('excel_manager.urls')),
