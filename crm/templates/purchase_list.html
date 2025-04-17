@@ -138,11 +138,121 @@ margin-bottom: 15px;
 .canceled-row {
     background-color: #fbeaea;
 }
+
+/* استایل‌های جدید برای فیلدهای جستجو */
+.search-input {
+    border: none;
+    border-bottom: 1px solid #ced4da;
+    border-radius: 0;
+    font-size: 0.85rem;
+    padding: 5px;
+    margin-bottom: 5px;
+    width: 100%;
+    background-color: transparent;
+}
+
+.search-input:focus {
+    box-shadow: none;
+    border-color: #80bdff;
+    outline: 0;
+}
+
+.clear-filters {
+    margin: 10px 0;
+}
+
+.filter-active {
+    background-color: #e8f4ff;
+}
+
+/* استایل برای پنل جستجو */
+.search-panel {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.dark-mode .search-panel {
+    background-color: #495057;
+    border-color: #6c757d;
+}
+
+.sticky-header th {
+    position: sticky;
+    top: 0;
+    background-color: #f8f9fa;
+    z-index: 10;
+}
 </style>
 </head>
 <body>
 <div class="container py-4">
 <h1 class="mb-4 section-title">لیست خریدها</h1>
+
+<!-- نوار جستجوی اصلی -->
+<div class="search-panel">
+    <form id="searchForm" method="GET" action="">
+        <div class="row align-items-center">
+            <div class="col-md-10">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <label for="globalSearch" class="form-label">جستجوی سریع:</label>
+                        <input type="text" id="globalSearch" class="form-control" placeholder="جستجوی سریع در تمام فیلدها...">
+                    </div>
+                    <div class="col-md-9">
+                        <div class="row">
+                            <div class="col-md-3 mb-2">
+                                <input type="text" name="search_customer" class="form-control" 
+                                       placeholder="جستجو بر اساس مشتری" value="{{ search_params.customer }}">
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <input type="text" name="search_purchase_number" class="form-control" 
+                                       placeholder="جستجو بر اساس شماره خرید" value="{{ search_params.purchase_number }}">
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <input type="text" name="search_cargo" class="form-control" 
+                                       placeholder="جستجو بر اساس کوتاژ" value="{{ search_params.cargo }}">
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <input type="text" name="search_date" class="form-control" 
+                                       placeholder="جستجو بر اساس تاریخ" value="{{ search_params.date }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 mb-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">جستجو</button>
+            </div>
+        </div>
+        <div class="mt-2">
+            <button type="button" class="btn btn-link btn-sm" id="advancedSearchToggle">
+                <i class="fas fa-sliders-h me-1"></i> جستجوی پیشرفته
+            </button>
+            <a href="{% url 'purchase_list' %}" class="btn btn-link btn-sm text-danger">
+                <i class="fas fa-times me-1"></i> پاک کردن فیلترها
+            </a>
+        </div>
+        <div id="advancedSearchPanel" class="mt-3" style="display: none;">
+            <div class="row">
+                <div class="col-md-3 mb-2">
+                    <input type="text" name="search_sales_agent" class="form-control" 
+                           placeholder="جستجو بر اساس نماینده فروش" value="{{ search_params.sales_agent }}">
+                </div>
+                <div class="col-md-3 mb-2">
+                    <input type="text" name="search_weight" class="form-control" 
+                           placeholder="جستجو بر اساس وزن" value="{{ search_params.weight }}">
+                </div>
+                <div class="col-md-3 mb-2">
+                    <input type="text" name="search_invoice_id" class="form-control" 
+                           placeholder="جستجو بر اساس کد درون سازمانی" value="{{ search_params.invoice_id }}">
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
 
 <!-- Active Purchases Section -->
 <h3 class="mb-4"><i class="fas fa-shopping-cart me-2"></i>خریدهای فعال</h3>
@@ -150,29 +260,53 @@ margin-bottom: 15px;
 {% if active_purchases %}
 <div class="table-responsive">
 <table class="table table-bordered table-striped align-middle text-center">
-    <thead class="table-light">
+    <thead class="table-light sticky-header">
         <tr>
-            <th>تاریخ</th>
-            <th>مشتری</th>
-            <th>نماینده فروش</th>
-            <th>شماره خرید</th>
-            <th>وزن (کیلوگرم)</th>
-            <th>مبلغ پرداختی (ریال)</th>
-            <th>کوتاژ</th>
-            <th>وضعیت‌ها</th>
+            <th>
+                تاریخ
+                <input type="text" class="search-input column-search" data-column="0" placeholder="جستجو...">
+            </th>
+            <th>
+                مشتری
+                <input type="text" class="search-input column-search" data-column="1" placeholder="جستجو...">
+            </th>
+            <th>
+                کد درون سازمانی
+                <input type="text" class="search-input column-search" data-column="2" placeholder="جستجو...">
+            </th>
+            <th>
+                نماینده فروش
+                <input type="text" class="search-input column-search" data-column="3" placeholder="جستجو...">
+            </th>
+            <th>
+                شماره خرید
+                <input type="text" class="search-input column-search" data-column="4" placeholder="جستجو...">
+            </th>
+            <th>
+                وزن (کیلوگرم)
+                <input type="text" class="search-input column-search" data-column="5" placeholder="جستجو...">
+            </th>
+            <th>
+                کوتاژ
+                <input type="text" class="search-input column-search" data-column="6" placeholder="جستجو...">
+            </th>
+            <th>
+                وضعیت‌ها
+                <input type="text" class="search-input column-search" data-column="7" placeholder="جستجو...">
+            </th>
             <th>جزئیات</th>
         </tr>
     </thead>
-    <tbody>
+    <tbody id="activePurchasesTable">
     {% for purchase in active_purchases %}
         <tr class="{% if purchase.is_urgent %}urgent-row{% endif %} {% if purchase.is_canceled %}canceled-row{% endif %}">
             <td>{{ purchase.created_at|date:"Y/m/d" }}</td>
             <td>{{ purchase.customer.name }}</td>
+            <td>{{ purchase.invoice_id|default:"تعیین نشده" }}</td>
             <td>{% for agent in purchase.customer.sales_agent.all %}{{ agent.name }}{% if not forloop.last %}، {% endif %}{% empty %}-{% endfor %}</td>
             <td>{{ purchase.purchase_number|default:"تعیین نشده" }}</td>
             <td>{{ purchase.weight|add_commas }}</td>
-            <td>{% if purchase.amount_paid %}{{ purchase.amount_paid|add_commas }}{% else %}-{% endif %}</td>
-            <td>{% if purchase.cargo and purchase.cargo.cottage %}{{ purchase.cargo.cottage }}{% else %}-{% endif %}</td>
+            <td>{% if purchase.cargo %}{{ purchase.cargo }} ({{ purchase.cargo.cottage }}){% else %}-{% endif %}</td>
             <td>
                 {# Only show the latest status #}
                 {% if purchase.is_canceled %}
@@ -231,25 +365,48 @@ margin-bottom: 15px;
 {% if archived_purchases %}
 <div class="table-responsive">
 <table class="table table-bordered table-striped align-middle text-center">
-    <thead class="table-light">
+    <thead class="table-light sticky-header">
         <tr>
-            <th>تاریخ</th>
-            <th>مشتری</th>
-            <th>شماره خرید</th>
-            <th>وزن (کیلوگرم)</th>
-            <th>مبلغ پرداختی (ریال)</th>
-            <th>وضعیت</th>
+            <th>
+                تاریخ
+                <input type="text" class="search-input column-search-archived" data-column="0" placeholder="جستجو...">
+            </th>
+            <th>
+                مشتری
+                <input type="text" class="search-input column-search-archived" data-column="1" placeholder="جستجو...">
+            </th>
+            <th>
+                کد درون سازمانی
+                <input type="text" class="search-input column-search-archived" data-column="2" placeholder="جستجو...">
+            </th>
+            <th>
+                شماره خرید
+                <input type="text" class="search-input column-search-archived" data-column="3" placeholder="جستجو...">
+            </th>
+            <th>
+                وزن (کیلوگرم)
+                <input type="text" class="search-input column-search-archived" data-column="4" placeholder="جستجو...">
+            </th>
+            <th>
+                کوتاژ
+                <input type="text" class="search-input column-search-archived" data-column="5" placeholder="جستجو...">
+            </th>
+            <th>
+                وضعیت
+                <input type="text" class="search-input column-search-archived" data-column="6" placeholder="جستجو...">
+            </th>
             <th>جزئیات</th>
         </tr>
     </thead>
-    <tbody>
+    <tbody id="archivedPurchasesTable">
     {% for purchase in archived_purchases %}
         <tr>
             <td>{{ purchase.created_at|date:"Y/m/d" }}</td>
             <td>{{ purchase.customer.name }}</td>
+            <td>{{ purchase.invoice_id|default:"تعیین نشده" }}</td>
             <td>{{ purchase.purchase_number|default:"تعیین نشده" }}</td>
             <td>{{ purchase.weight|add_commas }}</td>
-            <td>{% if purchase.amount_paid %}{{ purchase.amount_paid|add_commas }}{% else %}-{% endif %}</td>
+            <td>{% if purchase.cargo %}{{ purchase.cargo }} ({{ purchase.cargo.cottage }}){% else %}-{% endif %}</td>
             <td><span class="table-status-badge bg-secondary text-white">آرشیو شده</span></td>
             <td>
                 <a href="{% url 'purchase_CRUD' purchase.id %}" class="btn btn-outline-secondary btn-sm">
@@ -273,23 +430,107 @@ margin-bottom: 15px;
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-const toggleButton = document.getElementById('toggleArchived');
-const archivedContent = document.getElementById('archivedContent');
-const archiveIcon = document.getElementById('archiveIcon');
+    // بخش آرشیو را نمایش/مخفی می‌کند
+    const toggleButton = document.getElementById('toggleArchived');
+    const archivedContent = document.getElementById('archivedContent');
+    const archiveIcon = document.getElementById('archiveIcon');
 
-toggleButton.addEventListener('click', function() {
-if (archivedContent.style.display === 'none') {
-archivedContent.style.display = 'block';
-archiveIcon.classList.remove('fa-chevron-down');
-archiveIcon.classList.add('fa-chevron-up');
-} else {
-archivedContent.style.display = 'none';
-archiveIcon.classList.remove('fa-chevron-up');
-archiveIcon.classList.add('fa-chevron-down');
-}
-});
+    toggleButton.addEventListener('click', function() {
+        if (archivedContent.style.display === 'none') {
+            archivedContent.style.display = 'block';
+            archiveIcon.classList.remove('fa-chevron-down');
+            archiveIcon.classList.add('fa-chevron-up');
+        } else {
+            archivedContent.style.display = 'none';
+            archiveIcon.classList.remove('fa-chevron-up');
+            archiveIcon.classList.add('fa-chevron-down');
+        }
+    });
+
+    // بخش جستجوی پیشرفته را نمایش/مخفی می‌کند
+    const advancedSearchToggle = document.getElementById('advancedSearchToggle');
+    const advancedSearchPanel = document.getElementById('advancedSearchPanel');
+
+    advancedSearchToggle.addEventListener('click', function() {
+        if (advancedSearchPanel.style.display === 'none') {
+            advancedSearchPanel.style.display = 'block';
+            advancedSearchToggle.innerHTML = '<i class="fas fa-times me-1"></i> بستن جستجوی پیشرفته';
+        } else {
+            advancedSearchPanel.style.display = 'none';
+            advancedSearchToggle.innerHTML = '<i class="fas fa-sliders-h me-1"></i> جستجوی پیشرفته';
+        }
+    });
+
+    // جستجوی سریع در جدول خریدهای فعال
+    const globalSearch = document.getElementById('globalSearch');
+    const activePurchasesTable = document.getElementById('activePurchasesTable');
+    const archivedPurchasesTable = document.getElementById('archivedPurchasesTable');
+
+    if (globalSearch && activePurchasesTable) {
+        globalSearch.addEventListener('keyup', function() {
+            const searchText = this.value.toLowerCase();
+            filterTable(activePurchasesTable, searchText);
+            if (archivedPurchasesTable && archivedContent.style.display !== 'none') {
+                filterTable(archivedPurchasesTable, searchText);
+            }
+        });
+    }
+
+    // جستجو در ستون‌های خریدهای فعال
+    const columnSearchInputs = document.querySelectorAll('.column-search');
+    columnSearchInputs.forEach(input => {
+        input.addEventListener('keyup', function() {
+            const columnIndex = parseInt(this.getAttribute('data-column'));
+            const searchText = this.value.toLowerCase();
+            filterTableColumn(activePurchasesTable, columnIndex, searchText);
+        });
+    });
+
+    // جستجو در ستون‌های خریدهای آرشیو شده
+    const columnSearchArchivedInputs = document.querySelectorAll('.column-search-archived');
+    columnSearchArchivedInputs.forEach(input => {
+        input.addEventListener('keyup', function() {
+            const columnIndex = parseInt(this.getAttribute('data-column'));
+            const searchText = this.value.toLowerCase();
+            filterTableColumn(archivedPurchasesTable, columnIndex, searchText);
+        });
+    });
+
+    // تابع فیلتر کردن کل جدول
+    function filterTable(tableBody, searchText) {
+        if (!tableBody) return;
+        
+        const rows = tableBody.querySelectorAll('tr');
+        rows.forEach(row => {
+            const textContent = row.textContent.toLowerCase();
+            if (textContent.includes(searchText)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // تابع فیلتر کردن ستون خاص در جدول
+    function filterTableColumn(tableBody, columnIndex, searchText) {
+        if (!tableBody) return;
+        
+        const rows = tableBody.querySelectorAll('tr');
+        rows.forEach(row => {
+            const cell = row.querySelectorAll('td')[columnIndex];
+            if (cell) {
+                const cellText = cell.textContent.toLowerCase();
+                if (cellText.includes(searchText)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        });
+    }
 });
 </script>
 </body>
