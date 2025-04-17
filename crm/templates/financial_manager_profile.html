@@ -14,16 +14,24 @@
 
         <table class="profile-info">
             <tr>
-                <td>نام و نام خانوادگی</td>
-                <td>{{ user.first_name }} {{ user.last_name }}</td>
-            </tr>
-            <tr>
                 <td>نام کاربری</td>
                 <td>{{ user.username }}</td>
             </tr>
             <tr>
+                <td>مدیر مالی</td>
+                <td>{{ manager.name }}</td>
+            </tr>
+            <tr>
+                <td>شماره تماس</td>
+                <td>{{ manager.phone_number }}</td>
+            </tr>
+            <tr>
                 <td>ایمیل</td>
-                <td>{{ user.email }}</td>
+                <td>{{ manager.email }}</td>
+            </tr>
+            <tr>
+                <td>پیام</td>
+                <td>{{ manager.message }}</td>
             </tr>
         </table>
     </div>

@@ -32,3 +32,9 @@ class FinancialManagerLoginForm(AuthenticationForm):
     #         raise forms.ValidationError('لطفا کد را وارد کنید')
     #     return captcha
     pass
+
+class SupportAgentLoginForm(AuthenticationForm):
+    # captcha = CaptchaField(label='کد امنیتی')
+    
+    # def clean_captcha(self):
+    pass    

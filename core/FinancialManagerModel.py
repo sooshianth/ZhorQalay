@@ -6,11 +6,12 @@ from django.contrib.auth.models import User
 
 class FinancialManager(models.Model):
     user = models.OneToOneField(User, on_delete=models.SET_NULL, related_name='financial_manager', null=True, blank=True)
-    name = models.CharField(max_length=255, null=True, blank=True)
-    email = models.EmailField(max_length=50, null=True, blank=True)
-    phone_number = models.CharField(max_length=12, null=True, blank=True)
-    created_at = jmodels.jDateTimeField(auto_now_add=True, null=True, blank=True)
-    updated_at = jmodels.jDateTimeField(auto_now=True, null=True, blank=True)
+    name = models.CharField(max_length=255, null=True, blank=True, verbose_name='نام')
+    email = models.EmailField(max_length=50, null=True, blank=True, verbose_name='ایمیل')
+    phone_number = models.CharField(max_length=12, null=True, blank=True, verbose_name='شماره تلفن')
+    message = models.TextField(null=True, blank=True, verbose_name='پیام')
+    created_at = jmodels.jDateTimeField(auto_now_add=True, null=True, blank=True, verbose_name='تاریخ ثبت')
+    updated_at = jmodels.jDateTimeField(auto_now=True, null=True, blank=True, verbose_name='تاریخ بروزرسانی')
 
     def clean(self):
         

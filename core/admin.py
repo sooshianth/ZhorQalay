@@ -8,7 +8,7 @@ from .PurchaseModel import Purchase, PurchaseHistory, ShenaseTakhsis
 from .SalesAgentModel import SalesAgent
 from .TaskModel import Task
 from .NotificationModel import Notification
-
+from .SupportAgentModel import SupportAgent
 # @admin.register(Notification)
 # class NotificationAdmin(admin.ModelAdmin):
 #     list_display = ('user', 'message')
@@ -115,3 +115,11 @@ class PhoneNumberAdmin(admin.ModelAdmin):
     list_filter = ('is_primary',)
     search_fields = ('number', 'customer__name')
     raw_id_fields = ('customer',)
+
+@admin.register(SupportAgent)
+class SupportAgentAdmin(admin.ModelAdmin):
+    list_display = ('name', 'email', 'phone_number', 'message', 'created_at', 'updated_at')
+    search_fields = ('name', 'email', 'phone_number', 'message')
+    ordering = ('-created_at',)
+
+

@@ -1,7 +1,7 @@
 from django.contrib.auth import authenticate, login
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from core.forms.forms import LogisticsManagerLoginForm, FinancialManagerLoginForm
+from core.forms.forms import LogisticsManagerLoginForm, FinancialManagerLoginForm, SupportAgentLoginForm
 
 def logistics_manager_login_view(request):
     if request.user.is_authenticated:
@@ -51,3 +51,27 @@ def financial_manager_login_view(request):
         form = FinancialManagerLoginForm()
 
     return render(request, "financial_manager_login.html", {'form': form})
+
+def support_agent_login_view(request):
+    if request.user.is_authenticated:
+        return redirect('support_agent_profile')
+
+    if request.method == "POST":
+        form = SupportAgentLoginForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(request, username=username, password=password)
+            if user is not None and hasattr(user, 'support_agent'):
+                login(request, user)
+                return redirect('support_agent_profile')   
+            else:
+                messages.error(request, "شما کارشناس پشتیبانی نیستید. لطفاً از حساب کارشناس پشتیبانی استفاده کنید.")
+        else:
+            messages.error(request, "لطفاً کپچا را به درستی وارد کنید.")
+    else:
+        form = SupportAgentLoginForm()  
+
+    return render(request, "support_agent_login.html", {'form': form})
+
+

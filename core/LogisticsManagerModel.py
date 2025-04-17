@@ -7,10 +7,11 @@ from django.contrib.auth.models import User
 class LogisticsManager(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='logistics_manager', null=True, blank=True)
     name = models.CharField(max_length=255, null=True, blank=True, verbose_name='نام')
-    email = models.EmailField(max_length=50, null=True, blank=True)
+    email = models.EmailField(max_length=50, null=True, blank=True, verbose_name='ایمیل')
     phone_number = models.CharField(max_length=15, null=True, blank=True, verbose_name='شماره تلفن')
-    created_at = jmodels.jDateTimeField(auto_now_add=True, null=True, blank=True)
-    updated_at = jmodels.jDateTimeField(auto_now=True, null=True, blank=True)
+    message = models.TextField(null=True, blank=True, verbose_name='پیام')
+    created_at = jmodels.jDateTimeField(auto_now_add=True, null=True, blank=True, verbose_name='تاریخ ثبت')
+    updated_at = jmodels.jDateTimeField(auto_now=True, null=True, blank=True, verbose_name='تاریخ بروزرسانی')
 
     def clean(self):
         if self.phone_number and not self.phone_number.isdigit() and len(str(self.phone_number)) != 11:

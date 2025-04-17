@@ -78,6 +78,9 @@
                             <li><a href="{% url 'excel_manager:upload_bge_file' %}"><i class="fa-solid fa-file-excel"></i>  آپلود اکسل بازارگاه</a></li>
 
                             {% endif %}
+                            {% if request.user.support_agent %}
+                            <li><a href="{% url 'support_agent_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
+                            {% endif %}
                             <li><a href="{% url 'purchase_list' %}"><i class="fa-solid fa-cart-shopping"></i> خریدها</a></li>
                             <li><a href="{% url 'cargo_product_list' %}"><i class="fas fa-box icon-products"></i> لیست کوتاژها</a></li>
                         <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt icon-logout"></i> خروج</a></li>
@@ -85,6 +88,7 @@
                         <li><a href="{% url 'sales_agent_login' %}"><i class="fas fa-sign-in-alt icon-login"></i> ورود کارشناسان فروش</a></li>
                         <li><a href="{% url 'logistics_manager_login' %}"><i class="fas fa-sign-in-alt icon-login"></i> ورود مدیران لجستیک</a></li>
                         <li><a href="{% url 'financial_manager_login' %}"><i class="fas fa-sign-in-alt icon-login"></i> ورود مدیران مالی</a></li>
+                        <li><a href="{% url 'support_agent_login' %}"><i class="fas fa-sign-in-alt icon-login"></i> ورود کارشناس پشتیبانی</a></li>
                     {% endif %}
                         
                 </ul>
