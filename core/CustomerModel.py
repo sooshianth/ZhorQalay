@@ -13,10 +13,34 @@ FIELD_OF_ACTIVITY = [
     ('factory', 'کارخانه خوراک'),
     ('trader', 'دلال'),
     ('fish', 'پرورش آبزیان'),
-    ('corporation', 'تعاونی')
+    ('corporation', 'تعاونی'),
+    ('association', 'اتحادیه')
 ]
+
+class PhoneNumber(models.Model):
+    number = models.CharField(_("شماره تلفن"), max_length=20)
+    is_primary = models.BooleanField(_("شماره اصلی"), default=False)
+    customer = models.ForeignKey('Customer', on_delete=models.CASCADE, related_name='phone_numbers', verbose_name=_("مشتری"))
+    
+    class Meta:
+        verbose_name = _("شماره تلفن")
+        verbose_name_plural = _("شماره های تلفن")
+    
+    def __str__(self):
+        return self.number
+    
+    def clean(self):
+        if not self.number.startswith('9') or len(self.number) != 10:
+            raise ValidationError(_('شماره تلفن باید با 9 شروع شود و 10 رقم باشد.'))
+        
+        # If this is being set as primary, make sure no other numbers for this customer are primary
+        if self.is_primary:
+            PhoneNumber.objects.filter(customer=self.customer, is_primary=True).exclude(id=self.id).update(is_primary=False)
+
 class Customer(models.Model):
-    phone_number = models.CharField(_("تلفن همراه"), max_length=20, unique=True)
+    # phone_number field is no longer unique and will be deprecated
+    phone_number = models.CharField(_("تلفن همراه (قدیمی)"), max_length=20, null=True, blank=True,
+                                   help_text=_("این فیلد برای سازگاری با نسخه قبلی حفظ شده و به زودی حذف خواهد شد."))
     sales_agent = models.ManyToManyField(SalesAgent, verbose_name=_("کارشناسان فروش"), blank=True, related_name='customers')
     name = models.CharField(_("نام"), max_length=100, null=True, blank=True)
     city = models.CharField(_("شهر"), max_length=100, null=True, blank=True)
@@ -55,7 +79,21 @@ class Customer(models.Model):
 
     @staticmethod
     def get_customer_by_phone(phone_number):
+        # Try to find a customer with this phone number in the new PhoneNumber model
+        phone = PhoneNumber.objects.filter(number=phone_number).first()
+        if phone:
+            return phone.customer
+        
+        # Fallback to the old phone_number field
         return Customer.objects.filter(phone_number=phone_number).first()
+
+    def get_primary_phone(self):
+        primary = self.phone_numbers.filter(is_primary=True).first()
+        if primary:
+            return primary.number
+        
+        # Fallback to first phone or old phone_number
+        return self.phone_numbers.first().number if self.phone_numbers.exists() else self.phone_number
 
     def get_tasks_by_time(self):
         return self.tasks.order_by('due_date')
@@ -85,10 +123,11 @@ class Customer(models.Model):
         return self.calls.last().date if self.calls.exists() else None
 
     def __str__(self):
-        return f"{self.phone_number} {self.name}"
+        primary_phone = self.get_primary_phone()
+        return f"{primary_phone} {self.name}"
 
     def clean(self):
         if not self.name:
             raise ValidationError(_('نام را وارد کنید.'))
-        if not self.phone_number.startswith('9') or len(self.phone_number) != 10:
-            raise ValidationError(_('شماره تلفن باید با 9 شروع شود و 10 رقم باشد.'))
+        
+        # No need to validate phone_number here as it's now in the PhoneNumber model

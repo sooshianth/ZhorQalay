@@ -592,8 +592,8 @@ def process_bge_file(request, file_id):
                                 # ایجاد مشتری جدید اگر وجود ندارد
                                 customer = None
                                 try:
-                                    if bazaargah_phone_number:
-                                        customer = Customer.objects.filter(phone_number=bazaargah_phone_number).first()
+                                    if bazaargah_phone_number or customer_name:
+                                        customer = Customer.objects.filter(name=customer_name).first() # or Customer.objects.filter(phone_number=bazaargah_phone_number).first()
                                         if not customer:
                                             try:
                                                 # استخراج زمینه فعالیت بر اساس اکسل:
@@ -879,10 +879,11 @@ def map_excel_field_to_model(field_value):
         'دلال': 'trader',
         'بازرگان': 'trader',
         'کارخانه': 'factory',
-        'کارخانه خوراک': 'factory',
+        'خریداران كارخانه خوراك': 'factory',
         'آبزی': 'fish',
         'پرورش آبزیان': 'fish',
         'ماهی': 'fish',
+        'اتحادیه': 'association',
     }
     for k, v in FIELD_MAP.items():
         if k in field_value:

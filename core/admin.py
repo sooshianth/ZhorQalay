@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .CallSessionModel import CallSession
 from .CargoProductModel import CargoProduct
-from .CustomerModel import Customer
+from .CustomerModel import Customer, PhoneNumber
 from .FinancialManagerModel import FinancialManager
 from .LogisticsManagerModel import LogisticsManager
 from .PurchaseModel import Purchase, PurchaseHistory, ShenaseTakhsis
@@ -21,13 +21,26 @@ class CargoProductAdmin(admin.ModelAdmin):
     search_fields = ('cottage', 'importer_name')
     ordering = ('-created_at',)
 
-# تنظیمات نمایش مدل Customer در ادمین
+class PhoneNumberInline(admin.TabularInline):
+    model = PhoneNumber
+    extra = 1
+
+class PurchaseInline(admin.TabularInline):
+    model = Purchase
+    fields = ( 'purchase_number', 'weight', 'amount_paid', 'is_paid', 'is_barnamed', 'created_at')
+    extra = 0
+
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    list_display = ('name', 'phone_number', 'city', 'field_of_activity', 'created_at')
-    list_filter = ('field_of_activity', 'city')
-    search_fields = ('name', 'phone_number', 'city')
+    search_fields = ('name', 'phone_number')
+    list_display = ('pk', 'name', 'get_primary_phone', 'city', 'field_of_activity')
+    list_filter = ('field_of_activity', 'city', 'sms_preference', 'whatsapp_preference')
     ordering = ('-created_at',)
+    inlines = [PhoneNumberInline, PurchaseInline]
+    
+    def get_primary_phone(self, obj):
+        return obj.get_primary_phone()
+    get_primary_phone.short_description = 'شماره تلفن اصلی'
 
 class ShenaseTakhsisInline(admin.TabularInline):
     model = ShenaseTakhsis
@@ -95,3 +108,10 @@ class LogisticsManagerAdmin(admin.ModelAdmin):
     list_display = ('name', 'phone_number', 'user')
     search_fields = ('name', 'phone_number')
     ordering = ('name',)
+
+@admin.register(PhoneNumber)
+class PhoneNumberAdmin(admin.ModelAdmin):
+    list_display = ('number', 'customer', 'is_primary')
+    list_filter = ('is_primary',)
+    search_fields = ('number', 'customer__name')
+    raw_id_fields = ('customer',)

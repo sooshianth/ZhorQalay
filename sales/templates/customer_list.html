@@ -55,7 +55,7 @@
         {% for customer in customers.object_list %}
             <tr class="customer-row fade-in">
                 <td><a href="{% url 'general_customer_CRUD' %}?customer_id={{ customer.id }}" class="customer-link">{{ customer.name }}</a></td>
-                <td>{{ customer.phone_number }}</td>
+                <td>{{ customer.get_primary_phone }}</td>
                 <td>{{customer.city}}</td>
             </tr>
         {% empty %}

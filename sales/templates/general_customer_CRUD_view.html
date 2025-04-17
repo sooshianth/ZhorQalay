@@ -43,6 +43,39 @@
                         {{ form.phone_number.errors }}
                     </div>
                     
+                    {% if customer and not is_new_customer %}
+                    <!-- بخش مدیریت شماره های تلفن -->
+                    <div class="form-group">
+                        <label>شماره های تلفن:</label>
+                        <div class="phone-numbers-list">
+                            {% for phone in customer.phone_numbers.all %}
+                                <div class="phone-number-item">
+                                    <span>{{ phone.number }}</span>
+                                    {% if phone.is_primary %}
+                                        <span class="primary-badge">اصلی</span>
+                                    {% else %}
+                                        <form method="post" class="inline">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="make_primary" value="{{ phone.id }}">
+                                            <button type="submit" class="small-button">تنظیم به عنوان اصلی</button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- فرم افزودن شماره تلفن جدید -->
+                        <form method="post" class="phone-add-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="add_phone" value="true">
+                            <div class="flex">
+                                <input type="text" name="new_phone" placeholder="شماره تلفن جدید" class="phone-input">
+                                <button type="submit" class="small-button">افزودن</button>
+                            </div>
+                        </form>
+                    </div>
+                    {% endif %}
+                    
                     <div class="form-group">
                         <label>نام:</label>
                         {{ form.name }}
@@ -1342,6 +1375,63 @@ document.addEventListener('DOMContentLoaded', function() {
 
     .dark-mode .sales-agent-item:hover {
         box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    /* استایل‌های مدیریت شماره تلفن */
+    .phone-numbers-list {
+        margin-bottom: 10px;
+    }
+    
+    .phone-number-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+        padding: 5px;
+        background-color: #f9f9f9;
+        border-radius: 4px;
+    }
+    
+    .primary-badge {
+        background-color: #28a745;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-size: 0.8em;
+        margin-right: 10px;
+    }
+    
+    .small-button {
+        background-color: #f0f0f0;
+        border: 1px solid #ddd;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        cursor: pointer;
+        margin-right: 10px;
+    }
+    
+    .small-button:hover {
+        background-color: #e0e0e0;
+    }
+    
+    .phone-add-form {
+        margin-top: 8px;
+    }
+    
+    .phone-input {
+        padding: 4px 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-left: 5px;
+    }
+    
+    .inline {
+        display: inline;
+    }
+    
+    .flex {
+        display: flex;
+        align-items: center;
     }
 </style>
 
