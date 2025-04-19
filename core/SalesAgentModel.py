@@ -250,11 +250,6 @@ class SalesAgent(models.Model):
         daily_avg_weight = total_weight / period_days if period_days > 0 else 0
         daily_avg_amount = total_amount / period_days if period_days > 0 else 0
         
-        # Calculate task completion rate
-        completed_tasks = len([t for t in self.get_tasks_by_status(status=True) if t.completed_at and t.completed_at >= start_date])
-        total_tasks = len([t for t in self.get_all_tasks() if t.create_time >= start_date])
-        task_completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
-        
         # Calculate average response time to tasks
         response_times = []
         for task in self.get_tasks_by_status(status=True):

@@ -8,9 +8,27 @@
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto p-6">
+
     <h1 class="text-3xl font-bold text-gray-800 mb-6">پروفایل کارشناس فروش</h1>
-    
+    <!-- پاپ‌آپ نوتیفیکیشن -->
+    <div id="notification-popup" class="notification-popup">
+        <div class="popup-header">
+            <div class="popup-title">
+                <i class="fas fa-bell"></i>
+                <span>اعلان جدید</span>
+            </div>
+            <button class="popup-close" onclick="closeNotification()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="popup-content">
+            <p id="notification-message">پیام نمونه برای تست نمایش</p>
+        </div>
+        <div class="progress-container">
+            <div id="progress-bar" class="progress-bar"></div>
+        </div>
+    </div>
+
     <!-- پیام‌ها -->
     {% if messages %}
         {% for message in messages %}
@@ -63,12 +81,17 @@
     
     <div class="mb-6 flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-lg shadow-md">
         <label for="taskFilter" class="text-gray-700 font-semibold text-sm sm:text-base whitespace-nowrap">فیلتر تسک‌ها:</label>
-        <select id="taskFilter" name="task_filter" class="p-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 hover:bg-gray-100 w-full sm:w-40">
+        <select id="taskFilter" name="task_filter" style="height: 30px; border-color: green; border-radius: 8px;">
             <option value="all" {% if request.GET.task_filter == 'all' %}selected{% endif %}>همه</option>
             <option value="today" {% if request.GET.task_filter == 'today' %}selected{% endif %}>امروز</option>
             <option value="overdue" {% if request.GET.task_filter == 'overdue' %}selected{% endif %}>سررسیده</option>
         </select>
-        <input type="text" id="taskSearch" class="p-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 hover:bg-gray-100 w-full sm:flex-1" placeholder="جستجو در تسک ها">
+        <input type="text" id="taskSearch" name="task_search" value="{{ request.GET.task_search }}" 
+                style="height: 30px; border-color: green; border-radius: 8px;"
+                placeholder="جستجو در تسک‌ها (توضیحات، تاریخ، ...)">
+        <button type="button" onclick="applyTaskFilters()" class="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            اعمال فیلتر
+        </button>
     </div>
 
     <div class="profile-container">
@@ -339,6 +362,7 @@
                 }
             });
         });
+
     </script>
 
     <script>
@@ -380,114 +404,69 @@
             });
         });
     </script>
+    <script>
+    function showNotification(message, type = 'info') {
+    const popup = document.getElementById('notification-popup');
+    const messageElement = document.getElementById('notification-message');
+    const progressBar = document.getElementById('progress-bar');
 
-<style>
-    .notification-center {
-        position: relative;
-        margin-left: 20px;
+    if (!popup || !messageElement || !progressBar) {
+        console.error('عناصر پاپ‌آپ یافت نشدند!');
+        return;
     }
-    
-    .notification-bell {
-        position: relative;
-        cursor: pointer;
-        font-size: 1.5rem;
-        color: var(--text-color);
+
+    // تنظیم محتوا
+    messageElement.textContent = message;
+    popup.classList.add('show');
+
+    // تنظیم نوار پیشرفت
+    progressBar.style.width = '0%';
+    setTimeout(() => {
+        progressBar.style.width = '100%';
+    }, 10);
+
+    // بستن خودکار پس از ۵ ثانیه
+    setTimeout(() => {
+        popup.classList.remove('show');
+    }, 5000);
+}
+
+    // تابع بستن نوتیفیکیشن
+    function closeNotification() {
+    const popup = document.getElementById('notification-popup');
+    if (popup.dataset.interval) {
+        clearInterval(popup.dataset.interval);
     }
-    
-    .badge {
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background: #ef4444;
-        color: white;
-        border-radius: 50%;
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.7rem;
+    popup.classList.remove('show');
+}
+
+    // بررسی نوتیفیکیشن‌های جدید
+    function checkNewNotifications() {
+        fetch('{% url "get_unread_notifications" %}')
+            .then(response => response.json())
+            .then(data => {
+                if(data.unread_count > 0) {
+                    const latestNotification = data.notifications[0];
+                    showNotification(latestNotification.message, latestNotification.type || 'info');
+                    
+                    // علامت‌گذاری به عنوان خوانده شده
+                    fetch(`/notifications/delete/${notificationId}/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                }
+            });
     }
-    
-    .notification-dropdown {
-        position: absolute;
-        top: 100%;
-        right: 0;
-        width: 350px;
-        max-height: 500px;
-        overflow-y: auto;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        z-index: 1000;
-        display: none;
-    }
-    
-    .dark-mode .notification-dropdown {
-        background: var(--primary-color);
-        border: 1px solid rgba(255,255,255,0.1);
-    }
-    
-    .notification-item {
-        display: flex;
-        padding: 12px;
-        border-bottom: 1px solid #eee;
-        transition: all 0.3s;
-    }
-    
-    .dark-mode .notification-item {
-        border-bottom-color: rgba(255,255,255,0.1);
-    }
-    
-    .notification-item:hover {
-        background: rgba(0,0,0,0.05);
-    }
-    
-    .dark-mode .notification-item:hover {
-        background: rgba(255,255,255,0.1);
-    }
-    
-    .notification-item.read {
-        opacity: 0.7;
-    }
-    
-    .notification-icon {
-        font-size: 1.2rem;
-        margin-left: 10px;
-        color: var(--button-color);
-    }
-    
-    .notification-content {
-        flex-grow: 1;
-    }
-    
-    .notification-content p {
-        margin: 0;
-    }
-    
-    .notification-content small {
-        color: #777;
-        font-size: 0.8rem;
-    }
-    
-    .dark-mode .notification-content small {
-        color: #aaa;
-    }
-    
-    .notification-close {
-        background: none;
-        border: none;
-        color: #999;
-        cursor: pointer;
-        font-size: 1.2rem;
-        padding: 0 5px;
-    }
-    
-    .dark-mode .notification-close {
-        color: #666;
-    }
-    </style>
-    
+
+    // بررسی هر 30 ثانیه یکبار
+    setInterval(checkNewNotifications, 30000);
+
+    // بررسی اولیه هنگام لود صفحه
+    document.addEventListener('DOMContentLoaded', checkNewNotifications);
+</script>
     <script>
     // مدیریت نمایش/پنهان کردن نوتیفیکیشن‌ها
     document.getElementById('notificationBell').addEventListener('click', function(e) {

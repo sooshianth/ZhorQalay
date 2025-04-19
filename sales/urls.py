@@ -2,7 +2,7 @@ from django.urls import path
 from django.views.generic.base import RedirectView
 from django.urls import path, include
 from .views import cargo_product_view, general_customer_CRUD_page, sales_agent_login, sales_agent_logout, sales_agent_profile_view
-from .views import mark_notification_read, sales_dashboard_view
+from .views import mark_notification_read, sales_dashboard_view, pop_notification
 
 
 urlpatterns = [
@@ -21,5 +21,6 @@ urlpatterns = [
     path('predict-next-purchase/', general_customer_CRUD_page.predict_next_purchase, name='predict_next_purchase'),
     path('notifications/delete/<int:notification_id>/', mark_notification_read.mark_notification_read, name='delete_notification'),
     path('notifications/deleteAll/', mark_notification_read.mark_all_notifications_read, name='delete_all_notification'),
+    path('get_unread_notifications/', pop_notification.get_unread_notifications, name='get_unread_notifications'),
     path('captcha/', include('captcha.urls')), 
 ]

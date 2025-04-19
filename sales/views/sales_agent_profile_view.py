@@ -20,16 +20,37 @@ def sales_agent_profile_view(request):
 
     # دریافت تمام تسک‌ها با استفاده از متدهای بهبود یافته
     task_filter = request.GET.get('task_filter', 'all')  # all, today, overdue
+    task_search = request.GET.get('task_search', '')
+    
+    now = timezone.now()
     
     if task_filter == 'today':
-        pending_tasks = sales_agent.get_today_tasks()
-        pending_tasks = [task for task in pending_tasks if not task.status]
+        start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_of_day = start_of_day + timedelta(days=1)
+        pending_tasks = [
+            task for task in sales_agent.get_all_undone_tasks()
+            if start_of_day <= task.due_date <= end_of_day
+        ]
     elif task_filter == 'overdue':
-        pending_tasks = sales_agent.get_overdue_tasks()
+        pending_tasks = [
+            task for task in sales_agent.get_all_undone_tasks()
+            if task.due_date < now
+        ]
     else:
         pending_tasks = sales_agent.get_all_undone_tasks()
+    
+    # جستجوی تسک‌ها
+    if task_search:
+        pending_tasks = [
+            task for task in pending_tasks
+            if task_search.lower() in task.description.lower()
+        ]
+    
+    # مرتب‌سازی تسک‌ها بر اساس تاریخ سررسید
+    pending_tasks = sorted(pending_tasks, key=lambda task: task.due_date)
         
     completed_tasks = sales_agent.get_tasks_by_status(status=True)
+
 
     # Pagination برای تسک‌های انجام نشده
     task_page = request.GET.get('task_page', 1)
@@ -95,9 +116,6 @@ def sales_agent_profile_view(request):
     if new_notifications > 0:
         messages.info(request, f"{new_notifications} اعلان جدید در مورد تسک‌های نزدیک به سررسید ایجاد شد.")
 
-    # استفاده از متد جدید برای آمار عملکرد
-    performance_metrics = sales_agent.get_performance_metrics(period_days=30)
-
     all_sales = sales_agent.get_this_month_sales_weight()/1000
 
     context = {
@@ -110,7 +128,6 @@ def sales_agent_profile_view(request):
         'sales_stats': sales_stats,
         'all_sales': all_sales,
         'notifications': notifications,
-        'performance_metrics': performance_metrics,
         'target_achievement': round(sales_stats['target_achievement'], 1),
     }
 
@@ -124,56 +141,83 @@ def customer_list_view(request):
         return redirect('sales_agent_login')
 
     sales_agent = request.user.sales_agent
-    search_query = request.GET.get('search', '')
-    sort_by = request.GET.get('sort', 'name')
-    order = request.GET.get('order', 'asc')
-    city_filter = request.GET.getlist('city', [])
-    activity_filter = request.GET.getlist('activity', [])
-    min_purchases = request.GET.get('min_purchases', 0)
-    last_purchase_days = request.GET.get('last_purchase_days', 0)
-    
-    # ساخت کوئری‌ست پایه
     customers = sales_agent.get_all_customers()
     
-    # ساخت Q objects برای فیلترها
-    q_objects = Q()
-    
-    # فیلتر شهرها
+    # فیلتر جستجو
+    search_query = request.GET.get('search', '')
+    if search_query:
+        customers = customers.filter(
+            Q(name__icontains=search_query) |
+            Q(phone_number__icontains=search_query)
+        )
+
+    # فیلتر شهرها (حالت چند انتخابی)
+    city_filter = request.GET.getlist('city', [])
     if city_filter:
-        q_objects &= Q(city__in=city_filter)
-    
-    # فیلتر حوزه فعالیت
+        customers = customers.filter(city__in=city_filter)
+
+    # فیلتر حوزه فعالیت (حالت چند انتخابی)
+    activity_filter = request.GET.getlist('activity', [])
     if activity_filter:
-        q_objects &= Q(field_of_activity__in=activity_filter)
-    
+        customers = customers.filter(field_of_activity__in=activity_filter)
+
     # فیلتر حداقل تعداد خریدها
-    if min_purchases and int(min_purchases) > 0:
+    min_purchases = request.GET.get('min_purchases', 0)
+    if min_purchases and min_purchases.isdigit():
         customers = customers.annotate(
-            total_purchases=Count('purchases_made')
-        ).filter(total_purchases__gte=int(min_purchases))
-    
+            purchase_count=Count('purchases_made')
+        ).filter(purchase_count__gte=int(min_purchases))
+
     # فیلتر آخرین خرید در X روز گذشته
-    if last_purchase_days and int(last_purchase_days) > 0:
+    last_purchase_days = request.GET.get('last_purchase_days', 0)
+    if last_purchase_days and last_purchase_days.isdigit():
         date_threshold = timezone.now() - timedelta(days=int(last_purchase_days))
         customers = customers.filter(
             purchases_made__created_at__gte=date_threshold
         ).distinct()
-    
-    # اعمال فیلترهای ترکیبی
-    customers = customers.filter(q_objects)
-    
-    # مرتب‌سازی پیشرفته
-    SORT_MAP = {
+
+    # مرتب‌سازی
+    SORT_OPTIONS = {
         'name_asc': 'name',
         'name_desc': '-name',
-        'purchases_asc': 'total_purchases',
-        'purchases_desc': '-total_purchases',
+        'purchase_asc': 'purchase_count',
+        'purchase_desc': '-purchase_count',
         'last_purchase_asc': 'last_purchase_date',
-        'last_purchase_desc': '-last_purchase_date'
+        'last_purchase_desc': '-last_purchase_date',
     }
-
+    
     sort_key = request.GET.get('sort', 'name_asc')
-    sort_field = SORT_MAP.get(sort_key, 'name')
+    sort_field = SORT_OPTIONS.get(sort_key, 'name')
+    
+    # اگر مرتب‌سازی بر اساس خریدهاست و هنوز annotate نشده
+    if sort_field in ['purchase_count', '-purchase_count'] and 'purchase_count' not in [f.name for f in customers.model._meta.get_fields()]:
+        customers = customers.annotate(purchase_count=Count('purchases_made'))
+    
+    customers = customers.order_by(sort_field)
+
+    # صفحه‌بندی
+    paginator = Paginator(customers, 20)
+    page_number = request.GET.get('page')
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
+    context = {
+        'customers': page_obj,
+        'search_query': search_query,
+        'city_filter': city_filter,
+        'activity_filter': activity_filter,
+        'min_purchases': min_purchases,
+        'last_purchase_days': last_purchase_days,
+        'sort_key': sort_key,
+        'all_cities': Customer.objects.values_list('city', flat=True).distinct(),
+        'all_activities': Customer.objects.values_list('field_of_activity', flat=True).distinct(),
+    }
+    
+    return render(request, 'customer_list.html', context)
 
 @login_required
 def export_customers_to_excel(request):
