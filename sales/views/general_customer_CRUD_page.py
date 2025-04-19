@@ -172,6 +172,7 @@ def general_customer_CRUD_view(request):
         sales_agent = SalesAgent.objects.get(user=request.user)
     except SalesAgent.DoesNotExist:
         sales_agent = None
+        raise PermissionDenied("شما اجازه دسترسی به این صفحه را ندارید.")
 
     form = None
     is_new_customer = False

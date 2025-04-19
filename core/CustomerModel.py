@@ -124,7 +124,7 @@ class Customer(models.Model):
 
     def __str__(self):
         primary_phone = self.get_primary_phone()
-        return f"{primary_phone} {self.name}"
+        return f" {self.name}"
 
     def clean(self):
         if not self.name:
