@@ -19,6 +19,7 @@ urlpatterns = [
     path('dashboard/', sales_dashboard_view.sales_dashboard_view, name='sales_dashboard'),
     path('export_customers/', sales_agent_profile_view.export_customers_to_excel, name='export_customers'),
     path('predict-next-purchase/', general_customer_CRUD_page.predict_next_purchase, name='predict_next_purchase'),
-    path('notifications/delete/<int:notification_id>/', mark_notification_read.delete_notification, name='delete_notification'),
+    path('notifications/delete/<int:notification_id>/', mark_notification_read.mark_notification_read, name='delete_notification'),
+    path('notifications/deleteAll/', mark_notification_read.mark_all_notifications_read, name='delete_all_notification'),
     path('captcha/', include('captcha.urls')), 
 ]

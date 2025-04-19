@@ -35,7 +35,10 @@
         <div class="notification-dropdown" id="notificationDropdown">
             <div class="notification-header">
                 <h4>نوتیفیکیشن‌ها</h4>
-                <button class="mark-all-read">علامت‌گذاری همه به عنوان خوانده شده</button>
+                <form method="post" action="{% url 'delete_all_notification' %}" class="mt-2">
+                    {% csrf_token %}
+                    <button type="submit" class="text-blue-500 hover:underline text-sm">خواندن همه</button>
+                </form>
             </div>
             <div class="notification-list" id="notificationList">
                 {% for notification in notifications %}
@@ -48,7 +51,10 @@
                         <p>{{ notification.message }}</p>
                         <small>{{ notification.created_at|timesince }} پیش</small>
                     </div>
-                    <button class="notification-close">&times;</button>
+                    <form method="post" action="{% url 'delete_notification' notification.id %}" class="mt-2">
+                        {% csrf_token %}
+                        <button type="submit" class="text-blue-500 hover:underline text-sm">خواندم</button>
+                    </form>
                 </div>
                 {% endfor %}
             </div>
@@ -278,7 +284,7 @@
         </div>
     </div>
     <br>
-    <p>مجموع فروش‌های این ماه به کیلوگرم:  {{ total_sales_this_month }}</p>
+    <p>مجموع فروش‌های این ماه به تن:  {{ all_sales }}</p>
     <br>
 
     <a href="{% url 'customer_list' %}" class="button" aria-label="مشاهده لیست مشتریان">مشاهده لیست مشتریان</a>

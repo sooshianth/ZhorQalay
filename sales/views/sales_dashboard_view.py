@@ -105,51 +105,32 @@ def sales_dashboard_view(request):
         month_start = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         month_end = (month_start + timedelta(days=31)).replace(day=1) - timedelta(seconds=1)
 
-        # جمع وزن فروش‌های هر ماه
-        sales_weight = sum(
-            purchase.weight for purchase in sales_agent.get_all_active_sales()
-            if month_start <= purchase.created_at <= month_end
-        )
+        # استفاده از متد جدید get_sales_in_period
+        sales = sales_agent.get_sales_in_period(start_date=month_start, end_date=month_end)
+        sales_weight = sum(purchase.weight for purchase in sales)
 
         monthly_sales.append({
             'month': month_start.strftime('%Y-%m'),
             'sales': sales_weight
         })
 
-    # پیش‌بینی فروش ماه بعد (میانگین 6 ماه گذشته)
-    total_sales = sum(m['sales'] for m in monthly_sales)
-    sales_prediction = calculate_ml_prediction(sales_agent, monthly_sales)
+    # پیش‌بینی فروش ماه بعد با استفاده از متد forecast_sales
+    try:
+        # استفاده از پیش‌بینی پیشرفته اگر در دسترس باشد
+        forecast_data = sales_agent.forecast_sales(days_ahead=30)
+        sales_prediction = forecast_data['total_forecast']
+        forecast_confidence = forecast_data['confidence']
+    except Exception as e:
+        logger.error(f"Error using forecast_sales: {str(e)}")
+        # فال‌بک به روش قبلی
+        sales_prediction = calculate_ml_prediction(sales_agent, monthly_sales)
+        forecast_confidence = 70  # مقدار پیش‌فرض
     
     # تعداد مشتریان جدید این ماه
     new_customers_this_month = Customer.objects.filter(
         sales_agent=sales_agent,
         created_at__month=today.month  # مشتریان ایجاد شده در این ماه
     ).count()
-
-    # محاسبه نوع مشتریان خرید کننده ماه اخیر
-    customer_purchase_counts = defaultdict(int)
-    purchases_this_month = Purchase.objects.filter(
-        customer__sales_agent=sales_agent,
-        created_at__month=today.month
-    )
-
-    for purchase in purchases_this_month:
-        customer_purchase_counts[purchase.customer.id] += 1
-
-    # دسته‌بندی مشتریان بر اساس تعداد خرید
-    purchase_types = {
-        '1': 0,  # یک بار خرید کرده‌اند
-        '2': 0,  # دو بار خرید کرده‌اند
-        '3+': 0  # سه بار یا بیشتر خرید کرده‌اند
-    }
-
-    for count in customer_purchase_counts.values():
-        if count == 1:
-            purchase_types['1'] += 1
-        elif count == 2:
-            purchase_types['2'] += 1
-        else:
-            purchase_types['3+'] += 1
 
     # محاسبه خریدها بر اساس استان
     province_purchases = defaultdict(int)
@@ -158,34 +139,36 @@ def sales_dashboard_view(request):
     )
 
     for purchase in purchases_this_month:
-        city = purchase.customer.city  # فرض کنید فیلد city در مدل Customer وجود دارد
+        city = purchase.customer.city
         if city:
-            print(f"شهر از دیتابیس: {city}")
             province = find_province_by_city(city)
-            print(f"شهر: {city}, استان: {province}")
             if province:
                 province_purchases[province] += 1
-        else:
-            print(f"خرید بدون شهر: {purchase.id}")
 
-    # چاپ نتیجه نهایی
-    print("تعداد خریدها بر اساس استان:")
-    for province, count in province_purchases.items():
-        print(f"{province}: {count}")
+    # استفاده از متد جدید get_this_month_sales_stats برای آمار فروش ماه جاری
+    sales_stats = sales_agent.get_this_month_sales_stats()
+    
+    # استفاده از متد جدید get_performance_metrics برای آمار عملکرد
+    performance_metrics = sales_agent.get_performance_metrics(period_days=30)
+    
+    # استفاده از متد جدید get_sales_by_product برای آمار فروش بر اساس محصول
+    product_sales = sales_agent.get_sales_by_product()
 
     context = {
         'sales_agent': sales_agent,
         'new_customers_this_month': new_customers_this_month,
-        'purchase_types': purchase_types,
         'province_purchases': dict(province_purchases),
         'monthly_sales': monthly_sales[::-1],  # معکوس برای نمایش از قدیم به جدید
         'task_stats': {
             'pending': len(sales_agent.get_all_undone_tasks()),
-            'completed': len([task for task in sales_agent.get_all_tasks() if task.status])
+            'completed': len([task for task in sales_agent.get_all_tasks() if task.status]),
+            'overdue': len(sales_agent.get_overdue_tasks())
         },
         'sales_prediction': round(sales_prediction, 2),
-        'this_month_sales_weight': sales_agent.get_this_month_sales_weight(),
-        'this_month_sales_count': sales_agent.get_this_month_sales_count(),
+        'forecast_confidence': round(forecast_confidence, 1),
+        'sales_stats': sales_stats,
+        'performance_metrics': performance_metrics,
+        'product_sales': product_sales,
+        'target_achievement': round(sales_stats['target_achievement'], 1),
     }
-    logger.info(f"Dashboard loaded for {sales_agent.name}")
     return render(request, 'sales_dashboard.html', context)
