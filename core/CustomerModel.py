@@ -9,9 +9,8 @@ from django.contrib.postgres.fields import ArrayField
 
 FIELD_OF_ACTIVITY = [
     ('chicken', 'مرغدار'),
-    ('livestock', 'گاودار'),
+    ('livestock', 'دامدار'),
     ('factory', 'کارخانه خوراک'),
-    ('trader', 'دلال'),
     ('fish', 'پرورش آبزیان'),
     ('corporation', 'تعاونی'),
     ('association', 'اتحادیه')

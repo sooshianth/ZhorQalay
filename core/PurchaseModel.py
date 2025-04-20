@@ -73,7 +73,9 @@ class Purchase(models.Model):
     tahvil_phone_number = models.CharField("شماره تلفن تحویل", max_length=11, blank=True, null=True)
     barnameh = models.CharField("شماره بارنامه", max_length=255, blank=True, null=True)
     
-    weight = models.PositiveIntegerField("وزن (کیلوگرم)", default=0)
+    
+    order_weight = models.PositiveIntegerField("وزن سفارش (کیلوگرم)", default=0)
+    delivered_weight = models.PositiveIntegerField("وزن تحویلی (کیلوگرم)", default=0)
     cargo = models.ForeignKey(CargoProduct,on_delete=models.SET_NULL, verbose_name="کوتاژ", null=True, blank=True, related_name='purchases')
     type = models.CharField("نوع خرید", max_length=25, default='bazaargah', choices=[('bazaargah', 'بازارگاه'), ('non_bazaargah', 'خارج از بازارگاه')])
     amount_paid = models.PositiveBigIntegerField("مبلغ پرداختی(ریال)", blank=True, null=True)

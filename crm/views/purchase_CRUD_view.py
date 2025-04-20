@@ -56,13 +56,13 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if user_role == 'sales_agent' or user_role == 'admin':
             allowed_fields = [
-                'weight', 'description', 'tracking_number', 'purchase_date', 'purchase_number', 'barnameh', 
+                'order_weight', 'delivered_weight', 'description', 'tracking_number', 'purchase_date', 'purchase_number', 'barnameh', 
                 'payment_method', 'customer_price','amount_paid', 'cargo', 'shenase_takhsis', 'code_melli_tahvil', 
                 'bazaargah_phone_number', 'tahvil_phone_number',
             ]
         elif user_role == 'logistics_manager':
             allowed_fields = [
-                'weight', 'description', 'tracking_number', 'purchase_number', 'amount_paid', 'barnameh', 
+                'order_weight', 'delivered_weight', 'description', 'tracking_number', 'purchase_number', 'amount_paid', 'barnameh', 
                 'customer_price', 'payment_method', 'cargo', 'shenase_takhsis', 'code_melli_tahvil', 
                 'bazaargah_phone_number', 'tahvil_phone_number', 'address',
             ]
@@ -422,9 +422,11 @@ def generate_purchase_pdf(request, purchase_id):
         [Paragraph(safe_text(purchase.invoice_id), styles['Right']), Paragraph(process_persian_text('کد درون سازمانی:'), styles['Right'])],
         [Paragraph(safe_text(purchase_status), styles['Right']), Paragraph(process_persian_text('وضعیت فعلی:'), styles['Right'])],
         [Paragraph(process_persian_text(purchase_type), styles['Right']), Paragraph(process_persian_text('نوع خرید:'), styles['Right'])],
+        [Paragraph(process_persian_text(purchase.cargo.cottage), styles['Right']), Paragraph(process_persian_text('کوتاژ:'), styles['Right'])],
         [Paragraph(process_persian_text(cargo_product_type), styles['Right']), Paragraph(process_persian_text('نوع کالا:'), styles['Right'])],
         [Paragraph(process_persian_text(cargo_country), styles['Right']), Paragraph(process_persian_text('کشور مبدا:'), styles['Right'])],
-        [Paragraph(format_number(purchase.weight), styles['Right']), Paragraph(process_persian_text('وزن (کیلوگرم):'), styles['Right'])],
+        [Paragraph(format_number(purchase.order_weight), styles['Right']), Paragraph(process_persian_text('وزن سفارش (کیلوگرم):'), styles['Right'])],
+        [Paragraph(format_number(purchase.delivered_weight), styles['Right']), Paragraph(process_persian_text('وزن تحویلی (کیلوگرم):'), styles['Right'])],
         [Paragraph(safe_text(purchase.payment_method), styles['Right']), Paragraph(process_persian_text('روش پرداخت:'), styles['Right'])],
         [Paragraph(format_number(purchase.customer_price), styles['Right']), Paragraph(process_persian_text('فی فروش (ریال):'), styles['Right'])],
         [Paragraph(format_number(purchase.amount_paid), styles['Right']), Paragraph(process_persian_text('مبلغ پرداختی (ریال):'), styles['Right'])],

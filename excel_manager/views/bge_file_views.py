@@ -425,9 +425,37 @@ def process_bge_file(request, file_id):
                         bazaargah_phone_number = str(row['شماره همراه خریدار']).strip() if pd.notna(row['شماره همراه خریدار']) else None
                         customer_name = str(row['نام خریدار']).strip() if pd.notna(row['نام خریدار']) else None
                         address = str(row['آدرس تحویل']).strip() if pd.notna(row['آدرس تحویل']) else None
-                        weight = int(float(row['وزن کل خرید'])) if pd.notna(row['وزن کل خرید']) else 0
+                        order_weight = int(float(row['وزن کل خرید'])) if pd.notna(row['وزن کل خرید']) else 0
+                        delivered_weight = int(float(row['وزن سفارش'])) if pd.notna(row['وزن سفارش']) else 0
                         amount_paid = int(float(row['مبلغ پرداختی'])) if pd.notna(row['مبلغ پرداختی']) else None
                         payment_method = 'نقدی' if pd.notna(row['شیوه پرداخت']) and row['شیوه پرداخت'] == 'نقدی' else 'توافقی'
+                        
+                        # استخراج اطلاعات وزن بارنامه
+                        barnameh_weight = int(float(row['وزن بارنامه شده'])) if 'وزن بارنامه شده' in df.columns and pd.notna(row['وزن بارنامه شده']) else 0
+                        not_barnameh_weight = int(float(row['وزن بارنامه نشده'])) if 'وزن بارنامه نشده' in df.columns and pd.notna(row['وزن بارنامه نشده']) else 0
+                        
+                        # تشخیص اختلاف وزن (کسری یا سرک)
+                        extelaf_type = None
+                        extelaf_weight = 0
+                        extelaf_amount = 0
+                        
+                        if barnameh_weight > delivered_weight:  # سرک
+                            extelaf_type = 'سرک'
+                            extelaf_weight = barnameh_weight - delivered_weight
+                            # محاسبه مبلغ اختلاف بر اساس فی خرید
+                            if 'قیمت هر واحد' in df.columns and pd.notna(row['قیمت هر واحد']):
+                                price_per_unit = int(float(row['قیمت هر واحد']))
+                                extelaf_amount = extelaf_weight * price_per_unit
+                        elif barnameh_weight < delivered_weight:  # کسری
+                            extelaf_type = 'کسری'
+                            extelaf_weight = delivered_weight - barnameh_weight
+                            # کسری برابر با وزن بارنامه نشده
+                            if not_barnameh_weight > 0:
+                                extelaf_weight = not_barnameh_weight
+                            # محاسبه مبلغ اختلاف بر اساس فی خرید
+                            if 'قیمت هر واحد' in df.columns and pd.notna(row['قیمت هر واحد']):
+                                price_per_unit = int(float(row['قیمت هر واحد']))
+                                extelaf_amount = extelaf_weight * price_per_unit
                         
                         # استخراج کوتاژ از فایل
                         current_cottage = str(row[cottage_column]).strip() if pd.notna(row[cottage_column]) else None
@@ -541,7 +569,8 @@ def process_bge_file(request, file_id):
                                                 port=bge_file.cargo.port,  # محل بارگیری مشابه
                                                 loading_time=bge_file.cargo.loading_time,  # زمان بارگیری مشابه
                                                 description=f"ایجاد شده به صورت خودکار در پردازش فایل {bge_file.title}",
-                                                weight=bge_file.cargo.weight,  # وزن مشابه
+                                                order_weight=bge_file.cargo.order_weight,  # وزن مشابه
+                                                delivered_weight=bge_file.cargo.delivered_weight,  # وزن مشابه
                                                 status=True  # فعال
                                             )
                                             cargo_products_created += 1
@@ -568,11 +597,17 @@ def process_bge_file(request, file_id):
                                         tahvil_phone_number=tahvil_phone_number,
                                         bazaargah_phone_number=bazaargah_phone_number,
                                         address=address,
-                                        weight=weight,
+                                        order_weight=order_weight,
+                                        delivered_weight=delivered_weight,
                                         cargo=cargo_product,
                                         amount_paid=amount_paid,
                                         payment_method=payment_method,
-                                        is_takhsised=True if shenase_takhsis else purchase.is_takhsised
+                                        extelaf_type=extelaf_type,
+                                        extelaf_weight=extelaf_weight if extelaf_weight > 0 else None,
+                                        extelaf_amount=extelaf_amount if extelaf_amount > 0 else None,
+                                        company_price=cargo_product.company_price,
+                                        customer_price=cargo_product.customer_price,
+                                        shenase_takhsis=shenase_takhsis
                                     )
                                     
                                     # افزودن شناسه تخصیص جدید به خرید
@@ -581,7 +616,9 @@ def process_bge_file(request, file_id):
                                             purchase=purchase,
                                             code=shenase_takhsis
                                         )
-                                        
+                                        # آپدیت وضعیت خرید به ALLOCATION_REGISTERED اگر از حالت INITIATED یا SMS_SENT باشد
+                                        if purchase.state in ['INITIATED', 'SMS_SENT']:
+                                            purchase.change_state('ALLOCATION_REGISTERED', None, 'تخصیص در بازارگاه ثبت شده است')
                                     records_updated += 1
                                 except Exception as e:
                                     records_failed += 1
@@ -646,43 +683,39 @@ def process_bge_file(request, file_id):
                                                 tahvil_phone_number=tahvil_phone_number,
                                                 bazaargah_phone_number=bazaargah_phone_number,
                                                 address=address,
-                                                weight=weight,
+                                                order_weight=order_weight,
+                                                delivered_weight=delivered_weight,
                                                 cargo=cargo_product,
                                                 amount_paid=amount_paid,
                                                 payment_method=payment_method,
                                                 type='bazaargah',
-                                                is_bazaargahed=True,
-                                                is_takhsised=True if shenase_takhsis else False,
                                                 company_price=cargo_product.company_price,
                                                 customer_price=cargo_product.customer_price,
-                                                # Boolean fields
-                                                is_sms_sent=True,
-                                                is_paid=True,
+                                                shenase_takhsis=shenase_takhsis,
+                                                extelaf_type=extelaf_type,
+                                                extelaf_weight=extelaf_weight if extelaf_weight > 0 else None,
+                                                extelaf_amount=extelaf_amount if extelaf_amount > 0 else None,
+                                                # وضعیت اولیه
+                                                state='DIFFERENCE_APPROVED',
+                                                # Boolean fields - فقط مواردی که هنوز به Stage Machine منتقل نشده‌اند
                                                 is_weight_costed=True,
                                                 is_ap_af=False,
                                                 is_archived=False,
                                                 is_canceled=False,
-                                                is_urgent=False,
-                                                is_delivered=True,
-                                                is_sent=True,
-                                                is_sent_to_barbari=True,
-                                                is_barnamed=True,
-                                                is_takhsised_approved=True,
-                                                is_tasvied_with_varedkonandeh=True,
-                                                is_address_sent_to_varedkonandeh=True,
-                                                is_ekhtelaf_approved=True,
-                                                is_kasri_varized=True,
-                                                is_sarak_varized=True,
-                                                is_kasri_reciept_submited=True,
-                                                is_factorated=True,
-                                                does_salesman_approve=True,
-                                                does_logistics_approve=True,
-                                                does_financial_approve=True,
-                                                description=""
+                                                is_urgent=False
                                             )
                                             
                                             # Bypass validation when saving
                                             new_purchase.save(force_insert=True)
+                                            
+                                            # ثبت تغییر وضعیت در تاریخچه
+                                            PurchaseStateChange.objects.create(
+                                                purchase=new_purchase,
+                                                previous_state='INITIATED',
+                                                new_state='BAZAARGAH_CONFIRMED',
+                                                notes='ثبت خودکار از فایل اکسل بازارگاه'
+                                            )
+                                            
                                             logger.debug(f"خرید جدید با موفقیت ایجاد شد: {purchase_id}")
                                             
                                             # افزودن شناسه تخصیص به خرید جدید
@@ -773,8 +806,7 @@ def process_bge_file(request, file_id):
                     success_message += f" همچنین {cargo_products_created} محصول جدید براساس کوتاژهای موجود در فایل ایجاد شد."
                 
                 messages.success(request, success_message)
-                return redirect('excel_manager:bge_files_list')
-                
+                return redirect('excel_manager:bge_files_list')                
             except Exception as e:
                 logger.error(f"خطا در پردازش فایل: {str(e)}")
                 processing_log.log_message = f"خطا در پردازش فایل: {str(e)}"
