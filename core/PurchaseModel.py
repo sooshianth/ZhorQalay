@@ -410,8 +410,8 @@ class Purchase(models.Model):
                 errors['purchase_number'] = 'شماره خرید باید دقیقاً 7 رقم عددی باشد'
 
         if self.tracking_number:
-            if len(str(self.tracking_number)) != 6 or not self.tracking_number.isdigit():
-                errors['tracking_number'] = 'شماره پیگیری باید دقیقاً 6 رقم عددی باشد'
+            if len(str(self.tracking_number)) <= 4:
+                errors['tracking_number'] = 'شماره پیگیری باید بیشتر از 5 رقم عددی باشد'
         
         if self.amount_paid and (len(str(self.amount_paid)) > 12 or len(str(self.amount_paid)) < 7):
             errors['amount_paid'] = 'مبلغ پرداختی باید بین 7 و 11 رقم باشد'
