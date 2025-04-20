@@ -13,15 +13,16 @@ def purchase_list(request):
     search_invoice_id = request.GET.get('search_invoice_id', '')
     search_cargo = request.GET.get('search_cargo', '')
     search_date = request.GET.get('search_date', '')
+    search_state = request.GET.get('search_state', '')
     
     # فیلتر پایه: خریدهای آرشیو نشده و آرشیو شده
-    active_purchases = Purchase.objects.filter(is_archived=False).order_by('-created_at')
-    archived_purchases = Purchase.objects.filter(is_archived=True).order_by('-created_at')
+    active_purchases = Purchase.objects.exclude(state='ARCHIVED').order_by('-created_at')
+    archived_purchases = Purchase.objects.filter(state='ARCHIVED').order_by('-created_at')
 
     # کارشناسان فروش فقط خریدهای مشتریان خود را می‌بینند
     if hasattr(request.user, 'sales_agent'):
-        active_purchases = Purchase.objects.filter(is_archived=False, customer__sales_agent=request.user.sales_agent).order_by('-created_at')
-        archived_purchases = Purchase.objects.filter(is_archived=True, customer__sales_agent=request.user.sales_agent).order_by('-created_at')
+        active_purchases = active_purchases.filter(customer__sales_agent=request.user.sales_agent)
+        archived_purchases = archived_purchases.filter(customer__sales_agent=request.user.sales_agent)
 
     # اعمال فیلترهای جستجو
     if search_customer:
@@ -56,9 +57,16 @@ def purchase_list(request):
         active_purchases = active_purchases.filter(created_at__contains=search_date)
         archived_purchases = archived_purchases.filter(created_at__contains=search_date)
     
+    if search_state:
+        active_purchases = active_purchases.filter(state=search_state)
+    
+    # فهرست وضعیت‌ها برای فیلتر
+    all_states = dict(Purchase.STATUS_CHOICES)
+    
     context = {
         'active_purchases': active_purchases,
         'archived_purchases': archived_purchases,
+        'all_states': all_states,
         # پارامترهای جستجو برای حفظ وضعیت در فرم
         'search_params': {
             'customer': search_customer,
@@ -68,6 +76,7 @@ def purchase_list(request):
             'invoice_id': search_invoice_id,
             'cargo': search_cargo,
             'date': search_date,
+            'state': search_state,
         }
     }
     

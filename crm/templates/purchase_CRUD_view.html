@@ -1,9 +1,8 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% block content %}
 <div class="container">
-
-{% load custom_filters %}
 
 <!-- Display error and success messages in a styled box -->
 {% if messages %}
@@ -34,29 +33,33 @@ data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else 
 </div>
 
 
-<!-- دکمه برای نمایش/پنهان کردن گزارش عملیات -->
+<!-- دکمه برای نمایش/پنهان کردن گزارش تغییرات استیت -->
 <button id="toggle-operations-report" class="button">
-نمایش گزارش عملیات
+نمایش تاریخچه تغییرات وضعیت
 </button>
 
-<!-- بخش گزارش عملیات -->
+<!-- بخش گزارش تغییرات استیت -->
 <div id="operations-report-section" style="display: none;">
 <table class="operations-table">
 <tr>
-<th colspan="5" class="section-header"> گزارش عملیات</th>
+<th colspan="4" class="section-header">تاریخچه تغییرات وضعیت</th>
 </tr>
 <tr>
-<td> نوع</td>
-<td> مرحله</td>
-<td> وضعیت</td>
+<th>تاریخ</th>
+<th>تغییر دهنده</th>
+<th>تغییر وضعیت</th>
+<th>توضیحات</th>
 </tr>
-{% for step in progress_steps %}
+{% for change in state_changes %}
 <tr>
-<td> عملیات</td>
-<td>{{ step.name }}</td>
-<td class="status-cell {% if step.status %}completed{% else %}pending{% endif %}">
-{% if step.status %} انجام شد{% else %} در انتظار{% endif %}
-</td>
+<td>{{ change.changed_at|date:"Y/m/d H:i" }}</td>
+<td>{% if change.changed_by %}{{ change.changed_by.get_full_name }}{% else %}سیستم{% endif %}</td>
+<td>{{ change.get_previous_state_display }} → {{ change.get_new_state_display }}</td>
+<td>{{ change.notes|default:"-" }}</td>
+</tr>
+{% empty %}
+<tr>
+<td colspan="4" class="empty-state">❌ تاریخچه تغییر وضعیتی ثبت نشده است</td>
 </tr>
 {% endfor %}
 </table>
@@ -130,8 +133,8 @@ data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else 
 <td>{{ purchase.updated_at|date:"Y/m/d" }}</td>
 <td>{{ purchase.amount_paid|add_commas|default:"-" }} ریال</td>
 <td>{{ purchase.tracking_number|default:"-" }}</td>
-<td class="status-cell {% if purchase.is_paid %}completed{% else %}pending{% endif %}">
-{% if purchase.is_paid %}✔ پرداخت شده{% else %}⌛ در انتظار{% endif %}
+<td class="status-cell {% if purchase.state in 'PAYMENT_VERIFIED,ALLOCATION_REGISTERED,ALLOCATION_APPROVED,VENDOR_SETTLED,ADDRESS_SENT,SENT_TO_SHIPPING,BARNAMEH_ISSUED,DELIVERED,DIFFERENCE_APPROVED,SHORTAGE_DEPOSITED,SURPLUS_DEPOSITED,RECEIPT_SUBMITTED,INVOICE_ISSUED,SALES_APPROVED,LOGISTICS_APPROVED,FINANCIAL_APPROVED,COMPLETED'|split:',' %}completed{% else %}pending{% endif %}">
+{% if purchase.state in 'PAYMENT_VERIFIED,ALLOCATION_REGISTERED,ALLOCATION_APPROVED,VENDOR_SETTLED,ADDRESS_SENT,SENT_TO_SHIPPING,BARNAMEH_ISSUED,DELIVERED,DIFFERENCE_APPROVED,SHORTAGE_DEPOSITED,SURPLUS_DEPOSITED,RECEIPT_SUBMITTED,INVOICE_ISSUED,SALES_APPROVED,LOGISTICS_APPROVED,FINANCIAL_APPROVED,COMPLETED'|split:',' %}✔ پرداخت شده{% else %}⌛ در انتظار{% endif %}
 </td>
 </tr>
 </table>
@@ -163,72 +166,110 @@ data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else 
 <button type="submit" class="button save-button">ذخیره تغییرات</button>
 
 <!-- ✅ دکمه‌های مخصوص فروش -->
-{% if user_role == "sales_agent" %}
-{% if purchase.type == 'bazaargah' %}
-<button type="submit" name="approve_allocation" class="button approve-btn sales">
-🛒 مشتری تخصیص را ثبت کرده است
-</button>
-{% endif %}
-<button type="submit" name="approve_sarak" class="button approve-btn sales">
-💰 تأیید واریز شدن سرک از طرف مشتری
-</button>
-<button type="submit" name="approve_salesman" class="button approve-btn sales">
-✅ تایید نهایی واحد فروش
-</button>
+{% if user_role == "sales_agent" or user_role == "admin" %}
+    {% if purchase.type == 'bazaargah' and purchase.state == 'SMS_SENT' or purchase.state == 'BAZAARGAH_CONFIRMED' or purchase.state == 'PAYMENT_VERIFIED' %}
+        <button type="submit" name="approve_allocation" class="button approve-btn sales">
+            🛒 مشتری تخصیص را ثبت کرده است
+        </button>
+    {% endif %}
+    {% if purchase.state == 'DIFFERENCE_APPROVED' and purchase.extelaf_type == 'سرک' %}
+        <button type="submit" name="approve_sarak" class="button approve-btn sales">
+            💰 تأیید واریز شدن سرک از طرف مشتری
+        </button>
+    {% endif %}
+    {% if purchase.state == 'RECEIPT_SUBMITTED' or purchase.state == 'INVOICE_ISSUED' %}
+        <button type="submit" name="approve_salesman" class="button approve-btn sales">
+            ✅ تایید نهایی واحد فروش
+        </button>
+    {% endif %}
 {% endif %}
 
 <!-- ✅ دکمه‌های مخصوص لجستیک -->
-{% if user_role == "logistics_manager" %}
-{% if purchase.type == 'bazaargah' %}
-<button type="submit" name="approve_bazaargah" class="button approve-btn logistics">
-✅ تأیید کردن ثبت شدن در بازارگاه
-</button>
-<button type="submit" name="approve_allocation_approval" class="button approve-btn logistics">
-🛒 تأیید کردن تخصیص
-</button>
-{% endif %}
-<button type="submit" name="approve_address" class="button approve-btn logistics">
-📍 تأیید ارسال آدرس به واردکننده
-</button>
-<button type="submit" name="approve_sent_to_barbari" class="button approve-btn logistics">
-🚛 تایید ارسال به باربری
-</button>
-<button type="submit" name="approve_barnamed" class="button approve-btn logistics">
-📋 تایید صدور برنامه
-</button>
-<button type="submit" name="approve_logistics" class="button approve-btn logistics">
-✅ تایید نهایی واحد لجستیک
-</button>
+{% if user_role == "logistics_manager" or user_role == "admin" %}
+    {% if purchase.type == 'bazaargah' and purchase.state == 'SMS_SENT' or purchase.state == 'INITIATED' %}
+        <button type="submit" name="approve_bazaargah" class="button approve-btn logistics">
+            ✅ تأیید کردن ثبت شدن در بازارگاه
+        </button>
+    {% endif %}
+    {% if purchase.state == 'ALLOCATION_REGISTERED' %}
+        <button type="submit" name="approve_allocation_approval" class="button approve-btn logistics">
+            🛒 تأیید کردن تخصیص
+        </button>
+    {% endif %}
+    {% if purchase.state == 'VENDOR_SETTLED' %}
+        <button type="submit" name="approve_address" class="button approve-btn logistics">
+            📍 تأیید ارسال آدرس به واردکننده
+        </button>
+    {% endif %}
+    {% if purchase.state == 'ADDRESS_SENT' %}
+        <button type="submit" name="approve_sent_to_barbari" class="button approve-btn logistics">
+            🚛 تایید ارسال به باربری
+        </button>
+    {% endif %}
+    {% if purchase.state == 'SENT_TO_SHIPPING' %}
+        <button type="submit" name="approve_barnamed" class="button approve-btn logistics">
+            📋 تایید صدور بارنامه
+        </button>
+    {% endif %}
+    {% if purchase.state == 'BARNAMEH_ISSUED' %}
+        <button type="submit" name="approve_delivered" class="button approve-btn logistics">
+            🏠 تایید تحویل به مشتری
+        </button>
+    {% endif %}
+    {% if purchase.state == 'RECEIPT_SUBMITTED' or purchase.state == 'SALES_APPROVED' or purchase.state == 'INVOICE_ISSUED' %}
+        <button type="submit" name="approve_logistics" class="button approve-btn logistics">
+            ✅ تایید نهایی واحد لجستیک
+        </button>
+    {% endif %}
 {% endif %}
 
 <!-- ✅ دکمه‌های مخصوص مالی -->
-{% if user_role == "financial_manager" %}
-<button type="submit" name="approve_payment" class="button approve-btn financial">
-💰 تایید پرداخت
-</button>
-<button type="submit" name="approve_tasvied_with_vared_konandeh" class="button approve-btn financial">
-⚖️ تایید تسویه با واردکننده
-</button>
-<button type="submit" name="approve_factor" class="button approve-btn financial">
-📄 تایید فاکتور
-</button>
-<button type="submit" name="approve_ekhtelaf" class="button approve-btn financial">
-⚖️ تایید اختلاف
-</button>
-<button type="submit" name="approve_kasri" class="button approve-btn financial">
-💹 تایید کسری واریز شده
-</button>
-<button type="submit" name="approve_kasri_reciept" class="button approve-btn financial">
-🧾 تایید رسید کسری
-</button>
-<button type="submit" name="approve_financial" class="button approve-btn financial">
-✅ تایید نهایی واحد مالی
-</button>
+{% if user_role == "financial_manager" or user_role == "admin" %}
+    {% if purchase.type == 'bazaargah' and purchase.state == 'BAZAARGAH_CONFIRMED' %}
+        <button type="submit" name="approve_payment" class="button approve-btn financial">
+            💰 تأیید پرداخت
+        </button>
+    {% endif %}
+    {% if purchase.type == 'non_bazaargah' and purchase.state == 'SMS_SENT' or purchase.state == 'INITIATED' %}
+        <button type="submit" name="approve_payment" class="button approve-btn financial">
+            💰 تأیید پرداخت
+        </button>
+    {% endif %}
+    {% if purchase.state == 'PAYMENT_VERIFIED' or purchase.state == 'ALLOCATION_APPROVED' %}
+        <button type="submit" name="approve_tasvied_with_vared_konandeh" class="button approve-btn financial">
+            🔄 تایید تسویه با واردکننده
+        </button>
+    {% endif %}
+    {% if purchase.state == 'DELIVERED' %}
+        <button type="submit" name="approve_ekhtelaf" class="button approve-btn financial">
+            ⚖️ تایید اختلاف
+        </button>
+    {% endif %}
+    {% if purchase.state == 'DIFFERENCE_APPROVED' and purchase.extelaf_type == 'کسری' %}
+        <button type="submit" name="approve_kasri" class="button approve-btn financial">
+            💰 تایید واریز کسری
+        </button>
+    {% endif %}
+    {% if purchase.state == 'SHORTAGE_DEPOSITED' or purchase.state == 'SURPLUS_DEPOSITED' %}
+        <button type="submit" name="approve_kasri_reciept" class="button approve-btn financial">
+            📝 تایید رسید کسری/سرک
+        </button>
+    {% endif %}
+    {% if purchase.state == 'RECEIPT_SUBMITTED' %}
+        <button type="submit" name="approve_factor" class="button approve-btn financial">
+            📋 تایید صدور فاکتور
+        </button>
+    {% endif %}
+    {% if purchase.state == 'INVOICE_ISSUED' or purchase.state == 'SALES_APPROVED' or purchase.state == 'LOGISTICS_APPROVED' %}
+        <button type="submit" name="approve_financial" class="button approve-btn financial">
+            ✅ تایید نهایی مالی
+        </button>
+    {% endif %}
 {% endif %}
 </div>
 </form>
 
-{% if not purchase.is_paid %}
+{% if purchase.state not in 'PAYMENT_VERIFIED,ALLOCATION_REGISTERED,ALLOCATION_APPROVED,VENDOR_SETTLED,ADDRESS_SENT,SENT_TO_SHIPPING,BARNAMEH_ISSUED,DELIVERED,DIFFERENCE_APPROVED,SHORTAGE_DEPOSITED,SURPLUS_DEPOSITED,RECEIPT_SUBMITTED,INVOICE_ISSUED,SALES_APPROVED,LOGISTICS_APPROVED,FINANCIAL_APPROVED,COMPLETED'|split:',' %}
 <form method="post" action="{% url 'purchase_delete' purchase.id %}" class="delete-form">
     {% csrf_token %}
     <button type="submit" class="button delete-button" onclick="return confirm('آیا مطمئن هستید که می‌خواهید این خرید را حذف کنید؟');">
@@ -272,10 +313,10 @@ toggleOperationsReportButton.addEventListener('click', function() {
 if (operationsReportSection.style.display === 'none') {
 operationsReportSection.style.display = 'block';
 operationsReportSection.classList.add('fade-in');
-this.textContent = 'پنهان کردن گزارش عملیات';
+this.textContent = 'پنهان کردن تاریخچه تغییرات وضعیت';
 } else {
 operationsReportSection.style.display = 'none';
-this.textContent = 'نمایش گزارش عملیات';
+this.textContent = 'نمایش تاریخچه تغییرات وضعیت';
 }
 });
 
@@ -313,7 +354,6 @@ popup.style.left = event.clientX + "px";
 
 step.addEventListener("mouseleave", function () {
 popup.style.display = "none";
-});
 });
 });
 </script>

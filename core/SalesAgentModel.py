@@ -32,15 +32,35 @@ class SalesAgent(models.Model):
         return self.customers.all()
     
     def get_sales_in_period(self, start_date=None, end_date=None, paid_only=True, archived=False):
+        """
+        دریافت خریدهای انجام شده در یک بازه زمانی با فیلترهای مختلف
+        با توجه به سیستم استیجینگ جدید
+        """
         if start_date is None:
             start_date = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         if end_date is None:
             end_date = timezone.now()
             
         filters = Q(created_at__gte=start_date, created_at__lte=end_date)
+        
+        # فیلتر بر اساس وضعیت پرداخت
+        paid_states = [
+            'PAYMENT_VERIFIED', 'ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 
+            'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 
+            'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED',
+            'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED',
+            'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED',
+            'FINANCIAL_APPROVED', 'COMPLETED'
+        ]
+        
         if paid_only:
-            filters &= Q(is_paid=True)
-        filters &= Q(is_archived=archived)
+            filters &= Q(state__in=paid_states)
+
+        # وضعیت آرشیو
+        if archived:
+            filters &= Q(state='ARCHIVED')
+        else:
+            filters &= ~Q(state='ARCHIVED')
         
         sales = []
         for customer in self.get_all_customers():
@@ -49,24 +69,22 @@ class SalesAgent(models.Model):
         return sales
 
     def get_this_month_sales(self):
-        """Get all paid, non-archived sales for the current month."""
+        """دریافت همه خریدهای پرداخت شده و غیرآرشیوی ماه جاری."""
         now = timezone.now()
         start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         return self.get_sales_in_period(start_date=start_of_month, end_date=now)
 
-    # Add to SalesAgentModel.py at the top
-
     def get_this_month_sales_stats(self):
-        """Get comprehensive statistics for this month's sales with caching."""
+        """دریافت آمار جامع فروش ماه جاری با کش."""
         cache_key = f'sales_agent_{self.id}_monthly_stats_{timezone.now().strftime("%Y%m")}'
         cached_data = cache.get(cache_key)
         
         if cached_data is not None:
             return cached_data
             
-        # Original calculation code...
+        # محاسبه آمار
         sales = self.get_this_month_sales()
-        amount = sum(purchase.amount_paid for purchase in sales)
+        amount = sum(purchase.amount_paid for purchase in sales if purchase.amount_paid)
         weight = sum(purchase.weight for purchase in sales)
         count = len(sales)
         average = amount / count if count > 0 else 0
@@ -81,30 +99,62 @@ class SalesAgent(models.Model):
             'target_achievement': target_achievement,
         }
         
-        # Cache for 1 hour
+        # کش برای یک ساعت
         cache.set(cache_key, result, 3600)
         
         return result
 
-
-    def get_potentional_sales(self):
-        """Get all non-archived, unpaid sales (potential future revenue)."""
-        return self.get_sales_in_period(paid_only=False, archived=False)
+    def get_potential_sales(self):
+        """دریافت همه خریدهای پرداخت نشده و غیرآرشیوی (درآمد بالقوه آینده)."""
+        now = timezone.now()
+        start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        
+        # وضعیت‌های پرداخت نشده
+        unpaid_states = ['INITIATED', 'SMS_SENT', 'BAZAARGAH_CONFIRMED']
+        
+        filters = Q(created_at__gte=start_of_month, created_at__lte=timezone.now())
+        filters &= Q(state__in=unpaid_states)
+        filters &= ~Q(state='ARCHIVED')
+        
+        sales = []
+        for customer in self.get_all_customers():
+            sales.extend(customer.purchases_made.filter(filters))
+            
+        return sales
     
     def get_all_unpaid_sales(self):
-        """Get all unpaid sales regardless of archive status."""
+        """دریافت همه خریدهای پرداخت نشده صرف نظر از وضعیت آرشیو."""
+        # وضعیت‌های پرداخت نشده
+        unpaid_states = ['INITIATED', 'SMS_SENT', 'BAZAARGAH_CONFIRMED']
+        
         unpaid_sales = []
         for customer in self.get_all_customers():
-            unpaid_sales.extend(customer.purchases_made.filter(is_paid=False))
+            unpaid_sales.extend(customer.purchases_made.filter(state__in=unpaid_states))
         return unpaid_sales
 
     def get_all_active_sales(self):
-        """Get all non-archived, paid sales."""
-        return self.get_sales_in_period(start_date=None, end_date=None, paid_only=True, archived=False)
+        """دریافت همه خریدهای پرداخت شده و غیرآرشیوی."""
+        # وضعیت‌های پرداخت شده و فعال
+        active_states = [
+            'PAYMENT_VERIFIED', 'ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 
+            'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 
+            'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED',
+            'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED',
+            'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED',
+            'FINANCIAL_APPROVED', 'COMPLETED'
+        ]
+        
+        active_sales = []
+        for customer in self.get_all_customers():
+            active_sales.extend(customer.purchases_made.filter(state__in=active_states))
+        return active_sales
 
     def get_all_archived_sales(self):
-        """Get all archived, paid sales."""
-        return self.get_sales_in_period(start_date=None, end_date=None, paid_only=True, archived=True)
+        """دریافت همه خریدهای آرشیو شده."""
+        archived_sales = []
+        for customer in self.get_all_customers():
+            archived_sales.extend(customer.purchases_made.filter(state='ARCHIVED'))
+        return archived_sales
 
     def get_tasks_by_status(self, status=None, due_date=None):
         tasks = []
@@ -123,19 +173,19 @@ class SalesAgent(models.Model):
         return sum([purchase.weight for purchase in self.get_this_month_sales()])
 
     def get_today_tasks(self):
-        """Get all tasks due today."""
+        """دریافت همه تسک‌های سررسید امروز."""
         return self.get_tasks_by_status(due_date=timezone.now().date())
 
     def get_all_undone_tasks(self):
-        """Get all incomplete tasks sorted by due date."""
+        """دریافت همه تسک‌های ناتمام مرتب شده بر اساس تاریخ سررسید."""
         return self.get_tasks_by_status(status=False)
 
     def get_all_tasks(self):
-        """Get all tasks sorted by due date."""
+        """دریافت همه تسک‌ها مرتب شده بر اساس تاریخ سررسید."""
         return self.get_tasks_by_status()
 
     def get_overdue_tasks(self):
-        """Get all incomplete tasks that are past their due date."""
+        """دریافت تمام تسک‌های ناتمامی که از تاریخ سررسیدشان گذشته است."""
         now = timezone.now()
         tasks = []
         for customer in self.get_all_customers():
@@ -144,38 +194,38 @@ class SalesAgent(models.Model):
 
     def get_weekly_sales_trend(self, weeks=8):
         """
-        Get weekly sales trend for the specified number of past weeks.
+        دریافت روند فروش هفتگی برای تعداد هفته‌های مشخص شده گذشته.
         
         Args:
-            weeks: Number of weeks to include in the trend
+            weeks: تعداد هفته‌های مورد نظر در روند
             
         Returns:
-            Dictionary mapping week numbers to total weight sold
+            دیکشنری از شماره هفته‌ها به وزن کل فروخته شده
         """
         from collections import defaultdict
         trend = defaultdict(int)
         
-        # Calculate start date (beginning of 'weeks' weeks ago)
+        # محاسبه تاریخ شروع (ابتدای هفته 'هفته' پیش)
         now = timezone.now()
         start_date = now - timedelta(days=now.weekday() + 7 * (weeks - 1))
         start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
         
-        # Get all relevant purchases
+        # دریافت همه خریدهای مرتبط
         purchases = self.get_sales_in_period(start_date=start_date, end_date=now, paid_only=True)
         
-        # Group by week
+        # گروه‌بندی بر اساس هفته
         for purchase in purchases:
-            week = purchase.created_at.isocalendar()[1]  # Week number
+            week = purchase.created_at.isocalendar()[1]  # شماره هفته
             trend[week] += purchase.weight
             
         return dict(trend)
 
     def get_sales_by_product(self, start_date=None, end_date=None):
         """
-        Get sales aggregated by product type.
+        دریافت فروش‌ها بر اساس نوع محصول.
         
         Returns:
-            Dictionary mapping product types to total weight sold
+            دیکشنری از انواع محصول به وزن کل فروخته شده
         """
         from collections import defaultdict
         
@@ -185,21 +235,23 @@ class SalesAgent(models.Model):
         for purchase in sales:
             if hasattr(purchase, 'product_type') and purchase.product_type:
                 product_sales[purchase.product_type] += purchase.weight
+            elif hasattr(purchase, 'cargo') and purchase.cargo and hasattr(purchase.cargo, 'product_type'):
+                product_sales[purchase.cargo.get_product_type_display()] += purchase.weight
                 
         return dict(product_sales)
 
     def check_task_deadlines(self):
         """
-        Check for upcoming task deadlines and create notifications.
-        Returns the number of new notifications created.
+        بررسی سررسید تسک‌های آینده و ایجاد اعلان.
+        تعداد اعلان‌های جدید ایجاد شده را برمی‌گرداند.
         """
         notification_count = 0
         now = timezone.now()
         
         for task in self.get_all_undone_tasks():
-            # Check if task is due within 24 hours
+            # بررسی تسک‌های با سررسید کمتر از ۲۴ ساعت
             if task.due_date - now < timedelta(hours=24):
-                # Check if notification already exists
+                # بررسی وجود اعلان قبلی
                 notification_exists = Notification.objects.filter(
                     user=self.user,
                     message__contains=task.description,
@@ -215,54 +267,55 @@ class SalesAgent(models.Model):
                     notification_count += 1
                     
         return notification_count
+    
     def forecast_sales(self, days_ahead=30):
         """
-        Forecast sales for the specified number of days ahead.
+        پیش‌بینی فروش برای تعداد روزهای آینده مشخص شده.
         
         Args:
-            days_ahead: Number of days to forecast
+            days_ahead: تعداد روزهای پیش‌بینی
             
         Returns:
-            Dictionary with forecast data
+            دیکشنری با داده‌های پیش‌بینی
         """
         try:
             import numpy as np
             from sklearn.linear_model import LinearRegression
             
-            # Get historical data - last 90 days
+            # دریافت داده‌های تاریخی - ۹۰ روز گذشته
             now = timezone.now()
             start_date = now - timedelta(days=90)
             
-            # Prepare data by day
+            # آماده‌سازی داده بر اساس روز
             daily_sales = {}
             for i in range(90):
                 day = start_date + timedelta(days=i)
                 day_str = day.strftime('%Y-%m-%d')
                 daily_sales[day_str] = 0
             
-            # Fill in actual sales data
+            # پر کردن داده‌های فروش واقعی
             sales = self.get_sales_in_period(start_date=start_date, end_date=now)
             for sale in sales:
                 day_str = sale.created_at.strftime('%Y-%m-%d')
                 daily_sales[day_str] = daily_sales.get(day_str, 0) + sale.weight
             
-            # Convert to arrays for regression
+            # تبدیل به آرایه‌ها برای رگرسیون
             X = np.array(range(len(daily_sales))).reshape(-1, 1)
             y = np.array(list(daily_sales.values()))
             
-            # Train model
+            # آموزش مدل
             model = LinearRegression()
             model.fit(X, y)
             
-            # Predict future
+            # پیش‌بینی آینده
             future_days = np.array(range(len(daily_sales), len(daily_sales) + days_ahead)).reshape(-1, 1)
             predictions = model.predict(future_days)
             
-            # Format results
+            # قالب‌بندی نتایج
             forecast_data = {}
             for i in range(days_ahead):
                 future_date = now + timedelta(days=i+1)
-                forecast_data[future_date.strftime('%Y-%m-%d')] = max(0, predictions[i])  # Ensure non-negative
+                forecast_data[future_date.strftime('%Y-%m-%d')] = max(0, predictions[i])  # اطمینان از عدم منفی بودن
                 
             return {
                 'daily_forecast': forecast_data,
@@ -277,31 +330,30 @@ class SalesAgent(models.Model):
             logger.error(f"Error in sales forecast: {str(e)}")
             return self._simple_forecast(days_ahead)
             
-    # def _simple_forecast(self, days_ahead=30):
-    #     """Simple moving average forecast as fallback."""
-    #     now = timezone.now()
-    #     start_date = now - timedelta(days=30)
+    def _simple_forecast(self, days_ahead=30):
+        """پیش‌بینی میانگین متحرک ساده به عنوان پشتیبان."""
+        now = timezone.now()
+        start_date = now - timedelta(days=30)
         
-    #     sales = self.get_sales_in_period(start_date=start_date, end_date=now)
-    #     daily_avg = sum(s.weight for s in sales) / 30
+        sales = self.get_sales_in_period(start_date=start_date, end_date=now)
+        daily_avg = sum(s.weight for s in sales) / 30 if sales else 0
         
-    #     forecast_data = {}
-    #     for i in range(days_ahead):
-    #         future_date = now + timedelta(days=i+1)
-    #         forecast_data[future_date.strftime('%Y-%m-%d')] = daily_avg
+        forecast_data = {}
+        for i in range(days_ahead):
+            future_date = now + timedelta(days=i+1)
+            forecast_data[future_date.strftime('%Y-%m-%d')] = daily_avg
             
-    #     return {
-    #         'daily_forecast': forecast_data,
-    #         'total_forecast': daily_avg * days_ahead,
-    #         'confidence': 50  # Fixed confidence for simple method
-    #     }
-
+        return {
+            'daily_forecast': forecast_data,
+            'total_forecast': daily_avg * days_ahead,
+            'confidence': 50  # اطمینان ثابت برای روش ساده
+        }
 
     def __str__(self):
         return self.name
     
     def clean(self):
-        """Validate model fields."""
+        """اعتبارسنجی فیلدهای مدل."""
         if self.phone_number:
             if len(self.phone_number) < 11:
                 raise ValidationError('شماره تلفن باید 11 رقم باشد.')

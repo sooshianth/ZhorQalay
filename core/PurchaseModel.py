@@ -6,6 +6,7 @@ from .CustomerModel import Customer
 from .CargoProductModel import CargoProduct
 from .SalesAgentModel import SalesAgent
 from django.contrib import messages
+from django.contrib.auth.models import User
 from sms_api.apis import (
     send_new_purchase_notification, 
     send_payment_confirmation, 
@@ -15,7 +16,32 @@ from sms_api.apis import (
 )
 
 class Purchase(models.Model):
+    # وضعیت‌های مختلف خرید
+    STATUS_CHOICES = [
+        ('INITIATED', 'شروع شده'),
+        ('SMS_SENT', 'پیامک ارسال شده'),
+        ('BAZAARGAH_CONFIRMED', 'تایید بازارگاه'),
+        ('PAYMENT_VERIFIED', 'تایید مالی'),
+        ('ALLOCATION_REGISTERED', 'تخصیص شده'),
+        ('ALLOCATION_APPROVED', 'تایید تخصیص'),
+        ('VENDOR_SETTLED', 'تسویه با واردکننده'),
+        ('ADDRESS_SENT', 'ارسال آدرس به واردکننده'),
+        ('SENT_TO_SHIPPING', 'ارسال به باربری'),
+        ('BARNAMEH_ISSUED', 'بارنامه صادر شده'),
+        ('DELIVERED', 'تحویل داده شده'),
+        ('DIFFERENCE_APPROVED', 'تایید مبلغ اختلاف'),
+        ('SHORTAGE_DEPOSITED', 'واریز کسری'),
+        ('SURPLUS_DEPOSITED', 'واریز سرک'),
+        ('RECEIPT_SUBMITTED', 'ثبت رسید'),
+        ('INVOICE_ISSUED', 'صدور فاکتور'),
+        ('SALES_APPROVED', 'تایید واحد فروش'),
+        ('LOGISTICS_APPROVED', 'تایید واحد لجستیک'),
+        ('FINANCIAL_APPROVED', 'تایید واحد مالی'),
+        ('COMPLETED', 'تکمیل شده'),
+    ]
+    
     id = models.AutoField(primary_key=True)
+    state = models.CharField("وضعیت", max_length=50, choices=STATUS_CHOICES, default='INITIATED')
     invoice_id = models.CharField(max_length=20, verbose_name='کد درون سازمانی', unique=True, editable=False, blank=True, null=True)
     customer = models.ForeignKey(Customer, on_delete=models.DO_NOTHING, verbose_name="مشتری", help_text="ارتباط یک‌به‌یک با مشتری از طریق شماره تلفن یا آیدی", related_name='purchases_made')
     address = models.TextField("آدرس", blank=True, null=True)
@@ -42,188 +68,295 @@ class Purchase(models.Model):
     extelaf_type = models.CharField("نوع اختلاف (کسری یا سرک)", max_length=4, choices=[('کسری', 'کسری'), ('سرک', 'سرک')], null=True, blank=True)
     extelaf_weight = models.PositiveIntegerField("وزن اختلاف به کیلوگرم", null=True, blank=True)
     extelaf_amount = models.PositiveBigIntegerField("مبلغ اختلاف به ریال", null=True, blank=True)
-
-    #################################################
-    ##           BOOOOLLLEAAANNNNSSSSSSSSSS        ##
-    #################################################
-    is_sms_sent = models.BooleanField("پیامک ارسال شده", default=True)
-    is_bazaargahed = models.BooleanField("تایید بازارگاه ", default=False)
-    is_paid = models.BooleanField("تایید مالی", default=False)
-    is_takhsised = models.BooleanField("تخصیص شده", default=False)
-    is_takhsised_approved = models.BooleanField("تایید تخصیص", default=False)
-    is_tasvied_with_varedkonandeh = models.BooleanField("تسویه با واردکننده", default=False)
-
-    is_address_sent_to_varedkonandeh = models.BooleanField("ارسال آدرس به واردکننده", default=False)
-    is_sent_to_barbari = models.BooleanField("ارسال به باربری", default=False)
-    is_barnamed = models.BooleanField("ارسال شده", default=False)
-    is_ekhtelaf_approved = models.BooleanField("تایید مبلغ اختلاف", default=False)
-
-    is_kasri_varized = models.BooleanField("واریز کسری", default=False)
-    is_sarak_varized = models.BooleanField("واریز سرک", default=False)
-    is_kasri_reciept_submited = models.BooleanField("ثبت رسید کسری", default=False)
-
-    is_factorated = models.BooleanField("صدور فاکتور", default=False)
-
-    does_salesman_approve = models.BooleanField("تایید واحد فروش", default=False)
-    does_logistics_approve = models.BooleanField("تایید واحد لجستیک", default=False)
-    does_financial_approve = models.BooleanField("تایید واحد مالی", default=False)
-
-
-    is_urgent = models.BooleanField("پیگیری فوری", default=False)
-    is_canceled = models.BooleanField("لغو شده", default=False)
-    is_archived = models.BooleanField("آرشیو شده", default=False)
     
-    ################################################################3
+    is_urgent = models.BooleanField("آیا خرید فوری است؟", default=False)
+    is_canceled = models.BooleanField("آیا خرید لغو شده است؟", default=False)
+    is_archived = models.BooleanField("آیا خرید آرشیو شده است؟", default=False)
+    def change_state(self, new_state, user, notes=None):
+        """
+        متد عمومی برای تغییر وضعیت خرید و ثبت آن در تاریخچه
+        """
+        old_state = self.state
+        self.state = new_state
+        self.save()
+        
+        # ثبت تغییر وضعیت در تاریخچه
+        PurchaseStateChange.objects.create(
+            purchase=self,
+            previous_state=old_state,
+            new_state=new_state,
+            changed_by=user,
+            notes=notes
+        )
+        return True
 
-    is_sent = models.BooleanField("ارسال شده", default=False)
-    is_delivered = models.BooleanField("تحویل داده شده", default=False)
-
-
-
-
-    def check_is_bazaaragahed(self, user_role):
-        if self.type == 'bazaargah':
-            if self.purchase_number:
-                if user_role == 'logistics_manager':
-                    self.is_bazaargahed = True
-                else:
-                    raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-            else:
-                raise ValidationError('شماره خرید الزامی است')
-        else:
+    def confirm_bazaargah(self, user):
+        """
+        تایید خرید در بازارگاه
+        """
+        if user.role != 'logistics_manager':
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            
+        if self.type != 'bazaargah':
             raise ValidationError('این خرید خارج از بازارگاه است')
-                
-    def check_is_paid(self, user_role):
-        if self.type == 'bazaargah':
-            if user_role == 'financial_manager' and self.is_bazaargahed and (type(self.amount_paid) == int and self.amount_paid > 10000000):
-                self.is_paid = True
-                if not self.is_weight_costed:
-                    self.is_weight_costed = True
-                    self.cargo.weight -= self.weight
-                    self.cargo.save()
-                # Send SMS notification for payment confirmation
-                send_payment_confirmation(self)
-            else:
-                raise ValidationError('مبلغ هنوز وارد نشده است')
-        else:
-            if user_role == 'financial_manager' and (type(self.amount_paid) == int and self.amount_paid > 10000000):
-                self.is_paid = True
-                if not self.is_weight_costed:
-                    self.is_weight_costed = True
-                    self.cargo.weight -= self.weight
-                    self.cargo.save()
-                # Send SMS notification for payment confirmation
-                send_payment_confirmation(self)
-            else:
-                raise ValidationError('مبلغ هنوز وارد نشده است')
+            
+        if not self.purchase_number:
+            raise ValidationError('شماره خرید الزامی است')
         
-    def check_is_takhsised(self, user_role):
-        if user_role == 'sales_agent':
-            self.is_takhsised = True
-        else:
+        return self.change_state('BAZAARGAH_CONFIRMED', user, 'تایید شده در بازارگاه')
+        
+    def verify_payment(self, user):
+        """
+        تایید پرداخت
+        """
+        if user.role != 'financial_manager':
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            
+        if self.type == 'bazaargah' and self.state != 'BAZAARGAH_CONFIRMED':
+            raise ValidationError('ابتدا باید خرید در بازارگاه تایید شود')
+            
+        if not self.amount_paid or self.amount_paid <= 10000000:
+            raise ValidationError('مبلغ پرداختی باید بزرگتر از 10 میلیون ریال باشد')
+            
+        # کسر از موجودی محصول
+        if not self.is_weight_costed and self.cargo:
+            self.is_weight_costed = True
+            self.cargo.weight -= self.weight
+            self.cargo.save()
+            
+        # ارسال پیامک تایید پرداخت
+        send_payment_confirmation(self)
+        
+        return self.change_state('PAYMENT_VERIFIED', user, 'تایید مالی انجام شد')
+        
+    def register_allocation(self, user):
+        """
+        ثبت تخصیص
+        """
+        if user.role != 'sales_agent':
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            
+        if not self.shenase_takhsis:
+            raise ValidationError('شناسه تخصیص الزامی است')
+        
+        return self.change_state('ALLOCATION_REGISTERED', user, 'تخصیص ثبت شد')
+        
+    def approve_allocation(self, user):
+        """
+        تایید تخصیص
+        """
+        if user.role != 'logistics_manager':
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            
+        if self.state != 'ALLOCATION_REGISTERED':
+            raise ValidationError('ابتدا باید تخصیص ثبت شود')
+        
+        return self.change_state('ALLOCATION_APPROVED', user, 'تخصیص تایید شد')
+        
+    def settle_with_vendor(self, user):
+        """
+        تسویه با واردکننده
+        """
+        if user.role != 'financial_manager':
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            
+        if self.state != 'PAYMENT_VERIFIED' and self.state != 'ALLOCATION_APPROVED':
+            raise ValidationError('ابتدا باید پرداخت تایید شود')
+        
+        return self.change_state('VENDOR_SETTLED', user, 'تسویه با واردکننده انجام شد')
+        
+    def send_address_to_vendor(self, user):
+        """
+        ارسال آدرس به واردکننده
+        """
+        if user.role != 'logistics_manager':
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            
+        if self.state != 'VENDOR_SETTLED':
+            raise ValidationError('ابتدا باید با واردکننده تسویه شود')
+            
+        if not self.address:
+            raise ValidationError('آدرس الزامی است')
+            
+        # ارسال پیامک آدرس
+        send_address_notification(self)
+        
+        return self.change_state('ADDRESS_SENT', user, 'آدرس به واردکننده ارسال شد')
+        
+    def send_to_shipping(self, user):
+        """
+        ارسال به باربری
+        """
+        if user.role != 'logistics_manager':
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            
+        if self.state != 'ADDRESS_SENT':
+            raise ValidationError('ابتدا باید آدرس به واردکننده ارسال شود')
+        
+        return self.change_state('SENT_TO_SHIPPING', user, 'ارسال به باربری انجام شد')
+        
+    def issue_barnameh(self, user):
+        """
+        صدور بارنامه
+        """
+        if user.role != 'logistics_manager':
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            
+        if self.state != 'SENT_TO_SHIPPING':
+            raise ValidationError('ابتدا باید به باربری ارسال شود')
+            
+        if not hasattr(self, 'barnameh') or not self.barnameh:
+            raise ValidationError('شماره بارنامه الزامی است')
+            
+        # ارسال پیامک بارنامه
+        send_barnameh_notification(self)
+        
+        return self.change_state('BARNAMEH_ISSUED', user, 'بارنامه صادر شد')
+        
+    def mark_as_delivered(self, user):
+        """
+        تحویل به مشتری
+        """
+        if user.role != 'logistics_manager':
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            
+        if self.state != 'BARNAMEH_ISSUED':
+            raise ValidationError('ابتدا باید بارنامه صادر شود')
+        
+        return self.change_state('DELIVERED', user, 'تحویل به مشتری انجام شد')
+        
+    def approve_difference(self, user):
+        """
+        تایید مبلغ اختلاف
+        """
+        if user.role != 'financial_manager':
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            
+        if self.state != 'DELIVERED':
+            raise ValidationError('ابتدا باید بار تحویل مشتری شود')
+            
+        # اگر اختلاف از نوع سرک باشد، پیامک ارسال شود
+        if self.extelaf_type == 'سرک' and self.extelaf_weight and self.extelaf_amount:
+            send_extelaf_notification(self)
+        
+        return self.change_state('DIFFERENCE_APPROVED', user, 'مبلغ اختلاف تایید شد')
+        
+    def deposit_shortage(self, user):
+        """
+        واریز کسری
+        """
+        if user.role != 'financial_manager':
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            
+        if self.state != 'DIFFERENCE_APPROVED' or self.extelaf_type != 'کسری':
+            raise ValidationError('ابتدا باید مبلغ اختلاف از نوع کسری تایید شود')
+        
+        return self.change_state('SHORTAGE_DEPOSITED', user, 'کسری واریز شد')
+        
+    def deposit_surplus(self, user):
+        """
+        واریز سرک
+        """
+        if user.role != 'sales_agent':
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            
+        if self.state != 'DIFFERENCE_APPROVED' or self.extelaf_type != 'سرک':
+            raise ValidationError('ابتدا باید مبلغ اختلاف از نوع سرک تایید شود')
+        
+        return self.change_state('SURPLUS_DEPOSITED', user, 'سرک واریز شد')
+        
+    def submit_receipt(self, user):
+        """
+        ثبت رسید
+        """
+        if user.role != 'financial_manager':
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            
+        valid_states = ['SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED']
+        if self.state not in valid_states:
+            raise ValidationError('ابتدا باید کسری یا سرک واریز شود')
+        
+        return self.change_state('RECEIPT_SUBMITTED', user, 'رسید ثبت شد')
+        
+    def issue_invoice(self, user):
+        """
+        صدور فاکتور
+        """
+        if user.role != 'financial_manager':
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            
+        if self.state != 'RECEIPT_SUBMITTED':
+            raise ValidationError('ابتدا باید رسید ثبت شود')
+        
+        return self.change_state('INVOICE_ISSUED', user, 'فاکتور صادر شد')
+        
+    def approve_by_sales(self, user):
+        """
+        تایید واحد فروش
+        """
+        if user.role != 'sales_agent':
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            
+        if self.state != 'RECEIPT_SUBMITTED' and self.state != 'INVOICE_ISSUED':
+            raise ValidationError('ابتدا باید رسید ثبت شود یا فاکتور صادر شود')
+        
+        return self.change_state('SALES_APPROVED', user, 'تایید واحد فروش انجام شد')
+        
+    def approve_by_logistics(self, user):
+        """
+        تایید واحد لجستیک
+        """
+        if user.role != 'logistics_manager':
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            
+        if self.state != 'RECEIPT_SUBMITTED' and self.state != 'INVOICE_ISSUED' and self.state != 'SALES_APPROVED':
+            raise ValidationError('ابتدا باید رسید ثبت شود یا فاکتور صادر شود یا واحد فروش تایید کند')
+        
+        return self.change_state('LOGISTICS_APPROVED', user, 'تایید واحد لجستیک انجام شد')
+        
+    def approve_by_financial(self, user):
+        """
+        تایید واحد مالی
+        """
+        if user.role != 'financial_manager':
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            
+        if self.state != 'INVOICE_ISSUED' and self.state != 'SALES_APPROVED' and self.state != 'LOGISTICS_APPROVED':
+            raise ValidationError('ابتدا باید فاکتور صادر شود یا واحدهای دیگر تایید کنند')
+        
+        # با تایید واحد مالی، خرید تکمیل می‌شود
+        return self.change_state('COMPLETED', user, 'تایید واحد مالی انجام شد و خرید تکمیل شد')
+        
+    def mark_as_urgent(self, user):
+        """
+        پیگیری فوری
+        """
+        if not user.is_superuser:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
         
+        return self.change_state('URGENT', user, 'پیگیری فوری')
         
-    def check_is_takhsised_approved(self, user_role):
-        if user_role == 'logistics_manager':
-            self.is_takhsised_approved = True
-            self.is_takhsised = True
-        else:
-            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-
-    def check_is_tasvied_with_varedkonandeh(self, user_role):
-        if user_role == 'financial_manager' and self.is_paid:
-            self.is_tasvied_with_varedkonandeh = True
-        else:
-            raise ValidationError('این خرید هنوز پرداخت نشده است')
-    
-    def check_is_address_sent_to_varedkonandeh(self, user_role):
-        if user_role == 'logistics_manager' and self.is_tasvied_with_varedkonandeh:
-            self.is_address_sent_to_varedkonandeh = True
-            # Send SMS notification for address sent to importer
-            send_address_notification(self)
-        else:
-            raise ValidationError('این خرید هنوز با واردکننده تسویه نشده است')
-
-    def check_is_sent_to_barbari(self, user_role):
-        if user_role == 'logistics_manager' and self.is_address_sent_to_varedkonandeh:
-            self.is_sent_to_barbari = True
-        else:
-            raise ValidationError('آدرس این خرید هنوز ارسال نشده است')
-        
-    def check_is_barnamed(self, user_role):
-        if user_role == 'logistics_manager' and self.barnameh:
-            self.is_barnamed = True
-            self.is_sent = True
-            # Send SMS notification for barnameh (shipping info)
-            send_barnameh_notification(self)
-        else:
-            raise ValidationError('شماره بارنامه این خرید هنوز ثبت نشده است')
-        
-    def check_is_ekhtelaf_approved(self, user_role):
-        if user_role == 'financial_manager' and self.is_barnamed:
-            self.is_ekhtelaf_approved = True
-            self.is_delivered = True
-            # If there's a weight difference (extelaf) of type "sarak", send notification
-            if self.extelaf_type == 'سرک' and self.extelaf_weight and self.extelaf_amount:
-                send_extelaf_notification(self)
-        else:
-            raise ValidationError('بار هنوز به مشتری تحویل داده نشده است')
-        
-    def check_is_kasri_varized(self, user_role):
-        if user_role == 'financial_manager' and self.is_ekhtelaf_approved:
-            self.is_kasri_varized = True
-        else:
-            raise ValidationError('مبلغ و مقدار اختلاف در سیستم ثبت نشده است')
-    
-    def check_is_sarak_varized(self, user_role):
-        if user_role == 'sales_agent' and self.is_ekhtelaf_approved:
-            self.is_sarak_varized = True
-        else:
-            raise ValidationError('مبلغ و مقدار اختلاف در سیستم ثبت نشده است')
-        
-    def check_is_kasri_reciept_submited(self, user_role):
-        if user_role == 'financial_manager' and (self.is_kasri_varized or self.is_sarak_varized):
-            self.is_kasri_reciept_submited = True
-        else:
-            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-
-    def check_is_factorated(self, user_role):
-        if user_role == 'financial_manager' and self.is_kasri_reciept_submited:
-            self.is_factorated = True
-        else:
-            raise ValidationError('تایید اختلاف هنوز انجام نشده است')
-
-
-    def check_does_salesman_approve(self, user_role):
-        if user_role == 'sales_agent' and self.is_kasri_reciept_submited:
-            self.does_salesman_approve = True
-    def check_does_logistics_approve(self, user_role):
-        if user_role == 'logistics_manager' and self.is_kasri_reciept_submited:
-            self.does_logistics_approve = True
-    def check_does_financial_approve(self, user_role):
-        if user_role == 'financial_manager' and self.is_factorated:
-            self.does_financial_approve = True
-
-
-    def check_is_urgent(self, user):
-        if user.is_superuser:
-            self.is_urgent = True
-        else:
-            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-
-    def check_is_canceled(self, user):
-        if user.is_superuser:
-            self.is_canceled = True
-        else:
-            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-
-    def check_is_archived(self, user):
-        if user.is_superuser:
-            self.is_archived = True
-        else:
+    def cancel_purchase(self, user):
+        """
+        لغو خرید
+        """
+        if not user.is_superuser:
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
         
+        return self.change_state('CANCELED', user, 'خرید لغو شد')
+        
+    def archive_purchase(self, user):
+        """
+        آرشیو خرید
+        """
+        if not user.is_superuser:
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            
+        if self.state in ['PAYMENT_VERIFIED', 'BARNAMEH_ISSUED', 'DELIVERED', 'CANCELED']:
+            raise ValidationError('خرید آرشیو شده نمی‌تواند پرداخت شده، ارسال شده، تحویل داده شده یا لغو شده باشد.')
+        
+        return self.change_state('ARCHIVED', user, 'خرید آرشیو شد')
+
     class Meta:
         verbose_name = "خرید"
         verbose_name_plural = "خریدها"
@@ -241,11 +374,12 @@ class Purchase(models.Model):
             if len(str(self.tracking_number)) != 6 or not self.tracking_number.isdigit():
                 errors['tracking_number'] = 'شماره پیگیری باید دقیقاً 6 رقم عددی باشد'
         
-        if len(str(self.amount_paid)) > 12 and len(str(self.amount_paid)) < 7:
+        if self.amount_paid and (len(str(self.amount_paid)) > 12 or len(str(self.amount_paid)) < 7):
             errors['amount_paid'] = 'مبلغ پرداختی باید بین 7 و 11 رقم باشد'
-        if self.is_paid and not self.amount_paid:
+            
+        if self.state == 'PAYMENT_VERIFIED' and not self.amount_paid:
             errors['amount_paid'] = 'برای خریدهای پرداخت شده مبلغ الزامی است'
-        elif self.is_paid and self.amount_paid <= 100000000:
+        elif self.state == 'PAYMENT_VERIFIED' and self.amount_paid <= 100000000:
             errors['amount_paid'] = 'مبلغ پرداختی باید بزرگتر از صد میلیون تومان باشد'
 
         if self.weight <= 10000:
@@ -254,9 +388,10 @@ class Purchase(models.Model):
         if not self.customer:
             errors['customer'] = 'انتخاب مشتری الزامی است'
         
-        if self.is_archived:
-            if self.is_paid or self.is_sent or self.is_delivered or self.is_canceled:
-                errors['is_archived'] = 'خرید آرشیو شده نمی‌تواند پرداخت شده، ارسال شده، تحویل داده شده یا لغو شده باشد.'
+        if self.state == 'ARCHIVED':
+            if self.state in ['PAYMENT_VERIFIED', 'BARNAMEH_ISSUED', 'DELIVERED', 'CANCELED']:
+                errors['state'] = 'خرید آرشیو شده نمی‌تواند پرداخت شده، ارسال شده، تحویل داده شده یا لغو شده باشد.'
+                
         if self.customer_price != 0 and (self.customer_price < 50000 or self.customer_price > 300000):
             raise ValidationError('فی فروش عددی غیرواقعی است.')
         if self.company_price != 0 and (self.company_price < 50000 or self.company_price > 300000):
@@ -267,7 +402,7 @@ class Purchase(models.Model):
             
     def save(self, *args, **kwargs):
         is_new = not self.pk  # Check if this is a new instance
-        
+                
         if not self.invoice_id:
             if len(self.customer.sales_agent.all()) > 1:
                 factor_code = '88'
@@ -302,6 +437,16 @@ class Purchase(models.Model):
         # Send SMS notification for new purchase only on creation
         if is_new and self.customer.sms_preference and has_non_admin:
             send_new_purchase_notification(self)
+            # تنظیم وضعیت SMS ارسال شده
+            if not PurchaseStateChange.objects.filter(purchase=self, new_state='SMS_SENT').exists():
+                PurchaseStateChange.objects.create(
+                    purchase=self,
+                    previous_state='INITIATED',
+                    new_state='SMS_SENT',
+                    notes='پیامک خودکار ارسال شد'
+                )
+                self.state = 'SMS_SENT'
+                super().save(update_fields=['state'])
 
 from django.contrib.auth.models import User
 class PurchaseHistory(models.Model):
@@ -316,6 +461,22 @@ class PurchaseHistory(models.Model):
 
     def __str__(self):
         return f"{self.timestamp} - {self.user}"
+
+class PurchaseStateChange(models.Model):
+    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='state_changes')
+    previous_state = models.CharField("وضعیت قبلی", max_length=50, choices=Purchase.STATUS_CHOICES)
+    new_state = models.CharField("وضعیت جدید", max_length=50, choices=Purchase.STATUS_CHOICES)
+    changed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="تغییر داده شده توسط")
+    changed_at = jmodels.jDateTimeField("زمان تغییر", auto_now_add=True)
+    notes = models.TextField("توضیحات", blank=True, null=True)
+
+    class Meta:
+        verbose_name = "تغییر وضعیت خرید"
+        verbose_name_plural = "تغییرات وضعیت خرید"
+        ordering = ['-changed_at']
+
+    def __str__(self):
+        return f"تغییر از {self.get_previous_state_display()} به {self.get_new_state_display()} در {self.changed_at}"
 
 class ShenaseTakhsis(models.Model):
     purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='shenase_takhsis_set', verbose_name="خرید مرتبط")

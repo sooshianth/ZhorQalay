@@ -31,26 +31,57 @@
                         <label for="globalSearch" class="form-label">جستجوی سریع:</label>
                         <input type="text" id="globalSearch" class="form-control" placeholder="جستجوی سریع در تمام فیلدها...">
                     </div>
-                    {% comment %} <div class="col-md-9">
-                        <div class="row">
-                            <div class="col-md-3 mb-2">
-                                <input type="text" name="search_customer" class="form-control" 
-                                       placeholder="جستجو بر اساس مشتری" value="{{ search_params.customer }}">
-                            </div>
-                            <div class="col-md-3 mb-2">
-                                <input type="text" name="search_purchase_number" class="form-control" 
-                                       placeholder="جستجو بر اساس شماره خرید" value="{{ search_params.purchase_number }}">
-                            </div>
-                            <div class="col-md-3 mb-2">
-                                <input type="text" name="search_cargo" class="form-control" 
-                                       placeholder="جستجو بر اساس کوتاژ" value="{{ search_params.cargo }}">
-                            </div>
-                            <div class="col-md-3 mb-2">
-                                <input type="text" name="search_date" class="form-control" 
-                                       placeholder="جستجو بر اساس تاریخ" value="{{ search_params.date }}">
-                            </div>
+                    <!-- جستجو -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <form method="get" class="form-inline">
+                                <div class="row">
+                                    <div class="col-md-2 mb-2">
+                                        <input type="text" class="form-control" id="search_customer" name="search_customer" 
+                                            placeholder="جستجو در مشتریان" value="{{ search_params.customer }}">
+                                    </div>
+                                    <div class="col-md-2 mb-2">
+                                        <input type="text" class="form-control" id="search_sales_agent" name="search_sales_agent" 
+                                            placeholder="جستجو در نمایندگان" value="{{ search_params.sales_agent }}">
+                                    </div>
+                                    <div class="col-md-2 mb-2">
+                                        <input type="text" class="form-control" id="search_purchase_number" name="search_purchase_number" 
+                                            placeholder="شماره خرید" value="{{ search_params.purchase_number }}">
+                                    </div>
+                                    <div class="col-md-2 mb-2">
+                                        <input type="text" class="form-control" id="search_weight" name="search_weight" 
+                                            placeholder="وزن" value="{{ search_params.weight }}">
+                                    </div>
+                                    <div class="col-md-2 mb-2">
+                                        <input type="text" class="form-control" id="search_invoice_id" name="search_invoice_id" 
+                                            placeholder="کد فاکتور" value="{{ search_params.invoice_id }}">
+                                    </div>
+                                    <div class="col-md-2 mb-2">
+                                        <input type="text" class="form-control" id="search_cargo" name="search_cargo" 
+                                            placeholder="کوتاژ/محصول/کشور" value="{{ search_params.cargo }}">
+                                    </div>
+                                    <div class="col-md-3 mb-2">
+                                        <input type="date" class="form-control" id="search_date" name="search_date" 
+                                            placeholder="تاریخ" value="{{ search_params.date }}">
+                                    </div>
+                                    <div class="col-md-3 mb-2">
+                                        <select class="form-control" id="search_state" name="search_state">
+                                            <option value="">-- انتخاب وضعیت --</option>
+                                            {% for state_code, state_name in all_states.items %}
+                                                <option value="{{ state_code }}" {% if search_params.state == state_code %}selected{% endif %}>{{ state_name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2 mb-2">
+                                        <button type="submit" class="btn btn-primary w-100">جستجو</button>
+                                    </div>
+                                    <div class="col-md-2 mb-2">
+                                        <a href="{% url 'purchase_list' %}" class="btn btn-secondary w-100">پاک کردن</a>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
-                    </div> {% endcomment %}
+                    </div>
                 </div>
             </div>
             <div class="col-md-2 mb-2 d-flex align-items-end">
@@ -129,7 +160,7 @@
     </thead>
     <tbody id="activePurchasesTable">
     {% for purchase in active_purchases %}
-        <tr class="{% if purchase.is_urgent %}urgent-row{% endif %} {% if purchase.is_canceled %}canceled-row{% endif %}">
+        <tr class="{% if purchase.state == 'URGENT' %}urgent-row{% endif %} {% if purchase.state == 'CANCELED' %}canceled-row{% endif %}">
             <td>{{ purchase.created_at|date:"Y/m/d" }}</td>
             <td>{{ purchase.customer.name }}</td>
             <td>{{ purchase.invoice_id|default:"تعیین نشده" }}</td>
@@ -139,30 +170,48 @@
             <td>{% if purchase.cargo %}{{ purchase.cargo }}{% else %}-{% endif %}</td>
             <td>
                 {# Only show the latest status #}
-                {% if purchase.is_canceled %}
+                {% if purchase.state == 'CANCELED' %}
                     <span class="table-status-badge bg-danger text-white">لغو شده</span>
-                {% elif purchase.is_delivered %}
+                {% elif purchase.state == 'DELIVERED' %}
                     <span class="table-status-badge bg-primary text-white">تحویل داده شده</span>
-                {% elif purchase.is_sent %}
-                    <span class="table-status-badge bg-info text-white">ارسال شده</span>
-                {% elif purchase.is_barnamed %}
+                {% elif purchase.state == 'BARNAMEH_ISSUED' %}
                     <span class="table-status-badge bg-info text-white">بارنامه صادر شده</span>
-                {% elif purchase.is_sent_to_barbari %}
+                {% elif purchase.state == 'SENT_TO_SHIPPING' %}
                     <span class="table-status-badge bg-info text-white">ارسال به باربری</span>
-                {% elif purchase.is_address_sent_to_varedkonandeh %}
+                {% elif purchase.state == 'ADDRESS_SENT' %}
                     <span class="table-status-badge bg-info text-white">آدرس ارسال شد</span>
-                {% elif purchase.is_tasvied_with_varedkonandeh %}
+                {% elif purchase.state == 'VENDOR_SETTLED' %}
                     <span class="table-status-badge bg-info text-white">تسویه با واردکننده</span>
-                {% elif purchase.is_takhsised_approved %}
+                {% elif purchase.state == 'ALLOCATION_APPROVED' %}
                     <span class="table-status-badge bg-warning text-dark">تایید تخصیص</span>
-                {% elif purchase.is_takhsised %}
+                {% elif purchase.state == 'ALLOCATION_REGISTERED' %}
                     <span class="table-status-badge bg-warning text-dark">تخصیص شده</span>
-                {% elif purchase.is_paid %}
+                {% elif purchase.state == 'PAYMENT_VERIFIED' %}
                     <span class="table-status-badge bg-success text-white">پرداخت شده</span>
-                {% elif purchase.is_bazaargahed %}
+                {% elif purchase.state == 'BAZAARGAH_CONFIRMED' %}
                     <span class="table-status-badge bg-secondary text-white">تایید بازارگاه</span>
-                {% elif purchase.is_urgent %}
+                {% elif purchase.state == 'URGENT' %}
                     <span class="table-status-badge bg-danger text-white">فوری</span>
+                {% elif purchase.state == 'DIFFERENCE_APPROVED' %}
+                    <span class="table-status-badge bg-warning text-dark">تایید اختلاف</span>
+                {% elif purchase.state == 'SHORTAGE_DEPOSITED' %}
+                    <span class="table-status-badge bg-success text-white">واریز کسری</span>
+                {% elif purchase.state == 'SURPLUS_DEPOSITED' %}
+                    <span class="table-status-badge bg-success text-white">واریز سرک</span>
+                {% elif purchase.state == 'RECEIPT_SUBMITTED' %}
+                    <span class="table-status-badge bg-info text-white">ثبت رسید</span>
+                {% elif purchase.state == 'INVOICE_ISSUED' %}
+                    <span class="table-status-badge bg-info text-white">صدور فاکتور</span>
+                {% elif purchase.state == 'SALES_APPROVED' %}
+                    <span class="table-status-badge bg-success text-white">تایید واحد فروش</span>
+                {% elif purchase.state == 'LOGISTICS_APPROVED' %}
+                    <span class="table-status-badge bg-success text-white">تایید واحد لجستیک</span>
+                {% elif purchase.state == 'FINANCIAL_APPROVED' %}
+                    <span class="table-status-badge bg-success text-white">تایید واحد مالی</span>
+                {% elif purchase.state == 'COMPLETED' %}
+                    <span class="table-status-badge bg-success text-white">تکمیل شده</span>
+                {% elif purchase.state == 'SMS_SENT' %}
+                    <span class="table-status-badge bg-light text-dark">پیامک ارسال شده</span>
                 {% else %}
                     <span class="table-status-badge bg-light text-dark">در انتظار</span>
                 {% endif %}

@@ -317,7 +317,13 @@
                         <p>📅 {{ purchase.created_at|date:"Y/m/d H:i" }}</p>
                         <p>کوتاژ: {{ purchase.cargo.cottage }} {{ purchase.cargo.get_product_type_display }} {{ purchase.cargo.get_country_display }}</p>
                         <p>وزن: {{ purchase.weight|add_commas }} کیلوگرم</p>
-                        <p>وضعیت پرداخت: {{ purchase.is_paid|yesno:"✅,❌" }}</p>
+                        <p>وضعیت پرداخت: 
+                            {% if purchase.state in 'PAYMENT_VERIFIED,ALLOCATION_REGISTERED,ALLOCATION_APPROVED,VENDOR_SETTLED,ADDRESS_SENT,SENT_TO_SHIPPING,BARNAMEH_ISSUED,DELIVERED,DIFFERENCE_APPROVED,SHORTAGE_DEPOSITED,SURPLUS_DEPOSITED,RECEIPT_SUBMITTED,INVOICE_ISSUED,SALES_APPROVED,LOGISTICS_APPROVED,FINANCIAL_APPROVED,COMPLETED'|split:',' %}
+                            ✅ پرداخت شده
+                            {% else %}
+                            ❌ پرداخت نشده
+                            {% endif %}
+                        </p>
                         <p><a href="{% url 'purchase_CRUD' purchase.id %}" class="view-details-button">مشاهده جزئیات</a></p>
                     </div>
                 {% empty %}

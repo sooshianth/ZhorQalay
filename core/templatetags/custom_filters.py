@@ -67,3 +67,15 @@ def add_commas(value):
         return f"{num:,}"
     except (ValueError, TypeError):
         return value
+
+@register.filter
+def split(value, arg):
+    """
+    فیلتر برای جدا کردن یک رشته با یک جداکننده مشخص
+    
+    مثال استفاده:
+    {{ "محمد,علی,رضا"|split:"," }}
+    
+    این فیلتر رشته را به لیستی از مقادیر تبدیل می‌کند.
+    """
+    return value.split(arg)

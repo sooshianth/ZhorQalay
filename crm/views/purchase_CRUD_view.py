@@ -5,15 +5,22 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.core.exceptions import ValidationError
 from core._models import Purchase
-from core.PurchaseModel import PurchaseHistory
+from core.PurchaseModel import PurchaseHistory, PurchaseStateChange
 
 def determine_user_role(user):
-    if hasattr(user, 'financial_manager'):
+    """
+    تشخیص نقش کاربر براساس روابط او
+    به جای بررسی مستقیم role که وجود ندارد، روابط بررسی می‌شود
+    """
+    if hasattr(user, 'financial_manager') and user.financial_manager is not None:
         return 'financial_manager'
-    elif hasattr(user, 'logistics_manager'):
+    elif hasattr(user, 'logistics_manager') and user.logistics_manager is not None:
         return 'logistics_manager'
-    elif hasattr(user, 'sales_agent'):
+    elif hasattr(user, 'sales_agent') and user.sales_agent is not None:
         return 'sales_agent'
+    elif user.is_superuser:
+        # مدیر ارشد دسترسی کامل دارد
+        return 'admin'
     return None
 
 class RoleBasedPurchaseForm(forms.ModelForm):
@@ -23,28 +30,35 @@ class RoleBasedPurchaseForm(forms.ModelForm):
     
     def __init__(self, *args, user_role=None, **kwargs):
         super().__init__(*args, **kwargs)
-        if user_role == 'sales_agent':
+        if user_role == 'sales_agent' or user_role == 'admin':
             allowed_fields = [
-                'weight', 'description', 'tracking_number', 'purchase_date', 'purchase_number','payment_method', 'customer_price','amount_paid', 'cargo', 'shenase_takhsis', 'code_melli_tahvil', 'bazaargah_phone_number', 'tahvil_phone_number',
-                # 'is_takhsised', 'is_sarak_varized', 'does_salesman_approve',
+                'weight', 'description', 'tracking_number', 'purchase_date', 'purchase_number',
+                'payment_method', 'customer_price','amount_paid', 'cargo', 'shenase_takhsis', 'code_melli_tahvil', 
+                'bazaargah_phone_number', 'tahvil_phone_number',
             ]
         elif user_role == 'logistics_manager':
             allowed_fields = [
-                'weight', 'description', 'tracking_number', 'purchase_number', 'amount_paid', 'customer_price', 'payment_method', 'cargo', 'shenase_takhsis', 'code_melli_tahvil', 'bazaargah_phone_number', 'tahvil_phone_number',
-                # 'is_bazaargahed', 'is_takhsised_approved', 'is_address_sent_to_varedkonandeh', 'is_sent_to_barbari', 'is_barnamed', 'does_logistics_approve',
+                'weight', 'description', 'tracking_number', 'purchase_number', 'amount_paid', 
+                'customer_price', 'payment_method', 'cargo', 'shenase_takhsis', 'code_melli_tahvil', 
+                'bazaargah_phone_number', 'tahvil_phone_number', 'address',
             ]
         elif user_role == 'financial_manager':
             allowed_fields = [
-                'description', 'payment_method', 'company_price', 'customer_price', 'amount_paid', 'cargo', 'purchase_date', 'purchase_number', 'tracking_number', 'weight',
-                # 'is_paid','is_tasvied_with_varedkonandeh','is_factorated', 'is_ekhtelaf_approved', 'is_kasri_varized', 'is_kasri_reciept_submited', 'does_financial_approve',
+                'description', 'payment_method', 'company_price', 'customer_price', 'amount_paid', 
+                'cargo', 'purchase_date', 'purchase_number', 'tracking_number', 'weight',
             ]
         else:
             allowed_fields = []
-        if self.instance.is_barnamed :
+        
+        # اگر بارنامه صادر شده باشد، فیلدهای اختلاف را نشان بده
+        if self.instance.state == 'BARNAMEH_ISSUED':
             allowed_fields += ['extelaf_type', 'extelaf_weight', 'extelaf_amount']
+            
         for field in list(self.fields):
             if field not in allowed_fields:
                 del self.fields[field]
+                
+        # برای خریدهای خارج از بازارگاه، فیلدهای مرتبط با بازارگاه را حذف می‌کنیم
         if self.instance.type == 'non_bazaargah':
             if 'purchase_number' in self.fields:
                 del self.fields['purchase_number']
@@ -53,37 +67,43 @@ class RoleBasedPurchaseForm(forms.ModelForm):
                 
     def clean(self):
         cleaned_data = super().clean()
-        # We'll let the model validation happen only during save
-        # This prevents duplicate validation errors
+        # اعتبارسنجی اصلی در متد save مدل انجام می‌شود
+        # این باعث می‌شود از تکرار پیام‌های خطا جلوگیری شود
         return cleaned_data
 
 @login_required
 def purchase_CRUD_view(request, purchase_id):
     purchase = get_object_or_404(Purchase, id=purchase_id)
     history_logs = PurchaseHistory.objects.filter(purchase=purchase).order_by('-timestamp')
+    state_changes = PurchaseStateChange.objects.filter(purchase=purchase).order_by('-changed_at')
     user_role = determine_user_role(request.user)
     
+    # ساخت مراحل پیشرفت بر اساس state (وضعیت فعلی)
     progress_steps = [
-        {'name': 'تأیید ثبت خرید در بازارگاه', 'status': purchase.is_bazaargahed},
-        {'name': 'تأیید انجام پرداخت توسط واحد مالی', 'status': purchase.is_paid},
-        {'name': 'ثبت تخصیص توسط مشتری', 'status': purchase.is_takhsised},
-        {'name': 'تایید تخصیص', 'status': purchase.is_takhsised_approved},
-        {'name': 'تسویه با واردکننده', 'status': purchase.is_tasvied_with_varedkonandeh},
-        {'name': 'ارسال آدرس به واردکننده', 'status': purchase.is_address_sent_to_varedkonandeh},
-        {'name': 'ارسال آدرس به باربری', 'status': purchase.is_sent_to_barbari},
-        {'name': 'بارنامه صادر شده', 'status': purchase.is_barnamed},
-        {'name': 'صدور فاکتور', 'status': purchase.is_factorated},
-        {'name': 'تایید اختلاف', 'status': purchase.is_ekhtelaf_approved},
-        {'name': 'کسری واریز شده', 'status': purchase.is_kasri_varized},
-        {'name': 'سرک واریز شده', 'status': purchase.is_sarak_varized},
-        {'name': 'تایید رسید سرک یا کسری', 'status': purchase.is_kasri_reciept_submited},
-        {'name': 'تایید نهایی واحد فروش', 'status': purchase.does_salesman_approve},
-        {'name': 'تایید نهایی واحد لجستیک', 'status': purchase.does_logistics_approve},
-        {'name': 'تایید نهایی واحد مالی', 'status': purchase.does_financial_approve},
+        {'name': 'شروع شده', 'status': True},  # همیشه شروع شده
+        {'name': 'پیامک ارسال شده', 'status': purchase.state != 'INITIATED'},
+        {'name': 'تأیید ثبت خرید در بازارگاه', 'status': purchase.state in ['BAZAARGAH_CONFIRMED', 'PAYMENT_VERIFIED', 'ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'تأیید انجام پرداخت توسط واحد مالی', 'status': purchase.state in ['PAYMENT_VERIFIED', 'ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'ثبت تخصیص توسط مشتری', 'status': purchase.state in ['ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'تایید تخصیص', 'status': purchase.state in ['ALLOCATION_APPROVED', 'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'تسویه با واردکننده', 'status': purchase.state in ['VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'ارسال آدرس به واردکننده', 'status': purchase.state in ['ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'ارسال آدرس به باربری', 'status': purchase.state in ['SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'بارنامه صادر شده', 'status': purchase.state in ['BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'تحویل به مشتری', 'status': purchase.state in ['DELIVERED', 'DIFFERENCE_APPROVED', 'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'تایید اختلاف', 'status': purchase.state in ['DIFFERENCE_APPROVED', 'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'کسری/سرک واریز شده', 'status': purchase.state in ['SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'ثبت رسید', 'status': purchase.state in ['RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'صدور فاکتور', 'status': purchase.state in ['INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'تایید نهایی واحد فروش', 'status': purchase.state in ['SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'تایید نهایی واحد لجستیک', 'status': purchase.state in ['LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'تایید نهایی واحد مالی', 'status': purchase.state in ['FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'تکمیل شده', 'status': purchase.state == 'COMPLETED'},
     ]
-    if purchase.cargo.type == 'non_bazaargah':
-        progress_steps = [step for i, step in enumerate(progress_steps) if i not in [0, 2, 3]]
-
+    
+    # برای خریدهای خارج از بازارگاه مراحل مرتبط با بازارگاه را حذف می‌کنیم
+    if purchase.type == 'non_bazaargah':
+        progress_steps = [step for i, step in enumerate(progress_steps) if i not in [2, 4, 5]]
 
     if request.method == 'POST':
         form = RoleBasedPurchaseForm(request.POST, instance=purchase, user_role=user_role)
@@ -93,59 +113,63 @@ def purchase_CRUD_view(request, purchase_id):
                     original_obj = Purchase.objects.get(id=purchase_id)
                     changed_fields = []
                     
-                    # Process role-based actions/approvals
+                    # پردازش اکشن‌های مبتنی بر نقش
                     action_taken = False
                     try:
-                        if 'approve_bazaargah' in request.POST:
-                            purchase.check_is_bazaaragahed(user_role)
+                        # اکشن‌های مبتنی بر state machine
+                        if 'approve_bazaargah' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
+                            purchase.confirm_bazaargah(request.user)
                             action_taken = True
-                        elif 'approve_payment' in request.POST:
-                            purchase.check_is_paid(user_role)
+                        elif 'approve_payment' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
+                            purchase.verify_payment(request.user)
                             action_taken = True
-                        elif 'approve_allocation' in request.POST:
-                            purchase.check_is_takhsised(user_role)
+                        elif 'approve_allocation' in request.POST and (user_role == 'sales_agent' or user_role == 'admin'):
+                            purchase.register_allocation(request.user)
                             action_taken = True
-                        elif 'approve_allocation_approval' in request.POST:
-                            purchase.check_is_takhsised_approved(user_role)
+                        elif 'approve_allocation_approval' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
+                            purchase.approve_allocation(request.user)
                             action_taken = True
-                        elif 'approve_tasvied_with_vared_konandeh' in request.POST:
-                            purchase.check_is_tasvied_with_varedkonandeh(user_role)
+                        elif 'approve_tasvied_with_vared_konandeh' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
+                            purchase.settle_with_vendor(request.user)
                             action_taken = True
-                        elif 'approve_address' in request.POST:
-                            purchase.check_is_address_sent_to_varedkonandeh(user_role)
+                        elif 'approve_address' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
+                            purchase.send_address_to_vendor(request.user)
                             action_taken = True
-                        elif 'approve_sent_to_barbari' in request.POST:
-                            purchase.check_is_sent_to_barbari(user_role)
+                        elif 'approve_sent_to_barbari' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
+                            purchase.send_to_shipping(request.user)
                             action_taken = True
-                        elif 'approve_barnamed' in request.POST:
-                            purchase.check_is_barnamed(user_role)
+                        elif 'approve_barnamed' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
+                            purchase.issue_barnameh(request.user)
                             action_taken = True
-                        elif 'approve_factor' in request.POST:
-                            purchase.check_is_factorated(user_role)
+                        elif 'approve_delivered' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
+                            purchase.mark_as_delivered(request.user)
                             action_taken = True
-                        elif 'approve_ekhtelaf' in request.POST:
-                            purchase.check_is_ekhtelaf_approved(user_role)
+                        elif 'approve_ekhtelaf' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
+                            purchase.approve_difference(request.user)
                             action_taken = True
-                        elif 'approve_kasri' in request.POST:
-                            purchase.check_is_kasri_varized(user_role)
+                        elif 'approve_kasri' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
+                            purchase.deposit_shortage(request.user)
                             action_taken = True
-                        elif 'approve_sarak' in request.POST:
-                            purchase.check_is_sarak_varized(user_role)
+                        elif 'approve_sarak' in request.POST and (user_role == 'sales_agent' or user_role == 'admin'):
+                            purchase.deposit_surplus(request.user)
                             action_taken = True
-                        elif 'approve_kasri_reciept' in request.POST:
-                            purchase.check_is_kasri_reciept_submited(user_role)
+                        elif 'approve_kasri_reciept' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
+                            purchase.submit_receipt(request.user)
                             action_taken = True
-                        elif 'approve_salesman' in request.POST:
-                            purchase.check_does_salesman_approve(user_role)
+                        elif 'approve_factor' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
+                            purchase.issue_invoice(request.user)
                             action_taken = True
-                        elif 'approve_logistics' in request.POST:
-                            purchase.check_does_logistics_approve(user_role)
+                        elif 'approve_salesman' in request.POST and (user_role == 'sales_agent' or user_role == 'admin'):
+                            purchase.approve_by_sales(request.user)
                             action_taken = True
-                        elif 'approve_financial' in request.POST:
-                            purchase.check_does_financial_approve(user_role)
+                        elif 'approve_logistics' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
+                            purchase.approve_by_logistics(request.user)
+                            action_taken = True
+                        elif 'approve_financial' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
+                            purchase.approve_by_financial(request.user)
                             action_taken = True
                     except ValidationError as action_error:
-                        # Display the validation error as a user-friendly message
+                        # نمایش خطای اعتبارسنجی به صورت پیام دوستانه کاربر
                         if hasattr(action_error, 'message'):
                             messages.error(request, action_error.message)
                         else:
@@ -154,7 +178,7 @@ def purchase_CRUD_view(request, purchase_id):
                                     messages.error(request, error)
                         return redirect('purchase_CRUD', purchase_id=purchase_id)
                     
-                    # Handle form changes only if no action button was pressed or if action was successful
+                    # پردازش تغییرات فرم فقط در صورتی که دکمه اکشن فشرده نشده باشد یا اکشن موفقیت‌آمیز بوده باشد
                     if not action_taken or (action_taken and request.POST.get('save_changes')):
                         for field in form.changed_data:
                             old_value = getattr(original_obj, field)
@@ -172,7 +196,7 @@ def purchase_CRUD_view(request, purchase_id):
                     messages.success(request, 'تغییرات با موفقیت اعمال شد')
                     return redirect('purchase_CRUD', purchase_id=purchase_id)
             except ValidationError as e:
-                # Handle form validation errors
+                # مدیریت خطاهای اعتبارسنجی فرم
                 if hasattr(e, 'message'):
                     messages.error(request, e.message)
                 else:
@@ -194,6 +218,7 @@ def purchase_CRUD_view(request, purchase_id):
         'form': form,
         'progress_steps': progress_steps,
         'history_logs': history_logs,
+        'state_changes': state_changes,
         'user_role': user_role,
     }
     return render(request, 'purchase_CRUD_view.html', context)
@@ -204,7 +229,7 @@ def delete_purchase_view(request, purchase_id):
     if request.method == 'POST':
         purchase.delete()
         messages.success(request, 'خرید با موفقیت حذف شد')
-        return redirect('purchase_list')  # Adjust the redirect as needed
+        return redirect('purchase_list')  # مسیر redirect را بر اساس نیاز خود تنظیم کنید
 
     context = {
         'purchase': purchase,

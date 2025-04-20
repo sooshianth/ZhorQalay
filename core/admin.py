@@ -27,7 +27,7 @@ class PhoneNumberInline(admin.TabularInline):
 
 class PurchaseInline(admin.TabularInline):
     model = Purchase
-    fields = ( 'purchase_number', 'weight', 'amount_paid', 'is_paid', 'is_barnamed', 'created_at')
+    fields = ( 'purchase_number', 'weight', 'amount_paid', 'state', 'created_at')
     extra = 0
 
 @admin.register(Customer)
@@ -51,8 +51,8 @@ class ShenaseTakhsisInline(admin.TabularInline):
 # تنظیمات نمایش مدل Purchase در ادمین
 @admin.register(Purchase)
 class PurchaseAdmin(admin.ModelAdmin):
-    list_display = ('invoice_id', 'purchase_number', 'customer', 'weight', 'amount_paid', 'is_paid', 'is_barnamed', 'created_at')
-    list_filter = ('customer', 'is_paid', 'is_delivered', 'is_canceled', 'is_archived')
+    list_display = ('invoice_id', 'purchase_number', 'customer', 'weight', 'amount_paid', 'created_at')
+    list_filter = ('customer', 'type', 'state')
     search_fields = ('invoice_id', 'purchase_number', 'customer__name', 'customer__phone_number', 'customer__sales_agent__name')
     ordering = ('-created_at',)
     inlines = [ShenaseTakhsisInline]
