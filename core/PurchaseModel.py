@@ -142,7 +142,7 @@ class Purchase(models.Model):
         # کسر از موجودی محصول
         if not self.is_weight_costed and self.cargo:
             self.is_weight_costed = True
-            self.cargo.weight -= self.weight
+            self.cargo.weight -= self.order_weight
             self.cargo.save()
             
         # ارسال پیامک تایید پرداخت
@@ -421,8 +421,8 @@ class Purchase(models.Model):
         elif self.state == 'PAYMENT_VERIFIED' and self.amount_paid <= 100000000:
             errors['amount_paid'] = 'مبلغ پرداختی باید بزرگتر از صد میلیون تومان باشد'
 
-        if self.weight <= 10000:
-            errors['weight'] = 'وزن باید بزرگتر از 10 تن باشد'
+        if self.order_weight <= 10000:
+            errors['order_weight'] = 'وزن باید بزرگتر از 10 تن باشد'
         
         if not self.customer:
             errors['customer'] = 'انتخاب مشتری الزامی است'

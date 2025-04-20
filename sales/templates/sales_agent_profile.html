@@ -207,7 +207,7 @@
                         <div class="purchase-content">
                             <strong><i class="fas fa-user icon-customer"></i> مشتری:</strong> {{ purchase.customer }}<br>
                             <strong><i class="fas fa-box icon-cargo"></i> محصول:</strong> {{ purchase.cargo }}<br>
-                            <strong><i class="fas fa-weight icon-weight"></i> وزن:</strong> {{ purchase.weight|add_commas }} کیلوگرم<br>
+                            <strong><i class="fas fa-weight icon-weight"></i> وزن:</strong> {{ purchase.order_weight|add_commas }} کیلوگرم<br>
                             <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}<br>
                             <strong><i class="fas fa-check icon-status"></i> وضعیت:</strong> {{ purchase.state|default:'نامشخص' }}
                         </div>
@@ -243,7 +243,7 @@
                         <div class="purchase-content">
                             <strong><i class="fas fa-user icon-customer"></i> مشتری:</strong> {{ purchase.customer }}<br>
                             <strong><i class="fas fa-box icon-cargo"></i> محصول:</strong> {{ purchase.cargo }}<br>
-                            <strong><i class="fas fa-weight icon-weight"></i> وزن:</strong> {{ purchase.weight|add_commas }} کیلوگرم<br>
+                            <strong><i class="fas fa-weight icon-weight"></i> وزن:</strong> {{ purchase.order_weight|add_commas }} کیلوگرم<br>
                             <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
                         </div>
                         <a href="{% url 'purchase_CRUD' purchase.id %}" class="button"> مشاهده جزئیات</a>
@@ -278,7 +278,7 @@
                         <div class="purchase-content">
                             <strong><i class="fas fa-user icon-customer"></i> مشتری:</strong> {{ purchase.customer }}<br>
                             <strong><i class="fas fa-box icon-cargo"></i> محصول:</strong> {{ purchase.cargo }}<br>
-                            <strong><i class="fas fa-weight icon-weight"></i> وزن:</strong> {{ purchase.weight|add_commas }} کیلوگرم<br>
+                            <strong><i class="fas fa-weight icon-weight"></i> وزن:</strong> {{ purchase.order_weight|add_commas }} کیلوگرم<br>
                             <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
                         </div>
                         <a href="{% url 'purchase_CRUD' purchase.id %}" class="button"> مشاهده جزئیات</a>

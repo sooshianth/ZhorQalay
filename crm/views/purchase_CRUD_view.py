@@ -69,7 +69,7 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         elif user_role == 'financial_manager':
             allowed_fields = [
                 'description', 'payment_method', 'company_price', 'customer_price', 'amount_paid', 'barnameh', 
-                'cargo', 'purchase_date', 'purchase_number', 'tracking_number', 'weight',
+                'cargo', 'purchase_date', 'purchase_number', 'tracking_number', 'order_weight', 'delivered_weight'
             ]
         else:
             allowed_fields = []
@@ -363,6 +363,7 @@ def generate_purchase_pdf(request, purchase_id):
     customer_data = [
         [Paragraph(safe_text(purchase.customer.name), styles['Right']), Paragraph(process_persian_text('نام مشتری:'), styles['Right'])],
         [Paragraph(safe_text(purchase.customer.city), styles['Right']), Paragraph(process_persian_text('شهر/استان:'), styles['Right'])],
+        [Paragraph(safe_text(purchase.customer.get_field_of_activity_display()), styles['Right']), Paragraph(process_persian_text('حیطه فعالیت:'), styles['Right'])],
         [Paragraph(safe_text(primary_phone), styles['Right']), Paragraph(process_persian_text('شماره تماس:'), styles['Right'])],
     ]
     

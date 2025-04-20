@@ -85,7 +85,7 @@ class SalesAgent(models.Model):
         # محاسبه آمار
         sales = self.get_this_month_sales()
         amount = sum(purchase.amount_paid for purchase in sales if purchase.amount_paid)
-        weight = sum(purchase.weight for purchase in sales)
+        weight = sum(purchase.order_weight for purchase in sales)
         count = len(sales)
         average = amount / count if count > 0 else 0
         
@@ -170,7 +170,7 @@ class SalesAgent(models.Model):
         return sorted(tasks, key=lambda task: task.due_date)
 
     def get_this_month_sales_weight(self):
-        return sum([purchase.weight for purchase in self.get_this_month_sales()])
+        return sum([purchase.order_weight for purchase in self.get_this_month_sales()])
 
     def get_today_tasks(self):
         """دریافت همه تسک‌های سررسید امروز."""
@@ -216,7 +216,7 @@ class SalesAgent(models.Model):
         # گروه‌بندی بر اساس هفته
         for purchase in purchases:
             week = purchase.created_at.isocalendar()[1]  # شماره هفته
-            trend[week] += purchase.weight
+            trend[week] += purchase.order_weight
             
         return dict(trend)
 
@@ -234,9 +234,9 @@ class SalesAgent(models.Model):
         
         for purchase in sales:
             if hasattr(purchase, 'product_type') and purchase.product_type:
-                product_sales[purchase.product_type] += purchase.weight
+                product_sales[purchase.product_type] += purchase.order_weight
             elif hasattr(purchase, 'cargo') and purchase.cargo and hasattr(purchase.cargo, 'product_type'):
-                product_sales[purchase.cargo.get_product_type_display()] += purchase.weight
+                product_sales[purchase.cargo.get_product_type_display()] += purchase.order_weight
                 
         return dict(product_sales)
 

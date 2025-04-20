@@ -289,7 +289,7 @@ def general_customer_CRUD_view(request):
     # بخش ثبت خرید
     if request.method == "POST" and 'create_purchase' in request.POST and customer:
         cottage_number = request.POST.get('cottage_number')
-        weight = request.POST.get('weight')
+        order_weight = request.POST.get('weight')
         
         # try:
         with transaction.atomic():
@@ -297,14 +297,14 @@ def general_customer_CRUD_view(request):
 
             new_purchase = Purchase(
                 customer=customer,
-                weight=weight,
+                order_weight=order_weight,
                 cargo=cargo
             )
             new_purchase.full_clean()
             new_purchase.save()
             new_purchase.customer_price = new_purchase.cargo.customer_price
             new_purchase.company_price = new_purchase.cargo.company_price
-            new_purchase.amount_paid = new_purchase.customer_price * new_purchase.weight
+            new_purchase.amount_paid = new_purchase.customer_price * new_purchase.order_weight
             new_purchase.save()
             messages.success(request, "خرید جدید ثبت شد")
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')

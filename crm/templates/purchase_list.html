@@ -22,96 +22,20 @@
 <h1 class="mb-4 section-title">لیست خریدها</h1>
 
 <!-- نوار جستجوی اصلی -->
-<div class="search-panel">
+<div class="search-panel mb-4">
     <form id="searchForm" method="GET" action="">
-        <div class="row align-items-center">
-            <div class="col-md-10">
-                <div class="row">
-                    <div class="col-md-3 mb-2">
-                        <label for="globalSearch" class="form-label">جستجوی سریع:</label>
-                        <input type="text" id="globalSearch" class="form-control" placeholder="جستجوی سریع در تمام فیلدها...">
-                    </div>
-                    <!-- جستجو -->
-                    <div class="row mb-4">
-                        <div class="col-md-12">
-                            <form method="get" class="form-inline">
-                                <div class="row">
-                                    <div class="col-md-2 mb-2">
-                                        <input type="text" class="form-control" id="search_customer" name="search_customer" 
-                                            placeholder="جستجو در مشتریان" value="{{ search_params.customer }}">
-                                    </div>
-                                    <div class="col-md-2 mb-2">
-                                        <input type="text" class="form-control" id="search_sales_agent" name="search_sales_agent" 
-                                            placeholder="جستجو در نمایندگان" value="{{ search_params.sales_agent }}">
-                                    </div>
-                                    <div class="col-md-2 mb-2">
-                                        <input type="text" class="form-control" id="search_purchase_number" name="search_purchase_number" 
-                                            placeholder="شماره خرید" value="{{ search_params.purchase_number }}">
-                                    </div>
-                                    <div class="col-md-2 mb-2">
-                                        <input type="text" class="form-control" id="search_weight" name="search_weight" 
-                                            placeholder="وزن" value="{{ search_params.weight }}">
-                                    </div>
-                                    <div class="col-md-2 mb-2">
-                                        <input type="text" class="form-control" id="search_invoice_id" name="search_invoice_id" 
-                                            placeholder="کد فاکتور" value="{{ search_params.invoice_id }}">
-                                    </div>
-                                    <div class="col-md-2 mb-2">
-                                        <input type="text" class="form-control" id="search_cargo" name="search_cargo" 
-                                            placeholder="کوتاژ/محصول/کشور" value="{{ search_params.cargo }}">
-                                    </div>
-                                    <div class="col-md-3 mb-2">
-                                        <input type="date" class="form-control" id="search_date" name="search_date" 
-                                            placeholder="تاریخ" value="{{ search_params.date }}">
-                                    </div>
-                                    <div class="col-md-3 mb-2">
-                                        <select class="form-control" id="search_state" name="search_state">
-                                            <option value="">-- انتخاب وضعیت --</option>
-                                            {% for state_code, state_name in all_states.items %}
-                                                <option value="{{ state_code }}" {% if search_params.state == state_code %}selected{% endif %}>{{ state_name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <div class="col-md-2 mb-2">
-                                        <button type="submit" class="btn btn-primary w-100">جستجو</button>
-                                    </div>
-                                    <div class="col-md-2 mb-2">
-                                        <a href="{% url 'purchase_list' %}" class="btn btn-secondary w-100">پاک کردن</a>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
+        <div class="row">
+            <div class="col-md-8">
+                <label for="globalSearch" class="form-label">جستجوی سریع:</label>
+                <input type="text" id="globalSearch" name="global_search" class="form-control" placeholder="جستجوی سریع در تمام فیلدها..." value="{{ search_params.global_search }}">
             </div>
-            <div class="col-md-2 mb-2 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary w-100">جستجو</button>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-success w-100 text-white">جستجو</button>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <a href="{% url 'purchase_list' %}" class="btn btn-secondary w-100">پاک کردن</a>
             </div>
         </div>
-        <div class="mt-2">
-            {% comment %} <button type="button" class="btn btn-link btn-sm" id="advancedSearchToggle">
-                <i class="fas fa-sliders-h me-1"></i> جستجوی پیشرفته
-            </button> {% endcomment %}
-            <a href="{% url 'purchase_list' %}" class="btn btn-link btn-sm text-danger">
-                <i class="fas fa-times me-1"></i> پاک کردن فیلترها
-            </a>
-        </div>
-        {% comment %} <div id="advancedSearchPanel" class="mt-3" style="display: none;">
-            <div class="row">
-                <div class="col-md-3 mb-2">
-                    <input type="text" name="search_sales_agent" class="form-control" 
-                           placeholder="جستجو بر اساس نماینده فروش" value="{{ search_params.sales_agent }}">
-                </div>
-                <div class="col-md-3 mb-2">
-                    <input type="text" name="search_weight" class="form-control" 
-                           placeholder="جستجو بر اساس وزن" value="{{ search_params.weight }}">
-                </div>
-                <div class="col-md-3 mb-2">
-                    <input type="text" name="search_invoice_id" class="form-control" 
-                           placeholder="جستجو بر اساس کد درون سازمانی" value="{{ search_params.invoice_id }}">
-                </div>
-            </div>
-        </div> {% endcomment %}
     </form>
 </div>
 
@@ -166,7 +90,7 @@
             <td>{{ purchase.invoice_id|default:"تعیین نشده" }}</td>
             <td>{% for agent in purchase.customer.sales_agent.all %}{{ agent.name }}{% if not forloop.last %}، {% endif %}{% empty %}-{% endfor %}</td>
             <td>{{ purchase.purchase_number|default:"تعیین نشده" }}</td>
-            <td>{{ purchase.weight|add_commas }}</td>
+            <td>{{ purchase.order_weight|add_commas }}</td>
             <td>{% if purchase.cargo %}{{ purchase.cargo }}{% else %}-{% endif %}</td>
             <td>
                 {# Only show the latest status #}
@@ -284,7 +208,7 @@
             <td>{{ purchase.customer.name }}</td>
             <td>{{ purchase.invoice_id|default:"تعیین نشده" }}</td>
             <td>{{ purchase.purchase_number|default:"تعیین نشده" }}</td>
-            <td>{{ purchase.weight|add_commas }}</td>
+            <td>{{ purchase.order_weight|add_commas }}</td>
             <td>{% if purchase.cargo %}{{ purchase.cargo }} ({{ purchase.cargo.cottage }}){% else %}-{% endif %}</td>
             <td><span class="table-status-badge bg-secondary text-white">آرشیو شده</span></td>
             <td>
@@ -329,21 +253,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // بخش جستجوی پیشرفته را نمایش/مخفی می‌کند
-    const advancedSearchToggle = document.getElementById('advancedSearchToggle');
-    const advancedSearchPanel = document.getElementById('advancedSearchPanel');
-
-    advancedSearchToggle.addEventListener('click', function() {
-        if (advancedSearchPanel.style.display === 'none') {
-            advancedSearchPanel.style.display = 'block';
-            advancedSearchToggle.innerHTML = '<i class="fas fa-times me-1"></i> بستن جستجوی پیشرفته';
-        } else {
-            advancedSearchPanel.style.display = 'none';
-            advancedSearchToggle.innerHTML = '<i class="fas fa-sliders-h me-1"></i> جستجوی پیشرفته';
-        }
-    });
-
-    // جستجوی سریع در جدول خریدهای فعال
+    // جستجوی سریع در جدول‌ها (هم برای خریدهای فعال و هم آرشیو شده)
     const globalSearch = document.getElementById('globalSearch');
     const activePurchasesTable = document.getElementById('activePurchasesTable');
     const archivedPurchasesTable = document.getElementById('archivedPurchasesTable');
@@ -399,9 +309,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const rows = tableBody.querySelectorAll('tr');
         rows.forEach(row => {
-            const cell = row.querySelectorAll('td')[columnIndex];
-            if (cell) {
-                const cellText = cell.textContent.toLowerCase();
+            const cells = row.querySelectorAll('td');
+            if (cells.length > columnIndex) {
+                const cellText = cells[columnIndex].textContent.toLowerCase();
                 if (cellText.includes(searchText)) {
                     row.style.display = '';
                 } else {

@@ -425,10 +425,11 @@ def process_bge_file(request, file_id):
                         bazaargah_phone_number = str(row['شماره همراه خریدار']).strip() if pd.notna(row['شماره همراه خریدار']) else None
                         customer_name = str(row['نام خریدار']).strip() if pd.notna(row['نام خریدار']) else None
                         address = str(row['آدرس تحویل']).strip() if pd.notna(row['آدرس تحویل']) else None
-                        order_weight = int(float(row['وزن کل خرید'])) if pd.notna(row['وزن کل خرید']) else 0
-                        delivered_weight = int(float(row['وزن سفارش'])) if pd.notna(row['وزن سفارش']) else 0
+                        order_weight = int(float(row['وزن سفارش'])) if pd.notna(row['وزن سفارش']) else 0
+                        delivered_weight = int(float(row['وزن کل خرید'])) if pd.notna(row['وزن کل خرید']) else 0
                         amount_paid = int(float(row['مبلغ پرداختی'])) if pd.notna(row['مبلغ پرداختی']) else None
                         payment_method = 'نقدی' if pd.notna(row['شیوه پرداخت']) and row['شیوه پرداخت'] == 'نقدی' else 'توافقی'
+                        tracking_number = str(row['شماره پیگیری']).strip() if pd.notna(row['شماره پیگیری']) else None
                         
                         # استخراج اطلاعات وزن بارنامه
                         barnameh_weight = int(float(row['وزن بارنامه شده'])) if 'وزن بارنامه شده' in df.columns and pd.notna(row['وزن بارنامه شده']) else 0
@@ -439,16 +440,16 @@ def process_bge_file(request, file_id):
                         extelaf_weight = 0
                         extelaf_amount = 0
                         
-                        if barnameh_weight > delivered_weight:  # سرک
+                        if barnameh_weight > order_weight:  # سرک
                             extelaf_type = 'سرک'
-                            extelaf_weight = barnameh_weight - delivered_weight
+                            extelaf_weight = barnameh_weight - order_weight
                             # محاسبه مبلغ اختلاف بر اساس فی خرید
                             if 'قیمت هر واحد' in df.columns and pd.notna(row['قیمت هر واحد']):
                                 price_per_unit = int(float(row['قیمت هر واحد']))
                                 extelaf_amount = extelaf_weight * price_per_unit
-                        elif barnameh_weight < delivered_weight:  # کسری
+                        elif barnameh_weight < order_weight:  # کسری
                             extelaf_type = 'کسری'
-                            extelaf_weight = delivered_weight - barnameh_weight
+                            extelaf_weight = order_weight - barnameh_weight
                             # کسری برابر با وزن بارنامه نشده
                             if not_barnameh_weight > 0:
                                 extelaf_weight = not_barnameh_weight
@@ -602,6 +603,7 @@ def process_bge_file(request, file_id):
                                         cargo=cargo_product,
                                         amount_paid=amount_paid,
                                         payment_method=payment_method,
+                                        tracking_number=tracking_number,
                                         extelaf_type=extelaf_type,
                                         extelaf_weight=extelaf_weight if extelaf_weight > 0 else None,
                                         extelaf_amount=extelaf_amount if extelaf_amount > 0 else None,
@@ -679,6 +681,7 @@ def process_bge_file(request, file_id):
                                                 id=purchase_id,
                                                 customer=customer,
                                                 purchase_number=purchase_number,
+                                                tracking_number=tracking_number,
                                                 code_melli_tahvil=code_melli_tahvil,
                                                 tahvil_phone_number=tahvil_phone_number,
                                                 bazaargah_phone_number=bazaargah_phone_number,
@@ -806,7 +809,8 @@ def process_bge_file(request, file_id):
                     success_message += f" همچنین {cargo_products_created} محصول جدید براساس کوتاژهای موجود در فایل ایجاد شد."
                 
                 messages.success(request, success_message)
-                return redirect('excel_manager:bge_files_list')                
+                return redirect('excel_manager:bge_files_list')
+                
             except Exception as e:
                 logger.error(f"خطا در پردازش فایل: {str(e)}")
                 processing_log.log_message = f"خطا در پردازش فایل: {str(e)}"
