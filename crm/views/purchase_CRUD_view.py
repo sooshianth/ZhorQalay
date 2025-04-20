@@ -6,6 +6,28 @@ from django.db import transaction
 from django.core.exceptions import ValidationError
 from core._models import Purchase
 from core.PurchaseModel import PurchaseHistory, PurchaseStateChange
+from django.http import HttpResponse
+import io
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from django.conf import settings
+import os
+import jdatetime
+from reportlab.lib.units import inch, cm
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib import colors
+from reportlab.lib.units import mm
+from reportlab.lib.enums import TA_RIGHT
+
+try:
+    import arabic_reshaper
+    from bidi.algorithm import get_display
+    BIDI_ENABLED = True
+except ImportError:
+    BIDI_ENABLED = False
 
 def determine_user_role(user):
     """
@@ -18,6 +40,8 @@ def determine_user_role(user):
         return 'logistics_manager'
     elif hasattr(user, 'sales_agent') and user.sales_agent is not None:
         return 'sales_agent'
+    elif hasattr(user, 'support_agent') and user.support_agent is not None:
+        return 'support_agent'
     elif user.is_superuser:
         # مدیر ارشد دسترسی کامل دارد
         return 'admin'
@@ -32,26 +56,26 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if user_role == 'sales_agent' or user_role == 'admin':
             allowed_fields = [
-                'weight', 'description', 'tracking_number', 'purchase_date', 'purchase_number',
+                'weight', 'description', 'tracking_number', 'purchase_date', 'purchase_number', 'barnameh', 
                 'payment_method', 'customer_price','amount_paid', 'cargo', 'shenase_takhsis', 'code_melli_tahvil', 
                 'bazaargah_phone_number', 'tahvil_phone_number',
             ]
         elif user_role == 'logistics_manager':
             allowed_fields = [
-                'weight', 'description', 'tracking_number', 'purchase_number', 'amount_paid', 
+                'weight', 'description', 'tracking_number', 'purchase_number', 'amount_paid', 'barnameh', 
                 'customer_price', 'payment_method', 'cargo', 'shenase_takhsis', 'code_melli_tahvil', 
                 'bazaargah_phone_number', 'tahvil_phone_number', 'address',
             ]
         elif user_role == 'financial_manager':
             allowed_fields = [
-                'description', 'payment_method', 'company_price', 'customer_price', 'amount_paid', 
+                'description', 'payment_method', 'company_price', 'customer_price', 'amount_paid', 'barnameh', 
                 'cargo', 'purchase_date', 'purchase_number', 'tracking_number', 'weight',
             ]
         else:
             allowed_fields = []
         
         # اگر بارنامه صادر شده باشد، فیلدهای اختلاف را نشان بده
-        if self.instance.state == 'BARNAMEH_ISSUED':
+        if True or self.instance.state == 'BARNAMEH_ISSUED':
             allowed_fields += ['extelaf_type', 'extelaf_weight', 'extelaf_amount']
             
         for field in list(self.fields):
@@ -235,3 +259,320 @@ def delete_purchase_view(request, purchase_id):
         'purchase': purchase,
     }
     return render(request, 'confirm_delete.html', context)
+
+@login_required
+def generate_purchase_pdf(request, purchase_id):
+    user_role = determine_user_role(request.user)
+    if user_role == 'support_agent':
+        messages.error(request, 'شما اجازه ایجاد گزارش خرید را ندارید')
+        return redirect('purchase_CRUD', purchase_id=purchase_id)
+
+    purchase = get_object_or_404(Purchase, id=purchase_id)
+    
+    # ساخت پاسخ HTTP برای PDF
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="purchase_{purchase.invoice_id}.pdf"'
+    
+    # ایجاد فایل PDF در حافظه
+    buffer = io.BytesIO()
+    
+    # تنظیم فونت فارسی
+    font_path = os.path.join(settings.BASE_DIR, 'crm', 'static', 'fonts', 'Vazir.ttf')
+    pdfmetrics.registerFont(TTFont('Vazir', font_path))
+    
+    # تابع کمکی برای تبدیل متن فارسی به حالت صحیح برای نمایش
+    def process_persian_text(text):
+        """تبدیل متن فارسی به حالت صحیح برای نمایش در PDF"""
+        if text is None:
+            return "-"
+        
+        text = str(text)
+        if not BIDI_ENABLED:
+            return text
+        
+        try:
+            # بازسازی متن فارسی
+            reshaped_text = arabic_reshaper.reshape(text)
+            # تبدیل به BIDI
+            bidi_text = get_display(reshaped_text)
+            return bidi_text
+        except:
+            return text
+    
+    # تابع کمکی برای تبدیل مقادیر به متن امن
+    def safe_text(value, default='-'):
+        """تبدیل مقادیر به متن امن"""
+        if value is None:
+            return default
+        return process_persian_text(str(value))
+    
+    # تابع کمکی برای تبدیل اعداد به متن فارسی با کاما
+    def format_number(value, default='0'):
+        """تبدیل اعداد به متن فارسی با کاما"""
+        if value is None or value == 0:
+            return default
+        try:
+            return process_persian_text(f"{int(value):,}")
+        except (ValueError, TypeError):
+            return default
+    
+    # تنظیمات حاشیه‌ها
+    doc = SimpleDocTemplate(
+        buffer,
+        rightMargin=20*mm,
+        leftMargin=20*mm,
+        topMargin=20*mm,
+        bottomMargin=20*mm,
+        pagesize=A4
+    )
+    
+    # تنظیم استایل فارسی
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(
+        name='Right',
+        fontName='Vazir',
+        alignment=TA_RIGHT,
+        fontSize=10,
+        leading=14,
+        firstLineIndent=0,
+        rightIndent=0
+    ))
+    styles.add(ParagraphStyle(
+        name='RightTitle',
+        fontName='Vazir',
+        alignment=TA_RIGHT,
+        fontSize=14,
+        leading=16,
+        spaceAfter=10,
+        firstLineIndent=0,
+        rightIndent=0
+    ))
+    
+    # لیست آیتم‌های پلاتی‌پاس برای قرار دادن در PDF
+    elements = []
+    
+    # عنوان گزارش
+    title_text = process_persian_text(f"گزارش کامل خرید - کد شناسه: {safe_text(purchase.invoice_id)} - شرکت تأمین نهاده سیمرغ")
+    elements.append(Paragraph(title_text, styles['RightTitle']))
+    elements.append(Spacer(width=0, height=10))
+    
+    # بخش اطلاعات مشتری
+    # دریافت شماره تلفن اصلی مشتری به جای استفاده از فیلد قدیمی
+    primary_phone = purchase.customer.get_primary_phone() if hasattr(purchase.customer, 'get_primary_phone') else purchase.customer.phone_number
+    
+    customer_data = [
+        [Paragraph(safe_text(purchase.customer.name), styles['Right']), Paragraph(process_persian_text('نام مشتری:'), styles['Right'])],
+        [Paragraph(safe_text(purchase.customer.city), styles['Right']), Paragraph(process_persian_text('شهر/استان:'), styles['Right'])],
+        [Paragraph(safe_text(primary_phone), styles['Right']), Paragraph(process_persian_text('شماره تماس:'), styles['Right'])],
+    ]
+    
+    # اضافه کردن کارشناس فروش مربوطه
+    sales_agents = purchase.customer.sales_agent.all()
+    if sales_agents:
+        sales_agent_names = ", ".join([agent.name for agent in sales_agents])
+        customer_data.append([Paragraph(safe_text(sales_agent_names), styles['Right']), Paragraph(process_persian_text('کارشناس فروش:'), styles['Right'])])
+    
+    customer_table = Table(customer_data, colWidths=[doc.width*3/4, doc.width/4])
+    customer_table.setStyle(TableStyle([
+        ('BACKGROUND', (1, 0), (1, -1), colors.lightgrey),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
+        ('ALIGNMENT', (0, 0), (-1, -1), 'RIGHT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('PADDING', (0, 0), (-1, -1), 6),
+    ]))
+    
+    elements.append(Paragraph(process_persian_text("اطلاعات مشتری"), styles['RightTitle']))
+    elements.append(customer_table)
+    elements.append(Spacer(width=0, height=15))
+    
+    # بخش اطلاعات اصلی خرید
+    purchase_status = dict(Purchase.STATUS_CHOICES).get(purchase.state, '')
+    purchase_type = dict([('bazaargah', 'بازارگاه'), ('non_bazaargah', 'خارج از بازارگاه')]).get(purchase.type, '-')
+    
+    cargo_product_type = '-'
+    cargo_country = '-'
+    if purchase.cargo:
+        try:
+            cargo_product_type = purchase.cargo.get_product_type_display() or '-'
+        except (AttributeError, ValueError):
+            cargo_product_type = '-'
+            
+        try:
+            cargo_country = purchase.cargo.get_country_display() or '-'
+        except (AttributeError, ValueError):
+            cargo_country = '-'
+    
+    created_at = '-'
+    updated_at = '-'
+    if purchase.created_at:
+        try:
+            created_at = purchase.created_at.strftime('%Y/%m/%d %H:%M')
+        except AttributeError:
+            created_at = '-'
+            
+    if purchase.updated_at:
+        try:
+            updated_at = purchase.updated_at.strftime('%Y/%m/%d %H:%M')
+        except AttributeError:
+            updated_at = '-'
+    
+    purchase_data = [
+        [Paragraph(safe_text(purchase.invoice_id), styles['Right']), Paragraph(process_persian_text('کد درون سازمانی:'), styles['Right'])],
+        [Paragraph(safe_text(purchase_status), styles['Right']), Paragraph(process_persian_text('وضعیت فعلی:'), styles['Right'])],
+        [Paragraph(process_persian_text(purchase_type), styles['Right']), Paragraph(process_persian_text('نوع خرید:'), styles['Right'])],
+        [Paragraph(process_persian_text(cargo_product_type), styles['Right']), Paragraph(process_persian_text('نوع کالا:'), styles['Right'])],
+        [Paragraph(process_persian_text(cargo_country), styles['Right']), Paragraph(process_persian_text('کشور مبدا:'), styles['Right'])],
+        [Paragraph(format_number(purchase.weight), styles['Right']), Paragraph(process_persian_text('وزن (کیلوگرم):'), styles['Right'])],
+        [Paragraph(safe_text(purchase.payment_method), styles['Right']), Paragraph(process_persian_text('روش پرداخت:'), styles['Right'])],
+        [Paragraph(format_number(purchase.customer_price), styles['Right']), Paragraph(process_persian_text('فی فروش (ریال):'), styles['Right'])],
+        [Paragraph(format_number(purchase.amount_paid), styles['Right']), Paragraph(process_persian_text('مبلغ پرداختی (ریال):'), styles['Right'])],
+        [Paragraph(process_persian_text(created_at), styles['Right']), Paragraph(process_persian_text('تاریخ ثبت:'), styles['Right'])],
+        [Paragraph(process_persian_text(updated_at), styles['Right']), Paragraph(process_persian_text('تاریخ بروزرسانی:'), styles['Right'])],
+    ]
+    
+    purchase_table = Table(purchase_data, colWidths=[doc.width*2/3, doc.width/3])
+    purchase_table.setStyle(TableStyle([
+        ('BACKGROUND', (1, 0), (1, -1), colors.lightgrey),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
+        ('ALIGNMENT', (0, 0), (-1, -1), 'RIGHT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('PADDING', (0, 0), (-1, -1), 6),
+    ]))
+    
+    elements.append(Paragraph(process_persian_text("اطلاعات خرید"), styles['RightTitle']))
+    elements.append(purchase_table)
+    elements.append(Spacer(width=0, height=15))
+    
+    # اطلاعات بازارگاه یا بارنامه
+    if purchase.type == 'bazaargah':
+        # دریافت شناسه تخصیص از جدول ManyToMany
+        shenase_takhsis_list = []
+        try:
+            shenase_takhsis_objects = purchase.shenase_takhsis_set.all()
+            if shenase_takhsis_objects.exists():
+                shenase_takhsis_list = [obj.code for obj in shenase_takhsis_objects]
+        except:
+            pass
+        
+        shenase_takhsis_text = ", ".join(shenase_takhsis_list) if shenase_takhsis_list else purchase.shenase_takhsis or '-'
+        
+        bazargah_data = [
+            [Paragraph(safe_text(purchase.purchase_number), styles['Right']), Paragraph(process_persian_text('شماره خرید بازارگاه:'), styles['Right'])],
+            [Paragraph(safe_text(purchase.tracking_number), styles['Right']), Paragraph(process_persian_text('شماره پیگیری:'), styles['Right'])],
+            [Paragraph(safe_text(shenase_takhsis_text), styles['Right']), Paragraph(process_persian_text('شناسه تخصیص:'), styles['Right'])],
+            [Paragraph(safe_text(purchase.code_melli_tahvil), styles['Right']), Paragraph(process_persian_text('کد ملی تحویل:'), styles['Right'])],
+            [Paragraph(safe_text(purchase.bazaargah_phone_number), styles['Right']), Paragraph(process_persian_text('شماره تلفن بازارگاه:'), styles['Right'])],
+            [Paragraph(safe_text(purchase.tahvil_phone_number), styles['Right']), Paragraph(process_persian_text('شماره تلفن تحویل:'), styles['Right'])],
+        ]
+        
+        bazargah_table = Table(bazargah_data, colWidths=[doc.width*2/3, doc.width/3])
+        bazargah_table.setStyle(TableStyle([
+            ('BACKGROUND', (1, 0), (1, -1), colors.lightgrey),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
+            ('ALIGNMENT', (0, 0), (-1, -1), 'RIGHT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('PADDING', (0, 0), (-1, -1), 6),
+        ]))
+        
+        elements.append(Paragraph(process_persian_text("اطلاعات بازارگاه"), styles['RightTitle']))
+        elements.append(bazargah_table)
+        elements.append(Spacer(width=0, height=15))
+    
+    # اطلاعات بارنامه و حمل
+    shipping_data = [
+        [Paragraph(safe_text(purchase.barnameh), styles['Right']), Paragraph(process_persian_text('شماره بارنامه:'), styles['Right'])],
+        [Paragraph(safe_text(purchase.address), styles['Right']), Paragraph(process_persian_text('آدرس تحویل:'), styles['Right'])],
+    ]
+    
+    shipping_table = Table(shipping_data, colWidths=[doc.width*2/3, doc.width/3])
+    shipping_table.setStyle(TableStyle([
+        ('BACKGROUND', (1, 0), (1, -1), colors.lightgrey),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
+        ('ALIGNMENT', (0, 0), (-1, -1), 'RIGHT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('PADDING', (0, 0), (-1, -1), 6),
+    ]))
+    
+    elements.append(Paragraph(process_persian_text("اطلاعات حمل و نقل"), styles['RightTitle']))
+    elements.append(shipping_table)
+    elements.append(Spacer(width=0, height=15))
+    
+    # اطلاعات اختلاف وزن
+    if purchase.extelaf_type:
+        extelaf_data = [
+            [Paragraph(safe_text(purchase.extelaf_type), styles['Right']), Paragraph(process_persian_text('نوع اختلاف:'), styles['Right'])],
+            [Paragraph(format_number(purchase.extelaf_weight), styles['Right']), Paragraph(process_persian_text('وزن اختلاف (کیلوگرم):'), styles['Right'])],
+            [Paragraph(format_number(purchase.extelaf_amount), styles['Right']), Paragraph(process_persian_text('مبلغ اختلاف (ریال):'), styles['Right'])],
+        ]
+        
+        extelaf_table = Table(extelaf_data, colWidths=[doc.width*2/3, doc.width/3])
+        extelaf_table.setStyle(TableStyle([
+            ('BACKGROUND', (1, 0), (1, -1), colors.lightgrey),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
+            ('ALIGNMENT', (0, 0), (-1, -1), 'RIGHT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('PADDING', (0, 0), (-1, -1), 6),
+        ]))
+        
+        elements.append(Paragraph(process_persian_text("اطلاعات اختلاف وزن"), styles['RightTitle']))
+        elements.append(extelaf_table)
+        elements.append(Spacer(width=0, height=15))
+    
+    # توضیحات
+    if purchase.description:
+        desc_data = [
+            [Paragraph(safe_text(purchase.description), styles['Right']), Paragraph(process_persian_text('توضیحات:'), styles['Right'])],
+        ]
+        
+        desc_table = Table(desc_data, colWidths=[doc.width*2/3, doc.width/3])
+        desc_table.setStyle(TableStyle([
+            ('BACKGROUND', (1, 0), (1, -1), colors.lightgrey),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
+            ('ALIGNMENT', (0, 0), (-1, -1), 'RIGHT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('PADDING', (0, 0), (-1, -1), 6),
+        ]))
+        
+        elements.append(Paragraph(process_persian_text("توضیحات"), styles['RightTitle']))
+        elements.append(desc_table)
+        elements.append(Spacer(width=0, height=15))
+    
+    # پاورقی با تاریخ تولید گزارش
+    now = jdatetime.datetime.now()
+    try:
+        footer_date = now.strftime('%Y/%m/%d %H:%M')
+    except:
+        footer_date = "تاریخ نامشخص"
+        
+    footer_text = process_persian_text(f"تاریخ گزارش: {footer_date}")
+    elements.append(Paragraph(footer_text, styles['Right']))
+    
+    # ساخت PDF
+    try:
+        doc.build(elements)
+    except Exception as e:
+        # در صورت بروز خطا، یک صفحه ساده با پیام خطا نمایش دهیم
+        buffer = io.BytesIO()
+        p = canvas.Canvas(buffer, pagesize=A4)
+        p.setFont('Vazir', 14)
+        p.drawCentredString(A4[0]/2, A4[1]/2, process_persian_text("خطا در تولید PDF"))
+        p.drawCentredString(A4[0]/2, A4[1]/2 - 20, f"کد خطا: {str(e)[:100]}")
+        p.save()
+        
+    pdf = buffer.getvalue()
+    buffer.close()
+    response.write(pdf)
+    
+    return response

@@ -112,7 +112,7 @@
 
 <!-- لینک بازگشت به پروفایل -->
 <a href="{% url 'sales_agent_profile' %}" class="button back-button" aria-label="بازگشت به پروفایل">بازگشت به پروفایل</a>
-<a href="{%url 'export_customers' %}" class="button back-button">اکسل مشتریان</a>
+{% comment %} <a href="{%url 'export_customers' %}" class="button back-button">اکسل مشتریان</a> {% endcomment %}
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {

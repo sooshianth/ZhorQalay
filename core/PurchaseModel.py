@@ -15,6 +15,22 @@ from sms_api.apis import (
     send_extelaf_notification
 )
 
+def determine_user_role(user):
+    """
+    تشخیص نقش کاربر براساس روابط او
+    به جای بررسی مستقیم role که وجود ندارد، روابط بررسی می‌شود
+    """
+    if hasattr(user, 'financial_manager') and user.financial_manager is not None:
+        return 'financial_manager'
+    elif hasattr(user, 'logistics_manager') and user.logistics_manager is not None:
+        return 'logistics_manager'
+    elif hasattr(user, 'sales_agent') and user.sales_agent is not None:
+        return 'sales_agent'
+    elif user.is_superuser:
+        # مدیر ارشد دسترسی کامل دارد
+        return 'admin'
+    return None
+
 class Purchase(models.Model):
     # وضعیت‌های مختلف خرید
     STATUS_CHOICES = [
@@ -55,7 +71,8 @@ class Purchase(models.Model):
     code_melli_tahvil = models.CharField("کد ملی تحویل", max_length=255, blank=True, null=True, unique=True)
     bazaargah_phone_number = models.CharField("شماره تلفن بازارگاه", max_length=11, blank=True, null=True)
     tahvil_phone_number = models.CharField("شماره تلفن تحویل", max_length=11, blank=True, null=True)
-
+    barnameh = models.CharField("شماره بارنامه", max_length=255, blank=True, null=True)
+    
     weight = models.PositiveIntegerField("وزن (کیلوگرم)", default=0)
     cargo = models.ForeignKey(CargoProduct,on_delete=models.SET_NULL, verbose_name="کوتاژ", null=True, blank=True, related_name='purchases')
     type = models.CharField("نوع خرید", max_length=25, default='bazaargah', choices=[('bazaargah', 'بازارگاه'), ('non_bazaargah', 'خارج از بازارگاه')])
@@ -94,7 +111,8 @@ class Purchase(models.Model):
         """
         تایید خرید در بازارگاه
         """
-        if user.role != 'logistics_manager':
+        user_role = determine_user_role(user)
+        if user_role != 'logistics_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.type != 'bazaargah':
@@ -109,7 +127,8 @@ class Purchase(models.Model):
         """
         تایید پرداخت
         """
-        if user.role != 'financial_manager':
+        user_role = determine_user_role(user)
+        if user_role != 'financial_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.type == 'bazaargah' and self.state != 'BAZAARGAH_CONFIRMED':
@@ -133,7 +152,8 @@ class Purchase(models.Model):
         """
         ثبت تخصیص
         """
-        if user.role != 'sales_agent':
+        user_role = determine_user_role(user)
+        if user_role != 'sales_agent' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if not self.shenase_takhsis:
@@ -145,7 +165,8 @@ class Purchase(models.Model):
         """
         تایید تخصیص
         """
-        if user.role != 'logistics_manager':
+        user_role = determine_user_role(user)
+        if user_role != 'logistics_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'ALLOCATION_REGISTERED':
@@ -157,7 +178,8 @@ class Purchase(models.Model):
         """
         تسویه با واردکننده
         """
-        if user.role != 'financial_manager':
+        user_role = determine_user_role(user)
+        if user_role != 'financial_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'PAYMENT_VERIFIED' and self.state != 'ALLOCATION_APPROVED':
@@ -169,7 +191,8 @@ class Purchase(models.Model):
         """
         ارسال آدرس به واردکننده
         """
-        if user.role != 'logistics_manager':
+        user_role = determine_user_role(user)
+        if user_role != 'logistics_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'VENDOR_SETTLED':
@@ -187,7 +210,8 @@ class Purchase(models.Model):
         """
         ارسال به باربری
         """
-        if user.role != 'logistics_manager':
+        user_role = determine_user_role(user)
+        if user_role != 'logistics_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'ADDRESS_SENT':
@@ -199,7 +223,8 @@ class Purchase(models.Model):
         """
         صدور بارنامه
         """
-        if user.role != 'logistics_manager':
+        user_role = determine_user_role(user)
+        if user_role != 'logistics_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'SENT_TO_SHIPPING':
@@ -217,7 +242,8 @@ class Purchase(models.Model):
         """
         تحویل به مشتری
         """
-        if user.role != 'logistics_manager':
+        user_role = determine_user_role(user)
+        if user_role != 'logistics_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'BARNAMEH_ISSUED':
@@ -229,7 +255,8 @@ class Purchase(models.Model):
         """
         تایید مبلغ اختلاف
         """
-        if user.role != 'financial_manager':
+        user_role = determine_user_role(user)
+        if user_role != 'financial_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'DELIVERED':
@@ -245,7 +272,8 @@ class Purchase(models.Model):
         """
         واریز کسری
         """
-        if user.role != 'financial_manager':
+        user_role = determine_user_role(user)
+        if user_role != 'financial_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'DIFFERENCE_APPROVED' or self.extelaf_type != 'کسری':
@@ -257,7 +285,8 @@ class Purchase(models.Model):
         """
         واریز سرک
         """
-        if user.role != 'sales_agent':
+        user_role = determine_user_role(user)
+        if user_role != 'sales_agent' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'DIFFERENCE_APPROVED' or self.extelaf_type != 'سرک':
@@ -269,7 +298,8 @@ class Purchase(models.Model):
         """
         ثبت رسید
         """
-        if user.role != 'financial_manager':
+        user_role = determine_user_role(user)
+        if user_role != 'financial_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         valid_states = ['SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED']
@@ -282,7 +312,8 @@ class Purchase(models.Model):
         """
         صدور فاکتور
         """
-        if user.role != 'financial_manager':
+        user_role = determine_user_role(user)
+        if user_role != 'financial_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'RECEIPT_SUBMITTED':
@@ -294,7 +325,8 @@ class Purchase(models.Model):
         """
         تایید واحد فروش
         """
-        if user.role != 'sales_agent':
+        user_role = determine_user_role(user)
+        if user_role != 'sales_agent' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'RECEIPT_SUBMITTED' and self.state != 'INVOICE_ISSUED':
@@ -306,7 +338,8 @@ class Purchase(models.Model):
         """
         تایید واحد لجستیک
         """
-        if user.role != 'logistics_manager':
+        user_role = determine_user_role(user)
+        if user_role != 'logistics_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'RECEIPT_SUBMITTED' and self.state != 'INVOICE_ISSUED' and self.state != 'SALES_APPROVED':
@@ -318,7 +351,8 @@ class Purchase(models.Model):
         """
         تایید واحد مالی
         """
-        if user.role != 'financial_manager':
+        user_role = determine_user_role(user)
+        if user_role != 'financial_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'INVOICE_ISSUED' and self.state != 'SALES_APPROVED' and self.state != 'LOGISTICS_APPROVED':
@@ -331,7 +365,8 @@ class Purchase(models.Model):
         """
         پیگیری فوری
         """
-        if not user.is_superuser:
+        user_role = determine_user_role(user)
+        if user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
         
         return self.change_state('URGENT', user, 'پیگیری فوری')
@@ -340,7 +375,8 @@ class Purchase(models.Model):
         """
         لغو خرید
         """
-        if not user.is_superuser:
+        user_role = determine_user_role(user)
+        if user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
         
         return self.change_state('CANCELED', user, 'خرید لغو شد')
@@ -349,7 +385,8 @@ class Purchase(models.Model):
         """
         آرشیو خرید
         """
-        if not user.is_superuser:
+        user_role = determine_user_role(user)
+        if user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state in ['PAYMENT_VERIFIED', 'BARNAMEH_ISSUED', 'DELIVERED', 'CANCELED']:

@@ -9,6 +9,7 @@ from .SalesAgentModel import SalesAgent
 from .TaskModel import Task
 from .NotificationModel import Notification
 from .SupportAgentModel import SupportAgent
+from .PurchaseModel import PurchaseStateChange
 # @admin.register(Notification)
 # class NotificationAdmin(admin.ModelAdmin):
 #     list_display = ('user', 'message')
@@ -122,4 +123,11 @@ class SupportAgentAdmin(admin.ModelAdmin):
     search_fields = ('name', 'email', 'phone_number', 'message')
     ordering = ('-created_at',)
 
+
+@admin.register(PurchaseStateChange)
+class PurchaseStateChangeAdmin(admin.ModelAdmin):
+    list_display = ('purchase', 'previous_state', 'new_state', 'changed_by', 'changed_at')
+    list_filter = ('previous_state', 'new_state')
+    search_fields = ('purchase__purchase_number', 'changed_by__username')
+    ordering = ('-changed_at',)
 

@@ -2,6 +2,110 @@
 {% load custom_filters %}
 
 {% block content %}
+<style>
+  /* استایل برای تایم‌لاین افقی با قابلیت اسکرول */
+  .timeline-container {
+    width: 100%;
+    margin: 20px 0;
+    overflow: hidden;
+    position: relative;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    background: white;
+  }
+  
+  .timeline-scroll {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 15px 10px;
+    scrollbar-width: thin;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .timeline-scroll::-webkit-scrollbar {
+    height: 5px;
+  }
+  
+  .timeline-scroll::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  .timeline-scroll::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+  }
+  
+  .timeline-scroll::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+  
+  .timeline-item {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 100px;
+    position: relative;
+    text-align: center;
+    padding: 10px;
+    margin: 0 5px;
+    border-radius: 5px;
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+  }
+  
+  .timeline-item.completed {
+    background-color: #e8f5e9;
+  }
+  
+  .timeline-item.pending {
+    background-color: #ffecb3;
+  }
+  
+  .timeline-icon {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: white;
+  }
+  
+  .timeline-item.completed .timeline-icon {
+    background-color: #4caf50;
+  }
+  
+  .timeline-item.pending .timeline-icon {
+    background-color: #ffc107;
+  }
+  
+  .timeline-label {
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: block;
+    color: #333;
+  }
+  
+  .timeline-status {
+    font-size: 16px;
+    color: #333;
+  }
+  
+  .timeline-item.completed .timeline-status {
+    color: #4caf50;
+  }
+  
+  .timeline-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    cursor: pointer;
+  }
+</style>
+
 <div class="container">
 
 <!-- Display error and success messages in a styled box -->
@@ -17,19 +121,38 @@
 {% endif %}
 
 <!-- ✅ تایم‌لاین مراحل خرید -->
-<div class="timeline">
-{% for step in progress_steps %}
-<div class="timeline-step {% if step.status %}completed{% else %}pending{% endif %}" 
-data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else %}- در انتظار {% endif %}">
-<div class="circle">
-<i class="{% if 'بازارگاه' in step.name %}fas fa-warehouse{% elif 'پرداخت' in step.name %}fas fa-wallet{% elif 'تخصیص' in step.name %}fas fa-handshake{% elif 'بارنامه' in step.name %}fas fa-truck{% endif %}"></i>
-</div>
-<p>{{ step.name }}</p>
-</div>
-{% if not forloop.last %}
-<div class="line {% if step.status %}completed{% endif %}"></div>
-{% endif %}
-{% endfor %}
+<div class="timeline-container">
+  <div class="timeline-scroll">
+    {% for step in progress_steps %}
+    <div class="timeline-item {% if step.status %}completed{% else %}pending{% endif %}" 
+    data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else %}- در انتظار {% endif %}">
+      <div class="timeline-icon">
+        <i class="{% if 'بازارگاه' in step.name %}fas fa-warehouse
+          {% elif 'پرداخت' in step.name %}fas fa-wallet
+          {% elif 'تخصیص' in step.name %}fas fa-handshake
+          {% elif 'بارنامه' in step.name %}fas fa-truck
+          {% elif 'آدرس' in step.name %}fas fa-map-marker-alt
+          {% elif 'واردکننده' in step.name %}fas fa-users
+          {% elif 'تحویل' in step.name %}fas fa-box
+          {% elif 'اختلاف' in step.name %}fas fa-balance-scale
+          {% elif 'کسری' in step.name or 'سرک' in step.name %}fas fa-coins
+          {% elif 'رسید' in step.name %}fas fa-receipt
+          {% elif 'فاکتور' in step.name %}fas fa-file-invoice
+          {% elif 'فروش' in step.name %}fas fa-shopping-cart
+          {% elif 'لجستیک' in step.name %}fas fa-shipping-fast
+          {% elif 'مالی' in step.name %}fas fa-money-check-alt
+          {% elif 'تکمیل' in step.name %}fas fa-check-circle
+          {% elif 'شده' in step.name %}fas fa-check
+          {% else %}fas fa-arrow-right
+          {% endif %}"></i>
+      </div>
+      <div class="timeline-label">{{ step.name }}</div>
+      <div class="timeline-status">
+        {% if step.status %}✓{% else %}...{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
 </div>
 
 
@@ -85,6 +208,11 @@ data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else 
 <h3>📞 شماره تماس</h3>
 <p><a href="{% url 'general_customer_CRUD' %}?customer_id={{ purchase.customer.id }}" class="customer-link">{{ purchase.customer.phone_number }}</a></p>
 </div> {% endcomment %}
+
+<div class="buyer-card">
+    <h3>🖨️ خروجی PDF</h3>
+    <p><a href="{% url 'purchase_pdf' purchase.id %}" class="pdf-link" target="_blank">دانلود گزارش</a></p>
+</div>
 </div>
 
 
@@ -304,57 +432,64 @@ data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else 
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-// دکمه و بخش گزارش عملیات
-const toggleOperationsReportButton = document.getElementById('toggle-operations-report');
-const operationsReportSection = document.getElementById('operations-report-section');
+    // دکمه و بخش گزارش عملیات
+    const toggleOperationsReportButton = document.getElementById('toggle-operations-report');
+    const operationsReportSection = document.getElementById('operations-report-section');
 
-// افزودن رویداد کلیک به دکمه
-toggleOperationsReportButton.addEventListener('click', function() {
-if (operationsReportSection.style.display === 'none') {
-operationsReportSection.style.display = 'block';
-operationsReportSection.classList.add('fade-in');
-this.textContent = 'پنهان کردن تاریخچه تغییرات وضعیت';
-} else {
-operationsReportSection.style.display = 'none';
-this.textContent = 'نمایش تاریخچه تغییرات وضعیت';
-}
-});
-
-// تغییر حالت دارک مود
-const themeToggle = document.getElementById('theme-toggle');
-const htmlElement = document.documentElement;
-
-// بررسی حالت ذخیره شده در localStorage
-if (localStorage.getItem('darkMode') === 'enabled') {
-    htmlElement.classList.add('dark-mode');
-}
-
-themeToggle.addEventListener('click', function() {
-    if (htmlElement.classList.contains('dark-mode')) {
-        htmlElement.classList.remove('dark-mode');
-        localStorage.setItem('darkMode', 'disabled');
-    } else {
-        htmlElement.classList.add('dark-mode');
-        localStorage.setItem('darkMode', 'enabled');
+    // افزودن رویداد کلیک به دکمه
+    if (toggleOperationsReportButton && operationsReportSection) {
+        toggleOperationsReportButton.addEventListener('click', function() {
+            if (operationsReportSection.style.display === 'none') {
+                operationsReportSection.style.display = 'block';
+                operationsReportSection.classList.add('fade-in');
+                this.textContent = 'پنهان کردن تاریخچه تغییرات وضعیت';
+            } else {
+                operationsReportSection.style.display = 'none';
+                this.textContent = 'نمایش تاریخچه تغییرات وضعیت';
+            }
+        });
     }
-});
 
-// تایم‌لاین هاور
-const steps = document.querySelectorAll(".timeline-step");
-const popup = document.getElementById("step-info-popup");
-const popupText = document.getElementById("step-info-text");
+    // تغییر حالت دارک مود
+    const themeToggle = document.getElementById('theme-toggle');
+    const htmlElement = document.documentElement;
 
-steps.forEach(step => {
-step.addEventListener("mouseenter", function (event) {
-popupText.textContent = step.getAttribute("data-step-info");
-popup.style.display = "block";
-popup.style.top = event.clientY + "px";
-popup.style.left = event.clientX + "px";
-});
+    // بررسی حالت ذخیره شده در localStorage
+    if (localStorage.getItem('darkMode') === 'enabled') {
+        htmlElement.classList.add('dark-mode');
+    }
 
-step.addEventListener("mouseleave", function () {
-popup.style.display = "none";
-});
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function() {
+            if (htmlElement.classList.contains('dark-mode')) {
+                htmlElement.classList.remove('dark-mode');
+                localStorage.setItem('darkMode', 'disabled');
+            } else {
+                htmlElement.classList.add('dark-mode');
+                localStorage.setItem('darkMode', 'enabled');
+            }
+        });
+    }
+
+    // تایم‌لاین هاور
+    const steps = document.querySelectorAll(".timeline-item");
+    const popup = document.getElementById("step-info-popup");
+    const popupText = document.getElementById("step-info-text");
+
+    if (popup && popupText) {
+        steps.forEach(step => {
+            step.addEventListener("mouseenter", function(event) {
+                popupText.textContent = step.getAttribute("data-step-info");
+                popup.style.display = "block";
+                popup.style.top = event.clientY + "px";
+                popup.style.left = event.clientX + "px";
+            });
+
+            step.addEventListener("mouseleave", function() {
+                popup.style.display = "none";
+            });
+        });
+    }
 });
 </script>
 {% endblock %}

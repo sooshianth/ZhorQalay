@@ -317,6 +317,25 @@ table tr:hover {
   color: var(--button-color);
 }
 
+/* لینک PDF */
+.pdf-link {
+  text-decoration: none;
+  color: var(--primary-color);
+  background-color: rgba(34, 197, 94, 0.1);
+  padding: 6px 12px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.pdf-link:hover {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #22C55E;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
 /* چیدمان اصلی */
 .main-layout {
   display: grid;
