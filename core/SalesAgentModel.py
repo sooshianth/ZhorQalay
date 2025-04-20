@@ -215,66 +215,6 @@ class SalesAgent(models.Model):
                     notification_count += 1
                     
         return notification_count
-    
-    # Add to SalesAgentModel.py
-
-    def get_performance_metrics(self, period_days=30):
-        """
-        Calculate comprehensive performance metrics for this sales agent.
-        
-        Args:
-            period_days: Number of days to analyze
-            
-        Returns:
-            Dictionary with performance metrics
-        """
-        now = timezone.now()
-        start_date = now - timedelta(days=period_days)
-        
-        # Get sales in the period
-        sales = self.get_sales_in_period(start_date=start_date, end_date=now)
-        
-        # Calculate metrics
-        total_sales = len(sales)
-        total_weight = sum(s.weight for s in sales)
-        total_amount = sum(s.amount_paid for s in sales)
-        
-        # Get customer metrics
-        customers = self.get_all_customers()
-        active_customers = set()
-        for sale in sales:
-            active_customers.add(sale.customer.id)
-        
-        # Calculate daily averages
-        daily_avg_sales = total_sales / period_days if period_days > 0 else 0
-        daily_avg_weight = total_weight / period_days if period_days > 0 else 0
-        daily_avg_amount = total_amount / period_days if period_days > 0 else 0
-        
-        # Calculate average response time to tasks
-        response_times = []
-        for task in self.get_tasks_by_status(status=True):
-            if task.completed_at and task.create_time and task.completed_at >= start_date:
-                response_time = (task.completed_at - task.create_time).total_seconds() / 3600  # hours
-                response_times.append(response_time)
-        
-        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
-        
-        return {
-            'period_days': period_days,
-            'total_sales': total_sales,
-            'total_weight': total_weight,
-            'total_amount': total_amount,
-            'total_customers': len(customers),
-            'active_customers': len(active_customers),
-            'customer_activation_rate': len(active_customers) / len(customers) * 100 if customers else 0,
-            'daily_avg_sales': daily_avg_sales,
-            'daily_avg_weight': daily_avg_weight,
-            'daily_avg_amount': daily_avg_amount,
-            'task_completion_rate': task_completion_rate,
-            'avg_response_time_hours': avg_response_time,
-        }
-
-
     def forecast_sales(self, days_ahead=30):
         """
         Forecast sales for the specified number of days ahead.

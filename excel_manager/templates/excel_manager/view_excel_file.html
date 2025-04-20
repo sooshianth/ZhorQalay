@@ -3,51 +3,6 @@
 
 {% block title %}{{ page_title }}{% endblock %}
 
-{% block extra_css %}
-<style>
-    #excel-table {
-        width: 100%;
-        direction: rtl;
-        margin-top: 20px;
-        font-family: Tahoma, Arial, sans-serif;
-        font-size: 14px;
-    }
-    #excel-table th {
-        background-color: #4A3C8C;
-        color: white;
-        text-align: center;
-        padding: 10px;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-    #excel-table td {
-        padding: 8px;
-        text-align: center;
-        border-bottom: 1px solid #ddd;
-    }
-    #excel-table tr:nth-child(even) {
-        background-color: #f2f2f2;
-    }
-    #excel-table tr:hover {
-        background-color: #e0e0e0;
-    }
-    .excel-container {
-        overflow-x: auto;
-        max-height: 75vh;
-        direction: rtl;
-    }
-    .excel-header {
-        background-color: #f8f9fa;
-        padding: 15px;
-        border-radius: 5px;
-        margin-bottom: 15px;
-        border-right: 5px solid #4A3C8C;
-    }
-    .actions-bar {
-        margin-bottom: 20px;
-    }
-</style>
 {% endblock %}
 
 {% block content %}

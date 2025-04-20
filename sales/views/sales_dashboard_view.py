@@ -148,9 +148,6 @@ def sales_dashboard_view(request):
     # استفاده از متد جدید get_this_month_sales_stats برای آمار فروش ماه جاری
     sales_stats = sales_agent.get_this_month_sales_stats()
     
-    # استفاده از متد جدید get_performance_metrics برای آمار عملکرد
-    performance_metrics = sales_agent.get_performance_metrics(period_days=30)
-    
     # استفاده از متد جدید get_sales_by_product برای آمار فروش بر اساس محصول
     product_sales = sales_agent.get_sales_by_product()
 
@@ -167,7 +164,6 @@ def sales_dashboard_view(request):
         'sales_prediction': round(sales_prediction, 2),
         'forecast_confidence': round(forecast_confidence, 1),
         'sales_stats': sales_stats,
-        'performance_metrics': performance_metrics,
         'product_sales': product_sales,
         'target_achievement': round(sales_stats['target_achievement'], 1),
     }

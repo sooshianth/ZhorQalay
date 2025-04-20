@@ -6,7 +6,9 @@
     <title>{% block title %}سیستم CRM{% endblock %}</title>
     {% load static %}
     <link rel="icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}" loading="lazy">
-    <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+    {% block head_styles %}
+        <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% endblock %}
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" loading="lazy"></script>
     <!-- اضافه کردن فونت Vazir -->

@@ -1,0 +1,177 @@
+@font-face {
+    font-family: 'Vazir';
+    src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/Vazir.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+    }
+    
+    body {
+    font-family: 'Vazir', sans-serif;
+    background-color: #f8f9fa;
+    }
+    
+    .dark-mode body {
+        background-color: #343a40;
+        color: #f8f9fa;
+    }
+    
+    .card {
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s, box-shadow 0.3s;
+    margin-bottom: 20px;
+    overflow: hidden;
+    }
+    
+    .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    font-weight: bold;
+    }
+    
+    .purchase-card-active {
+    border-right: 4px solid #28a745;
+    }
+    
+    .purchase-card-archived {
+    border-right: 4px solid #6c757d;
+    opacity: 0.85;
+    }
+    
+    .status-badge {
+    font-size: 0.8rem;
+    margin-left: 5px;
+    }
+    
+    .purchase-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 10px;
+    }
+    
+    .details-btn {
+    border-radius: 20px;
+    padding: 5px 20px;
+    }
+    
+    .archive-section {
+    background-color: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 30px;
+    border: 1px solid #dee2e6;
+    }
+    
+    .archive-toggle {
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 8px;
+    background-color: #e9ecef;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    }
+    
+    .archive-toggle:hover {
+    background-color: #dee2e6;
+    }
+    
+    .section-title {
+    border-bottom: 2px solid #dee2e6;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    }
+    
+    .urgent-purchase {
+    border: 2px solid #dc3545 !important;
+    }
+    
+    .canceled-purchase {
+    background-color: #fbeaea;
+    }
+    
+    .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+    }
+    
+    .empty-state i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    }
+    
+    .dark-mode .empty-state {
+        color: #adb5bd;
+    }
+    
+    .table-status-badge {
+        font-size: 0.85rem;
+        margin: 0 2px;
+        padding: 2px 8px;
+        border-radius: 10px;
+        display: inline-block;
+    }
+    
+    .urgent-row {
+        border-right: 4px solid #dc3545 !important;
+        background: #fff0f0;
+    }
+    
+    .canceled-row {
+        background-color: #fbeaea;
+    }
+    
+    /* استایل‌های جدید برای فیلدهای جستجو */
+    .search-input {
+        border: none;
+        border-bottom: 1px solid #ced4da;
+        border-radius: 0;
+        font-size: 0.85rem;
+        padding: 5px;
+        margin-bottom: 5px;
+        width: 100%;
+        background-color: transparent;
+    }
+    
+    .search-input:focus {
+        box-shadow: none;
+        border-color: #80bdff;
+        outline: 0;
+    }
+    
+    .clear-filters {
+        margin: 10px 0;
+    }
+    
+    .filter-active {
+        background-color: #e8f4ff;
+    }
+    
+    /* استایل برای پنل جستجو */
+    .search-panel {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .dark-mode .search-panel {
+        background-color: #495057;
+        border-color: #6c757d;
+    }
+    
+    .sticky-header th {
+        position: sticky;
+        top: 0;
+        background-color: #f8f9fa;
+        z-index: 10;
+    }
