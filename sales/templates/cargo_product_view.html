@@ -1,8 +1,53 @@
 {% extends 'base.html' %}
 
-{% block title %}لیست محصولات و کوتاژها{% endblock %}
+{% block title %}لیست محصولات و کوتاژهای فعال{% endblock %}
 
 {% block content %}
+
+<style>
+    .deactive-products-dropdown {
+        margin: 20px 0;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .deactive-products-dropdown summary {
+        background-color: #f0f0f0;
+        padding: 12px 15px;
+        cursor: pointer;
+        font-weight: bold;
+        color: #333;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+        border: 1px solid #ddd;
+        position: relative;
+    }
+    
+    .deactive-products-dropdown summary:hover {
+        background-color: #e0e0e0;
+    }
+    
+    .deactive-products-dropdown summary::after {
+        content: "▼";
+        position: absolute;
+        left: 15px;
+        transition: transform 0.3s ease;
+    }
+    
+    .deactive-products-dropdown[open] summary::after {
+        transform: rotate(180deg);
+    }
+    
+    .deactive-products-dropdown[open] summary {
+        border-radius: 6px 6px 0 0;
+        background-color: #e0e0e0;
+    }
+    
+    .deactive-products-dropdown table {
+        margin-top: 0;
+        border-top: none;
+    }
+</style>
 
 {% if messages %}
 {% for message in messages %}
@@ -18,7 +63,10 @@
                     <th>کوتاژ</th>
                     <th>نوع محصول</th>
                     <th>کشور</th>
+                    <th>قیمت فروش</th>
+                    <th>محل بارگیری</th>
                     <th>زمان بارگیری</th>
+                    <th>توضیحات</th>
                     <th>وضعیت</th>
                 </tr>
             </thead>
@@ -28,11 +76,47 @@
                         <td>{{ product.cottage }}</td>
                         <td>{{ product.get_product_type_display }}</td>
                         <td>{{ product.get_country_display }}</td>
+                        <td>{{ product.company_price }}</td>
+                        <td>{{ product.port }}</td>
                         <td>{{ product.loading_time }}</td>
+                        <td>{{ product.description }}</td>
                         <td>{{ product.status|yesno:"فعال,غیرفعال" }}</td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
+        
+        <details class="deactive-products-dropdown">
+            <summary>لیست محصولات و کوتاژهای غیرفعال</summary>
+            <table>
+                <thead>
+                    <tr>
+                        <th>کوتاژ</th>
+                        <th>نوع محصول</th>
+                        <th>کشور</th>
+                        <th>قیمت فروش</th>
+                        <th>محل بارگیری</th>
+                        <th>زمان بارگیری</th>
+                        <th>توضیحات</th>
+                        <th>وضعیت</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in deactive_cargo_products %}
+                        <tr>
+                            <td>{{ product.cottage }}</td>
+                            <td>{{ product.get_product_type_display }}</td>
+                            <td>{{ product.get_country_display }}</td>
+                            <td>{{ product.company_price }}</td>
+                            <td>{{ product.port }}</td>
+                            <td>{{ product.loading_time }}</td>
+                            <td>{{ product.description }}</td>
+                            <td>{{ product.status|yesno:"فعال,غیرفعال" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </details>
     </div>
+    
 {% endblock %}

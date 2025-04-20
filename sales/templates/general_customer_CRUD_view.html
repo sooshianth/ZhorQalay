@@ -45,12 +45,17 @@
             
             <div class="form-columns">
                 <div class="column">
-                    <div class="form-group">
+                    {% comment %} <div class="form-group">
                         <label>شماره تلفن:</label>
                         {{ form.phone_number }}
                         {{ form.phone_number.errors }}
+                    </div> {% endcomment %}
+                    <div class="form-group">
+                        <label>نام:</label>
+                        {{ form.name }}
+                        {{ form.name.errors }}
                     </div>
-                    
+
                     {% if customer and not is_new_customer %}
                     <!-- بخش مدیریت شماره های تلفن -->
                     <div class="form-group">
@@ -84,11 +89,6 @@
                     </div>
                     {% endif %}
                     
-                    <div class="form-group">
-                        <label>نام:</label>
-                        {{ form.name }}
-                        {{ form.name.errors }}
-                    </div>
                     
                     <div class="checkbox-group">
                         <label>
@@ -306,7 +306,7 @@
                     <input type="number" name="weight" min="100" step="100" required>
                 </div>
         
-                <button type="submit" name="create_purchase" class="action-button">ثبت خرید</button>
+                <button type="submit" name="create_purchase" class="action-button">ارسال پیامک به مشتری</button>
             </form>        
         </div>
         

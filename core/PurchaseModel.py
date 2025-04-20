@@ -32,7 +32,7 @@ class Purchase(models.Model):
 
     weight = models.PositiveIntegerField("وزن (کیلوگرم)", default=0)
     cargo = models.ForeignKey(CargoProduct,on_delete=models.SET_NULL, verbose_name="کوتاژ", null=True, blank=True, related_name='purchases')
-    type = models.CharField("نوع خرید", max_length=25, default='bazaargah')
+    type = models.CharField("نوع خرید", max_length=25, default='bazaargah', choices=[('bazaargah', 'بازارگاه'), ('non_bazaargah', 'خارج از بازارگاه')])
     amount_paid = models.PositiveBigIntegerField("مبلغ پرداختی(ریال)", blank=True, null=True)
     payment_method = models.CharField("شیوۀ پرداخت", max_length=6, choices=[('نقدی', 'نقدی'), ('توافقی', 'توافقی')], default="نقدی")
     created_at = jmodels.jDateTimeField("تاریخ ثبت", default=timezone.now)

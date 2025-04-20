@@ -1,12 +1,5 @@
 {% extends 'base.html' %}
 
-{% load static %}
-
-{% block head_styles %}
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    <link rel="stylesheet" href="{% static 'css_files/purchase_CRUD_style.css' %}">
-{% endblock %}
-
 {% block content %}
 <div class="container">
 
@@ -73,7 +66,7 @@ data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else 
 <div class="buyer-info">
 <div class="buyer-card">
 <h3>👤 نام مشتری</h3>
-<p>{{ purchase.customer.name }}</p>
+<p><a href="{% url 'general_customer_CRUD' %}?customer_id={{ purchase.customer.id }}" class="customer-link">{{ purchase.customer.name }}</a></p>
 </div>
 
 <div class="buyer-card">
@@ -85,10 +78,10 @@ data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else 
 <h3>📍 شهر/استان</h3>
 <p>{{ purchase.customer.city }}</p>
 </div>
-<div class="buyer-card">
+{% comment %} <div class="buyer-card">
 <h3>📞 شماره تماس</h3>
-<p>{{ purchase.customer.phone_number }}</p>
-</div>
+<p><a href="{% url 'general_customer_CRUD' %}?customer_id={{ purchase.customer.id }}" class="customer-link">{{ purchase.customer.phone_number }}</a></p>
+</div> {% endcomment %}
 </div>
 
 

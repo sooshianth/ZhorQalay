@@ -31,7 +31,7 @@
                         <label for="globalSearch" class="form-label">جستجوی سریع:</label>
                         <input type="text" id="globalSearch" class="form-control" placeholder="جستجوی سریع در تمام فیلدها...">
                     </div>
-                    <div class="col-md-9">
+                    {% comment %} <div class="col-md-9">
                         <div class="row">
                             <div class="col-md-3 mb-2">
                                 <input type="text" name="search_customer" class="form-control" 
@@ -50,7 +50,7 @@
                                        placeholder="جستجو بر اساس تاریخ" value="{{ search_params.date }}">
                             </div>
                         </div>
-                    </div>
+                    </div> {% endcomment %}
                 </div>
             </div>
             <div class="col-md-2 mb-2 d-flex align-items-end">
@@ -58,14 +58,14 @@
             </div>
         </div>
         <div class="mt-2">
-            <button type="button" class="btn btn-link btn-sm" id="advancedSearchToggle">
+            {% comment %} <button type="button" class="btn btn-link btn-sm" id="advancedSearchToggle">
                 <i class="fas fa-sliders-h me-1"></i> جستجوی پیشرفته
-            </button>
+            </button> {% endcomment %}
             <a href="{% url 'purchase_list' %}" class="btn btn-link btn-sm text-danger">
                 <i class="fas fa-times me-1"></i> پاک کردن فیلترها
             </a>
         </div>
-        <div id="advancedSearchPanel" class="mt-3" style="display: none;">
+        {% comment %} <div id="advancedSearchPanel" class="mt-3" style="display: none;">
             <div class="row">
                 <div class="col-md-3 mb-2">
                     <input type="text" name="search_sales_agent" class="form-control" 
@@ -80,7 +80,7 @@
                            placeholder="جستجو بر اساس کد درون سازمانی" value="{{ search_params.invoice_id }}">
                 </div>
             </div>
-        </div>
+        </div> {% endcomment %}
     </form>
 </div>
 
@@ -136,7 +136,7 @@
             <td>{% for agent in purchase.customer.sales_agent.all %}{{ agent.name }}{% if not forloop.last %}، {% endif %}{% empty %}-{% endfor %}</td>
             <td>{{ purchase.purchase_number|default:"تعیین نشده" }}</td>
             <td>{{ purchase.weight|add_commas }}</td>
-            <td>{% if purchase.cargo %}{{ purchase.cargo }} ({{ purchase.cargo.cottage }}){% else %}-{% endif %}</td>
+            <td>{% if purchase.cargo %}{{ purchase.cargo }}{% else %}-{% endif %}</td>
             <td>
                 {# Only show the latest status #}
                 {% if purchase.is_canceled %}
