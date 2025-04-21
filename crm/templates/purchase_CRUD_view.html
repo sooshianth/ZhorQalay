@@ -362,6 +362,11 @@
 
 <form method="post" class="purchase-form">
 {% csrf_token %}
+<!-- اضافه کردن فیلدهای مخفی برای حفظ مقادیر اصلی در هنگام ارسال فرم -->
+<input type="hidden" name="customer_price" value="{{ purchase.customer_price }}">
+<input type="hidden" name="order_weight" value="{{ purchase.order_weight }}">
+<input type="hidden" name="delivered_weight" value="{{ purchase.delivered_weight }}">
+
 <div class="form-grid">
 {% for field in form %}
 <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">

@@ -162,8 +162,26 @@ class RoleBasedPurchaseForm(forms.ModelForm):
                 
     def clean(self):
         cleaned_data = super().clean()
-        # اعتبارسنجی اصلی در متد save مدل انجام می‌شود
-        # این باعث می‌شود از تکرار پیام‌های خطا جلوگیری شود
+        
+        # مشکل: مقادیر از قبل موجود (وزن و قیمت) در زمان ارسال فرم پاک می‌شوند
+        # اگر فیلدهای اجباری خالی هستند، مقادیر را از نمونه (instance) اصلی بازیابی می‌کنیم
+        if self.instance and self.instance.pk:
+            # در صورتی که فیلدهای اجباری customer_price و order_weight خالی هستند
+            # مقادیر اصلی آنها را از نمونه دریافت می‌کنیم
+            if 'customer_price' in self.fields and not cleaned_data.get('customer_price'):
+                cleaned_data['customer_price'] = self.instance.customer_price
+                if 'customer_price' in self._errors:
+                    del self._errors['customer_price']
+                    
+            if 'order_weight' in self.fields and not cleaned_data.get('order_weight'):
+                cleaned_data['order_weight'] = self.instance.order_weight
+                if 'order_weight' in self._errors:
+                    del self._errors['order_weight']
+                    
+            if 'delivered_weight' in self.fields and not cleaned_data.get('delivered_weight'):
+                cleaned_data['delivered_weight'] = self.instance.delivered_weight
+                if 'delivered_weight' in self._errors:
+                    del self._errors['delivered_weight']
         
         # اگر بایپس اعتبارسنجی فعال باشد، خطاهای فیلدهای اجباری را نادیده بگیر
         if cleaned_data.get('bypass_validation'):
@@ -292,6 +310,12 @@ def purchase_CRUD_view(request, purchase_id):
         # کپی کردن داده‌های POST برای اعمال حفاظت فیلدهای غیرقابل ویرایش
         post_data = request.POST.copy()
         
+        # همیشه مقادیر customer_price و order_weight را از نمونه اصلی بگذاریم
+        # این باعث می‌شود خطای "required" برای این فیلدها رخ ندهد
+        post_data['customer_price'] = purchase.customer_price
+        post_data['order_weight'] = purchase.order_weight
+        post_data['delivered_weight'] = purchase.delivered_weight
+        
         # بررسی اینکه آیا یک دکمه اکشن فشرده شده است
         action_buttons = [
             'approve_bazaargah', 'approve_payment', 'approve_allocation', 
@@ -387,24 +411,24 @@ def purchase_CRUD_view(request, purchase_id):
                                 messages.success(request, success_message)
                                 return redirect('purchase_CRUD', purchase_id=purchase_id)
                             action_taken = True
-                        elif purchase.state == 'DIFFERENCE_DEPOSITED' and 'approve_sarak' in request.POST and (user_role == 'sales_agent' or user_role == 'financial_manager' or user_role == 'admin'):
+                        elif purchase.state == 'DIFFERENCE_APPROVED' and 'approve_sarak' in request.POST and (user_role == 'sales_agent' or user_role == 'financial_manager' or user_role == 'admin'):
                             success_message = purchase.deposit_difference(request.user)
                             if success_message:
                                 messages.success(request, success_message)
                                 return redirect('purchase_CRUD', purchase_id=purchase_id)
-                        elif purchase.state == 'RECEIPT_SUBMITTED' and 'approve_kasri_reciept' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
+                        elif purchase.state == 'DIFFERENCE_DEPOSITED' and 'approve_kasri_reciept' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
                             purchase.submit_receipt(request.user)
                             action_taken = True
-                        elif purchase.state == 'INVOICE_ISSUED' and 'approve_factor' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
+                        elif purchase.state == 'RECEIPT_SUBMITTED' and 'approve_factor' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
                             purchase.issue_invoice(request.user)
                             action_taken = True
-                        elif purchase.state == 'SALES_APPROVED' and 'approve_salesman' in request.POST and (user_role == 'sales_agent' or user_role == 'admin'):
+                        elif purchase.state == 'INVOICE_ISSUED' and 'approve_salesman' in request.POST and (user_role == 'sales_agent' or user_role == 'admin'):
                             purchase.approve_by_sales(request.user)
                             action_taken = True
-                        elif purchase.state == 'LOGISTICS_APPROVED' and 'approve_logistics' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
+                        elif purchase.state == 'SALES_APPROVED' and 'approve_logistics' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
                             purchase.approve_by_logistics(request.user)
                             action_taken = True
-                        elif purchase.state == 'FINANCIAL_APPROVED' and 'approve_financial' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
+                        elif purchase.state == 'LOGISTICS_APPROVED' and 'approve_financial' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
                             purchase.approve_by_financial(request.user)
                             action_taken = True
                     except ValidationError as action_error:

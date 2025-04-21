@@ -201,10 +201,7 @@ class Purchase(models.Model):
             
         if self.state != 'VENDOR_SETTLED':
             raise ValidationError('ابتدا باید با واردکننده تسویه شود')
-            
-        if not self.address:
-            raise ValidationError('آدرس الزامی است')
-            
+                        
         # ارسال پیامک آدرس
         send_address_notification(self)
         
@@ -266,7 +263,10 @@ class Purchase(models.Model):
             
         if self.state != 'DELIVERED':
             raise ValidationError('ابتدا باید بار تحویل مشتری شود')
-            
+        
+        if not self.extelaf_amount and not self.extelaf_weight:
+            raise ValidationError('مقادیر اختلاف ثبت نشده است')
+        
         # اگر اختلاف از نوع سرک باشد، پیامک ارسال شود
         if self.extelaf_type == 'سرک' and self.extelaf_weight and self.extelaf_amount:
             send_extelaf_notification(self)

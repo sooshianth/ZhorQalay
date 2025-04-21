@@ -10,7 +10,7 @@ from django.core.files.base import ContentFile
 from django.contrib import messages
 from ..models import ExcelFile, BGExcelFile, ExcelProcessingLog
 from core._models import CargoProduct, Purchase
-from core.PurchaseModel import ShenaseTakhsis
+from core.PurchaseModel import ShenaseTakhsis, PurchaseStateChange
 from core.CustomerModel import Customer, FIELD_OF_ACTIVITY
 from django.conf import settings
 from django.db import transaction
