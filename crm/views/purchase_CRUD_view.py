@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.core.exceptions import ValidationError
 from core._models import Purchase
-from core.PurchaseModel import PurchaseHistory, PurchaseStateChange, ShenaseTakhsis
+from core.PurchaseModel import PurchaseHistory, PurchaseStateChange, ShenaseTakhsis, PurchaseReceipts
 from django.http import HttpResponse
 import io
 from reportlab.pdfgen import canvas
@@ -21,6 +21,10 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.lib.enums import TA_RIGHT
+import uuid
+from django.utils.text import slugify
+import mimetypes
+from django.utils import timezone
 
 try:
     import arabic_reshaper
@@ -860,3 +864,96 @@ def generate_purchase_pdf(request, purchase_id):
     response.write(pdf)
     
     return response
+
+@login_required
+def upload_purchase_document(request, purchase_id):
+    """
+    View for handling document uploads for purchases
+    """
+    purchase = get_object_or_404(Purchase, id=purchase_id)
+    user_role = determine_user_role(request.user)
+    
+    # Check if user has permission to upload documents
+    if user_role not in ['sales_agent', 'financial_manager', 'logistics_manager', 'admin']:
+        messages.error(request, 'شما اجازه بارگذاری اسناد را ندارید')
+        return redirect('purchase_CRUD', purchase_id=purchase_id)
+    
+    if request.method == 'POST':
+        document_type = request.POST.get('document_type')
+        document_file = request.FILES.get('document_file')
+        
+        # Validate document type based on user role
+        valid_types = []
+        if user_role in ['logistics_manager', 'sales_agent', 'admin']:
+            valid_types.extend(['bazaargah_receipt', 'non_bazaargah_receipt', 'deliver'])
+        if user_role in ['financial_manager', 'sales_agent', 'admin']:
+            valid_types.extend(['extelaf_receipt', 'invoice'])
+            
+        if document_type not in valid_types:
+            messages.error(request, 'شما اجازه بارگذاری این نوع سند را ندارید')
+            return redirect('purchase_CRUD', purchase_id=purchase_id)
+        
+        # Validate file presence
+        if not document_file:
+            messages.error(request, 'لطفا یک فایل انتخاب کنید')
+            return redirect('purchase_CRUD', purchase_id=purchase_id)
+        
+        # Validate file size (max 5MB)
+        if document_file.size > 5 * 1024 * 1024:
+            messages.error(request, 'حجم فایل باید کمتر از ۵ مگابایت باشد')
+            return redirect('purchase_CRUD', purchase_id=purchase_id)
+        
+        # Validate file type
+        allowed_extensions = ['.pdf', '.jpg', '.jpeg', '.png']
+        file_extension = os.path.splitext(document_file.name)[1].lower()
+        if file_extension not in allowed_extensions:
+            messages.error(request, 'فرمت فایل غیرمجاز است. لطفا از فرمت‌های PDF، JPG یا PNG استفاده کنید')
+            return redirect('purchase_CRUD', purchase_id=purchase_id)
+        
+        try:
+            # Generate unique filename
+            original_filename = os.path.splitext(document_file.name)[0]
+            file_extension = os.path.splitext(document_file.name)[1].lower()
+            safe_filename = slugify(original_filename)  # Convert filename to safe format
+            unique_id = str(uuid.uuid4())[:8]  # Short unique identifier
+            timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+            
+            # Get human-readable document type
+            receipt_types_dict = dict([
+                ('bazaargah_receipt', 'رسید بازارگاه'),
+                ('non_bazaargah_receipt', 'رسید خارج از بازارگاه'),
+                ('deliver', 'اسناد تحویلی'),
+                ('extelaf_receipt', 'رسید اختلاف'),
+                ('invoice', 'فاکتور')
+            ])
+            document_type_display = receipt_types_dict.get(document_type, document_type)
+            
+            # Create final filename: purchase_id_document-type_timestamp_unique-id.extension
+            final_filename = f"{purchase.id}_{slugify(document_type_display)}_{timestamp}_{unique_id}{file_extension}"
+            
+            # Save file and create database record
+            with transaction.atomic():
+                # Create the PurchaseReceipts record
+                receipt = PurchaseReceipts(
+                    purchase=purchase,
+                    user=request.user,
+                    reciept_type=document_type
+                )
+                
+                # Save the file directly to the FileField
+                # Django will handle file storage internally
+                receipt.reciept_file.save(final_filename, document_file, save=False)
+                receipt.save()
+                
+                # Create history entry
+                PurchaseHistory.objects.create(
+                    purchase=purchase,
+                    user=request.user,
+                    changes=f"بارگذاری سند: {document_type_display}"
+                )
+                
+                messages.success(request, 'سند با موفقیت بارگذاری شد')
+        except Exception as e:
+            messages.error(request, f'خطا در بارگذاری سند: {str(e)}')
+    
+    return redirect('purchase_CRUD', purchase_id=purchase_id)

@@ -5,6 +5,32 @@
 {% block head_styles %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'css_files/purchase_list_style.css' %}">
+    <style>
+        /* استایل برای خرید‌های فوری */
+        tr.urgent-row {
+            background-color: #ffe6e6 !important;
+            border-left: 4px solid #dc3545 !important;
+            font-weight: bold;
+        }
+        
+        tr.urgent-row td {
+            border-color: #ffcccc !important;
+        }
+        
+        tr.urgent-row:hover {
+            background-color: #ffcccc !important;
+        }
+        
+        .urgent-badge {
+            display: inline-block;
+            background-color: #dc3545;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            margin-right: 5px;
+        }
+    </style>
 {% endblock %}
 
 {% block title %}لیست خریدها{% endblock %}
@@ -84,9 +110,12 @@
     </thead>
     <tbody id="activePurchasesTable">
     {% for purchase in active_purchases %}
-        <tr class="{% if purchase.state == 'URGENT' or purchase.is_urgent %}urgent-row{% endif %} {% if purchase.state == 'CANCELED' or purchase.is_canceled %}canceled-row{% endif %}">
+        <tr class="{% if purchase.is_urgent %}urgent-row{% elif purchase.state == 'CANCELED' or purchase.is_canceled %}canceled-row{% endif %}">
             <td>{{ purchase.created_at|date:"Y/m/d" }}</td>
-            <td>{{ purchase.customer.name }}</td>
+            <td>
+                {% if purchase.is_urgent %}<span class="urgent-badge">فوری</span>{% endif %}
+                {{ purchase.customer.name }}
+            </td>
             <td>{{ purchase.invoice_id|default:"تعیین نشده" }}</td>
             <td>{% for agent in purchase.customer.sales_agent.all %}{{ agent.name }}{% if not forloop.last %}، {% endif %}{% empty %}-{% endfor %}</td>
             <td>{{ purchase.purchase_number|default:"تعیین نشده" }}</td>
@@ -116,8 +145,6 @@
                     <span class="table-status-badge bg-success text-white">پرداخت شده</span>
                 {% elif purchase.state == 'BAZAARGAH_CONFIRMED' %}
                     <span class="table-status-badge bg-secondary text-white">تایید بازارگاه</span>
-                {% elif purchase.state == 'URGENT' %}
-                    <span class="table-status-badge bg-danger text-white">فوری</span>
                 {% elif purchase.state == 'DIFFERENCE_APPROVED' %}
                     <span class="table-status-badge bg-warning text-dark">تایید اختلاف</span>
                 {% elif purchase.state == 'DIFFERENCE_DEPOSITED' %}
@@ -241,6 +268,30 @@ document.addEventListener('DOMContentLoaded', function() {
     const archivedContent = document.getElementById('archivedContent');
     const archiveIcon = document.getElementById('archiveIcon');
 
+    // مرتب‌سازی جدول بر اساس فوریت خریدها
+    function sortTableByUrgency(tableId) {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+        
+        const rows = Array.from(table.querySelectorAll('tr'));
+        
+        // مرتب‌سازی ردیف‌ها: خریدهای فوری در بالا
+        rows.sort((a, b) => {
+            const aIsUrgent = a.classList.contains('urgent-row');
+            const bIsUrgent = b.classList.contains('urgent-row');
+            
+            if (aIsUrgent && !bIsUrgent) return -1;
+            if (!aIsUrgent && bIsUrgent) return 1;
+            return 0;
+        });
+        
+        // بازنویسی جدول با ترتیب جدید
+        rows.forEach(row => table.appendChild(row));
+    }
+    
+    // مرتب‌سازی جدول خریدهای فعال
+    sortTableByUrgency('activePurchasesTable');
+    
     toggleButton.addEventListener('click', function() {
         if (archivedContent.style.display === 'none') {
             archivedContent.style.display = 'block';

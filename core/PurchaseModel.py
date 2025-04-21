@@ -539,3 +539,29 @@ class ShenaseTakhsis(models.Model):
     def __str__(self):
         return f"شناسه تخصیص {self.code} برای خرید {self.purchase.id}"
 
+class PurchaseReceipts(models.Model):
+    reciept_type=[
+        ('bazaargah_receipt', 'رسید بازارگاه'), # logistics_manager sales_agent
+        ('non_bazaargah_receipt', 'رسید خارج از بازارگاه'), # logistics_manager sales_agent
+        ('deliver', 'اسناد تحویلی'), # logistics_manager sales_agent
+        ('extelaf_receipt', 'رسید اختلاف'), # financial_manager sales_agent
+        ('invoice', 'فاکتور'), # financial_manager 
+    ]
+    
+    def receipt_upload_path(instance, filename):
+        # Generate path like: purchase_receipts/purchase_123/filename
+        return f'purchase_receipts/purchase_{instance.purchase.id}/{filename}'
+    
+    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='receipts')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="ثبت کننده")
+    reciept_type = models.CharField("نوع رسید", max_length=255, choices=reciept_type)
+    reciept_file = models.FileField("فایل رسید", upload_to=receipt_upload_path, null=True, blank=True)
+    created_at = jmodels.jDateTimeField("تاریخ ثبت", auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "رسید خرید"
+        verbose_name_plural = "رسیدهای خرید"
+    
+    def __str__(self):
+        return f"{self.reciept_type} - {self.purchase.purchase_number} - {self.created_at}"
+

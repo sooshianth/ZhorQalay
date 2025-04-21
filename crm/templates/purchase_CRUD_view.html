@@ -181,6 +181,116 @@
     font-family: monospace;
     resize: vertical;
   }
+
+  /* استایل برای بخش مدیریت اسناد */
+  .document-management-section {
+    margin-top: 30px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+
+  .document-management-section h3.section-title {
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+  }
+
+  .existing-documents {
+    margin-bottom: 25px;
+  }
+
+  .existing-documents h4 {
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    color: #495057;
+  }
+
+  .documents-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+  }
+
+  .document-card {
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+  }
+
+  .document-card:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+  }
+
+  .document-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .document-type {
+    font-weight: bold;
+    font-size: 1rem;
+    margin-bottom: 5px;
+  }
+
+  .document-date, .document-uploader {
+    font-size: 0.85rem;
+    color: #6c757d;
+  }
+
+  .document-actions {
+    display: flex;
+    gap: 5px;
+  }
+
+  .upload-form-container {
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 20px;
+  }
+
+  .upload-form-container h4 {
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    color: #495057;
+  }
+
+  .upload-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .upload-form .form-group {
+    margin-bottom: 15px;
+  }
+
+  .upload-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+
+  .upload-form select, 
+  .upload-form input[type="file"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+  }
+
+  .upload-form button {
+    align-self: flex-start;
+  }
 </style>
 
 <div class="container">
@@ -534,6 +644,95 @@
 </tr>
 {% endfor %}
 </table>
+
+<!-- بخش آپلود و مدیریت فایل‌های اسناد -->
+<div class="document-management-section">
+    <h3 class="section-title">
+        <i class="fas fa-file-upload"></i> مدیریت اسناد و رسید‌ها
+    </h3>
+    
+    <!-- نمایش فایل‌های موجود -->
+    {% if purchase.receipts.all %}
+    <div class="existing-documents">
+        <h4><i class="fas fa-file-alt"></i> اسناد بارگذاری شده</h4>
+        <div class="documents-grid">
+            {% for receipt in purchase.receipts.all %}
+            <div class="document-card">
+                <div class="document-info">
+                    <span class="document-type">
+                        {% if receipt.reciept_type == 'bazaargah_receipt' %}
+                            <i class="fas fa-file-invoice text-primary"></i> رسید بازارگاه
+                        {% elif receipt.reciept_type == 'non_bazaargah_receipt' %}
+                            <i class="fas fa-file-invoice text-info"></i> رسید خارج از بازارگاه
+                        {% elif receipt.reciept_type == 'deliver' %}
+                            <i class="fas fa-truck text-success"></i> اسناد تحویلی
+                        {% elif receipt.reciept_type == 'extelaf_receipt' %}
+                            <i class="fas fa-file-invoice-dollar text-warning"></i> رسید اختلاف
+                        {% elif receipt.reciept_type == 'invoice' %}
+                            <i class="fas fa-file-invoice text-danger"></i> فاکتور
+                        {% else %}
+                            <i class="fas fa-file"></i> {{ receipt.get_reciept_type_display }}
+                        {% endif %}
+                    </span>
+                    <span class="document-date">{{ receipt.created_at|date:"Y/m/d" }}</span>
+                    <span class="document-uploader">{{ receipt.user.get_full_name }}</span>
+                </div>
+                <div class="document-actions">
+                    <a href="{{ receipt.reciept_file.url }}" class="btn btn-sm btn-primary" target="_blank">
+                        <i class="fas fa-download"></i> دانلود
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- فرم آپلود فایل جدید -->
+    {% if user_role == "sales_agent" or user_role == "financial_manager" or user_role == "logistics_manager" or user_role == "admin" %}
+    <div class="upload-form-container">
+        <h4><i class="fas fa-cloud-upload-alt"></i> بارگذاری سند جدید</h4>
+        <form method="post" action="{% url 'upload_purchase_document' purchase.id %}" enctype="multipart/form-data" class="upload-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="document_type"><i class="fas fa-tag"></i> نوع سند:</label>
+                <select name="document_type" id="document_type" class="form-control" required>
+                    <option value="" disabled selected>انتخاب کنید...</option>
+                    
+                    {% if user_role == "sales_agent" or user_role == "admin" %}
+                    <option value="bazaargah_receipt">رسید بازارگاه</option>
+                    <option value="non_bazaargah_receipt">رسید خارج از بازارگاه</option>
+                    <option value="deliver">اسناد تحویلی</option>
+                    <option value="extelaf_receipt">رسید اختلاف</option>
+                    {% endif %}
+
+                    {% if user_role == "logistics_manager" or user_role == "admin" %}
+                    <option value="bazaargah_receipt">رسید بازارگاه</option>
+                    <option value="non_bazaargah_receipt">رسید خارج از بازارگاه</option>
+                    <option value="deliver">اسناد تحویلی</option>
+                    {% endif %}
+                    
+                    {% if user_role == "financial_manager" or user_role == "admin" %}
+                    <option value="extelaf_receipt">رسید اختلاف</option>
+                    <option value="invoice">فاکتور</option>
+                    {% endif %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="document_file"><i class="fas fa-file"></i> انتخاب فایل:</label>
+                <input type="file" name="document_file" id="document_file" class="form-control-file" required>
+                <small class="form-text text-muted">فرمت‌های مجاز: PDF، JPG، PNG (حداکثر حجم: 5MB)</small>
+            </div>
+            
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-upload"></i> بارگذاری سند
+            </button>
+        </form>
+    </div>
+    {% endif %}
+</div>
 
 </div>
 
