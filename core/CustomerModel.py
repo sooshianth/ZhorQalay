@@ -29,12 +29,36 @@ class PhoneNumber(models.Model):
         return self.number
     
     def clean(self):
-        if not self.number.startswith('9') or len(self.number) != 10:
-            raise ValidationError(_('شماره تلفن باید با 9 شروع شود و 10 رقم باشد.'))
+        # اطمینان از فرمت درست شماره تلفن
+        self.number = self.number.strip()
+        
+        # پاکسازی شماره از کاراکترهای غیرعددی
+        cleaned_number = ''.join(c for c in self.number if c.isdigit())
+        
+        # اگر با صفر شروع می‌شود، آن را حذف می‌کنیم
+        if cleaned_number.startswith('0'):
+            cleaned_number = cleaned_number[1:]
+            
+        # بررسی معیارهای اصلی
+        if not cleaned_number.startswith('9') or len(cleaned_number) != 10:
+            raise ValidationError(_('شماره تلفن باید با 9 شروع شود و 10 رقم باشد. لطفاً فرمت صحیح مانند 9123456789 را وارد کنید.'))
+        
+        # ذخیره شماره پاکسازی شده
+        self.number = cleaned_number
         
         # If this is being set as primary, make sure no other numbers for this customer are primary
         if self.is_primary:
             PhoneNumber.objects.filter(customer=self.customer, is_primary=True).exclude(id=self.id).update(is_primary=False)
+
+    def save(self, *args, **kwargs):
+        # Always clean before saving
+        self.clean()
+        super().save(*args, **kwargs)
+        
+        # If this is the primary number, update the customer's phone_number field
+        if self.is_primary:
+            self.customer.phone_number = self.number
+            self.customer.save(update_fields=['phone_number'])
 
 class Customer(models.Model):
     # phone_number field is no longer unique and will be deprecated
@@ -78,13 +102,22 @@ class Customer(models.Model):
 
     @staticmethod
     def get_customer_by_phone(phone_number):
+        # Clean the phone number first
+        if phone_number:
+            phone_number = phone_number.strip()
+            clean_number = ''.join(c for c in phone_number if c.isdigit())
+            if clean_number.startswith('0'):
+                clean_number = clean_number[1:]
+        else:
+            return None
+            
         # Try to find a customer with this phone number in the new PhoneNumber model
-        phone = PhoneNumber.objects.filter(number=phone_number).first()
+        phone = PhoneNumber.objects.filter(number=clean_number).first()
         if phone:
             return phone.customer
         
         # Fallback to the old phone_number field
-        return Customer.objects.filter(phone_number=phone_number).first()
+        return Customer.objects.filter(phone_number=clean_number).first()
 
     def get_primary_phone(self):
         primary = self.phone_numbers.filter(is_primary=True).first()
@@ -92,7 +125,10 @@ class Customer(models.Model):
             return primary.number
         
         # Fallback to first phone or old phone_number
-        return self.phone_numbers.first().number if self.phone_numbers.exists() else self.phone_number
+        first_phone = self.phone_numbers.first()
+        if first_phone:
+            return first_phone.number
+        return self.phone_number or ''
 
     def get_tasks_by_time(self):
         return self.tasks.order_by('due_date')
@@ -123,7 +159,8 @@ class Customer(models.Model):
 
     def __str__(self):
         primary_phone = self.get_primary_phone()
-        return f"{primary_phone} {self.name}"
+        name = self.name or 'بدون نام'
+        return f"{primary_phone} {name}" if primary_phone else name
     
     def clean(self):
         if not self.name:
