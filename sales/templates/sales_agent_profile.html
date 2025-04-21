@@ -5,408 +5,560 @@
 
 {% block extra_css %}
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<style>
+    .notification-popup {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 320px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 10000;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .notification-popup.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .popup-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        background: #10B981;
+        color: white;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+    }
+    .popup-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+    }
+    .popup-close {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 16px;
+    }
+    .popup-content {
+        padding: 16px;
+        font-size: 14px;
+        color: #1F2937;
+    }
+    .progress-container {
+        height: 4px;
+        background: #E5E7EB;
+        border-bottom-left-radius: 8px;
+        border-bottom-right-radius: 8px;
+        overflow: hidden;
+    }
+    .progress-bar {
+        height: 100%;
+        width: 0;
+        background: #10B981;
+        transition: width 5s linear;
+    }
+    .notification-popup.show .progress-bar {
+        width: 100%;
+    }
+    .notification-center {
+        position: relative;
+    }
+    .notification-bell {
+        cursor: pointer;
+    }
+    .notification-dropdown {
+        position: absolute;
+        top: 40px;
+        right: 0;
+        width: 300px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        display: none;
+        z-index: 999;
+    }
+    .notification-header {
+        padding: 12px;
+        border-bottom: 1px solid #E5E7EB;
+    }
+    .notification-item {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        border-bottom: 1px solid #E5E7EB;
+        transition: background 0.2s;
+    }
+    .notification-item:hover {
+        background: #F9FAFB;
+    }
+    .notification-item.read {
+        opacity: 0.7;
+    }
+    .notification-icon {
+        margin-right: 12px;
+        color: #4F46E5;
+    }
+    .notification-content {
+        flex: 1;
+    }
+    .notification-content small {
+        color: #6B7280;
+    }
+    .notification-close {
+        background: none;
+        border: none;
+        color: #EF4444;
+        cursor: pointer;
+        font-size: 16px;
+    }
+    .badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: #EF4444;
+        color: white;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 12px;
+    }
+    .profile-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+    }
+    .tasks-section, .purchases-section {
+        background: white;
+        padding: 24px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    .task-list, .purchase-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .task-item, .purchase-item {
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 16px;
+        transition: all 0.3s ease;
+    }
+    .task-item.fade-in, .purchase-item.slide-in {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .pagination {
+        margin-top: 16px;
+        text-align: center;
+    }
+    .pagination-link {
+        padding: 8px 12px;
+        margin: 0 4px;
+        background: #E5E7EB;
+        border-radius: 4px;
+        text-decoration: none;
+        color: #1F2937;
+    }
+    .pagination-link:hover {
+        background: #D1D5DB;
+    }
+    .current {
+        padding: 8px 12px;
+        background: #3B82F6;
+        color: white;
+        border-radius: 4px;
+    }
+    .button {
+        display: inline-block;
+        padding: 8px 16px;
+        background: #3B82F6;
+        color: white;
+        border-radius: 4px;
+        text-decoration: none;
+        transition: background 0.2s;
+    }
+    .button:hover {
+        background: #2563EB;
+    }
+    @keyframes fadeOut {
+        to { opacity: 0; height: 0; padding: 0; margin: 0; }
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+    }
+    @keyframes tada {
+        0% { transform: scale(1); }
+        10%, 20% { transform: scale(0.9) rotate(-3deg); }
+        30%, 50%, 70%, 90% { transform: scale(1.1) rotate(3deg); }
+        40%, 60%, 80% { transform: scale(1.1) rotate(-3deg); }
+        100% { transform: scale(1) rotate(0); }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
+<h1 class="text-3xl font-bold text-gray-800 mb-6">پروفایل کارشناس فروش</h1>
 
-    <h1 class="text-3xl font-bold text-gray-800 mb-6">پروفایل کارشناس فروش</h1>
-    <!-- پاپ‌آپ نوتیفیکیشن -->
-    <div id="notification-popup" class="notification-popup">
-        <div class="popup-header">
-            <div class="popup-title">
-                <i class="fas fa-bell"></i>
-                <span>اعلان جدید</span>
-            </div>
-            <button class="popup-close" onclick="closeNotification()">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="popup-content">
-            <p id="notification-message">پیام نمونه برای تست نمایش</p>
-        </div>
-        <div class="progress-container">
-            <div id="progress-bar" class="progress-bar"></div>
-        </div>
-    </div>
-
-    <!-- پیام‌ها -->
-    {% if messages %}
-        {% for message in messages %}
-            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded">{{ message }}</div>
-        {% endfor %}
-    {% endif %}
-
-    <!-- اطلاعات پروفایل -->
-    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
-        <p class="text-lg"><strong>نام:</strong> {{ sales_agent.name }}</p>
-        <p class="text-lg"><strong>شماره تلفن:</strong> {{ sales_agent.phone_number }}</p>
-        <a href="{% url 'sales_dashboard' %}" class="button">
-            مشاهده داشبورد فروش
-        </a>
-    </div>
-
-    <div class="notification-center">
-        <div class="notification-bell" id="notificationBell">
-            <span class="badge" id="notificationCount">{{ notifications.count }}</span>
+<!-- پاپ‌آپ نوتیفیکیشن -->
+<div id="notification-popup" class="notification-popup">
+    <div class="popup-header">
+        <div class="popup-title">
             <i class="fas fa-bell"></i>
+            <span>اعلان جدید</span>
         </div>
-        <div class="notification-dropdown" id="notificationDropdown">
-            <div class="notification-header">
-                <h4>نوتیفیکیشن‌ها</h4>
-                <form method="post" action="{% url 'delete_all_notification' %}" class="mt-2">
-                    {% csrf_token %}
-                    <button type="submit" class="text-blue-500 hover:underline text-sm">خواندن همه</button>
-                </form>
-            </div>
-            <div class="notification-list" id="notificationList">
-                {% for notification in notifications %}
-                <div class="notification-item {% if notification.is_read %}read{% endif %}" 
-                     data-notification-id="{{ notification.id }}">
-                    <div class="notification-icon">
-                        <i class="fas fa-{{ notification.icon|default:'info-circle' }}"></i>
-                    </div>
-                    <div class="notification-content">
-                        <p>{{ notification.message }}</p>
-                        <small>{{ notification.created_at|timesince }} پیش</small>
-                    </div>
-                    <form method="post" action="{% url 'delete_notification' notification.id %}" class="mt-2">
-                        {% csrf_token %}
-                        <button type="submit" class="text-blue-500 hover:underline text-sm">خواندم</button>
-                    </form>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-    
-    <div class="mb-6 flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-lg shadow-md">
-        <label for="taskFilter" class="text-gray-700 font-semibold text-sm sm:text-base whitespace-nowrap">فیلتر تسک‌ها:</label>
-        <select id="taskFilter" name="task_filter" style="height: 30px; border-color: green; border-radius: 8px;">
-            <option value="all" {% if request.GET.task_filter == 'all' %}selected{% endif %}>همه</option>
-            <option value="today" {% if request.GET.task_filter == 'today' %}selected{% endif %}>امروز</option>
-            <option value="overdue" {% if request.GET.task_filter == 'overdue' %}selected{% endif %}>سررسیده</option>
-        </select>
-        <input type="text" id="taskSearch" name="task_search" value="{{ request.GET.task_search }}" 
-                style="height: 30px; border-color: green; border-radius: 8px;"
-                placeholder="جستجو در تسک‌ها (توضیحات، تاریخ، ...)">
-        <button type="button" onclick="applyTaskFilters()" class="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-            اعمال فیلتر
+        <button class="popup-close" onclick="closeNotification()">
+            <i class="fas fa-times"></i>
         </button>
     </div>
+    <div class="popup-content">
+        <p id="notification-message">پیام نمونه برای تست نمایش</p>
+    </div>
+    <div class="progress-container">
+        <div id="progress-bar" class="progress-bar"></div>
+    </div>
+</div>
 
-    <div class="profile-container">
-        <!-- ستون تسک‌ها -->
-        <div class="tasks-section">
-            <h2>همه تسک‌ها</h2>
-            <ul class="task-list">
-                {% for task in tasks %}
-                    <li class="task-item task-pending fade-in" 
+<!-- پیام‌ها -->
+{% if messages %}
+    {% for message in messages %}
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded notification-message" data-message="{{ message }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+<!-- اطلاعات پروفایل -->
+<div class="bg-white p-6 rounded-lg shadow-md mb-6">
+    <p class="text-lg"><strong>نام:</strong> {{ sales_agent.name }}</p>
+    <p class="text-lg"><strong>شماره تلفن:</strong> {{ sales_agent.phone_number }}</p>
+    <a href="{% url 'sales_dashboard' %}" class="button">
+        مشاهده داشبورد فروش
+    </a>
+</div>
+
+<div class="notification-center">
+    <div class="notification-bell" id="notificationBell">
+        <span class="badge" id="notificationCount">{{ notifications.count }}</span>
+        <i class="fas fa-bell"></i>
+    </div>
+    <div class="notification-dropdown" id="notificationDropdown">
+        <div class="notification-header">
+            <h4>نوتیفیکیشن‌ها</h4>
+            <form method="post" action="{% url 'delete_all_notification' %}" class="mt-2">
+                {% csrf_token %}
+                <button type="submit" class="text-blue-500 hover:underline text-sm">خواندن همه</button>
+            </form>
+        </div>
+        <div class="notification-list" id="notificationList">
+            {% for notification in notifications %}
+            <div class="notification-item {% if notification.is_read %}read{% endif %}" 
+                 data-notification-id="{{ notification.id }}">
+                <div class="notification-icon">
+                    <i class="fas fa-{{ notification.icon|default:'info-circle' }}"></i>
+                </div>
+                <div class="notification-content">
+                    <p>{{ notification.message }}</p>
+                    <small>{{ notification.created_at|timesince }} پیش</small>
+                </div>
+                <form method="post" action="{% url 'delete_notification' notification.id %}" class="mt-2">
+                    {% csrf_token %}
+                    <button type="submit" class="text-blue-500 hover:underline text-sm">خواندم</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="mb-6 flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-lg shadow-md">
+    <label for="taskFilter" class="text-gray-700 font-semibold text-sm sm:text-base whitespace-nowrap">فیلتر تسک‌ها:</label>
+    <select id="taskFilter" name="task_filter" style="height: 30px; border-color: green; border-radius: 8px;">
+        <option value="all" {% if request.GET.task_filter == 'all' %}selected{% endif %}>همه</option>
+        <option value="today" {% if request.GET.task_filter == 'today' %}selected{% endif %}>امروز</option>
+        <option value="overdue" {% if request.GET.task_filter == 'overdue' %}selected{% endif %}>سررسیده</option>
+    </select>
+    <input type="text" id="taskSearch" name="task_search" value="{{ request.GET.task_search }}" 
+           style="height: 30px; border-color: green; border-radius: 8px;"
+           placeholder="جستجو در تسک‌ها (توضیحات، تاریخ، ...)">
+    <button type="button" onclick="applyTaskFilters()" class="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+        اعمال فیلتر
+    </button>
+</div>
+
+<div class="profile-container">
+    <!-- ستون تسک‌ها -->
+    <div class="tasks-section">
+        <h2>همه تسک‌ها</h2>
+        <ul class="task-list">
+            {% for task in tasks %}
+                <li class="task-item task-pending fade-in" 
                     draggable="true"
                     data-task-id="{{ task.id }}"
                     ondragstart="dragStart(event)"
                     ondragover="dragOver(event)"
                     ondrop="drop(event)">
+                    <div class="task-content">
+                        <strong>توضیحات:</strong> {{ task.description }}<br>
+                        <strong>تاریخ:</strong> {{ task.due_date|date:"Y/m/d H:i" }}<br>
+                        <strong>وضعیت:</strong> 
+                        <span class="task-status">
+                            <i class="fas fa-times-circle icon-pending"></i> انجام نشده
+                        </span>
+                        <form method="post" action="{% url 'change_task_status' task.id %}" class="mt-2">
+                            {% csrf_token %}
+                            <button type="submit" name="change_status" style="background-color: {% if task.status %}red{% else %}green{% endif %}; color: white; padding: 8px 16px; border-radius: 4px;">
+                                {% if task.status %}لغو انجام{% else %}انجام شد{% endif %}
+                            </button>
+                        </form>
+                    </div>
+                </li>
+            {% empty %}
+                <li class="task-item empty-task fade-in">هیچ تسکی یافت نشد</li>
+            {% endfor %}
+        </ul>
+
+        <!-- Pagination برای تسک‌های انجام نشده -->
+        <div class="pagination">
+            <span class="step-links">
+                {% if tasks.has_previous %}
+                    <a href="?task_page=1" class="pagination-link">« اول</a>
+                    <a href="?task_page={{ tasks.previous_page_number }}" class="pagination-link">قبلی</a>
+                {% endif %}
+                <span class="current">
+                    صفحه {{ tasks.number }} از {{ tasks.paginator.num_pages }}
+                </span>
+                {% if tasks.has_next %}
+                    <a href="?task_page={{ tasks.next_page_number }}" class="pagination-link">بعدی</a>
+                    <a href="?task_page={{ tasks.paginator.num_pages }}" class="pagination-link">آخر »</a>
+                {% endif %}
+            </span>
+        </div>
+
+        <!-- دکمه نمایش تسک‌های انجام شده -->
+        <a id="show-completed-tasks" class="button">نمایش تسک‌های انجام شده</a>
+
+        <!-- بخش تسک‌های انجام شده (مخفی شده) -->
+        <div id="completed-tasks-section" style="display: none;">
+            <h3>تسک‌های انجام شده</h3>
+            <ul class="task-list">
+                {% for task in completed_tasks_page %}
+                    <li class="task-item task-done fade-in">
                         <div class="task-content">
                             <strong>توضیحات:</strong> {{ task.description }}<br>
                             <strong>تاریخ:</strong> {{ task.due_date|date:"Y/m/d H:i" }}<br>
                             <strong>وضعیت:</strong> 
                             <span class="task-status">
-                                <i class="fas fa-times-circle icon-pending"></i> انجام نشده
+                                <i class="fas fa-check-circle icon-done"></i> انجام شده
                             </span>
-                            <form method="post" action="{% url 'change_task_status' task.id %}">
+                            <form method="post" action="{% url 'change_task_status' task.id %}" class="mt-2">
                                 {% csrf_token %}
-                                <button type="submit" name="change_status" style="background-color: {% if task.status %}red{% else %}green{% endif %}; color: white;">
+                                <button type="submit" name="change_status" style="background-color: {% if task.status %}red{% else %}green{% endif %}; color: white; padding: 8px 16px; border-radius: 4px;">
                                     {% if task.status %}لغو انجام{% else %}انجام شد{% endif %}
                                 </button>
                             </form>
-            
                         </div>
                     </li>
                 {% empty %}
-                    <li class="task-item empty-task fade-in">هیچ تسکی یافت نشد</li>
+                    <li class="task-item empty-task fade-in">هیچ تسک انجام شده‌ای یافت نشد</li>
                 {% endfor %}
             </ul>
 
-            <!-- Pagination برای تسک‌های انجام نشده -->
+            <!-- Pagination برای تسک‌های انجام شده -->
             <div class="pagination">
                 <span class="step-links">
-                    {% if tasks.has_previous %}
-                        <a href="?task_page=1" class="pagination-link">&laquo; اول</a>
-                        <a href="?task_page={{ tasks.previous_page_number }}" class="pagination-link">قبلی</a>
+                    {% if completed_tasks_page.has_previous %}
+                        <a href="?completed_task_page=1" class="pagination-link">« اول</a>
+                        <a href="?completed_task_page={{ completed_tasks_page.previous_page_number }}" class="pagination-link">قبلی</a>
                     {% endif %}
-
                     <span class="current">
-                        صفحه {{ tasks.number }} از {{ tasks.paginator.num_pages }}
+                        صفحه {{ completed_tasks_page.number }} از {{ completed_tasks_page.paginator.num_pages }}
                     </span>
-
-                    {% if tasks.has_next %}
-                        <a href="?task_page={{ tasks.next_page_number }}" class="pagination-link">بعدی</a>
-                        <a href="?task_page={{ tasks.paginator.num_pages }}" class="pagination-link">آخر &raquo;</a>
-                    {% endif %}
-                </span>
-            </div>
-
-            <!-- دکمه نمایش تسک‌های انجام شده -->
-            <a id="show-completed-tasks" class="button">نمایش تسک‌های انجام شده</a>
-
-            <!-- بخش تسک‌های انجام شده (مخفی شده) -->
-            <div id="completed-tasks-section" style="display: none;">
-                <h3>تسک‌های انجام شده</h3>
-                <ul class="task-list">
-                    {% for task in completed_tasks_page %}
-                        <li class="task-item task-done fade-in">
-                            <div class="task-content">
-                                <strong>توضیحات:</strong> {{ task.description }}<br>
-                                <strong>تاریخ:</strong> {{ task.due_date|date:"Y/m/d H:i" }}<br>
-                                <strong>وضعیت:</strong> 
-                                <span class="task-status">
-                                    <i class="fas fa-check-circle icon-done"></i> انجام شده
-                                </span>
-                                <form method="post" action="{% url 'change_task_status' task.id %}">
-                                    {% csrf_token %}
-                                    <button type="submit" name="change_status" style="background-color: {% if task.status %}red{% else %}green{% endif %}; color: white;">
-                                        {% if task.status %}لغو انجام{% else %}انجام شد{% endif %}
-                                    </button>
-                                </form>
-    
-                            </div>
-                        </li>
-                    {% empty %}
-                        <li class="task-item empty-task fade-in">هیچ تسک انجام شده‌ای یافت نشد</li>
-                    {% endfor %}
-                </ul>
-
-                <!-- Pagination برای تسک‌های انجام شده -->
-                <div class="pagination">
-                    <span class="step-links">
-                        {% if completed_tasks_page.has_previous %}
-                            <a href="?completed_task_page=1" class="pagination-link">&laquo; اول</a>
-                            <a href="?completed_task_page={{ completed_tasks_page.previous_page_number }}" class="pagination-link">قبلی</a>
-                        {% endif %}
-
-                        <span class="current">
-                            صفحه {{ completed_tasks_page.number }} از {{ completed_tasks_page.paginator.num_pages }}
-                        </span>
-
-                        {% if completed_tasks_page.has_next %}
-                            <a href="?completed_task_page={{ completed_tasks_page.next_page_number }}" class="pagination-link">بعدی</a>
-                            <a href="?completed_task_page={{ completed_tasks_page.paginator.num_pages }}" class="pagination-link">آخر &raquo;</a>
-                        {% endif %}
-                    </span>
-                </div>
-            </div>
-        </div>
-
-        <div class="purchases-section">
-            <h2>خریدها</h2>
-        
-            <h3>پرداخت نشده (Unpaid)</h3>
-            <ul class="purchase-list">
-                {% for purchase in unpaid %}
-                    <li class="purchase-item unpaid slide-in">
-                        <div class="purchase-content">
-                            <strong><i class="fas fa-user icon-customer"></i> مشتری:</strong> {{ purchase.customer }}<br>
-                            <strong><i class="fas fa-box icon-cargo"></i> محصول:</strong> {{ purchase.cargo }}<br>
-                            <strong><i class="fas fa-weight icon-weight"></i> وزن:</strong> {{ purchase.order_weight|add_commas }} کیلوگرم<br>
-                            <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}<br>
-                            <strong><i class="fas fa-check icon-status"></i> وضعیت:</strong> {{ purchase.state|default:'نامشخص' }}
-                        </div>
-                        <a href="{% url 'purchase_CRUD' purchase.id %}" class="button"> مشاهده جزئیات</a>
-                    </li>
-                {% empty %}
-                    <li class="purchase-item empty-purchase slide-in">هیچ خرید پرداخت نشده‌ای یافت نشد</li>
-                {% endfor %}
-            </ul>
-            <!-- Pagination for unpaid purchases -->
-            <div class="pagination">
-                <span class="step-links">
-                    {% if unpaid.has_previous %}
-                        <a href="?unpaid_page=1" class="pagination-link">&laquo; اول</a>
-                        <a href="?unpaid_page={{ unpaid.previous_page_number }}" class="pagination-link">قبلی</a>
-                    {% endif %}
-        
-                    <span class="current">
-                        صفحه {{ unpaid.number }} از {{ unpaid.paginator.num_pages }}
-                    </span>
-        
-                    {% if unpaid.has_next %}
-                        <a href="?unpaid_page={{ unpaid.next_page_number }}" class="pagination-link">بعدی</a>
-                        <a href="?unpaid_page={{ unpaid.paginator.num_pages }}" class="pagination-link">آخر &raquo;</a>
-                    {% endif %}
-                </span>
-            </div>
-        
-            <h3>فعال (Active)</h3>
-            <ul class="purchase-list">
-                {% for purchase in active %}
-                    <li class="purchase-item active slide-in">
-                        <div class="purchase-content">
-                            <strong><i class="fas fa-user icon-customer"></i> مشتری:</strong> {{ purchase.customer }}<br>
-                            <strong><i class="fas fa-box icon-cargo"></i> محصول:</strong> {{ purchase.cargo }}<br>
-                            <strong><i class="fas fa-weight icon-weight"></i> وزن:</strong> {{ purchase.order_weight|add_commas }} کیلوگرم<br>
-                            <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
-                        </div>
-                        <a href="{% url 'purchase_CRUD' purchase.id %}" class="button"> مشاهده جزئیات</a>
-                    </li>
-                {% empty %}
-                    <li class="purchase-item empty-purchase slide-in">هیچ خرید فعالی یافت نشد</li>
-                {% endfor %}
-            </ul>
-            <!-- Pagination for active purchases -->
-            <div class="pagination">
-                <span class="step-links">
-                    {% if active.has_previous %}
-                        <a href="?active_page=1" class="pagination-link">&laquo; اول</a>
-                        <a href="?active_page={{ active.previous_page_number }}" class="pagination-link">قبلی</a>
-                    {% endif %}
-        
-                    <span class="current">
-                        صفحه {{ active.number }} از {{ active.paginator.num_pages }}
-                    </span>
-        
-                    {% if active.has_next %}
-                        <a href="?active_page={{ active.next_page_number }}" class="pagination-link">بعدی</a>
-                        <a href="?active_page={{ active.paginator.num_pages }}" class="pagination-link">آخر &raquo;</a>
-                    {% endif %}
-                </span>
-            </div>
-        
-            <h3>آرشیو شده (Archived)</h3>
-            <ul class="purchase-list">
-                {% for purchase in archived %}
-                    <li class="purchase-item archived slide-in">
-                        <div class="purchase-content">
-                            <strong><i class="fas fa-user icon-customer"></i> مشتری:</strong> {{ purchase.customer }}<br>
-                            <strong><i class="fas fa-box icon-cargo"></i> محصول:</strong> {{ purchase.cargo }}<br>
-                            <strong><i class="fas fa-weight icon-weight"></i> وزن:</strong> {{ purchase.order_weight|add_commas }} کیلوگرم<br>
-                            <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
-                        </div>
-                        <a href="{% url 'purchase_CRUD' purchase.id %}" class="button"> مشاهده جزئیات</a>
-                    </li>
-                {% empty %}
-                    <li class="purchase-item empty-purchase slide-in">هیچ خرید آرشیو شده‌ای یافت نشد</li>
-                {% endfor %}
-            </ul>
-            <!-- Pagination for archived purchases -->
-            <div class="pagination">
-                <span class="step-links">
-                    {% if archived.has_previous %}
-                        <a href="?archived_page=1" class="pagination-link">&laquo; اول</a>
-                        <a href="?archived_page={{ archived.previous_page_number }}" class="pagination-link">قبلی</a>
-                    {% endif %}
-        
-                    <span class="current">
-                        صفحه {{ archived.number }} از {{ archived.paginator.num_pages }}
-                    </span>
-        
-                    {% if archived.has_next %}
-                        <a href="?archived_page={{ archived.next_page_number }}" class="pagination-link">بعدی</a>
-                        <a href="?archived_page={{ archived.paginator.num_pages }}" class="pagination-link">آخر &raquo;</a>
+                    {% if completed_tasks_page.has_next %}
+                        <a href="?completed_task_page={{ completed_tasks_page.next_page_number }}" class="pagination-link">بعدی</a>
+                        <a href="?completed_task_page={{ completed_tasks_page.paginator.num_pages }}" class="pagination-link">آخر »</a>
                     {% endif %}
                 </span>
             </div>
         </div>
     </div>
-    <br>
-    <p>مجموع فروش‌های این ماه به تن:  {{ all_sales }}</p>
-    <br>
 
-    <a href="{% url 'customer_list' %}" class="button" aria-label="مشاهده لیست مشتریان">مشاهده لیست مشتریان</a>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // افزودن کلاس‌های انیمیشن به عناصر
-            const taskItems = document.querySelectorAll('.task-item');
-            const purchaseItems = document.querySelectorAll('.purchase-item');
+    <div class="purchases-section">
+        <h2>خریدها</h2>
+        
+        <h3>پرداخت نشده (Unpaid)</h3>
+        <ul class="purchase-list">
+            {% for purchase in unpaid %}
+                <li class="purchase-item unpaid slide-in">
+                    <div class="purchase-content">
+                        <strong><i class="fas fa-user icon-customer"></i> مشتری:</strong> {{ purchase.customer }}<br>
+                        <strong><i class="fas fa-box icon-cargo"></i> محصول:</strong> {{ purchase.cargo }}<br>
+                        <strong><i class="fas fa-weight icon-weight"></i> وزن:</strong> {{ purchase.weight|add_commas }} کیلوگرم<br>
+                        <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
+                    </div>
+                    <a href="{% url 'purchase_CRUD' purchase.id %}" class="button">مشاهده جزئیات</a>
+                </li>
+            {% empty %}
+                <li class="purchase-item empty-purchase slide-in">هیچ خرید پرداخت نشده‌ای یافت نشد</li>
+            {% endfor %}
+        </ul>
+        <!-- Pagination for unpaid purchases -->
+        <div class="pagination">
+            <span class="step-links">
+                {% if unpaid.has_previous %}
+                    <a href="?unpaid_page=1" class="pagination-link">« اول</a>
+                    <a href="?unpaid_page={{ unpaid.previous_page_number }}" class="pagination-link">قبلی</a>
+                {% endif %}
+                <span class="current">
+                    صفحه {{ unpaid.number }} از {{ unpaid.paginator.num_pages }}
+                </span>
+                {% if unpaid.has_next %}
+                    <a href="?unpaid_page={{ unpaid.next_page_number }}" class="pagination-link">بعدی</a>
+                    <a href="?unpaid_page={{ unpaid.paginator.num_pages }}" class="pagination-link">آخر »</a>
+                {% endif %}
+            </span>
+        </div>
+        
+        <h3>فعال (Active)</h3>
+        <ul class="purchase-list">
+            {% for purchase in active %}
+                <li class="purchase-item active slide-in">
+                    <div class="purchase-content">
+                        <strong><i class="fas fa-user icon-customer"></i> مشتری:</strong> {{ purchase.customer }}<br>
+                        <strong><i class="fas fa-box icon-cargo"></i> محصول:</strong> {{ purchase.cargo }}<br>
+                        <strong><i class="fas fa-weight icon-weight"></i> وزن:</strong> {{ purchase.weight|add_commas }} کیلوگرم<br>
+                        <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
+                    </div>
+                    <a href="{% url 'purchase_CRUD' purchase.id %}" class="button">مشاهده جزئیات</a>
+                </li>
+            {% empty %}
+                <li class="purchase-item empty-purchase slide-in">هیچ خرید فعالی یافت نشد</li>
+            {% endfor %}
+        </ul>
+        <!-- Pagination for active purchases -->
+        <div class="pagination">
+            <span class="step-links">
+                {% if active.has_previous %}
+                    <a href="?active_page=1" class="pagination-link">« اول</a>
+                    <a href="?active_page={{ active.previous_page_number }}" class="pagination-link">قبلی</a>
+                {% endif %}
+                <span class="current">
+                    صفحه {{ active.number }} از {{ active.paginator.num_pages }}
+                </span>
+                {% if active.has_next %}
+                    <a href="?active_page={{ active.next_page_number }}" class="pagination-link">بعدی</a>
+                    <a href="?active_page={{ active.paginator.num_pages }}" class="pagination-link">آخر »</a>
+                {% endif %}
+            </span>
+        </div>
+        
+        <h3>آرشیو شده (Archived)</h3>
+        <ul class="purchase-list">
+            {% for purchase in archived %}
+            <li class="purchase-item archived slide-in">
+                <div class="purchase-content">
+                    <strong><i class="fas fa-user icon-customer"></i> مشتری:</strong> {{ purchase.customer }}<br>
+                    <strong><i class="fas fa-box icon-cargo"></i> محصول:</strong> {{ purchase.cargo }}<br>
+                    <strong><i class="fas fa-weight icon-weight"></i> وزن:</strong> {{ purchase.weight|add_commas }} کیلوگرم<br>
+                    <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
+                </div>
+                <a href="{% url 'purchase_CRUD' purchase.id %}" class="button">مشاهده جزئیات</a>
+            </li>
+            {% empty %}
+            <li class="purchase-item empty-purchase slide-in">هیچ خرید آرشیو شده‌ای یافت نشد</li>
+            {% endfor %}
+        </ul>
+        <!-- Pagination for archived purchases -->
+        <div class="pagination">
+            <span class="step-links">
+                {% if archived.has_previous %}
+                <a href="?archived_page=1" class="pagination-link">« اول</a>
+                <a href="?archived_page={{ archived.previous_page_number }}" class="pagination-link">قبلی</a>
+                {% endif %}
+                <span class="current">
+                    صفحه {{ archived.number }} از {{ archived.paginator.num_pages }}
+                </span>
+                {% if archived.has_next %}
+                <a href="?archived_page={{ archived.next_page_number }}" class="pagination-link">بعدی</a>
+                <a href="?archived_page={{ archived.paginator.num_pages }}" class="pagination-link">آخر »</a>
+                {% endif %}
+            </span>
+        </div>
+    </div>
+</div>
+<br>
+<p>مجموع فروش‌های این ماه به تن: {{ all_sales }}</p>
+<br>
+<a href="{% url 'customer_list' %}" class="button" aria-label="مشاهده لیست مشتریان">مشاهده لیست مشتریان</a>
 
-            taskItems.forEach((item, index) => {
-                setTimeout(() => {
-                    item.classList.add('fade-in');
-                }, index * 100);
-            });
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('صفحه لود شد');
 
-            purchaseItems.forEach((item, index) => {
-                setTimeout(() => {
-                    item.classList.add('slide-in');
-                }, index * 100);
-            });
+    // انیمیشن برای تسک‌ها و خریدها
+    const taskItems = document.querySelectorAll('.task-item');
+    const purchaseItems = document.querySelectorAll('.purchase-item');
 
-            // نمایش/پنهان کردن بخش‌ها با انیمیشن
-            const showCompletedTasksButton = document.getElementById('show-completed-tasks');
-            const completedTasksSection = document.getElementById('completed-tasks-section');
+    taskItems.forEach((item, index) => {
+        setTimeout(() => {
+            item.classList.add('fade-in');
+        }, index * 100);
+    });
 
-            showCompletedTasksButton.addEventListener('click', function() {
-                if (completedTasksSection.style.display === 'none') {
-                    completedTasksSection.style.display = 'block';
-                    completedTasksSection.classList.add('fade-in');
-                    this.textContent = 'پنهان کردن تسک‌های انجام شده';
-                } else {
-                    completedTasksSection.style.display = 'none';
-                    this.textContent = 'نمایش تسک‌های انجام شده';
-                }
-            });
-        });
-    </script>
+    purchaseItems.forEach((item, index) => {
+        setTimeout(() => {
+            item.classList.add('slide-in');
+        }, index * 100);
+    });
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const toggleButton = document.getElementById("toggle-notifications");
-            const notificationsContainer = document.getElementById("notifications-container");
+    // نمایش/پنهان کردن تسک‌های انجام شده
+    const showCompletedTasksButton = document.getElementById('show-completed-tasks');
+    const completedTasksSection = document.getElementById('completed-tasks-section');
 
-            toggleButton.addEventListener("click", function () {
-                if (notificationsContainer.style.display === "none") {
-                    notificationsContainer.style.display = "block";
-                    toggleButton.textContent = "🔔 پنهان کردن نوتیفیکیشن‌ها";
-                } else {
-                    notificationsContainer.style.display = "none";
-                    toggleButton.textContent = "🔔 نمایش نوتیفیکیشن‌ها";
-                }
-            });
-        });
-
-    </script>
-
-    <script>
-        document.getElementById('taskFilter').addEventListener('change', filterTasks);
-        document.getElementById('taskSearch').addEventListener('input', filterTasks);
-
-        function filterTasks() {
-            const filter = document.getElementById('taskFilter').value;
-            const search = document.getElementById('taskSearch').value.toLowerCase();
-            const taskItems = document.querySelectorAll('.task-item');
-
-            taskItems.forEach(item => {
-                const desc = item.querySelector('.task-content').textContent.toLowerCase();
-                const isPending = item.classList.contains('task-pending');
-                let show = true;
-
-                if (filter === 'today' && !desc.includes(new Date().toLocaleDateString('fa-IR'))) show = false;
-                if (filter === 'overdue' && !isPending) show = false;
-                if (search && !desc.includes(search)) show = false;
-
-                item.style.display = show ? 'block' : 'none';
-            });
+    showCompletedTasksButton.addEventListener('click', function() {
+        if (completedTasksSection.style.display === 'none') {
+            completedTasksSection.style.display = 'block';
+            completedTasksSection.classList.add('fade-in');
+            this.textContent = 'پنهان کردن تسک‌های انجام شده';
+        } else {
+            completedTasksSection.style.display = 'none';
+            this.textContent = 'نمایش تسک‌های انجام شده';
         }
-    </script>
-    <script>
-        document.getElementById('taskFilter').addEventListener('change', function() {
-            const url = new URL(window.location);
-            url.searchParams.set('task_filter', this.value);
-            url.searchParams.set('task_page', 1); // ریست صفحه به 1
-            window.location = url;
-        });
+    });
 
-        document.getElementById('taskSearch').addEventListener('input', function() {
-            const search = this.value.toLowerCase();
-            const taskItems = document.querySelectorAll('.task-item');
-            taskItems.forEach(item => {
-                const desc = item.querySelector('.task-content').textContent.toLowerCase();
-                item.style.display = desc.includes(search) ? 'block' : 'none';
-            });
-        });
-    </script>
-    <script>
-    function showNotification(message, type = 'info') {
+    // بررسی پیام‌های جدید و نمایش پاپ‌آپ
+    const messageElements = document.querySelectorAll('.notification-message');
+    messageElements.forEach(element => {
+        const messageText = element.getAttribute('data-message');
+        console.log('پیام شناسایی شد:', messageText);
+        if (messageText.includes('اعلان جدید')) {
+            console.log('پیام اعلان جدید پیدا شد:', messageText);
+            showNotification(messageText, 'info');
+        }
+    });
+});
+
+// فیلتر تسک‌ها
+function applyTaskFilters() {
+    const filter = document.getElementById('taskFilter').value;
+    const search = document.getElementById('taskSearch').value;
+    const url = new URL(window.location);
+    url.searchParams.set('task_filter', filter);
+    url.searchParams.set('task_search', search);
+    url.searchParams.set('task_page', 1);
+    window.location = url;
+}
+
+// مدیریت نمایش نوتیفیکیشن پاپ‌آپ
+function showNotification(message, type = 'info') {
+    console.log('نمایش پاپ‌آپ با پیام:', message);
     const popup = document.getElementById('notification-popup');
     const messageElement = document.getElementById('notification-message');
     const progressBar = document.getElementById('progress-bar');
@@ -416,117 +568,139 @@
         return;
     }
 
-    // تنظیم محتوا
     messageElement.textContent = message;
     popup.classList.add('show');
 
-    // تنظیم نوار پیشرفت
     progressBar.style.width = '0%';
     setTimeout(() => {
         progressBar.style.width = '100%';
     }, 10);
 
-    // بستن خودکار پس از ۵ ثانیه
     setTimeout(() => {
         popup.classList.remove('show');
+        progressBar.style.width = '0%';
     }, 5000);
 }
 
-    // تابع بستن نوتیفیکیشن
-    function closeNotification() {
+function closeNotification() {
+    console.log('بستن پاپ‌آپ');
     const popup = document.getElementById('notification-popup');
-    if (popup.dataset.interval) {
-        clearInterval(popup.dataset.interval);
-    }
     popup.classList.remove('show');
+    document.getElementById('progress-bar').style.width = '0%';
 }
 
-    // بررسی نوتیفیکیشن‌های جدید
-    function checkNewNotifications() {
-        fetch('{% url "get_unread_notifications" %}')
-            .then(response => response.json())
-            .then(data => {
-                if(data.unread_count > 0) {
-                    const latestNotification = data.notifications[0];
-                    showNotification(latestNotification.message, latestNotification.type || 'info');
-                    
-                    // علامت‌گذاری به عنوان خوانده شده
-                    fetch(`/notifications/delete/${notificationId}/`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': '{{ csrf_token }}',
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                }
-            });
-    }
+// تابع تست برای نمایش پاپ‌آپ
+function testNotification() {
+    console.log('تست پاپ‌آپ فعال شد');
+    showNotification('این یک نوتیفیکیشن آزمایشی است!', 'info');
+}
 
-    // بررسی هر 30 ثانیه یکبار
-    setInterval(checkNewNotifications, 30000);
+// بررسی نوتیفیکیشن‌های جدید
+function checkNewNotifications() {
+    console.log('بررسی نوتیفیکیشن‌های جدید');
+    fetch('{% url "get_unread_notifications" %}')
+        .then(response => {
+            console.log('پاسخ fetch دریافت شد:', response.status);
+            if (!response.ok) {
+                throw new Error('پاسخ شبکه مشکلی دارد: ' + response.status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('داده‌های نوتیفیکیشن:', data);
+            if (data.unread_count > 0) {
+                const latestNotification = data.notifications[0];
+                console.log('نوتیفیکیشن جدید پیدا شد:', latestNotification);
+                showNotification(latestNotification.message, latestNotification.type || 'info');
+                addNewNotification(latestNotification);
+                updateBadge();
+            } else {
+                console.log('هیچ نوتیفیکیشن جدیدی یافت نشد');
+            }
+        })
+        .catch(error => {
+            console.error('خطا در بررسی نوتیفیکیشن‌ها:', error);
+        });
+}
 
-    // بررسی اولیه هنگام لود صفحه
-    document.addEventListener('DOMContentLoaded', checkNewNotifications);
-</script>
-    <script>
-    // مدیریت نمایش/پنهان کردن نوتیفیکیشن‌ها
-    document.getElementById('notificationBell').addEventListener('click', function(e) {
-        e.stopPropagation();
-        const dropdown = document.getElementById('notificationDropdown');
-        dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-    });
-    
-    // بستن هنگام کلیک خارج
-    document.addEventListener('click', function() {
-        document.getElementById('notificationDropdown').style.display = 'none';
-    });
-    
-    // WebSocket برای نوتیفیکیشن‌های بلادرنگ
-    const notificationSocket = new WebSocket(
-        `wss://${window.location.host}/ws/notifications/{{ request.user.id }}/`
-    );
-    
-    notificationSocket.onmessage = function(e) {
-        const data = JSON.parse(e.data);
-        addNewNotification(data);
-        updateBadge();
-    };
-    
-    function addNewNotification(data) {
-        const notificationList = document.getElementById('notificationList');
-        const notification = document.createElement('div');
-        notification.className = 'notification-item';
-        notification.innerHTML = `
-            <div class="notification-icon">
-                <i class="fas fa-${data.icon || 'info-circle'}"></i>
-            </div>
-            <div class="notification-content">
-                <p>${data.message}</p>
-                <small>همین الان</small>
-            </div>
-            <button class="notification-close">&times;</button>
-        `;
-        notificationList.insertBefore(notification, notificationList.firstChild);
-    }
-    
-    function updateBadge() {
-        const badge = document.getElementById('notificationCount');
-        badge.textContent = parseInt(badge.textContent) + 1;
-        badge.style.animation = 'pulse 0.5s 2';
-    }
-    </script>
-    <script>
-        // مدیریت حذف نوتیفیکیشن
+// WebSocket برای نوتیفیکیشن‌های بلادرنگ
+const notificationSocket = new WebSocket(
+    `wss://${window.location.host}/ws/notifications/{{ request.user.id }}/`
+);
+
+notificationSocket.onopen = function(e) {
+    console.log('WebSocket متصل شد');
+};
+
+notificationSocket.onmessage = function(e) {
+    console.log('پیام WebSocket دریافت شد:', e.data);
+    const data = JSON.parse(e.data);
+    showNotification(data.message, data.type || 'info');
+    addNewNotification(data);
+    updateBadge();
+};
+
+notificationSocket.onclose = function(e) {
+    console.error('WebSocket بسته شد:', e);
+};
+
+notificationSocket.onerror = function(e) {
+    console.error('خطای WebSocket:', e);
+};
+
+function addNewNotification(data) {
+    console.log('افزودن نوتیفیکیشن جدید:', data);
+    const notificationList = document.getElementById('notificationList');
+    const notification = document.createElement('div');
+    notification.className = 'notification-item';
+    notification.dataset.notificationId = data.id;
+    notification.innerHTML = `
+        <div class="notification-icon">
+            <i class="fas fa-${data.icon || 'info-circle'}"></i>
+        </div>
+        <div class="notification-content">
+            <p>${data.message}</p>
+            <small>همین الان</small>
+        </div>
+        <form method="post" action="/notifications/delete/${data.id}/" class="mt-2">
+            <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+            <button type="submit" class="text-blue-500 hover:underline text-sm">خواندم</button>
+        </form>
+    `;
+    notificationList.insertBefore(notification, notificationList.firstChild);
+}
+
+function updateBadge() {
+    console.log('به‌روزرسانی badge');
+    const badge = document.getElementById('notificationCount');
+    badge.textContent = parseInt(badge.textContent) + 1;
+    badge.style.animation = 'pulse 0.5s 2';
+}
+
+// مدیریت نمایش/پنهان کردن دراپ‌داون نوتیفیکیشن‌ها
+document.getElementById('notificationBell').addEventListener('click', function(e) {
+    console.log('کلیک روی زنگوله نوتیفیکیشن');
+    e.stopPropagation();
+    const dropdown = document.getElementById('notificationDropdown');
+    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+});
+
 document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('notification-close')) {
+    if (!e.target.closest('.notification-center')) {
+        console.log('کلیک خارج از notification-center');
+        document.getElementById('notificationDropdown').style.display = 'none';
+    }
+});
+
+// مدیریت حذف نوتیفیکیشن
+document.addEventListener('click', function(e) {
+    if (e.target.closest('form') && e.target.closest('.notification-item')) {
+        console.log('تلاش برای حذف نوتیفیکیشن');
         e.preventDefault();
         const notificationItem = e.target.closest('.notification-item');
         const notificationId = notificationItem.dataset.notificationId;
-        
-        // نمایش انیمیشن حذف
+
         notificationItem.style.animation = 'fadeOut 0.3s forwards';
-        
-        // ارسال درخواست حذف به سرور
         fetch(`/notifications/delete/${notificationId}/`, {
             method: 'POST',
             headers: {
@@ -535,10 +709,12 @@ document.addEventListener('click', function(e) {
             },
             credentials: 'same-origin'
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('پاسخ حذف نوتیفیکیشن:', response.status);
+            return response.json();
+        })
         .then(data => {
             if (data.status === 'success') {
-                // پس از اتمام انیمیشن، آیتم را حذف کن
                 setTimeout(() => {
                     notificationItem.remove();
                     updateBadgeCount();
@@ -549,23 +725,47 @@ document.addEventListener('click', function(e) {
             }
         })
         .catch(error => {
-            console.error('Error:', error);
+            console.error('خطا در حذف نوتیفیکیشن:', error);
             notificationItem.style.animation = '';
         });
     }
 });
 
-// تابع به روزرسانی شماره نوتیفیکیشن‌ها
 function updateBadgeCount() {
+    console.log('به‌روزرسانی تعداد نوتیفیکیشن‌ها');
     const badge = document.getElementById('notificationCount');
     const count = document.querySelectorAll('.notification-item:not(.read)').length;
     badge.textContent = count;
-    
-    // اگر شماره صفر شد، انیمیشن خاصی نمایش بده
     if (count === 0) {
         badge.style.animation = 'tada 0.5s';
         setTimeout(() => badge.style.animation = '', 500);
     }
 }
-    </script>
+
+// بررسی اولیه نوتیفیکیشن‌ها و بررسی دوره‌ای
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('بررسی اولیه نوتیفیکیشن‌ها');
+    checkNewNotifications();
+});
+setInterval(checkNewNotifications, 10000); // کاهش زمان به ۱۰ ثانیه
+
+// مدیریت درگ و دراپ تسک‌ها
+function dragStart(event) {
+    event.dataTransfer.setData('text/plain', event.target.dataset.taskId);
+}
+
+function dragOver(event) {
+    event.preventDefault();
+}
+
+function drop(event) {
+    event.preventDefault();
+    const taskId = event.dataTransfer.getData('text');
+    const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
+    const dropTarget = event.target.closest('.task-item');
+    if (dropTarget && taskElement !== dropTarget) {
+        dropTarget.before(taskElement);
+    }
+}
+</script>
 {% endblock %}

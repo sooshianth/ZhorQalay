@@ -2,7 +2,7 @@ from django.urls import path
 from django.views.generic.base import RedirectView
 from django.urls import path, include
 from .views import cargo_product_view, general_customer_CRUD_page, sales_agent_login, sales_agent_logout, sales_agent_profile_view
-from .views import mark_notification_read, sales_dashboard_view, pop_notification
+from .views import mark_notification_read, sales_dashboard_view, pop_notification, chatBot_view
 
 
 urlpatterns = [
@@ -22,5 +22,8 @@ urlpatterns = [
     path('notifications/delete/<int:notification_id>/', mark_notification_read.mark_notification_read, name='delete_notification'),
     path('notifications/deleteAll/', mark_notification_read.mark_all_notifications_read, name='delete_all_notification'),
     path('get_unread_notifications/', pop_notification.get_unread_notifications, name='get_unread_notifications'),
+    path('api/users/', chatBot_view.user_list, name='user_list'),
+    path('api/chat/history/<int:user_id>/', chatBot_view.chat_history, name='chat_history'),
+    path('api/chat/upload/', chatBot_view.upload_file, name='upload_file'),
     path('captcha/', include('captcha.urls')), 
 ]

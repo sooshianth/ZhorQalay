@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'colorfield',
     'captcha',
     'django_celery_beat',
+    'rest_framework',
     'whatsapp_api.apps.WhatsappApiConfig',
     'admin_interface',  
     'django.contrib.admin',
@@ -184,3 +185,12 @@ CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
