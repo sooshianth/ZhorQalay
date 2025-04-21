@@ -1,38 +1,141 @@
 {% extends 'base.html' %}
 {% block title %}پروفایل مدیر لجستیک{% endblock %}
+{% load static %}
+
+{% block head_styles %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css_files/manager_profile_style.css' %}" type="text/css">
+{% endblock %}
 
 {% block content %}
     <div class="profile-container">
-        <h2>پروفایل مدیر لجستیک</h2>
+        <div class="profile-header">
+            <h2>پروفایل مدیر لجستیک</h2>
+            <div class="profile-date">تاریخ امروز: <span id="current-date"></span></div>
+        </div>
 
         {% if messages %}
-        {% for message in messages %}
-            <p style="color: red;">{{ message }}</p>
-        {% endfor %}
+        <div class="messages-container">
+            {% for message in messages %}
+                <p class="message {{ message.tags }}">{{ message }}</p>
+            {% endfor %}
+        </div>
         {% endif %}
     
-
-        <table class="profile-info">
-            <tr>
-                <td>نام کاربری</td>
-                <td>{{ user.username }}</td>
-            </tr>
-            <tr>
-                <td>مدیر لجستیک</td>
-                <td>{{ manager.name }}</td>
-            </tr>
-            <tr>
-                <td>شماره تماس</td>
-                <td>{{ manager.phone_number }}</td>
-            </tr>
-            <tr>
-                <td>ایمیل</td>
-                <td>{{ manager.email }}</td>
-            </tr>
-            <tr>
-                <td>پیام</td>
-                <td>{{ manager.message }}</td>
-            </tr>
-        </table>
+        <div class="profile-tabs">
+            <div class="profile-tab">
+                <div class="section-title">اطلاعات شخصی</div>
+                <table class="profile-info" dir="rtl">
+                    <tr>
+                        <td>نام کاربری</td>
+                        <td>{{ user.username }}</td>
+                    </tr>
+                    <tr>
+                        <td>مدیر لجستیک</td>
+                        <td>{{ manager.name }}</td>
+                    </tr>
+                    <tr>
+                        <td>شماره تماس</td>
+                        <td><a href="tel:{{ manager.phone_number }}" class="phone-link">{{ manager.phone_number }}</a></td>
+                    </tr>
+                    <tr>
+                        <td>ایمیل</td>
+                        <td><a href="mailto:{{ manager.email }}" class="email-link">{{ manager.email }}</a></td>
+                    </tr>
+                    <tr>
+                        <td>پیام</td>
+                        <td>{{ manager.message }}</td>
+                    </tr>
+                </table>
+            </div>
+        
+            <div class="profile-tab">
+                <div class="section-title">خریدهای در انتظار اقدام</div>
+                <div class="section-description">این خریدها نیاز به اقدام از سوی شما دارند</div>
+                
+                {% if pending_purchases %}
+                <div class="purchases-summary">
+                    <div class="summary-item">
+                        <span class="summary-number">{{ pending_purchases.count }}</span>
+                        <span class="summary-label">تعداد کل</span>
+                    </div>
+                    <div class="summary-item urgent">
+                        <span class="summary-number">{{ pending_purchases|dictsortreversed:"updated_at"|slice:":5"|length }}</span>
+                        <span class="summary-label">اولویت بالا</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="pending-purchases">
+            {% if pending_purchases %}
+            <div class="purchases-table-container">
+                <table class="purchases-table" dir="rtl">
+                    <thead>
+                        <tr>
+                            <th>تاریخ خرید</th>
+                            <th>کد داخلی</th>
+                            <th>شماره خرید</th>
+                            <th>مشتری</th>
+                            <th>وزن (کیلوگرم)</th>
+                            <th>محصول</th>
+                            <th>وضعیت فعلی</th>
+                            <th>اقدام لازم</th>
+                            <th>عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for purchase in pending_purchases %}
+                        <tr {% if forloop.counter <= 5 %}class="high-priority"{% endif %}>
+                            <td dir="ltr">{{ purchase.created_at|date:"Y/m/d" }}</td>
+                            <td dir="ltr">{{ purchase.invoice_id }}</td>
+                            <td dir="ltr">{{ purchase.purchase_number }}</td>
+                            <td>{{ purchase.customer.name }}</td>
+                            <td class="number">{{ purchase.order_weight|floatformat:0 }}</td>
+                            <td>{{ purchase.cargo|default:"-" }}</td>
+                            <td>{{ purchase.get_state_display }}</td>
+                            <td class="action-needed">
+                                {% if purchase.state == 'BAZAARGAH_CONFIRMED' %}
+                                    <span class="action-tag bazaargah">تایید بازارگاه</span>
+                                {% elif purchase.state == 'ALLOCATION_REGISTERED' %}
+                                    <span class="action-tag allocation">تایید تخصیص</span>
+                                {% elif purchase.state == 'VENDOR_SETTLED' %}
+                                    <span class="action-tag address">ارسال آدرس</span>
+                                {% elif purchase.state == 'ADDRESS_SENT' %}
+                                    <span class="action-tag shipping">تأیید ارسال شدن آدرس به باربری</span>
+                                {% elif purchase.state == 'SENT_TO_SHIPPING' %}
+                                    <span class="action-tag barnameh">تأیید صادر شدن بارنامه</span>
+                                {% elif purchase.state == 'BARNAMEH_ISSUED' %}
+                                    <span class="action-tag delivery">تأیید تحویل به مشتری</span>
+                                {% elif purchase.state == 'INVOICE_ISSUED' or purchase.state == 'SALES_APPROVED' %}
+                                    <span class="action-tag approval">تایید واحد لجستیک</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'purchase_CRUD' purchase.id %}" class="details-btn">مشاهده جزئیات</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="no-purchases">
+                <i class="fas fa-inbox fa-3x"></i>
+                <p>در حال حاضر خریدی در انتظار اقدام وجود ندارد.</p>
+            </div>
+            {% endif %}
+        </div>
     </div>
+
+    <script>
+        // نمایش تاریخ امروز
+        function showPersianDate() {
+            var today = new Date();
+            var options = { year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('current-date').textContent = today.toLocaleDateString('fa-IR', options);
+        }
+        showPersianDate();
+    </script>
 {% endblock %}

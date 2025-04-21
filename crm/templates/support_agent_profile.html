@@ -1,38 +1,63 @@
 {% extends 'base.html' %}
-{% block title %}پروفایل کارشناس پشتیبانی{% endblock %}
+{% block title %}پروفایل کارشناس پیگیری{% endblock %}
+{% load static %}
+
+{% block head_styles %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css_files/manager_profile_style.css' %}" type="text/css">
+{% endblock %}
 
 {% block content %}
     <div class="profile-container">
-        <h2>پروفایل کارشناس پشتیبانی</h2>
+        <div class="profile-header">
+            <h2>پروفایل کارشناس پیگیری</h2>
+            <div class="profile-date">تاریخ امروز: <span id="current-date"></span></div>
+        </div>
 
         {% if messages %}
-        {% for message in messages %}
-            <p style="color: red;">{{ message }}</p>
-        {% endfor %}
+        <div class="messages-container">
+            {% for message in messages %}
+                <p class="message {{ message.tags }}">{{ message }}</p>
+            {% endfor %}
+        </div>
         {% endif %}
     
-
-        <table class="profile-info">
-            <tr>
-                <td>نام کاربری</td>
-                <td>{{ user.username }}</td>
-            </tr>
-            <tr>
-                <td>نام و نام خانوادگی</td>
-                <td>{{ agent.name }}</td>
-            </tr>
-            <tr>
-                <td>شماره تماس</td>
-                <td>{{ agent.phone_number }}</td>
-            </tr>
-            <tr>
-                <td>ایمیل</td>
-                <td>{{ agent.email }}</td>
-            </tr>
-            <tr>
-                <td>پیام</td>
-                <td>{{ agent.message }}</td>
-            </tr>
-        </table>
+        <div class="profile-tabs">
+            <div class="profile-tab">
+                <div class="section-title">اطلاعات شخصی</div>
+                <table class="profile-info" dir="rtl">
+                    <tr>
+                        <td>نام کاربری</td>
+                        <td>{{ user.username }}</td>
+                    </tr>
+                    <tr>
+                        <td>نام و نام خانوادگی</td>
+                        <td>{{ agent.name }}</td>
+                    </tr>
+                    <tr>
+                        <td>شماره تماس</td>
+                        <td><a href="tel:{{ agent.phone_number }}" class="phone-link">{{ agent.phone_number }}</a></td>
+                    </tr>
+                    <tr>
+                        <td>ایمیل</td>
+                        <td><a href="mailto:{{ agent.email }}" class="email-link">{{ agent.email }}</a></td>
+                    </tr>
+                    <tr>
+                        <td>پیام</td>
+                        <td>{{ agent.message }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
     </div>
+
+    <script>
+        // نمایش تاریخ امروز
+        function showPersianDate() {
+            var today = new Date();
+            var options = { year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('current-date').textContent = today.toLocaleDateString('fa-IR', options);
+        }
+        showPersianDate();
+    </script>
 {% endblock %}
