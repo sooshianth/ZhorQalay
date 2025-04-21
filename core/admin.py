@@ -4,12 +4,11 @@ from .CargoProductModel import CargoProduct
 from .CustomerModel import Customer, PhoneNumber
 from .FinancialManagerModel import FinancialManager
 from .LogisticsManagerModel import LogisticsManager
-from .PurchaseModel import Purchase, PurchaseHistory, ShenaseTakhsis
+from .PurchaseModel import Purchase, PurchaseHistory, ShenaseTakhsis, PurchaseReceipts, PurchaseStateChange
 from .SalesAgentModel import SalesAgent
 from .TaskModel import Task
 from .NotificationModel import Notification
 from .SupportAgentModel import SupportAgent
-from .PurchaseModel import PurchaseStateChange
 # @admin.register(Notification)
 # class NotificationAdmin(admin.ModelAdmin):
 #     list_display = ('user', 'message')
@@ -49,6 +48,14 @@ class ShenaseTakhsisInline(admin.TabularInline):
     verbose_name = "شناسه تخصیص"
     verbose_name_plural = "شناسه‌های تخصیص"
 
+class PurchaseReceiptsInline(admin.TabularInline):
+    model = PurchaseReceipts
+    extra = 0
+    readonly_fields = ('created_at',)
+    fields = ('reciept_type', 'reciept_file', 'user', 'created_at')
+    verbose_name = "رسید خرید"
+    verbose_name_plural = "رسیدهای خرید"
+
 # تنظیمات نمایش مدل Purchase در ادمین
 @admin.register(Purchase)
 class PurchaseAdmin(admin.ModelAdmin):
@@ -56,7 +63,7 @@ class PurchaseAdmin(admin.ModelAdmin):
     list_filter = ('customer', 'type', 'state')
     search_fields = ('invoice_id', 'purchase_number', 'customer__name', 'customer__phone_number', 'customer__sales_agent__name')
     ordering = ('-created_at',)
-    inlines = [ShenaseTakhsisInline]
+    inlines = [ShenaseTakhsisInline, PurchaseReceiptsInline]
 
 # تنظیمات نمایش مدل PurchaseHistory در ادمین
 # @admin.register(PurchaseHistory)

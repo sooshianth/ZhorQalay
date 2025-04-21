@@ -61,6 +61,9 @@ class CustomerForm(forms.ModelForm):
                 self.initial['phone_number'] = primary_phone.number
             elif self.instance.phone_number:  # استفاده از فیلد قدیمی به عنوان fallback
                 self.initial['phone_number'] = self.instance.phone_number
+                
+        # تنظیم فیلدهای ضروری
+        self.fields['name'].required = True
 
     class Meta:
         model = Customer
@@ -73,34 +76,51 @@ class CustomerForm(forms.ModelForm):
     def save(self, commit=True):
         instance = super(CustomerForm, self).save(commit=False)
         
-        if commit:
-            instance.save()
+        # ذخیره شماره تلفن در مدل PhoneNumber
+        phone_number = self.cleaned_data.get('phone_number')
+        print(f"Phone number from cleaned_data: {phone_number}")
+        
+        if phone_number:
+            # Normalize phone number: remove any leading zeros and non-digits
+            phone_number = ''.join(c for c in phone_number if c.isdigit())
+            if phone_number.startswith('0'):
+                phone_number = phone_number[1:]
+                
+            # ذخیره شماره در فیلد قدیمی برای سازگاری با سایر اپ‌ها
+            instance.phone_number = phone_number
+                
+            # بررسی آیا این شماره قبلاً ثبت شده
+            existing_phone = PhoneNumber.objects.filter(number=phone_number).first()
             
-            # ذخیره شماره تلفن در مدل PhoneNumber
-            phone_number = self.cleaned_data.get('phone_number')
-            if phone_number:
-                # بررسی آیا این شماره قبلاً ثبت شده
-                existing_phone = PhoneNumber.objects.filter(number=phone_number).first()
-                
-                if existing_phone and existing_phone.customer != instance:
-                    # شماره قبلاً برای مشتری دیگری ثبت شده - در این مورد می‌توانید خطا بدهید
-                    raise forms.ValidationError(f"این شماره تلفن قبلاً برای مشتری {existing_phone.customer.name} ثبت شده است.")
-                
-                if not existing_phone:
-                    # ایجاد شماره تلفن جدید
-                    PhoneNumber.objects.create(
+            if existing_phone and existing_phone.customer.id != instance.id:
+                # شماره قبلاً برای مشتری دیگری ثبت شده - در این مورد می‌توانید خطا بدهید
+                raise forms.ValidationError(f"این شماره تلفن قبلاً برای مشتری {existing_phone.customer.name} ثبت شده است.")
+            
+        # Always save the instance first to get primary key
+        instance.save()
+        
+        if phone_number:
+            if not existing_phone:
+                # ایجاد شماره تلفن جدید
+                try:
+                    new_phone = PhoneNumber(
                         number=phone_number,
                         customer=instance,
                         is_primary=True
                     )
-                elif existing_phone.customer == instance and not existing_phone.is_primary:
-                    # اگر شماره برای همین مشتری است ولی اولیه نیست، آن را اولیه کنیم
-                    existing_phone.is_primary = True
-                    existing_phone.save()
-            
-            # اگر یک کارشناس فروش وجود دارد و برای مشتری جدید است، آن را اضافه کنیم
-            if self.sales_agent and instance.pk and not instance.sales_agent.filter(id=self.sales_agent.id).exists():
-                instance.sales_agent.add(self.sales_agent)
+                    new_phone.save()
+                    print(f"Created new phone number: {new_phone.number} for customer {instance.id}")
+                except Exception as e:
+                    print(f"Error creating phone number: {str(e)}")
+            elif existing_phone.customer.id == instance.id and not existing_phone.is_primary:
+                # اگر شماره برای همین مشتری است ولی اولیه نیست، آن را اولیه کنیم
+                existing_phone.is_primary = True
+                existing_phone.save()
+                print(f"Made phone number primary: {existing_phone.number}")
+        
+        # اگر یک کارشناس فروش وجود دارد و برای مشتری جدید است، آن را اضافه کنیم
+        if self.sales_agent and not instance.sales_agent.filter(id=self.sales_agent.id).exists():
+            instance.sales_agent.add(self.sales_agent)
         
         return instance
 
@@ -177,6 +197,11 @@ def general_customer_CRUD_view(request):
     is_new_customer = False
 
     if request.method == "POST" and 'save_customer' in request.POST:
+        print("===== SAVE CUSTOMER POST DATA =====")
+        for key, value in request.POST.items():
+            print(f"{key}: {value}")
+        print("==================================")
+        
         phone = request.POST.get('phone_number')
         
         # حالت بروزرسانی مشتری موجود
@@ -191,18 +216,42 @@ def general_customer_CRUD_view(request):
             else:  # Create new
                 form = CustomerForm(request.POST, sales_agent=sales_agent)
                 is_new_customer = True
+                
+        # برای اطمینان از اینکه شماره تلفن در فرم پر شده
+        if is_new_customer and phone:
+            form.data = form.data.copy()  # ایجاد کپی قابل تغییر از داده‌های فرم
+            form.data['phone_number'] = phone
             
         if form.is_valid():
-            saved_customer = form.save()
-            # اگر مشتری جدید ایجاد شده، کارشناس فروش را به آن اضافه می‌کنیم
-            if is_new_customer and sales_agent:
-                saved_customer.sales_agent.add(sales_agent)
-                saved_customer.save()
-            msg = "مشتری با موفقیت بروزرسانی شد" if not is_new_customer else "مشتری جدید ایجاد شد"
-            messages.success(request, msg)
-            return redirect(reverse('general_customer_CRUD') + f'?customer_id={saved_customer.id}')
+            try:
+                saved_customer = form.save()
+                # اگر مشتری جدید ایجاد شده، کارشناس فروش را به آن اضافه می‌کنیم
+                if is_new_customer and sales_agent:
+                    saved_customer.sales_agent.add(sales_agent)
+                    saved_customer.save()
+                msg = "مشتری با موفقیت بروزرسانی شد" if not is_new_customer else "مشتری جدید ایجاد شد"
+                messages.success(request, msg)
+                print(f"Successfully saved customer: ID={saved_customer.id}, Name={saved_customer.name}")
+                # ارجاع به صفحه مشتری
+                return redirect(reverse('general_customer_CRUD') + f'?customer_id={saved_customer.id}')
+            except Exception as e:
+                messages.error(request, f"خطا در ذخیره سازی: {str(e)}")
         else:
-            messages.error(request, "خطا در فرم - لطفا مقادیر را بررسی کنید")
+            # نمایش خطاهای فرم به صورت مشخص‌تر
+            error_messages = []
+            for field, errors in form.errors.items():
+                field_name = form.fields[field].label if field in form.fields else field
+                for error in errors:
+                    error_messages.append(f"{field_name}: {error}")
+            
+            error_text = " | ".join(error_messages)
+            messages.error(request, f"خطا در فرم - لطفا مقادیر را بررسی کنید: {error_text}")
+            # برای دیباگ
+            print(f"Form errors: {form.errors}")
+            
+            # مقدار پیش‌فرض برای فیلد نام
+            if is_new_customer and not form.data.get('name'):
+                form.initial['name'] = 'مشتری جدید'
 
     # بخش جستجو
     elif request.method == "POST" and 'phone_search' in request.POST:
@@ -211,7 +260,13 @@ def general_customer_CRUD_view(request):
         if search_query:
             # جستجو بر اساس شماره تلفن یا نام
             if search_query.isdigit():
-                customer = Customer.get_customer_by_phone(search_query)
+                # تمیز کردن شماره تلفن
+                clean_number = search_query
+                if clean_number.startswith('0'):
+                    clean_number = clean_number[1:]
+                    
+                # جستجو با شماره تلفن تمیز شده
+                customer = Customer.get_customer_by_phone(clean_number)
             else:
                 # جستجو بر اساس نام و شماره‌های تلفن
                 customers = Customer.objects.filter(
@@ -227,12 +282,12 @@ def general_customer_CRUD_view(request):
                 # ایجاد مشتری جدید اگر شماره تلفن معتبر باشد
                 if search_query.isdigit() and len(search_query) == 10 and search_query.startswith('9'):
                     # شماره جدید - مشتری جدید ایجاد می‌کنیم
-                    customer = Customer()
-                    form = CustomerForm(instance=customer, sales_agent=sales_agent)
-                    # شماره تلفن در PhoneNumber ذخیره خواهد شد
+                    form = CustomerForm(initial={
+                        'phone_number': search_query,
+                        'name': 'مشتری جدید'
+                    }, sales_agent=sales_agent)
+                    # نمایش فرم خالی برای ایجاد مشتری جدید
                     is_new_customer = True
-                    # در فرم به صورت موقت مقدار قرار می‌دهیم
-                    form.initial['phone_number'] = search_query
                 else:
                     messages.error(request, "شماره تلفن معتبر نیست")
 
