@@ -9,6 +9,9 @@
 /core/extensions/__pycache__
 /core/templatetags/__pycache__
 /core/forms/__pycache__
+/core/management/__pycache__
+/core/management/commands/__pycache__
+/core/tasks/__pycache__
 
 /sales/__pycache__
 /sales/views/__pycache__

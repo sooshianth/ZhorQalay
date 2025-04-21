@@ -37,6 +37,11 @@ app.conf.beat_schedule = {
         'schedule': crontab(hour='*/1'),  # هر 1 ساعت
         'kwargs': {'max_retries': 3, 'batch_size': 20},
     },
+    'purge-unpaid-purchases': {
+        'task': 'core.tasks.tasks.purge_unpaid_purchases_task',
+        'schedule': crontab(hour=2, minute=0),  # هر روز ساعت 2 صبح
+        'kwargs': {'days': 1},  # خریدهای قدیمی‌تر از 1 روز حذف شوند
+    },
 }
 
 app.autodiscover_tasks()
