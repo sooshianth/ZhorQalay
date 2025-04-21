@@ -117,7 +117,7 @@ def send_new_purchase_notification(purchase):
         f"کوتاژ: {cargo.cottage}\n"
         f"فی: {purchase.customer_price} ریال\n"
         f"به نام شرکت تأمین نهاده سیمرغ\n\n"
-        f"طی مذاکره تلفنی درخواست خرید شما به وزن {purchase.weight} کیلوگرم و معادل {purchase.weight * purchase.customer_price} ریال میباشد، لطفا درخواست خرید به صورت نقدی از طریق سامانه بازارگاه ثبت گردد.\n\n"
+        f"طی مذاکره تلفنی درخواست خرید شما به وزن {purchase.order_weight} کیلوگرم و معادل {purchase.order_weight * purchase.customer_price} ریال میباشد، لطفا درخواست خرید به صورت نقدی از طریق سامانه بازارگاه ثبت گردد.\n\n"
         f"پشتیبان تلفنی شما:\n"
         f"{', '.join([sa.phone_number for sa in purchase.customer.sales_agent.all()])}\n"
         f"{', '.join([sa.name for sa in purchase.customer.sales_agent.all()])}"

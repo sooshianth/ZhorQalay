@@ -104,6 +104,83 @@
     box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     cursor: pointer;
   }
+  
+  /* استایل برای فیلدهای غیرقابل ویرایش */
+  input[readonly], select[disabled], textarea[readonly] {
+    background-color: #f1f1f1;
+    cursor: not-allowed;
+    opacity: 0.8;
+    border: 1px solid #ddd;
+  }
+  
+  .form-group.readonly {
+    opacity: 0.9;
+  }
+  
+  .form-group.readonly label {
+    color: #666;
+  }
+  
+  .readonly-indicator {
+    display: inline-block;
+    margin-right: 5px;
+    font-size: 14px;
+    color: #888;
+  }
+  
+  .form-group.readonly .readonly-indicator {
+    display: inline-block;
+  }
+  
+  .form-group .readonly-indicator {
+    display: none;
+  }
+
+  /* استایل برای شناسه‌های تخصیص */
+  .allocation-ids-container {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    border: 1px solid #e9ecef;
+  }
+
+  .allocation-ids-header {
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #495057;
+    display: flex;
+    align-items: center;
+  }
+
+  .allocation-ids-header i {
+    margin-left: 5px;
+    color: #6c757d;
+  }
+
+  .allocation-ids-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .allocation-id-item {
+    padding: 5px 10px;
+    margin-bottom: 5px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    display: inline-block;
+    margin-left: 5px;
+    font-family: monospace;
+    direction: ltr;
+  }
+
+  /* استایل برای فیلد شناسه‌های تخصیص در فرم */
+  #id_allocation_ids {
+    direction: ltr;
+    font-family: monospace;
+    resize: vertical;
+  }
 </style>
 
 <div class="container">
@@ -242,6 +319,21 @@
 </div>
 </div>
 
+<!-- نمایش شناسه‌های تخصیص موجود -->
+{% if purchase.shenase_takhsis_set.all %}
+<div class="allocation-ids-container">
+  <div class="allocation-ids-header">
+    <i class="fas fa-key"></i>
+    شناسه‌های تخصیص ثبت شده
+  </div>
+  <div class="allocation-ids-list">
+    {% for shenase in purchase.shenase_takhsis_set.all %}
+      <span class="allocation-id-item">{{ shenase.code }}</span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <!-- ✅ نمایش اطلاعات مرحله -->
 <div id="step-info-popup" class="hidden">
 <p id="step-info-text"></p>
@@ -272,8 +364,13 @@
 {% csrf_token %}
 <div class="form-grid">
 {% for field in form %}
-<div class="form-group">
-<label><i class="{% if 'نام' in field.label %}fas fa-user{% elif 'شماره' in field.label %}fas fa-phone{% elif 'مبلغ' in field.label %}fas fa-wallet{% elif 'توضیحات' in field.label %}fas fa-file-alt{% else %}fas fa-edit{% endif %}"></i> {{ field.label }}</label>
+<div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
+<label>
+    {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}
+    <span class="readonly-indicator" title="این فیلد قابل ویرایش نیست"><i class="fas fa-lock"></i></span>
+    {% endif %}
+    <i class="{% if 'نام' in field.label %}fas fa-user{% elif 'شماره' in field.label %}fas fa-phone{% elif 'مبلغ' in field.label %}fas fa-wallet{% elif 'توضیحات' in field.label %}fas fa-file-alt{% else %}fas fa-edit{% endif %}"></i> {{ field.label }}
+</label>
 <div class="input-container">
     {% if field.name == 'amount_paid' %}
         {{ field|add_commas }}
@@ -296,17 +393,17 @@
 <!-- ✅ دکمه‌های مخصوص فروش -->
 {% if user_role == "sales_agent" or user_role == "admin" %}
     {% if purchase.type == 'bazaargah' and purchase.state == 'SMS_SENT' or purchase.state == 'BAZAARGAH_CONFIRMED' or purchase.state == 'PAYMENT_VERIFIED' %}
-        <button type="submit" name="approve_allocation" class="button approve-btn sales">
+        <button type="submit" name="approve_allocation" class="button approve-btn sales" formnovalidate>
             🛒 مشتری تخصیص را ثبت کرده است
         </button>
     {% endif %}
     {% if purchase.state == 'DIFFERENCE_APPROVED' %}
-        <button type="submit" name="approve_sarak" class="button approve-btn sales">
+        <button type="submit" name="approve_sarak" class="button approve-btn sales" formnovalidate>
             💰 تأیید واریز اختلاف
         </button>
     {% endif %}
     {% if purchase.state == 'RECEIPT_SUBMITTED' or purchase.state == 'INVOICE_ISSUED' %}
-        <button type="submit" name="approve_salesman" class="button approve-btn sales">
+        <button type="submit" name="approve_salesman" class="button approve-btn sales" formnovalidate>
             ✅ تایید نهایی واحد فروش
         </button>
     {% endif %}
@@ -315,42 +412,42 @@
 <!-- ✅ دکمه‌های مخصوص لجستیک -->
 {% if user_role == "logistics_manager" or user_role == "admin" %}
     {% if purchase.type == 'bazaargah' and purchase.state == 'SMS_SENT' or purchase.state == 'INITIATED' %}
-        <button type="submit" name="approve_bazaargah" class="button approve-btn logistics">
+        <button type="submit" name="approve_bazaargah" class="button approve-btn logistics" formnovalidate>
             ✅ تأیید کردن ثبت شدن در بازارگاه
         </button>
     {% endif %}
     {% if purchase.state == 'ALLOCATION_REGISTERED' %}
-        <button type="submit" name="approve_allocation_approval" class="button approve-btn logistics">
+        <button type="submit" name="approve_allocation_approval" class="button approve-btn logistics" formnovalidate>
             🛒 تأیید کردن تخصیص
         </button>
     {% endif %}
     {% if purchase.state == 'VENDOR_SETTLED' %}
-        <button type="submit" name="approve_address" class="button approve-btn logistics">
+        <button type="submit" name="approve_address" class="button approve-btn logistics" formnovalidate>
             📍 تأیید ارسال آدرس به واردکننده
         </button>
     {% endif %}
     {% if purchase.state == 'ADDRESS_SENT' %}
-        <button type="submit" name="approve_sent_to_barbari" class="button approve-btn logistics">
+        <button type="submit" name="approve_sent_to_barbari" class="button approve-btn logistics" formnovalidate>
             🚛 تایید ارسال به باربری
         </button>
     {% endif %}
     {% if purchase.state == 'SENT_TO_SHIPPING' %}
-        <button type="submit" name="approve_barnamed" class="button approve-btn logistics">
+        <button type="submit" name="approve_barnamed" class="button approve-btn logistics" formnovalidate>
             📋 تایید صدور بارنامه
         </button>
     {% endif %}
     {% if purchase.state == 'BARNAMEH_ISSUED' %}
-        <button type="submit" name="approve_delivered" class="button approve-btn logistics">
+        <button type="submit" name="approve_delivered" class="button approve-btn logistics" formnovalidate>
             🏠 تایید تحویل به مشتری
         </button>
     {% endif %}
     {% if purchase.state == 'DELIVERED' %}
-        <button type="submit" name="approve_ekhtelaf" class="button approve-btn logistics">
+        <button type="submit" name="approve_ekhtelaf" class="button approve-btn logistics" formnovalidate>
             ⚖️ تایید اختلاف (لجستیک)
         </button>
     {% endif %}
     {% if purchase.state == 'RECEIPT_SUBMITTED' or purchase.state == 'SALES_APPROVED' or purchase.state == 'INVOICE_ISSUED' %}
-        <button type="submit" name="approve_logistics" class="button approve-btn logistics">
+        <button type="submit" name="approve_logistics" class="button approve-btn logistics" formnovalidate>
             ✅ تایید نهایی واحد لجستیک
         </button>
     {% endif %}
@@ -359,42 +456,42 @@
 <!-- ✅ دکمه‌های مخصوص مالی -->
 {% if user_role == "financial_manager" or user_role == "admin" %}
     {% if purchase.type == 'bazaargah' and purchase.state == 'BAZAARGAH_CONFIRMED' %}
-        <button type="submit" name="approve_payment" class="button approve-btn financial">
+        <button type="submit" name="approve_payment" class="button approve-btn financial" formnovalidate>
             💰 تأیید پرداخت
         </button>
     {% endif %}
     {% if purchase.type == 'non_bazaargah' and purchase.state == 'SMS_SENT' or purchase.state == 'INITIATED' %}
-        <button type="submit" name="approve_payment" class="button approve-btn financial">
+        <button type="submit" name="approve_payment" class="button approve-btn financial" formnovalidate>
             💰 تأیید پرداخت
         </button>
     {% endif %}
     {% if purchase.state == 'PAYMENT_VERIFIED' or purchase.state == 'ALLOCATION_APPROVED' %}
-        <button type="submit" name="approve_tasvied_with_vared_konandeh" class="button approve-btn financial">
+        <button type="submit" name="approve_tasvied_with_vared_konandeh" class="button approve-btn financial" formnovalidate>
             🔄 تایید تسویه با واردکننده
         </button>
     {% endif %}
     {% if purchase.state == 'DELIVERED' %}
-        <button type="submit" name="approve_ekhtelaf" class="button approve-btn financial">
+        <button type="submit" name="approve_ekhtelaf" class="button approve-btn financial" formnovalidate>
             ⚖️ تایید اختلاف (مالی)
         </button>
     {% endif %}
     {% if purchase.state == 'DIFFERENCE_APPROVED' %}
-        <button type="submit" name="approve_kasri" class="button approve-btn financial">
+        <button type="submit" name="approve_kasri" class="button approve-btn financial" formnovalidate>
             💰 تایید واریز اختلاف
         </button>
     {% endif %}
     {% if purchase.state == 'DIFFERENCE_DEPOSITED' %}
-        <button type="submit" name="approve_kasri_reciept" class="button approve-btn financial">
+        <button type="submit" name="approve_kasri_reciept" class="button approve-btn financial" formnovalidate>
             📝 تایید رسید کسری/سرک
         </button>
     {% endif %}
     {% if purchase.state == 'RECEIPT_SUBMITTED' %}
-        <button type="submit" name="approve_factor" class="button approve-btn financial">
+        <button type="submit" name="approve_factor" class="button approve-btn financial" formnovalidate>
             📋 تایید صدور فاکتور
         </button>
     {% endif %}
     {% if purchase.state == 'INVOICE_ISSUED' or purchase.state == 'SALES_APPROVED' or purchase.state == 'LOGISTICS_APPROVED' %}
-        <button type="submit" name="approve_financial" class="button approve-btn financial">
+        <button type="submit" name="approve_financial" class="button approve-btn financial" formnovalidate>
             ✅ تایید نهایی مالی
         </button>
     {% endif %}
@@ -495,6 +592,15 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+    
+    // افزودن نشان‌گر برای فیلدهای غیرقابل ویرایش
+    const readonlyFields = document.querySelectorAll('input[readonly], select[disabled], textarea[readonly]');
+    readonlyFields.forEach(field => {
+        field.parentElement.parentElement.classList.add('readonly');
+        
+        // اضافه کردن راهنمای توضیحی در هنگام هاور
+        field.title = "این فیلد در مرحله فعلی خرید غیرقابل ویرایش است";
+    });
 });
 </script>
 {% endblock %}

@@ -781,3 +781,183 @@
         background-color: rgba(243, 156, 18, 0.2);
         color: #feca57;
     }
+
+
+      /* استایل برای تایم‌لاین افقی با قابلیت اسکرول */
+  .timeline-container {
+    width: 100%;
+    margin: 20px 0;
+    overflow: hidden;
+    position: relative;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    background: white;
+  }
+  
+  .timeline-scroll {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 15px 10px;
+    scrollbar-width: thin;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .timeline-scroll::-webkit-scrollbar {
+    height: 5px;
+  }
+  
+  .timeline-scroll::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  .timeline-scroll::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+  }
+  
+  .timeline-scroll::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+  
+  .timeline-item {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 100px;
+    position: relative;
+    text-align: center;
+    padding: 10px;
+    margin: 0 5px;
+    border-radius: 5px;
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+  }
+  
+  .timeline-item.completed {
+    background-color: #e8f5e9;
+  }
+  
+  .timeline-item.pending {
+    background-color: #ffecb3;
+  }
+  
+  .timeline-icon {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: white;
+  }
+  
+  .timeline-item.completed .timeline-icon {
+    background-color: #4caf50;
+  }
+  
+  .timeline-item.pending .timeline-icon {
+    background-color: #ffc107;
+  }
+  
+  .timeline-label {
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: block;
+    color: #333;
+  }
+  
+  .timeline-status {
+    font-size: 16px;
+    color: #333;
+  }
+  
+  .timeline-item.completed .timeline-status {
+    color: #4caf50;
+  }
+  
+  .timeline-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    cursor: pointer;
+  }
+  
+  /* استایل برای فیلدهای غیرقابل ویرایش */
+  input[readonly], select[disabled], textarea[readonly] {
+    background-color: #f1f1f1;
+    cursor: not-allowed;
+    opacity: 0.8;
+    border: 1px solid #ddd;
+  }
+  
+  .form-group.readonly {
+    opacity: 0.9;
+  }
+  
+  .form-group.readonly label {
+    color: #666;
+  }
+  
+  .readonly-indicator {
+    display: inline-block;
+    margin-right: 5px;
+    font-size: 14px;
+    color: #888;
+  }
+  
+  .form-group.readonly .readonly-indicator {
+    display: inline-block;
+  }
+  
+  .form-group .readonly-indicator {
+    display: none;
+  }
+
+  /* استایل برای شناسه‌های تخصیص */
+  .allocation-ids-container {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    border: 1px solid #e9ecef;
+  }
+
+  .allocation-ids-header {
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #495057;
+    display: flex;
+    align-items: center;
+  }
+
+  .allocation-ids-header i {
+    margin-left: 5px;
+    color: #6c757d;
+  }
+
+  .allocation-ids-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .allocation-id-item {
+    padding: 5px 10px;
+    margin-bottom: 5px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    display: inline-block;
+    margin-left: 5px;
+    font-family: monospace;
+    direction: ltr;
+  }
+
+  /* استایل برای فیلد شناسه‌های تخصیص در فرم */
+  #id_allocation_ids {
+    direction: ltr;
+    font-family: monospace;
+    resize: vertical;
+  }

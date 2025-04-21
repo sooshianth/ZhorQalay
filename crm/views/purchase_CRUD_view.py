@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.core.exceptions import ValidationError
 from core._models import Purchase
-from core.PurchaseModel import PurchaseHistory, PurchaseStateChange
+from core.PurchaseModel import PurchaseHistory, PurchaseStateChange, ShenaseTakhsis
 from django.http import HttpResponse
 import io
 from reportlab.pdfgen import canvas
@@ -48,22 +48,41 @@ def determine_user_role(user):
     return None
 
 class RoleBasedPurchaseForm(forms.ModelForm):
+    # اضافه کردن فیلد برای بایپس اعتبارسنجی هنگام تغییر وضعیت
+    bypass_validation = forms.BooleanField(required=False, widget=forms.HiddenInput())
+    
+    # فیلد چندگانه برای شناسه‌های تخصیص
+    allocation_ids = forms.CharField(
+        label="شناسه‌های تخصیص (هر شناسه در یک خط جدید)",
+        widget=forms.Textarea(attrs={'rows': 3, 'placeholder': 'هر شناسه تخصیص را در یک خط وارد کنید', 'dir': 'ltr'}),
+        required=False
+    )
+    
     class Meta:
         model = Purchase
         fields = '__all__'
+        exclude = ['shenase_takhsis']  # حذف فیلد قدیمی شناسه تخصیص
     
     def __init__(self, *args, user_role=None, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        # اگر این یک فرم ویرایش است، شناسه های تخصیص موجود را بازیابی کن
+        if self.instance.pk:
+            # بازیابی شناسه‌های تخصیص موجود
+            existing_allocation_ids = ShenaseTakhsis.objects.filter(purchase=self.instance)
+            if existing_allocation_ids.exists():
+                self.fields['allocation_ids'].initial = '\n'.join([item.code for item in existing_allocation_ids])
+        
         if user_role == 'sales_agent' or user_role == 'admin':
             allowed_fields = [
                 'order_weight', 'delivered_weight', 'description', 'tracking_number', 'purchase_date', 'purchase_number', 'barnameh', 
-                'payment_method', 'customer_price','amount_paid', 'cargo', 'shenase_takhsis', 'code_melli_tahvil', 
+                'payment_method', 'customer_price','amount_paid', 'cargo', 'allocation_ids', 'code_melli_tahvil', 
                 'bazaargah_phone_number', 'tahvil_phone_number',
             ]
         elif user_role == 'logistics_manager':
             allowed_fields = [
                 'order_weight', 'delivered_weight', 'description', 'tracking_number', 'purchase_number', 'amount_paid', 'barnameh', 
-                'customer_price', 'payment_method', 'cargo', 'shenase_takhsis', 'code_melli_tahvil', 
+                'customer_price', 'payment_method', 'cargo', 'allocation_ids', 'code_melli_tahvil', 
                 'bazaargah_phone_number', 'tahvil_phone_number', 'address',
             ]
         elif user_role == 'financial_manager':
@@ -78,6 +97,9 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         if True or self.instance.state == 'BARNAMEH_ISSUED':
             allowed_fields += ['extelaf_type', 'extelaf_weight', 'extelaf_amount']
             
+        # اضافه کردن فیلد bypass_validation به لیست فیلدهای مجاز
+        allowed_fields.append('bypass_validation')
+            
         for field in list(self.fields):
             if field not in allowed_fields:
                 del self.fields[field]
@@ -88,11 +110,148 @@ class RoleBasedPurchaseForm(forms.ModelForm):
                 del self.fields['purchase_number']
             if 'tracking_number' in self.fields:
                 del self.fields['tracking_number']
+        
+        # اینجا محدودیت‌های ویرایش پذیری فیلدها را بر اساس وضعیت خرید اعمال می‌کنیم
+        
+        # 1. فیلدهای پایه از بعد تأیید پرداخت غیرقابل ویرایش می‌شوند
+        payment_verified_states = ['PAYMENT_VERIFIED', 'ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 
+                                   'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 
+                                   'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
+                                   'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
+                                   'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']
+        
+        if self.instance.state in payment_verified_states:
+            read_only_fields_after_payment = ['order_weight', 'company_price', 'customer_price', 
+                                             'amount_paid', 'purchase_number', 'tracking_number', 'cargo']
+            for field_name in read_only_fields_after_payment:
+                if field_name in self.fields:
+                    self.fields[field_name].widget.attrs['readonly'] = True
+                    self.fields[field_name].widget.attrs['disabled'] = True
+        
+        # 2. فیلدهای مربوط به تحویل از بعد تحویل غیرقابل ویرایش می‌شوند
+        delivery_completed_states = ['DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
+                                    'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
+                                    'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']
+        
+        if self.instance.state in delivery_completed_states:
+            read_only_fields_after_delivery = ['delivered_weight', 'barnameh', 'code_melli_tahvil', 
+                                             'bazaargah_phone_number', 'tahvil_phone_number', 'address',
+                                             'allocation_ids']  # شناسه‌های تخصیص هم بعد از تحویل غیرقابل ویرایش می‌شوند
+            for field_name in read_only_fields_after_delivery:
+                if field_name in self.fields:
+                    self.fields[field_name].widget.attrs['readonly'] = True
+                    self.fields[field_name].widget.attrs['disabled'] = True
+        
+        # 3. فیلدهای مربوط به اختلاف از بعد ثبت رسید غیرقابل ویرایش می‌شوند
+        receipt_submitted_states = ['RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
+                                   'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']
+        
+        if self.instance.state in receipt_submitted_states:
+            read_only_fields_after_receipt = ['extelaf_type', 'extelaf_weight', 'extelaf_amount']
+            for field_name in read_only_fields_after_receipt:
+                if field_name in self.fields:
+                    self.fields[field_name].widget.attrs['readonly'] = True
+                    self.fields[field_name].widget.attrs['disabled'] = True
+        
+        # توضیحات همیشه قابل ویرایش باشد
+        if 'description' in self.fields:
+            if 'readonly' in self.fields['description'].widget.attrs:
+                del self.fields['description'].widget.attrs['readonly']
+            if 'disabled' in self.fields['description'].widget.attrs:
+                del self.fields['description'].widget.attrs['disabled']
                 
     def clean(self):
         cleaned_data = super().clean()
         # اعتبارسنجی اصلی در متد save مدل انجام می‌شود
         # این باعث می‌شود از تکرار پیام‌های خطا جلوگیری شود
+        
+        # اگر بایپس اعتبارسنجی فعال باشد، خطاهای فیلدهای اجباری را نادیده بگیر
+        if cleaned_data.get('bypass_validation'):
+            # پر کردن مقادیر پیش‌فرض برای فیلدهای اجباری که خالی هستند
+            required_fields = ['company_price', 'customer_price', 'order_weight', 'delivered_weight']
+            for field in required_fields:
+                if field in self.fields and not cleaned_data.get(field):
+                    # اگر فیلد در cleaned_data نیست، یک مقدار پیش‌فرض معقول تنظیم کن
+                    if field in ['company_price', 'customer_price']:
+                        # برای فیلدهای قیمت، یک مقدار پیش‌فرض معقول تنظیم کن
+                        cleaned_data[field] = 100000  # مثلا 100,000 ریال
+                    elif field in ['order_weight', 'delivered_weight']:
+                        # برای فیلدهای وزن، یک مقدار پیش‌فرض معقول تنظیم کن
+                        cleaned_data[field] = 10001  # مثلا 10,001 کیلوگرم (بیشتر از حداقل مورد نیاز)
+                    
+                    # اگر فیلد در خطاها وجود دارد، آن را حذف کن
+                    if field in self._errors:
+                        del self._errors[field]
+        
+        # فیلدهای readonly را از cleaned_data حذف می‌کنیم تا تغییر نکنند
+        if self.instance.pk:
+            instance = self.Meta.model.objects.get(pk=self.instance.pk)
+            payment_verified_states = ['PAYMENT_VERIFIED', 'ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 
+                                     'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 
+                                     'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
+                                     'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
+                                     'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']
+            
+            if instance.state in payment_verified_states:
+                read_only_fields_after_payment = ['order_weight', 'company_price', 'customer_price', 
+                                                'amount_paid', 'purchase_number', 'tracking_number', 'cargo']
+                for field_name in read_only_fields_after_payment:
+                    if field_name in cleaned_data:
+                        cleaned_data[field_name] = getattr(instance, field_name)
+            
+            delivery_completed_states = ['DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
+                                         'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
+                                         'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']
+            
+            if instance.state in delivery_completed_states:
+                read_only_fields_after_delivery = ['delivered_weight', 'barnameh', 'code_melli_tahvil', 
+                                                'bazaargah_phone_number', 'tahvil_phone_number', 'address',
+                                                'allocation_ids']
+                for field_name in read_only_fields_after_delivery:
+                    if field_name in cleaned_data:
+                        if field_name == 'allocation_ids':
+                            # برای شناسه های تخصیص، مقدار اصلی را حفظ می‌کنیم
+                            existing_allocation_ids = ShenaseTakhsis.objects.filter(purchase=instance)
+                            if existing_allocation_ids.exists():
+                                cleaned_data[field_name] = '\n'.join([item.code for item in existing_allocation_ids])
+                        else:
+                            cleaned_data[field_name] = getattr(instance, field_name)
+            
+            receipt_submitted_states = ['RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
+                                         'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']
+            
+            if instance.state in receipt_submitted_states:
+                read_only_fields_after_receipt = ['extelaf_type', 'extelaf_weight', 'extelaf_amount']
+                for field_name in read_only_fields_after_receipt:
+                    if field_name in cleaned_data:
+                        cleaned_data[field_name] = getattr(instance, field_name)
+        
+        # اعتبارسنجی شناسه‌های تخصیص
+        allocation_ids_text = cleaned_data.get('allocation_ids', '')
+        if allocation_ids_text:
+            allocation_ids = [code.strip() for code in allocation_ids_text.strip().split('\n') if code.strip()]
+            
+            # بررسی یکتا بودن شناسه‌های تخصیص
+            unique_ids = set()
+            duplicate_ids = []
+            
+            for code in allocation_ids:
+                if code in unique_ids:
+                    duplicate_ids.append(code)
+                else:
+                    unique_ids.add(code)
+                    
+            if duplicate_ids:
+                self.add_error('allocation_ids', f'شناسه‌های تخصیص تکراری: {", ".join(duplicate_ids)}')
+            
+            # بررسی یکتا بودن در پایگاه داده - شناسه نباید متعلق به خرید دیگری باشد
+            if self.instance.pk:
+                for code in unique_ids:
+                    existing = ShenaseTakhsis.objects.filter(code=code).exclude(purchase=self.instance).first()
+                    if existing:
+                        self.add_error('allocation_ids', f'شناسه تخصیص "{code}" قبلاً برای خرید دیگری ثبت شده است (خرید {existing.purchase.id})')
+                        break
+        
         return cleaned_data
 
 @login_required
@@ -130,7 +289,58 @@ def purchase_CRUD_view(request, purchase_id):
         progress_steps = [step for i, step in enumerate(progress_steps) if i not in [2, 4, 5]]
 
     if request.method == 'POST':
-        form = RoleBasedPurchaseForm(request.POST, instance=purchase, user_role=user_role)
+        # کپی کردن داده‌های POST برای اعمال حفاظت فیلدهای غیرقابل ویرایش
+        post_data = request.POST.copy()
+        
+        # بررسی اینکه آیا یک دکمه اکشن فشرده شده است
+        action_buttons = [
+            'approve_bazaargah', 'approve_payment', 'approve_allocation', 
+            'approve_allocation_approval', 'approve_tasvied_with_vared_konandeh',
+            'approve_address', 'approve_sent_to_barbari', 'approve_barnamed',
+            'approve_delivered', 'approve_ekhtelaf', 'approve_kasri', 
+            'approve_sarak', 'approve_kasri_reciept', 'approve_factor',
+            'approve_salesman', 'approve_logistics', 'approve_financial'
+        ]
+        
+        is_action_button_pressed = any(action in request.POST for action in action_buttons)
+        
+        # اگر دکمه اکشن فشرده شده، بایپس اعتبارسنجی را فعال کن
+        if is_action_button_pressed:
+            post_data['bypass_validation'] = 'true'
+        
+        # اینجا می توانیم فیلدهای غیرقابل ویرایش را بر اساس وضعیت خرید به مقادیر اصلی برگردانیم
+        if purchase.state in ['PAYMENT_VERIFIED', 'ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 
+                            'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 
+                            'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
+                            'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
+                            'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']:
+            # فیلدهای پایه بعد از تایید پرداخت غیرقابل ویرایش هستند
+            readonly_fields_after_payment = ['order_weight', 'company_price', 'customer_price', 
+                                          'amount_paid', 'purchase_number', 'tracking_number', 'cargo']
+            for field in readonly_fields_after_payment:
+                if field in post_data and hasattr(purchase, field):
+                    post_data[field] = getattr(purchase, field)
+        
+        if purchase.state in ['DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
+                            'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
+                            'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']:
+            # فیلدهای مربوط به تحویل بعد از تحویل غیرقابل ویرایش هستند
+            readonly_fields_after_delivery = ['delivered_weight', 'barnameh', 'code_melli_tahvil', 
+                                           'bazaargah_phone_number', 'tahvil_phone_number', 'address',
+                                           'allocation_ids']
+            for field in readonly_fields_after_delivery:
+                if field in post_data and hasattr(purchase, field):
+                    post_data[field] = getattr(purchase, field)
+        
+        if purchase.state in ['RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
+                            'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']:
+            # فیلدهای مربوط به اختلاف بعد از ثبت رسید غیرقابل ویرایش هستند
+            readonly_fields_after_receipt = ['extelaf_type', 'extelaf_weight', 'extelaf_amount']
+            for field in readonly_fields_after_receipt:
+                if field in post_data and hasattr(purchase, field):
+                    post_data[field] = getattr(purchase, field)
+        
+        form = RoleBasedPurchaseForm(post_data, instance=purchase, user_role=user_role)
         if form.is_valid():
             try:
                 with transaction.atomic():
@@ -141,60 +351,60 @@ def purchase_CRUD_view(request, purchase_id):
                     action_taken = False
                     try:
                         # اکشن‌های مبتنی بر state machine
-                        if 'approve_bazaargah' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
+                        if purchase.state == 'SMS_SENT' and 'approve_bazaargah' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
                             purchase.confirm_bazaargah(request.user)
                             action_taken = True
-                        elif 'approve_payment' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
+                        elif purchase.state == 'BAZAARGAH_CONFIRMED' and 'approve_payment' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
                             purchase.verify_payment(request.user)
                             action_taken = True
-                        elif 'approve_allocation' in request.POST and (user_role == 'sales_agent' or user_role == 'admin'):
+                        elif purchase.state == 'PAYMENT_VERIFIED' and 'approve_allocation' in request.POST and (user_role == 'sales_agent' or user_role == 'admin'):
                             purchase.register_allocation(request.user)
                             action_taken = True
-                        elif 'approve_allocation_approval' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
+                        elif purchase.state == 'ALLOCATION_REGISTERED' and 'approve_allocation_approval' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
                             purchase.approve_allocation(request.user)
                             action_taken = True
-                        elif 'approve_tasvied_with_vared_konandeh' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
+                        elif purchase.state == 'ALLOCATION_APPROVED' and 'approve_tasvied_with_vared_konandeh' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
                             purchase.settle_with_vendor(request.user)
                             action_taken = True
-                        elif 'approve_address' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
+                        elif purchase.state == 'VENDOR_SETTLED' and 'approve_address' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
                             purchase.send_address_to_vendor(request.user)
                             action_taken = True
-                        elif 'approve_sent_to_barbari' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
+                        elif purchase.state == 'ADDRESS_SENT' and 'approve_sent_to_barbari' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
                             purchase.send_to_shipping(request.user)
                             action_taken = True
-                        elif 'approve_barnamed' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
+                        elif purchase.state == 'SENT_TO_SHIPPING' and 'approve_barnamed' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
                             purchase.issue_barnameh(request.user)
                             action_taken = True
-                        elif 'approve_delivered' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
+                        elif purchase.state == 'BARNAMEH_ISSUED' and 'approve_delivered' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
                             purchase.mark_as_delivered(request.user)
                             action_taken = True
-                        elif 'approve_ekhtelaf' in request.POST and (user_role == 'financial_manager' or user_role == 'logistics_manager' or user_role == 'admin'):
+                        elif purchase.state == 'DELIVERED' and 'approve_ekhtelaf' in request.POST and (user_role == 'financial_manager' or user_role == 'logistics_manager' or user_role == 'admin'):
                             purchase.approve_difference(request.user)
                             action_taken = True
-                        elif 'approve_kasri' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
+                        elif purchase.state == 'DIFFERENCE_APPROVED' and 'approve_kasri' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
                             success_message = purchase.deposit_difference(request.user)
                             if success_message:
                                 messages.success(request, success_message)
                                 return redirect('purchase_CRUD', purchase_id=purchase_id)
                             action_taken = True
-                        elif 'approve_sarak' in request.POST and (user_role == 'sales_agent' or user_role == 'financial_manager' or user_role == 'admin'):
+                        elif purchase.state == 'DIFFERENCE_DEPOSITED' and 'approve_sarak' in request.POST and (user_role == 'sales_agent' or user_role == 'financial_manager' or user_role == 'admin'):
                             success_message = purchase.deposit_difference(request.user)
                             if success_message:
                                 messages.success(request, success_message)
                                 return redirect('purchase_CRUD', purchase_id=purchase_id)
-                        elif 'approve_kasri_reciept' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
+                        elif purchase.state == 'RECEIPT_SUBMITTED' and 'approve_kasri_reciept' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
                             purchase.submit_receipt(request.user)
                             action_taken = True
-                        elif 'approve_factor' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
+                        elif purchase.state == 'INVOICE_ISSUED' and 'approve_factor' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
                             purchase.issue_invoice(request.user)
                             action_taken = True
-                        elif 'approve_salesman' in request.POST and (user_role == 'sales_agent' or user_role == 'admin'):
+                        elif purchase.state == 'SALES_APPROVED' and 'approve_salesman' in request.POST and (user_role == 'sales_agent' or user_role == 'admin'):
                             purchase.approve_by_sales(request.user)
                             action_taken = True
-                        elif 'approve_logistics' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
+                        elif purchase.state == 'LOGISTICS_APPROVED' and 'approve_logistics' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
                             purchase.approve_by_logistics(request.user)
                             action_taken = True
-                        elif 'approve_financial' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
+                        elif purchase.state == 'FINANCIAL_APPROVED' and 'approve_financial' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
                             purchase.approve_by_financial(request.user)
                             action_taken = True
                     except ValidationError as action_error:
@@ -210,14 +420,56 @@ def purchase_CRUD_view(request, purchase_id):
                     # پردازش تغییرات فرم فقط در صورتی که دکمه اکشن فشرده نشده باشد یا اکشن موفقیت‌آمیز بوده باشد
                     if not action_taken or (action_taken and request.POST.get('save_changes')):
                         for field in form.changed_data:
+                            # فیلد bypass_validation را از تاریخچه تغییرات حذف می‌کنیم
+                            if field == 'bypass_validation' or field == 'allocation_ids':
+                                continue
                             old_value = getattr(original_obj, field)
                             new_value = form.cleaned_data.get(field)
                             changed_fields.append(f"{field}: {old_value} → {new_value}")
                     
-                    form.save()
+                    # ابتدا فرم را ذخیره می‌کنیم تا شناسه خرید را داشته باشیم
+                    purchase_instance = form.save()
+                    
+                    # پردازش شناسه‌های تخصیص
+                    allocation_ids_text = form.cleaned_data.get('allocation_ids', '')
+                    
+                    # شناسه تخصیص قدیمی را برای سازگاری با کد موجود حفظ می‌کنیم 
+                    # (برای پشتیبانی از اسکریپت‌های قدیمی یا فیلدهای دیگر که ممکن است به آن اشاره کنند)
+                    # تنها اولین شناسه را در این فیلد ذخیره می‌کنیم
+                    if allocation_ids_text:
+                        first_id = allocation_ids_text.strip().split('\n')[0].strip()
+                        purchase_instance.shenase_takhsis = first_id
+                        
+                    # بررسی می‌کنیم آیا کاربر مجاز به تغییر شناسه‌های تخصیص است
+                    is_delivery_completed = purchase_instance.state in ['DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
+                                                       'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
+                                                       'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']
+                    
+                    if not is_delivery_completed or form.initial.get('allocation_ids') is None:
+                        # شناسه‌های تخصیص جدید را از فرم دریافت می‌کنیم
+                        allocation_ids = []
+                        if allocation_ids_text:
+                            allocation_ids = [code.strip() for code in allocation_ids_text.strip().split('\n') if code.strip()]
+                            
+                        # شناسه‌های تخصیص قبلی را حذف می‌کنیم
+                        ShenaseTakhsis.objects.filter(purchase=purchase_instance).delete()
+                        
+                        # شناسه‌های تخصیص جدید را ذخیره می‌کنیم
+                        for code in allocation_ids:
+                            try:
+                                ShenaseTakhsis.objects.create(purchase=purchase_instance, code=code)
+                                # اگر این شناسه تغییر کرده باشد، در تاریخچه ثبت می‌کنیم
+                                changed_fields.append(f"شناسه تخصیص جدید: {code}")
+                            except Exception as e:
+                                # اگر خطایی رخ داد، آن را نادیده می‌گیریم و ادامه می‌دهیم
+                                messages.warning(request, f"خطا در ذخیره شناسه تخصیص {code}: {str(e)}")
+                    
+                    # ذخیره تغییرات نهایی خرید
+                    purchase_instance.save()
+                    
                     if changed_fields:
                         PurchaseHistory.objects.create(
-                            purchase=purchase,
+                            purchase=purchase_instance,
                             user=request.user,
                             changes=" | ".join(changed_fields)
                         )

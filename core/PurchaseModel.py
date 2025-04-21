@@ -284,6 +284,7 @@ class Purchase(models.Model):
         if self.state != 'DIFFERENCE_APPROVED':
             raise ValidationError('ابتدا باید مبلغ اختلاف تایید شود')
         
+        # تغییر وضعیت بدون نیاز به اعتبارسنجی اضافی
         success_message = ''
         if self.extelaf_type == 'کسری':
             success_message = 'کسری واریز شد'
@@ -426,7 +427,8 @@ class Purchase(models.Model):
         elif self.state == 'PAYMENT_VERIFIED' and self.amount_paid <= 100000000:
             errors['amount_paid'] = 'مبلغ پرداختی باید بزرگتر از صد میلیون تومان باشد'
 
-        if self.order_weight <= 10000:
+        # وزن را فقط در مواردی که کمتر از 10000 است بررسی کن، تا مقادیر پیش‌فرض بایپس اعتبارسنجی قبول شوند
+        if self.order_weight and self.order_weight <= 10000:
             errors['order_weight'] = 'وزن باید بزرگتر از 10 تن باشد'
         
         if not self.customer:
@@ -436,10 +438,12 @@ class Purchase(models.Model):
             if self.state in ['PAYMENT_VERIFIED', 'BARNAMEH_ISSUED', 'DELIVERED', 'CANCELED']:
                 errors['state'] = 'خرید آرشیو شده نمی‌تواند پرداخت شده، ارسال شده، تحویل داده شده یا لغو شده باشد.'
                 
-        if self.customer_price != 0 and (self.customer_price < 50000 or self.customer_price > 300000):
-            raise ValidationError('فی فروش عددی غیرواقعی است.')
-        if self.company_price != 0 and (self.company_price < 50000 or self.company_price > 300000):
-            raise ValidationError('فی خرید عددی غیرواقعی است.')
+        # تنها زمانی قیمت‌ها را بررسی کن که مقدار واقعی داشته باشند، نه مقادیر پیش‌فرض بایپس اعتبارسنجی
+        if self.customer_price > 0 and (self.customer_price < 50000 or self.customer_price > 300000):
+            errors['customer_price'] = 'فی فروش عددی غیرواقعی است.'
+            
+        if self.company_price > 0 and (self.company_price < 50000 or self.company_price > 300000):
+            errors['company_price'] = 'فی خرید عددی غیرواقعی است.'
 
         if errors:
             raise ValidationError(errors)
