@@ -106,17 +106,17 @@ def purchase_CRUD_view(request, purchase_id):
     progress_steps = [
         {'name': 'شروع شده', 'status': True},  # همیشه شروع شده
         {'name': 'پیامک ارسال شده', 'status': purchase.state != 'INITIATED'},
-        {'name': 'تأیید ثبت خرید در بازارگاه', 'status': purchase.state in ['BAZAARGAH_CONFIRMED', 'PAYMENT_VERIFIED', 'ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'تأیید انجام پرداخت توسط واحد مالی', 'status': purchase.state in ['PAYMENT_VERIFIED', 'ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'ثبت تخصیص توسط مشتری', 'status': purchase.state in ['ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'تایید تخصیص', 'status': purchase.state in ['ALLOCATION_APPROVED', 'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'تسویه با واردکننده', 'status': purchase.state in ['VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'ارسال آدرس به واردکننده', 'status': purchase.state in ['ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'ارسال آدرس به باربری', 'status': purchase.state in ['SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'بارنامه صادر شده', 'status': purchase.state in ['BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'تحویل به مشتری', 'status': purchase.state in ['DELIVERED', 'DIFFERENCE_APPROVED', 'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'تایید اختلاف', 'status': purchase.state in ['DIFFERENCE_APPROVED', 'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'کسری/سرک واریز شده', 'status': purchase.state in ['SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'تأیید ثبت خرید در بازارگاه', 'status': purchase.state in ['BAZAARGAH_CONFIRMED', 'PAYMENT_VERIFIED', 'ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'تأیید انجام پرداخت توسط واحد مالی', 'status': purchase.state in ['PAYMENT_VERIFIED', 'ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'ثبت تخصیص توسط مشتری', 'status': purchase.state in ['ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'تایید تخصیص', 'status': purchase.state in ['ALLOCATION_APPROVED', 'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'تسویه با واردکننده', 'status': purchase.state in ['VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'ارسال آدرس به واردکننده', 'status': purchase.state in ['ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'ارسال آدرس به باربری', 'status': purchase.state in ['SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'بارنامه صادر شده', 'status': purchase.state in ['BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'تحویل به مشتری', 'status': purchase.state in ['DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'تایید اختلاف', 'status': purchase.state in ['DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
+        {'name': 'کسری/سرک واریز شده', 'status': purchase.state in ['DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
         {'name': 'ثبت رسید', 'status': purchase.state in ['RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
         {'name': 'صدور فاکتور', 'status': purchase.state in ['INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
         {'name': 'تایید نهایی واحد فروش', 'status': purchase.state in ['SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
@@ -168,15 +168,20 @@ def purchase_CRUD_view(request, purchase_id):
                         elif 'approve_delivered' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
                             purchase.mark_as_delivered(request.user)
                             action_taken = True
-                        elif 'approve_ekhtelaf' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
+                        elif 'approve_ekhtelaf' in request.POST and (user_role == 'financial_manager' or user_role == 'logistics_manager' or user_role == 'admin'):
                             purchase.approve_difference(request.user)
                             action_taken = True
                         elif 'approve_kasri' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
-                            purchase.deposit_shortage(request.user)
+                            success_message = purchase.deposit_difference(request.user)
+                            if success_message:
+                                messages.success(request, success_message)
+                                return redirect('purchase_CRUD', purchase_id=purchase_id)
                             action_taken = True
-                        elif 'approve_sarak' in request.POST and (user_role == 'sales_agent' or user_role == 'admin'):
-                            purchase.deposit_surplus(request.user)
-                            action_taken = True
+                        elif 'approve_sarak' in request.POST and (user_role == 'sales_agent' or user_role == 'financial_manager' or user_role == 'admin'):
+                            success_message = purchase.deposit_difference(request.user)
+                            if success_message:
+                                messages.success(request, success_message)
+                                return redirect('purchase_CRUD', purchase_id=purchase_id)
                         elif 'approve_kasri_reciept' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
                             purchase.submit_receipt(request.user)
                             action_taken = True

@@ -98,16 +98,18 @@
                             <td class="action-needed">
                                 {% if purchase.state == 'SMS_SENT' or purchase.state == 'BAZAARGAH_CONFIRMED' %}
                                     <span class="action-tag payment">تأیید پرداخت</span>
-                                {% elif purchase.state == 'ALLOCATION_APPROVED' %}
+                                {% elif purchase.state == 'PAYMENT_VERIFIED' or purchase.state == 'ALLOCATION_APPROVED' %}
                                     <span class="action-tag vendor">تسویه با واردکننده</span>
                                 {% elif purchase.state == 'DELIVERED' %}
-                                    <span class="action-tag difference">تأیید مبلغ اختلاف</span>
+                                    <span class="action-tag difference">تأیید مبلغ اختلاف (مالی)</span>
                                 {% elif purchase.state == 'DIFFERENCE_APPROVED' %}
+                                    <span class="action-tag payment">تأیید واریز اختلاف</span>
+                                {% elif purchase.state == 'DIFFERENCE_DEPOSITED' %}
                                     <span class="action-tag receipt">ثبت رسید واریزی اختلاف</span>
                                 {% elif purchase.state == 'RECEIPT_SUBMITTED' %}
                                     <span class="action-tag invoice">صدور فاکتور</span>
                                 {% elif purchase.state == 'INVOICE_ISSUED' or purchase.state == 'SALES_APPROVED' or purchase.state == 'LOGISTICS_APPROVED' %}
-                                    <span class="action-tag approval">تأیید نهایی</span>
+                                    <span class="action-tag approval">تأیید نهایی مالی</span>
                                 {% endif %}
                             </td>
                             <td>

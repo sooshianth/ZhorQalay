@@ -103,11 +103,13 @@
                                 {% elif purchase.state == 'VENDOR_SETTLED' %}
                                     <span class="action-tag address">ارسال آدرس</span>
                                 {% elif purchase.state == 'ADDRESS_SENT' %}
-                                    <span class="action-tag shipping">تأیید ارسال شدن آدرس به باربری</span>
+                                    <span class="action-tag shipping">ارسال به باربری</span>
                                 {% elif purchase.state == 'SENT_TO_SHIPPING' %}
-                                    <span class="action-tag barnameh">تأیید صادر شدن بارنامه</span>
+                                    <span class="action-tag barnameh">صدور بارنامه</span>
                                 {% elif purchase.state == 'BARNAMEH_ISSUED' %}
-                                    <span class="action-tag delivery">تأیید تحویل به مشتری</span>
+                                    <span class="action-tag delivery">تحویل به مشتری</span>
+                                {% elif purchase.state == 'DELIVERED' %}
+                                    <span class="action-tag difference">تایید اختلاف (لجستیک)</span>
                                 {% elif purchase.state == 'INVOICE_ISSUED' or purchase.state == 'SALES_APPROVED' %}
                                     <span class="action-tag approval">تایید واحد لجستیک</span>
                                 {% endif %}

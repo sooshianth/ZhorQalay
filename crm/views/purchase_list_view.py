@@ -9,8 +9,8 @@ def purchase_list(request):
     global_search = request.GET.get('global_search', '')
     
     # فیلتر پایه: خریدهای آرشیو نشده و آرشیو شده
-    active_purchases = Purchase.objects.exclude(state='ARCHIVED').order_by('-created_at')
-    archived_purchases = Purchase.objects.filter(state='ARCHIVED').order_by('-created_at')
+    active_purchases = Purchase.objects.exclude(state='ARCHIVED').exclude(is_archived=True).order_by('-created_at')
+    archived_purchases = Purchase.objects.filter(Q(state='ARCHIVED') | Q(is_archived=True)).order_by('-created_at')
 
     # کارشناسان فروش فقط خریدهای مشتریان خود را می‌بینند
     if hasattr(request.user, 'sales_agent'):

@@ -84,7 +84,7 @@
     </thead>
     <tbody id="activePurchasesTable">
     {% for purchase in active_purchases %}
-        <tr class="{% if purchase.state == 'URGENT' %}urgent-row{% endif %} {% if purchase.state == 'CANCELED' %}canceled-row{% endif %}">
+        <tr class="{% if purchase.state == 'URGENT' or purchase.is_urgent %}urgent-row{% endif %} {% if purchase.state == 'CANCELED' or purchase.is_canceled %}canceled-row{% endif %}">
             <td>{{ purchase.created_at|date:"Y/m/d" }}</td>
             <td>{{ purchase.customer.name }}</td>
             <td>{{ purchase.invoice_id|default:"تعیین نشده" }}</td>
@@ -94,8 +94,10 @@
             <td>{% if purchase.cargo %}{{ purchase.cargo }}{% else %}-{% endif %}</td>
             <td>
                 {# Only show the latest status #}
-                {% if purchase.state == 'CANCELED' %}
+                {% if purchase.state == 'CANCELED' or purchase.is_canceled %}
                     <span class="table-status-badge bg-danger text-white">لغو شده</span>
+                {% elif purchase.is_urgent %}
+                    <span class="table-status-badge bg-danger text-white">فوری</span>
                 {% elif purchase.state == 'DELIVERED' %}
                     <span class="table-status-badge bg-primary text-white">تحویل داده شده</span>
                 {% elif purchase.state == 'BARNAMEH_ISSUED' %}
@@ -118,10 +120,8 @@
                     <span class="table-status-badge bg-danger text-white">فوری</span>
                 {% elif purchase.state == 'DIFFERENCE_APPROVED' %}
                     <span class="table-status-badge bg-warning text-dark">تایید اختلاف</span>
-                {% elif purchase.state == 'SHORTAGE_DEPOSITED' %}
-                    <span class="table-status-badge bg-success text-white">واریز کسری</span>
-                {% elif purchase.state == 'SURPLUS_DEPOSITED' %}
-                    <span class="table-status-badge bg-success text-white">واریز سرک</span>
+                {% elif purchase.state == 'DIFFERENCE_DEPOSITED' %}
+                    <span class="table-status-badge bg-success text-white">واریز اختلاف</span>
                 {% elif purchase.state == 'RECEIPT_SUBMITTED' %}
                     <span class="table-status-badge bg-info text-white">ثبت رسید</span>
                 {% elif purchase.state == 'INVOICE_ISSUED' %}

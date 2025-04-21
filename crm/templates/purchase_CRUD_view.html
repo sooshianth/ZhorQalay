@@ -261,8 +261,8 @@
 <td>{{ purchase.updated_at|date:"Y/m/d" }}</td>
 <td>{{ purchase.amount_paid|add_commas|default:"-" }} ریال</td>
 <td>{{ purchase.tracking_number|default:"-" }}</td>
-<td class="status-cell {% if purchase.state in 'PAYMENT_VERIFIED,ALLOCATION_REGISTERED,ALLOCATION_APPROVED,VENDOR_SETTLED,ADDRESS_SENT,SENT_TO_SHIPPING,BARNAMEH_ISSUED,DELIVERED,DIFFERENCE_APPROVED,SHORTAGE_DEPOSITED,SURPLUS_DEPOSITED,RECEIPT_SUBMITTED,INVOICE_ISSUED,SALES_APPROVED,LOGISTICS_APPROVED,FINANCIAL_APPROVED,COMPLETED'|split:',' %}completed{% else %}pending{% endif %}">
-{% if purchase.state in 'PAYMENT_VERIFIED,ALLOCATION_REGISTERED,ALLOCATION_APPROVED,VENDOR_SETTLED,ADDRESS_SENT,SENT_TO_SHIPPING,BARNAMEH_ISSUED,DELIVERED,DIFFERENCE_APPROVED,SHORTAGE_DEPOSITED,SURPLUS_DEPOSITED,RECEIPT_SUBMITTED,INVOICE_ISSUED,SALES_APPROVED,LOGISTICS_APPROVED,FINANCIAL_APPROVED,COMPLETED'|split:',' %}✔ پرداخت شده{% else %}⌛ در انتظار{% endif %}
+<td class="status-cell {% if purchase.state in 'PAYMENT_VERIFIED,ALLOCATION_REGISTERED,ALLOCATION_APPROVED,VENDOR_SETTLED,ADDRESS_SENT,SENT_TO_SHIPPING,BARNAMEH_ISSUED,DELIVERED,DIFFERENCE_APPROVED,DIFFERENCE_DEPOSITED,RECEIPT_SUBMITTED,INVOICE_ISSUED,SALES_APPROVED,LOGISTICS_APPROVED,FINANCIAL_APPROVED,COMPLETED'|split:',' %}completed{% else %}pending{% endif %}">
+{% if purchase.state in 'PAYMENT_VERIFIED,ALLOCATION_REGISTERED,ALLOCATION_APPROVED,VENDOR_SETTLED,ADDRESS_SENT,SENT_TO_SHIPPING,BARNAMEH_ISSUED,DELIVERED,DIFFERENCE_APPROVED,DIFFERENCE_DEPOSITED,RECEIPT_SUBMITTED,INVOICE_ISSUED,SALES_APPROVED,LOGISTICS_APPROVED,FINANCIAL_APPROVED,COMPLETED'|split:',' %}✔ پرداخت شده{% else %}⌛ در انتظار{% endif %}
 </td>
 </tr>
 </table>
@@ -300,9 +300,9 @@
             🛒 مشتری تخصیص را ثبت کرده است
         </button>
     {% endif %}
-    {% if purchase.state == 'DIFFERENCE_APPROVED' and purchase.extelaf_type == 'سرک' %}
+    {% if purchase.state == 'DIFFERENCE_APPROVED' %}
         <button type="submit" name="approve_sarak" class="button approve-btn sales">
-            💰 تأیید واریز شدن سرک از طرف مشتری
+            💰 تأیید واریز اختلاف
         </button>
     {% endif %}
     {% if purchase.state == 'RECEIPT_SUBMITTED' or purchase.state == 'INVOICE_ISSUED' %}
@@ -344,6 +344,11 @@
             🏠 تایید تحویل به مشتری
         </button>
     {% endif %}
+    {% if purchase.state == 'DELIVERED' %}
+        <button type="submit" name="approve_ekhtelaf" class="button approve-btn logistics">
+            ⚖️ تایید اختلاف (لجستیک)
+        </button>
+    {% endif %}
     {% if purchase.state == 'RECEIPT_SUBMITTED' or purchase.state == 'SALES_APPROVED' or purchase.state == 'INVOICE_ISSUED' %}
         <button type="submit" name="approve_logistics" class="button approve-btn logistics">
             ✅ تایید نهایی واحد لجستیک
@@ -370,15 +375,15 @@
     {% endif %}
     {% if purchase.state == 'DELIVERED' %}
         <button type="submit" name="approve_ekhtelaf" class="button approve-btn financial">
-            ⚖️ تایید اختلاف
+            ⚖️ تایید اختلاف (مالی)
         </button>
     {% endif %}
-    {% if purchase.state == 'DIFFERENCE_APPROVED' and purchase.extelaf_type == 'کسری' %}
+    {% if purchase.state == 'DIFFERENCE_APPROVED' %}
         <button type="submit" name="approve_kasri" class="button approve-btn financial">
-            💰 تایید واریز کسری
+            💰 تایید واریز اختلاف
         </button>
     {% endif %}
-    {% if purchase.state == 'SHORTAGE_DEPOSITED' or purchase.state == 'SURPLUS_DEPOSITED' %}
+    {% if purchase.state == 'DIFFERENCE_DEPOSITED' %}
         <button type="submit" name="approve_kasri_reciept" class="button approve-btn financial">
             📝 تایید رسید کسری/سرک
         </button>
@@ -397,7 +402,7 @@
 </div>
 </form>
 
-{% if purchase.state not in 'PAYMENT_VERIFIED,ALLOCATION_REGISTERED,ALLOCATION_APPROVED,VENDOR_SETTLED,ADDRESS_SENT,SENT_TO_SHIPPING,BARNAMEH_ISSUED,DELIVERED,DIFFERENCE_APPROVED,SHORTAGE_DEPOSITED,SURPLUS_DEPOSITED,RECEIPT_SUBMITTED,INVOICE_ISSUED,SALES_APPROVED,LOGISTICS_APPROVED,FINANCIAL_APPROVED,COMPLETED'|split:',' %}
+{% if purchase.state not in 'PAYMENT_VERIFIED,ALLOCATION_REGISTERED,ALLOCATION_APPROVED,VENDOR_SETTLED,ADDRESS_SENT,SENT_TO_SHIPPING,BARNAMEH_ISSUED,DELIVERED,DIFFERENCE_APPROVED,DIFFERENCE_DEPOSITED,RECEIPT_SUBMITTED,INVOICE_ISSUED,SALES_APPROVED,LOGISTICS_APPROVED,FINANCIAL_APPROVED,COMPLETED'|split:',' %}
 <form method="post" action="{% url 'purchase_delete' purchase.id %}" class="delete-form">
     {% csrf_token %}
     <button type="submit" class="button delete-button" onclick="return confirm('آیا مطمئن هستید که می‌خواهید این خرید را حذف کنید؟');">

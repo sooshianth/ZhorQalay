@@ -34,24 +34,28 @@ def determine_user_role(user):
 class Purchase(models.Model):
     # وضعیت‌های مختلف خرید
     STATUS_CHOICES = [
-        ('INITIATED', 'شروع شده'),
-        ('SMS_SENT', 'پیامک ارسال شده'),
-        ('BAZAARGAH_CONFIRMED', 'تایید بازارگاه'),
-        ('PAYMENT_VERIFIED', 'تایید مالی'),
-        ('ALLOCATION_REGISTERED', 'تخصیص شده'),
-        ('ALLOCATION_APPROVED', 'تایید تخصیص'),
-        ('VENDOR_SETTLED', 'تسویه با واردکننده'),
-        ('ADDRESS_SENT', 'ارسال آدرس به واردکننده'),
-        ('SENT_TO_SHIPPING', 'ارسال به باربری'),
-        ('BARNAMEH_ISSUED', 'بارنامه صادر شده'),
-        ('DELIVERED', 'تحویل داده شده'),
-        ('DIFFERENCE_APPROVED', 'تایید مبلغ اختلاف'),
-        ('RECEIPT_SUBMITTED', 'ثبت رسید واریزی اختلاف'),
-        ('INVOICE_ISSUED', 'صدور فاکتور'),
-        ('SALES_APPROVED', 'تایید واحد فروش'),
-        ('LOGISTICS_APPROVED', 'تایید واحد لجستیک'),
-        ('FINANCIAL_APPROVED', 'تایید واحد مالی'),
-        ('COMPLETED', 'تکمیل شده'),
+        ('INITIATED', 'شروع شده'), # system
+        ('SMS_SENT', 'پیامک ارسال شده'), # system
+        ('BAZAARGAH_CONFIRMED', 'تایید بازارگاه'), # logistics_manager
+        ('ALLOCATION_REGISTERED', 'ثبت تخصیص'), # sales_agent
+        ('ALLOCATION_APPROVED', 'تایید تخصیص'),  # logistics_manager
+        ('PAYMENT_VERIFIED', 'تایید مالی'),  # financial_manager
+        ('VENDOR_SETTLED', 'تسویه با واردکننده'),  # financial_manager
+        ('ADDRESS_SENT', 'ارسال آدرس به واردکننده'), # logistics_manager
+        ('SENT_TO_SHIPPING', 'ارسال به باربری'), # logistics_manager
+        ('BARNAMEH_ISSUED', 'بارنامه صادر شده'), # logistics_manager
+        ('DELIVERED', 'تحویل به مشتری'), # logistics_manager
+        ('DIFFERENCE_APPROVED', 'تایید مقدار و مبلغ اختلاف'), # financial_manager
+        ('DIFFERENCE_DEPOSITED', 'ثبت واریز اختلاف'), # sales_agent financial_manager 
+        ('RECEIPT_SUBMITTED', 'ثبت رسید واریزی اختلاف'), # financial_manager
+        ('INVOICE_ISSUED', 'صدور فاکتور'), # financial_manager
+        ('SALES_APPROVED', 'تایید واحد فروش'), # sales_agent
+        ('LOGISTICS_APPROVED', 'تایید واحد لجستیک'), # logistics_manager
+        ('FINANCIAL_APPROVED', 'تایید واحد مالی'), # financial_manager
+        ('COMPLETED', 'تکمیل شده'), # system
+        ('URGENT', 'پیگیری فوری'), # admin
+        ('CANCELED', 'لغو شده'), # admin
+        ('ARCHIVED', 'آرشیو شده'), # admin
     ]
     
     id = models.AutoField(primary_key=True)
@@ -249,6 +253,7 @@ class Purchase(models.Model):
         if self.state != 'BARNAMEH_ISSUED':
             raise ValidationError('ابتدا باید بارنامه صادر شود')
         
+        # تحویل به مشتری انجام شد - بعد از این مرحله باید اختلاف تایید شود
         return self.change_state('DELIVERED', user, 'تحویل به مشتری انجام شد')
         
     def approve_difference(self, user):
@@ -256,7 +261,7 @@ class Purchase(models.Model):
         تایید مبلغ اختلاف
         """
         user_role = determine_user_role(user)
-        if user_role != 'financial_manager' and user_role != 'admin':
+        if user_role != 'financial_manager' and user_role != 'logistics_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'DELIVERED':
@@ -267,32 +272,28 @@ class Purchase(models.Model):
             send_extelaf_notification(self)
         
         return self.change_state('DIFFERENCE_APPROVED', user, 'مبلغ اختلاف تایید شد')
-        
-    def deposit_shortage(self, user):
+                
+    def deposit_difference(self, user):
         """
-        واریز کسری
-        """
-        user_role = determine_user_role(user)
-        if user_role != 'financial_manager' and user_role != 'admin':
-            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
-            
-        if self.state != 'DIFFERENCE_APPROVED' or self.extelaf_type != 'کسری':
-            raise ValidationError('ابتدا باید مبلغ اختلاف از نوع کسری تایید شود')
-        
-        return self.change_state('SHORTAGE_DEPOSITED', user, 'کسری واریز شد')
-        
-    def deposit_surplus(self, user):
-        """
-        واریز سرک
+        واریز اختلاف (اعم از کسری یا سرک)
         """
         user_role = determine_user_role(user)
-        if user_role != 'sales_agent' and user_role != 'admin':
+        if user_role != 'sales_agent' and user_role != 'financial_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
-        if self.state != 'DIFFERENCE_APPROVED' or self.extelaf_type != 'سرک':
-            raise ValidationError('ابتدا باید مبلغ اختلاف از نوع سرک تایید شود')
+        if self.state != 'DIFFERENCE_APPROVED':
+            raise ValidationError('ابتدا باید مبلغ اختلاف تایید شود')
         
-        return self.change_state('SURPLUS_DEPOSITED', user, 'سرک واریز شد')
+        success_message = ''
+        if self.extelaf_type == 'کسری':
+            success_message = 'کسری واریز شد'
+        elif self.extelaf_type == 'سرک':
+            success_message = 'سرک واریز شد'
+        else:
+            success_message = 'اختلاف واریز شد'
+            
+        self.change_state('DIFFERENCE_DEPOSITED', user, success_message)
+        return success_message
         
     def submit_receipt(self, user):
         """
@@ -302,11 +303,11 @@ class Purchase(models.Model):
         if user_role != 'financial_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
-        valid_states = ['SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED']
+        valid_states = ['DIFFERENCE_DEPOSITED']
         if self.state not in valid_states:
             raise ValidationError('ابتدا باید کسری یا سرک واریز شود')
         
-        return self.change_state('RECEIPT_SUBMITTED', user, 'رسید ثبت شد')
+        return self.change_state('RECEIPT_SUBMITTED', user, 'رسید اختلاف ثبت شد')
         
     def issue_invoice(self, user):
         """
@@ -369,7 +370,9 @@ class Purchase(models.Model):
         if user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
         
-        return self.change_state('URGENT', user, 'پیگیری فوری')
+        self.is_urgent = True
+        self.save(update_fields=['is_urgent'])
+        return True
         
     def cancel_purchase(self, user):
         """
@@ -379,7 +382,9 @@ class Purchase(models.Model):
         if user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
         
-        return self.change_state('CANCELED', user, 'خرید لغو شد')
+        self.is_canceled = True
+        self.save(update_fields=['is_canceled'])
+        return True
         
     def archive_purchase(self, user):
         """
@@ -392,7 +397,9 @@ class Purchase(models.Model):
         if self.state in ['PAYMENT_VERIFIED', 'BARNAMEH_ISSUED', 'DELIVERED', 'CANCELED']:
             raise ValidationError('خرید آرشیو شده نمی‌تواند پرداخت شده، ارسال شده، تحویل داده شده یا لغو شده باشد.')
         
-        return self.change_state('ARCHIVED', user, 'خرید آرشیو شد')
+        self.is_archived = True
+        self.save(update_fields=['is_archived'])
+        return True
 
     class Meta:
         verbose_name = "خرید"
