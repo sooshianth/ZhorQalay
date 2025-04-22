@@ -17,7 +17,7 @@ class ExcelFile(models.Model):
         ('other', 'سایر'),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.DO_NOTHING, related_name='user_excel_files', verbose_name=_('کاربر'))
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_excel_files', verbose_name=_('کاربر'))
     title = models.CharField(max_length=100, verbose_name=_('عنوان'))
     file = models.FileField(upload_to='excel_files/', verbose_name=_('فایل'))
     file_type = models.CharField(max_length=20, choices=EXCEL_TYPE_CHOICES, default='other', verbose_name=_('نوع فایل'))
@@ -77,7 +77,7 @@ class BGExcelFile(ExcelFile):
     """
     مدل مخصوص فایل‌های اکسل بازارگاه
     """
-    cargo = models.ForeignKey(CargoProduct, on_delete=models.DO_NOTHING, related_name='cargo_excel_files', verbose_name=_('محصول'))
+    cargo = models.ForeignKey(CargoProduct, on_delete=models.CASCADE, related_name='cargo_excel_files', verbose_name=_('محصول'))
     
     class Meta:
         verbose_name = _('فایل اکسل بازارگاه')
@@ -93,7 +93,7 @@ class ExcelProcessingLog(models.Model):
     ثبت گزارش‌های پردازش فایل‌های اکسل
     """
     excel_file = models.ForeignKey(ExcelFile, on_delete=models.CASCADE, related_name='processing_logs', verbose_name=_('فایل اکسل'))
-    processed_by = models.ForeignKey(User, on_delete=models.DO_NOTHING, related_name='excel_processing_logs', verbose_name=_('پردازش توسط'))
+    processed_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='excel_processing_logs', verbose_name=_('پردازش توسط'))
     processed_at = jmodels.jDateTimeField(auto_now_add=True, verbose_name=_('تاریخ پردازش'))
     success = models.BooleanField(default=True, verbose_name=_('موفقیت‌آمیز'))
     records_processed = models.PositiveIntegerField(default=0, verbose_name=_('تعداد رکوردهای پردازش شده'))

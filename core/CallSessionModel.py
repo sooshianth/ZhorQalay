@@ -15,7 +15,7 @@ class CallSession(models.Model):
         ('pending','در انتظار'),
         ('failed','ناموفق'),
     ]
-    customer = models.ForeignKey(Customer, on_delete=models.DO_NOTHING, verbose_name=_('مشتری'), related_name='calls')
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, verbose_name=_('مشتری'), related_name='calls')
     type = models.CharField(_('نوع تماس'), max_length=10, choices=CALL_TYPE)
     status = models.CharField(_('وضعیت'), max_length=15, choices=CALL_STATUS)
     date = jmodels.jDateTimeField(_('تاریخ تماس') , auto_now_add=True)

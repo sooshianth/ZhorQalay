@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class SalesAgent(models.Model):
-    user = models.OneToOneField('auth.User', on_delete=models.DO_NOTHING, related_name='sales_agent')
+    user = models.OneToOneField('auth.User', on_delete=models.CASCADE, related_name='sales_agent')
     name = models.CharField(max_length=100)
     phone_number = models.CharField(max_length=20, unique=True, null=True, blank=True)
     factor_code = models.CharField(max_length=2, unique=True, null=True, blank=True)
