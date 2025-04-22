@@ -60,6 +60,23 @@
             justify-content: space-between;
             align-items: center;
         }
+        .chat-tabs {
+            display: flex;
+            gap: 5px;
+        }
+        .chat-tab {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            opacity: 0.7;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .chat-tab.active {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.2);
+        }
         .chat-body {
             flex: 1;
             padding: 16px;
@@ -82,6 +99,17 @@
             background: #E5E7EB;
             color: #1F2937;
             margin-right: auto;
+        }
+        .chat-message.global {
+            background: #3B82F6;
+            color: white;
+            margin-right: auto;
+            position: relative;
+        }
+        .chat-message .sender-name {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 4px;
         }
         .chat-message img, .chat-message a {
             max-width: 100%;
@@ -140,6 +168,22 @@
         }
         .user-item:hover {
             background: #F9FAFB;
+        }
+        .user-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-left: 5px;
+        }
+        .user-status.online {
+            background: #10B981;
+        }
+        .chat-timestamp {
+            font-size: 10px;
+            opacity: 0.7;
+            text-align: left;
+            margin-top: 4px;
         }
     </style>
 </head>
@@ -228,8 +272,12 @@
 
     <div class="chat-window" id="chatWindow">
         <div class="chat-header">
-            <span>چت با دوستان</span>
-            <button onclick="toggleUserList()" class="text-white">
+            <span>چت سیمرغ</span>
+            <div class="chat-tabs">
+                <button id="privateTabBtn" class="chat-tab active" onclick="switchTab('private')">چت خصوصی</button>
+                <button id="globalTabBtn" class="chat-tab" onclick="switchTab('global')">چت عمومی</button>
+            </div>
+            <button onclick="toggleUserList()" class="text-white" id="userListToggle">
                 <i class="fas fa-users"></i>
             </button>
             <button onclick="toggleChatWindow()" class="text-white">
@@ -241,9 +289,14 @@
                 <span>لیست کاربران</span>
             </div>
             <div id="userListItems">
+                <!-- لیست کاربران اینجا نمایش داده می‌شود -->
             </div>
         </div>
-        <div class="chat-body" id="chatBody">
+        <div class="chat-body" id="privateChatBody">
+            <!-- پیام‌های خصوصی اینجا نمایش داده می‌شود -->
+        </div>
+        <div class="chat-body" id="globalChatBody" style="display: none;">
+            <!-- پیام‌های عمومی اینجا نمایش داده می‌شود -->
         </div>
         <div class="chat-footer">
             <input type="text" id="chatMessage" placeholder="پیام خود را بنویسید..." onkeypress="if(event.keyCode===13) sendMessage()">
@@ -267,7 +320,7 @@
                     <h3 class="footer-title">ارتباط با پشتیبانی</h3>
                     <p class="footer-description">جهت ارتباط با پشتیبانی فنی نرم‌افزار جامع منابع سازمانی شرکت تأمین نهاده سیمرغ از یکی از راه‌های زیر اقدام نمائید</p>
                     <div class="footer-contacts">
-                        <p><i class="fas fa-envelope contact-icon"></i> <a href="mailto:support@simurgh360.com">support@simurgh360.com</a></p>
+                        <p><i class="fas fa-envelope contact-icon"></i> <a href="mailto:s.sedaghati@simurgh360.com" style="color: white;">s.sedaghati@simurgh360.com</a></p>
                         <p><i class="fas fa-phone-alt contact-icon"></i> 3014 360 900 98+</p>
                     </div>
                 </div>
@@ -353,9 +406,11 @@
 
         let currentChatUser = null;
         let chatSocket = null;
+        let currentTab = 'private'; // 'private' یا 'global'
 
         {% if user.is_authenticated %}
             const userId = {{ user.id|default:0 }};
+            const username = "{{ user.username }}";
             if (userId) {
                 chatSocket = new WebSocket(`ws://${window.location.host}/ws/chat/${userId}/`);
             } else {
@@ -370,16 +425,35 @@
             chatWindow.style.display = chatWindow.style.display === 'flex' ? 'none' : 'flex';
             if (chatWindow.style.display === 'flex') {
                 loadUserList();
+                if (currentTab === 'global') {
+                    loadGlobalChatHistory();
+                }
             }
         }
 
         function toggleUserList() {
             const userList = document.getElementById('userList');
-            userList.style.display = userList.style.display === 'block' ? 'none' : 'block';
+            userList.style.display = userList.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('privateTabBtn').classList.toggle('active', tab === 'private');
+            document.getElementById('globalTabBtn').classList.toggle('active', tab === 'global');
+            document.getElementById('privateChatBody').style.display = tab === 'private' ? 'block' : 'none';
+            document.getElementById('globalChatBody').style.display = tab === 'global' ? 'block' : 'none';
+            document.getElementById('userListToggle').style.display = tab === 'private' ? 'block' : 'none';
+            
+            if (tab === 'private' && currentChatUser) {
+                document.querySelector('.chat-header span').textContent = `چت با ${document.querySelector('.user-item.active')?.textContent || 'کاربر'}`;
+            } else if (tab === 'global') {
+                document.querySelector('.chat-header span').textContent = 'چت عمومی';
+                loadGlobalChatHistory();
+            }
         }
 
         function loadUserList() {
-            fetch('http://localhost:8000/sales/api/users/', {
+            fetch('/sales/api/online-users/', {
                 method: 'GET',
                 headers: {
                     'X-CSRFToken': '{{ csrf_token }}'
@@ -405,7 +479,11 @@
                         if (user.id !== {{ user.id|default:0 }}) {
                             const userItem = document.createElement('div');
                             userItem.className = 'user-item';
-                            userItem.textContent = user.username;
+                            userItem.dataset.userId = user.id;
+                            userItem.innerHTML = `
+                                ${user.username}
+                                <span class="user-status online"></span>
+                            `;
                             userItem.onclick = () => startChat(user.id, user.username);
                             userListItems.appendChild(userItem);
                         }
@@ -417,8 +495,21 @@
         }
 
         function startChat(userId, username) {
+            // فعال کردن تب چت خصوصی
+            switchTab('private');
+            
             currentChatUser = userId;
             document.querySelector('.chat-header span').textContent = `چت با ${username}`;
+            
+            // نشانه‌گذاری کاربر انتخاب شده
+            const userItems = document.querySelectorAll('.user-item');
+            userItems.forEach(item => {
+                item.classList.remove('active');
+                if (parseInt(item.dataset.userId) === userId) {
+                    item.classList.add('active');
+                }
+            });
+            
             toggleUserList();
             loadChatHistory();
         }
@@ -428,7 +519,8 @@
                 console.log('No user selected for chat history');
                 return;
             }
-            fetch(`http://localhost:8000/sales/api/chat/history/${currentChatUser}/`, {
+            
+            fetch(`/sales/api/chat/history/${currentChatUser}/`, {
                 headers: {
                     'X-CSRFToken': '{{ csrf_token }}'
                 },
@@ -443,10 +535,10 @@
                 })
                 .then(messages => {
                     console.log('Chat History:', messages);
-                    const chatBody = document.getElementById('chatBody');
+                    const chatBody = document.getElementById('privateChatBody');
                     chatBody.innerHTML = '';
                     messages.forEach(msg => {
-                        displayMessage(msg);
+                        displayPrivateMessage(msg);
                     });
                     chatBody.scrollTop = chatBody.scrollHeight;
                 })
@@ -455,63 +547,140 @@
                 });
         }
 
+        function loadGlobalChatHistory() {
+            fetch('/sales/api/chat/global/', {
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                credentials: 'include'
+            })
+                .then(response => {
+                    console.log('Global Chat History Response Status:', response.status);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch global chat history: ' + response.statusText);
+                    }
+                    return response.json();
+                })
+                .then(messages => {
+                    console.log('Global Chat History:', messages);
+                    const chatBody = document.getElementById('globalChatBody');
+                    chatBody.innerHTML = '';
+                    messages.forEach(msg => {
+                        displayGlobalMessage(msg);
+                    });
+                    chatBody.scrollTop = chatBody.scrollHeight;
+                })
+                .catch(error => {
+                    console.error('Error fetching global chat history:', error);
+                });
+        }
+
         function sendMessage() {
             const messageInput = document.getElementById('chatMessage');
             const message = messageInput.value.trim();
-            if (message && currentChatUser && chatSocket && chatSocket.readyState === WebSocket.OPEN) {
-                console.log('Sending message:', message, 'to user:', currentChatUser);
+            
+            if (!message) return;
+            
+            if (currentTab === 'private' && currentChatUser && chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+                console.log('Sending private message:', message, 'to user:', currentChatUser);
                 chatSocket.send(JSON.stringify({
                     'type': 'chat_message',
                     'message': message,
                     'receiver_id': currentChatUser
                 }));
-                const chatBody = document.getElementById('chatBody');
+                
+                const chatBody = document.getElementById('privateChatBody');
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'chat-message sent';
                 messageDiv.textContent = message;
+                
+                // اضافه کردن زمان
+                const timestamp = document.createElement('div');
+                timestamp.className = 'chat-timestamp';
+                timestamp.textContent = new Date().toLocaleTimeString('fa-IR');
+                messageDiv.appendChild(timestamp);
+                
                 chatBody.appendChild(messageDiv);
                 chatBody.scrollTop = chatBody.scrollHeight;
-                messageInput.value = '';
-            } else {
-                console.log('Cannot send message. Check if WebSocket is open or user is selected.');
+            } 
+            else if (currentTab === 'global' && chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+                console.log('Sending global message:', message);
+                chatSocket.send(JSON.stringify({
+                    'type': 'global_message',
+                    'message': message
+                }));
+                
+                const chatBody = document.getElementById('globalChatBody');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'chat-message sent';
+                messageDiv.textContent = message;
+                
+                // اضافه کردن زمان
+                const timestamp = document.createElement('div');
+                timestamp.className = 'chat-timestamp';
+                timestamp.textContent = new Date().toLocaleTimeString('fa-IR');
+                messageDiv.appendChild(timestamp);
+                
+                chatBody.appendChild(messageDiv);
+                chatBody.scrollTop = chatBody.scrollHeight;
             }
+            else {
+                console.log('Cannot send message. Check if WebSocket is open or correct tab is selected.');
+                return;
+            }
+            
+            messageInput.value = '';
         }
 
         function sendFile() {
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
-            if (file && currentChatUser) {
-                const formData = new FormData();
-                formData.append('file', file);
+            
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            if (currentTab === 'private' && currentChatUser) {
                 formData.append('receiver_id', currentChatUser);
+                formData.append('is_global', 'false');
+            } else if (currentTab === 'global') {
+                formData.append('is_global', 'true');
+            } else {
+                console.log('Invalid context for file upload');
+                return;
+            }
 
-                fetch('http://localhost:8000/sales/api/chat/upload/', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    credentials: 'include',
-                    body: formData
-                })
-                .then(response => {
-                    console.log('File Upload Response Status:', response.status);
-                    if (!response.ok) {
-                        throw new Error('Failed to upload file: ' + response.statusText);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('File Upload Response:', data);
-                    if (data.file_url && chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+            fetch('/sales/api/chat/upload/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                credentials: 'include',
+                body: formData
+            })
+            .then(response => {
+                console.log('File Upload Response Status:', response.status);
+                if (!response.ok) {
+                    throw new Error('Failed to upload file: ' + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('File Upload Response:', data);
+                if (data.file_url && chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+                    if (currentTab === 'private' && currentChatUser) {
                         chatSocket.send(JSON.stringify({
                             'type': 'file_message',
                             'file_url': data.file_url,
                             'receiver_id': currentChatUser,
                             'file_type': file.type
                         }));
-                        const chatBody = document.getElementById('chatBody');
+                        
+                        const chatBody = document.getElementById('privateChatBody');
                         const messageDiv = document.createElement('div');
                         messageDiv.className = 'chat-message sent';
+                        
                         if (file.type.startsWith('image/')) {
                             const img = document.createElement('img');
                             img.src = data.file_url;
@@ -523,22 +692,60 @@
                             link.download = '';
                             messageDiv.appendChild(link);
                         }
+                        
+                        // اضافه کردن زمان
+                        const timestamp = document.createElement('div');
+                        timestamp.className = 'chat-timestamp';
+                        timestamp.textContent = new Date().toLocaleTimeString('fa-IR');
+                        messageDiv.appendChild(timestamp);
+                        
                         chatBody.appendChild(messageDiv);
                         chatBody.scrollTop = chatBody.scrollHeight;
                     }
-                })
-                .catch(error => {
-                    console.error('Error uploading file:', error);
-                });
-                fileInput.value = '';
-            } else {
-                console.log('No file or user selected');
-            }
+                    else if (currentTab === 'global') {
+                        chatSocket.send(JSON.stringify({
+                            'type': 'global_file_message',
+                            'file_url': data.file_url,
+                            'file_type': file.type
+                        }));
+                        
+                        const chatBody = document.getElementById('globalChatBody');
+                        const messageDiv = document.createElement('div');
+                        messageDiv.className = 'chat-message sent';
+                        
+                        if (file.type.startsWith('image/')) {
+                            const img = document.createElement('img');
+                            img.src = data.file_url;
+                            messageDiv.appendChild(img);
+                        } else {
+                            const link = document.createElement('a');
+                            link.href = data.file_url;
+                            link.textContent = 'دانلود فایل';
+                            link.download = '';
+                            messageDiv.appendChild(link);
+                        }
+                        
+                        // اضافه کردن زمان
+                        const timestamp = document.createElement('div');
+                        timestamp.className = 'chat-timestamp';
+                        timestamp.textContent = new Date().toLocaleTimeString('fa-IR');
+                        messageDiv.appendChild(timestamp);
+                        
+                        chatBody.appendChild(messageDiv);
+                        chatBody.scrollTop = chatBody.scrollHeight;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error uploading file:', error);
+            });
+            
+            fileInput.value = '';
         }
 
-        function displayMessage(msg) {
-            console.log('Displaying message:', msg);
-            const chatBody = document.getElementById('chatBody');
+        function displayPrivateMessage(msg) {
+            console.log('Displaying private message:', msg);
+            const chatBody = document.getElementById('privateChatBody');
             const messageDiv = document.createElement('div');
             messageDiv.className = `chat-message ${msg.sender_id === {{ user.id|default:0 }} ? 'sent' : 'received'}`;
             
@@ -557,6 +764,67 @@
                     messageDiv.appendChild(link);
                 }
             }
+            
+            // اضافه کردن زمان
+            if (msg.timestamp) {
+                const date = new Date(msg.timestamp);
+                const timestamp = document.createElement('div');
+                timestamp.className = 'chat-timestamp';
+                timestamp.textContent = date.toLocaleTimeString('fa-IR');
+                messageDiv.appendChild(timestamp);
+            }
+            
+            chatBody.appendChild(messageDiv);
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        function displayGlobalMessage(msg) {
+            console.log('Displaying global message:', msg);
+            const chatBody = document.getElementById('globalChatBody');
+            const messageDiv = document.createElement('div');
+            
+            // مشخص کردن اینکه پیام از خود کاربر است یا از دیگران
+            if (msg.sender_id === {{ user.id|default:0 }}) {
+                messageDiv.className = 'chat-message sent';
+            } else {
+                messageDiv.className = 'chat-message global';
+                
+                // اضافه کردن نام فرستنده به پیام
+                if (msg.username) {
+                    const senderName = document.createElement('div');
+                    senderName.className = 'sender-name';
+                    senderName.textContent = msg.username;
+                    messageDiv.appendChild(senderName);
+                }
+            }
+            
+            if (msg.message) {
+                const messageText = document.createElement('div');
+                messageText.textContent = msg.message;
+                messageDiv.appendChild(messageText);
+            } else if (msg.file_url) {
+                if (msg.file_type && msg.file_type.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    img.src = msg.file_url;
+                    messageDiv.appendChild(img);
+                } else {
+                    const link = document.createElement('a');
+                    link.href = msg.file_url;
+                    link.textContent = 'دانلود فایل';
+                    link.download = '';
+                    messageDiv.appendChild(link);
+                }
+            }
+            
+            // اضافه کردن زمان
+            if (msg.timestamp) {
+                const date = new Date(msg.timestamp);
+                const timestamp = document.createElement('div');
+                timestamp.className = 'chat-timestamp';
+                timestamp.textContent = date.toLocaleTimeString('fa-IR');
+                messageDiv.appendChild(timestamp);
+            }
+            
             chatBody.appendChild(messageDiv);
             chatBody.scrollTop = chatBody.scrollHeight;
         }
@@ -569,8 +837,17 @@
             chatSocket.onmessage = function(e) {
                 const data = JSON.parse(e.data);
                 console.log('WebSocket message received:', data);
-                if (data.sender_id === currentChatUser || data.receiver_id === currentChatUser) {
-                    displayMessage(data);
+                
+                if (data.type === 'chat_message' || data.type === 'file_message') {
+                    // اگر پیام خصوصی است، بررسی کنیم آیا مربوط به چت فعلی است یا خیر
+                    if (currentChatUser && (data.sender_id === currentChatUser || data.receiver_id === currentChatUser)) {
+                        displayPrivateMessage(data);
+                    }
+                } 
+                else if (data.type === 'global_message' || data.type === 'global_file_message') {
+                    // اگر پیام عمومی است آن را نمایش می‌دهیم
+                    data.username = data.sender_id === {{ user.id|default:0 }} ? "{{ user.username }}" : data.username;
+                    displayGlobalMessage(data);
                 }
             };
 
@@ -584,4 +861,5 @@
         }
     </script>
 </body>
+</html>
 </html>

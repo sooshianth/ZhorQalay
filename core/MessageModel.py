@@ -8,6 +8,7 @@ class Message(models.Model):
     file_url = models.URLField(blank=True, null=True)
     file_type = models.CharField(max_length=50, blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
+    is_global = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['timestamp']

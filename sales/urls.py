@@ -25,5 +25,8 @@ urlpatterns = [
     path('api/users/', chatBot_view.user_list, name='user_list'),
     path('api/chat/history/<int:user_id>/', chatBot_view.chat_history, name='chat_history'),
     path('api/chat/upload/', chatBot_view.upload_file, name='upload_file'),
+    path('api/chat/global/', chatBot_view.global_chat_history, name='global_chat_history'),
+    path('api/online-users/', chatBot_view.online_users, name='online_users'),
+    path('api/username/<int:user_id>/', chatBot_view.get_username, name='get_username'),
     path('captcha/', include('captcha.urls')), 
 ]
