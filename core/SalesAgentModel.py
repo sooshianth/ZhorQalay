@@ -76,32 +76,29 @@ class SalesAgent(models.Model):
 
     def get_this_month_sales_stats(self):
         """دریافت آمار جامع فروش ماه جاری با کش."""
-        cache_key = f'sales_agent_{self.id}_monthly_stats_{timezone.now().strftime("%Y%m")}'
+        now = timezone.now()
+        cache_key = f'sales_agent_{self.id}_monthly_stats_{now.strftime("%Y%m")}'
         cached_data = cache.get(cache_key)
         
         if cached_data is not None:
             return cached_data
-            
-        # محاسبه آمار
+                
         sales = self.get_this_month_sales()
-        amount = sum(purchase.amount_paid for purchase in sales if purchase.amount_paid)
-        weight = sum(purchase.order_weight for purchase in sales)
+        amount = sum(purchase.amount_paid for purchase in sales if purchase.amount_paid) or 0
+        weight = sum(purchase.order_weight for purchase in sales) or 0
         count = len(sales)
         average = amount / count if count > 0 else 0
-        
         target_achievement = (amount / self.target_monthly_sales * 100) if self.target_monthly_sales > 0 else 0
         
         result = {
             'amount': amount,
-            'weight': weight,
+            'weight': weight / 1000,  # تبدیل به تن
             'count': count,
             'average': average,
             'target_achievement': target_achievement,
         }
         
-        # کش برای یک ساعت
         cache.set(cache_key, result, 3600)
-        
         return result
 
     def get_potential_sales(self):

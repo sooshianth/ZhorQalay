@@ -12,11 +12,15 @@ logger = logging.getLogger(__name__)
 @require_POST
 def mark_notification_read(request, notification_id):
     """نوتیفیکیشن موردنظر را به عنوان خوانده‌شده علامت‌گذاری می‌کند."""
-    notif = get_object_or_404(Notification, id= notification_id, user=request.user)
+    notif = get_object_or_404(Notification, id=notification_id, user=request.user)
     notif.is_read = True
     notif.save()
-    return redirect('sales_agent_profile') 
-
+    
+    # اگر درخواست AJAX باشد، پاسخ JSON برگردانید
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'status': 'success'})
+    
+    return redirect('sales_agent_profile')
 @login_required
 @require_POST
 def mark_all_notifications_read(request):
