@@ -21,6 +21,123 @@ from django.utils import timezone
 # ایجاد یک لاگر برای دیباگ
 logger = logging.getLogger(__name__)
 
+# لیست استان‌های ایران
+IRAN_PROVINCES = [
+    'آذربايجان شرقی', 'آذربايجان غربی', 'اردبیل', 'اصفهان', 'البرز', 'ایلام',
+    'بوشهر', 'تهران', 'چهارمحال و بختیاری', 'خراسان جنوبی', 'خراسان رضوی',
+    'خراسان شمالی', 'خوزستان', 'زنجان', 'سمنان', 'سیستان و بلوچستان',
+    'فارس', 'قزوین', 'قم', 'کردستان', 'کرمان', 'کرمانشاه', 'کهگیلویه و بویراحمد',
+    'گلستان', 'گیلان', 'لرستان', 'مازندران', 'مرکزی', 'هرمزگان', 'همدان', 'یزد'
+]
+
+# حالت‌های مختلف استان‌ها در آدرس‌ها
+PROVINCE_VARIANTS = {
+    'چهارمحال وبختیاری': 'چهارمحال و بختیاری',
+    'چهارمحال': 'چهارمحال و بختیاری',
+    'سیستان': 'سیستان و بلوچستان',
+    'كهگیلویه': 'کهگیلویه و بویراحمد',
+    'كهکیلویه': 'کهگیلویه و بویراحمد',
+    'کهکیلویه': 'کهگیلویه و بویراحمد',
+    'آذربایجان شرقی': 'آذربايجان شرقی',
+    'آذربايجان شرقي': 'آذربايجان شرقی',
+    'آذربایجان غربی': 'آذربايجان غربی',
+    'آذربايجان غربي': 'آذربايجان غربی',
+    'مركزی': 'مرکزی',
+    'کرمانشاه': 'کرمانشاه',
+    'كرمانشاه': 'کرمانشاه',
+}
+
+def normalize_text(text):
+    """
+    نرمال‌سازی متن برای مقایسه بهتر
+    تبدیل ی عربی و ک عربی به فارسی و حذف فاصله‌های اضافی
+    """
+    if not text or not isinstance(text, str):
+        return ""
+    
+    text = text.replace('ي', 'ی').replace('ك', 'ک').strip()
+    return text
+
+def extract_province_from_address(address):
+    """
+    استخراج نام استان از آدرس
+    برای آدرس‌های با فرمت جدید که با underscore جدا شده‌اند
+    """
+    if not address or not isinstance(address, str):
+        return None
+        
+    # پاکسازی و نرمالیزه کردن آدرس
+    address = address.strip()
+    
+    # بررسی آدرس‌های با فرمت underscore (بیشتر آدرس‌های بازارگاه)
+    if '_' in address:
+        # استان معمولا اولین قسمت آدرس قبل از اولین underscore است
+        parts = address.split('_')
+        if parts and parts[0]:
+            province_candidate = parts[0].strip()
+            
+            # نرمال‌سازی متن استان
+            normalized_candidate = normalize_text(province_candidate)
+            
+            # بررسی در لیست استان‌ها
+            for province in IRAN_PROVINCES:
+                if normalize_text(province) == normalized_candidate:
+                    return province
+            
+            # بررسی در متغیرهای مختلف استان‌ها
+            for variant, standard in PROVINCE_VARIANTS.items():
+                if normalize_text(variant) == normalized_candidate:
+                    return standard
+                    
+            # اگر مطابقت دقیق پیدا نشد، بررسی کنیم آیا استان شامل نام استانی هست
+            for province in IRAN_PROVINCES:
+                if normalize_text(province) in normalized_candidate:
+                    return province
+            
+            # برای استان‌هایی که بخشی از آن‌ها در آدرس آمده
+            for variant, standard in PROVINCE_VARIANTS.items():
+                if normalize_text(variant) in normalized_candidate:
+                    return standard
+                    
+            # برگشت خود متن اولیه اگر هیچکدام از موارد بالا مطابقت نداشت
+            return province_candidate
+    
+    # بررسی اینکه آیا آدرس با یکی از استان‌ها شروع می‌شود
+    for province in IRAN_PROVINCES:
+        if address.startswith(province):
+            return province
+            
+    # بررسی متغیرهای مختلف استان‌ها
+    for variant, standard in PROVINCE_VARIANTS.items():
+        if address.startswith(variant):
+            return standard
+            
+    # جستجو برای الگوهای رایج
+    address_parts = address.split("-")
+    if len(address_parts) > 0:
+        first_part = address_parts[0].strip()
+        for province in IRAN_PROVINCES:
+            if province in first_part:
+                return province
+                
+        for variant, standard in PROVINCE_VARIANTS.items():
+            if variant in first_part:
+                return standard
+                
+    address_parts = address.split("،")
+    if len(address_parts) > 0:
+        first_part = address_parts[0].strip()
+        for province in IRAN_PROVINCES:
+            if province in first_part:
+                return province
+                
+        for variant, standard in PROVINCE_VARIANTS.items():
+            if variant in first_part:
+                return standard
+    
+    # اگر استان پیدا نشد
+    return None
+
 @login_required
 def bge_files_list(request):
     """
@@ -612,6 +729,17 @@ def process_bge_file(request, file_id):
                                         shenase_takhsis=shenase_takhsis
                                     )
                                     
+                                    # اگر مشتری آدرس دارد، استان را استخراج کرده و در فیلد city ذخیره می‌کنیم
+                                    if address and purchase.customer:
+                                        province = extract_province_from_address(address)
+                                        logger.debug(f"آدرس مشتری موجود: {address}")
+                                        logger.debug(f"استان استخراج شده برای مشتری موجود: {province}")
+                                        # اگر استان استخراج شده و متفاوت با مقدار قبلی باشد، آن را به‌روزرسانی می‌کنیم
+                                        if province and (not purchase.customer.city or province != purchase.customer.city):
+                                            old_city = purchase.customer.city or "خالی"
+                                            Customer.objects.filter(id=purchase.customer.id).update(city=province)
+                                            logger.debug(f"استان مشتری موجود از '{old_city}' به '{province}' به‌روزرسانی شد")
+                                    
                                     # افزودن شناسه تخصیص جدید به خرید
                                     if shenase_takhsis and not ShenaseTakhsis.objects.filter(purchase=purchase, code=shenase_takhsis).exists():
                                         ShenaseTakhsis.objects.create(
@@ -644,12 +772,20 @@ def process_bge_file(request, file_id):
 
                                                 field_of_activity = map_excel_field_to_model(field_of_activity_raw)
 
+                                                # استخراج استان از آدرس
+                                                province = None
+                                                if address:
+                                                    province = extract_province_from_address(address)
+                                                    logger.debug(f"آدرس: {address}")
+                                                    logger.debug(f"استان استخراج شده: {province}")
+
                                                 customer = Customer.objects.create(
                                                     phone_number=bazaargah_phone_number,
                                                     name=customer_name if customer_name else "مشتری جدید",
                                                     field_of_activity=field_of_activity if field_of_activity else 'chicken',
                                                     sms_preference=True,
-                                                    is_bazaargah_enjoyer=True
+                                                    is_bazaargah_enjoyer=True,
+                                                    city=province  # ذخیره استان در فیلد city
                                                 )
 
                                                 logger.debug(f"مشتری جدید ایجاد شد با شناسه: {customer.id}")

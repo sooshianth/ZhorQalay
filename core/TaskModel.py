@@ -15,7 +15,7 @@ class Task(models.Model):
 
     description = models.TextField(_('توضیحات'), max_length=100)
     purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, null=True, blank=True, related_name='tasks')
-    customer = models.ForeignKey(Customer, on_delete=models.DO_NOTHING, verbose_name=_('مشتری'), related_name='tasks')
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, verbose_name=_('مشتری'), related_name='tasks')
     status = models.BooleanField(_('وضعیت پیگیری'), choices=TASK_STATUS, default=False)
     create_time = jmodels.jDateTimeField(_('زمان ایجاد شده'), auto_now_add=True)
     due_date = jmodels.jDateTimeField(_('زمان مورد انتظار پیگیری'), null=True, blank=True)
