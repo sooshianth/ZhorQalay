@@ -14,14 +14,6 @@
             <div class="profile-date">تاریخ امروز: <span id="current-date"></span></div>
         </div>
 
-        {% if messages %}
-        <div class="messages-container">
-            {% for message in messages %}
-                <p class="message {{ message.tags }}">{{ message }}</p>
-            {% endfor %}
-        </div>
-        {% endif %}
-    
         <div class="profile-tabs">
             <div class="profile-tab">
                 <div class="section-title">اطلاعات شخصی</div>

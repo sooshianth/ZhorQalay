@@ -5,12 +5,6 @@
 {% block content %}
     <div class="login-container">
         <h2>ورود به حساب کارشناس فروش</h2>
-
-        {% if messages %}
-        {% for message in messages %}
-            <p style="color: red;">{{ message }}</p>
-        {% endfor %}
-        {% endif %}
     
         <form method="POST">
             {% csrf_token %}

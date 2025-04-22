@@ -262,8 +262,21 @@
     </header>
 
     <main class="container">
+        {% if messages %}
+        <div class="messages-container">
+            {% for message in messages %}
+            <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
+                <i class="{% if message.tags == 'success' %}fas fa-check-circle{% else %}fas fa-exclamation-triangle{% endif %}"></i>
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+
         {% block content %}{% endblock %}
     </main>
+
 
     {% if user.is_authenticated %}
     <div class="chat-icon" onclick="toggleChatWindow()">

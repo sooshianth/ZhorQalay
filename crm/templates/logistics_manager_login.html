@@ -6,11 +6,6 @@
     <div class="login-container">
         <h2>ورود به حساب مدیر لجستیک</h2>
 
-        {% if messages %}
-            {% for message in messages %}
-                <p style="color: red;">{{ message }}</p>
-            {% endfor %}
-        {% endif %}
 
         <form method="POST">
             {% csrf_token %}

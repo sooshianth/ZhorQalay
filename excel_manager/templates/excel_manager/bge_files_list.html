@@ -41,19 +41,19 @@
                             <td>{{ file.user.get_full_name|default:file.user.username }}</td>
                             <td>
                                 {% if file.is_processed %}
-                                <span class="badge bg-success">پردازش شده</span>
+                                <span class="">پردازش شده</span>
                                 {% else %}
-                                <span class="badge bg-warning text-dark">منتظر پردازش</span>
+                                <span class="">منتظر پردازش</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if file.is_approved %}
-                                <span class="badge bg-success">تأیید شده</span>
+                                <span class="">تأیید شده</span>
                                 {% if file.approved_by %}
                                 <small class="d-block text-muted">توسط: {{ file.approved_by.get_full_name|default:file.approved_by.username }}</small>
                                 {% endif %}
                                 {% else %}
-                                <span class="badge bg-warning text-dark">منتظر تأیید</span>
+                                <span class="">منتظر تأیید</span>
                                 {% endif %}
                             </td>
                             <td>

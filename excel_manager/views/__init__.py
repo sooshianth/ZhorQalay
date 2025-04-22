@@ -1,8 +1,23 @@
-from .bge_file_views import (
+"""
+مدیریت کننده رابط دید برای فایل‌های اکسل بازارگاه
+این فایل شامل import های هر یک از ماژول‌های جداگانه است
+هر ماژول مسئولیت خاصی را برعهده دارد
+"""
+
+# توابع مربوط به نمایش و لیست کردن فایل‌های اکسل
+from .bge_file_list_views import (
     bge_files_list,
+    view_excel_file,
+    search_cargo_products
+)
+
+# توابع مربوط به آپلود و تأیید فایل‌های اکسل
+from .bge_file_upload_views import (
     upload_bge_file,
-    process_bge_file,
-    search_cargo_products,
-    approve_bge_file,
-    view_excel_file
+    approve_bge_file
+)
+
+# توابع مربوط به پردازش فایل‌های اکسل
+from .bge_file_process_views import (
+    process_bge_file
 ) 
