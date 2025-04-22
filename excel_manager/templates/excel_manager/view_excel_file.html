@@ -3,6 +3,42 @@
 
 {% block title %}{{ page_title }}{% endblock %}
 
+{% block extra_css %}
+{# Tabulator CSS is included in base.html #}
+<style>
+  /* Optional: Add custom styles for Tabulator or actions */
+  .tabulator {
+    border: 1px solid #dee2e6;
+    border-radius: .25rem;
+    direction: rtl; /* Ensure RTL direction */
+  }
+  .tabulator .tabulator-header {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: bold;
+  }
+   .tabulator .tabulator-header .tabulator-col {
+    background-color: var(--primary-color); /* Match header style */
+    color: white;
+  }
+  .tabulator .tabulator-header .tabulator-col .tabulator-col-content {
+      padding: 8px;
+  }
+  .tabulator .tabulator-tableholder .tabulator-placeholder span {
+    /* Style for empty table message if needed */
+  }
+  .excel-actions {
+    margin-bottom: 15px;
+  }
+  .excel-actions .btn {
+    margin-left: 10px; /* Add some space between buttons */
+  }
+  /* Style for delete icon */
+  .tabulator .tabulator-row .tabulator-cell i.fa-trash {
+      cursor: pointer;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
@@ -32,27 +68,189 @@
                 </div>
             </div>
         </div>
-        <div class="card-body p-0">
-            <div class="excel-container">
-                {% if is_html_file %}
-                    {{ html_content|safe }}
-                {% else %}
-                    {{ html_table|safe }}
-                {% endif %}
+        <div class="card-body">
+            <div class="excel-actions">
+                <button id="save-changes-btn" class="btn btn-success">
+                    <i class="fa fa-save"></i> ذخیره تغییرات
+                </button>
+                <button id="add-row-btn" class="btn btn-info">
+                    <i class="fa fa-plus"></i> افزودن سطر جدید
+                </button>
+                <button id="undo-btn" class="btn btn-warning">
+                    <i class="fa fa-undo"></i> بازگشت تغییر
+                </button>
+                 <button id="redo-btn" class="btn btn-secondary">
+                    <i class="fa fa-redo"></i> انجام مجدد تغییر
+                </button>
             </div>
+            <div id="excel-table-container"></div> <!-- Container for Tabulator -->
         </div>
     </div>
 </div>
+
+<!-- Modals removed as Tabulator handles edits inline -->
+
 {% endblock %}
 
 {% block extra_scripts %}
+{# DataTable JS removed #}
 <script>
-    $(document).ready(function() {
-        // اضافه کردن کلاس به جدول اصلی اگر از فایل HTML آمده باشد
-        if ({{ is_html_file|yesno:"true,false" }}) {
-            $('table').addClass('table table-striped table-bordered table-hover');
-            $('table').attr('id', 'excel-table');
-        }
+    // Define table variable in a broader scope
+    var table;
+    // Pass JSON data from Django context
+    const tableData = {{ data_json|safe }};
+    const tableColumns = {{ columns_json|safe }};
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize Tabulator
+        table = new Tabulator("#excel-table-container", {
+            data: tableData,           // Assign data
+            columns: tableColumns,     // Define columns structure
+            layout: "fitDataFill",     // Fit columns to data then fill
+            pagination: "local",       // Enable local pagination
+            paginationSize: 15,        // Number of rows per page
+            paginationSizeSelector: [10, 15, 25, 50, 100], // Page size options
+            movableColumns: true,      // Allow column order to be changed
+            resizableRows: true,       // Allow row height to be changed
+            history: true,             // Enable undo/redo
+            locale: true,              // Enable localization
+            langs:{
+                "fa-ir":{ // Define Persian language pack
+                    "columns":{
+                        // Add column titles if needed, otherwise defaults are used
+                    },
+                    "data":{
+                        "loading":"درحال بارگذاری...", 
+                        "error":"خطا در بارگذاری داده", 
+                    },
+                    "groups":{
+                        "item":"مورد", 
+                        "items":"موارد",
+                    },
+                    "pagination":{
+                        "page_size":"تعداد سطر در صفحه",
+                        "page_title":"نمایش صفحه",
+                        "first":"اولین", 
+                        "first_title":"اولین صفحه",
+                        "last":"آخرین",
+                        "last_title":"آخرین صفحه",
+                        "prev":"قبلی",
+                        "prev_title":"صفحه قبلی",
+                        "next":"بعدی",
+                        "next_title":"صفحه بعدی",
+                        "all":"همه",
+                    },
+                    "headerFilters":{
+                        "default":"فیلتر ستون...",
+                        "columns":{
+                           // Add specific filter placeholder if needed
+                        }
+                    }
+                }
+            },
+            initialSort:[             // Initial sorting (optional)
+                //{column:"کد", dir:"asc"}, // Example: sort by 'کد' column
+            ],
+            // Event listeners for edits (optional, for more complex logic)
+            // cellEdited:function(cell){
+            //     console.log("Cell edited:", cell.getField(), cell.getValue());
+            // },
+            // dataChanged:function(data){
+            //     // This triggers after edits, adds, deletes
+            //     console.log("Data changed");
+            // }
+        });
+
+        // Set language to Persian
+        table.setLocale("fa-ir");
+
+        // --- Button Actions --- 
+
+        // Add Row Button
+        document.getElementById("add-row-btn").addEventListener("click", function(){
+            console.log("Add Row button clicked. Table object:", table);
+            if(table) table.addRow({}, true); // Add empty row to the top
+        });
+
+        // Undo Button
+        document.getElementById("undo-btn").addEventListener("click", function(){
+            console.log("Undo button clicked. Table object:", table);
+            if(table) table.undo();
+        });
+
+        // Redo Button
+        document.getElementById("redo-btn").addEventListener("click", function(){
+            console.log("Redo button clicked. Table object:", table);
+            if(table) table.redo();
+        });
+
+        // Save Changes Button
+        document.getElementById("save-changes-btn").addEventListener("click", function(){
+            console.log("Save Changes button clicked. Table object:", table);
+            if (!table) {
+                console.error("Tabulator table object is not available.");
+                alert("خطا: شیء جدول یافت نشد.");
+                return;
+            }
+            const currentTableData = table.getData();
+            
+            // Basic check if data exists
+            if (!currentTableData || currentTableData.length === 0) {
+                 alert("جدول خالی است یا داده‌ای برای ذخیره وجود ندارد.");
+                 return;
+            }
+
+            // Show loading state on button
+            const saveBtn = document.getElementById("save-changes-btn");
+            saveBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> در حال ذخیره...';
+            saveBtn.disabled = true;
+
+            console.log('Sending current table data to server:', currentTableData);
+
+            // Send all current data to the server
+            $.ajax({
+                url: "{% url 'excel_manager:save_excel_changes' excel_file.id %}",
+                type: 'POST',
+                contentType: 'application/json', // Send as JSON
+                data: JSON.stringify({
+                    // 'csrfmiddlewaretoken': '{{ csrf_token }}', // CSRF token is sent in header
+                    'table_data': currentTableData,
+                    'is_html': {{ is_html|yesno:"true,false" }} // Send file type info
+                }),
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}' // Sending CSRF token in header for Django
+                },
+                success: function(response) {
+                    console.log('Server response:', response);
+                    if (response.success) {
+                        alert('تغییرات با موفقیت ذخیره شد. پیام سرور: ' + response.message);
+                        // Optional: Reload table or update data if necessary
+                        // table.setData(response.updated_data); // If backend sends back the saved data
+                        if(table) table.history.clear(); // Clear undo/redo history after save
+                    } else {
+                        alert('خطا در ذخیره تغییرات: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX error:', status, error);
+                    console.log('Response Text:', xhr.responseText);
+                    let errorMsg = 'خطا در ارتباط با سرور';
+                    try {
+                        const errResponse = JSON.parse(xhr.responseText);
+                        if (errResponse.message) {
+                            errorMsg = errResponse.message;
+                        }
+                    } catch (e) {}
+                    alert(errorMsg + ": " + error);
+                },
+                complete: function() {
+                    // Restore button state
+                    saveBtn.innerHTML = '<i class="fa fa-save"></i> ذخیره تغییرات';
+                    saveBtn.disabled = false;
+                }
+            });
+        });
+
     });
 </script>
 {% endblock %} 

@@ -17,6 +17,9 @@
     <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js" loading="lazy"></script>
     <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js" loading="lazy"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
+    <!-- Tabulator CSS -->
+    <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator_bootstrap5.min.css" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
     <style>
         .chat-icon {
             position: fixed;
@@ -369,6 +372,12 @@
                 }
             });
 
+            // اطمینان از حذف aria-hidden از body (با کمی تاخیر)
+            setTimeout(() => {
+                document.body.removeAttribute('aria-hidden');
+                console.log('Attempted to remove aria-hidden from body.'); // لاگ برای تایید اجرا
+            }, 50); // تاخیر 50 میلی‌ثانیه
+
             const menuToggle = document.getElementById("menu-toggle");
             const mobileMenuToggle = document.getElementById("mobile-menu-toggle");
             const navMenu = document.getElementById("nav-menu");
@@ -417,6 +426,7 @@
             });
         });
 
+        // START: Chat WebSocket Script (Re-enabled)
         let currentChatUser = null;
         let chatSocket = null;
         let currentTab = 'private'; // 'private' یا 'global'
@@ -425,7 +435,8 @@
             const userId = {{ user.id|default:0 }};
             const username = "{{ user.username }}";
             if (userId) {
-                chatSocket = new WebSocket(`ws://${window.location.host}/ws/chat/${userId}/`);
+                chatSocket = new WebSocket(`ws://${window.location.host}/ws/chat/${userId}/`); // Re-enabled
+                console.log('WebSocket connection enabled.');
             } else {
                 console.error('User ID is not defined. Cannot initialize WebSocket.');
             }
@@ -872,7 +883,10 @@
                 console.error('WebSocket خطا:', e);
             };
         }
+        // END: Chat WebSocket Script (Re-enabled)
     </script>
+    <!-- Tabulator JS -->
+    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+    {% block extra_scripts %}{% endblock %}
 </body>
-</html>
 </html>

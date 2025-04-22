@@ -8,7 +8,9 @@
 from .bge_file_list_views import (
     bge_files_list,
     view_excel_file,
-    search_cargo_products
+    search_cargo_products,
+    save_excel_changes,
+    delete_excel_file
 )
 
 # توابع مربوط به آپلود و تأیید فایل‌های اکسل
