@@ -7,14 +7,14 @@ import os
 from django.http import HttpResponse, JsonResponse, Http404
 from django.conf import settings
 import pandas as pd
-from ..models import ExcelFile, ExcelProcess
+from ..models import ExcelFile, ExcelProcessingLog, ExcelFile
 import logging
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.views import View
 import json
-from accounts.models import Customer
+from core._models import Customer
 from django.utils import timezone
 from datetime import datetime, timedelta
 
@@ -142,7 +142,7 @@ def get_excel_file_detail(request, file_id):
     excel_file = get_object_or_404(ExcelFile, id=file_id)
     
     # دریافت آخرین پردازش مرتبط با این فایل
-    last_process = ExcelProcess.objects.filter(
+    last_process = ExcelProcessingLog.objects.filter(
         excel_file=excel_file
     ).order_by('-id').first()
     
@@ -256,7 +256,7 @@ def list_excel_files(request):
     result = []
     for file in files:
         # یافتن آخرین پردازش فایل
-        last_process = ExcelProcess.objects.filter(
+        last_process = ExcelProcessingLog.objects.filter(
             excel_file=file
         ).order_by('-id').first()
         
@@ -321,7 +321,7 @@ class DeleteExcelFileView(View):
             
             # حذف پردازش‌های مرتبط
             try:
-                ExcelProcess.objects.filter(excel_file=excel_file).delete()
+                ExcelProcessingLog.objects.filter(excel_file=excel_file).delete()
             except Exception as e:
                 logger.error(f"خطا در حذف پردازش‌های مرتبط با فایل {file_id}: {str(e)}")
             

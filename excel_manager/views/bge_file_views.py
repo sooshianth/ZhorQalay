@@ -34,7 +34,7 @@ import os
 from django.http import HttpResponse, JsonResponse, Http404
 from django.conf import settings
 import pandas as pd
-from ..models import BGEFile, BGEProcess
+from ..models import BGExcelFile, BGEProcess
 import logging
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -60,7 +60,7 @@ def get_bge_file_detail(request, file_id):
         پاسخ JSON شامل اطلاعات فایل و پردازش
     """
     # دریافت فایل با ID مشخص شده یا نمایش خطای 404
-    bge_file = get_object_or_404(BGEFile, id=file_id)
+    bge_file = get_object_or_404(BGExcelFile, id=file_id)
     
     # دریافت آخرین پردازش مرتبط با این فایل
     last_process = BGEProcess.objects.filter(
@@ -105,7 +105,7 @@ def download_bge_file(request, file_id):
         فایل برای دانلود یا خطای 404
     """
     # دریافت فایل با ID مشخص شده یا نمایش خطای 404
-    bge_file = get_object_or_404(BGEFile, id=file_id)
+    bge_file = get_object_or_404(BGExcelFile, id=file_id)
     
     # مسیر کامل فایل در سیستم
     file_path = os.path.join(settings.MEDIA_ROOT, bge_file.file_path)
@@ -150,7 +150,7 @@ def get_bge_file_stats(request, file_id):
         پاسخ JSON شامل آمار و اطلاعات تحلیلی فایل
     """
     # دریافت فایل با ID مشخص شده یا نمایش خطای 404
-    bge_file = get_object_or_404(BGEFile, id=file_id)
+    bge_file = get_object_or_404(BGExcelFile, id=file_id)
     
     # مسیر کامل فایل در سیستم
     file_path = os.path.join(settings.MEDIA_ROOT, bge_file.file_path)
