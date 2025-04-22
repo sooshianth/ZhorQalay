@@ -7,6 +7,9 @@ from core._models import Customer, Purchase
 import logging
 import json
 import os
+import numpy as np
+from sklearn.ensemble import RandomForestRegressor
+from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -15,78 +18,64 @@ with open(file_path, 'r', encoding='utf-8') as file:
     data = json.load(file)
 
 def normalize_city_name(city_name):
-    # تبدیل "ی" عربی به "ی" فارسی و حذف فاصله‌ها
+    if not city_name:
+        return ""
     city_name = city_name.replace('ي', 'ی').strip().replace(' ', '').lower()
     return city_name
 
 def find_province_by_city(target_city):
-    target_city = normalize_city_name(target_city)  # نرمال‌سازی نام شهر هدف
-    print(f"جستجو برای شهر: {target_city}")
+    target_city = normalize_city_name(target_city)
     for province in data:
         for city in province['cities']:
-            city_name = normalize_city_name(city['name'])  # نرمال‌سازی نام شهر از JSON
+            city_name = normalize_city_name(city['name'])
             if city_name == target_city:
-                print(f"شهر {target_city} در استان {province['name']} یافت شد.")
                 return province['name']
-    print(f"شهر {target_city} یافت نشد.")
     return None
 
-import numpy as np
-from sklearn.ensemble import RandomForestRegressor
-from django.core.cache import cache
-import logging
-
 def calculate_ml_prediction(sales_agent, monthly_sales):
-    # کش برای کاهش بار محاسباتی
     cache_key = f"sales_pred_{sales_agent.id}_{monthly_sales[-1]['month']}"
     cached_pred = cache.get(cache_key)
     if cached_pred:
         return cached_pred
     
     try:
-        # آماده‌سازی داده‌های آموزشی
         X = []
         y = []
-        
-        # ساخت ویژگی‌های مبتنی بر توالی زمانی
         for i in range(1, len(monthly_sales)):
             prev_month = monthly_sales[i-1]
             current_month = monthly_sales[i]
-            
-            # ویژگی‌ها: ماه قبل، میانگین متحرک ۳ ماهه، روند
             features = [
-                prev_month['sales'],  # فروش ماه قبل
-                np.mean([m['sales'] for m in monthly_sales[max(0,i-3):i]]),  # میانگین ۳ ماهه
-                i  # روند زمانی
+                prev_month.get('sales', 0),
+                np.mean([m.get('sales', 0) for m in monthly_sales[max(0, i-3):i]]),
+                i
             ]
-            
             X.append(features)
             y.append(current_month['sales'])
         
         if len(X) < 3:
-            raise ValueError("داده کافی برای آموزش مدل وجود ندارد")
+            logger.warning("Insufficient data for ML prediction, falling back to simple average")
+            avg_sales = np.mean([m['sales'] for m in monthly_sales]) if monthly_sales else 0
+            cache.set(cache_key, avg_sales, 604800)
+            return avg_sales
         
-        # آموزش مدل جنگل تصادفی
         model = RandomForestRegressor(n_estimators=100, random_state=42)
         model.fit(X, y)
         
-        # پیش‌بینی برای ماه بعد
         last_month_features = [
-            monthly_sales[-1]['sales'],  # آخرین فروش
-            np.mean([m['sales'] for m in monthly_sales[-3:]]),  # میانگین ۳ ماه آخر
-            len(monthly_sales)  # ادامه روند
+            monthly_sales[-1]['sales'],
+            np.mean([m['sales'] for m in monthly_sales[-3:]]),
+            len(monthly_sales)
         ]
         
-        prediction = model.predict([last_month_features])[0]
-        
-        # ذخیره در کش به مدت ۱ هفته
+        prediction = max(0, model.predict([last_month_features])[0])
         cache.set(cache_key, prediction, 604800)
         return prediction
         
     except Exception as e:
-        logger.error(f"خطا در پیش‌بینی هوش مصنوعی: {str(e)}")
-        # فال‌بک به میانگین ساده در صورت خطا
-        return np.mean([m['sales'] for m in monthly_sales]) if monthly_sales else 0
+        logger.error(f"ML prediction error: {str(e)}")
+        avg_sales = np.mean([m['sales'] for m in monthly_sales]) if monthly_sales else 0
+        cache.set(cache_key, avg_sales, 604800)
+        return avg_sales
 
 @login_required
 def sales_dashboard_view(request):
@@ -99,45 +88,38 @@ def sales_dashboard_view(request):
 
     # داده‌های فروش برای 6 ماه گذشته
     monthly_sales = []
-    for i in range(6):  # 6 ماه گذشته شامل ماه جاری
-        # محاسبه شروع و پایان ماه
+    for i in range(6):
         month_date = today - timedelta(days=i * 30)
         month_start = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         month_end = (month_start + timedelta(days=31)).replace(day=1) - timedelta(seconds=1)
 
-        # استفاده از متد جدید get_sales_in_period
         sales = sales_agent.get_sales_in_period(start_date=month_start, end_date=month_end)
-        sales_weight = sum(purchase.weight for purchase in sales)
+        total_weight = sum(purchase.order_weight for purchase in sales)
 
         monthly_sales.append({
             'month': month_start.strftime('%Y-%m'),
-            'sales': sales_weight
+            'sales': total_weight / 1000  # تبدیل به تن
         })
 
-    # پیش‌بینی فروش ماه بعد با استفاده از متد forecast_sales
+    # پیش‌بینی فروش ماه بعد
     try:
-        # استفاده از پیش‌بینی پیشرفته اگر در دسترس باشد
         forecast_data = sales_agent.forecast_sales(days_ahead=30)
-        sales_prediction = forecast_data['total_forecast']
+        sales_prediction = forecast_data['total_forecast'] / 1000  # تبدیل به تن
         forecast_confidence = forecast_data['confidence']
     except Exception as e:
-        logger.error(f"Error using forecast_sales: {str(e)}")
-        # فال‌بک به روش قبلی
+        logger.error(f"Error in forecast_sales: {str(e)}")
         sales_prediction = calculate_ml_prediction(sales_agent, monthly_sales)
-        forecast_confidence = 70  # مقدار پیش‌فرض
-    
+        forecast_confidence = 70
+
     # تعداد مشتریان جدید این ماه
     new_customers_this_month = Customer.objects.filter(
         sales_agent=sales_agent,
-        created_at__month=today.month  # مشتریان ایجاد شده در این ماه
+        created_at__gte=today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     ).count()
 
-    # محاسبه خریدها بر اساس استان
+    # خریدها بر اساس استان
     province_purchases = defaultdict(int)
-    purchases_this_month = Purchase.objects.filter(
-        customer__sales_agent=sales_agent,
-    )
-
+    purchases_this_month = sales_agent.get_this_month_sales()
     for purchase in purchases_this_month:
         city = purchase.customer.city
         if city:
@@ -145,17 +127,33 @@ def sales_dashboard_view(request):
             if province:
                 province_purchases[province] += 1
 
-    # استفاده از متد جدید get_this_month_sales_stats برای آمار فروش ماه جاری
+    # آمار فروش ماه جاری
     sales_stats = sales_agent.get_this_month_sales_stats()
-    
-    # استفاده از متد جدید get_sales_by_product برای آمار فروش بر اساس محصول
+    this_month_sales_weight = sales_agent.get_this_month_sales_weight() / 1000  # تبدیل به تن
+    this_month_sales_count = len(sales_agent.get_this_month_sales())
+
+    # آمار فروش بر اساس محصول
     product_sales = sales_agent.get_sales_by_product()
+
+    # آمار تعداد خریدهای مشتریان
+    customers = sales_agent.get_all_customers()
+    purchase_counts = {1: 0, 2: 0, 3: 0}
+    for customer in customers:
+        count = customer.purchases_made.filter(
+            created_at__gte=today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        ).count()
+        if count == 1:
+            purchase_counts[1] += 1
+        elif count == 2:
+            purchase_counts[2] += 1
+        elif count >= 3:
+            purchase_counts[3] += 1
 
     context = {
         'sales_agent': sales_agent,
         'new_customers_this_month': new_customers_this_month,
         'province_purchases': dict(province_purchases),
-        'monthly_sales': monthly_sales[::-1],  # معکوس برای نمایش از قدیم به جدید
+        'monthly_sales': monthly_sales[::-1],
         'task_stats': {
             'pending': len(sales_agent.get_all_undone_tasks()),
             'completed': len([task for task in sales_agent.get_all_tasks() if task.status]),
@@ -166,5 +164,8 @@ def sales_dashboard_view(request):
         'sales_stats': sales_stats,
         'product_sales': product_sales,
         'target_achievement': round(sales_stats['target_achievement'], 1),
+        'this_month_sales_weight': round(this_month_sales_weight, 2),
+        'this_month_sales_count': this_month_sales_count,
+        'purchase_types': purchase_counts
     }
     return render(request, 'sales_dashboard.html', context)

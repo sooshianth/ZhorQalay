@@ -264,7 +264,9 @@
                 </div>
                 <form method="post" action="{% url 'delete_notification' notification.id %}" class="mt-2">
                     {% csrf_token %}
-                    <button type="submit" class="text-blue-500 hover:underline text-sm">خواندم</button>
+                    <button type="submit" class="text-blue-500 hover:underline text-sm" onclick="event.stopPropagation();">
+                        خواندم
+                    </button>
                 </form>
             </div>
             {% endfor %}
@@ -689,24 +691,22 @@ document.addEventListener('click', function(e) {
 // مدیریت حذف نوتیفیکیشن
 document.addEventListener('click', function(e) {
     if (e.target.closest('form') && e.target.closest('.notification-item')) {
-        console.log('تلاش برای حذف نوتیفیکیشن');
         e.preventDefault();
         const notificationItem = e.target.closest('.notification-item');
         const notificationId = notificationItem.dataset.notificationId;
+        const form = e.target.closest('form');
 
         notificationItem.style.animation = 'fadeOut 0.3s forwards';
-        fetch(`/notifications/delete/${notificationId}/`, {
+        
+        fetch(form.action, {
             method: 'POST',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/json'
+                'X-Requested-With': 'XMLHttpRequest'
             },
             credentials: 'same-origin'
         })
-        .then(response => {
-            console.log('پاسخ حذف نوتیفیکیشن:', response.status);
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
                 setTimeout(() => {
