@@ -12,3 +12,5 @@ class Message(models.Model):
 
     class Meta:
         ordering = ['timestamp']
+        verbose_name = "پیام"
+        verbose_name_plural = "پیام ها"
