@@ -1,14 +1,22 @@
 from django.contrib import admin
 from .models import SmsLog, SmsQueue
 from .apis import process_sms_queue
+from django.utils import timezone
 
 @admin.register(SmsQueue)
 class SmsQueueAdmin(admin.ModelAdmin):
-    list_display = ('recipient_number', 'notification_type', 'status', 'is_suspended', 'created_at', 'scheduled_for', 'sent_at')
+    list_display = ('recipient_number', 'notification_type', 'status', 'is_suspended', 'created_at', 'scheduled_for', 'sent_at', 'get_purchase_info')
     list_filter = ('status', 'notification_type', 'is_suspended', 'created_at')
-    search_fields = ('recipient_number', 'message', 'purchase_id')
+    search_fields = ('recipient_number', 'message', 'purchase__purchase_number', 'purchase__invoice_id')
     readonly_fields = ('created_at', 'sent_at')
+    raw_id_fields = ('purchase',)
     actions = ['process_selected_sms', 'suspend_selected_sms', 'unsuspend_selected_sms']
+    
+    def get_purchase_info(self, obj):
+        if obj.purchase:
+            return f"{obj.purchase.invoice_id} (#{obj.purchase.id})"
+        return "-"
+    get_purchase_info.short_description = "خرید مرتبط"
     
     def process_selected_sms(self, request, queryset):
         count = queryset.count()
@@ -21,7 +29,7 @@ class SmsQueueAdmin(admin.ModelAdmin):
             results = []
             for sms in valid_queryset:
                 # Mark the SMS for immediate processing
-                sms.scheduled_for = None
+                sms.scheduled_for = timezone.now()
                 sms.save()
             
             # Process the queue
@@ -58,7 +66,13 @@ class SmsQueueAdmin(admin.ModelAdmin):
 
 @admin.register(SmsLog)
 class SmsLogAdmin(admin.ModelAdmin):
-    list_display = ('recipient_number', 'notification_type', 'status', 'sent_at')
+    list_display = ('recipient_number', 'notification_type', 'status', 'sent_at', 'get_purchase_info')
     list_filter = ('notification_type', 'sent_at', 'status')
-    search_fields = ('recipient_number', 'message', 'purchase_id')
-    readonly_fields = ('sent_at', 'recipient_number', 'message', 'notification_type', 'status', 'api_response', 'purchase_id')
+    search_fields = ('recipient_number', 'message', 'purchase__purchase_number', 'purchase__invoice_id')
+    readonly_fields = ('sent_at', 'recipient_number', 'message', 'notification_type', 'status', 'api_response', 'purchase')
+    
+    def get_purchase_info(self, obj):
+        if obj.purchase:
+            return f"{obj.purchase.invoice_id} (#{obj.purchase.id})"
+        return "-"
+    get_purchase_info.short_description = "خرید مرتبط"

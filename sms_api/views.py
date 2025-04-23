@@ -11,7 +11,13 @@ import xlsxwriter
 import io
 from django.template.loader import get_template
 from xhtml2pdf import pisa
+import logging
+import json
+from django.contrib.auth.decorators import login_required
+from .apis import queue_sms
+from core.PurchaseModel import Purchase
 
+logger = logging.getLogger(__name__)
 
 def sms_dashboard(request):
     """داشبورد مدیریت پیامک‌ها"""
@@ -71,9 +77,6 @@ def sms_queue(request):
     failed_count = SmsQueue.objects.filter(status='failed').count()
     suspended_count = SmsQueue.objects.filter(status='suspended').count()
     
-    # انواع اطلاع‌رسانی برای فیلتر
-    notification_types = SmsQueue.NOTIFICATION_TYPES
-    
     context = {
         'queue_items': queue_items,
         'status': status,
@@ -83,7 +86,7 @@ def sms_queue(request):
         'sent_count': sent_count,
         'failed_count': failed_count,
         'suspended_count': suspended_count,
-        'notification_types': notification_types,
+        'notification_types': SmsQueue.NOTIFICATION_TYPES,
     }
     
     return render(request, 'sms_api/sms_queue.html', context)
@@ -162,56 +165,106 @@ def sms_log(request):
     return render(request, 'sms_api/sms_log.html', context)
 
 
-def create_sms(request):
-    """ایجاد پیامک جدید"""
-    if request.method == 'POST':
-        recipient_number = request.POST.get('recipient_number')
-        message = request.POST.get('message')
-        notification_type = request.POST.get('notification_type')
-        scheduled_for = request.POST.get('scheduled_for')
-        purchase_id = request.POST.get('purchase_id')
-        
-        # اعتبارسنجی داده‌ها
-        if not recipient_number or not message:
-            messages.error(request, 'لطفاً تمامی فیلدهای ضروری را پر کنید.')
-            return redirect('sms_api:create_sms')
-        
-        # تبدیل شناسه خرید به عدد
-        try:
-            purchase_id = int(purchase_id) if purchase_id else None
-        except ValueError:
-            purchase_id = None
-        
-        # تبدیل زمان ارسال
-        if scheduled_for:
-            try:
-                scheduled_for = timezone.datetime.strptime(scheduled_for, '%Y-%m-%dT%H:%M')
-                scheduled_for = timezone.make_aware(scheduled_for)
-            except ValueError:
-                scheduled_for = timezone.now()
-        else:
-            scheduled_for = timezone.now()
-        
-        # ایجاد پیامک جدید
-        sms = SmsQueue.objects.create(
-            recipient_number=recipient_number,
-            message=message,
-            notification_type=notification_type,
-            scheduled_for=scheduled_for,
-            purchase_id=purchase_id
-        )
-        
-        messages.success(request, 'پیامک با موفقیت ایجاد شد و در صف ارسال قرار گرفت.')
-        return redirect('sms_api:sms_detail', sms_id=sms.id)
-    
-    # انواع اطلاع‌رسانی
-    notification_types = SmsQueue.NOTIFICATION_TYPES
-    
-    context = {
-        'notification_types': notification_types,
+def get_default_templates():
+    """
+    تولید قالب‌های پیش‌فرض برای انواع مختلف اطلاع‌رسانی
+    """
+    return {
+        'purchase_created': 'مشتری گرامی، سفارش شما با موفقیت ثبت شد. کد پیگیری: {tracking_code}',
+        'payment_confirmed': 'مشتری گرامی، پرداخت شما با موفقیت انجام شد. مبلغ: {amount} تومان',
+        'order_delivered': 'مشتری گرامی، سفارش شما تحویل داده شد. از خرید شما متشکریم.',
+        'address_notification': 'مشتری گرامی، آدرس تحویل سفارش شما: {address}',
+        'shipping_notification': 'مشتری گرامی، سفارش شما ارسال شد و تا {delivery_date} به دست شما خواهد رسید.',
+        'welcome': 'به خانواده ژور قلعه خوش آمدید! برای مشاهده محصولات ما به وبسایت مراجعه کنید.'
     }
+
+@login_required
+def create_sms(request):
+    """
+    ایجاد و ارسال پیامک جدید با مدیریت خطای بهبود یافته
+    """
+    # دریافت انواع نوتیفیکیشن برای استفاده در فرم
+    notification_types = dict(SmsQueue.NOTIFICATION_TYPES)
+    default_templates = json.dumps(get_default_templates())
     
-    return render(request, 'sms_api/create_sms.html', context)
+    if request.method == 'POST':
+        try:
+            # دریافت و اعتبارسنجی فیلدهای فرم
+            recipient_number = request.POST.get('recipient_number')
+            message = request.POST.get('message')
+            notification_type = request.POST.get('notification_type')
+            scheduled_for_str = request.POST.get('scheduled_for')
+            purchase_id = request.POST.get('purchase_id')
+            
+            # بررسی فیلدهای ضروری
+            errors = []
+            if not recipient_number:
+                errors.append('شماره گیرنده باید وارد شود.')
+            elif not (recipient_number.startswith('09') and len(recipient_number) == 11):
+                errors.append('فرمت شماره تلفن صحیح نیست. مثال صحیح: 09123456789')
+                
+            if not message:
+                errors.append('متن پیام نمی‌تواند خالی باشد.')
+            elif len(message) > 255:
+                errors.append(f'متن پیام باید کمتر از 255 کاراکتر باشد. طول فعلی: {len(message)}')
+            
+            if errors:
+                for error in errors:
+                    messages.error(request, error)
+                return render(request, 'sms_api/create_sms.html', {
+                    'notification_types': notification_types,
+                    'default_templates': default_templates
+                })
+            
+            # پردازش زمان ارسال
+            scheduled_for = None
+            if scheduled_for_str:
+                try:
+                    scheduled_for = timezone.make_aware(timezone.datetime.strptime(scheduled_for_str, '%Y-%m-%dT%H:%M').replace(tzinfo=None))
+                except ValueError:
+                    messages.error(request, 'فرمت زمان ارسال نامعتبر است.')
+                    return render(request, 'sms_api/create_sms.html', {
+                        'notification_types': notification_types,
+                        'default_templates': default_templates
+                    })
+            
+            # پردازش شناسه خرید اگر وارد شده باشد
+            purchase = None
+            if purchase_id:
+                try:
+                    purchase_id = int(purchase_id)
+                    try:
+                        purchase = Purchase.objects.get(id=purchase_id)
+                    except Purchase.DoesNotExist:
+                        messages.warning(request, f'خرید با شناسه {purchase_id} یافت نشد. پیامک بدون اتصال به خرید ایجاد می‌شود.')
+                except ValueError:
+                    messages.warning(request, 'شناسه خرید باید یک عدد صحیح باشد. پیامک بدون اتصال به خرید ایجاد می‌شود.')
+            
+            # افزودن به صف ارسال پیامک
+            try:
+                sms = queue_sms(
+                    number=recipient_number,
+                    message=message,
+                    notification_type=notification_type,
+                    scheduled_for=scheduled_for,
+                    purchase=purchase
+                )
+                
+                messages.success(request, f'پیامک با موفقیت به صف ارسال اضافه شد. شناسه پیامک: {sms.id}')
+                return redirect('sms_api:sms_dashboard')
+            except Exception as e:
+                logger.error(f"خطا در ایجاد پیامک: {str(e)}")
+                messages.error(request, f'خطا در ایجاد پیامک: {str(e)}')
+        
+        except Exception as e:
+            logger.error(f"خطای غیرمنتظره در ایجاد پیامک: {str(e)}")
+            messages.error(request, 'خطای غیرمنتظره رخ داد. لطفا دوباره تلاش کنید.')
+    
+    # رندر فرم خالی
+    return render(request, 'sms_api/create_sms.html', {
+        'notification_types': notification_types,
+        'default_templates': default_templates
+    })
 
 
 def sms_detail(request, sms_id):
@@ -550,3 +603,8 @@ def export_sms_log_pdf(request):
         return response
     
     return HttpResponse('خطا در ایجاد PDF', status=400)
+
+def sms_logs(request):
+    """نمایش لیست پیامک‌های ارسال شده"""
+    logs = SmsLog.objects.all().order_by('-sent_at')
+    return render(request, 'sms_api/sms_logs.html', {'logs': logs})

@@ -280,18 +280,18 @@
                             <li><a href="{% url 'sales_agent_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
                             <li><a href="{% url 'customer_list' %}"><i class="fas fa-users icon-customers"></i> لیست مشتریان</a></li>
                             <li><a href="{% url 'general_customer_CRUD' %}"><i class="fas fa-tasks icon-management"></i> مدیریت مشتریان</a></li>
-                            <li><a href="{% url 'sms-dashboard' %}"><i class="fas fa-sms icon-sms"></i> داشبورد پیامک</a></li>
-                        {% endif %}
-                        {% if request.user.logistics_manager %}
+                            {% endif %}
+                            {% if request.user.logistics_manager %}
                             <li><a href="{% url 'logistics_manager_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
                             <li><a href="{% url 'excel_manager:bge_files_list' %}"><i class="fa-solid fa-file-excel"></i> اکسل‌های بازارگاه</a></li>
-                        {% endif %}
-                        {% if request.user.financial_manager %}
+                            {% endif %}
+                            {% if request.user.financial_manager %}
                             <li><a href="{% url 'financial_manager_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
                             <li><a href="{% url 'excel_manager:upload_bge_file' %}"><i class="fa-solid fa-file-excel"></i> آپلود اکسل بازارگاه</a></li>
-                        {% endif %}
+                            {% endif %}
                         {% if request.user.support_agent %}
-                            <li><a href="{% url 'support_agent_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
+                        <li><a href="{% url 'support_agent_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
+                        <li><a href="{% url 'sms-dashboard' %}"><i class="fas fa-sms icon-sms"></i> داشبورد پیامک</a></li>
                         {% endif %}
                         <li><a href="{% url 'purchase_list' %}"><i class="fa-solid fa-cart-shopping"></i> خریدها</a></li>
                         <li><a href="{% url 'cargo_product_list' %}"><i class="fas fa-box icon-products"></i> لیست کوتاژها</a></li>

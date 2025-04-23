@@ -7,13 +7,20 @@ from .CargoProductModel import CargoProduct
 from .SalesAgentModel import SalesAgent
 from django.contrib import messages
 from django.contrib.auth.models import User
-from sms_api.apis import (
-    send_new_purchase_notification, 
-    send_payment_confirmation, 
-    send_address_notification, 
-    send_barnameh_notification, 
-    send_extelaf_notification
-)
+
+# حذف ایمپورت مستقیم sms_api برای جلوگیری از ایمپورت دایره‌ای
+# from sms_api.apis import (
+#     send_new_purchase_notification, 
+#     send_payment_confirmation, 
+#     send_address_notification, 
+#     send_barnameh_notification, 
+#     send_extelaf_notification
+# )
+
+# تابع کمکی برای ایمپورت با تاخیر توابع sms
+def get_sms_api():
+    from sms_api import apis
+    return apis
 
 def determine_user_role(user):
     """
@@ -147,8 +154,9 @@ class Purchase(models.Model):
             self.cargo.weight -= self.order_weight
             self.cargo.save()
             
-        # ارسال پیامک تایید پرداخت
-        send_payment_confirmation(self)
+        # ارسال پیامک تایید پرداخت با استفاده از ایمپورت تاخیری
+        sms_api = get_sms_api()
+        sms_api.send_payment_confirmation(self)
         
         return self.change_state('PAYMENT_VERIFIED', user, 'تایید مالی انجام شد')
         
@@ -202,8 +210,9 @@ class Purchase(models.Model):
         if self.state != 'VENDOR_SETTLED':
             raise ValidationError('ابتدا باید با واردکننده تسویه شود')
                         
-        # ارسال پیامک آدرس
-        send_address_notification(self)
+        # ارسال پیامک آدرس با استفاده از ایمپورت تاخیری
+        sms_api = get_sms_api()
+        sms_api.send_address_notification(self)
         
         return self.change_state('ADDRESS_SENT', user, 'آدرس به واردکننده ارسال شد')
         
@@ -234,8 +243,9 @@ class Purchase(models.Model):
         if not hasattr(self, 'barnameh') or not self.barnameh:
             raise ValidationError('شماره بارنامه الزامی است')
             
-        # ارسال پیامک بارنامه
-        send_barnameh_notification(self)
+        # ارسال پیامک بارنامه با استفاده از ایمپورت تاخیری
+        sms_api = get_sms_api()
+        sms_api.send_barnameh_notification(self)
         
         return self.change_state('BARNAMEH_ISSUED', user, 'بارنامه صادر شد')
         
@@ -269,7 +279,8 @@ class Purchase(models.Model):
         
         # اگر اختلاف از نوع سرک باشد، پیامک ارسال شود
         if self.extelaf_type == 'سرک' and self.extelaf_weight and self.extelaf_amount:
-            send_extelaf_notification(self)
+            sms_api = get_sms_api()
+            sms_api.send_extelaf_notification(self)
         
         return self.change_state('DIFFERENCE_APPROVED', user, 'مبلغ اختلاف تایید شد')
                 
@@ -484,7 +495,8 @@ class Purchase(models.Model):
 
         # Send SMS notification for new purchase only on creation
         if is_new and self.customer.sms_preference and has_non_admin:
-            send_new_purchase_notification(self)
+            sms_api = get_sms_api()
+            sms_api.send_new_purchase_notification(self)
             # تنظیم وضعیت SMS ارسال شده
             if not PurchaseStateChange.objects.filter(purchase=self, new_state='SMS_SENT').exists():
                 PurchaseStateChange.objects.create(
