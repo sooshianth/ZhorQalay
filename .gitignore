@@ -42,3 +42,4 @@ config/settings.py
 
 /sslkeys
 /-p
+/admin-interface

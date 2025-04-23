@@ -1,7 +1,7 @@
 from sms_ir import SmsIr
 from django.utils import timezone
 import json
-from .models import SmsLog, SmsQueue
+from .models import SmsLog, SmsQueue, is_celery_active
 
 
 api_key='mbdRODVCB2JHUX5c3IpetXsiDXFIT6bo7JZo0PhiTFWkuIN4'
@@ -14,12 +14,19 @@ def send_instant_sms(number:str, message:str, sms_account=sms_account):
     """
     Legacy function for immediate SMS sending. Now adds to queue with immediate processing flag.
     """
-    try:
-        queue_sms(number, message, notification_type='custom')
-        return True
-    except Exception as e:
-        print(f"SMS queueing error: {e}")
-        return None
+    if is_celery_active:
+        try:
+            queue_sms(number, message, notification_type='custom')
+            return True
+        except Exception as e:
+            print(f"SMS queueing error: {e}")
+            return None
+    else:
+        try:
+            return sms_account.send_sms(number, message)
+        except Exception as e:
+            print(f"SMS sending error: {e}")
+            return None
 
 def queue_sms(number:str, message:str, notification_type='custom', purchase_id=None, suspended=False):
     """

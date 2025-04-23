@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils import timezone
 
+is_celery_active = False
+
 class SmsQueue(models.Model):
     NOTIFICATION_TYPES = [
         ('new_purchase', 'اطلاع رسانی خرید جدید'),
@@ -27,7 +29,7 @@ class SmsQueue(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
     scheduled_for = models.DateTimeField(default=timezone.now, verbose_name="زمان ارسال")
     sent_at = models.DateTimeField(null=True, blank=True, verbose_name="تاریخ ارسال")
-    
+
     # Optional reference to purchase if applicable
     purchase_id = models.IntegerField(null=True, blank=True, verbose_name="شناسه خرید")
     
