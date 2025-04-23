@@ -356,7 +356,7 @@ def general_customer_CRUD_view(request):
                 cargo=cargo
             )
             new_purchase.full_clean()
-            new_purchase.save()
+            # new_purchase.save()
             new_purchase.customer_price = new_purchase.cargo.customer_price
             new_purchase.company_price = new_purchase.cargo.company_price
             new_purchase.amount_paid = new_purchase.customer_price * new_purchase.order_weight

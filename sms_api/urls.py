@@ -20,6 +20,7 @@ urlpatterns = [
     path('resume/<int:sms_id>/', views.resume_sms, name='resume_sms'),
     path('send-now/<int:sms_id>/', views.send_sms_now, name='send_now'),
     path('retry/<int:sms_id>/', views.retry_sms, name='retry_sms'),
+    path('process-queue/', views.process_sms_queue_manually, name='process_queue'),
     
     # خروجی گزارش
     path('export/excel/', views.export_sms_log_excel, name='export_sms_log_excel'),

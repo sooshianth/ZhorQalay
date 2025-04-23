@@ -14,7 +14,7 @@ from xhtml2pdf import pisa
 import logging
 import json
 from django.contrib.auth.decorators import login_required
-from .apis import queue_sms
+from .apis import queue_sms, process_sms_queue
 from core.PurchaseModel import Purchase
 
 logger = logging.getLogger(__name__)
@@ -406,22 +406,24 @@ def send_sms_now(request, sms_id):
     
     # در اینجا ارسال پیامک به سرویس پیامکی انجام می‌شود
     # (این بخش در یک سیستم واقعی پیاده‌سازی می‌شود)
-    
-    # به‌روزرسانی وضعیت پیامک
-    sms.status = 'sent'
-    sms.sent_at = timezone.now()
-    sms.save()
-    
-    # ثبت در لاگ
-    SmsLog.objects.create(
-        recipient_number=sms.recipient_number,
-        message=sms.message,
-        notification_type=sms.notification_type,
-        status='sent',
-        purchase_id=sms.purchase_id
-    )
-    
-    messages.success(request, 'پیامک با موفقیت ارسال شد.')
+    from sms_api.apis import sms_account
+    result = sms_account.send_sms(sms.recipient_number, sms.message)
+        # به‌روزرسانی وضعیت پیامک
+    if result and isinstance(result, list) and 200 in result:
+        sms.status = 'sent'
+        sms.sent_at = timezone.now()
+        sms.save()
+        
+        # ثبت در لاگ
+        SmsLog.objects.create(
+            recipient_number=sms.recipient_number,
+            message=sms.message,
+            notification_type=sms.notification_type,
+            status='sent',
+            purchase_id=sms.purchase_id
+        )
+        
+        messages.success(request, 'پیامک با موفقیت ارسال شد.')
     return redirect('sms_api:sms_detail', sms_id=sms.id)
 
 
@@ -608,3 +610,38 @@ def sms_logs(request):
     """نمایش لیست پیامک‌های ارسال شده"""
     logs = SmsLog.objects.all().order_by('-sent_at')
     return render(request, 'sms_api/sms_logs.html', {'logs': logs})
+
+@require_POST
+@login_required
+def process_sms_queue_manually(request):
+    """
+    اجرای دستی پردازش صف پیامک ها
+    برای مواقعی که سیستم خودکار (سلری) در دسترس نیست
+    """
+    try:
+        # اجرای پردازش صف پیامک
+        results = process_sms_queue()
+        
+        # تعداد پیام‌های ارسال شده
+        sent_count = sum(1 for r in results if r.get("status") == "sent")
+        
+        # تعداد پیام‌های ناموفق
+        failed_count = sum(1 for r in results if r.get("status") == "failed")
+        
+        if not results:
+            messages.info(request, "هیچ پیامکی در صف ارسال یافت نشد.")
+        else:
+            messages.success(
+                request, 
+                f"پردازش صف با موفقیت انجام شد. {sent_count} پیام ارسال شد و {failed_count} پیام ناموفق بود."
+            )
+            
+        # ثبت لاگ
+        logger.info(f"پردازش دستی صف پیامک توسط کاربر {request.user}: {len(results)} پیامک")
+        
+    except Exception as e:
+        messages.error(request, f"خطا در پردازش صف پیامک: {str(e)}")
+        logger.error(f"خطا در پردازش دستی صف پیامک: {str(e)}")
+    
+    # بازگشت به صفحه قبلی
+    return redirect('sms_api:sms_queue')

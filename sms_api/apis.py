@@ -90,36 +90,78 @@ def process_sms_queue(batch_size=20, sms_account=sms_account):
     pending_messages = SmsQueue.objects.filter(
         status='pending',
         is_suspended=False,
-        scheduled_for__lte=timezone.now()
     ).order_by('scheduled_for', 'created_at')[:batch_size]
     
+    if not pending_messages:
+        print("No pending messages found to process")
+        return []
+
     results = []
     for sms in pending_messages:
         try:
-            # Send the SMS
-            result = sms_account.send_sms(sms.recipient_number, sms.message, sms_account.linenumber)
+            # ارسال پیام بدون پارامتر linenumber
+            api_key='mbdRODVCB2JHUX5c3IpetXsiDXFIT6bo7JZo0PhiTFWkuIN4'
+            linenumber=90008316
+
+
+            sms_account = SmsIr(api_key, linenumber)
+
+            result = sms_account.send_sms(sms.recipient_number, sms.message)
             
-            # Update the queue entry
-            sms.status = 'sent'
-            sms.sent_at = timezone.now()
-            sms.save()
+            print(f"SMS send result for {sms.recipient_number}: {result}")
             
-            # Log the sent message
-            SmsLog.objects.create(
-                recipient_number=sms.recipient_number,
-                message=sms.message,
-                notification_type=sms.notification_type,
-                status='sent',
-                api_response=json.dumps(result) if result else None,
-                purchase=sms.purchase
-            )
-            
-            results.append({"id": sms.id, "status": "sent", "result": result})
+            # بررسی نتیجه ارسال پیام
+            if result and isinstance(result, list) and 200 in result:
+                # پیام با موفقیت ارسال شده است
+                sms.status = 'sent'
+                sms.sent_at = timezone.now()
+                sms.save()
+                
+                # ثبت در لاگ
+                SmsLog.objects.create(
+                    recipient_number=sms.recipient_number,
+                    message=sms.message,
+                    notification_type=sms.notification_type,
+                    status='sent',
+                    api_response=json.dumps(result),
+                    purchase=sms.purchase
+                )
+                
+                results.append({"id": sms.id, "status": "sent", "result": result})
+            else:
+                # پیام با موفقیت ارسال نشده است
+                sms.status = 'failed'
+                sms.retry_count += 1
+                sms.save()
+                
+                # ثبت در لاگ خطا
+                SmsLog.objects.create(
+                    recipient_number=sms.recipient_number,
+                    message=sms.message,
+                    notification_type=sms.notification_type,
+                    status='failed',
+                    api_response=json.dumps(result) if result else None,
+                    purchase=sms.purchase
+                )
+                
+                results.append({"id": sms.id, "status": "failed", "error": f"Unexpected response: {result}"})
         except Exception as e:
             sms.status = 'failed'
             sms.retry_count += 1
             sms.save()
+            
+            # ثبت در لاگ خطا
+            SmsLog.objects.create(
+                recipient_number=sms.recipient_number,
+                message=sms.message,
+                notification_type=sms.notification_type,
+                status='failed',
+                api_response=json.dumps({"error": str(e)}),
+                purchase=sms.purchase
+            )
+            
             results.append({"id": sms.id, "status": "failed", "error": str(e)})
+            print(f"Error processing SMS {sms.id}: {e}")
     
     return results
 
@@ -159,8 +201,8 @@ def send_new_purchase_notification(purchase):
             f"به نام شرکت تأمین نهاده سیمرغ\n\n"
             f"طی مذاکره تلفنی درخواست خرید شما به وزن {purchase.order_weight} کیلوگرم و معادل {purchase.order_weight * purchase.customer_price} ریال میباشد، لطفا درخواست خرید به صورت نقدی از طریق سامانه بازارگاه ثبت گردد.\n\n"
             f"پشتیبان تلفنی شما:\n"
-            f"{', '.join([sa.phone_number for sa in purchase.customer.sales_agent.all()])}\n"
-            f"{', '.join([sa.name for sa in purchase.customer.sales_agent.all()])}"
+            f"{', '.join([sa.phone_number for sa in purchase.customer.sales_agent.filter(user__is_superuser=False)])}\n"
+            f"{', '.join([sa.name for sa in purchase.customer.sales_agent.filter(user__is_superuser=False)])}"
         )
         
         return queue_sms(phone, message, notification_type='new_purchase', purchase=purchase)
@@ -182,8 +224,9 @@ def send_payment_confirmation(purchase):
             return False
         
         message = (
-            f"مشتری گرامی {purchase.customer.name}،\n"
-            f"پرداخت شما برای سفارش {purchase.invoice_id} تأیید شد.\n"
+            f" {purchase.customer.name} گرامی،\n"
+            f"پرداخت شما برای سفارش {purchase.purchase_number} به مبلغ {purchase.amount_paid} ریال تأیید شد.\n"
+            f"شناسه/شناسه‌های تخصیص: {', '.join(st.code for st in purchase.shenase_takhsis_set.all())}\n"
             f"به زودی اطلاعات ارسال برای شما پیامک می‌شود.\n"
             f"شرکت تأمین نهاده سیمرغ"
         )

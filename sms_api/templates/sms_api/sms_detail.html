@@ -72,9 +72,9 @@
             </div>
             {% if sms.purchase_id %}
             <div class="info-item">
-                <span class="info-label">شناسه خرید مرتبط</span>
+                <span class="info-label">کد درون سازمانی خرید مرتبط</span>
                 <span class="info-value">
-                    <a href="{% url 'purchase_detail' sms.purchase_id %}" class="purchase-link">
+                    <a href="{% url 'purchase_CRUD' sms.purchase_id %}" class="purchase-link">
                         {{ sms.purchase_id }}
                         <i class="fas fa-external-link-alt"></i>
                     </a>
@@ -97,31 +97,46 @@
 
         <div class="card-section action-section">
             {% if sms.status == 'pending' %}
-            <button class="detail-action-btn send-now" onclick="location.href='{% url 'sms_api:send_now' sms.id %}'">
-                <i class="fas fa-paper-plane"></i>
-                ارسال فوری
-            </button>
-            <button class="detail-action-btn suspend" onclick="location.href='{% url 'sms_api:suspend_sms' sms.id %}'">
-                <i class="fas fa-pause"></i>
-                تعلیق ارسال
-            </button>
+            <form action="{% url 'sms_api:send_now' sms.id %}" method="post" style="flex: 1;">
+                {% csrf_token %}
+                <button type="submit" class="detail-action-btn send-now">
+                    <i class="fas fa-paper-plane"></i>
+                    ارسال فوری
+                </button>
+            </form>
+            <form action="{% url 'sms_api:suspend_sms' sms.id %}" method="post" style="flex: 1;">
+                {% csrf_token %}
+                <button type="submit" class="detail-action-btn suspend">
+                    <i class="fas fa-pause"></i>
+                    تعلیق ارسال
+                </button>
+            </form>
             {% elif sms.status == 'suspended' %}
-            <button class="detail-action-btn resume" onclick="location.href='{% url 'sms_api:resume_sms' sms.id %}'">
-                <i class="fas fa-play"></i>
-                از سرگیری ارسال
-            </button>
+            <form action="{% url 'sms_api:resume_sms' sms.id %}" method="post" style="flex: 1;">
+                {% csrf_token %}
+                <button type="submit" class="detail-action-btn resume">
+                    <i class="fas fa-play"></i>
+                    از سرگیری ارسال
+                </button>
+            </form>
             {% elif sms.status == 'failed' %}
-            <button class="detail-action-btn retry" onclick="location.href='{% url 'sms_api:retry_sms' sms.id %}'">
-                <i class="fas fa-redo"></i>
-                تلاش مجدد
-            </button>
+            <form action="{% url 'sms_api:retry_sms' sms.id %}" method="post" style="flex: 1;">
+                {% csrf_token %}
+                <button type="submit" class="detail-action-btn retry">
+                    <i class="fas fa-redo"></i>
+                    تلاش مجدد
+                </button>
+            </form>
             {% endif %}
             
             {% if sms.status == 'pending' or sms.status == 'suspended' %}
-            <button class="detail-action-btn delete" onclick="if(confirm('آیا از حذف این پیام اطمینان دارید؟')) location.href='{% url 'sms_api:delete_sms' sms.id %}'">
-                <i class="fas fa-trash"></i>
-                حذف پیامک
-            </button>
+            <form action="{% url 'sms_api:delete_sms' sms.id %}" method="post" style="flex: 1;" onsubmit="return confirm('آیا از حذف این پیام اطمینان دارید؟')">
+                {% csrf_token %}
+                <button type="submit" class="detail-action-btn delete">
+                    <i class="fas fa-trash"></i>
+                    حذف پیامک
+                </button>
+            </form>
             {% endif %}
         </div>
     </div>
@@ -399,7 +414,7 @@
     }
 
     .detail-action-btn {
-        flex: 1;
+        width: 100%;
         padding: 0.8rem;
         border: none;
         border-radius: 6px;
