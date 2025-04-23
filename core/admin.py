@@ -13,6 +13,7 @@ from .SalesAgentModel import SalesAgent
 from .TaskModel import Task
 from .NotificationModel import Notification
 from .SupportAgentModel import SupportAgent
+from .MessageModel import Message
 from sms_api.models import SmsQueue
 from sms_api.apis import queue_sms
 # @admin.register(Notification)
@@ -421,4 +422,9 @@ class DebugSmsQueue:
         print(f"کل: {total}, در انتظار: {pending}, ارسال شده: {sent}, با خطا: {failed}, معلق: {suspended}")
         
         return pending, sent, failed, suspended, total
+@admin.register(Message)
+class MessageAdmin(admin.ModelAdmin):
+    list_display = ('sender', 'receiver', 'message', 'timestamp')
+    search_fields = ('sender__name', 'receiver__name', 'message')
+    ordering = ('-timestamp',)
 
