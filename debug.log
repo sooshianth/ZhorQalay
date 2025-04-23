@@ -1,0 +1,24 @@
+ERROR 2025-04-23 03:47:33,122 bge_file_list_views Traceback (most recent call last):
+  File "C:\inetpub\wwwroot\ZhorQalay\excel_manager\views\bge_file_list_views.py", line 100, in view_excel_file
+    df = pd.read_excel(file_path)
+  File "C:\Python313\Lib\site-packages\pandas\io\excel\_base.py", line 495, in read_excel
+    io = ExcelFile(
+        io,
+    ...<2 lines>...
+        engine_kwargs=engine_kwargs,
+    )
+  File "C:\Python313\Lib\site-packages\pandas\io\excel\_base.py", line 1550, in __init__
+    ext = inspect_excel_format(
+        content_or_path=path_or_buffer, storage_options=storage_options
+    )
+  File "C:\Python313\Lib\site-packages\pandas\io\excel\_base.py", line 1402, in inspect_excel_format
+    with get_handle(
+         ~~~~~~~~~~^
+        content_or_path, "rb", storage_options=storage_options, is_text=False
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ) as handle:
+    ^
+  File "C:\Python313\Lib\site-packages\pandas\io\common.py", line 882, in get_handle
+    handle = open(handle, ioargs.mode)
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\inetpub\\wwwroot\\ZhorQalay\\media\\excel_files\\HamlSPS14040126_1_2_Vl9daQz.xlsx'
+

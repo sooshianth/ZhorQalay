@@ -43,3 +43,5 @@ config/settings.py
 /sslkeys
 /-p
 /admin-interface
+
+/db.sqlite3

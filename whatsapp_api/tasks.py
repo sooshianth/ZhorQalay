@@ -28,7 +28,7 @@ def assign_customers_to_days():
         customers.update(day_of_week=day)
         print(f"📅 {customers.count()} مشتری به روز {day} اختصاص یافتند")
 
-@app.task
+@shared_task
 def send_daily_whatsapp_messages(test_mode=False):
     today = timezone.now().isoweekday()
     customers = Customer.objects.filter(
