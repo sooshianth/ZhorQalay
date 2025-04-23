@@ -186,6 +186,11 @@ class RoleBasedPurchaseForm(forms.ModelForm):
                 cleaned_data['delivered_weight'] = self.instance.delivered_weight
                 if 'delivered_weight' in self._errors:
                     del self._errors['delivered_weight']
+
+            if 'company_price' in self.fields and not cleaned_data.get('company_price'):
+                cleaned_data['company_price'] = self.instance.company_price
+                if 'company_price' in self._errors:
+                    del self._errors['company_price']
         
         # اگر بایپس اعتبارسنجی فعال باشد، خطاهای فیلدهای اجباری را نادیده بگیر
         if cleaned_data.get('bypass_validation'):

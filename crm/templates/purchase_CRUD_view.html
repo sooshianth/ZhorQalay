@@ -604,16 +604,16 @@
 </div>
 </form>
 
-{% if purchase.state not in 'PAYMENT_VERIFIED,ALLOCATION_REGISTERED,ALLOCATION_APPROVED,VENDOR_SETTLED,ADDRESS_SENT,SENT_TO_SHIPPING,BARNAMEH_ISSUED,DELIVERED,DIFFERENCE_APPROVED,DIFFERENCE_DEPOSITED,RECEIPT_SUBMITTED,INVOICE_ISSUED,SALES_APPROVED,LOGISTICS_APPROVED,FINANCIAL_APPROVED,COMPLETED'|split:',' %}
+{% comment %} {% if purchase.state not in 'PAYMENT_VERIFIED,ALLOCATION_REGISTERED,ALLOCATION_APPROVED,VENDOR_SETTLED,ADDRESS_SENT,SENT_TO_SHIPPING,BARNAMEH_ISSUED,DELIVERED,DIFFERENCE_APPROVED,DIFFERENCE_DEPOSITED,RECEIPT_SUBMITTED,INVOICE_ISSUED,SALES_APPROVED,LOGISTICS_APPROVED,FINANCIAL_APPROVED,COMPLETED'|split:',' %}
 <form method="post" action="{% url 'purchase_delete' purchase.id %}" class="delete-form">
     {% csrf_token %}
     <button type="submit" class="button delete-button" onclick="return confirm('آیا مطمئن هستید که می‌خواهید این خرید را حذف کنید؟');">
         حذف خرید
     </button>
 </form>
-{% endif %}
+{% endif %} {% endcomment %}
 
-<!-- ✅ جدول تاریخچه تغییرات -->
+{% comment %} <!-- ✅ جدول تاریخچه تغییرات -->
 <table class="history-table">
 <tr>
 <th>📅 تاریخ</th>
@@ -633,7 +633,7 @@
 <td colspan="4" class="empty-state">❌ هیچ سابقه‌ای ثبت نشده است</td>
 </tr>
 {% endfor %}
-</table>
+</table> {% endcomment %}
 
 <!-- بخش آپلود و مدیریت فایل‌های اسناد -->
 <div class="document-management-section">

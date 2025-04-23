@@ -301,6 +301,8 @@
                     <p id="product-type">نوع: </p>
                     <p id="product-country">کشور: </p>
                     <p id="product-loading">زمان بارگیری: </p>
+                    <p id="product-description">توضیحات: </p>
+
                     {% comment %} <p id="product-weight">وزن موجود: </p> {% endcomment %}
                 </div>
         
@@ -542,6 +544,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('product-type').textContent = `نوع: {{ product.get_product_type_display }}`;
                 document.getElementById('product-country').textContent = `کشور: {{ product.get_country_display }}`;
                 document.getElementById('product-loading').textContent = `زمان بارگیری: {{ product.loading_time }}`;
+                document.getElementById('product-description').textContent = `توضیحات: {{ product.description }}`;
                 document.getElementById('product-weight').textContent = `وزن موجود: {{ product.weight }} کیلوگرم`;
                 document.getElementById('product-importer').textContent = `صادرکننده: {{ product.importer_name }}`;
                 return;

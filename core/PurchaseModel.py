@@ -496,6 +496,10 @@ class Purchase(models.Model):
                 self.state = 'SMS_SENT'
                 super().save(update_fields=['state'])
 
+        if self.extelaf_weight:
+            self.extelaf_amount = self.extelaf_weight * self.cargo.customer_price
+            super().save(update_fields=['extelaf_amount'])
+
 from django.contrib.auth.models import User
 class PurchaseHistory(models.Model):
     purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE)
