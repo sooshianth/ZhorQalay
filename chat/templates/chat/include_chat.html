@@ -1,0 +1,32 @@
+{% load static %}
+
+{% if user.is_authenticated %}
+<!-- اضافه کردن فایل‌های استایل چت -->
+<link rel="stylesheet" href="{% static 'chat/css/chat.css' %}">
+<!-- اضافه کردن Font Awesome برای آیکون‌ها -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+<!-- توکن CSRF برای امنیت درخواست‌های AJAX -->
+{% csrf_token %}
+
+<!-- اضافه کردن ویجت چت -->
+{% include 'chat/chat_widget.html' %}
+
+<!-- اضافه کردن فایل‌های جاوااسکریپت چت -->
+<script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
+<script>
+    // متغیرهای مورد نیاز برای چت
+    const isAuthenticated = true;
+    const userId = {{ user.id|default:0 }};
+    const username = "{{ user.username }}";
+</script>
+<script src="{% static 'chat/js/chat.js' %}"></script>
+<script src="{% static 'chat/js/chat_functions.js' %}"></script>
+<script src="{% static 'chat/js/chat_websocket.js' %}"></script>
+<script src="{% static 'chat/js/chat_init.js' %}"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        initChatWebSocket({{ user.id|default:0 }}, "{{ user.username }}");
+    });
+</script>
+{% endif %} 

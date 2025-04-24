@@ -2,7 +2,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 import json
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import User
-from core._models import Message
+from chat.MessageModel import Message
 
 class TaskConsumer(AsyncWebsocketConsumer):
     async def connect(self):

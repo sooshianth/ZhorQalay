@@ -102,8 +102,6 @@ def process_sms_queue(batch_size=20, sms_account=sms_account):
             # ارسال پیام بدون پارامتر linenumber
             api_key='mbdRODVCB2JHUX5c3IpetXsiDXFIT6bo7JZo0PhiTFWkuIN4'
             linenumber=90008316
-
-
             sms_account = SmsIr(api_key, linenumber)
 
             result = sms_account.send_sms(sms.recipient_number, sms.message)
@@ -111,7 +109,7 @@ def process_sms_queue(batch_size=20, sms_account=sms_account):
             print(f"SMS send result for {sms.recipient_number}: {result}")
             
             # بررسی نتیجه ارسال پیام
-            if result and isinstance(result, list) and 200 in result:
+            if result and '200' in result:
                 # پیام با موفقیت ارسال شده است
                 sms.status = 'sent'
                 sms.sent_at = timezone.now()

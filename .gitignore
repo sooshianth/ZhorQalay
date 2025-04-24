@@ -25,6 +25,13 @@
 /ERP/__pycache__
 /ERP/migrations/__pycache__
 
+/CRM/__pycache__
+/CRM/views/__pycache__
+
+/chat/__pycache__
+/chat/views/__pycache__
+/chat/migrations/__pycache__
+
 /sms_api/__pycache__
 /sms_api/migrations/__pycache__
 /sms_api/management/__pycache__

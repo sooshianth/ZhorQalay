@@ -43,8 +43,10 @@ INSTALLED_APPS = [
     'core.apps.CoreConfig',
     'sales.apps.SalesConfig',
     'ERP.apps.ERPConfig',
+    'CRM.apps.CRMConfig',
     'excel_manager.apps.ExcelManagerConfig',
     'sms_api.apps.SmsApiConfig',
+    'chat.apps.ChatConfig',
 ]
 
 MIDDLEWARE = [
@@ -63,7 +65,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates', BASE_DIR / 'core/templates', BASE_DIR / 'sales/templates', BASE_DIR / 'ERP/templates'],
+        'DIRS': [BASE_DIR / 'templates', BASE_DIR / 'core/templates', BASE_DIR / 'sales/templates', BASE_DIR / 'ERP/templates', BASE_DIR / 'CRM/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -126,6 +128,7 @@ STATICFILES_DIRS = [
     BASE_DIR / "core/static",
     BASE_DIR / "sales/static",
     BASE_DIR / "ERP/static",
+    BASE_DIR / "CRM/static",
     # BASE_DIR / "excel_manager/static",
     # BASE_DIR / "sms_api/static",
 ]

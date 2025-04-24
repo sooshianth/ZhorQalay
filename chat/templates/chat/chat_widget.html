@@ -1,0 +1,62 @@
+{% load static %}
+
+{% if user.is_authenticated %}
+<div class="chat-icon" onclick="toggleChatWindow()">
+    <i class="fas fa-comments fa-2x"></i>
+    <span class="chat-badge" id="chatBadge" style="display: none;">0</span>
+</div>
+
+<div class="chat-window" id="chatWindow">
+    <div class="chat-header">
+        <div class="chat-header-top">
+            <span id="chatTitle">چت سیمرغ</span>
+            <div class="chat-header-actions">
+                <button onclick="toggleUserList()" class="text-white" id="userListToggle">
+                    <i class="fas fa-users"></i>
+                </button>
+                <button onclick="toggleChatWindow()" class="text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="chat-tabs">
+            <button id="privateTabBtn" class="chat-tab active" onclick="switchTab('private')">
+                چت خصوصی
+                <span class="chat-badge" id="privateTabBadge" style="display: none;">0</span>
+            </button>
+            <button id="globalTabBtn" class="chat-tab" onclick="switchTab('global')">
+                چت عمومی
+                <span class="chat-badge" id="globalTabBadge" style="display: none;">0</span>
+            </button>
+        </div>
+    </div>
+    
+    <div class="user-list" id="userList">
+        <div class="user-list-header">
+            <span>لیست کاربران</span>
+            <button onclick="toggleUserList()"><i class="fas fa-arrow-right"></i></button>
+        </div>
+        <div id="userListItems">
+            <!-- لیست کاربران اینجا نمایش داده می‌شود -->
+            <div class="loading-message">در حال بارگذاری کاربران...</div>
+        </div>
+    </div>
+    
+    <div class="chat-box" id="chatBox">
+        <div class="chat-body" id="privateChatBody">
+            <!-- پیام‌های خصوصی اینجا نمایش داده می‌شود -->
+            <div class="empty-message">لطفاً یک کاربر را برای شروع گفتگو انتخاب کنید</div>
+        </div>
+        <div class="chat-body" id="globalChatBody" style="display: none;">
+            <!-- پیام‌های عمومی اینجا نمایش داده می‌شود -->
+            <div class="loading-message">در حال بارگذاری پیام‌های عمومی...</div>
+        </div>
+        <div class="chat-footer">
+            <input type="text" id="chatMessage" placeholder="پیام خود را بنویسید..." onkeypress="if(event.keyCode===13) sendMessage()">
+            <label for="fileInput" title="ارسال فایل"><i class="fas fa-paperclip"></i></label>
+            <input type="file" id="fileInput" accept="image/*,.pdf" onchange="sendFile()">
+            <button onclick="sendMessage()" title="ارسال پیام"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+</div>
+{% endif %} 

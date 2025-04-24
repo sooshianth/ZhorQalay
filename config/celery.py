@@ -29,7 +29,7 @@ app.conf.beat_schedule = {
 
     'process-sms-queue': {
         'task': 'sms_api.tasks.process_sms_queue_task',
-        'schedule': crontab(minute='*/5'),  # هر 5 دقیقه
+        'schedule': crontab(minute='*/1'),  # هر 5 دقیقه
         'args': (20,),  # اندازه هر دسته: 20 پیامک
     },
     # 'retry-failed-sms': {
