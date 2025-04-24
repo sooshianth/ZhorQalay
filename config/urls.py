@@ -2,13 +2,13 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from crm.views import home_view
+from ERP.views import home_view
 from sms_api.views import sms_dashboard
 
 urlpatterns = [
     path('ewdfsrgtyuiougyjgtrdthugghuji/', admin.site.urls),
     path('sales/', include('sales.urls')),
-    path('crm/', include('crm.urls')),
+    path('erp/', include('ERP.urls')),
     path('excel/', include('excel_manager.urls')),
     path('sms/', include('sms_api.urls')),
     path('sms/dashborad', sms_dashboard, name='sms-dashboard'),

@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-@22ofzh7o7x!4+a$&(#b&--%20i1q*nz0s!_k)!7ky@2@3ugb+'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.100.56']
 
@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'sms_ir',
     'core.apps.CoreConfig',
     'sales.apps.SalesConfig',
-    'crm.apps.CrmConfig',
+    'ERP.apps.ERPConfig',
     'excel_manager.apps.ExcelManagerConfig',
     'sms_api.apps.SmsApiConfig',
 ]
@@ -63,7 +63,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates', BASE_DIR / 'core/templates', BASE_DIR / 'sales/templates', BASE_DIR / 'crm/templates'],
+        'DIRS': [BASE_DIR / 'templates', BASE_DIR / 'core/templates', BASE_DIR / 'sales/templates', BASE_DIR / 'ERP/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -83,7 +83,7 @@ ASGI_APPLICATION = 'config.asgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'C:\\Users\\Databases\\db.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
@@ -125,7 +125,7 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / "core/static",
     BASE_DIR / "sales/static",
-    BASE_DIR / "crm/static",
+    BASE_DIR / "ERP/static",
     # BASE_DIR / "excel_manager/static",
     # BASE_DIR / "sms_api/static",
 ]

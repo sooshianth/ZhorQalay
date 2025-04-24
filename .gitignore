@@ -21,9 +21,9 @@
 /excel_manager/views/__pycache__
 /excel_manager/migrations/__pycache__
 
-/crm/views/__pycache__
-/crm/__pycache__
-/crm/migrations/__pycache__
+/ERP/views/__pycache__
+/ERP/__pycache__
+/ERP/migrations/__pycache__
 
 /sms_api/__pycache__
 /sms_api/migrations/__pycache__
