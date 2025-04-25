@@ -13,7 +13,10 @@ FIELD_OF_ACTIVITY = [
     ('factory', 'کارخانه خوراک'),
     ('fish', 'پرورش آبزیان'),
     ('corporation', 'تعاونی'),
-    ('association', 'اتحادیه')
+    ('association', 'اتحادیه'),
+    ('dealer', 'دلال'),
+    ('aggressive', 'مزاحم'),
+    ('other', 'سایر')
 ]
 
 class PhoneNumber(models.Model):

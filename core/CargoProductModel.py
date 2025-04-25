@@ -15,11 +15,12 @@ class CargoProduct(models.Model):
         ('soy_meal', 'کنجاله سویا'),
         ('sunflower_meal', 'کنجاله آفتابگردان'),
         ('rapeseed_meal', 'کنجاله کلزا'),
-        ('local_extracted_soy', ' سویا استحصالی داخلی'),
-        ('foreign_extracted_soy', ' سویا استحصالی خارجی'),
+        ('local_extracted_soy', 'کنجاله سویا استحصالی از دانه داخلی'),
+        ('foreign_extracted_soy', 'کنجاله سویا استحصالی از دانه خارجی'),
         ('soy_grain', 'دان سویا'),
         ('cotton_seed', 'دان پنبه'),
         ('alfalfa', 'یونجه'),
+        ('other', 'سایر')
     ]
     COUNTRIES = [
         ('argentina', 'آرژانتین'),
@@ -32,11 +33,18 @@ class CargoProduct(models.Model):
         ('canada', 'کانادا'),
         ('australia', 'استرالیا'),
         ('serbia', 'صربستان'),
-        ['iran', 'ایران']
+        ('romania', 'رومانی'),
+        ('iran', 'ایران'),
+        ('other', 'سایر')
     ]
     PORTS = [
-        ('جنوب', 'جنوب'),
-        ('شمال', 'شمال'),
+        ('امام خمینی', 'امام خمینی'),
+        ('شهید رجایی', 'شهید رجایی'),
+        ('امیرآباد', 'امیرآباد'),
+        ('انزلی', 'انزلی'),
+        ('بهشهر', 'بهشهر'),
+        ('فریدونکنار', 'فریدونکنار'),
+        ('سایر', 'سایر')
     ]
     
     type = models.CharField(_('نوع خرید'), max_length=25, choices=PURCHASE_TYPES, default='bazaargah')

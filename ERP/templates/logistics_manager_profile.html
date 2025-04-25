@@ -51,10 +51,6 @@
                         <span class="summary-number">{{ pending_purchases.count }}</span>
                         <span class="summary-label">تعداد کل</span>
                     </div>
-                    <div class="summary-item urgent">
-                        <span class="summary-number">{{ pending_purchases|dictsortreversed:"updated_at"|slice:":5"|length }}</span>
-                        <span class="summary-label">اولویت بالا</span>
-                    </div>
                 </div>
                 {% endif %}
             </div>
@@ -79,7 +75,7 @@
                     </thead>
                     <tbody>
                         {% for purchase in pending_purchases %}
-                        <tr {% if forloop.counter <= 5 %}class="high-priority"{% endif %}>
+                        <tr>
                             <td dir="ltr">{{ purchase.created_at|date:"Y/m/d" }}</td>
                             <td dir="ltr">{{ purchase.invoice_id }}</td>
                             <td dir="ltr">{{ purchase.purchase_number }}</td>
@@ -88,7 +84,9 @@
                             <td>{{ purchase.cargo|default:"-" }}</td>
                             <td>{{ purchase.get_state_display }}</td>
                             <td class="action-needed">
-                                {% if purchase.state == 'BAZAARGAH_CONFIRMED' %}
+                                {% if purchase.state == 'SMS_SENT' %}
+                                    <span class="action-tag bazaargah">تایید بازارگاه</span>
+                                {% elif purchase.state == 'BAZAARGAH_CONFIRMED' %}
                                     <span class="action-tag bazaargah">تایید بازارگاه</span>
                                 {% elif purchase.state == 'ALLOCATION_REGISTERED' %}
                                     <span class="action-tag allocation">تایید تخصیص</span>

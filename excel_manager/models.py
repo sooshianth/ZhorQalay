@@ -28,6 +28,7 @@ class ExcelFile(models.Model):
     is_approved = models.BooleanField(default=False, verbose_name=_('تأیید شده'))
     approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_excel_files', verbose_name=_('تأیید شده توسط'))
     approved_at = jmodels.jDateTimeField(null=True, blank=True, verbose_name=_('تاریخ تأیید'))
+    cleaned_file = models.FileField(upload_to='cleaned_excel_files/', null=True, blank=True, verbose_name=_('فایل تمیز شده'))
 
     class Meta:
         verbose_name = _('فایل اکسل')

@@ -9,6 +9,7 @@ def logistics_manager_profile_view(request):
     
     # وضعیت‌هایی که مدیر لجستیک می‌تواند بر روی آنها اقدام کند
     states_to_action = [
+        'SMS_SENT',                 # تایید بازارگاه (پس از ارسال پیامک)
         'BAZAARGAH_CONFIRMED',      # تایید بازارگاه
         'ALLOCATION_REGISTERED',    # تایید تخصیص
         'VENDOR_SETTLED',           # ارسال آدرس به واردکننده

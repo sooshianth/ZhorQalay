@@ -302,6 +302,9 @@
                     ondragover="dragOver(event)"
                     ondrop="drop(event)">
                     <div class="task-content">
+                        {% if task.customer %}
+                        <strong>مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ task.customer.id }}">{{ task.customer }}</a><br>
+                        {% endif %}
                         <strong>توضیحات:</strong> {{ task.description }}<br>
                         <strong>تاریخ:</strong> {{ task.due_date|date:"Y/m/d H:i" }}<br>
                         <strong>وضعیت:</strong> 
@@ -348,6 +351,9 @@
                 {% for task in completed_tasks_page %}
                     <li class="task-item task-done fade-in">
                         <div class="task-content">
+                            {% if task.customer %}
+                            <strong>مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ task.customer.id }}">{{ task.customer }} ({{ task.customer.get_primary_phone }})</a><br>
+                            {% endif %}
                             <strong>توضیحات:</strong> {{ task.description }}<br>
                             <strong>تاریخ:</strong> {{ task.due_date|date:"Y/m/d H:i" }}<br>
                             <strong>وضعیت:</strong> 
@@ -394,7 +400,7 @@
             {% for purchase in unpaid %}
                 <li class="purchase-item unpaid slide-in">
                     <div class="purchase-content">
-                        <strong><i class="fas fa-user icon-customer"></i> مشتری:</strong> {{ purchase.customer }}<br>
+                        <strong><i class="fas fa-user icon-customer"></i> مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ purchase.customer.id }}">{{ purchase.customer }} ({{ purchase.customer.get_primary_phone }})</a><br>
                         <strong><i class="fas fa-box icon-cargo"></i> محصول:</strong> {{ purchase.cargo }}<br>
                         <strong><i class="fas fa-weight icon-weight"></i> وزن:</strong> {{ purchase.weight|add_commas }} کیلوگرم<br>
                         <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
@@ -427,7 +433,7 @@
             {% for purchase in active %}
                 <li class="purchase-item active slide-in">
                     <div class="purchase-content">
-                        <strong><i class="fas fa-user icon-customer"></i> مشتری:</strong> {{ purchase.customer }}<br>
+                        <strong><i class="fas fa-user icon-customer"></i> مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ purchase.customer.id }}">{{ purchase.customer }} ({{ purchase.customer.get_primary_phone }})</a><br>
                         <strong><i class="fas fa-box icon-cargo"></i> محصول:</strong> {{ purchase.cargo }}<br>
                         <strong><i class="fas fa-weight icon-weight"></i> وزن:</strong> {{ purchase.weight|add_commas }} کیلوگرم<br>
                         <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
@@ -460,7 +466,7 @@
             {% for purchase in archived %}
             <li class="purchase-item archived slide-in">
                 <div class="purchase-content">
-                    <strong><i class="fas fa-user icon-customer"></i> مشتری:</strong> {{ purchase.customer }}<br>
+                    <strong><i class="fas fa-user icon-customer"></i> مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ purchase.customer.id }}">{{ purchase.customer }} ({{ purchase.customer.get_primary_phone }})</a><br>
                     <strong><i class="fas fa-box icon-cargo"></i> محصول:</strong> {{ purchase.cargo }}<br>
                     <strong><i class="fas fa-weight icon-weight"></i> وزن:</strong> {{ purchase.weight|add_commas }} کیلوگرم<br>
                     <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}

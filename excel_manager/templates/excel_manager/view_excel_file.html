@@ -36,6 +36,14 @@
   /* Style for delete icon */
   .tabulator .tabulator-row .tabulator-cell i.fa-trash {
       cursor: pointer;
+      color: #dc3545;
+  }
+  .tabulator .tabulator-row .tabulator-cell i.fa-trash:hover {
+      color: #bd2130;
+  }
+  /* Delete button column style */
+  .delete-cell {
+      text-align: center;
   }
 </style>
 {% endblock %}
@@ -102,11 +110,36 @@
     const tableColumns = {{ columns_json|safe }};
 
     document.addEventListener('DOMContentLoaded', function() {
+        // Process columns to set editable: false for all columns
+        // and add a delete button column
+        const processedColumns = [...tableColumns]; // Create a copy of the columns
+        processedColumns.forEach(column => {
+            column.editable = false; // Disable editing for all columns
+        });
+        
+        // Add delete button column
+        processedColumns.push({
+            title: "عملیات",
+            formatter: function(cell, formatterParams, onRendered) {
+                return '<i class="fa fa-trash"></i>';
+            },
+            width: 70,
+            headerSort: false,
+            hozAlign: "center",
+            cssClass: "delete-cell",
+            cellClick: function(e, cell) {
+                // Confirm before deleting
+                if(confirm("آیا مطمئن هستید که می‌خواهید این سطر را حذف کنید؟")) {
+                    cell.getRow().delete();
+                }
+            }
+        });
+
         // Initialize Tabulator
         try {
             table = new Tabulator("#excel-table-container", {
                 data: tableData,           // Assign data
-                columns: tableColumns,     // Define columns structure
+                columns: processedColumns, // Use processed columns with edit disabled
                 layout: "fitDataFill",     // Fit columns to data then fill
                 pagination: "local",       // Enable local pagination
                 paginationSize: 15,        // Number of rows per page

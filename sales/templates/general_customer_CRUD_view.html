@@ -220,7 +220,13 @@
             <div class="task-list">
                 {% for task in tasks %}
                     <div class="task-item">
-                        <div class="task-info">{{ task.description }} - {{ task.due_date|date:"Y/m/d H:i" }}</div>
+                        <div class="task-info">
+                            {% if task.customer and task.customer.id != customer.id %}
+                            <strong>مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ task.customer.id }}">{{ task.customer }} ({{ task.customer.get_primary_phone }})</a><br>
+                            {% endif %}
+                            <strong>توضیحات:</strong> {{ task.description }} تلفن:   {{ customer.get_primary_phone }}<br>
+                            <strong>تاریخ:</strong> {{ task.due_date|date:"Y/m/d H:i" }}
+                        </div>
                         <form method="post" action="{% url 'change_task_status' task.id %}" class="task-action">
                             {% csrf_token %}
                             <button type="submit" name="change_status" style="background-color: {% if task.status %}green{% else %}red{% endif %}; color: white;">
@@ -268,6 +274,9 @@
                 {% if calls %}
                     {% for call in calls %}
                         <div class="call-item">
+                            {% if call.customer and call.customer.id != customer.id %}
+                            <span class="call-customer"><strong>مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ call.customer.id }}">{{ call.customer }} ({{ call.customer.get_primary_phone }})</a></span>
+                            {% endif %}
                             <span class="call-date">{{ call.date|date:"Y/m/d H:i" }}</span>
                             <span class="call-type">{{ call.get_type_display }}</span>
                             <span class="call-status {{ call.status }}">{{ call.get_status_display }}</span>
@@ -322,6 +331,9 @@
                 {% for purchase in purchases %}
                     <div class="history-item">
                         <p>📅 {{ purchase.created_at|date:"Y/m/d H:i" }}</p>
+                        {% if purchase.customer and purchase.customer.id != customer.id %}
+                        <p><strong>مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ purchase.customer.id }}">{{ purchase.customer }} ({{ purchase.customer.get_primary_phone }})</a></p>
+                        {% endif %}
                         <p>کوتاژ: {{ purchase.cargo.cottage }} {{ purchase.cargo.get_product_type_display }} {{ purchase.cargo.get_country_display }}</p>
                         <p>وزن: {{ purchase.order_weight|add_commas }} کیلوگرم</p>
                         <p>وضعیت پرداخت: 

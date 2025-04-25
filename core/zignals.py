@@ -12,7 +12,7 @@ def create_task_for_purchase(sender, instance, created, **kwargs):
         due_date = timezone.now() + timedelta(minutes=15)
         
         # توضیحات تسک
-        task_description = f"پیگیری پیامک ارسال شده برای مشتری {instance.customer.name} - کوتاژ {instance.cargo.cottage if instance.cargo else 'بدون کوتاژ'}"
+        task_description = f"پیگیری پیامک ارسال شده برای مشتری - کوتاژ {instance.cargo if instance.cargo else 'بدون کوتاژ'}"
         
         # ایجاد تسک
         # چک کردن اینکه آیا کارشناسان فروش مشتری فقط ادمین‌ها هستند یا نه

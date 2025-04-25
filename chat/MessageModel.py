@@ -10,7 +10,10 @@ class Message(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     is_global = models.BooleanField(default=False)
     is_read = models.BooleanField(default=False)
-
+    is_deleted = models.BooleanField(default=False)
+    is_edited = models.BooleanField(default=False)
+    is_pinned = models.BooleanField(default=False)
+    
     class Meta:
         ordering = ['timestamp']
         verbose_name = "پیام"

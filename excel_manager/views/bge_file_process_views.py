@@ -9,6 +9,7 @@ from django.contrib import messages
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
+from django.core.files import File
 
 from ..models import ExcelFile, BGExcelFile, ExcelProcessingLog
 from core._models import CargoProduct, Purchase
@@ -99,6 +100,18 @@ def process_bge_file(request, file_id):
                 bge_file.is_processed = True
                 bge_file.save()
                 
+                # اگر درخواست AJAX باشد، پاسخ JSON برگردان
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'success': True,
+                        'message': processing_result['summary_message'],
+                        'records_processed': processing_result['records_processed'],
+                        'records_updated': processing_result['records_updated'],
+                        'records_failed': processing_result['records_failed'],
+                        'has_cleaned_file': bge_file.cleaned_file and True or False,
+                        'cleaned_file_url': bge_file.cleaned_file.url if bge_file.cleaned_file else None
+                    })
+                
                 messages.success(request, processing_result['summary_message'])
                 return redirect('excel_manager:bge_files_list')
                 
@@ -106,11 +119,27 @@ def process_bge_file(request, file_id):
                 logger.error(f"خطا در پردازش فایل: {str(e)}")
                 processing_log.log_message = f"خطا در پردازش فایل: {str(e)}"
                 processing_log.save()
+                
+                # اگر درخواست AJAX باشد، پاسخ JSON برگردان
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'success': False,
+                        'message': f'خطا در پردازش فایل: {str(e)}'
+                    }, status=500)
+                
                 messages.error(request, f'خطا در پردازش فایل: {str(e)}')
                 return redirect('excel_manager:bge_files_list')
                 
         except Exception as e:
             logger.error(f"خطای کلی در پردازش فایل: {str(e)}")
+            
+            # اگر درخواست AJAX باشد، پاسخ JSON برگردان
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'message': f'خطای کلی در پردازش فایل: {str(e)}'
+                }, status=500)
+            
             messages.error(request, f'خطای کلی در پردازش فایل: {str(e)}')
             return redirect('excel_manager:bge_files_list')
     
@@ -119,6 +148,11 @@ def process_bge_file(request, file_id):
         'bge_file': bge_file,
         'page_title': 'پردازش فایل اکسل بازارگاه',
     }
+    
+    # بررسی وجود فایل تمیز شده در مدل برای نمایش لینک دانلود
+    if bge_file.is_processed and bge_file.cleaned_file:
+        context['has_cleaned_file'] = True
+    
     return render(request, 'excel_manager/process_bge_file.html', context)
 
 def process_bge_file_data(bge_file, user):
@@ -389,7 +423,7 @@ def process_excel_records(df, bge_file, cottage_column):
         df = df.drop(rows_to_remove).reset_index(drop=True)
     
     # ذخیره فایل اکسل تمیز شده
-    save_cleaned_excel(df, bge_file.file.path)
+    save_cleaned_excel(df, bge_file.file.path, bge_file)
     
     # ایجاد پیام‌های خلاصه و لاگ
     log_message = f"تعداد کل رکوردها: {records_processed}\n"
@@ -767,14 +801,20 @@ def create_new_purchase(customer_name, bazaargah_phone_number, purchase_number,
         logger.error(f"خطا در ایجاد خرید جدید {purchase_number}: {str(e)}")
         return {'success': False, 'error': f"خطا در ایجاد خرید جدید {purchase_number}: {str(e)}"}
 
-def save_cleaned_excel(df, original_file_path):
+def save_cleaned_excel(df, original_file_path, excel_file_obj):
     """
-    ذخیره فایل اکسل تمیز شده
+    ذخیره فایل اکسل تمیز شده و ثبت آن در مدل مربوطه
     """
     try:
         # ذخیره فایل اکسل تمیز شده
         cleaned_filename = f"cleaned_{os.path.basename(original_file_path)}"
-        cleaned_file_path = os.path.join(os.path.dirname(original_file_path), cleaned_filename)
+        cleaned_dir = os.path.join(settings.MEDIA_ROOT, 'cleaned_excel_files')
+        
+        # اطمینان از وجود دایرکتوری
+        if not os.path.exists(cleaned_dir):
+            os.makedirs(cleaned_dir)
+            
+        cleaned_file_path = os.path.join(cleaned_dir, cleaned_filename)
         
         # ذخیره فایل بر اساس نوع آن
         file_extension = os.path.splitext(original_file_path)[1].lower()
@@ -790,23 +830,28 @@ def save_cleaned_excel(df, original_file_path):
                     html_content = """<html><head><meta http-equiv=Content-Type content='text/html; charset=utf-8'><style> .text { mso-number-format:\\@; } .trFormat{color:Black;background-color:#DEDFDE;}</style></head>"""
                     html_content += """<div style="direction:rtl;padding:5px 0"><span style="font:bold 12px tahoma; color:#008B00;line-height:180%"> ثبت اطلاعات حمل</span></div>"""
                     
-                    # تبدیل پاندس به HTML و ذخیره
-                    table_html = df.to_html(index=False, border=1, classes='table')
-                    table_html = table_html.replace('<table', '<table dir="rtl" cellspacing="0" cellpadding="7" style="font-family:Tahoma;font-size:11px;width:70%;"')
+                    # جایگزین کردن مستقیم عناوین و داده‌ها در HTML
+                    tbody_html = """<table dir="rtl" cellspacing="0" cellpadding="7" style="font-family:Tahoma;font-size:11px;width:70%;"><tbody>"""
                     
-                    # جایگزین کردن عناوین ردیف اول با استایل مناسب
-                    thead_html = """<thead><tr style='color:#E7E7FF;background-color:#4A3C8C;font-weight:bold;'>"""
+                    # ایجاد تگ سطر عناوین فقط یکبار
+                    thead_html = """<tr style='color:#E7E7FF;background-color:#4A3C8C;font-weight:bold;'>"""
                     for col in df.columns:
                         thead_html += f"<th>{col}</th>"
-                    thead_html += "</tr></thead>"
+                    thead_html += "</tr>"
                     
-                    table_html = table_html.replace('<thead>', thead_html)
+                    tbody_html += thead_html
                     
-                    # ایجاد استایل برای ردیف‌های داده
-                    table_html = table_html.replace('<tr>', '<tr class="trFormat">')
-                    table_html = table_html.replace('<td>', '<td align="center">')
+                    # افزودن سطرهای داده
+                    for _, row in df.iterrows():
+                        tr_html = """<tr class="trFormat">"""
+                        for col in df.columns:
+                            tr_html += f'<td align="center">{row[col]}</td>'
+                        tr_html += """</tr>"""
+                        tbody_html += tr_html
                     
-                    html_content += table_html + "</html>"
+                    tbody_html += """</tbody></table></html>"""
+                    
+                    html_content += tbody_html
                     
                     with open(cleaned_file_path, 'w', encoding='utf-8') as f:
                         f.write(html_content)
@@ -819,9 +864,30 @@ def save_cleaned_excel(df, original_file_path):
         else:
             # ذخیره به عنوان فایل اکسل
             df.to_excel(cleaned_file_path, index=False)
-            
-        return True
         
+        # ذخیره فایل تمیز شده در مدل
+        try:
+            # استفاده مستقیم از آبجکت ارسال شده
+            from django.core.files import File
+            
+            logger.info(f"تلاش برای ذخیره فایل تمیز شده {cleaned_filename} در مدل با ID {excel_file_obj.id}")
+            
+            # ذخیره فایل تمیز شده در مدل
+            with open(cleaned_file_path, 'rb') as f:
+                # حذف فایل قبلی اگر وجود داشته باشد
+                if excel_file_obj.cleaned_file:
+                    if os.path.exists(excel_file_obj.cleaned_file.path):
+                        excel_file_obj.cleaned_file.delete(save=False)
+                
+                # ذخیره فایل جدید
+                excel_file_obj.cleaned_file.save(cleaned_filename, File(f), save=True)
+            
+            logger.info(f"فایل تمیز شده در مدل با مسیر {excel_file_obj.cleaned_file.path} ثبت شد")
+            return excel_file_obj.cleaned_file.path
+        except Exception as model_e:
+            logger.error(f"خطا در ذخیره فایل تمیز شده در مدل: {str(model_e)}")
+            return cleaned_file_path
+            
     except Exception as e:
         logger.error(f"خطا در ذخیره فایل اکسل تمیز شده: {str(e)}")
-        return False 
+        return None 
