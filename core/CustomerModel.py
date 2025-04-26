@@ -81,14 +81,12 @@ class Customer(models.Model):
     name = models.CharField(_("نام"), max_length=100, null=True, blank=True)
     city = models.CharField(_("شهر"), max_length=100, null=True, blank=True)
     whatsapp_preference = models.BooleanField(_("WhatsApp Preference"), default=False, help_text=_("تمایل به دریافت پیام واتساپ دارد؟"))
+    # Keep these as CharField in the database for backward compatibility
     field_of_activity = models.CharField(_("حیطه فعالیت"), max_length=255, blank=True, null=True,
         choices=FIELD_OF_ACTIVITY
     )
-    purchase_preferences = JSONField(
-        verbose_name=_("ترجیحات پرداخت"),
-        blank=True,
-        null=True,
-        default=list
+    purchase_preferences = models.CharField(_("ترجیحات پرداخت"), max_length=255, blank=True, null=True,
+        choices=[('cash', 'نقدی'), ('check', 'چک')]
     )
     product_preferences = JSONField(
         verbose_name=_("ترجیحات کالایی"),
@@ -190,6 +188,98 @@ class Customer(models.Model):
 
     def get_last_contact_datetime(self):
         return self.calls.last().date if self.calls.exists() else None
+
+    def get_field_of_activity_display(self):
+        """Returns a formatted string of the customer's field of activity"""
+        if not self.field_of_activity:
+            return ""
+            
+        # Handle both single string and JSON list format
+        activities = self.get_field_of_activity_list()
+        display_names = []
+        
+        for activity in activities:
+            for code, name in FIELD_OF_ACTIVITY:
+                if code == activity:
+                    display_names.append(name)
+                    
+        return "، ".join(display_names)
+        
+    def get_field_of_activity_list(self):
+        """
+        Returns the field_of_activity as a list, handling both string and list formats.
+        """
+        if not self.field_of_activity:
+            return []
+            
+        try:
+            # Try to parse as JSON
+            import json
+            activities = json.loads(self.field_of_activity)
+            if isinstance(activities, list):
+                return activities
+        except (ValueError, TypeError):
+            # It's a string, not JSON
+            pass
+            
+        # Handle it as a single value
+        return [self.field_of_activity]
+        
+    def set_field_of_activity_list(self, activity_list):
+        """
+        Sets field_of_activity from a list, storing it as a comma-separated string.
+        """
+        if not activity_list:
+            self.field_of_activity = None
+            return
+            
+        if len(activity_list) == 1:
+            # Store as a single value for backward compatibility
+            self.field_of_activity = activity_list[0]
+        else:
+            # Store as a JSON string
+            import json
+            self.field_of_activity = json.dumps(activity_list)
+            
+    def get_purchase_preferences_list(self):
+        """
+        Returns the purchase_preferences as a list, handling both string and list formats.
+        """
+        if not self.purchase_preferences:
+            return []
+            
+        try:
+            # Try to parse as JSON
+            import json
+            preferences = json.loads(self.purchase_preferences)
+            if isinstance(preferences, list):
+                return preferences
+        except (ValueError, TypeError):
+            # It's a string, not JSON
+            pass
+            
+        # Handle it as a single value
+        return [self.purchase_preferences]
+        
+    def set_purchase_preferences_list(self, preference_list):
+        """
+        Sets purchase_preferences from a list, storing it as a JSON string or single value.
+        """
+        if not preference_list:
+            self.purchase_preferences = None
+            return
+            
+        if len(preference_list) == 1:
+            # Store as a single value for backward compatibility
+            self.purchase_preferences = preference_list[0]
+        else:
+            # Store as a JSON string
+            import json
+            self.purchase_preferences = json.dumps(preference_list)
+            
+    # Define properties for easy access
+    field_of_activity_list = property(get_field_of_activity_list, set_field_of_activity_list)
+    purchase_preferences_list = property(get_purchase_preferences_list, set_purchase_preferences_list)
 
     def __str__(self):
         primary_phone = self.get_primary_phone()

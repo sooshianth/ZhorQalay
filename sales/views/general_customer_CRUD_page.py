@@ -42,8 +42,9 @@ def jalali_to_gregorian(jalali_datetime_str):
         raise ValueError(f"فرمت تاریخ نامعتبر است: {jalali_datetime_str} - خطای اصلی: {str(e)}")
  
 class CustomerForm(forms.ModelForm):
-    field_of_activity = forms.ChoiceField(
+    field_of_activity = forms.MultipleChoiceField(
         choices=FIELD_OF_ACTIVITY,
+        widget=forms.CheckboxSelectMultiple,
         required=False,
         label=_("حیطه فعالیت")
     )
@@ -80,9 +81,10 @@ class CustomerForm(forms.ModelForm):
                 
             if self.instance.product_preferences:
                 self.initial['product_preferences'] = self.instance.product_preferences
-                
-            if self.instance.purchase_preferences:
-                self.initial['purchase_preferences'] = self.instance.purchase_preferences
+            
+            # Use the property methods for initial values
+            self.initial['field_of_activity'] = self.instance.get_field_of_activity_list()
+            self.initial['purchase_preferences'] = self.instance.get_purchase_preferences_list()
                 
         self.fields['name'].required = True
 
@@ -114,6 +116,15 @@ class CustomerForm(forms.ModelForm):
                 if pref not in valid_choices:
                     raise forms.ValidationError(_(f"ترجیح کالایی '{pref}' معتبر نیست."))
         return preferences
+
+    def clean_field_of_activity(self):
+        activities = self.cleaned_data.get('field_of_activity')
+        valid_choices = [choice[0] for choice in FIELD_OF_ACTIVITY]
+        if activities:
+            for activity in activities:
+                if activity not in valid_choices:
+                    raise forms.ValidationError(_(f"حیطه فعالیت '{activity}' معتبر نیست."))
+        return activities
 
     def clean_purchase_preferences(self):
         preferences = self.cleaned_data.get('purchase_preferences')
@@ -154,7 +165,10 @@ class CustomerForm(forms.ModelForm):
                 existing_phone.save()
         
         instance.product_preferences = self.cleaned_data['product_preferences']
-        instance.purchase_preferences = self.cleaned_data['purchase_preferences']
+        
+        # Use the property setters
+        instance.set_field_of_activity_list(self.cleaned_data['field_of_activity'])
+        instance.set_purchase_preferences_list(self.cleaned_data['purchase_preferences'])
         
         if self.sales_agent and not instance.sales_agent.filter(id=self.sales_agent.id).exists():
             instance.sales_agent.add(self.sales_agent)

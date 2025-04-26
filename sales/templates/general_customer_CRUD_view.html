@@ -102,8 +102,16 @@
                     
                     <div class="form-group">
                         <label>زمینه فعالیت:</label>
-                        {{ form.field_of_activity }}
-                        {{ form.field_of_activity.errors }}
+                        <div class="collapsible">
+                            <button type="button" class="collapsible-toggle">
+                                <span>انتخاب زمینه‌های فعالیت</span>
+                                <span class="toggle-icon">▼</span>
+                            </button>
+                            <div class="collapsible-content checkbox-select-multiple">
+                                {{ form.field_of_activity }}
+                                {{ form.field_of_activity.errors }}
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -133,7 +141,7 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>ترجیحات خرید:</label>
+                        <label>ترجیحات پرداخت:</label>
                         <div class="collapsible">
                             <button type="button" class="collapsible-toggle">
                                 <span>انتخاب ترجیحات پرداخت</span>
