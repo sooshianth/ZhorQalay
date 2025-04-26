@@ -20,6 +20,7 @@ FIELD_OF_ACTIVITY = [
     ('other', 'سایر')
 ]
 
+
 PAYMENT_PREFERENCE_CHOICES = [
     ('cash', 'نقدی'),
     ('check', 'چک'),
