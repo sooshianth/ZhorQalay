@@ -45,24 +45,36 @@ class CustomerForm(forms.ModelForm):
     field_of_activity = forms.ChoiceField(
         choices=FIELD_OF_ACTIVITY,
         required=False,
+        label=_("حیطه فعالیت")
     )
-    phone_number = forms.CharField(label=_("شماره تلفن اصلی"), max_length=20, required=True, 
-                                  help_text=_("شماره تلفن اصلی مشتری"))
+    phone_number = forms.CharField(
+        label=_("شماره تلفن اصلی"),
+        max_length=20,
+        required=True,
+        help_text=_("شماره تلفن اصلی مشتری")
+    )
+    product_preferences = forms.MultipleChoiceField(
+        choices=CargoProduct.PRODUCT_TYPES,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label=_("ترجیحات کالایی")
+    )
     
     def __init__(self, *args, **kwargs):
         sales_agent = kwargs.pop('sales_agent', None)
         super(CustomerForm, self).__init__(*args, **kwargs)
         self.sales_agent = sales_agent
         
-        # اگر مشتری موجود باشد، شماره تلفن اصلی را بازیابی کنیم
         if self.instance and self.instance.pk:
             primary_phone = self.instance.phone_numbers.filter(is_primary=True).first()
             if primary_phone:
                 self.initial['phone_number'] = primary_phone.number
-            elif self.instance.phone_number:  # استفاده از فیلد قدیمی به عنوان fallback
+            elif self.instance.phone_number:
                 self.initial['phone_number'] = self.instance.phone_number
                 
-        # تنظیم فیلدهای ضروری
+            if self.instance.product_preferences:
+                self.initial['product_preferences'] = self.instance.product_preferences
+                
         self.fields['name'].required = True
 
     class Meta:
@@ -73,35 +85,43 @@ class CustomerForm(forms.ModelForm):
             'added_description': forms.Textarea(attrs={'rows': 3}),
         }
     
-    def save(self, commit=True):
-        instance = super(CustomerForm, self).save(commit=False)
-        
-        # ذخیره شماره تلفن در مدل PhoneNumber
+    def clean_phone_number(self):
         phone_number = self.cleaned_data.get('phone_number')
-        print(f"Phone number from cleaned_data: {phone_number}")
-        
         if phone_number:
-            # Normalize phone number: remove any leading zeros and non-digits
             phone_number = ''.join(c for c in phone_number if c.isdigit())
             if phone_number.startswith('0'):
                 phone_number = phone_number[1:]
-                
-            # ذخیره شماره در فیلد قدیمی برای سازگاری با سایر اپ‌ها
-            instance.phone_number = phone_number
-                
-            # بررسی آیا این شماره قبلاً ثبت شده
+            if not phone_number.startswith('9') or len(phone_number) != 10:
+                raise forms.ValidationError(
+                    _('شماره تلفن باید با 9 شروع شود و 10 رقم باشد. مثال: 9123456789')
+                )
+        return phone_number
+
+    def clean_product_preferences(self):
+        preferences = self.cleaned_data.get('product_preferences')
+        valid_choices = [choice[0] for choice in CargoProduct.PRODUCT_TYPES]
+        if preferences:
+            for pref in preferences:
+                if pref not in valid_choices:
+                    raise forms.ValidationError(_(f"ترجیح کالایی '{pref}' معتبر نیست."))
+        return preferences
+
+    def save(self, commit=True):
+        instance = super(CustomerForm, self).save(commit=False)
+        
+        phone_number = self.cleaned_data.get('phone_number')
+        if phone_number:
             existing_phone = PhoneNumber.objects.filter(number=phone_number).first()
-            
             if existing_phone and existing_phone.customer.id != instance.id:
-                # شماره قبلاً برای مشتری دیگری ثبت شده - در این مورد می‌توانید خطا بدهید
-                raise forms.ValidationError(f"این شماره تلفن قبلاً برای مشتری {existing_phone.customer.name} ثبت شده است.")
-            
-        # Always save the instance first to get primary key
+                raise forms.ValidationError(
+                    f"این شماره تلفن قبلاً برای مشتری {existing_phone.customer.name} ثبت شده است."
+                )
+            instance.phone_number = phone_number
+        
         instance.save()
         
         if phone_number:
             if not existing_phone:
-                # ایجاد شماره تلفن جدید
                 try:
                     new_phone = PhoneNumber(
                         number=phone_number,
@@ -109,20 +129,65 @@ class CustomerForm(forms.ModelForm):
                         is_primary=True
                     )
                     new_phone.save()
-                    print(f"Created new phone number: {new_phone.number} for customer {instance.id}")
                 except Exception as e:
                     print(f"Error creating phone number: {str(e)}")
             elif existing_phone.customer.id == instance.id and not existing_phone.is_primary:
-                # اگر شماره برای همین مشتری است ولی اولیه نیست، آن را اولیه کنیم
                 existing_phone.is_primary = True
                 existing_phone.save()
-                print(f"Made phone number primary: {existing_phone.number}")
         
-        # اگر یک کارشناس فروش وجود دارد و برای مشتری جدید است، آن را اضافه کنیم
+        instance.product_preferences = self.cleaned_data['product_preferences']
+        
         if self.sales_agent and not instance.sales_agent.filter(id=self.sales_agent.id).exists():
             instance.sales_agent.add(self.sales_agent)
         
+        if commit:
+            instance.save()
+        
         return instance
+
+def check_customer_sales_agent(customer, sales_agent):
+    if sales_agent not in customer.sales_agent.all():
+        raise PermissionDenied("You do not have permission to access this customer.")
+
+def change_task_status(request, pk):
+    task = get_object_or_404(Task, id=pk)
+    if request.method == "POST":
+        try:
+            task.change_status()
+            task.full_clean()
+            task.save()
+            messages.success(request, "وضعیت تسک با موفقیت تغییر کرد")
+        except ValidationError as e:
+            messages.error(request, f"خطا در تغییر وضعیت تسک: {e}")
+    else:
+        messages.error(request, "وضعیت جدید معتبر نیست")
+    
+    return redirect(request.META.get('HTTP_REFERER'))
+
+def customer_search(request):
+    query = request.GET.get('query', '')
+    results = []
+    
+    if query:
+        try:
+            sales_agent = SalesAgent.objects.get(user=request.user)
+            customers = Customer.objects.filter(
+                Q(phone_number__icontains=query) | 
+                Q(name__icontains=query),
+                sales_agent=sales_agent
+            )[:10]
+            
+            results = [
+                {
+                    'name': c.name if c.name else 'بدون نام',
+                    'phone_number': c.phone_number
+                }
+                for c in customers
+            ]
+        except Exception as e:
+            print(f"Error during customer search: {e}")
+            results = []
+    return JsonResponse(results, safe=False)
 
 def check_customer_sales_agent(customer, sales_agent):
     if sales_agent not in customer.sales_agent.all():
