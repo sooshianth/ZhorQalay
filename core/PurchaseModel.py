@@ -82,7 +82,7 @@ class Purchase(models.Model):
     tahvil_phone_number = models.CharField("شماره تلفن تحویل", max_length=11, blank=True, null=True)
     barnameh = models.CharField("شماره بارنامه", max_length=255, blank=True, null=True)
     
-    
+    send_cottage_sms = models.BooleanField('ارسال پیامک کوتاژ', default=True)
     order_weight = models.PositiveIntegerField("وزن سفارش (کیلوگرم)", default=0)
     delivered_weight = models.PositiveIntegerField("وزن تحویلی (کیلوگرم)", default=0)
     cargo = models.ForeignKey(CargoProduct,on_delete=models.SET_NULL, verbose_name="کوتاژ", null=True, blank=True, related_name='purchases')
@@ -494,7 +494,7 @@ class Purchase(models.Model):
                 break
 
         # Send SMS notification for new purchase only on creation
-        if is_new and self.customer.sms_preference and has_non_admin:
+        if is_new and self.customer.sms_preference and has_non_admin and self.send_cottage_sms:
             sms_api = get_sms_api()
             sms_api.send_new_purchase_notification(self)
             # تنظیم وضعیت SMS ارسال شده

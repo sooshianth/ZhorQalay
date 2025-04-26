@@ -363,6 +363,29 @@ def general_customer_CRUD_view(request):
             new_purchase.save()
             messages.success(request, "خرید جدید ثبت شد")
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
+    elif request.method == "POST" and 'create_purchase_without_sms' in request.POST and customer:
+        cottage_number = request.POST.get('cottage_number')
+        order_weight = request.POST.get('weight')
+        
+        # try:
+        with transaction.atomic():
+            cargo = CargoProduct.objects.get(cottage=cottage_number) if cottage_number else None
+
+            new_purchase = Purchase(
+                customer=customer,
+                order_weight=order_weight,
+                cargo=cargo,
+                send_cottage_sms=False
+            )
+            new_purchase.full_clean()
+            # new_purchase.save()
+            new_purchase.customer_price = new_purchase.cargo.customer_price
+            new_purchase.company_price = new_purchase.cargo.company_price
+            new_purchase.amount_paid = new_purchase.customer_price * new_purchase.order_weight
+            new_purchase.save()
+            messages.success(request, "خرید جدید ثبت شد")
+            return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
+
         # except Exception as e:
         #     messages.error(request, f"خطا در خرید: {e}")
         #     return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
