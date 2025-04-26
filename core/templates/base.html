@@ -53,7 +53,7 @@
                 </div>
             </div>
             
-            {% if request.user.is_superuser %}
+            {% if request.user.is_superuser or request.user.is_staff %}
                 <div class="admin-panel-link">
                     <a href="{% url 'admin:index' %}" class="admin-button" style="background-color: white; color: green; border: 1px solid green;">
                         <i class="fas fa-user-shield"></i>
