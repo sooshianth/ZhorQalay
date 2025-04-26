@@ -219,56 +219,74 @@ class CustomerAdmin(admin.ModelAdmin):
             before_stats = DebugSmsQueue.print_sms_queue_stats()
             
             for customer in queryset:
-                phone = customer.get_primary_phone()
-                print(f"مشتری: {customer.name}, شماره: {phone}")
+                # دریافت تمام شماره‌های تلفن مشتری
+                phone_numbers = customer.get_all_phone_numbers()
+                print(f"مشتری: {customer.name}, تعداد شماره‌ها: {len(phone_numbers)}")
                 
-                # اطمینان از درستی فرمت شماره تلفن
-                if not phone:
-                    error_message = f"مشتری {customer.name}: شماره تلفن یافت نشد"
+                # اطمینان از وجود حداقل یک شماره تلفن
+                if not phone_numbers:
+                    error_message = f"مشتری {customer.name}: هیچ شماره تلفنی یافت نشد"
                     print(error_message)
                     error_messages.append(error_message)
                     error_count += 1
                     continue
                 
-                try:
-                    # استاندارد کردن شماره تلفن
-                    if phone.startswith('+98'):
-                        phone = '0' + phone[3:]
-                    elif not phone.startswith('0'):
-                        phone = '0' + phone
+                # ارسال پیامک به تمام شماره‌های تلفن
+                customer_success = 0
+                
+                for phone in phone_numbers:
+                    try:
+                        # استاندارد کردن شماره تلفن
+                        if phone.startswith('+98'):
+                            phone = '0' + phone[3:]
+                        elif not phone.startswith('0'):
+                            phone = '0' + phone
 
-                    # تبدیل به فرمت 09xx
-                    if phone.startswith('0') and len(phone) == 10:
-                        phone = '0' + phone  # تبدیل 0912345678 به 09123456789
-                    
-                    # ایجاد مستقیم رکورد در دیتابیس با اطمینان از فرمت صحیح
-                    status = 'suspended' if suspended else 'pending'
-                    print(f"ایجاد پیامک با شماره: {phone}, وضعیت: {status}")
-                    
-                    if len(phone) < 11 or not phone.startswith('0'):
-                        raise ValueError(f"شماره تلفن {phone} نامعتبر است. باید 11 رقمی و با 0 شروع شود.")
-                    
-                    # ایجاد پیامک با زمان ارسال مشخص شده
-                    sms_queue = SmsQueue.objects.create(
-                        recipient_number=phone,
-                        message=message,
-                        notification_type=notification_type,
-                        status=status,
-                        is_suspended=suspended,
-                        scheduled_for=scheduled_for  # همیشه یک مقدار معتبر خواهد داشت
-                    )
-                    
-                    if sms_queue and sms_queue.id:
-                        print(f"پیامک ایجاد شد با شناسه: {sms_queue.id}")
-                        sent_count += 1
-                    else:
-                        raise ValueError("خطای ناشناخته در ایجاد پیامک")
+                        # تبدیل به فرمت 09xx
+                        if not phone.startswith('09'):
+                            if phone.startswith('9') and len(phone) == 10:
+                                phone = '0' + phone  # تبدیل 9123456789 به 09123456789
+                            else:
+                                # اگر فرمت شماره درست نیست، به شماره بعدی برو
+                                error_message = f"شماره تلفن {phone} برای مشتری {customer.name} نامعتبر است. باید با 09 شروع شود."
+                                print(error_message)
+                                continue
                         
-                except Exception as e:
-                    error_message = f"مشتری {customer.name}: {str(e)}"
-                    print(f"خطا: {error_message}")
-                    error_messages.append(error_message)
-                    error_count += 1
+                        # ایجاد مستقیم رکورد در دیتابیس با اطمینان از فرمت صحیح
+                        status = 'suspended' if suspended else 'pending'
+                        print(f"ایجاد پیامک با شماره: {phone}, وضعیت: {status}")
+                        
+                        if len(phone) != 11 or not phone.startswith('09'):
+                            raise ValueError(f"شماره تلفن {phone} نامعتبر است. باید 11 رقمی و با 09 شروع شود.")
+                        
+                        # ایجاد پیامک با زمان ارسال مشخص شده
+                        sms_queue = SmsQueue.objects.create(
+                            recipient_number=phone,
+                            message=message,
+                            notification_type=notification_type,
+                            status=status,
+                            is_suspended=suspended,
+                            scheduled_for=scheduled_for  # همیشه یک مقدار معتبر خواهد داشت
+                        )
+                        
+                        if sms_queue and sms_queue.id:
+                            print(f"پیامک ایجاد شد با شناسه: {sms_queue.id}")
+                            customer_success += 1
+                            sent_count += 1
+                        else:
+                            raise ValueError("خطای ناشناخته در ایجاد پیامک")
+                            
+                    except Exception as e:
+                        error_message = f"مشتری {customer.name} - شماره {phone}: {str(e)}"
+                        print(f"خطا: {error_message}")
+                        error_messages.append(error_message)
+                        error_count += 1
+                
+                # اگر برای هیچکدام از شماره‌های این مشتری پیامک ارسال نشده
+                if customer_success == 0:
+                    error_message = f"مشتری {customer.name}: ارسال پیامک به هیچ شماره‌ای موفق نبود"
+                    if error_message not in error_messages:
+                        error_messages.append(error_message)
             
             # آمار بعد از ایجاد
             after_stats = DebugSmsQueue.print_sms_queue_stats()
@@ -276,7 +294,7 @@ class CustomerAdmin(admin.ModelAdmin):
             
             # نمایش نتیجه به کاربر
             if sent_count > 0:
-                success_msg = f'پیامک برای {sent_count} مشتری در صف ارسال قرار گرفت.'
+                success_msg = f'پیامک برای {sent_count} شماره تلفن در صف ارسال قرار گرفت.'
                 if scheduled_for:
                     success_msg += f' زمان ارسال: {scheduled_for.strftime("%Y-%m-%d %H:%M")}'
                 print(success_msg)

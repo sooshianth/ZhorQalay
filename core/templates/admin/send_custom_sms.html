@@ -49,7 +49,7 @@
                     <thead>
                         <tr>
                             <th>نام</th>
-                            <th>شماره تلفن</th>
+                            <th>شماره تلفن‌ها</th>
                             <th>شهر</th>
                             <th>زمینه فعالیت</th>
                         </tr>
@@ -58,7 +58,14 @@
                         {% for customer in customers %}
                         <tr>
                             <td>{{ customer.name }}</td>
-                            <td>{{ customer.get_primary_phone }}</td>
+                            <td>
+                                {% for phone in customer.phone_numbers.all %}
+                                    <div>{{ phone.number }}{% if phone.is_primary %} <span class="primary-badge">(اصلی)</span>{% endif %}</div>
+                                {% endfor %}
+                                {% if customer.phone_number and customer.phone_number not in customer.phone_numbers.all|stringformat:"s" %}
+                                    <div>{{ customer.phone_number }} <span class="legacy-badge">(قدیمی)</span></div>
+                                {% endif %}
+                            </td>
                             <td>{{ customer.city }}</td>
                             <td>{{ customer.get_field_of_activity_display }}</td>
                         </tr>
@@ -115,6 +122,20 @@
     }
     .customers-table tr:hover {
         background-color: #f9f9f9;
+    }
+    .primary-badge {
+        background-color: #28a745;
+        color: white;
+        padding: 0px 4px;
+        border-radius: 3px;
+        font-size: 0.8em;
+    }
+    .legacy-badge {
+        background-color: #ffc107;
+        color: #333;
+        padding: 0px 4px;
+        border-radius: 3px;
+        font-size: 0.8em;
     }
 </style>
 {% endblock %} 

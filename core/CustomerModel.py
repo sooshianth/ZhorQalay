@@ -20,6 +20,14 @@ FIELD_OF_ACTIVITY = [
     ('other', 'سایر')
 ]
 
+PAYMENT_PREFERENCE_CHOICES = [
+    ('cash', 'نقدی'),
+    ('check', 'چک'),
+    ('credit', 'اعتباری'),
+    ('transfer', 'انتقال بانکی'),
+    ('bazaargah', 'بازارگاه')
+]
+
 class PhoneNumber(models.Model):
     number = models.CharField(_("شماره تلفن"), max_length=20)
     is_primary = models.BooleanField(_("شماره اصلی"), default=False)
@@ -75,8 +83,11 @@ class Customer(models.Model):
     field_of_activity = models.CharField(_("حیطه فعالیت"), max_length=255, blank=True, null=True,
         choices=FIELD_OF_ACTIVITY
     )
-    purchase_preferences = models.CharField(_("ترجیحات پرداخت"), max_length=255, blank=True, null=True,
-        choices=[('cash', 'نقدی'), ('check', 'چک')]
+    purchase_preferences = JSONField(
+        verbose_name=_("ترجیحات پرداخت"),
+        blank=True,
+        null=True,
+        default=list
     )
     product_preferences = JSONField(
         verbose_name=_("ترجیحات کالایی"),
@@ -136,6 +147,21 @@ class Customer(models.Model):
         if first_phone:
             return first_phone.number
         return self.phone_number or ''
+
+    def get_all_phone_numbers(self):
+        """
+        Returns a list of all phone numbers associated with this customer.
+        Includes phone numbers from the PhoneNumber model, and if it exists,
+        the legacy phone_number field.
+        """
+        # Get all phone numbers from the PhoneNumber model
+        numbers = [phone.number for phone in self.phone_numbers.all()]
+        
+        # Add the legacy phone number if it exists and is not already in the list
+        if self.phone_number and self.phone_number not in numbers:
+            numbers.append(self.phone_number)
+            
+        return numbers
 
     def get_tasks_by_time(self):
         return self.tasks.order_by('due_date')

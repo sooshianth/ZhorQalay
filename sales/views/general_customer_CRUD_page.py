@@ -6,7 +6,7 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.http import JsonResponse
 from persiantools.jdatetime import JalaliDateTime
 from core._models import Customer, CallSession, Task, Purchase, CargoProduct
-from core.CustomerModel import FIELD_OF_ACTIVITY
+from core.CustomerModel import FIELD_OF_ACTIVITY, PAYMENT_PREFERENCE_CHOICES
 
 # core/forms.py
 from django import forms
@@ -17,7 +17,7 @@ from jdatetime import datetime, date
 from django.utils.translation import gettext_lazy as _
 from core.CustomerModel import PhoneNumber
 
-from core.CustomerModel import Customer, PhoneNumber, FIELD_OF_ACTIVITY
+from core.CustomerModel import Customer, PhoneNumber, FIELD_OF_ACTIVITY, PAYMENT_PREFERENCE_CHOICES
 from core.TaskModel import Task
 from core.CallSessionModel import CallSession
 from core.PurchaseModel import Purchase
@@ -59,6 +59,12 @@ class CustomerForm(forms.ModelForm):
         required=False,
         label=_("ترجیحات کالایی")
     )
+    purchase_preferences = forms.MultipleChoiceField(
+        choices=PAYMENT_PREFERENCE_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label=_("ترجیحات پرداخت")
+    )
     
     def __init__(self, *args, **kwargs):
         sales_agent = kwargs.pop('sales_agent', None)
@@ -74,6 +80,9 @@ class CustomerForm(forms.ModelForm):
                 
             if self.instance.product_preferences:
                 self.initial['product_preferences'] = self.instance.product_preferences
+                
+            if self.instance.purchase_preferences:
+                self.initial['purchase_preferences'] = self.instance.purchase_preferences
                 
         self.fields['name'].required = True
 
@@ -106,6 +115,15 @@ class CustomerForm(forms.ModelForm):
                     raise forms.ValidationError(_(f"ترجیح کالایی '{pref}' معتبر نیست."))
         return preferences
 
+    def clean_purchase_preferences(self):
+        preferences = self.cleaned_data.get('purchase_preferences')
+        valid_choices = [choice[0] for choice in PAYMENT_PREFERENCE_CHOICES]
+        if preferences:
+            for pref in preferences:
+                if pref not in valid_choices:
+                    raise forms.ValidationError(_(f"ترجیح پرداخت '{pref}' معتبر نیست."))
+        return preferences
+
     def save(self, commit=True):
         instance = super(CustomerForm, self).save(commit=False)
         
@@ -136,6 +154,7 @@ class CustomerForm(forms.ModelForm):
                 existing_phone.save()
         
         instance.product_preferences = self.cleaned_data['product_preferences']
+        instance.purchase_preferences = self.cleaned_data['purchase_preferences']
         
         if self.sales_agent and not instance.sales_agent.filter(id=self.sales_agent.id).exists():
             instance.sales_agent.add(self.sales_agent)
