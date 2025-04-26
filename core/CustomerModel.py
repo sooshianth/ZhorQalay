@@ -5,6 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from .SalesAgentModel import SalesAgent
 from .CargoProductModel import CargoProduct
 from django.contrib.postgres.fields import ArrayField
+from django.db.models import JSONField
 
 
 FIELD_OF_ACTIVITY = [
@@ -77,8 +78,11 @@ class Customer(models.Model):
     purchase_preferences = models.CharField(_("ترجیحات پرداخت"), max_length=255, blank=True, null=True,
         choices=[('cash', 'نقدی'), ('check', 'چک')]
     )
-    product_preferences = models.CharField(_("ترجیحات کالایی"), max_length=255, blank=True, null=True,
-        choices=CargoProduct.PRODUCT_TYPES
+    product_preferences = JSONField(
+        verbose_name=_("ترجیحات کالایی"),
+        blank=True,
+        null=True,
+        default=list
     )
     contact_start_time = models.TimeField(_("زمان شروع تماس"), blank=True, null=True)
     contact_end_time = models.TimeField(_("زمان پایان تماس"), blank=True, null=True)

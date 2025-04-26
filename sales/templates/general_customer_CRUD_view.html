@@ -26,7 +26,6 @@
         <button type="submit" name="phone_search">جستجو/ایجاد</button>
     </form>
     
-
     <div class="main-layout">
     {% if form %}
     <!-- فرم مشتری -->
@@ -43,11 +42,6 @@
             
             <div class="form-columns">
                 <div class="column">
-                    {% comment %} <div class="form-group">
-                        <label>شماره تلفن:</label>
-                        {{ form.phone_number }}
-                        {{ form.phone_number.errors }}
-                    </div> {% endcomment %}
                     <div class="form-group">
                         <label>شماره تلفن اصلی:</label>
                         {{ form.phone_number }}
@@ -92,12 +86,10 @@
                     </div>
                     {% endif %}
                     
-                    
                     <div class="checkbox-group">
                         <label>
                             {{ form.is_bazaargah_enjoyer }}
                             {{ form.is_bazaargah_enjoyer.errors }}
-
                             فعالیت درون بازارگاه
                         </label>
                     </div>
@@ -119,19 +111,31 @@
                     <div class="form-group">
                         <label>شبکه‌های اجتماعی:</label>
                         {{ form.social_media }}
+                        {{ form.social_media.errors }}
                     </div>
 
                     <div class="form-group">
-                        <label>سهمیه: </label>
+                        <label>سهمیه:</label>
                         {{ form.quota }}
+                        {{ form.quota.errors }}
                     </div>
                     <div class="form-group">
-                        <label>ترجیحات کالایی: </label>
-                        {{ form.product_preferences }}
+                        <label>ترجیحات کالایی:</label>
+                        <div class="collapsible">
+                            <button type="button" class="collapsible-toggle">
+                                <span>انتخاب ترجیحات کالایی</span>
+                                <span class="toggle-icon">▼</span>
+                            </button>
+                            <div class="collapsible-content checkbox-select-multiple">
+                                {{ form.product_preferences }}
+                                {{ form.product_preferences.errors }}
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label>ترجیحات خرید: </label>
+                        <label>ترجیحات خرید:</label>
                         {{ form.purchase_preferences }}
+                        {{ form.purchase_preferences.errors }}
                     </div>
 
                     {% if customer and not is_new_customer %}
@@ -169,11 +173,11 @@
                 <ul id="related-products-list"></ul>
             </div>
 
-            <!-- سایر فیلدها -->
             <div class="full-width">
                 <div class="form-group">
                     <label>توضیحات تکمیلی:</label>
                     {{ form.added_description }}
+                    {{ form.added_description.errors }}
                 </div>
                 
                 <div class="checkbox-group">
@@ -184,12 +188,11 @@
                 </div>
             </div>
 
-
             <button type="submit" name="save_customer" class="submit-btn">ذخیره اطلاعات</button>
         </div>
     </form>
-    {% endif %}
     </div>
+    {% endif %}
     <!-- تب‌ها -->
     {% if customer %}
     <div class="tabs-section">
@@ -202,350 +205,324 @@
                 <button class="tab-btn" data-target="prediction">پیش‌بینی خرید</button>
             </div>
 
-        <div id="tasks" class="tab-content active">
-            <form method="post" class="task-form">
-                {% csrf_token %}
-                <textarea name="task_description" placeholder="توضیحات تسک"></textarea>
+            <div id="tasks" class="tab-content active">
+                <form method="post" class="task-form">
+                    {% csrf_token %}
+                    <textarea name="task_description" placeholder="توضیحات تسک"></textarea>
+                    <br>
+                    <input type="text" 
+                           name="due_date" 
+                           id="due_date"
+                           class="form-control eng-digits" 
+                           autocomplete="off"
+                           data-english-digits="true">
+                    <br>
+                    <button type="submit" name="create_task" class="action-button">ثبت تسک</button>
+                </form>
                 <br>
-                <input type="text" 
-                name="due_date" 
-                id="due_date"
-                class="form-control eng-digits" 
-                autocomplete="off"
-                data-english-digits="true">
-                <br>
-                <button type="submit" name="create_task" class="action-button">ثبت تسک</button>
-            </form>
-            <br>
-            <div class="task-list">
-                {% for task in tasks %}
-                    <div class="task-item">
-                        <div class="task-info">
-                            {% if task.customer and task.customer.id != customer.id %}
-                            <strong>مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ task.customer.id }}">{{ task.customer }} ({{ task.customer.get_primary_phone }})</a><br>
-                            {% endif %}
-                            <strong>توضیحات:</strong> {{ task.description }} تلفن:   {{ customer.get_primary_phone }}<br>
-                            <strong>تاریخ:</strong> {{ task.due_date|date:"Y/m/d H:i" }}
-                        </div>
-                        <form method="post" action="{% url 'change_task_status' task.id %}" class="task-action">
-                            {% csrf_token %}
-                            <button type="submit" name="change_status" style="background-color: {% if task.status %}green{% else %}red{% endif %}; color: white;">
-                                {% if task.status %}انجام شده{% else %}انجام نشده{% endif %}
-                            </button>
-                        </form>
-                    </div>
-                {% endfor %}
-            </div>
-                <!-- Pagination برای خرید‌ها -->
-            <div class="pagination">
-                <span class="step-links">
-                    {% if tasks.has_previous %}
-                        <a href="?customer_id={{ customer.id }}&task_page=1" class="pagination-link">&laquo; اول</a>
-                        <a href="?customer_id={{ customer.id }}&task_page={{ tasks.previous_page_number }}" class="pagination-link">قبلی</a>
-                    {% endif %}
-        
-                    <span class="current">
-                        صفحه {{ tasks.number }} از {{ tasks.paginator.num_pages }}
-                    </span>
-        
-                    {% if purchases.has_next %}
-                        <a href="?customer_id={{ customer.id }}&task_page={{ tasks.next_page_number }}" class="pagination-link">بعدی</a>
-                        <a href="?customer_id={{ customer.id }}&task_page={{ tasks.paginator.num_pages }}" class="pagination-link">آخر &raquo;</a>
-                    {% endif %}
-                </span>
-            </div>
-        </div>
-        
-        <div id="calls" class="tab-content">
-            <form method="post" class="call-form">
-                {% csrf_token %}
-                <select name="call_type">
-                    <option value="incoming">ورودی</option>
-                    <option value="outgoing">خروجی</option>
-                </select>
-                <textarea name="note" placeholder="یادداشت"></textarea>
-                <button type="submit" name="create_call" class="action-button">ثبت تماس</button>
-            </form>
-        
-            <br>
-            <!-- تاریخچه تماس‌ها -->
-            <div class="call-history">
-                <h3>تاریخچه تماس‌ها</h3>
-                {% if calls %}
-                    {% for call in calls %}
-                        <div class="call-item">
-                            {% if call.customer and call.customer.id != customer.id %}
-                            <span class="call-customer"><strong>مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ call.customer.id }}">{{ call.customer }} ({{ call.customer.get_primary_phone }})</a></span>
-                            {% endif %}
-                            <span class="call-date">{{ call.date|date:"Y/m/d H:i" }}</span>
-                            <span class="call-type">{{ call.get_type_display }}</span>
-                            <span class="call-status {{ call.status }}">{{ call.get_status_display }}</span>
-                            <span class="call-note">{{ call.note|default:"-" }}</span>
+                <div class="task-list">
+                    {% for task in tasks %}
+                        <div class="task-item">
+                            <div class="task-info">
+                                {% if task.customer and task.customer.id != customer.id %}
+                                <strong>مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ task.customer.id }}">{{ task.customer }} ({{ task.customer.get_primary_phone }})</a><br>
+                                {% endif %}
+                                <strong>توضیحات:</strong> {{ task.description }} تلفن: {{ customer.get_primary_phone }}<br>
+                                <strong>تاریخ:</strong> {{ task.due_date|date:"Y/m/d H:i" }}
+                            </div>
+                            <form method="post" action="{% url 'change_task_status' task.id %}" class="task-action">
+                                {% csrf_token %}
+                                <button type="submit" name="change_status" style="background-color: {% if task.status %}green{% else %}red{% endif %}; color: white;">
+                                    {% if task.status %}انجام شده{% else %}انجام نشده{% endif %}
+                                </button>
+                            </form>
                         </div>
                     {% endfor %}
-                {% else %}
-                    <p class="empty-message">هیچ تماسی ثبت نشده است</p>
-                {% endif %}
-            </div>
-        </div>
-        
-        <div id="purchases" class="tab-content">
-            <!-- فرم ثبت خرید جدید -->
-            <form method="post" id="purchase-form" class="purchase-form">
-                {% csrf_token %}
-                <div class="form-group">
-                    <label>انتخاب کوتاژ:</label>
-                    <select name="cottage_number" id="cottage-select" onchange="showCargoDetails()" required>
-                        <option value="">-- انتخاب کنید --</option>
-                        {% for product in active_products %}
-                            <option value="{{ product.cottage }}">
-                                کوتاژ {{ product.cottage }} | {{ product.get_product_type_display }} {{ product.get_country_display }} | {{ product.loading_time }}
-                            </option>
-                        {% endfor %}
-                    </select>
                 </div>
-        
-                <div id="cargo-details" style="display: none;" class="cargo-details">
-                    <h4>مشخصات محصول:</h4>
-                    <p id="product-type">نوع: </p>
-                    <p id="product-country">کشور: </p>
-                    <p id="product-loading">زمان بارگیری: </p>
-                    <p id="product-loading-place">محل بارگیری: </p>
-                    <p id="product-price">فی فروش: </p>
-                    <p id="product-description">توضیحات: </p>
-
-                    {% comment %} <p id="product-weight">وزن موجود: </p> {% endcomment %}
-                </div>
-        
-                <div class="form-group">
-                    <label>وزن احتمالی خرید (کیلوگرم):</label>
-                    <input type="number" name="weight" min="100" step="100" required>
-                </div>
-        
-                <button type="submit" name="create_purchase" class="action-button">ارسال پیامک به مشتری</button>
-            </form>        
-        </div>
-        
-        <div id="purchase_history" class="tab-content">
-            <div class="history-list">
-                {% for purchase in purchases %}
-                    <div class="history-item">
-                        <p>📅 {{ purchase.created_at|date:"Y/m/d H:i" }}</p>
-                        {% if purchase.customer and purchase.customer.id != customer.id %}
-                        <p><strong>مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ purchase.customer.id }}">{{ purchase.customer }} ({{ purchase.customer.get_primary_phone }})</a></p>
+                <!-- Pagination برای تسک‌ها -->
+                <div class="pagination">
+                    <span class="step-links">
+                        {% if tasks.has_previous %}
+                            <a href="?customer_id={{ customer.id }}&task_page=1" class="pagination-link">&laquo; اول</a>
+                            <a href="?customer_id={{ customer.id }}&task_page={{ tasks.previous_page_number }}" class="pagination-link">قبلی</a>
                         {% endif %}
-                        <p>کوتاژ: {{ purchase.cargo.cottage }} {{ purchase.cargo.get_product_type_display }} {{ purchase.cargo.get_country_display }}</p>
-                        <p>وزن: {{ purchase.order_weight|add_commas }} کیلوگرم</p>
-                        <p>وضعیت پرداخت: 
-                            {% if purchase.state in 'PAYMENT_VERIFIED,ALLOCATION_REGISTERED,ALLOCATION_APPROVED,VENDOR_SETTLED,ADDRESS_SENT,SENT_TO_SHIPPING,BARNAMEH_ISSUED,DELIVERED,DIFFERENCE_APPROVED,SHORTAGE_DEPOSITED,SURPLUS_DEPOSITED,RECEIPT_SUBMITTED,INVOICE_ISSUED,SALES_APPROVED,LOGISTICS_APPROVED,FINANCIAL_APPROVED,COMPLETED'|split:',' %}
-                            ✅ پرداخت شده
-                            {% else %}
-                            ❌ پرداخت نشده
-                            {% endif %}
-                        </p>
-                        <p><a href="{% url 'purchase_CRUD' purchase.id %}" class="view-details-button">مشاهده جزئیات</a></p>
-                    </div>
-                {% empty %}
-                    <p class="empty-message">هیچ خریدی ثبت نشده است.</p>
-                {% endfor %}
-            </div>
-        
-            <!-- Pagination برای خرید‌ها -->
-            <div class="pagination">
-                <span class="step-links">
-                    {% if purchases.has_previous %}
-                        <a href="?customer_id={{ customer.id }}&purchase_page=1" class="pagination-link">&laquo; اول</a>
-                        <a href="?customer_id={{ customer.id }}&purchase_page={{ purchases.previous_page_number }}" class="pagination-link">قبلی</a>
-                    {% endif %}
-        
-                    <span class="current">
-                        صفحه {{ purchases.number }} از {{ purchases.paginator.num_pages }}
+            
+                        <span class="current">
+                            صفحه {{ tasks.number }} از {{ tasks.paginator.num_pages }}
+                        </span>
+            
+                        {% if tasks.has_next %}
+                            <a href="?customer_id={{ customer.id }}&task_page={{ tasks.next_page_number }}" class="pagination-link">بعدی</a>
+                            <a href="?customer_id={{ customer.id }}&task_page={{ tasks.paginator.num_pages }}" class="pagination-link">آخر &raquo;</a>
+                        {% endif %}
                     </span>
-        
-                    {% if purchases.has_next %}
-                        <a href="?customer_id={{ customer.id }}&purchase_page={{ purchases.next_page_number }}" class="pagination-link">بعدی</a>
-                        <a href="?customer_id={{ customer.id }}&purchase_page={{ purchases.paginator.num_pages }}" class="pagination-link">آخر &raquo;</a>
-                    {% endif %}
-                </span>
+                </div>
             </div>
-        </div>
-        <div id="prediction" class="tab-content">
-            <div class="prediction-container">
-                <h3>پیش‌بینی خرید بعدی</h3>
-                <div id="prediction-loading" class="loading-message">در حال بارگذاری...</div>
-                <div id="prediction-content" class="hidden prediction-content">
-                    <div class="prediction-grid">
-                        <div class="prediction-info">
-                            <p><strong>محصول احتمالی:</strong> <span id="predict-product"></span></p>
-                            <p><strong>تاریخ تقریبی:</strong> <span id="predict-date"></span></p>
-                            <p><strong>وزن تقریبی:</strong> <span id="predict-weight"></span> کیلوگرم</p>
-                            <p><strong>اطمینان:</strong> <span id="predict-confidence"></span>%</p>
-                        </div>
-                        <div class="chart-container">
-                            <canvas id="purchase-trend-chart"></canvas>
-                        </div>
+            
+            <div id="calls" class="tab-content">
+                <form method="post" class="call-form">
+                    {% csrf_token %}
+                    <select name="call_type">
+                        <option value="incoming">ورودی</option>
+                        <option value="outgoing">خروجی</option>
+                    </select>
+                    <textarea name="note" placeholder="یادداشت"></textarea>
+                    <button type="submit" name="create_call" class="action-button">ثبت تماس</button>
+                </form>
+            
+                <br>
+                <!-- تاریخچه تماس‌ها -->
+                <div class="call-history">
+                    <h3>تاریخچه تماس‌ها</h3>
+                    {% if calls %}
+                        {% for call in calls %}
+                            <div class="call-item">
+                                {% if call.customer and call.customer.id != customer.id %}
+                                <span class="call-customer"><strong>مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ call.customer.id }}">{{ call.customer }} ({{ call.customer.get_primary_phone }})</a></span>
+                                {% endif %}
+                                <span class="call-date">{{ call.date|date:"Y/m/d H:i" }}</span>
+                                <span class="call-type">{{ call.get_type_display }}</span>
+                                <span class="call-status {{ call.status }}">{{ call.get_status_display }}</span>
+                                <span class="call-note">{{ call.note|default:"-" }}</span>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="empty-message">هیچ تماسی ثبت نشده است</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div id="purchases" class="tab-content">
+                <!-- فرم ثبت خرید جدید -->
+                <form method="post" id="purchase-form" class="purchase-form">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label>انتخاب کوتاژ:</label>
+                        <select name="cottage_number" id="cottage-select" onchange="showCargoDetails()" required>
+                            <option value="">-- انتخاب کنید --</option>
+                            {% for product in active_products %}
+                                <option value="{{ product.cottage }}">
+                                    کوتاژ {{ product.cottage }} | {{ product.get_product_type_display }} {{ product.get_country_display }} | {{ product.loading_time }}
+                                </option>
+                            {% endfor %}
+                        </select>
                     </div>
-                    <button id="suggest-product" class="suggest-button">پیشنهاد محصول مرتبط</button>
-                    <div id="suggested-products" class="hidden suggested-products">
-                        <h4>محصولات پیشنهادی:</h4>
-                        <ul id="suggested-products-list"></ul>
+            
+                    <div id="cargo-details" style="display: none;" class="cargo-details">
+                        <h4>مشخصات محصول:</h4>
+                        <p id="product-type">نوع: </p>
+                        <p id="product-country">کشور: </p>
+                        <p id="product-loading">زمان بارگیری: </p>
+                        <p id="product-loading-place">محل بارگیری: </p>
+                        <p id="product-price">فی فروش: </p>
+                        <p id="product-description">توضیحات: </p>
+                    </div>
+            
+                    <div class="form-group">
+                        <label>وزن احتمالی خرید (کیلوگرم):</label>
+                        <input type="number" name="weight" min="100" step="100" required>
+                    </div>
+            
+                    <button type="submit" name="create_purchase" class="action-button">ارسال پیامک به مشتری</button>
+                </form>        
+            </div>
+            
+            <div id="purchase_history" class="tab-content">
+                <div class="history-list">
+                    {% for purchase in purchases %}
+                        <div class="history-item">
+                            <p>📅 {{ purchase.created_at|date:"Y/m/d H:i" }}</p>
+                            {% if purchase.customer and purchase.customer.id != customer.id %}
+                            <p><strong>مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ purchase.customer.id }}">{{ purchase.customer }} ({{ purchase.customer.get_primary_phone }})</a></p>
+                            {% endif %}
+                            <p>کوتاژ: {{ purchase.cottage_number }} {{ purchase.cargo.get_product_type_display }} {{ purchase.cargo.get_country_display }}</p>
+                            <p>وزن: {{ purchase.order_weight|add_commas }} کیلوگرم</p>
+                            <p>وضعیت پرداخت: 
+                                {% if purchase.state in 'PAYMENT_VERIFIED,ALLOCATION_REGISTERED,ALLOCATION_APPROVED,VENDOR_SETTLED,ADDRESS_SENT,SENT_TO_SHIPPING,BARNAMEH_ISSUED,DELIVERED,DIFFERENCE_APPROVED,SHORTAGE_DEPOSITED,SURPLUS_DEPOSITED,RECEIPT_SUBMITTED,INVOICE_ISSUED,SALES_APPROVED,LOGISTICS_APPROVED,FINANCIAL_APPROVED,COMPLETED'|split:',' %}
+                                ✅ پرداخت شده
+                                {% else %}
+                                ❌ پرداخت نشده
+                                {% endif %}
+                            </p>
+                            <p><a href="{% url 'purchase_CRUD' purchase.id %}" class="view-details-button">مشاهده جزئیات</a></p>
+                        </div>
+                    {% empty %}
+                        <p class="empty-message">هیچ خریدی ثبت نشده است.</p>
+                    {% endfor %}
+                </div>
+            
+                <!-- Pagination برای خرید‌ها -->
+                <div class="pagination">
+                    <span class="step-links">
+                        {% if purchases.has_previous %}
+                            <a href="?customer_id={{ customer.id }}&purchase_page=1" class="pagination-link">&laquo; اول</a>
+                            <a href="?customer_id={{ customer.id }}&purchase_page={{ purchases.previous_page_number }}" class="pagination-link">قبلی</a>
+                        {% endif %}
+            
+                        <span class="current">
+                            صفحه {{ purchases.number }} از {{ purchases.paginator.num_pages }}
+                        </span>
+            
+                        {% if purchases.has_next %}
+                            <a href="?customer_id={{ customer.id }}&purchase_page={{ purchases.next_page_number }}" class="pagination-link">بعدی</a>
+                            <a href="?customer_id={{ customer.id }}&purchase_page={{ purchases.paginator.num_pages }}" class="pagination-link">آخر &raquo;</a>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            <div id="prediction" class="tab-content">
+                <div class="prediction-container">
+                    <h3>پیش‌بینی خرید بعدی</h3>
+                    <div id="prediction-loading" class="loading-message">در حال بارگذاری...</div>
+                    <div id="prediction-content" class="hidden prediction-content">
+                        <div class="prediction-grid">
+                            <div class="prediction-info">
+                                <p><strong>محصول احتمالی:</strong> <span id="predict-product"></span></p>
+                                <p><strong>تاریخ تقریبی:</strong> <span id="predict-date"></span></p>
+                                <p><strong>وزن تقریبی:</strong> <span id="predict-weight"></span> کیلوگرم</p>
+                                <p><strong>اطمینان:</strong> <span id="predict-confidence"></span>%</p>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="purchase-trend-chart"></canvas>
+                            </div>
+                        </div>
+                        <button id="suggest-product" class="suggest-button">پیشنهاد محصول مرتبط</button>
+                        <div id="suggested-products" class="hidden suggested-products">
+                            <h4>محصولات پیشنهادی:</h4>
+                            <ul id="suggested-products-list"></ul>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    {% endif %}
     </div>
+    {% endif %}
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-function loadPrediction(customerId) {
-    const loading = document.getElementById('prediction-loading');
-    const content = document.getElementById('prediction-content');
-    fetch(`/sales/predict-next-purchase/?customer_id=${customerId}`)
-        .then(response => response.json())
-        .then(data => {
-            loading.classList.add('hidden');
-            content.classList.remove('hidden');
-
-            if (data.prediction) {
-                document.getElementById('predict-product').textContent = data.prediction.product_type_display;
-                document.getElementById('predict-date').textContent = data.prediction.next_date;
-                document.getElementById('predict-weight').textContent = data.prediction.avg_weight;
-                document.getElementById('predict-confidence').textContent = (data.prediction.confidence * 100).toFixed(0);
-
-                const ctx = document.getElementById('purchase-trend-chart').getContext('2d');
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: data.prediction.history.map(h => h.date),
-                        datasets: [{
-                            label: 'وزن خرید (کیلوگرم)',
-                            data: data.prediction.history.map(h => h.weight),
-                            borderColor: '#4F46E5',
-                            fill: false,
-                            tension: 0.4
-                        }]
-                    },
-                    options: {
-                        scales: {
-                            y: { beginAtZero: true },
-                            x: { title: { display: true, text: 'تاریخ' } }
-                        },
-                        plugins: { legend: { display: false } }
-                    }
-                });
-
-                // وقتی دکمه پیشنهاد زده می‌شه
-                document.getElementById('suggest-product').addEventListener('click', function() {
-                    fetch(`/sales/get-related-products/?customer_id=${customerId}&type=${data.prediction.product_type}`)
-                        .then(response => response.json())
-                        .then(suggestions => {
-                            const list = document.getElementById('suggested-products-list');
-                            list.innerHTML = '';
-                            if (suggestions.products.length) {
-                                suggestions.products.forEach(product => {
-                                    const li = document.createElement('li');
-                                    li.className = 'p-2 bg-gray-100 rounded';
-                                    li.innerHTML = `
-                                        <span>${product.cottage} - ${product.product_type} (${product.country})</span>
-                                        <span class="text-sm text-gray-600">موجود: ${product.available_weight} کیلوگرم</span>
-                                    `;
-                                    list.appendChild(li);
-                                });
-                                document.getElementById('suggested-products').classList.remove('hidden');
-                            } else {
-                                list.innerHTML = '<li class="text-gray-500">محصولی یافت نشد.</li>';
-                                document.getElementById('suggested-products').classList.remove('hidden');
-                            }
-                        });
-                });
-            } else {
-                content.innerHTML = `<p class="text-gray-500">${data.message}</p>`;
-            }
-        })
-        .catch(error => {
-            loading.classList.add('hidden');
-            content.innerHTML = '<p class="text-red-500">خطا در بارگذاری پیش‌بینی.</p>';
-            console.error('Error:', error);
-        });
-}
 document.addEventListener('DOMContentLoaded', function() {
+    // کنترل باز و بسته شدن ترجیحات کالایی
+    const collapsibleToggles = document.querySelectorAll('.collapsible-toggle');
+    
+    collapsibleToggles.forEach(toggle => {
+        const content = toggle.nextElementSibling;
+        if (content && content.classList.contains('collapsible-content')) {
+            toggle.addEventListener('click', function() {
+                content.classList.toggle('open');
+                const icon = toggle.querySelector('.toggle-icon');
+                if (icon) {
+                    icon.textContent = content.classList.contains('open') ? '▲' : '▼';
+                }
+            });
+        }
+    });
+
+    // کد پیش‌بینی خرید
     const customerId = '{{ customer.id }}';
     const predictionTab = document.querySelector('[data-target="prediction"]');
     let predictionLoaded = false;
 
-    predictionTab.addEventListener('click', function() {
-        if (customerId && !predictionLoaded) {
+    function loadPrediction(customerId) {
+        const loading = document.getElementById('prediction-loading');
+        const content = document.getElementById('prediction-content');
+        fetch(`/sales/predict-next-purchase/?customer_id=${customerId}`)
+            .then(response => response.json())
+            .then(data => {
+                loading.classList.add('hidden');
+                content.classList.remove('hidden');
+
+                if (data.prediction) {
+                    document.getElementById('predict-product').textContent = data.prediction.product_type_display;
+                    document.getElementById('predict-date').textContent = data.prediction.next_date;
+                    document.getElementById('predict-weight').textContent = data.prediction.avg_weight;
+                    document.getElementById('predict-confidence').textContent = (data.prediction.confidence * 100).toFixed(0);
+
+                    const ctx = document.getElementById('purchase-trend-chart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.prediction.history.map(h => h.date),
+                            datasets: [{
+                                label: 'وزن خرید (کیلوگرم)',
+                                data: data.prediction.history.map(h => h.weight),
+                                borderColor: '#4F46E5',
+                                fill: false,
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                y: { beginAtZero: true },
+                                x: { title: { display: true, text: 'تاریخ' } }
+                            },
+                            plugins: { legend: { display: false } }
+                        }
+                    });
+
+                    document.getElementById('suggest-product').addEventListener('click', function() {
+                        fetch(`/sales/get-related-products/?customer_id=${customerId}&type=${data.prediction.product_type}`)
+                            .then(response => response.json())
+                            .then(suggestions => {
+                                const list = document.getElementById('suggested-products-list');
+                                list.innerHTML = '';
+                                if (suggestions.products.length) {
+                                    suggestions.products.forEach(product => {
+                                        const li = document.createElement('li');
+                                        li.className = 'p-2 bg-gray-100 rounded';
+                                        li.innerHTML = `
+                                            <span>${product.cottage} - ${product.product_type} (${product.country})</span>
+                                            <span class="text-sm text-gray-600">موجود: ${product.available_weight} کیلوگرم</span>
+                                        `;
+                                        list.appendChild(li);
+                                    });
+                                    document.getElementById('suggested-products').classList.remove('hidden');
+                                } else {
+                                    list.innerHTML = '<li class="text-gray-500">محصولی یافت نشد.</li>';
+                                    document.getElementById('suggested-products').classList.remove('hidden');
+                                }
+                            });
+                    });
+                } else {
+                    content.innerHTML = `<p class="text-gray-500">${data.message}</p>`;
+                }
+            })
+            .catch(error => {
+                loading.classList.add('hidden');
+                content.innerHTML = '<p class="text-red-500">خطا در بارگذاری پیش‌بینی.</p>';
+                console.error('Error:', error);
+            });
+    }
+
+    if (predictionTab) {
+        predictionTab.addEventListener('click', function() {
+            if (customerId && !predictionLoaded) {
+                loadPrediction(customerId);
+                predictionLoaded = true;
+            }
+        });
+
+        if (customerId && predictionTab.classList.contains('active')) {
             loadPrediction(customerId);
             predictionLoaded = true;
         }
-    });
-
-    // لود خودکار اگه تب پیش‌فرض بود
-    if (customerId && predictionTab.classList.contains('active')) {
-        loadPrediction(customerId);
-        predictionLoaded = true;
     }
-});
-</script>
 
-<script>
-    $(document).ready(function(){
-        // تنظیمات اصلی فارسی
-        $.fn.persianDatepicker.defaults = {
-            persian: {
-                lang: 'en', // تغییر زبان پایه به انگلیسی
-                numbers: '1234567890', // استفاده از ارقام انگلیسی
-                locale: 'en',
-                ical: true
-            },
-            timePicker: {
-                enabled: true
-            }
-        };
+    // تب‌ها
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
 
-        // فعالسازی datepicker
-        $('#due_date').persianDatepicker({
-            format: 'YYYY/MM/DD HH:mm',
-            observer: true,
-            timePicker: {
-                enabled: true,
-                meridiem: {
-                    enabled: false // غیرفعالسازی AM/PM
-                }
-            }
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+
+            this.classList.add('active');
+            document.getElementById(this.getAttribute('data-target')).classList.add('active');
         });
     });
 
-    $(document).on('click', '#due_date', function() {
-        $('.pds-c-day-cell').each(function() {
-            const persianNumbers = ['۱','۲','۳','۴','۵','۶','۷','۸','۹','۰'];
-            const englishNumbers = $(this).text().split('').map(char => 
-                persianNumbers.indexOf(char) > -1 ? persianNumbers.indexOf(char) : char
-            ).join('');
-            $(this).text(englishNumbers);
-        });
-    });
-</script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const tabButtons = document.querySelectorAll('.tab-btn');
-        const tabContents = document.querySelectorAll('.tab-content');
-
-        tabButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                // حذف کلاس active از تمام دکمه‌ها و محتواها
-                tabButtons.forEach(btn => btn.classList.remove('active'));
-                tabContents.forEach(content => content.classList.remove('active'));
-
-                // افزودن کلاس active به دکمه و محتوای انتخاب شده
-                this.classList.add('active');
-                document.getElementById(this.getAttribute('data-target')).classList.add('active');
-            });
-        });
-    });
     // نمایش جزئیات کوتاژ
     function showCargoDetails() {
         const select = document.getElementById('cottage-select');
@@ -561,15 +538,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('product-loading-place').textContent = `محل بارگیری: {{ product.loading_place }}`;
                 document.getElementById('product-price').textContent = `فی فروش: {{ product.customer_price }}`;
                 document.getElementById('product-description').textContent = `توضیحات: {{ product.description }}`;
-                document.getElementById('product-weight').textContent = `وزن موجود: {{ product.weight }} کیلوگرم`;
-                document.getElementById('product-importer').textContent = `صادرکننده: {{ product.importer_name }}`;
                 return;
             }
         {% endfor %}
         
         detailsDiv.style.display = 'none';
     }
-    
+
+    // افکت‌ها برای آیتم‌ها
     document.querySelectorAll('.call-item, .task-item, .history-item').forEach(item => {
         item.addEventListener('mouseenter', () => {
             item.style.transform = 'translateX(5px)';
@@ -581,6 +557,8 @@ document.addEventListener('DOMContentLoaded', function() {
             item.style.boxShadow = 'none';
         });
     });
+
+    // Autocomplete جستجو
     document.getElementById('search-input').addEventListener('input', function(e) {
         const query = e.target.value.trim();
         const resultsContainer = document.getElementById('autocomplete-results');
@@ -589,7 +567,7 @@ document.addEventListener('DOMContentLoaded', function() {
             resultsContainer.style.display = 'none';
             return;
         }
-    
+
         fetch(`/sales/customer_search/?query=${encodeURIComponent(query)}`)
             .then(response => response.json())
             .then(data => {
@@ -599,13 +577,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         const div = document.createElement('div');
                         div.className = 'autocomplete-item';
                         div.innerHTML = `
-                        <span>${customer.name || 'بدون نام'}</span>
-                        <span class="phone-number">${customer.phone_number}</span>
-                    `;
-                    div.addEventListener('click', () => {
-                        document.getElementById('search-input').value = customer.phone_number;
-                        resultsContainer.style.display = 'none';
-                    });
+                            <span>${customer.name || 'بدون نام'}</span>
+                            <span class="phone-number">${customer.phone_number}</span>
+                        `;
+                        div.addEventListener('click', () => {
+                            document.getElementById('search-input').value = customer.phone_number;
+                            resultsContainer.style.display = 'none';
+                        });
                         resultsContainer.appendChild(div);
                     });
                     resultsContainer.style.display = 'block';
@@ -614,54 +592,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
     });
-    
+
     // بستن لیست هنگام کلیک خارج
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.autocomplete-container')) {
             document.getElementById('autocomplete-results').style.display = 'none';
         }
     });
-</script>
 
-<script>
+    // محصولات مرتبط
     function fetchRelatedProducts(customerId) {
-        fetch(`/get-related-products/?customer_id=${customerId}`)
+        fetch(`/sales/get-related-products/?customer_id=${customerId}`)
             .then(response => response.json())
             .then(data => {
                 const list = document.getElementById('related-products-list');
                 list.innerHTML = '';
-                data.forEach(product => {
+                data.products.forEach(product => {
                     const li = document.createElement('li');
                     li.innerText = `کوتاژ: ${product.cottage}, نوع: ${product.product_type}, کشور: ${product.country}`;
                     list.appendChild(li);
                 });
-                document.getElementById('related-products').style.display = 'block'; // نمایش محصولات مرتبط
+                document.getElementById('related-products').style.display = 'block';
             })
             .catch(error => {
                 console.error('Error fetching related products:', error);
             });
     }
 
-    // بارگذاری محصولات مرتبط بعد از بارگذاری صفحه
-    document.addEventListener('DOMContentLoaded', function() {
-        const customerId = '{{ customer.id }}'; // اطمینان حاصل کنید که ID مشتری در دسترس است
-        if (customerId) {
-            fetchRelatedProducts(customerId);
-        }
-    });
-</script>
+    if (customerId) {
+        fetchRelatedProducts(customerId);
+    }
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // تغییر حالت دارک مود
-        const themeToggle = document.getElementById('theme-toggle');
-        const htmlElement = document.documentElement;
+    // دارک مود
+    const themeToggle = document.getElementById('theme-toggle');
+    const htmlElement = document.documentElement;
 
-        // بررسی حالت ذخیره شده در localStorage
-        if (localStorage.getItem('darkMode') === 'enabled') {
-            htmlElement.classList.add('dark-mode');
-        }
+    if (localStorage.getItem('darkMode') === 'enabled') {
+        htmlElement.classList.add('dark-mode');
+    }
 
+    if (themeToggle) {
         themeToggle.addEventListener('click', function() {
             if (htmlElement.classList.contains('dark-mode')) {
                 htmlElement.classList.remove('dark-mode');
@@ -671,12 +641,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.setItem('darkMode', 'enabled');
             }
         });
-        
-        // کد موجود
-        const tabButtons = document.querySelectorAll('.tab-btn');
-        const tabContents = document.querySelectorAll('.tab-content');
+    }
+});
+</script>
 
-        // ... existing code ...
+<script>
+    $(document).ready(function(){
+        $.fn.persianDatepicker.defaults = {
+            persian: {
+                lang: 'en',
+                numbers: '1234567890',
+                locale: 'en',
+                ical: true
+            },
+            timePicker: {
+                enabled: true
+            }
+        };
+
+        $('#due_date').persianDatepicker({
+            format: 'YYYY/MM/DD HH:mm',
+            observer: true,
+            timePicker: {
+                enabled: true,
+                meridiem: {
+                    enabled: false
+                }
+            }
+        });
+    });
+
+    $(document).on('click', '#due_date', function() {
+        $('.pds-c-day-cell').each(function() {
+            const persianNumbers = ['۱','۲','۳','۴','۵','۶','۷','۸','۹','۰'];
+            const englishNumbers = $(this).text().split('').map(char => 
+                persianNumbers.indexOf(char) > -1 ? persianNumbers.indexOf(char) : char
+            ).join('');
+            $(this).text(englishNumbers);
+        });
     });
 </script>
 
