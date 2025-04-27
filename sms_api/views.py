@@ -19,6 +19,7 @@ from core.PurchaseModel import Purchase
 
 logger = logging.getLogger(__name__)
 
+@login_required
 def sms_dashboard(request):
     """داشبورد مدیریت پیامک‌ها"""
     # آمار وضعیت‌های مختلف پیامک
@@ -41,6 +42,7 @@ def sms_dashboard(request):
     return render(request, 'sms_api/sms_dashboard.html', context)
 
 
+@login_required
 def sms_queue(request):
     """مشاهده صف پیامک‌ها"""
     # پارامترهای فیلتر
@@ -92,6 +94,7 @@ def sms_queue(request):
     return render(request, 'sms_api/sms_queue.html', context)
 
 
+@login_required
 def sms_log(request):
     """مشاهده تاریخچه پیامک‌ها"""
     # پارامترهای فیلتر
@@ -303,6 +306,7 @@ def create_sms(request):
     })
 
 
+@login_required
 def sms_detail(request, sms_id):
     """مشاهده جزئیات پیامک"""
     sms = get_object_or_404(SmsQueue, id=sms_id)
@@ -319,6 +323,7 @@ def sms_detail(request, sms_id):
     return render(request, 'sms_api/sms_detail.html', context)
 
 
+@login_required
 def edit_sms(request, sms_id):
     """ویرایش پیامک"""
     sms = get_object_or_404(SmsQueue, id=sms_id)
@@ -379,6 +384,7 @@ def edit_sms(request, sms_id):
     return render(request, 'sms_api/edit_sms.html', context)
 
 
+@login_required
 @require_POST
 def delete_sms(request, sms_id):
     """حذف پیامک"""
@@ -394,6 +400,7 @@ def delete_sms(request, sms_id):
     return redirect('sms_api:sms_queue')
 
 
+@login_required
 @require_POST
 def suspend_sms(request, sms_id):
     """تعلیق پیامک"""
@@ -412,6 +419,7 @@ def suspend_sms(request, sms_id):
     return redirect('sms_api:sms_detail', sms_id=sms.id)
 
 
+@login_required
 @require_POST
 def resume_sms(request, sms_id):
     """از سرگیری پیامک معلق"""
@@ -430,6 +438,7 @@ def resume_sms(request, sms_id):
     return redirect('sms_api:sms_detail', sms_id=sms.id)
 
 
+@login_required
 @require_POST
 def send_sms_now(request, sms_id):
     """ارسال فوری پیامک"""
@@ -503,6 +512,7 @@ def send_sms_now(request, sms_id):
     return redirect('sms_api:sms_detail', sms_id=sms.id)
 
 
+@login_required
 @require_POST
 def retry_sms(request, sms_id):
     """تلاش مجدد برای ارسال پیامک ناموفق"""
@@ -521,6 +531,7 @@ def retry_sms(request, sms_id):
     return redirect('sms_api:sms_detail', sms_id=sms.id)
 
 
+@login_required
 def export_sms_log_excel(request):
     """خروجی اکسل از تاریخچه پیامک‌ها"""
     # پارامترهای فیلتر
@@ -614,6 +625,7 @@ def export_sms_log_excel(request):
     return response
 
 
+@login_required
 def export_sms_log_pdf(request):
     """خروجی PDF از تاریخچه پیامک‌ها"""
     # پارامترهای فیلتر
@@ -682,6 +694,7 @@ def export_sms_log_pdf(request):
     
     return HttpResponse('خطا در ایجاد PDF', status=400)
 
+@login_required
 def sms_logs(request):
     """نمایش لیست پیامک‌های ارسال شده"""
     logs = SmsLog.objects.all().order_by('-sent_at')

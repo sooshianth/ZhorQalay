@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.db import models
 from rest_framework.decorators import api_view
-from .MessageModel import Message
+from chat.MessageModel import Message
 import os
 from django.conf import settings
 

@@ -7,6 +7,8 @@ from django.http import JsonResponse
 from persiantools.jdatetime import JalaliDateTime
 from core._models import Customer, CallSession, Task, Purchase, CargoProduct
 from core.CustomerModel import FIELD_OF_ACTIVITY, PAYMENT_PREFERENCE_CHOICES
+from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 
 # core/forms.py
 from django import forms
@@ -197,6 +199,7 @@ def check_customer_sales_agent(customer, sales_agent):
     if sales_agent not in customer.sales_agent.all():
         raise PermissionDenied("You do not have permission to access this customer.")
 
+@login_required
 def change_task_status(request, pk):
     task = get_object_or_404(Task, id=pk)
     if request.method == "POST":
@@ -212,55 +215,7 @@ def change_task_status(request, pk):
     
     return redirect(request.META.get('HTTP_REFERER'))
 
-def customer_search(request):
-    query = request.GET.get('query', '')
-    results = []
-    
-    if query:
-        try:
-            sales_agent = SalesAgent.objects.get(user=request.user)
-            customers = Customer.objects.filter(
-                Q(phone_number__icontains=query) | 
-                Q(name__icontains=query),
-                sales_agent=sales_agent
-            )[:10]
-            
-            results = [
-                {
-                    'name': c.name if c.name else 'بدون نام',
-                    'phone_number': c.phone_number
-                }
-                for c in customers
-            ]
-        except Exception as e:
-            print(f"Error during customer search: {e}")
-            results = []
-    return JsonResponse(results, safe=False)
-
-def check_customer_sales_agent(customer, sales_agent):
-    if sales_agent not in customer.sales_agent.all():
-        raise PermissionDenied("You do not have permission to access this customer.")
-
-
-from django.http import JsonResponse
-from core.CustomerModel import Customer  # Remove duplicate import
-from django.db.models import Q
-def change_task_status(request, pk):
-    task = get_object_or_404(Task, id=pk)
-    if request.method == "POST":
-        try:
-            task.change_status()
-            task.full_clean()
-            task.save()
-            messages.success(request, "وضعیت تسک با موفقیت تغییر کرد")
-        except ValidationError as e:
-            messages.error(request, f"خطا در تغییر وضعیت تسک: {e}")
-    else:
-        messages.error(request, "وضعیت جدید معتبر نیست")
-
-    
-    return redirect(request.META.get('HTTP_REFERER'))
-
+@login_required
 def customer_search(request):
     query = request.GET.get('query', '')
     results = []
@@ -288,6 +243,7 @@ def customer_search(request):
             results = []
     return JsonResponse(results, safe=False)
 
+@login_required
 def general_customer_CRUD_view(request):
     """
     ویو جامع مدیریت مشتری شامل:
@@ -691,6 +647,7 @@ def get_related_products(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
     
+@login_required
 def handle_form_submission(request, form, success_msg, redirect_url):
     if form.is_valid():
         instance = form.save()
@@ -707,6 +664,7 @@ from datetime import timedelta
 from core._models import Purchase
 from django.utils import timezone
 
+@login_required
 def predict_next_purchase(request):
     customer_id = request.GET.get('customer_id')
     if not customer_id:

@@ -7,9 +7,12 @@ import os
 from django.conf import settings
 import json
 from datetime import datetime
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
 
 
 @api_view(['GET'])
+@login_required
 def user_list(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'User not authenticated'}, status=401)
@@ -20,6 +23,7 @@ def user_list(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 @api_view(['GET'])
+@login_required
 def get_username(request, user_id):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'User not authenticated'}, status=401)
@@ -32,6 +36,7 @@ def get_username(request, user_id):
         return JsonResponse({'error': str(e)}, status=500)
 
 @api_view(['GET'])
+@login_required
 def chat_history(request, user_id):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'User not authenticated'}, status=401)
@@ -63,6 +68,7 @@ def chat_history(request, user_id):
         return JsonResponse({'error': str(e)}, status=500)
 
 @api_view(['GET'])
+@login_required
 def global_chat_history(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'User not authenticated'}, status=401)
@@ -95,6 +101,7 @@ def global_chat_history(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 @api_view(['POST'])
+@login_required
 def upload_file(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'User not authenticated'}, status=401)
@@ -161,6 +168,7 @@ def upload_file(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 @api_view(['GET'])
+@login_required
 def online_users(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'User not authenticated'}, status=401)
@@ -171,6 +179,7 @@ def online_users(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 @api_view(['GET'])
+@login_required
 def unread_messages_count(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'User not authenticated'}, status=401)
@@ -197,6 +206,7 @@ def unread_messages_count(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 @api_view(['GET'])
+@login_required
 def unread_global_messages_count(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'User not authenticated'}, status=401)
@@ -213,6 +223,7 @@ def unread_global_messages_count(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 @api_view(['POST'])
+@login_required
 def mark_messages_as_read(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'User not authenticated'}, status=401)
@@ -243,6 +254,7 @@ def mark_messages_as_read(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 @api_view(['POST'])
+@login_required
 def send_message(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'User not authenticated'}, status=401)
@@ -293,9 +305,8 @@ def send_message(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
     
-from django.views.decorators.csrf import csrf_exempt
-
 @api_view(['POST'])
+@login_required
 @csrf_exempt
 def pin_message(request, message_id):
     if not request.user.is_authenticated:
@@ -309,6 +320,7 @@ def pin_message(request, message_id):
         return JsonResponse({'error': 'Message not found'}, status=404)
     
 @api_view(['POST'])
+@login_required
 @csrf_exempt
 def unpin_message(request, message_id):
     if not request.user.is_authenticated:

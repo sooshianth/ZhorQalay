@@ -1,6 +1,8 @@
 from django.http import JsonResponse
 from core._models import Notification
+from django.contrib.auth.decorators import login_required
 
+@login_required
 def get_unread_notifications(request):
     notifications = Notification.objects.filter(
         user=request.user,
