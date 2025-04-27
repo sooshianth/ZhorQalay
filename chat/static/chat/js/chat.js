@@ -437,3 +437,49 @@ document.addEventListener('DOMContentLoaded', function() {
         chatHeaderActions.insertBefore(darkModeToggle, chatHeaderActions.lastChild);
     }
 }); 
+
+// در chat.js
+document.getElementById('emojiBtnLabel').onclick = function() {
+    showEmojiPicker();
+};
+
+function showEmojiPicker() {
+    // یک پاپ‌آپ ساده با چند ایموجی
+    let picker = document.getElementById('emojiPicker');
+    if (!picker) {
+        picker = document.createElement('div');
+        picker.id = 'emojiPicker';
+        picker.className = 'emoji-picker';
+        picker.innerHTML = [
+            '😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','😘','🥰','😗','😙','😚','🙂','🤗','🤩','🤔','🤨','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','🥱','😴','😌','😛','😜','😝','🤤','😒','😓','😔','😕','🙃','🤑','😲','☹️','🙁','😖','😞','😟','😤','😢','😭','😦','😧','😨','😩','🤯','😬','😰','😱','🥵','🥶','😳','🤪','😵','😡','😠','🤬','😷','🤒','🤕','🤢','🤮','🥴','😇','🥳','🥺','🤠','🤡','🤥','🤫','🤭','🧐','🤓','😈','👿','👹','👺','💀','👻','👽','🤖','💩','😺','😸','😹','😻','😼','😽','🙀','😿','😾','👍','👎','👌','✌️','🤞','🤟','🤘','🤙','🖖','🙏','👏','🙌','👐','🤲','🤝','💪','🦾','🦵','🦶','👀','👁️','👅','👄','💋','💘','💝','💖','💗','💓','💞','💕','💌','💤','💢','💣','💥','💦','💨','🕳️','💫','🛑','🚀'
+        ].map(e => `<span class="emoji">${e}</span>`).join('');
+        document.body.appendChild(picker);
+        picker.style.position = 'absolute';
+        picker.style.bottom = '80px';
+        picker.style.right = '40px';
+        picker.onclick = function(e) {
+            if (e.target.classList.contains('emoji')) {
+                const input = document.getElementById('chatMessage');
+                input.value += e.target.textContent;
+                picker.remove();
+            }
+        };
+    }
+    const emojiBtn = document.getElementById('emojiBtnLabel');
+    const emojiPicker = document.getElementById('emojiPicker');
+    emojiBtn.onclick = function(e) {
+        e.stopPropagation();
+        emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
+    };
+    // درج ایموجی در input و بستن پیکر
+    emojiPicker.addEventListener('emoji-click', event => {
+        document.getElementById('chatMessage').value += event.detail.unicode;
+        emojiPicker.style.display = 'none';
+    });
+    // بستن پیکر با کلیک بیرون
+    document.addEventListener('click', function(e) {
+        if (emojiPicker.style.display === 'block' && !emojiPicker.contains(e.target) && e.target !== emojiBtn) {
+            emojiPicker.style.display = 'none';
+        }
+    });
+}

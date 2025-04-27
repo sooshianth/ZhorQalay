@@ -13,6 +13,8 @@ class Message(models.Model):
     is_deleted = models.BooleanField(default=False)
     is_edited = models.BooleanField(default=False)
     is_pinned = models.BooleanField(default=False)
+    reply_to = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='replies')
+    
     
     class Meta:
         ordering = ['timestamp']

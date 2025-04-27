@@ -44,14 +44,46 @@
     
     <div class="chat-box" id="chatBox">
         <div class="chat-body" id="privateChatBody">
+            <div id="pinBox" class="pin-box" style="display:none;">
+                <i class="fas fa-thumbtack"></i>
+                <span id="pinnedMessageText">پیامی پین نشده است</span>
+                <button class="unpin-btn" onclick="unpinPinnedMessage()" title="برداشتن پین">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
             <!-- پیام‌های خصوصی اینجا نمایش داده می‌شود -->
             <div class="empty-message">لطفاً یک کاربر را برای شروع گفتگو انتخاب کنید</div>
+            <div class="message-actions">
+                <button class="reply-btn" title="ریپلای" onclick="setReplyTo({message: 'این یک پیام تستی است'})">
+                    <i class="fas fa-reply"></i>
+                </button>
+                <button class="pin-btn" title="پین کردن" onclick="pinMessage({message: 'این یک پیام تستی است'})">
+                    <i class="fas fa-thumbtack"></i>
+                </button>
+            </div>
         </div>
         <div class="chat-body" id="globalChatBody" style="display: none;">
+            <div id="pinBox" class="pin-box" style="display:none;">
+                <i class="fas fa-thumbtack"></i>
+                <span id="pinnedMessageText">پیامی پین نشده است</span>
+                <button class="unpin-btn" onclick="unpinPinnedMessage()" title="برداشتن پین">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
             <!-- پیام‌های عمومی اینجا نمایش داده می‌شود -->
             <div class="loading-message">در حال بارگذاری پیام‌های عمومی...</div>
+            <div class="message-actions">
+                <button class="reply-btn" title="ریپلای" onclick="setReplyTo({message: 'این یک پیام تستی است'})">
+                    <i class="fas fa-reply"></i>
+                </button>
+                <button class="pin-btn" title="پین کردن" onclick="pinMessage({message: 'این یک پیام تستی است'})">
+                    <i class="fas fa-thumbtack"></i>
+                </button>
+            </div>
         </div>
         <div class="chat-footer">
+            <!-- در chat_widget.html -->
+            <label for="emojiBtn" title="افزودن ایموجی" id="emojiBtnLabel"><i class="fas fa-smile"></i></label>
             <input type="text" id="chatMessage" placeholder="پیام خود را بنویسید..." onkeypress="if(event.keyCode===13) sendMessage()">
             <label for="fileInput" title="ارسال فایل"><i class="fas fa-paperclip"></i></label>
             <input type="file" id="fileInput" accept="image/*,.pdf" onchange="sendFile()">
