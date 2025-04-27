@@ -6,7 +6,7 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.http import JsonResponse
 from persiantools.jdatetime import JalaliDateTime
 from core._models import Customer, CallSession, Task, Purchase, CargoProduct
-from core.CustomerModel import FIELD_OF_ACTIVITY
+from core.CustomerModel import FIELD_OF_ACTIVITY, PAYMENT_PREFERENCE_CHOICES
 
 # core/forms.py
 from django import forms
@@ -17,7 +17,7 @@ from jdatetime import datetime, date
 from django.utils.translation import gettext_lazy as _
 from core.CustomerModel import PhoneNumber
 
-from core.CustomerModel import Customer, PhoneNumber, FIELD_OF_ACTIVITY
+from core.CustomerModel import Customer, PhoneNumber, FIELD_OF_ACTIVITY, PAYMENT_PREFERENCE_CHOICES
 from core.TaskModel import Task
 from core.CallSessionModel import CallSession
 from core.PurchaseModel import Purchase
@@ -42,8 +42,9 @@ def jalali_to_gregorian(jalali_datetime_str):
         raise ValueError(f"فرمت تاریخ نامعتبر است: {jalali_datetime_str} - خطای اصلی: {str(e)}")
  
 class CustomerForm(forms.ModelForm):
-    field_of_activity = forms.ChoiceField(
+    field_of_activity = forms.MultipleChoiceField(
         choices=FIELD_OF_ACTIVITY,
+        widget=forms.CheckboxSelectMultiple,
         required=False,
         label=_("حیطه فعالیت")
     )
@@ -58,6 +59,12 @@ class CustomerForm(forms.ModelForm):
         widget=forms.CheckboxSelectMultiple,
         required=False,
         label=_("ترجیحات کالایی")
+    )
+    purchase_preferences = forms.MultipleChoiceField(
+        choices=PAYMENT_PREFERENCE_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label=_("ترجیحات پرداخت")
     )
     
     def __init__(self, *args, **kwargs):
@@ -74,6 +81,10 @@ class CustomerForm(forms.ModelForm):
                 
             if self.instance.product_preferences:
                 self.initial['product_preferences'] = self.instance.product_preferences
+            
+            # Use the property methods for initial values
+            self.initial['field_of_activity'] = self.instance.get_field_of_activity_list()
+            self.initial['purchase_preferences'] = self.instance.get_purchase_preferences_list()
                 
         self.fields['name'].required = True
 
@@ -106,6 +117,24 @@ class CustomerForm(forms.ModelForm):
                     raise forms.ValidationError(_(f"ترجیح کالایی '{pref}' معتبر نیست."))
         return preferences
 
+    def clean_field_of_activity(self):
+        activities = self.cleaned_data.get('field_of_activity')
+        valid_choices = [choice[0] for choice in FIELD_OF_ACTIVITY]
+        if activities:
+            for activity in activities:
+                if activity not in valid_choices:
+                    raise forms.ValidationError(_(f"حیطه فعالیت '{activity}' معتبر نیست."))
+        return activities
+
+    def clean_purchase_preferences(self):
+        preferences = self.cleaned_data.get('purchase_preferences')
+        valid_choices = [choice[0] for choice in PAYMENT_PREFERENCE_CHOICES]
+        if preferences:
+            for pref in preferences:
+                if pref not in valid_choices:
+                    raise forms.ValidationError(_(f"ترجیح پرداخت '{pref}' معتبر نیست."))
+        return preferences
+
     def save(self, commit=True):
         instance = super(CustomerForm, self).save(commit=False)
         
@@ -136,6 +165,10 @@ class CustomerForm(forms.ModelForm):
                 existing_phone.save()
         
         instance.product_preferences = self.cleaned_data['product_preferences']
+        
+        # Use the property setters
+        instance.set_field_of_activity_list(self.cleaned_data['field_of_activity'])
+        instance.set_purchase_preferences_list(self.cleaned_data['purchase_preferences'])
         
         if self.sales_agent and not instance.sales_agent.filter(id=self.sales_agent.id).exists():
             instance.sales_agent.add(self.sales_agent)

@@ -178,9 +178,10 @@ def send_new_purchase_notification(purchase):
         return False
     
     try:
-        phone = purchase.customer.get_primary_phone()
-        if not phone:
-            print(f"No primary phone found for customer {purchase.customer.name}")
+        # Get all customer phone numbers instead of just the primary one
+        phone_numbers = purchase.customer.get_all_phone_numbers()
+        if not phone_numbers:
+            print(f"No phone numbers found for customer {purchase.customer.name}")
             return False
         
         cargo = purchase.cargo
@@ -203,7 +204,14 @@ def send_new_purchase_notification(purchase):
             f"{', '.join([sa.name for sa in purchase.customer.sales_agent.filter(user__is_superuser=False)])}"
         )
         
-        return queue_sms(phone, message, notification_type='new_purchase', purchase=purchase)
+        # Send to all phone numbers
+        results = []
+        for phone in phone_numbers:
+            result = queue_sms(phone, message, notification_type='new_purchase', purchase=purchase)
+            results.append(result)
+            
+        # Return True if at least one message was queued successfully
+        return any(results)
     except Exception as e:
         print(f"Error in send_new_purchase_notification: {e}")
         return False
@@ -216,9 +224,10 @@ def send_payment_confirmation(purchase):
         return False
     
     try:
-        phone = purchase.customer.get_primary_phone()
-        if not phone:
-            print(f"No primary phone found for customer {purchase.customer.name}")
+        # Get all customer phone numbers instead of just the primary one
+        phone_numbers = purchase.customer.get_all_phone_numbers()
+        if not phone_numbers:
+            print(f"No phone numbers found for customer {purchase.customer.name}")
             return False
         
         message = (
@@ -229,7 +238,14 @@ def send_payment_confirmation(purchase):
             f"شرکت تأمین نهاده سیمرغ"
         )
         
-        return queue_sms(phone, message, notification_type='payment_confirmation', purchase=purchase)
+        # Send to all phone numbers
+        results = []
+        for phone in phone_numbers:
+            result = queue_sms(phone, message, notification_type='payment_confirmation', purchase=purchase)
+            results.append(result)
+            
+        # Return True if at least one message was queued successfully
+        return any(results)
     except Exception as e:
         print(f"Error in send_payment_confirmation: {e}")
         return False
@@ -242,9 +258,10 @@ def send_address_notification(purchase):
         return False
     
     try:
-        phone = purchase.customer.get_primary_phone()
-        if not phone:
-            print(f"No primary phone found for customer {purchase.customer.name}")
+        # Get all customer phone numbers instead of just the primary one
+        phone_numbers = purchase.customer.get_all_phone_numbers()
+        if not phone_numbers:
+            print(f"No phone numbers found for customer {purchase.customer.name}")
             return False
         
         message = (
@@ -254,7 +271,14 @@ def send_address_notification(purchase):
             f"شرکت تأمین نهاده سیمرغ"
         )
         
-        return queue_sms(phone, message, notification_type='address_notification', purchase=purchase)
+        # Send to all phone numbers
+        results = []
+        for phone in phone_numbers:
+            result = queue_sms(phone, message, notification_type='address_notification', purchase=purchase)
+            results.append(result)
+            
+        # Return True if at least one message was queued successfully
+        return any(results)
     except Exception as e:
         print(f"Error in send_address_notification: {e}")
         return False
@@ -267,9 +291,10 @@ def send_barnameh_notification(purchase):
         return False
     
     try:
-        phone = purchase.customer.get_primary_phone()
-        if not phone:
-            print(f"No primary phone found for customer {purchase.customer.name}")
+        # Get all customer phone numbers instead of just the primary one
+        phone_numbers = purchase.customer.get_all_phone_numbers()
+        if not phone_numbers:
+            print(f"No phone numbers found for customer {purchase.customer.name}")
             return False
         
         message = (
@@ -280,7 +305,14 @@ def send_barnameh_notification(purchase):
             f"شرکت تأمین نهاده سیمرغ"
         )
         
-        return queue_sms(phone, message, notification_type='barnameh_notification', purchase=purchase)
+        # Send to all phone numbers
+        results = []
+        for phone in phone_numbers:
+            result = queue_sms(phone, message, notification_type='barnameh_notification', purchase=purchase)
+            results.append(result)
+            
+        # Return True if at least one message was queued successfully
+        return any(results)
     except Exception as e:
         print(f"Error in send_barnameh_notification: {e}")
         return False
@@ -293,9 +325,10 @@ def send_extelaf_notification(purchase):
         return False
     
     try:
-        phone = purchase.customer.get_primary_phone()
-        if not phone:
-            print(f"No primary phone found for customer {purchase.customer.name}")
+        # Get all customer phone numbers instead of just the primary one
+        phone_numbers = purchase.customer.get_all_phone_numbers()
+        if not phone_numbers:
+            print(f"No phone numbers found for customer {purchase.customer.name}")
             return False
         
         message = (
@@ -307,7 +340,14 @@ def send_extelaf_notification(purchase):
             f"شرکت تأمین نهاده سیمرغ"
         )
         
-        return queue_sms(phone, message, notification_type='extelaf_notification', purchase=purchase)
+        # Send to all phone numbers
+        results = []
+        for phone in phone_numbers:
+            result = queue_sms(phone, message, notification_type='extelaf_notification', purchase=purchase)
+            results.append(result)
+            
+        # Return True if at least one message was queued successfully
+        return any(results)
     except Exception as e:
         print(f"Error in send_extelaf_notification: {e}")
         return False

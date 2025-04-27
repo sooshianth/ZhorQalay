@@ -102,8 +102,16 @@
                     
                     <div class="form-group">
                         <label>زمینه فعالیت:</label>
-                        {{ form.field_of_activity }}
-                        {{ form.field_of_activity.errors }}
+                        <div class="collapsible">
+                            <button type="button" class="collapsible-toggle">
+                                <span>انتخاب زمینه‌های فعالیت</span>
+                                <span class="toggle-icon">▼</span>
+                            </button>
+                            <div class="collapsible-content checkbox-select-multiple">
+                                {{ form.field_of_activity }}
+                                {{ form.field_of_activity.errors }}
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -133,9 +141,17 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>ترجیحات خرید:</label>
-                        {{ form.purchase_preferences }}
-                        {{ form.purchase_preferences.errors }}
+                        <label>ترجیحات پرداخت:</label>
+                        <div class="collapsible">
+                            <button type="button" class="collapsible-toggle">
+                                <span>انتخاب ترجیحات پرداخت</span>
+                                <span class="toggle-icon">▼</span>
+                            </button>
+                            <div class="collapsible-content checkbox-select-multiple">
+                                {{ form.purchase_preferences }}
+                                {{ form.purchase_preferences.errors }}
+                            </div>
+                        </div>
                     </div>
 
                     {% if customer and not is_new_customer %}
@@ -324,6 +340,7 @@
                     </div>
             
                     <button type="submit" name="create_purchase" class="action-button">ارسال پیامک به مشتری</button>
+                    <button type="submit" name="create_purchase_without_sms" class="action-button">ایجاد خرید بدون ارسال پیامک</button>
                 </form>        
             </div>
             
@@ -396,198 +413,6 @@
             </div>
         </div>
     </div>
-        <div id="tasks" class="tab-content active">
-            <form method="post" class="task-form">
-                {% csrf_token %}
-                <textarea name="task_description" placeholder="توضیحات تسک"></textarea>
-                <br>
-                <input type="text" 
-                name="due_date" 
-                id="due_date"
-                class="form-control eng-digits" 
-                autocomplete="off"
-                data-english-digits="true">
-                <br>
-                <button type="submit" name="create_task" class="action-button">ثبت تسک</button>
-            </form>
-            <br>
-            <div class="task-list">
-                {% for task in tasks %}
-                    <div class="task-item">
-                        <div class="task-info">
-                            {% if task.customer and task.customer.id != customer.id %}
-                            <strong>مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ task.customer.id }}">{{ task.customer }} ({{ task.customer.get_primary_phone }})</a><br>
-                            {% endif %}
-                            <strong>توضیحات:</strong> {{ task.description }} تلفن:   {{ customer.get_primary_phone }}<br>
-                            <strong>تاریخ:</strong> {{ task.due_date|date:"Y/m/d H:i" }}
-                        </div>
-                        <form method="post" action="{% url 'change_task_status' task.id %}" class="task-action">
-                            {% csrf_token %}
-                            <button type="submit" name="change_status" style="background-color: {% if task.status %}green{% else %}red{% endif %}; color: white;">
-                                {% if task.status %}انجام شده{% else %}انجام نشده{% endif %}
-                            </button>
-                        </form>
-                    </div>
-                {% endfor %}
-            </div>
-                <!-- Pagination برای خرید‌ها -->
-            <div class="pagination">
-                <span class="step-links">
-                    {% if tasks.has_previous %}
-                        <a href="?customer_id={{ customer.id }}&task_page=1" class="pagination-link">&laquo; اول</a>
-                        <a href="?customer_id={{ customer.id }}&task_page={{ tasks.previous_page_number }}" class="pagination-link">قبلی</a>
-                    {% endif %}
-        
-                    <span class="current">
-                        صفحه {{ tasks.number }} از {{ tasks.paginator.num_pages }}
-                    </span>
-        
-                    {% if purchases.has_next %}
-                        <a href="?customer_id={{ customer.id }}&task_page={{ tasks.next_page_number }}" class="pagination-link">بعدی</a>
-                        <a href="?customer_id={{ customer.id }}&task_page={{ tasks.paginator.num_pages }}" class="pagination-link">آخر &raquo;</a>
-                    {% endif %}
-                </span>
-            </div>
-        </div>
-        
-        <div id="calls" class="tab-content">
-            <form method="post" class="call-form">
-                {% csrf_token %}
-                <select name="call_type">
-                    <option value="incoming">ورودی</option>
-                    <option value="outgoing">خروجی</option>
-                </select>
-                <textarea name="note" placeholder="یادداشت"></textarea>
-                <button type="submit" name="create_call" class="action-button">ثبت تماس</button>
-            </form>
-        
-            <br>
-            <!-- تاریخچه تماس‌ها -->
-            <div class="call-history">
-                <h3>تاریخچه تماس‌ها</h3>
-                {% if calls %}
-                    {% for call in calls %}
-                        <div class="call-item">
-                            {% if call.customer and call.customer.id != customer.id %}
-                            <span class="call-customer"><strong>مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ call.customer.id }}">{{ call.customer }} ({{ call.customer.get_primary_phone }})</a></span>
-                            {% endif %}
-                            <span class="call-date">{{ call.date|date:"Y/m/d H:i" }}</span>
-                            <span class="call-type">{{ call.get_type_display }}</span>
-                            <span class="call-status {{ call.status }}">{{ call.get_status_display }}</span>
-                            <span class="call-note">{{ call.note|default:"-" }}</span>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <p class="empty-message">هیچ تماسی ثبت نشده است</p>
-                {% endif %}
-            </div>
-        </div>
-        
-        <div id="purchases" class="tab-content">
-            <!-- فرم ثبت خرید جدید -->
-            <form method="post" id="purchase-form" class="purchase-form">
-                {% csrf_token %}
-                <div class="form-group">
-                    <label>انتخاب کوتاژ:</label>
-                    <select name="cottage_number" id="cottage-select" onchange="showCargoDetails()" required>
-                        <option value="">-- انتخاب کنید --</option>
-                        {% for product in active_products %}
-                            <option value="{{ product.cottage }}">
-                                کوتاژ {{ product.cottage }} | {{ product.get_product_type_display }} {{ product.get_country_display }} | {{ product.loading_time }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-        
-                <div id="cargo-details" style="display: none;" class="cargo-details">
-                    <h4>مشخصات محصول:</h4>
-                    <p id="product-type">نوع: </p>
-                    <p id="product-country">کشور: </p>
-                    <p id="product-loading">زمان بارگیری: </p>
-                    <p id="product-loading-place">محل بارگیری: </p>
-                    <p id="product-price">فی فروش: </p>
-                    <p id="product-description">توضیحات: </p>
-
-                    {% comment %} <p id="product-weight">وزن موجود: </p> {% endcomment %}
-                </div>
-        
-                <div class="form-group">
-                    <label>وزن احتمالی خرید (کیلوگرم):</label>
-                    <input type="number" name="weight" min="100" step="100" required>
-                </div>
-        
-                <button type="submit" name="create_purchase" class="action-button">ارسال پیامک به مشتری</button>
-                <button type="submit" name="create_purchase_without_sms" class="action-button">ایجاد خرید بدون ارسال پیامک</button>
-            </form>        
-        </div>
-        
-        <div id="purchase_history" class="tab-content">
-            <div class="history-list">
-                {% for purchase in purchases %}
-                    <div class="history-item">
-                        <p>📅 {{ purchase.created_at|date:"Y/m/d H:i" }}</p>
-                        {% if purchase.customer and purchase.customer.id != customer.id %}
-                        <p><strong>مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ purchase.customer.id }}">{{ purchase.customer }} ({{ purchase.customer.get_primary_phone }})</a></p>
-                        {% endif %}
-                        <p>کوتاژ: {{ purchase.cargo.cottage }} {{ purchase.cargo.get_product_type_display }} {{ purchase.cargo.get_country_display }}</p>
-                        <p>وزن: {{ purchase.order_weight|add_commas }} کیلوگرم</p>
-                        <p>وضعیت پرداخت: 
-                            {% if purchase.state in 'PAYMENT_VERIFIED,ALLOCATION_REGISTERED,ALLOCATION_APPROVED,VENDOR_SETTLED,ADDRESS_SENT,SENT_TO_SHIPPING,BARNAMEH_ISSUED,DELIVERED,DIFFERENCE_APPROVED,SHORTAGE_DEPOSITED,SURPLUS_DEPOSITED,RECEIPT_SUBMITTED,INVOICE_ISSUED,SALES_APPROVED,LOGISTICS_APPROVED,FINANCIAL_APPROVED,COMPLETED'|split:',' %}
-                            ✅ پرداخت شده
-                            {% else %}
-                            ❌ پرداخت نشده
-                            {% endif %}
-                        </p>
-                        <p><a href="{% url 'purchase_CRUD' purchase.id %}" class="view-details-button">مشاهده جزئیات</a></p>
-                    </div>
-                {% empty %}
-                    <p class="empty-message">هیچ خریدی ثبت نشده است.</p>
-                {% endfor %}
-            </div>
-        
-            <!-- Pagination برای خرید‌ها -->
-            <div class="pagination">
-                <span class="step-links">
-                    {% if purchases.has_previous %}
-                        <a href="?customer_id={{ customer.id }}&purchase_page=1" class="pagination-link">&laquo; اول</a>
-                        <a href="?customer_id={{ customer.id }}&purchase_page={{ purchases.previous_page_number }}" class="pagination-link">قبلی</a>
-                    {% endif %}
-        
-                    <span class="current">
-                        صفحه {{ purchases.number }} از {{ purchases.paginator.num_pages }}
-                    </span>
-        
-                    {% if purchases.has_next %}
-                        <a href="?customer_id={{ customer.id }}&purchase_page={{ purchases.next_page_number }}" class="pagination-link">بعدی</a>
-                        <a href="?customer_id={{ customer.id }}&purchase_page={{ purchases.paginator.num_pages }}" class="pagination-link">آخر &raquo;</a>
-                    {% endif %}
-                </span>
-            </div>
-        </div>
-        <div id="prediction" class="tab-content">
-            <div class="prediction-container">
-                <h3>پیش‌بینی خرید بعدی</h3>
-                <div id="prediction-loading" class="loading-message">در حال بارگذاری...</div>
-                <div id="prediction-content" class="hidden prediction-content">
-                    <div class="prediction-grid">
-                        <div class="prediction-info">
-                            <p><strong>محصول احتمالی:</strong> <span id="predict-product"></span></p>
-                            <p><strong>تاریخ تقریبی:</strong> <span id="predict-date"></span></p>
-                            <p><strong>وزن تقریبی:</strong> <span id="predict-weight"></span> کیلوگرم</p>
-                            <p><strong>اطمینان:</strong> <span id="predict-confidence"></span>%</p>
-                        </div>
-                        <div class="chart-container">
-                            <canvas id="purchase-trend-chart"></canvas>
-                        </div>
-                    </div>
-                    <button id="suggest-product" class="suggest-button">پیشنهاد محصول مرتبط</button>
-                    <div id="suggested-products" class="hidden suggested-products">
-                        <h4>محصولات پیشنهادی:</h4>
-                        <ul id="suggested-products-list"></ul>
-                    </div>
-                </div>
-            </div>
-        </div>
     {% endif %}
     </div>
 </div>

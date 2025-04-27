@@ -195,22 +195,52 @@ def create_sms(request):
             notification_type = request.POST.get('notification_type')
             scheduled_for_str = request.POST.get('scheduled_for')
             purchase_id = request.POST.get('purchase_id')
+            customer_id = request.POST.get('customer_id')  # اضافه کردن فیلد شناسه مشتری
             
-            # بررسی فیلدهای ضروری
-            errors = []
-            if not recipient_number:
-                errors.append('شماره گیرنده باید وارد شود.')
-            elif not (recipient_number.startswith('09') and len(recipient_number) == 11):
-                errors.append('فرمت شماره تلفن صحیح نیست. مثال صحیح: 09123456789')
-                
+            # بررسی آیا شناسه مشتری فراهم شده است
+            customer = None
+            phone_numbers = []
+            
+            if customer_id:
+                try:
+                    from core.CustomerModel import Customer
+                    customer_id = int(customer_id)
+                    customer = Customer.objects.get(id=customer_id)
+                    phone_numbers = customer.get_all_phone_numbers()
+                    if not phone_numbers:
+                        messages.warning(request, f'هیچ شماره تلفنی برای مشتری {customer.name} یافت نشد.')
+                except (ValueError, Customer.DoesNotExist):
+                    messages.warning(request, 'شناسه مشتری نامعتبر است یا مشتری با این شناسه یافت نشد.')
+            
+            # اگر مشتری فراهم نشده یا هیچ شماره تلفنی ندارد، از شماره وارد شده استفاده کنیم
+            if not phone_numbers:
+                # بررسی فیلدهای ضروری
+                errors = []
+                if not recipient_number:
+                    errors.append('شماره گیرنده باید وارد شود.')
+                elif not (recipient_number.startswith('09') and len(recipient_number) == 11):
+                    errors.append('فرمت شماره تلفن صحیح نیست. مثال صحیح: 09123456789')
+                    
+                if errors:
+                    for error in errors:
+                        messages.error(request, error)
+                    return render(request, 'sms_api/create_sms.html', {
+                        'notification_types': notification_types,
+                        'default_templates': default_templates
+                    })
+                    
+                # تنها شماره وارد شده را استفاده کنیم
+                phone_numbers = [recipient_number]
+            
+            # بررسی سایر فیلدهای ضروری
             if not message:
-                errors.append('متن پیام نمی‌تواند خالی باشد.')
+                messages.error(request, 'متن پیام نمی‌تواند خالی باشد.')
+                return render(request, 'sms_api/create_sms.html', {
+                    'notification_types': notification_types,
+                    'default_templates': default_templates
+                })
             elif len(message) > 255:
-                errors.append(f'متن پیام باید کمتر از 255 کاراکتر باشد. طول فعلی: {len(message)}')
-            
-            if errors:
-                for error in errors:
-                    messages.error(request, error)
+                messages.error(request, f'متن پیام باید کمتر از 255 کاراکتر باشد. طول فعلی: {len(message)}')
                 return render(request, 'sms_api/create_sms.html', {
                     'notification_types': notification_types,
                     'default_templates': default_templates
@@ -240,21 +270,27 @@ def create_sms(request):
                 except ValueError:
                     messages.warning(request, 'شناسه خرید باید یک عدد صحیح باشد. پیامک بدون اتصال به خرید ایجاد می‌شود.')
             
-            # افزودن به صف ارسال پیامک
-            try:
-                sms = queue_sms(
-                    number=recipient_number,
-                    message=message,
-                    notification_type=notification_type,
-                    scheduled_for=scheduled_for,
-                    purchase=purchase
-                )
-                
-                messages.success(request, f'پیامک با موفقیت به صف ارسال اضافه شد. شناسه پیامک: {sms.id}')
+            # افزودن به صف ارسال پیامک برای همه شماره ها
+            success_count = 0
+            for phone in phone_numbers:
+                try:
+                    sms = queue_sms(
+                        number=phone,
+                        message=message,
+                        notification_type=notification_type,
+                        scheduled_for=scheduled_for,
+                        purchase=purchase
+                    )
+                    success_count += 1
+                except Exception as e:
+                    logger.error(f"خطا در ایجاد پیامک برای شماره {phone}: {str(e)}")
+                    messages.error(request, f'خطا در ایجاد پیامک برای شماره {phone}: {str(e)}')
+            
+            if success_count > 0:
+                messages.success(request, f'پیامک با موفقیت به صف ارسال برای {success_count} شماره اضافه شد.')
                 return redirect('sms_api:sms_dashboard')
-            except Exception as e:
-                logger.error(f"خطا در ایجاد پیامک: {str(e)}")
-                messages.error(request, f'خطا در ایجاد پیامک: {str(e)}')
+            else:
+                messages.error(request, 'هیچ پیامکی با موفقیت به صف ارسال اضافه نشد.')
         
         except Exception as e:
             logger.error(f"خطای غیرمنتظره در ایجاد پیامک: {str(e)}")
@@ -404,26 +440,66 @@ def send_sms_now(request, sms_id):
         messages.error(request, 'فقط پیامک‌های در انتظار قابل ارسال فوری هستند.')
         return redirect('sms_api:sms_detail', sms_id=sms.id)
     
-    # در اینجا ارسال پیامک به سرویس پیامکی انجام می‌شود
-    # (این بخش در یک سیستم واقعی پیاده‌سازی می‌شود)
-    from sms_api.apis import sms_account
-    result = sms_account.send_sms(sms.recipient_number, sms.message)
+    # اگر پیامک مرتبط با خرید است و مشتری دارد، به همه شماره‌های مشتری ارسال شود
+    if sms.purchase and hasattr(sms.purchase, 'customer') and sms.purchase.customer:
+        customer = sms.purchase.customer
+        phone_numbers = customer.get_all_phone_numbers()
+        
+        if not phone_numbers:
+            messages.error(request, f'هیچ شماره تلفنی برای مشتری {customer.name} یافت نشد.')
+            return redirect('sms_api:sms_detail', sms_id=sms.id)
+        
+        success_count = 0
+        for phone in phone_numbers:
+            from sms_api.apis import sms_account
+            result = sms_account.send_sms(phone, sms.message)
+            
+            if result and isinstance(result, list) and 200 in result:
+                # ثبت در لاگ
+                SmsLog.objects.create(
+                    recipient_number=phone,
+                    message=sms.message,
+                    notification_type=sms.notification_type,
+                    status='sent',
+                    purchase=sms.purchase,
+                    api_response=json.dumps(result)
+                )
+                success_count += 1
+        
+        if success_count > 0:
+            # به‌روزرسانی وضعیت پیامک اصلی
+            sms.status = 'sent'
+            sms.sent_at = timezone.now()
+            sms.save()
+            
+            messages.success(request, f'پیامک با موفقیت به {success_count} شماره ارسال شد.')
+        else:
+            messages.error(request, 'ارسال پیامک ناموفق بود. لطفا دوباره تلاش کنید.')
+    else:
+        # ارسال به یک شماره تکی
+        from sms_api.apis import sms_account
+        result = sms_account.send_sms(sms.recipient_number, sms.message)
+            
         # به‌روزرسانی وضعیت پیامک
-    if result and isinstance(result, list) and 200 in result:
-        sms.status = 'sent'
-        sms.sent_at = timezone.now()
-        sms.save()
-        
-        # ثبت در لاگ
-        SmsLog.objects.create(
-            recipient_number=sms.recipient_number,
-            message=sms.message,
-            notification_type=sms.notification_type,
-            status='sent',
-            purchase_id=sms.purchase_id
-        )
-        
-        messages.success(request, 'پیامک با موفقیت ارسال شد.')
+        if result and isinstance(result, list) and 200 in result:
+            sms.status = 'sent'
+            sms.sent_at = timezone.now()
+            sms.save()
+            
+            # ثبت در لاگ
+            SmsLog.objects.create(
+                recipient_number=sms.recipient_number,
+                message=sms.message,
+                notification_type=sms.notification_type,
+                status='sent',
+                purchase=sms.purchase,
+                api_response=json.dumps(result)
+            )
+            
+            messages.success(request, 'پیامک با موفقیت ارسال شد.')
+        else:
+            messages.error(request, 'ارسال پیامک ناموفق بود. لطفا دوباره تلاش کنید.')
+            
     return redirect('sms_api:sms_detail', sms_id=sms.id)
 
 
