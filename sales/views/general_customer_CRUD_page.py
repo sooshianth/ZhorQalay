@@ -17,7 +17,7 @@ from jdatetime import datetime, date
 from django.utils.translation import gettext_lazy as _
 from core.CustomerModel import PhoneNumber
 
-from core.CustomerModel import Customer, PhoneNumber, FIELD_OF_ACTIVITY, PAYMENT_PREFERENCE_CHOICES
+from core.CustomerModel import Customer, PhoneNumber, FIELD_OF_ACTIVITY, PAYMENT_PREFERENCE_CHOICES, ActivityField, ProductPreference, PaymentPreference
 from core.TaskModel import Task
 from core.CallSessionModel import CallSession
 from core.PurchaseModel import Purchase
@@ -79,11 +79,9 @@ class CustomerForm(forms.ModelForm):
             elif self.instance.phone_number:
                 self.initial['phone_number'] = self.instance.phone_number
                 
-            if self.instance.product_preferences:
-                self.initial['product_preferences'] = self.instance.product_preferences
-            
             # Use the property methods for initial values
             self.initial['field_of_activity'] = self.instance.get_field_of_activity_list()
+            self.initial['product_preferences'] = self.instance.get_product_preferences_list()
             self.initial['purchase_preferences'] = self.instance.get_purchase_preferences_list()
                 
         self.fields['name'].required = True
@@ -91,7 +89,8 @@ class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
         fields = '__all__'
-        exclude = ['created_at', 'updated_at', 'contact_start_time', 'contact_end_time', 'phone_number']
+        exclude = ['created_at', 'updated_at', 'contact_start_time', 'contact_end_time', 'phone_number', 
+                   'field_of_activity', 'product_preferences', 'purchase_preferences']
         widgets = {
             'added_description': forms.Textarea(attrs={'rows': 3}),
         }
@@ -180,10 +179,9 @@ class CustomerForm(forms.ModelForm):
                 existing_phone.is_primary = True
                 existing_phone.save()
         
-        instance.product_preferences = self.cleaned_data['product_preferences']
-        
-        # Use the property setters
+        # Set ManyToMany relationships using the property setters
         instance.set_field_of_activity_list(self.cleaned_data['field_of_activity'])
+        instance.set_product_preferences_list(self.cleaned_data['product_preferences'])
         instance.set_purchase_preferences_list(self.cleaned_data['purchase_preferences'])
         
         if self.sales_agent and not instance.sales_agent.filter(id=self.sales_agent.id).exists():

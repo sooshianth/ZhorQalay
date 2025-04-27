@@ -5,7 +5,7 @@ from django.shortcuts import render
 from django.db.models import Q
 from .CallSessionModel import CallSession
 from .CargoProductModel import CargoProduct
-from .CustomerModel import Customer, PhoneNumber, FIELD_OF_ACTIVITY
+from .CustomerModel import Customer, PhoneNumber, FIELD_OF_ACTIVITY, ActivityField, ProductPreference, PaymentPreference
 from .FinancialManagerModel import FinancialManager
 from .LogisticsManagerModel import LogisticsManager
 from .PurchaseModel import Purchase, PurchaseHistory, ShenaseTakhsis, PurchaseReceipts, PurchaseStateChange
@@ -159,7 +159,7 @@ class CustomerSpecificCargoFilter(admin.SimpleListFilter):
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
     search_fields = ('name', 'phone_number', 'phone_numbers__number', 'city', 'purchases_made__purchase_number', 'purchases_made__cargo__cottage')
-    list_display = ('pk', 'name', 'get_primary_phone', 'city', 'field_of_activity', 'get_total_purchases', 'get_last_purchase_date')
+    list_display = ('pk', 'name', 'get_primary_phone', 'city', 'get_total_purchases', 'get_last_purchase_date')
     list_filter = ('field_of_activity', 'city', 'sms_preference', 'whatsapp_preference', 'day_of_week', 'is_bazaargah_enjoyer', CustomerProductFilter, CustomerCountryFilter, CustomerProductCountryFilter, CustomerPurchaseStatusFilter, CustomerPurchaseDateFilter, CustomerCargoFilter, CustomerSpecificCargoFilter)
     ordering = ('-created_at',)
     inlines = [PhoneNumberInline, PurchaseInline]
@@ -439,4 +439,19 @@ class DebugSmsQueue:
         print(f"کل: {total}, در انتظار: {pending}, ارسال شده: {sent}, با خطا: {failed}, معلق: {suspended}")
         
         return pending, sent, failed, suspended, total
+
+@admin.register(ActivityField)
+class ActivityFieldAdmin(admin.ModelAdmin):
+    list_display = ('code', '__str__')
+    search_fields = ('code',)
+
+@admin.register(ProductPreference)
+class ProductPreferenceAdmin(admin.ModelAdmin):
+    list_display = ('code', '__str__')
+    search_fields = ('code',)
+
+@admin.register(PaymentPreference)
+class PaymentPreferenceAdmin(admin.ModelAdmin):
+    list_display = ('code', '__str__')
+    search_fields = ('code',)
 

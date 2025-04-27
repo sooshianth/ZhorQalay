@@ -29,6 +29,39 @@ PAYMENT_PREFERENCE_CHOICES = [
     ('bazaargah', 'بازارگاه')
 ]
 
+class ActivityField(models.Model):
+    """Model representing field of activity"""
+    code = models.CharField(_("کد"), max_length=50, choices=FIELD_OF_ACTIVITY, unique=True)
+    
+    class Meta:
+        verbose_name = _("حیطه فعالیت")
+        verbose_name_plural = _("حیطه های فعالیت")
+    
+    def __str__(self):
+        return dict(FIELD_OF_ACTIVITY).get(self.code, self.code)
+
+class ProductPreference(models.Model):
+    """Model representing product preference"""
+    code = models.CharField(_("کد"), max_length=50, choices=CargoProduct.PRODUCT_TYPES, unique=True)
+    
+    class Meta:
+        verbose_name = _("ترجیح کالایی")
+        verbose_name_plural = _("ترجیحات کالایی")
+    
+    def __str__(self):
+        return dict(CargoProduct.PRODUCT_TYPES).get(self.code, self.code)
+
+class PaymentPreference(models.Model):
+    """Model representing payment preference"""
+    code = models.CharField(_("کد"), max_length=50, choices=PAYMENT_PREFERENCE_CHOICES, unique=True)
+    
+    class Meta:
+        verbose_name = _("ترجیح پرداخت")
+        verbose_name_plural = _("ترجیحات پرداخت")
+    
+    def __str__(self):
+        return dict(PAYMENT_PREFERENCE_CHOICES).get(self.code, self.code)
+
 class PhoneNumber(models.Model):
     number = models.CharField(_("شماره تلفن"), max_length=20)
     is_primary = models.BooleanField(_("شماره اصلی"), default=False)
@@ -90,25 +123,26 @@ class Customer(models.Model):
     name = models.CharField(_("نام"), max_length=100, null=True, blank=True)
     city = models.CharField(_("شهر"), max_length=100, null=True, blank=True)
     whatsapp_preference = models.BooleanField(_("WhatsApp Preference"), default=False, help_text=_("تمایل به دریافت پیام واتساپ دارد؟"))
-    # Changed from CharField to JSONField for proper multiple selection support
-    field_of_activity = JSONField(
+    # Changed from JSONField to ManyToMany relationship
+    field_of_activity = models.ManyToManyField(
+        ActivityField,
         verbose_name=_("حیطه فعالیت"),
         blank=True,
-        null=True,
-        default=list
+        related_name='customers'
     )
-    # Changed from CharField to JSONField for proper multiple selection support
-    purchase_preferences = JSONField(
+    # Changed from JSONField to ManyToMany relationship
+    purchase_preferences = models.ManyToManyField(
+        PaymentPreference,
         verbose_name=_("ترجیحات پرداخت"),
         blank=True,
-        null=True,
-        default=list
+        related_name='customers'
     )
-    product_preferences = JSONField(
+    # Changed from JSONField to ManyToMany relationship
+    product_preferences = models.ManyToManyField(
+        ProductPreference,
         verbose_name=_("ترجیحات کالایی"),
         blank=True,
-        null=True,
-        default=list
+        related_name='customers'
     )
     contact_start_time = models.TimeField(_("زمان شروع تماس"), blank=True, null=True)
     contact_end_time = models.TimeField(_("زمان پایان تماس"), blank=True, null=True)
@@ -207,98 +241,85 @@ class Customer(models.Model):
 
     def get_field_of_activity_display(self):
         """Returns a formatted string of the customer's field of activity"""
-        if not self.field_of_activity:
+        if not self.field_of_activity.exists():
             return ""
             
-        activities = self.get_field_of_activity_list()
-        display_names = []
-        
-        for activity in activities:
-            for code, name in FIELD_OF_ACTIVITY:
-                if code == activity:
-                    display_names.append(name)
-                    
+        display_names = [activity.__str__() for activity in self.field_of_activity.all()]
         return "، ".join(display_names)
         
     def get_field_of_activity_list(self):
         """
-        Returns the field_of_activity as a list.
+        Returns the field_of_activity as a list of codes.
         """
-        if not self.field_of_activity:
-            return []
-            
-        # If it's already a list, return it directly
-        if isinstance(self.field_of_activity, list):
-            return self.field_of_activity
+        return [activity.code for activity in self.field_of_activity.all()]
         
-        # For backward compatibility - handle string case
-        if isinstance(self.field_of_activity, str):
-            try:
-                # Try to parse as JSON
-                import json
-                activities = json.loads(self.field_of_activity)
-                if isinstance(activities, list):
-                    return activities
-                return [self.field_of_activity]
-            except (ValueError, TypeError):
-                # It's a string, not JSON
-                return [self.field_of_activity]
-            
-        # Fallback
-        return []
-        
-    def set_field_of_activity_list(self, activity_list):
+    def set_field_of_activity_list(self, activity_codes):
         """
-        Sets field_of_activity from a list
+        Sets field_of_activity from a list of codes
         """
-        if not activity_list:
-            self.field_of_activity = []
+        if not activity_codes:
+            self.field_of_activity.clear()
             return
         
-        # Store as a direct list (JSONField handles this)
-        self.field_of_activity = activity_list
+        # Convert codes to ActivityField objects
+        activity_fields = []
+        for code in activity_codes:
+            activity, created = ActivityField.objects.get_or_create(code=code)
+            activity_fields.append(activity)
+        
+        # Set the relationship
+        self.field_of_activity.set(activity_fields)
             
     def get_purchase_preferences_list(self):
         """
-        Returns the purchase_preferences as a list
+        Returns the purchase_preferences as a list of codes
         """
-        if not self.purchase_preferences:
-            return []
-            
-        # If it's already a list, return it directly
-        if isinstance(self.purchase_preferences, list):
-            return self.purchase_preferences
+        return [pref.code for pref in self.purchase_preferences.all()]
         
-        # For backward compatibility - handle string case
-        if isinstance(self.purchase_preferences, str):
-            try:
-                # Try to parse as JSON
-                import json
-                preferences = json.loads(self.purchase_preferences)
-                if isinstance(preferences, list):
-                    return preferences
-                return [self.purchase_preferences]
-            except (ValueError, TypeError):
-                # It's a string, not JSON
-                return [self.purchase_preferences]
-            
-        # Fallback
-        return []
-        
-    def set_purchase_preferences_list(self, preference_list):
+    def set_purchase_preferences_list(self, preference_codes):
         """
-        Sets purchase_preferences from a list
+        Sets purchase_preferences from a list of codes
         """
-        if not preference_list:
-            self.purchase_preferences = []
+        if not preference_codes:
+            self.purchase_preferences.clear()
             return
         
-        # Store as a direct list (JSONField handles this)
-        self.purchase_preferences = preference_list
+        # Convert codes to PaymentPreference objects
+        payment_prefs = []
+        for code in preference_codes:
+            pref, created = PaymentPreference.objects.get_or_create(code=code)
+            payment_prefs.append(pref)
+        
+        # Set the relationship
+        self.purchase_preferences.set(payment_prefs)
+
+    def get_product_preferences_list(self):
+        """
+        Returns the product_preferences as a list of codes
+        """
+        return [pref.code for pref in self.product_preferences.all()]
+        
+    def set_product_preferences_list(self, preference_codes):
+        """
+        Sets product_preferences from a list of codes
+        """
+        if not preference_codes:
+            self.product_preferences.clear()
+            return
+        
+        # Convert codes to ProductPreference objects
+        product_prefs = []
+        for code in preference_codes:
+            pref, created = ProductPreference.objects.get_or_create(code=code)
+            product_prefs.append(pref)
+        
+        # Set the relationship
+        self.product_preferences.set(product_prefs)
             
     # Define properties for easy access
     field_of_activity_list = property(get_field_of_activity_list, set_field_of_activity_list)
     purchase_preferences_list = property(get_purchase_preferences_list, set_purchase_preferences_list)
+    product_preferences_list = property(get_product_preferences_list, set_product_preferences_list)
 
     def __str__(self):
         primary_phone = self.get_primary_phone()
