@@ -1,7 +1,7 @@
-from sms_ir import SmsIr
 from django.utils import timezone
 import json
 from .models import SmsLog, SmsQueue, is_celery_active
+from sms_ir import SmsIr
 
 
 api_key='mbdRODVCB2JHUX5c3IpetXsiDXFIT6bo7JZo0PhiTFWkuIN4'
@@ -9,6 +9,27 @@ linenumber=90008316
 
 
 sms_account = SmsIr(api_key, linenumber)
+
+def send_verify_code(number:str, code:str):
+    """
+    Send a verification code to a phone number
+    """
+    from django.utils import timezone
+    from django.conf import settings
+    from django.core.cache import cache
+    import random
+    # Generate a random 6-digit code
+    code = str(random.randint(100000, 999999))
+    
+    template_id = 602228
+    parameters = [{'code': code}]
+    try:
+        response = sms_account.send_verify_code(number, template_id, parameters)
+        return code
+    except Exception as e:
+        print(f"SMS sending error: {e}")
+        return None
+
 
 def send_instant_sms(number:str, message:str, sms_account=sms_account):
     """

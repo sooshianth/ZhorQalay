@@ -45,6 +45,12 @@ class PhoneNumber(models.Model):
         # اطمینان از فرمت درست شماره تلفن
         self.number = self.number.strip()
         
+        # Convert Persian digits to English digits if needed
+        persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+        english_digits = "0123456789"
+        translation_table = str.maketrans(persian_digits, english_digits)
+        self.number = self.number.translate(translation_table)
+        
         # پاکسازی شماره از کاراکترهای غیرعددی
         cleaned_number = ''.join(c for c in self.number if c.isdigit())
         
@@ -53,8 +59,11 @@ class PhoneNumber(models.Model):
             cleaned_number = cleaned_number[1:]
             
         # بررسی معیارهای اصلی
-        if not cleaned_number.startswith('9') or len(cleaned_number) != 10:
-            raise ValidationError(_('شماره تلفن باید با 9 شروع شود و 10 رقم باشد. لطفاً فرمت صحیح مانند 9123456789 را وارد کنید.'))
+        if not cleaned_number.startswith('9'):
+            raise ValidationError(_('شماره تلفن باید با 9 شروع شود. مثال: 9123456789'))
+            
+        if len(cleaned_number) != 10:
+            raise ValidationError(_('شماره تلفن باید 10 رقم باشد. مثال: 9123456789'))
         
         # ذخیره شماره پاکسازی شده
         self.number = cleaned_number
@@ -81,12 +90,19 @@ class Customer(models.Model):
     name = models.CharField(_("نام"), max_length=100, null=True, blank=True)
     city = models.CharField(_("شهر"), max_length=100, null=True, blank=True)
     whatsapp_preference = models.BooleanField(_("WhatsApp Preference"), default=False, help_text=_("تمایل به دریافت پیام واتساپ دارد؟"))
-    # Keep these as CharField in the database for backward compatibility
-    field_of_activity = models.CharField(_("حیطه فعالیت"), max_length=255, blank=True, null=True,
-        choices=FIELD_OF_ACTIVITY
+    # Changed from CharField to JSONField for proper multiple selection support
+    field_of_activity = JSONField(
+        verbose_name=_("حیطه فعالیت"),
+        blank=True,
+        null=True,
+        default=list
     )
-    purchase_preferences = models.CharField(_("ترجیحات پرداخت"), max_length=255, blank=True, null=True,
-        choices=[('cash', 'نقدی'), ('check', 'چک')]
+    # Changed from CharField to JSONField for proper multiple selection support
+    purchase_preferences = JSONField(
+        verbose_name=_("ترجیحات پرداخت"),
+        blank=True,
+        null=True,
+        default=list
     )
     product_preferences = JSONField(
         verbose_name=_("ترجیحات کالایی"),
@@ -194,7 +210,6 @@ class Customer(models.Model):
         if not self.field_of_activity:
             return ""
             
-        # Handle both single string and JSON list format
         activities = self.get_field_of_activity_list()
         display_names = []
         
@@ -207,75 +222,79 @@ class Customer(models.Model):
         
     def get_field_of_activity_list(self):
         """
-        Returns the field_of_activity as a list, handling both string and list formats.
+        Returns the field_of_activity as a list.
         """
         if not self.field_of_activity:
             return []
             
-        try:
-            # Try to parse as JSON
-            import json
-            activities = json.loads(self.field_of_activity)
-            if isinstance(activities, list):
-                return activities
-        except (ValueError, TypeError):
-            # It's a string, not JSON
-            pass
+        # If it's already a list, return it directly
+        if isinstance(self.field_of_activity, list):
+            return self.field_of_activity
+        
+        # For backward compatibility - handle string case
+        if isinstance(self.field_of_activity, str):
+            try:
+                # Try to parse as JSON
+                import json
+                activities = json.loads(self.field_of_activity)
+                if isinstance(activities, list):
+                    return activities
+                return [self.field_of_activity]
+            except (ValueError, TypeError):
+                # It's a string, not JSON
+                return [self.field_of_activity]
             
-        # Handle it as a single value
-        return [self.field_of_activity]
+        # Fallback
+        return []
         
     def set_field_of_activity_list(self, activity_list):
         """
-        Sets field_of_activity from a list, storing it as a comma-separated string.
+        Sets field_of_activity from a list
         """
         if not activity_list:
-            self.field_of_activity = None
+            self.field_of_activity = []
             return
-            
-        if len(activity_list) == 1:
-            # Store as a single value for backward compatibility
-            self.field_of_activity = activity_list[0]
-        else:
-            # Store as a JSON string
-            import json
-            self.field_of_activity = json.dumps(activity_list)
+        
+        # Store as a direct list (JSONField handles this)
+        self.field_of_activity = activity_list
             
     def get_purchase_preferences_list(self):
         """
-        Returns the purchase_preferences as a list, handling both string and list formats.
+        Returns the purchase_preferences as a list
         """
         if not self.purchase_preferences:
             return []
             
-        try:
-            # Try to parse as JSON
-            import json
-            preferences = json.loads(self.purchase_preferences)
-            if isinstance(preferences, list):
-                return preferences
-        except (ValueError, TypeError):
-            # It's a string, not JSON
-            pass
+        # If it's already a list, return it directly
+        if isinstance(self.purchase_preferences, list):
+            return self.purchase_preferences
+        
+        # For backward compatibility - handle string case
+        if isinstance(self.purchase_preferences, str):
+            try:
+                # Try to parse as JSON
+                import json
+                preferences = json.loads(self.purchase_preferences)
+                if isinstance(preferences, list):
+                    return preferences
+                return [self.purchase_preferences]
+            except (ValueError, TypeError):
+                # It's a string, not JSON
+                return [self.purchase_preferences]
             
-        # Handle it as a single value
-        return [self.purchase_preferences]
+        # Fallback
+        return []
         
     def set_purchase_preferences_list(self, preference_list):
         """
-        Sets purchase_preferences from a list, storing it as a JSON string or single value.
+        Sets purchase_preferences from a list
         """
         if not preference_list:
-            self.purchase_preferences = None
+            self.purchase_preferences = []
             return
-            
-        if len(preference_list) == 1:
-            # Store as a single value for backward compatibility
-            self.purchase_preferences = preference_list[0]
-        else:
-            # Store as a JSON string
-            import json
-            self.purchase_preferences = json.dumps(preference_list)
+        
+        # Store as a direct list (JSONField handles this)
+        self.purchase_preferences = preference_list
             
     # Define properties for easy access
     field_of_activity_list = property(get_field_of_activity_list, set_field_of_activity_list)

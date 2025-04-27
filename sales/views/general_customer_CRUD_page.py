@@ -99,12 +99,28 @@ class CustomerForm(forms.ModelForm):
     def clean_phone_number(self):
         phone_number = self.cleaned_data.get('phone_number')
         if phone_number:
+            # Convert Persian digits to English digits if needed
+            persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+            english_digits = "0123456789"
+            translation_table = str.maketrans(persian_digits, english_digits)
+            phone_number = phone_number.translate(translation_table)
+            
+            # Clean the number - keep only digits
             phone_number = ''.join(c for c in phone_number if c.isdigit())
+            
+            # Handle formats with leading zero
             if phone_number.startswith('0'):
                 phone_number = phone_number[1:]
-            if not phone_number.startswith('9') or len(phone_number) != 10:
+            
+            # Validate format - must be 10 digits and start with 9
+            if not phone_number.startswith('9'):
                 raise forms.ValidationError(
-                    _('شماره تلفن باید با 9 شروع شود و 10 رقم باشد. مثال: 9123456789')
+                    _('شماره تلفن باید با 9 شروع شود. مثال: 9123456789')
+                )
+            
+            if len(phone_number) != 10:
+                raise forms.ValidationError(
+                    _('شماره تلفن باید 10 رقم باشد. مثال: 9123456789')
                 )
         return phone_number
 
@@ -302,6 +318,17 @@ def general_customer_CRUD_view(request):
         
         phone = request.POST.get('phone_number')
         
+        # Convert any Persian digits to English in the phone field
+        if phone:
+            persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+            english_digits = "0123456789"
+            translation_table = str.maketrans(persian_digits, english_digits)
+            phone = phone.translate(translation_table)
+            phone = ''.join(c for c in phone if c.isdigit())
+            # Handle formats with leading zero
+            if phone.startswith('0'):
+                phone = phone[1:]
+        
         # حالت بروزرسانی مشتری موجود
         if request.POST.get('customer_id'):
             customer = get_object_or_404(Customer, id=request.POST.get('customer_id'))
@@ -334,6 +361,7 @@ def general_customer_CRUD_view(request):
                 return redirect(reverse('general_customer_CRUD') + f'?customer_id={saved_customer.id}')
             except Exception as e:
                 messages.error(request, f"خطا در ذخیره سازی: {str(e)}")
+                print(f"Error saving customer: {str(e)}")
         else:
             # نمایش خطاهای فرم به صورت مشخص‌تر
             error_messages = []
@@ -522,24 +550,46 @@ def general_customer_CRUD_view(request):
     if request.method == "POST" and 'add_phone' in request.POST and customer:
         new_phone = request.POST.get('new_phone', '').strip()
         
-        if new_phone and len(new_phone) == 10 and new_phone.startswith('9'):
-            # بررسی تکراری نبودن شماره
-            existing_phone = PhoneNumber.objects.filter(number=new_phone).first()
-            if existing_phone:
-                if existing_phone.customer == customer:
-                    messages.warning(request, "این شماره تلفن قبلاً برای این مشتری ثبت شده است.")
-                else:
-                    messages.error(request, f"این شماره تلفن قبلاً برای مشتری {existing_phone.customer.name} ثبت شده است.")
+        # Convert Persian digits to English digits if needed
+        persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+        english_digits = "0123456789"
+        translation_table = str.maketrans(persian_digits, english_digits)
+        new_phone = new_phone.translate(translation_table)
+        
+        # Clean the number - keep only digits
+        new_phone = ''.join(c for c in new_phone if c.isdigit())
+        
+        # Handle formats with leading zero
+        if new_phone.startswith('0'):
+            new_phone = new_phone[1:]
+        
+        if new_phone:
+            # Basic format validation
+            if not new_phone.startswith('9'):
+                messages.error(request, "شماره تلفن باید با 9 شروع شود. مثال: 9123456789")
+            elif len(new_phone) != 10:
+                messages.error(request, "شماره تلفن باید 10 رقم باشد. مثال: 9123456789")
             else:
-                # ایجاد شماره جدید (غیر اصلی)
-                PhoneNumber.objects.create(
-                    number=new_phone,
-                    customer=customer,
-                    is_primary=False
-                )
-                messages.success(request, "شماره تلفن جدید اضافه شد.")
+                # بررسی تکراری نبودن شماره
+                existing_phone = PhoneNumber.objects.filter(number=new_phone).first()
+                if existing_phone:
+                    if existing_phone.customer == customer:
+                        messages.warning(request, "این شماره تلفن قبلاً برای این مشتری ثبت شده است.")
+                    else:
+                        messages.error(request, f"این شماره تلفن قبلاً برای مشتری {existing_phone.customer.name} ثبت شده است.")
+                else:
+                    # ایجاد شماره جدید (غیر اصلی)
+                    try:
+                        PhoneNumber.objects.create(
+                            number=new_phone,
+                            customer=customer,
+                            is_primary=False
+                        )
+                        messages.success(request, "شماره تلفن جدید اضافه شد.")
+                    except ValidationError as e:
+                        messages.error(request, f"خطا در افزودن شماره تلفن: {str(e)}")
         else:
-            messages.error(request, "شماره تلفن نامعتبر است. شماره باید با 9 شروع شود و 10 رقم باشد.")
+            messages.error(request, "شماره تلفن نمی‌تواند خالی باشد.")
             
         return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
     
