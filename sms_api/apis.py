@@ -10,25 +10,6 @@ linenumber=90008316
 
 sms_account = SmsIr(api_key, linenumber)
 
-def send_verify_code(number:str, code:str):
-    """
-    Send a verification code to a phone number
-    """
-    from django.utils import timezone
-    from django.conf import settings
-    from django.core.cache import cache
-    import random
-    # Generate a random 6-digit code
-    code = str(random.randint(100000, 999999))
-    
-    template_id = 602228
-    parameters = [{'code': code}]
-    try:
-        response = sms_account.send_verify_code(number, template_id, parameters)
-        return code
-    except Exception as e:
-        print(f"SMS sending error: {e}")
-        return None
 
 
 def send_instant_sms(number:str, message:str, sms_account=sms_account):
@@ -60,6 +41,7 @@ def send_instant_sms(number:str, message:str, sms_account=sms_account):
             return None
 
 def queue_sms(number:str, message:str, notification_type='custom', purchase=None, suspended=False, scheduled_for=None):
+    return None
     """
     Add SMS to the queue for batch processing
     """
@@ -165,21 +147,21 @@ def process_sms_queue(batch_size=20, sms_account=sms_account):
                 
                 results.append({"id": sms.id, "status": "failed", "error": f"Unexpected response: {result}"})
         except Exception as e:
-            sms.status = 'failed'
-            sms.retry_count += 1
-            sms.save()
+            # sms.status = 'failed'
+            # sms.retry_count += 1
+            # sms.save()
             
-            # ثبت در لاگ خطا
-            SmsLog.objects.create(
-                recipient_number=sms.recipient_number,
-                message=sms.message,
-                notification_type=sms.notification_type,
-                status='failed',
-                api_response=json.dumps({"error": str(e)}),
-                purchase=sms.purchase
-            )
+            # # ثبت در لاگ خطا
+            # SmsLog.objects.create(
+            #     recipient_number=sms.recipient_number,
+            #     message=sms.message,
+            #     notification_type=sms.notification_type,
+            #     status='failed',
+            #     api_response=json.dumps({"error": str(e)}),
+            #     purchase=sms.purchase
+            # )
             
-            results.append({"id": sms.id, "status": "failed", "error": str(e)})
+            # results.append({"id": sms.id, "status": "failed", "error": str(e)})
             print(f"Error processing SMS {sms.id}: {e}")
     
     return results
