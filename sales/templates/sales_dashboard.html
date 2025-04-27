@@ -144,6 +144,8 @@
             .replace(/[\s\u200C]/g, '')
             .replace('ي', 'ی')
             .replace('ك', 'ک')
+            .replace(/ة/g, 'ه')
+            .replace(/آ/g, 'ا')
             .toLowerCase();
     }
 

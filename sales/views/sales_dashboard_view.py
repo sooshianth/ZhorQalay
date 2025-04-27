@@ -18,18 +18,67 @@ with open(file_path, 'r', encoding='utf-8') as file:
     data = json.load(file)
 
 def normalize_city_name(city_name):
+    """نرمال‌سازی نام شهرها برای تطبیق با دیتای GeoJSON"""
     if not city_name:
         return ""
-    city_name = city_name.replace('ي', 'ی').strip().replace(' ', '').lower()
-    return city_name
+    replacements = {
+        'ي': 'ی',
+        'ك': 'ک',
+        'ة': 'ه',
+        'آ': 'ا',
+        ' ': '',
+        '\u200c': '',  # حذف نیم‌فاصله
+        '‌': '',  # حذف نیم‌فاصله
+        'ئ': 'ی',
+        'ؤ': 'و',
+        'إ': 'ا',
+        'أ': 'ا',
+        'ء': '',
+        '١': '1',
+        '٢': '2',
+        '٣': '3',
+        '٤': '4',
+        '٥': '5',
+        '٦': '6',
+        '٧': '7',
+        '٨': '8',
+        '٩': '9',
+        '٠': '0',
+    }
+    normalized = city_name.strip()
+    for old, new in replacements.items():
+        normalized = normalized.replace(old, new)
+    return normalized.lower()
 
 def find_province_by_city(target_city):
+    """پیدا کردن استان بر اساس نام شهر"""
+    if not target_city:
+        return None
+        
     target_city = normalize_city_name(target_city)
+    
+    # اول در شهرهای هر استان جستجو می‌کنیم
     for province in data:
-        for city in province['cities']:
-            city_name = normalize_city_name(city['name'])
-            if city_name == target_city:
+        for city in province.get('cities', []):
+            if normalize_city_name(city.get('name', '')) == target_city:
                 return province['name']
+    
+    # اگر پیدا نشد، بررسی می‌کنیم که آیا خود نام، نام استان است
+    for province in data:
+        if normalize_city_name(province['name']) == target_city:
+            return province['name']
+    
+    # اگر پیدا نشد، دنبال تطابق نسبی می‌گردیم
+    for province in data:
+        for city in province.get('cities', []):
+            if target_city in normalize_city_name(city.get('name', '')):
+                return province['name']
+    
+    # در نهایت تلاش می‌کنیم با نام استان تطبیق نسبی پیدا کنیم
+    for province in data:
+        if target_city in normalize_city_name(province['name']):
+            return province['name']
+    
     return None
 
 def calculate_ml_prediction(sales_agent, monthly_sales):
@@ -117,15 +166,27 @@ def sales_dashboard_view(request):
         created_at__gte=today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     ).count()
 
-    # خریدها بر اساس استان
-    province_purchases = defaultdict(int)
     purchases_this_month = sales_agent.get_this_month_sales()
+    
+    unmatched_cities = set()
+    province_purchases = defaultdict(int)
+    
     for purchase in purchases_this_month:
-        city = purchase.customer.city
-        if city:
-            province = find_province_by_city(city)
+        if purchase.customer and purchase.customer.city:  # بررسی وجود مشتری و شهر
+            province = find_province_by_city(purchase.customer.city)
             if province:
-                province_purchases[province] += 1
+                province_purchases[province] += purchase.order_weight / 1000  # تبدیل به تن
+                logger.info(f"Added {purchase.order_weight/1000} tons for province {province} from city {purchase.customer.city}")
+            else:
+                unmatched_cities.add(purchase.customer.city)
+                logger.warning(f"City not found: {purchase.customer.city} for purchase {purchase.id}")
+    
+    if unmatched_cities:
+        logger.warning(f"Cities without province match: {unmatched_cities}")
+        
+    # برای دیباگ
+    logger.info(f"Final province_purchases: {dict(province_purchases)}")
+
 
     # آمار فروش ماه جاری
     sales_stats = sales_agent.get_this_month_sales_stats()
