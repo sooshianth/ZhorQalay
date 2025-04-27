@@ -1,8 +1,6 @@
-// توابع مربوط به بارگذاری اطلاعات و ارتباط با سرور
 function loadUserList() {
     console.log('Loading user list...');
     
-    // نمایش پیام در حال بارگذاری
     const userListItems = document.getElementById('userListItems');
     userListItems.innerHTML = '<div class="loading-message">در حال بارگذاری کاربران...</div>';
     
@@ -42,17 +40,14 @@ function loadUserList() {
                     const thisUserId = user.id.toString();
                     userItem.dataset.userId = thisUserId;
                     
-                    // اضافه کردن نام کاربر
                     const userName = document.createElement('span');
                     userName.textContent = user.username;
                     userItem.appendChild(userName);
                     
-                    // اضافه کردن وضعیت آنلاین
                     const userStatus = document.createElement('span');
                     userStatus.className = 'user-status online';
                     userItem.appendChild(userStatus);
                     
-                    // اضافه کردن نشانگر پیام جدید اگر وجود داشته باشد
                     if (userNewMessages[thisUserId] && userNewMessages[thisUserId] > 0) {
                         userItem.classList.add('has-new-message');
                         const badge = document.createElement('span');
@@ -67,7 +62,6 @@ function loadUserList() {
                 }
             });
             
-            // اگر قبلا چت با کاربری باز بوده، آن کاربر را انتخاب کنیم
             if (currentChatUser) {
                 const activeUser = document.querySelector(`.user-item[data-user-id="${currentChatUser}"]`);
                 if (activeUser) {
@@ -77,31 +71,25 @@ function loadUserList() {
         })
         .catch(error => {
             console.error('Error fetching users:', error);
-            // نمایش پیام خطا به کاربر
             userListItems.innerHTML = '<div class="error-message">خطا در بارگذاری لیست کاربران: ' + error.message + '</div>';
         });
 }
 
 function startChat(userId, username) {
-    // فعال کردن تب چت خصوصی
     switchTab('private');
     
     currentChatUser = userId;
     
-    // استفاده از chatTitle به جای .chat-header span
     const chatTitle = document.getElementById('chatTitle');
     if (chatTitle) {
         chatTitle.textContent = `چت با ${username}`;
     }
     
-    // نشانه‌گذاری کاربر انتخاب شده
     const userItems = document.querySelectorAll('.user-item');
     userItems.forEach(item => {
         item.classList.remove('active');
         if (parseInt(item.dataset.userId) === userId) {
             item.classList.add('active');
-            
-            // حذف نشانگر "پیام جدید" از کاربر
             item.classList.remove('has-new-message');
             const badge = item.querySelector('.chat-badge');
             if (badge) {
@@ -110,10 +98,8 @@ function startChat(userId, username) {
         }
     });
     
-    // ریست کردن نشانگر پیام جدید برای این کاربر
     resetBadge('private', userId.toString());
     
-    // ذخیره کاربر فعلی در localStorage برای حفظ وضعیت بعد از رفرش
     localStorage.setItem('currentChatUser', userId);
     localStorage.setItem('currentChatUsername', username);
     
@@ -152,24 +138,24 @@ function loadChatHistory() {
                 return;
             }
             
-            // مرتب‌سازی پیام‌ها بر اساس زمان
             messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
             
-            // نمایش پیام‌ها
             messages.forEach(msg => {
-                // اضافه کردن شناسه فرستنده و گیرنده پیام برای نمایش صحیح
                 msg.sender_id = parseInt(msg.sender_id);
                 msg.receiver_id = parseInt(msg.receiver_id);
                 displayPrivateMessage(msg);
             });
             
-            // اسکرول به آخرین پیام
             setTimeout(() => {
                 chatBody.scrollTop = chatBody.scrollHeight;
             }, 100);
             
-            // علامت‌گذاری پیام‌ها به عنوان خوانده‌شده
             markMessagesAsRead(currentChatUser);
+            
+            const pinnedMessage = messages.find(msg => msg.is_pinned);
+            if (pinnedMessage) {
+                showPinnedMessage(pinnedMessage);
+            }
         })
         .catch(error => {
             console.error('Error fetching chat history:', error);
@@ -203,23 +189,23 @@ function loadGlobalChatHistory() {
                 return;
             }
             
-            // مرتب‌سازی پیام‌ها بر اساس زمان
             messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
             
-            // نمایش پیام‌ها
             messages.forEach(msg => {
-                // اضافه کردن شناسه فرستنده پیام برای نمایش صحیح
                 msg.sender_id = parseInt(msg.sender_id);
                 displayGlobalMessage(msg);
             });
             
-            // اسکرول به آخرین پیام
             setTimeout(() => {
                 chatBody.scrollTop = chatBody.scrollHeight;
             }, 100);
             
-            // علامت‌گذاری پیام‌های عمومی به عنوان خوانده‌شده
             markMessagesAsRead(null, true);
+            
+            const pinnedMessage = messages.find(msg => msg.is_pinned);
+            if (pinnedMessage) {
+                showPinnedMessage(pinnedMessage);
+            }
         })
         .catch(error => {
             console.error('Error fetching global chat history:', error);
@@ -234,7 +220,6 @@ function sendMessage() {
     if (!message) return;
     
     if (currentTab === 'private' && currentChatUser) {
-        // ارسال پیام خصوصی به سرور با استفاده از fetch
         fetch('/chat/api/chat/send/', {
             method: 'POST',
             headers: {
@@ -244,7 +229,8 @@ function sendMessage() {
             body: JSON.stringify({
                 receiver_id: currentChatUser,
                 message: message,
-                is_global: false
+                is_global: false,
+                reply_to: replyToMessage ? replyToMessage.id : null
             })
         })
         .then(response => {
@@ -255,18 +241,20 @@ function sendMessage() {
         })
         .then(data => {
             console.log('Message sent:', data);
-            // نمایش پیام در صفحه چت
             displayPrivateMessage({
+                id: data.message_id, 
                 sender_id: userId,
                 receiver_id: currentChatUser,
                 message: message,
-                timestamp: data.timestamp || new Date().toISOString()
+                timestamp: data.timestamp || new Date().toISOString(),
+                reply_to: data.reply_to,
+                reply_to_message: replyToMessage ? replyToMessage.message : null,
+                reply_to_author: replyToMessage ? (replyToMessage.sender_id === userId ? username : null) : null
             });
             
-            // پاک کردن فیلد پیام
             messageInput.value = '';
+            clearReply();
             
-            // اسکرول به پایین صفحه چت
             const chatBody = document.getElementById('privateChatBody');
             chatBody.scrollTop = chatBody.scrollHeight;
         })
@@ -276,7 +264,6 @@ function sendMessage() {
         });
     } 
     else if (currentTab === 'global') {
-        // ارسال پیام عمومی به سرور
         fetch('/chat/api/chat/send/', {
             method: 'POST',
             headers: {
@@ -285,7 +272,8 @@ function sendMessage() {
             },
             body: JSON.stringify({
                 message: message,
-                is_global: true
+                is_global: true,
+                reply_to: replyToMessage ? replyToMessage.id : null
             })
         })
         .then(response => {
@@ -296,18 +284,20 @@ function sendMessage() {
         })
         .then(data => {
             console.log('Global message sent:', data);
-            // نمایش پیام در صفحه چت عمومی
             displayGlobalMessage({
+                id: data.message_id, 
                 sender_id: userId,
                 username: username,
                 message: message,
-                timestamp: data.timestamp || new Date().toISOString()
+                timestamp: data.timestamp || new Date().toISOString(),
+                reply_to: data.reply_to,
+                reply_to_message: replyToMessage ? replyToMessage.message : null,
+                reply_to_author: replyToMessage ? (replyToMessage.sender_id === userId ? username : null) : null
             });
             
-            // پاک کردن فیلد پیام
             messageInput.value = '';
+            clearReply();
             
-            // اسکرول به پایین صفحه چت
             const chatBody = document.getElementById('globalChatBody');
             chatBody.scrollTop = chatBody.scrollHeight;
         })
@@ -318,14 +308,12 @@ function sendMessage() {
     }
 }
 
-// ارسال فایل
 function sendFile() {
     const fileInput = document.getElementById('fileInput');
     const file = fileInput.files[0];
     
     if (!file) return;
     
-    // نمایش لودینگ
     const loadingMessage = document.createElement('div');
     loadingMessage.className = 'loading-message';
     loadingMessage.textContent = 'در حال آپلود فایل...';
@@ -342,15 +330,20 @@ function sendFile() {
     if (currentTab === 'private' && currentChatUser) {
         formData.append('receiver_id', currentChatUser);
         formData.append('is_global', 'false');
+        if (replyToMessage) {
+            formData.append('reply_to', replyToMessage.id);
+        }
     } else if (currentTab === 'global') {
         formData.append('is_global', 'true');
+        if (replyToMessage) {
+            formData.append('reply_to', replyToMessage.id);
+        }
     } else {
         loadingMessage.remove();
         alert('لطفاً ابتدا یک کاربر یا چت عمومی را انتخاب کنید');
         return;
     }
     
-    // آپلود فایل به سرور
     fetch('/chat/api/chat/upload/', {
         method: 'POST',
         headers: {
@@ -365,14 +358,10 @@ function sendFile() {
         return response.json();
     })
     .then(data => {
-        // حذف پیام لودینگ
         loadingMessage.remove();
-        
-        // پاک کردن فیلد فایل
         fileInput.value = '';
         
         if (data.success) {
-            // فایل با موفقیت آپلود شد
             console.log('File uploaded successfully:', data);
             
             if (currentTab === 'private') {
@@ -381,7 +370,10 @@ function sendFile() {
                     receiver_id: currentChatUser,
                     file_url: data.file_url,
                     file_type: data.file_type,
-                    timestamp: data.timestamp
+                    timestamp: data.timestamp,
+                    reply_to: data.reply_to,
+                    reply_to_message: replyToMessage ? replyToMessage.message : null,
+                    reply_to_author: replyToMessage ? (replyToMessage.sender_id === userId ? username : null) : null
                 });
             } else {
                 displayGlobalMessage({
@@ -389,37 +381,33 @@ function sendFile() {
                     username: username,
                     file_url: data.file_url,
                     file_type: data.file_type,
-                    timestamp: data.timestamp
+                    timestamp: data.timestamp,
+                    reply_to: data.reply_to,
+                    reply_to_message: replyToMessage ? replyToMessage.message : null,
+                    reply_to_author: replyToMessage ? (replyToMessage.sender_id === userId ? username : null) : null
                 });
             }
             
-            // اسکرول به پایین صفحه چت
+            clearReply();
             chatBody.scrollTop = chatBody.scrollHeight;
         } else {
-            // خطا در آپلود فایل
             console.error('Error uploading file:', data.error);
             alert('خطا در آپلود فایل: ' + (data.error || 'خطای ناشناخته'));
         }
     })
     .catch(error => {
-        // حذف پیام لودینگ
         loadingMessage.remove();
-        
-        // پاک کردن فیلد فایل
         fileInput.value = '';
-        
         console.error('Error uploading file:', error);
         alert('خطا در آپلود فایل: ' + error.message);
     });
 }
 
-// توابع مرتبط با رابط کاربری چت
 function toggleChat() {
     const chatContainer = document.getElementById('chatContainer');
     chatContainer.classList.toggle('active');
     
     if (chatContainer.classList.contains('active')) {
-        // هنگام فعال کردن چت، داده‌ها را بارگذاری می‌کنیم
         loadUserList();
         if (currentTab === 'global') {
             loadGlobalChatHistory();
@@ -434,12 +422,10 @@ function toggleUserList() {
     const userList = document.getElementById('userList');
     const isActive = userList.classList.contains('active');
     
-    // اگر لیست فعال نیست، ابتدا دیتای کاربران را بارگذاری کنیم
     if (!isActive) {
         loadUserList();
     }
     
-    // تغییر وضعیت نمایش لیست
     userList.classList.toggle('active');
     
     console.log('User list toggled:', userList.classList.contains('active'));
@@ -454,7 +440,6 @@ function switchTab(tab) {
     const privateChatBody = document.getElementById('privateChatBody');
     const globalChatBody = document.getElementById('globalChatBody');
     
-    // استفاده از chatTitle به جای .chat-header span
     const chatTitle = document.getElementById('chatTitle');
     
     privateChatTab.classList.remove('active');
@@ -466,21 +451,15 @@ function switchTab(tab) {
         privateChatTab.classList.add('active');
         privateChatBody.style.display = 'flex';
         
-        // نشان دادن نام کاربر در سربرگ چت
         if (currentChatUser) {
             const username = localStorage.getItem('currentChatUsername') || 'کاربر';
             if (chatTitle) {
                 chatTitle.textContent = `چت با ${username}`;
             }
             loadChatHistory();
-            
-            // حذف نشانگر پیام جدید
             resetBadge('private', currentChatUser);
-            
-            // علامت‌گذاری پیام‌ها به عنوان خوانده‌شده
             markMessagesAsRead(currentChatUser);
             
-            // برای موبایل: نمایش صفحه چت به جای لیست کاربران
             if (window.innerWidth <= 768) {
                 const userList = document.getElementById('userList');
                 const chatBox = document.getElementById('chatBox');
@@ -501,23 +480,16 @@ function switchTab(tab) {
         }
         
         loadGlobalChatHistory();
-        
-        // حذف نشانگر پیام جدید
         resetBadge('global');
-        
-        // علامت‌گذاری پیام‌های عمومی به عنوان خوانده‌شده
         markMessagesAsRead(null, true);
     }
 }
 
 function resetBadge(type, userId = null) {
-    // حذف نشانگر پیام جدید
     if (type === 'private' && userId) {
-        // برای پیام‌های خصوصی
         userNewMessages[userId] = 0;
         localStorage.setItem('userNewMessages', JSON.stringify(userNewMessages));
         
-        // حذف نشانگر از لیست کاربران
         const userItem = document.querySelector(`.user-item[data-user-id="${userId}"]`);
         if (userItem) {
             userItem.classList.remove('has-new-message');
@@ -527,11 +499,9 @@ function resetBadge(type, userId = null) {
             }
         }
     } else if (type === 'global') {
-        // برای پیام‌های عمومی
         globalNewMessages = 0;
         localStorage.setItem('globalNewMessages', globalNewMessages.toString());
         
-        // حذف نشانگر از تب چت عمومی
         const globalTab = document.getElementById('globalTabBtn');
         const globalBadge = globalTab.querySelector('.chat-badge');
         if (globalBadge) {
@@ -541,7 +511,6 @@ function resetBadge(type, userId = null) {
 }
 
 function markMessagesAsRead(userId = null, isGlobal = false) {
-    // فرستادن درخواست به سرور برای علامت‌گذاری پیام‌ها به عنوان خوانده‌شده
     const url = isGlobal ? '/chat/api/chat/mark-as-read/?is_global=true' : `/chat/api/chat/mark-as-read/?sender_id=${userId}`;
     
     fetch(url, {
@@ -561,7 +530,6 @@ function markMessagesAsRead(userId = null, isGlobal = false) {
     });
 }
 
-// تابع دریافت مقدار کوکی برای CSRF
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -577,22 +545,30 @@ function getCookie(name) {
     return cookieValue;
 }
 
-// نمایش پیام خصوصی
 function displayPrivateMessage(msg) {
     const chatBody = document.getElementById('privateChatBody');
     
-    // اطمینان از وجود timestamp
     if (!msg.timestamp) {
         msg.timestamp = new Date().toISOString();
     }
     
-    // تولید id یکتا برای این پیام
-    const messageId = `private-${msg.sender_id}-${Date.now()}`;
-    
+    const messageId = msg.id ? `msg-${msg.id}` : `private-${msg.sender_id}-${Date.now()}`;
     const messageDiv = document.createElement('div');
     messageDiv.className = `chat-message ${msg.sender_id == userId ? 'sent' : 'received'}`;
     messageDiv.id = messageId;
     
+    if (msg.reply_to && msg.reply_to_message) {
+        const replyDiv = document.createElement('div');
+        replyDiv.className = 'reply-preview';
+        replyDiv.innerHTML = `
+            <a href="#" class="reply-link" onclick="scrollToMessage('msg-${msg.reply_to}');return false;">
+                <span class="reply-author">${msg.reply_to_author || 'کاربر'}:</span>
+                <span class="reply-text">${msg.reply_to_message.substring(0, 40)}</span>
+            </a>
+        `;
+        messageDiv.appendChild(replyDiv);
+    }
+
     if (msg.message) {
         const messageContent = document.createElement('div');
         messageContent.className = 'message-content';
@@ -618,7 +594,6 @@ function displayPrivateMessage(msg) {
         }
     }
     
-    // اضافه کردن زمان
     if (msg.timestamp) {
         const timestampDiv = document.createElement('div');
         timestampDiv.className = 'chat-timestamp';
@@ -626,36 +601,57 @@ function displayPrivateMessage(msg) {
         messageDiv.appendChild(timestampDiv);
     }
     
-    // حذف پیام‌های "خالی" یا "در حال بارگذاری" اگر وجود دارند
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'message-actions';
+
+    const replyBtn = document.createElement('button');
+    replyBtn.className = 'reply-btn';
+    replyBtn.title = 'ریپلای';
+    replyBtn.innerHTML = '<i class="fas fa-reply"></i>';
+    replyBtn.onclick = function() { setReplyTo(msg); };
+
+    const pinBtn = document.createElement('button');
+    pinBtn.className = 'pin-btn';
+    pinBtn.title = 'پین کردن';
+    pinBtn.innerHTML = '<i class="fas fa-thumbtack"></i>';
+    pinBtn.onclick = function() { pinMessage(msg); };
+
+    actionsDiv.appendChild(replyBtn);
+    actionsDiv.appendChild(pinBtn);
+    messageDiv.appendChild(actionsDiv);
+
     const emptyMessages = chatBody.querySelectorAll('.empty-message, .loading-message');
     emptyMessages.forEach(msg => msg.remove());
-    
+
     chatBody.appendChild(messageDiv);
     chatBody.scrollTop = chatBody.scrollHeight;
 }
 
-// نمایش پیام عمومی
 function displayGlobalMessage(msg) {
     const chatBody = document.getElementById('globalChatBody');
     
-    // اطمینان از وجود timestamp
     if (!msg.timestamp) {
         msg.timestamp = new Date().toISOString();
     }
     
-    // تولید id یکتا برای این پیام
-    const messageId = `global-${msg.sender_id}-${Date.now()}`;
-    
+    const messageId = msg.id ? `msg-${msg.id}` : `global-${msg.sender_id}-${Date.now()}`;
     const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${msg.sender_id == userId ? 'sent' : 'global'}`;
     messageDiv.id = messageId;
+
+    if (msg.reply_to && msg.reply_to_message) {
+        const replyDiv = document.createElement('div');
+        replyDiv.className = 'reply-preview';
+        replyDiv.innerHTML = `
+            <a href="#" class="reply-link" onclick="scrollToMessage('msg-${msg.reply_to}');return false;">
+                <span class="reply-author">${msg.reply_to_author || 'کاربر'}:</span>
+                <span class="reply-text">${msg.reply_to_message.substring(0, 40)}</span>
+            </a>
+        `;
+        messageDiv.appendChild(replyDiv);
+    }
     
-    // مشخص کردن اینکه پیام از خود کاربر است یا از دیگران
-    if (msg.sender_id == userId) {
-        messageDiv.className = 'chat-message sent';
-    } else {
-        messageDiv.className = 'chat-message global';
-        
-        // اضافه کردن نام فرستنده به پیام
+    if (msg.sender_id != userId) {
         if (msg.username) {
             const senderName = document.createElement('div');
             senderName.className = 'sender-name';
@@ -689,7 +685,6 @@ function displayGlobalMessage(msg) {
         }
     }
     
-    // اضافه کردن زمان
     if (msg.timestamp) {
         const timestampDiv = document.createElement('div');
         timestampDiv.className = 'chat-timestamp';
@@ -697,7 +692,29 @@ function displayGlobalMessage(msg) {
         messageDiv.appendChild(timestampDiv);
     }
     
-    // حذف پیام‌های "خالی" یا "در حال بارگذاری" اگر وجود دارند
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'message-actions';
+
+    const replyBtn = document.createElement('button');
+    replyBtn.className = 'reply-btn';
+    replyBtn.title = 'ریپلای';
+    replyBtn.innerHTML = '<i class="fas fa-reply"></i>';
+    replyBtn.onclick = function() {
+        setReplyTo(msg);
+    };
+
+    const pinBtn = document.createElement('button');
+    pinBtn.className = 'pin-btn';
+    pinBtn.title = 'پین کردن';
+    pinBtn.innerHTML = '<i class="fas fa-thumbtack"></i>';
+    pinBtn.onclick = function() {
+        pinMessage(msg);
+    };
+
+    actionsDiv.appendChild(replyBtn);
+    actionsDiv.appendChild(pinBtn);
+    messageDiv.appendChild(actionsDiv);
+
     const emptyMessages = chatBody.querySelectorAll('.empty-message, .loading-message');
     emptyMessages.forEach(msg => msg.remove());
     
@@ -705,23 +722,97 @@ function displayGlobalMessage(msg) {
     chatBody.scrollTop = chatBody.scrollHeight;
 }
 
-// تابع تبدیل تاریخ به فرمت نمایشی مناسب
 function formatDateTime(dateString) {
     try {
         const date = new Date(dateString);
-        // تبدیل تاریخ به شمسی (با استفاده از PersianDate)
         if (typeof persianDate !== 'undefined') {
             const pDate = new persianDate(date);
             const jDate = pDate.format('YYYY/MM/DD');
             const time = date.toLocaleTimeString('fa-IR', {hour: '2-digit', minute: '2-digit'});
             return `${jDate} ${time}`;
         } else {
-            // اگر کتابخانه persianDate در دسترس نبود، فرمت استاندارد را برگردان
             return date.toLocaleDateString('fa-IR') + ' ' + 
                    date.toLocaleTimeString('fa-IR', {hour: '2-digit', minute: '2-digit'});
         }
     } catch (e) {
         console.error('Error formatting date:', e);
-        return dateString; // در صورت خطا همان مقدار اصلی را برگردان
+        return dateString;
     }
-} 
+}
+
+let replyToMessage = null;
+
+function setReplyTo(msg) {
+    replyToMessage = msg;
+    const replyBox = document.getElementById('replyBox') || document.createElement('div');
+    replyBox.id = 'replyBox';
+    replyBox.className = 'reply-box';
+    replyBox.innerHTML = `
+        <span>در حال ریپلای به: ${msg.message ? msg.message.substring(0, 30) : '[فایل]'}</span>
+        <button onclick="clearReply()" title="لغو ریپلای"><i class="fas fa-times"></i></button>
+    `;
+    const chatFooter = document.querySelector('.chat-footer');
+    chatFooter.insertBefore(replyBox, chatFooter.firstChild);
+}
+
+function clearReply() {
+    replyToMessage = null;
+    const replyBox = document.getElementById('replyBox');
+    if (replyBox) replyBox.remove();
+}
+
+function showPinnedMessage(msg) {
+    const pinBox = document.getElementById('pinBox');
+    const pinnedText = document.getElementById('pinnedMessageText');
+    pinBox.style.display = 'flex';
+    pinnedText.innerHTML = `<a href="#" onclick="scrollToMessage('msg-${msg.id}');return false;">${msg.message ? msg.message.substring(0, 50) : '[فایل]'}</a>`;
+    pinBox.setAttribute('data-msg-id', msg.id);
+}
+
+function unpinPinnedMessage() {
+    const pinBox = document.getElementById('pinBox');
+    const messageId = pinBox.getAttribute('data-msg-id');
+    if (messageId) {
+        fetch(`/chat/api/chat/unpin/${messageId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                pinBox.style.display = 'none';
+                pinBox.removeAttribute('data-msg-id');
+            }
+        });
+    }
+}
+
+function scrollToMessage(messageId) {
+    const target = document.getElementById(messageId);
+    if (target) {
+        target.classList.add('reply-highlight');
+        target.scrollIntoView({behavior: 'smooth', block: 'center'});
+        setTimeout(() => target.classList.remove('reply-highlight'), 1500);
+    }
+}
+
+function pinMessage(msg) {
+    if (!msg.id) {
+        alert('شناسه پیام نامعتبر است');
+        return;
+    }
+    fetch(`/chat/api/chat/pin/${msg.id}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showPinnedMessage(msg);
+        }
+    });
+}

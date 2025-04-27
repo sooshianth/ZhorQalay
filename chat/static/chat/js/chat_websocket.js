@@ -1,26 +1,28 @@
-// توابع نمایش پیام
 function displayPrivateMessage(msg) {
-    console.log('Displaying private message:', msg);
     const chatBody = document.getElementById('privateChatBody');
     
-    // اطمینان از وجود timestamp
     if (!msg.timestamp) {
         msg.timestamp = new Date().toISOString();
     }
     
-    // تولید ID یکتا برای پیام
-    const uniqueId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-    const messageId = `private-${msg.sender_id}-${uniqueId}`;
-    
-    // بررسی کنیم آیا این پیام قبلاً نمایش داده شده است
-    if (document.getElementById(messageId)) {
-        console.log('Message already displayed, skipping:', messageId);
-        return;
-    }
+    const messageId = msg.id ? `msg-${msg.id}` : `private-${msg.sender_id}-${Date.now()}`;
+    if (document.getElementById(messageId)) return;
     
     const messageDiv = document.createElement('div');
     messageDiv.className = `chat-message ${msg.sender_id == userId ? 'sent' : 'received'}`;
-    messageDiv.id = messageId; // اضافه کردن شناسه یکتا برای هر پیام
+    messageDiv.id = messageId;
+    
+    if (msg.reply_to && msg.reply_to_message) {
+        const replyDiv = document.createElement('div');
+        replyDiv.className = 'reply-preview';
+        replyDiv.innerHTML = `
+            <a href="#" class="reply-link" onclick="scrollToMessage('msg-${msg.reply_to}');return false;">
+                <span class="reply-author">${msg.reply_to_author || 'کاربر'}:</span>
+                <span class="reply-text">${msg.reply_to_message.substring(0, 40)}${msg.reply_to_message.length > 40 ? '...' : ''}</span>
+            </a>
+        `;
+        messageDiv.appendChild(replyDiv);
+    }
     
     if (msg.message) {
         const messageContent = document.createElement('div');
@@ -28,53 +30,38 @@ function displayPrivateMessage(msg) {
         messageDiv.appendChild(messageContent);
     } else if (msg.file_url) {
         if (msg.file_type && msg.file_type.startsWith('image/')) {
-            // نمایش تصویر
             const imgContainer = document.createElement('div');
             imgContainer.className = 'image-container';
-            
-            // نمایش لودینگ تصویر
             const loadingSpinner = document.createElement('div');
             loadingSpinner.className = 'loading-spinner';
             loadingSpinner.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             imgContainer.appendChild(loadingSpinner);
             
             const img = document.createElement('img');
-            img.style.display = 'none'; // پنهان کردن تصویر تا زمان بارگذاری
+            img.style.display = 'none';
             img.alt = 'تصویر';
-            
-            // وقتی تصویر بارگذاری شد، لودینگ را حذف و تصویر را نمایش بده
             img.onload = function() {
                 loadingSpinner.remove();
                 img.style.display = 'block';
             };
-            
             img.onerror = function() {
                 loadingSpinner.remove();
                 imgContainer.innerHTML = '<div class="error-message">خطا در بارگذاری تصویر</div>';
             };
-            
-            // تنظیم آدرس تصویر
             img.src = msg.file_url;
-            
             imgContainer.appendChild(img);
             messageDiv.appendChild(imgContainer);
-            
-            // امکان کلیک روی تصویر برای نمایش بزرگتر
             img.onclick = function() {
                 window.open(msg.file_url, '_blank');
             };
         } else {
-            // نمایش لینک دانلود
             const fileLink = document.createElement('a');
             fileLink.href = msg.file_url;
             fileLink.download = '';
             fileLink.target = '_blank';
             fileLink.className = 'file-link';
-            
-            // تعیین نوع فایل برای نمایش آیکون مناسب
             let fileIcon = 'fa-file';
             let fileType = 'فایل';
-            
             if (msg.file_type) {
                 if (msg.file_type.includes('pdf')) {
                     fileIcon = 'fa-file-pdf';
@@ -96,13 +83,11 @@ function displayPrivateMessage(msg) {
                     fileType = 'فایل فشرده';
                 }
             }
-            
             fileLink.innerHTML = `<i class="fas ${fileIcon}"></i> دانلود ${fileType}`;
             messageDiv.appendChild(fileLink);
         }
     }
     
-    // اضافه کردن زمان
     if (msg.timestamp) {
         const timestampDiv = document.createElement('div');
         timestampDiv.className = 'chat-timestamp';
@@ -110,7 +95,31 @@ function displayPrivateMessage(msg) {
         messageDiv.appendChild(timestampDiv);
     }
     
-    // حذف پیام‌های لودینگ یا خالی اگر وجود دارند
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'message-actions';
+    
+    const replyBtn = document.createElement('button');
+    replyBtn.className = 'reply-btn';
+    replyBtn.title = 'ریپلای';
+    replyBtn.innerHTML = '<i class="fas fa-reply"></i>';
+    replyBtn.onclick = function() { setReplyTo(msg); };
+    
+    const pinBtn = document.createElement('button');
+    pinBtn.className = 'pin-btn';
+    pinBtn.title = msg.is_pinned ? 'برداشتن پین' : 'پین کردن';
+    pinBtn.innerHTML = `<i class="fas fa-thumbtack${msg.is_pinned ? ' pinned' : ''}"></i>`;
+    pinBtn.onclick = function() { 
+        if (msg.is_pinned) {
+            unpinMessage(msg);
+        } else {
+            pinMessage(msg);
+        }
+    };
+    
+    actionsDiv.appendChild(replyBtn);
+    actionsDiv.appendChild(pinBtn);
+    messageDiv.appendChild(actionsDiv);
+    
     const emptyMessages = chatBody.querySelectorAll('.empty-message, .loading-message');
     emptyMessages.forEach(element => {
         if (!element.closest('.chat-message')) {
@@ -123,40 +132,36 @@ function displayPrivateMessage(msg) {
 }
 
 function displayGlobalMessage(msg) {
-    console.log('Displaying global message:', msg);
     const chatBody = document.getElementById('globalChatBody');
     
-    // اطمینان از وجود timestamp
     if (!msg.timestamp) {
         msg.timestamp = new Date().toISOString();
     }
     
-    // تولید ID یکتا برای پیام
-    const uniqueId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-    const messageId = `global-${msg.sender_id}-${uniqueId}`;
-    
-    // بررسی کنیم آیا این پیام قبلاً نمایش داده شده است
-    if (document.getElementById(messageId)) {
-        console.log('Message already displayed, skipping:', messageId);
-        return;
-    }
+    const messageId = msg.id ? `msg-${msg.id}` : `global-${msg.sender_id}-${Date.now()}`;
+    if (document.getElementById(messageId)) return;
     
     const messageDiv = document.createElement('div');
-    messageDiv.id = messageId; // اضافه کردن شناسه یکتا برای هر پیام
+    messageDiv.className = `chat-message ${msg.sender_id == userId ? 'sent' : 'global'}`;
+    messageDiv.id = messageId;
     
-    // مشخص کردن اینکه پیام از خود کاربر است یا از دیگران
-    if (msg.sender_id == userId) {
-        messageDiv.className = 'chat-message sent';
-    } else {
-        messageDiv.className = 'chat-message global';
-        
-        // اضافه کردن نام فرستنده به پیام
-        if (msg.username) {
-            const senderName = document.createElement('div');
-            senderName.className = 'sender-name';
-            senderName.textContent = msg.username;
-            messageDiv.appendChild(senderName);
-        }
+    if (msg.reply_to && msg.reply_to_message) {
+        const replyDiv = document.createElement('div');
+        replyDiv.className = 'reply-preview';
+        replyDiv.innerHTML = `
+            <a href="#" class="reply-link" onclick="scrollToMessage('msg-${msg.reply_to}');return false;">
+                <span class="reply-author">${msg.reply_to_author || 'کاربر'}:</span>
+                <span class="reply-text">${msg.reply_to_message.substring(0, 40)}${msg.reply_to_message.length > 40 ? '...' : ''}</span>
+            </a>
+        `;
+        messageDiv.appendChild(replyDiv);
+    }
+    
+    if (msg.sender_id != userId) {
+        const senderName = document.createElement('div');
+        senderName.className = 'sender-name';
+        senderName.textContent = msg.username || 'کاربر';
+        messageDiv.appendChild(senderName);
     }
     
     if (msg.message) {
@@ -165,53 +170,38 @@ function displayGlobalMessage(msg) {
         messageDiv.appendChild(messageContent);
     } else if (msg.file_url) {
         if (msg.file_type && msg.file_type.startsWith('image/')) {
-            // نمایش تصویر
             const imgContainer = document.createElement('div');
             imgContainer.className = 'image-container';
-            
-            // نمایش لودینگ تصویر
             const loadingSpinner = document.createElement('div');
             loadingSpinner.className = 'loading-spinner';
             loadingSpinner.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             imgContainer.appendChild(loadingSpinner);
             
             const img = document.createElement('img');
-            img.style.display = 'none'; // پنهان کردن تصویر تا زمان بارگذاری
+            img.style.display = 'none';
             img.alt = 'تصویر';
-            
-            // وقتی تصویر بارگذاری شد، لودینگ را حذف و تصویر را نمایش بده
             img.onload = function() {
                 loadingSpinner.remove();
                 img.style.display = 'block';
             };
-            
             img.onerror = function() {
                 loadingSpinner.remove();
                 imgContainer.innerHTML = '<div class="error-message">خطا در بارگذاری تصویر</div>';
             };
-            
-            // تنظیم آدرس تصویر
             img.src = msg.file_url;
-            
             imgContainer.appendChild(img);
             messageDiv.appendChild(imgContainer);
-            
-            // امکان کلیک روی تصویر برای نمایش بزرگتر
             img.onclick = function() {
                 window.open(msg.file_url, '_blank');
             };
         } else {
-            // نمایش لینک دانلود
             const fileLink = document.createElement('a');
             fileLink.href = msg.file_url;
             fileLink.download = '';
             fileLink.target = '_blank';
             fileLink.className = 'file-link';
-            
-            // تعیین نوع فایل برای نمایش آیکون مناسب
             let fileIcon = 'fa-file';
             let fileType = 'فایل';
-            
             if (msg.file_type) {
                 if (msg.file_type.includes('pdf')) {
                     fileIcon = 'fa-file-pdf';
@@ -233,13 +223,11 @@ function displayGlobalMessage(msg) {
                     fileType = 'فایل فشرده';
                 }
             }
-            
             fileLink.innerHTML = `<i class="fas ${fileIcon}"></i> دانلود ${fileType}`;
             messageDiv.appendChild(fileLink);
         }
     }
     
-    // اضافه کردن زمان
     if (msg.timestamp) {
         const timestampDiv = document.createElement('div');
         timestampDiv.className = 'chat-timestamp';
@@ -247,7 +235,31 @@ function displayGlobalMessage(msg) {
         messageDiv.appendChild(timestampDiv);
     }
     
-    // حذف پیام‌های لودینگ یا خالی اگر وجود دارند
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'message-actions';
+    
+    const replyBtn = document.createElement('button');
+    replyBtn.className = 'reply-btn';
+    replyBtn.title = 'ریپلای';
+    replyBtn.innerHTML = '<i class="fas fa-reply"></i>';
+    replyBtn.onclick = function() { setReplyTo(msg); };
+    
+    const pinBtn = document.createElement('button');
+    pinBtn.className = 'pin-btn';
+    pinBtn.title = msg.is_pinned ? 'برداشتن پین' : 'پین کردن';
+    pinBtn.innerHTML = `<i class="fas fa-thumbtack${msg.is_pinned ? ' pinned' : ''}"></i>`;
+    pinBtn.onclick = function() { 
+        if (msg.is_pinned) {
+            unpinMessage(msg);
+        } else {
+            pinMessage(msg);
+        }
+    };
+    
+    actionsDiv.appendChild(replyBtn);
+    actionsDiv.appendChild(pinBtn);
+    messageDiv.appendChild(actionsDiv);
+    
     const emptyMessages = chatBody.querySelectorAll('.empty-message, .loading-message');
     emptyMessages.forEach(element => {
         if (!element.closest('.chat-message')) {
@@ -646,3 +658,30 @@ function ensureBadges() {
         setTimeout(ensureBadges, 500);
     }
 } 
+
+function pinMessage(msg) {
+    fetch(`/chat/api/chat/pin/${msg.id}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showPinnedMessage(msg);
+        }
+    });
+}
+
+function showPinnedMessage(msg) {
+    let pinBox = document.getElementById('pinBox');
+    if (!pinBox) {
+        pinBox = document.createElement('div');
+        pinBox.id = 'pinBox';
+        pinBox.className = 'pin-box';
+        const chatBody = document.querySelector('.chat-body');
+        chatBody.parentNode.insertBefore(pinBox, chatBody);
+    }
+    pinBox.innerHTML = `<i class="fas fa-thumbtack"></i> پیام پین شده: ${msg.message ? msg.message.substring(0, 50) : '[فایل]'}`;
+}

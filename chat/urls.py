@@ -19,4 +19,8 @@ urlpatterns = [
     path('api/chat/unread/count/', chatBot_view.unread_messages_count, name='unread_messages_count'),
     path('api/chat/global/unread/count/', chatBot_view.unread_global_messages_count, name='unread_global_messages_count'),
     path('api/chat/mark-as-read/', chatBot_view.mark_messages_as_read, name='mark_messages_as_read'),
+
+    path('api/chat/pin/<int:message_id>/', chatBot_view.pin_message, name='pin_message'),
+    path('api/chat/unpin/<int:message_id>/', chatBot_view.unpin_message, name='unpin_message'),
+
 ]
