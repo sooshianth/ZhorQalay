@@ -694,7 +694,8 @@ def create_new_purchase(customer_name, bazaargah_phone_number, purchase_number,
                             field_of_activity_raw = str(row[fieldname]).strip()
                             break
 
-                    field_of_activity = map_excel_field_to_model(field_of_activity_raw)
+                    # دریافت لیستی از کدهای زمینه فعالیت
+                    field_of_activity_list = map_excel_field_to_model(field_of_activity_raw)
 
                     # استخراج استان از آدرس
                     province = None
@@ -703,15 +704,43 @@ def create_new_purchase(customer_name, bazaargah_phone_number, purchase_number,
                         logger.debug(f"آدرس: {address}")
                         logger.debug(f"استان استخراج شده: {province}")
 
+                    # ایجاد مشتری بدون فیلدهای ManyToMany
                     customer = Customer.objects.create(
                         phone_number=bazaargah_phone_number,
                         name=customer_name if customer_name else "مشتری جدید",
-                        field_of_activity=field_of_activity if field_of_activity else 'chicken',
                         sms_preference=True,
                         is_bazaargah_enjoyer=True,
-                        city=province  # ذخیره استان در فیلد city
+                        city=province,  # ذخیره استان در فیلد city
                     )
-
+                    
+                    # تنظیم زمینه فعالیت با استفاده از property
+                    customer.field_of_activity_list = field_of_activity_list
+                    
+                    # تنظیم ترجیحات پرداخت پیش‌فرض
+                    # اگر بازارگاه است، احتمالاً ترجیح پرداخت بازارگاه دارد
+                    customer.purchase_preferences_list = ['bazaargah']
+                    
+                    # محصول ترجیحی بر اساس نوع محصول فعلی
+                    product_preference = None
+                    if cargo_product and hasattr(cargo_product, 'product_type') and cargo_product.product_type:
+                        # نگاشت کدهای محصول به product_preference
+                        product_type_map = {
+                            'corn': 'corn',
+                            'barley': 'barley',
+                            'soy_meal': 'soy_meal',
+                            'sunflower_meal': 'sunflower_meal',
+                            'rapeseed_meal': 'rapeseed_meal',
+                            'local_extracted_soy': 'local_extracted_soy',
+                            'foreign_extracted_soy': 'foreign_extracted_soy',
+                            'soy_grain': 'soy_grain',
+                            'cotton_seed': 'cotton_seed',
+                            'alfalfa': 'alfalfa'
+                        }
+                        product_preference = product_type_map.get(cargo_product.product_type)
+                    
+                    if product_preference:
+                        customer.product_preferences_list = [product_preference]
+                    
                     logger.debug(f"مشتری جدید ایجاد شد با شناسه: {customer.id}")
                     # اضافه کردن کارشناس فروش
                     if super_agent:

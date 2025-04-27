@@ -6,7 +6,6 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0080_alter_customer_product_preferences'),
         ('core', '0080_purchase_send_cottage_sms'),
     ]
 

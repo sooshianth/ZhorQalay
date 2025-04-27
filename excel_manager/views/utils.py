@@ -247,33 +247,46 @@ def map_excel_field_to_model(field_value):
     ورودی:
         field_value: مقدار زمینه فعالیت در فایل اکسل
     خروجی:
-        مقدار معادل در مدل (chicken, livestock, etc.)
+        لیستی از کدهای زمینه فعالیت (مثل ['chicken', 'factory'])
     """
     # اگر مقدار None یا تهی بود
     if not field_value or not isinstance(field_value, str):
-        return 'chicken'  # مقدار پیش‌فرض
+        return ['chicken']  # مقدار پیش‌فرض
 
     field_value = field_value.strip()
+    
+    # لیستی برای نگهداری همه کدهای مرتبط با زمینه فعالیت
+    activity_codes = []
+    
     FIELD_MAP = {
         'مرغداری': 'chicken',
+        'مرغدار': 'chicken',
         'دامداری': 'livestock',
+        'دامدار': 'livestock',
         'گاوداری': 'livestock',
         'تولیدی مرغ': 'chicken',
-        'تعاونی': 'corporation', # یا بر اساس دیتا واقعی؛ ممکن است نیازمند تفکیک دقیق‌تر باشد!
-        'دلال': 'trader',
-        'بازرگان': 'trader',
+        'تعاونی': 'corporation',
+        'دلال': 'dealer',
+        'بازرگان': 'dealer',
         'کارخانه': 'factory',
+        'کارخانه خوراک': 'factory',
         'خریداران كارخانه خوراك': 'factory',
         'آبزی': 'fish',
         'پرورش آبزیان': 'fish',
         'ماهی': 'fish',
         'اتحادیه': 'association',
     }
+    
+    # بررسی تمام کلیدواژه‌ها و اضافه کردن کدهای مرتبط به لیست
     for k, v in FIELD_MAP.items():
-        if k in field_value:
-            return v
-    # اگر پیدا نشد
-    return 'chicken'
+        if k in field_value and v not in activity_codes:
+            activity_codes.append(v)
+    
+    # اگر هیچ کدی پیدا نشد، مقدار پیش‌فرض را برگردان
+    if not activity_codes:
+        activity_codes = ['chicken']
+        
+    return activity_codes
 
 def get_super_user_agent():
     """
@@ -285,8 +298,58 @@ def get_super_user_agent():
     خروجی:
         نمونه sales_agent مربوط به superuser یا None
     """
-    super_user = User.objects.filter(is_superuser=True).first()
-    super_agent = None
-    if super_user and hasattr(super_user, 'sales_agent'):
-        super_agent = super_user.sales_agent
-    return super_agent 
+    # super_user = User.objects.filter(is_superuser=True).first()
+    # super_agent = None
+    # if super_user and hasattr(super_user, 'sales_agent'):
+    #     super_agent = super_user.sales_agent
+    # return super_agent 
+    super_agent = User.objects.filter(username='Ms_Sadri').first()
+    return super_agent.sales_agent
+
+def test_manytomany_fields():
+    """
+    تابع تست برای امتحان کردن تبدیل فیلدهای ManyToMany در مدل Customer
+    
+    این تابع می‌تواند به صورت زیر فراخوانی شود:
+    
+    از داخل پوسته جنگو:
+    from excel_manager.views.utils import test_manytomany_fields
+    test_manytomany_fields()
+    """
+    from core.CustomerModel import Customer, ActivityField, PaymentPreference, ProductPreference
+    
+    # نمونه‌هایی از مقادیر از فایل اکسل
+    sample_activities = [
+        "مرغداری",
+        "دامداری و تعاونی",
+        "کارخانه خوراک",
+        "اتحادیه مرغداران"
+    ]
+    
+    # نتایج تبدیل
+    results = []
+    for activity in sample_activities:
+        # تبدیل به کد
+        codes = map_excel_field_to_model(activity)
+        
+        # ایجاد یک مشتری آزمایشی با این کدها
+        test_customer = Customer(name=f"Test for {activity}")
+        test_customer.save()
+        
+        # تنظیم زمینه فعالیت
+        test_customer.field_of_activity_list = codes
+        
+        # دریافت مقادیر نمایشی
+        display_value = test_customer.get_field_of_activity_display()
+        
+        # حذف مشتری آزمایشی
+        test_customer.delete()
+        
+        # ذخیره نتایج
+        results.append(f"""
+        متن اصلی: {activity}
+        کدهای تبدیل شده: {codes}
+        نمایش: {display_value}
+        """)
+    
+    return "\n".join(results)
