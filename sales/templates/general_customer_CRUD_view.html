@@ -5,6 +5,32 @@
 {% block head_styles %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'css_file/style.css' %}">
+    <style>
+        .custom-price-container {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px solid #eaeaea;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .checkbox-label input[type="checkbox"] {
+            margin-left: 8px;
+        }
+        
+        #custom-price-field {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #ccc;
+        }
+    </style>
 {% endblock %}
 
 {% load custom_filters %}
@@ -312,6 +338,7 @@
                 <!-- فرم ثبت خرید جدید -->
                 <form method="post" id="purchase-form" class="purchase-form">
                     {% csrf_token %}
+                    <!-- DEBUG: Number of active products: {{ active_products|length }} -->
                     <div class="form-group">
                         <label>انتخاب کوتاژ:</label>
                         <select name="cottage_number" id="cottage-select" onchange="showCargoDetails()" required>
@@ -337,6 +364,16 @@
                     <div class="form-group">
                         <label>وزن احتمالی خرید (کیلوگرم):</label>
                         <input type="number" name="weight" min="100" step="100" required>
+                    </div>
+                    
+                    <div class="form-group custom-price-container">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="use-custom-price" name="use_custom_price"> آیا میخواهید فی فروش دیگری را ثبت کنید؟
+                        </label>
+                        <div id="custom-price-field" style="display: none; margin-top: 10px;">
+                            <label>فی فروش سفارشی (ریال):</label>
+                            <input type="number" name="custom_price" id="custom-price-input" min="1000" step="10">
+                        </div>
                     </div>
             
                     <button type="submit" name="create_purchase" class="action-button">ارسال پیامک به مشتری</button>
@@ -419,6 +456,45 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+// نمایش جزئیات کوتاژ - این تابع را خارج از بلاک DOMContentLoaded قرار دادیم
+function showCargoDetails() {
+    const select = document.getElementById('cottage-select');
+    const detailsDiv = document.getElementById('cargo-details');
+    const selectedCottage = select.value;
+    const customPriceInput = document.getElementById('custom-price-input');
+    
+    console.log('Selected cottage:', selectedCottage);
+    console.log('Elements:', {
+        select: !!select,
+        detailsDiv: !!detailsDiv,
+        productType: !!document.getElementById('product-type'),
+        customPriceInput: !!customPriceInput
+    });
+    
+    {% for product in active_products %}
+        if ("{{ product.cottage }}" === selectedCottage) {
+            console.log('Found matching product: {{ product.cottage }} - {{ product.get_product_type_display }}');
+            detailsDiv.style.display = 'block';
+            document.getElementById('product-type').textContent = `نوع: {{ product.get_product_type_display }}`;
+            document.getElementById('product-country').textContent = `کشور: {{ product.get_country_display }}`;
+            document.getElementById('product-loading').textContent = `زمان بارگیری: {{ product.loading_time }}`;
+            document.getElementById('product-loading-place').textContent = `محل بارگیری: {{ product.port }}`;
+            document.getElementById('product-price').textContent = `فی فروش: {{ product.customer_price }}`;
+            document.getElementById('product-description').textContent = `توضیحات: {{ product.description }}`;
+            
+            // Set the default value for custom price input
+            if (customPriceInput) {
+                customPriceInput.value = {{ product.customer_price }};
+                customPriceInput.setAttribute('data-default', {{ product.customer_price }});
+            }
+            return;
+        }
+    {% endfor %}
+    
+    console.log('No matching product found');
+    detailsDiv.style.display = 'none';
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // کنترل باز و بسته شدن ترجیحات کالایی
     const collapsibleToggles = document.querySelectorAll('.collapsible-toggle');
@@ -540,28 +616,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // نمایش جزئیات کوتاژ
-    function showCargoDetails() {
-        const select = document.getElementById('cottage-select');
-        const detailsDiv = document.getElementById('cargo-details');
-        const selectedCottage = select.value;
-        
-        {% for product in active_products %}
-            if ("{{ product.cottage }}" === selectedCottage) {
-                detailsDiv.style.display = 'block';
-                document.getElementById('product-type').textContent = `نوع: {{ product.get_product_type_display }}`;
-                document.getElementById('product-country').textContent = `کشور: {{ product.get_country_display }}`;
-                document.getElementById('product-loading').textContent = `زمان بارگیری: {{ product.loading_time }}`;
-                document.getElementById('product-loading-place').textContent = `محل بارگیری: {{ product.loading_place }}`;
-                document.getElementById('product-price').textContent = `فی فروش: {{ product.customer_price }}`;
-                document.getElementById('product-description').textContent = `توضیحات: {{ product.description }}`;
-                return;
-            }
-        {% endfor %}
-        
-        detailsDiv.style.display = 'none';
-    }
-
     // افکت‌ها برای آیتم‌ها
     document.querySelectorAll('.call-item, .task-item, .history-item').forEach(item => {
         item.addEventListener('mouseenter', () => {
@@ -574,6 +628,17 @@ document.addEventListener('DOMContentLoaded', function() {
             item.style.boxShadow = 'none';
         });
     });
+
+    // مدیریت نمایش فیلد قیمت سفارشی
+    const useCustomPriceCheckbox = document.getElementById('use-custom-price');
+    const customPriceField = document.getElementById('custom-price-field');
+    const customPriceInput = document.getElementById('custom-price-input');
+    
+    if (useCustomPriceCheckbox && customPriceField) {
+        useCustomPriceCheckbox.addEventListener('change', function() {
+            customPriceField.style.display = this.checked ? 'block' : 'none';
+        });
+    }
 
     // Autocomplete جستجو
     document.getElementById('search-input').addEventListener('input', function(e) {

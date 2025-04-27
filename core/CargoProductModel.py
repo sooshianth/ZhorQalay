@@ -76,10 +76,10 @@ class CargoProduct(models.Model):
             raise ValidationError('کوتاژ برای خرید بازارگاه باید ۸ رقم عددی باشد.')
         if self.type == 'non_bazaargah' and not self.cottage.isdigit() and not len(str(self.cottage)) == 3:
             raise ValidationError('کوتاژ برای خرید خارج از بازارگاه باید ۳ رقم عددی باشد.')
-        if self.customer_price != 0 and (self.customer_price < 50000 or self.customer_price > 300000):
-            raise ValidationError('فی فروش عددی غیرواقعی است.')
-        if self.company_price != 0 and (self.company_price < 50000 or self.company_price > 300000):
-            raise ValidationError('فی خرید عددی غیرواقعی است.')
+        if self.customer_price != 0 and self.customer_price < 50000:
+            raise ValidationError('فی فروش باید حداقل 50000 ریال باشد.')
+        if self.company_price != 0 and self.company_price < 50000:
+            raise ValidationError('فی خرید باید حداقل 50000 ریال باشد.')
         
     def get_product_type_display(self):
         return dict(self.PRODUCT_TYPES).get(self.product_type, _('نامشخص'))

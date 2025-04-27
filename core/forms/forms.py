@@ -7,27 +7,22 @@ from django.core.exceptions import ValidationError
 from sms_ir import SmsIr
 
 
-api_key='mbdRODVCB2JHUX5c3IpetXsiDXFIT6bo7JZo0PhiTFWkuIN4'
-linenumber=90008316
-sms_account = SmsIr(api_key, linenumber)
-
 def send_verify_code(number:str):
     """
     Send a verification code to a phone number
     """
-    from django.utils import timezone
-    from django.conf import settings
-    from django.core.cache import cache
-    import random
+    api_key='mbdRODVCB2JHUX5c3IpetXsiDXFIT6bo7JZo0PhiTFWkuIN4'
+    linenumber=90008316
+    sms_account = SmsIr(api_key, linenumber)
+    
     # Generate a random 6-digit code
+    import random
     code = str(random.randint(100000, 999999))
     
-    template_id = 602228
-    parameters = [{'code': code}]
+    message = f"کد تایید شما برای ورود به سامانه سیمرغ : \n  {code}"
     try:
         # Convert number to integer as required by the API
-        number_int = int(number)
-        response = sms_account.send_verify_code(number_int, template_id, parameters)
+        response = sms_account.send_sms(number, message)
         return code
     except Exception as e:
         print(f"SMS sending error: {e}")

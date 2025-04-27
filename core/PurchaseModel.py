@@ -453,11 +453,11 @@ class Purchase(models.Model):
                 errors['state'] = 'خرید آرشیو شده نمی‌تواند پرداخت شده، ارسال شده، تحویل داده شده یا لغو شده باشد.'
                 
         # تنها زمانی قیمت‌ها را بررسی کن که مقدار واقعی داشته باشند، نه مقادیر پیش‌فرض بایپس اعتبارسنجی
-        if self.customer_price > 0 and (self.customer_price < 50000 or self.customer_price > 300000):
-            errors['customer_price'] = 'فی فروش عددی غیرواقعی است.'
+        if self.customer_price > 0 and self.customer_price < 50000:
+            errors['customer_price'] = 'فی فروش باید حداقل 50000 ریال باشد.'
             
-        if self.company_price > 0 and (self.company_price < 50000 or self.company_price > 300000):
-            errors['company_price'] = 'فی خرید عددی غیرواقعی است.'
+        if self.company_price > 0 and self.company_price < 50000:
+            errors['company_price'] = 'فی خرید باید حداقل 50000 ریال باشد.'
 
         if errors:
             raise ValidationError(errors)
@@ -497,10 +497,11 @@ class Purchase(models.Model):
                 break
 
         # Send SMS notification for new purchase only on creation
-        if is_new and self.customer.sms_preference and has_non_admin and self.send_cottage_sms:
-            sms_api = get_sms_api()
-            sms_api.send_new_purchase_notification(self)
-            # تنظیم وضعیت SMS ارسال شده
+        if is_new and self.customer.sms_preference and has_non_admin:
+            if self.send_cottage_sms:
+                sms_api = get_sms_api()
+                sms_api.send_new_purchase_notification(self)
+                # تنظیم وضعیت SMS ارسال شده
             if not PurchaseStateChange.objects.filter(purchase=self, new_state='SMS_SENT').exists():
                 PurchaseStateChange.objects.create(
                     purchase=self,

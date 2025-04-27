@@ -162,6 +162,11 @@ class CustomerForm(forms.ModelForm):
                 )
             instance.phone_number = phone_number
         
+        # ذخیره داده‌های مربوط به ترجیحات مشتری
+        instance.field_of_activity_list = self.cleaned_data['field_of_activity']
+        instance.product_preferences_list = self.cleaned_data['product_preferences']
+        instance.purchase_preferences_list = self.cleaned_data['purchase_preferences']
+        
         instance.save()
         
         if phone_number:
@@ -180,10 +185,6 @@ class CustomerForm(forms.ModelForm):
                 existing_phone.save()
         
         # Set ManyToMany relationships using the property setters
-        instance.set_field_of_activity_list(self.cleaned_data['field_of_activity'])
-        instance.set_product_preferences_list(self.cleaned_data['product_preferences'])
-        instance.set_purchase_preferences_list(self.cleaned_data['purchase_preferences'])
-        
         if self.sales_agent and not instance.sales_agent.filter(id=self.sales_agent.id).exists():
             instance.sales_agent.add(self.sales_agent)
         
@@ -469,6 +470,8 @@ def general_customer_CRUD_view(request):
     if request.method == "POST" and 'create_purchase' in request.POST and customer:
         cottage_number = request.POST.get('cottage_number')
         order_weight = request.POST.get('weight')
+        use_custom_price = request.POST.get('use_custom_price') == 'on'
+        custom_price = request.POST.get('custom_price')
         
         # try:
         with transaction.atomic():
@@ -480,8 +483,13 @@ def general_customer_CRUD_view(request):
                 cargo=cargo
             )
             new_purchase.full_clean()
-            # new_purchase.save()
-            new_purchase.customer_price = new_purchase.cargo.customer_price
+            
+            # استفاده از قیمت سفارشی اگر انتخاب شده باشد
+            if use_custom_price and custom_price and custom_price.isdigit():
+                new_purchase.customer_price = int(custom_price)
+            else:
+                new_purchase.customer_price = new_purchase.cargo.customer_price
+                
             new_purchase.company_price = new_purchase.cargo.company_price
             new_purchase.amount_paid = new_purchase.customer_price * new_purchase.order_weight
             new_purchase.save()
@@ -490,6 +498,8 @@ def general_customer_CRUD_view(request):
     elif request.method == "POST" and 'create_purchase_without_sms' in request.POST and customer:
         cottage_number = request.POST.get('cottage_number')
         order_weight = request.POST.get('weight')
+        use_custom_price = request.POST.get('use_custom_price') == 'on'
+        custom_price = request.POST.get('custom_price')
         
         # try:
         with transaction.atomic():
@@ -502,8 +512,13 @@ def general_customer_CRUD_view(request):
                 send_cottage_sms=False
             )
             new_purchase.full_clean()
-            # new_purchase.save()
-            new_purchase.customer_price = new_purchase.cargo.customer_price
+            
+            # استفاده از قیمت سفارشی اگر انتخاب شده باشد
+            if use_custom_price and custom_price and custom_price.isdigit():
+                new_purchase.customer_price = int(custom_price)
+            else:
+                new_purchase.customer_price = new_purchase.cargo.customer_price
+                
             new_purchase.company_price = new_purchase.cargo.company_price
             new_purchase.amount_paid = new_purchase.customer_price * new_purchase.order_weight
             new_purchase.save()

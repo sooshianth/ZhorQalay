@@ -233,9 +233,9 @@
 <div class="bg-white p-6 rounded-lg shadow-md mb-6">
     <p class="text-lg"><strong>نام:</strong> {{ sales_agent.name }}</p>
     <p class="text-lg"><strong>شماره تلفن:</strong> {{ sales_agent.phone_number }}</p>
-    <a href="{% url 'sales_dashboard' %}" class="button">
+    {% comment %} <a href="{% url 'sales_dashboard' %}" class="button">
         مشاهده داشبورد فروش
-    </a>
+    </a> {% endcomment %}
 </div>
 
 <div class="notification-center">
@@ -496,7 +496,7 @@
     </div>
 </div>
 <br>
-<p>مجموع فروش‌های این ماه به تن: {{ all_sales }}</p>
+{% comment %} <p>مجموع فروش‌های این ماه به تن: {{ all_sales }}</p> {% endcomment %}
 <br>
 <a href="{% url 'customer_list' %}" class="button" aria-label="مشاهده لیست مشتریان">مشاهده لیست مشتریان</a>
 
