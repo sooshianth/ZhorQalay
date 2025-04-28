@@ -360,19 +360,13 @@ class PurchaseAdmin(admin.ModelAdmin):
 #     ordering = ('-timestamp',)
 
 # تنظیمات نمایش مدل ShenaseTakhsis در ادمین
-@admin.register(ShenaseTakhsis)
-class ShenaseTakhsisAdmin(admin.ModelAdmin):
-    list_display = ('purchase', 'code', 'created_at')
-    list_filter = ('created_at',)
-    search_fields = ('purchase__purchase_number', 'code')
-    ordering = ('-created_at',)
+# @admin.register(ShenaseTakhsis)
+# class ShenaseTakhsisAdmin(admin.ModelAdmin):
+#     list_display = ('purchase', 'code', 'created_at')
+#     list_filter = ('created_at',)
+#     search_fields = ('purchase__purchase_number', 'code')
+#     ordering = ('-created_at',)
 
-# تنظیمات نمایش مدل SalesAgent در ادمین
-@admin.register(SalesAgent)
-class SalesAgentAdmin(admin.ModelAdmin):
-    list_display = ('name', 'phone_number', 'user')
-    search_fields = ('name', 'phone_number')
-    ordering = ('name',)
 
 # تنظیمات نمایش مدل Task در ادمین
 # @admin.register(Task)
@@ -389,6 +383,15 @@ class CallSessionAdmin(admin.ModelAdmin):
     list_filter = ('date', 'customer__sales_agent')
     ordering = ('-date',)
 
+
+# تنظیمات نمایش مدل SalesAgent در ادمین
+@admin.register(SalesAgent)
+class SalesAgentAdmin(admin.ModelAdmin):
+    list_display = ('name', 'phone_number', 'user')
+    search_fields = ('name', 'phone_number')
+    ordering = ('name',)
+
+
 # تنظیمات نمایش مدل FinancialManager در ادمین
 @admin.register(FinancialManager)
 class FinancialManagerAdmin(admin.ModelAdmin):
@@ -403,12 +406,12 @@ class LogisticsManagerAdmin(admin.ModelAdmin):
     search_fields = ('name', 'phone_number')
     ordering = ('name',)
 
-@admin.register(PhoneNumber)
-class PhoneNumberAdmin(admin.ModelAdmin):
-    list_display = ('number', 'customer', 'is_primary')
-    list_filter = ('is_primary',)
-    search_fields = ('number', 'customer__name')
-    raw_id_fields = ('customer',)
+# @admin.register(PhoneNumber)
+# class PhoneNumberAdmin(admin.ModelAdmin):
+#     list_display = ('number', 'customer', 'is_primary')
+#     list_filter = ('is_primary',)
+#     search_fields = ('number', 'customer__name')
+#     raw_id_fields = ('customer',)
 
 @admin.register(SupportAgent)
 class SupportAgentAdmin(admin.ModelAdmin):
@@ -417,12 +420,12 @@ class SupportAgentAdmin(admin.ModelAdmin):
     ordering = ('-created_at',)
 
 
-@admin.register(PurchaseStateChange)
-class PurchaseStateChangeAdmin(admin.ModelAdmin):
-    list_display = ('purchase', 'previous_state', 'new_state', 'changed_by', 'changed_at')
-    list_filter = ('previous_state', 'new_state')
-    search_fields = ('purchase__purchase_number', 'changed_by__username')
-    ordering = ('-changed_at',)
+# @admin.register(PurchaseStateChange)
+# class PurchaseStateChangeAdmin(admin.ModelAdmin):
+#     list_display = ('purchase', 'previous_state', 'new_state', 'changed_by', 'changed_at')
+#     list_filter = ('previous_state', 'new_state')
+#     search_fields = ('purchase__purchase_number', 'changed_by__username')
+#     ordering = ('-changed_at',)
 
 # اضافه کردن نمایش دیباگ برای پیامک‌ها به جای ثبت مجدد SmsQueue
 class DebugSmsQueue:
@@ -440,18 +443,18 @@ class DebugSmsQueue:
         
         return pending, sent, failed, suspended, total
 
-@admin.register(ActivityField)
-class ActivityFieldAdmin(admin.ModelAdmin):
-    list_display = ('code', '__str__')
-    search_fields = ('code',)
+# @admin.register(ActivityField)
+# class ActivityFieldAdmin(admin.ModelAdmin):
+#     list_display = ('code', '__str__')
+#     search_fields = ('code',)
 
-@admin.register(ProductPreference)
-class ProductPreferenceAdmin(admin.ModelAdmin):
-    list_display = ('code', '__str__')
-    search_fields = ('code',)
+# @admin.register(ProductPreference)
+# class ProductPreferenceAdmin(admin.ModelAdmin):
+#     list_display = ('code', '__str__')
+#     search_fields = ('code',)
 
-@admin.register(PaymentPreference)
-class PaymentPreferenceAdmin(admin.ModelAdmin):
-    list_display = ('code', '__str__')
-    search_fields = ('code',)
+# @admin.register(PaymentPreference)
+# class PaymentPreferenceAdmin(admin.ModelAdmin):
+#     list_display = ('code', '__str__')
+#     search_fields = ('code',)
 
