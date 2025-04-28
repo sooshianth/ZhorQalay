@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}شماره‌های تلفن برای تماس{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">شماره‌هایی که باید ویزیت شوند</h5>
+                </div>
+                <div class="card-body">
+                    {% if phone_assignments %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col">#</th>
+                                    <th scope="col">شماره تلفن</th>
+                                    <th scope="col">تاریخ تخصیص</th>
+                                    <th scope="col">عملیات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for phone in phone_assignments %}
+                                <tr>
+                                    <th scope="row">{{ forloop.counter }}</th>
+                                    <td dir="ltr" class="phone-number">{{ phone.phone_number }}</td>
+                                    <td>{{ phone.created_at|date:"Y/m/d" }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'delete_phone_assignment' phone.id %}" class="btn btn-sm btn-outline-danger" 
+                                               onclick="return confirm('آیا از حذف این شماره اطمینان دارید؟')">
+                                                <i class="bi bi-trash"></i> حذف
+                                            </a>
+                                            <a href="{% url 'add_customer_from_assignment' phone.id %}" class="btn btn-sm btn-outline-success">
+                                                <i class="bi bi-person-plus"></i> افزودن به عنوان مشتری
+                                            </a>
+                                            <a href="tel:+98{{ phone.phone_number }}" class="btn btn-sm btn-outline-primary call-button">
+                                                <i class="bi bi-telephone"></i> تماس
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- صفحه‌بندی -->
+                    {% if phone_assignments.has_other_pages %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if phone_assignments.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1" aria-label="First">
+                                    <span aria-hidden="true">&laquo;&laquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ phone_assignments.previous_page_number }}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for i in phone_assignments.paginator.page_range %}
+                                {% if phone_assignments.number == i %}
+                                <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                                {% elif i > phone_assignments.number|add:'-3' and i < phone_assignments.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if phone_assignments.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ phone_assignments.next_page_number }}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ phone_assignments.paginator.num_pages }}" aria-label="Last">
+                                    <span aria-hidden="true">&raquo;&raquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    
+                    {% else %}
+                    <div class="alert alert-info">
+                        <h5 class="alert-heading">شماره‌ای برای تماس وجود ندارد!</h5>
+                        <p>در حال حاضر هیچ شماره تلفنی برای تماس به شما تخصیص داده نشده است. لطفاً بعداً مراجعه کنید یا با مدیر سیستم تماس بگیرید.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- راهنمای استفاده -->
+            <div class="card mt-3 shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">راهنمای استفاده</h5>
+                </div>
+                <div class="card-body">
+                    <p>برای مدیریت شماره‌های تلفن، از گزینه‌های زیر استفاده کنید:</p>
+                    <ul>
+                        <li><strong>تماس:</strong> برقراری تماس مستقیم با شماره</li>
+                        <li><strong>افزودن به عنوان مشتری:</strong> ایجاد پروفایل مشتری جدید با این شماره</li>
+                        <li><strong>حذف:</strong> حذف شماره از لیست تماس‌ها</li>
+                    </ul>
+                    <p>تعداد کل شماره‌ها: <span class="badge bg-primary">{{ phone_assignments.paginator.count }}</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // کپی شماره تلفن با کلیک روی آن
+    $(document).ready(function() {
+        $('.phone-number').click(function() {
+            var number = $(this).text().trim();
+            navigator.clipboard.writeText(number).then(function() {
+                // نمایش پیام موفقیت‌آمیز
+                var toast = $('<div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="2000">' +
+                              '<div class="toast-header bg-success text-white">' +
+                              '<strong class="me-auto">پیام سیستم</strong>' +
+                              '<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>' +
+                              '</div>' +
+                              '<div class="toast-body">شماره تلفن کپی شد: ' + number + '</div>' +
+                              '</div>');
+                
+                $('.toast-container').append(toast);
+                var bsToast = new bootstrap.Toast(toast);
+                bsToast.show();
+                
+                setTimeout(function() {
+                    toast.remove();
+                }, 2000);
+            }).catch(function(err) {
+                console.error('خطا در کپی کردن شماره:', err);
+            });
+        });
+    });
+</script>
+{% endblock %} 

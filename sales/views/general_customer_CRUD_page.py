@@ -164,13 +164,15 @@ class CustomerForm(forms.ModelForm):
                 )
             instance.phone_number = phone_number
         
-        # ذخیره داده‌های مربوط به ترجیحات مشتری
+        # اول مشتری را ذخیره می‌کنیم تا primary key داشته باشد
+        instance.save()
+        
+        # حالا که مشتری ذخیره شده و primary key دارد، رابطه‌ها را تنظیم می‌کنیم
         instance.field_of_activity_list = self.cleaned_data['field_of_activity']
         instance.product_preferences_list = self.cleaned_data['product_preferences']
         instance.purchase_preferences_list = self.cleaned_data['purchase_preferences']
         
-        instance.save()
-        
+        # ایجاد شماره تلفن
         if phone_number:
             if not existing_phone:
                 try:
@@ -309,6 +311,31 @@ def general_customer_CRUD_view(request):
                 if is_new_customer and sales_agent:
                     saved_customer.sales_agent.add(sales_agent)
                     saved_customer.save()
+                    
+                    # علامت‌گذاری شماره تلفن مربوطه به عنوان تبدیل شده (اگر از طریق سیستم تخصیص شماره آمده باشد)
+                    from core.SalesAgentModel import PhoneAssignment
+                    
+                    # روش 1: بررسی از طریق شماره تلفن
+                    phone_assignments = PhoneAssignment.objects.filter(
+                        phone_number=phone,
+                        sales_agent=sales_agent,
+                        status='pending'
+                    )
+                    if phone_assignments.exists():
+                        phone_assignments.update(status='converted')
+                    
+                    # روش 2: بررسی از طریق session
+                    phone_assignment_id = request.session.get('phone_assignment_id')
+                    if phone_assignment_id:
+                        try:
+                            # علامت‌گذاری شماره تلفنی که از لیست تخصیص به اینجا آمده
+                            phone_assignment = PhoneAssignment.objects.get(id=phone_assignment_id)
+                            phone_assignment.mark_as_converted()
+                            # پاک کردن شناسه از session
+                            del request.session['phone_assignment_id']
+                        except Exception as e:
+                            print(f"Error marking phone assignment as converted: {str(e)}")
+                        
                 msg = "مشتری با موفقیت بروزرسانی شد" if not is_new_customer else "مشتری جدید ایجاد شد"
                 messages.success(request, msg)
                 print(f"Successfully saved customer: ID={saved_customer.id}, Name={saved_customer.name}")
@@ -369,8 +396,73 @@ def general_customer_CRUD_view(request):
                     }, sales_agent=sales_agent)
                     # نمایش فرم خالی برای ایجاد مشتری جدید
                     is_new_customer = True
+                    
+                    # بررسی اینکه آیا این شماره از قبل به این کارشناس تخصیص داده شده است
+                    if sales_agent:
+                        from core.SalesAgentModel import PhoneAssignment
+                        clean_number = search_query
+                        if clean_number.startswith('0'):
+                            clean_number = clean_number[1:]
+                            
+                        phone_assignment = PhoneAssignment.objects.filter(
+                            phone_number=clean_number,
+                            sales_agent=sales_agent,
+                            status='pending'
+                        ).first()
+                        
+                        if phone_assignment:
+                            messages.info(request, f"این شماره تلفن از قبل به شما تخصیص داده شده است. در حال ایجاد مشتری جدید...")
                 else:
                     messages.error(request, "شماره تلفن معتبر نیست")
+
+    # جستجو از URL
+    search_query = request.GET.get('search_query')
+    if search_query and not form:
+        # تمیز کردن شماره تلفن
+        if search_query.isdigit():
+            clean_number = search_query
+            if clean_number.startswith('0'):
+                clean_number = clean_number[1:]
+                
+            # جستجو با شماره تلفن تمیز شده
+            customer = Customer.get_customer_by_phone(clean_number)
+        else:
+            # جستجو بر اساس نام
+            customers = Customer.objects.filter(name__icontains=search_query).distinct()[:1]
+            customer = customers[0] if customers else None
+        
+        if customer:
+            return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
+        else:
+            # ایجاد مشتری جدید اگر شماره تلفن معتبر باشد
+            if (search_query.isdigit() and len(search_query) >= 10 and 
+                (search_query.startswith('9') or search_query.startswith('09'))):
+                # شماره جدید - مشتری جدید ایجاد می‌کنیم
+                clean_number = search_query
+                if clean_number.startswith('0'):
+                    clean_number = clean_number[1:]
+                
+                form = CustomerForm(initial={
+                    'phone_number': clean_number,
+                    'name': 'مشتری جدید'
+                }, sales_agent=sales_agent)
+                # نمایش فرم خالی برای ایجاد مشتری جدید
+                is_new_customer = True
+                
+                # بررسی اینکه آیا این شماره از قبل به این کارشناس تخصیص داده شده است
+                if sales_agent:
+                    from core.SalesAgentModel import PhoneAssignment
+                    phone_assignment = PhoneAssignment.objects.filter(
+                        phone_number=clean_number,
+                        sales_agent=sales_agent,
+                        status='pending'
+                    ).first()
+                    
+                    if phone_assignment:
+                        messages.info(request, f"این شماره تلفن از قبل به شما تخصیص داده شده است. در حال ایجاد مشتری جدید...")
+            else:
+                messages.error(request, "شماره تلفن یا نام مورد نظر یافت نشد")
+                return redirect(reverse('general_customer_CRUD'))
 
     # بارگیری مشتری موجود
     customer_id = request.GET.get('customer_id')

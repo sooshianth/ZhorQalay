@@ -10,6 +10,10 @@ from .views import (
     sales_dashboard_view, 
     pop_notification
 ) 
+from .views.general_customer_CRUD_page import general_customer_CRUD_view, customer_search, change_task_status, get_related_products, predict_next_purchase
+from .views.phone_assignment_views import (admin_import_phone_numbers, admin_phone_assignment_list, 
+                                        sales_phone_assignment_list, delete_phone_assignment, 
+                                        add_customer_from_assignment)
 
 
 urlpatterns = [    
@@ -34,4 +38,16 @@ urlpatterns = [
     path('get_unread_notifications/', pop_notification.get_unread_notifications, name='get_unread_notifications'),
 
     path('captcha/', include('captcha.urls')), 
+
+    path('customer/', general_customer_CRUD_view, name='general_customer_CRUD'),
+    path('customer/search/', customer_search, name='customer_search'),
+    path('task/<int:pk>/change_status/', change_task_status, name='change_task_status'),
+    path('customer/get_related_products/', get_related_products, name='get_related_products'),
+    path('customer/predict_next_purchase/', predict_next_purchase, name='predict_next_purchase'),
+    
+    path('phone-assignment/admin/import/', admin_import_phone_numbers, name='admin_import_phone_numbers'),
+    path('phone-assignment/admin/list/', admin_phone_assignment_list, name='admin_phone_assignment_list'),
+    path('phone-assignment/list/', sales_phone_assignment_list, name='sales_phone_assignment_list'),
+    path('phone-assignment/<int:pk>/delete/', delete_phone_assignment, name='delete_phone_assignment'),
+    path('phone-assignment/<int:pk>/add-customer/', add_customer_from_assignment, name='add_customer_from_assignment'),
 ]

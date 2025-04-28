@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تخصیص شماره تلفن{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">تخصیص شماره تلفن به کارشناسان فروش</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- پیام‌های خطا -->
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- انتخاب کارشناس فروش -->
+                        <div class="form-group mb-3">
+                            <label for="{{ form.sales_agent.id_for_label }}" class="form-label">{{ form.sales_agent.label }}</label>
+                            {{ form.sales_agent }}
+                            {% if form.sales_agent.errors %}
+                            <div class="text-danger">
+                                {{ form.sales_agent.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- بخش آپلود اکسل -->
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0">آپلود فایل اکسل</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label for="{{ form.excel_file.id_for_label }}" class="form-label">{{ form.excel_file.label }}</label>
+                                    {{ form.excel_file }}
+                                    <small class="form-text text-muted">{{ form.excel_file.help_text }}</small>
+                                    {% if form.excel_file.errors %}
+                                    <div class="text-danger">
+                                        {{ form.excel_file.errors }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- بخش کپی‌پیست شماره‌ها -->
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0">یا وارد کردن مستقیم شماره‌ها</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label for="{{ form.phone_numbers.id_for_label }}" class="form-label">{{ form.phone_numbers.label }}</label>
+                                    {{ form.phone_numbers }}
+                                    <small class="form-text text-muted">{{ form.phone_numbers.help_text }}</small>
+                                    {% if form.phone_numbers.errors %}
+                                    <div class="text-danger">
+                                        {{ form.phone_numbers.errors }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- دکمه‌های اقدام -->
+                        <div class="form-group text-end">
+                            <button type="submit" class="btn btn-primary">تخصیص شماره‌ها</button>
+                            <a href="{% url 'admin_phone_assignment_list' %}" class="btn btn-secondary me-2">بازگشت به لیست</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- راهنمای استفاده -->
+            <div class="card mt-3 shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">راهنمای استفاده</h5>
+                </div>
+                <div class="card-body">
+                    <p>برای تخصیص شماره‌های تلفن به کارشناسان فروش، می‌توانید از دو روش استفاده کنید:</p>
+                    <ol>
+                        <li>آپلود فایل اکسل حاوی شماره‌ها (شماره‌ها باید در ستون اول باشند)</li>
+                        <li>وارد کردن مستقیم شماره‌ها در کادر متنی، هر شماره در یک خط</li>
+                    </ol>
+                    <p>فرمت مجاز شماره‌ها: 09XXXXXXXXX یا 9XXXXXXXXX</p>
+                    <p class="text-danger">نکته: شماره‌هایی که قبلاً به عنوان مشتری ثبت شده‌اند یا قبلاً به کارشناسان تخصیص داده شده‌اند، مجدداً اضافه نخواهند شد.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // استایل‌دهی به فیلدها
+    $(document).ready(function() {
+        // استایل‌دهی به سلکت‌باکس
+        $('#{{ form.sales_agent.id_for_label }}').addClass('form-select');
+        
+        // استایل‌دهی به فیلد فایل
+        $('#{{ form.excel_file.id_for_label }}').addClass('form-control');
+        
+        // استایل‌دهی به تکست‌اریا
+        $('#{{ form.phone_numbers.id_for_label }}').addClass('form-control');
+    });
+</script>
+{% endblock %} 

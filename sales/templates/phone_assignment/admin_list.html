@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}لیست شماره‌های تلفن تخصیص داده شده{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">لیست شماره‌های تلفن تخصیص داده شده</h5>
+                    <a href="{% url 'admin_import_phone_numbers' %}" class="btn btn-light btn-sm">
+                        <i class="bi bi-plus-circle"></i> تخصیص شماره جدید
+                    </a>
+                </div>
+                <div class="card-body">
+                    <!-- فیلترها -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">فیلتر</h6>
+                                </div>
+                                <div class="card-body">
+                                    <form method="get" class="row g-3">
+                                        <div class="col-md-5">
+                                            <label for="sales_agent" class="form-label">کارشناس فروش</label>
+                                            <select name="sales_agent" id="sales_agent" class="form-select">
+                                                <option value="">همه کارشناسان</option>
+                                                {% for agent in sales_agents %}
+                                                <option value="{{ agent.id }}" {% if selected_agent == agent.id|stringformat:"s" %}selected{% endif %}>{{ agent.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label for="status" class="form-label">وضعیت</label>
+                                            <select name="status" id="status" class="form-select">
+                                                <option value="">همه وضعیت‌ها</option>
+                                                <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>در انتظار تماس</option>
+                                                <option value="deleted" {% if selected_status == 'deleted' %}selected{% endif %}>حذف شده</option>
+                                                <option value="converted" {% if selected_status == 'converted' %}selected{% endif %}>تبدیل به مشتری</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2 d-flex align-items-end">
+                                            <button type="submit" class="btn btn-primary">اعمال فیلتر</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- لیست شماره‌ها -->
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col">#</th>
+                                    <th scope="col">شماره تلفن</th>
+                                    <th scope="col">کارشناس فروش</th>
+                                    <th scope="col">وضعیت</th>
+                                    <th scope="col">تاریخ ایجاد</th>
+                                    <th scope="col">آخرین بروزرسانی</th>
+                                    <th scope="col">عملیات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for phone in phone_assignments %}
+                                <tr>
+                                    <th scope="row">{{ forloop.counter }}</th>
+                                    <td dir="ltr">{{ phone.phone_number }}</td>
+                                    <td>{{ phone.sales_agent.name }}</td>
+                                    <td>
+                                        {% if phone.status == 'pending' %}
+                                        <span class="badge bg-warning text-dark">در انتظار تماس</span>
+                                        {% elif phone.status == 'deleted' %}
+                                        <span class="badge bg-danger">حذف شده</span>
+                                        {% elif phone.status == 'converted' %}
+                                        <span class="badge bg-success">تبدیل به مشتری</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ phone.created_at|date:"Y/m/d H:i" }}</td>
+                                    <td>{{ phone.updated_at|date:"Y/m/d H:i" }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            {% if phone.status == 'pending' %}
+                                            <a href="{% url 'delete_phone_assignment' phone.id %}" class="btn btn-sm btn-outline-danger" 
+                                               onclick="return confirm('آیا از حذف این شماره اطمینان دارید؟')">
+                                                <i class="bi bi-trash"></i> حذف
+                                            </a>
+                                            <a href="{% url 'add_customer_from_assignment' phone.id %}" class="btn btn-sm btn-outline-success">
+                                                <i class="bi bi-person-plus"></i> تبدیل به مشتری
+                                            </a>
+                                            {% else %}
+                                            <button class="btn btn-sm btn-outline-secondary" disabled>بدون عملیات</button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center">هیچ شماره‌ای یافت نشد.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- صفحه‌بندی -->
+                    {% if phone_assignments.has_other_pages %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if phone_assignments.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if selected_agent %}&sales_agent={{ selected_agent }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}" aria-label="First">
+                                    <span aria-hidden="true">&laquo;&laquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ phone_assignments.previous_page_number }}{% if selected_agent %}&sales_agent={{ selected_agent }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for i in phone_assignments.paginator.page_range %}
+                                {% if phone_assignments.number == i %}
+                                <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                                {% elif i > phone_assignments.number|add:'-3' and i < phone_assignments.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ i }}{% if selected_agent %}&sales_agent={{ selected_agent }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">{{ i }}</a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if phone_assignments.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ phone_assignments.next_page_number }}{% if selected_agent %}&sales_agent={{ selected_agent }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ phone_assignments.paginator.num_pages }}{% if selected_agent %}&sales_agent={{ selected_agent }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}" aria-label="Last">
+                                    <span aria-hidden="true">&raquo;&raquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

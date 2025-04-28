@@ -1,0 +1,42 @@
+<!-- بخش منوی مدیریت مشتریان -->
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'general_customer_CRUD' %}">
+        <i class="bi bi-people-fill"></i>
+        <span>مدیریت مشتریان</span>
+    </a>
+</li>
+
+<!-- بخش منوی مدیریت شماره‌های تلفن - برای کارشناسان فروش -->
+{% if user.is_authenticated and user.sales_agent %}
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'sales_phone_assignment_list' %}">
+        <i class="bi bi-telephone-fill"></i>
+        <span>شماره‌های ویزیت</span>
+        {% if user.sales_agent.assigned_phones.filter(status='pending').count > 0 %}
+        <span class="badge bg-primary rounded-pill">{{ user.sales_agent.assigned_phones.filter(status='pending').count }}</span>
+        {% endif %}
+    </a>
+</li>
+{% endif %}
+
+<!-- بخش منوی مدیریت شماره‌های تلفن - برای ادمین -->
+{% if user.is_authenticated and user.is_staff %}
+<li class="nav-item dropdown">
+    <a class="nav-link dropdown-toggle" href="#" id="phoneManagementDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-telephone-plus-fill"></i>
+        <span>مدیریت شماره‌ها</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="phoneManagementDropdown">
+        <li>
+            <a class="dropdown-item" href="{% url 'admin_import_phone_numbers' %}">
+                <i class="bi bi-upload"></i> تخصیص شماره جدید
+            </a>
+        </li>
+        <li>
+            <a class="dropdown-item" href="{% url 'admin_phone_assignment_list' %}">
+                <i class="bi bi-list-check"></i> لیست شماره‌های تخصیص داده شده
+            </a>
+        </li>
+    </ul>
+</li>
+{% endif %} 

@@ -370,3 +370,70 @@ class SalesAgent(models.Model):
         elif not self.factor_code:
             self.factor_code = ''.join(random.choices(string.ascii_uppercase, k=2))
         super().save(*args, **kwargs)
+
+
+from django.utils.translation import gettext_lazy as _
+from core.SalesAgentModel import SalesAgent
+
+class PhoneAssignment(models.Model):
+    """مدل تخصیص شماره تلفن به کارشناسان فروش برای تماس و ویزیت"""
+    
+    STATUS_CHOICES = [
+        ('pending', 'در انتظار تماس'),
+        ('deleted', 'حذف شده'),
+        ('converted', 'تبدیل به مشتری'),
+    ]
+    
+    phone_number = models.CharField(_("شماره تلفن"), max_length=20)
+    sales_agent = models.ForeignKey(SalesAgent, on_delete=models.CASCADE, 
+                                   related_name='assigned_phones',
+                                   verbose_name=_("کارشناس فروش"))
+    status = models.CharField(_("وضعیت"), max_length=20, choices=STATUS_CHOICES, default='pending')
+    notes = models.TextField(_("یادداشت"), blank=True, null=True)
+    created_at = jmodels.jDateTimeField(_("تاریخ ایجاد"), auto_now_add=True)
+    updated_at = jmodels.jDateTimeField(_("تاریخ بروزرسانی"), auto_now=True)
+    
+    class Meta:
+        verbose_name = _("تخصیص شماره")
+        verbose_name_plural = _("تخصیص شماره‌ها")
+        indexes = [
+            models.Index(fields=['sales_agent', 'status']),
+            models.Index(fields=['phone_number']),
+        ]
+        
+    def __str__(self):
+        return f"{self.phone_number} ({self.get_status_display()})"
+    
+    def clean(self):
+        """اعتبارسنجی فیلدها"""
+        # تمیز کردن شماره تلفن
+        if self.phone_number:
+            # تبدیل ارقام فارسی به انگلیسی
+            persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+            english_digits = "0123456789"
+            translation_table = str.maketrans(persian_digits, english_digits)
+            self.phone_number = self.phone_number.translate(translation_table)
+            
+            # پاکسازی شماره از کاراکترهای غیرعددی
+            self.phone_number = ''.join(c for c in self.phone_number if c.isdigit())
+            
+            # اگر با صفر شروع می‌شود، آن را حذف می‌کنیم
+            if self.phone_number.startswith('0'):
+                self.phone_number = self.phone_number[1:]
+                
+            # بررسی معیارهای اصلی
+            if not self.phone_number.startswith('9'):
+                raise models.ValidationError(_('شماره تلفن باید با 9 شروع شود'))
+                
+            if len(self.phone_number) != 10:
+                raise models.ValidationError(_('شماره تلفن باید 10 رقم باشد'))
+    
+    def mark_as_deleted(self):
+        """علامت‌گذاری به عنوان حذف شده"""
+        self.status = 'deleted'
+        self.save()
+    
+    def mark_as_converted(self):
+        """علامت‌گذاری به عنوان تبدیل شده به مشتری"""
+        self.status = 'converted'
+        self.save() 
