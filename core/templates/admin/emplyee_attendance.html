@@ -1,0 +1,35 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>حضور هفتگی {{ employee.username }}</h1>
+<h2>مجموع ساعات ماهانه: {{ monthly_total_hours }}</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>تاریخ شروع هفته</th>
+            <th>شنبه</th>
+            <th>یکشنبه</th>
+            <th>دوشنبه</th>
+            <th>سه‌شنبه</th>
+            <th>چهارشنبه</th>
+            <th>پنج‌شنبه</th>
+            <th>جمعه</th>
+            <th>مجموع ساعات</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for attendance in weekly_attendance %}
+        <tr>
+            <td>{{ attendance.week_start_date }}</td>
+            <td>{{ attendance.saturday_hours }}</td>
+            <td>{{ attendance.sunday_hours }}</td>
+            <td>{{ attendance.monday_hours }}</td>
+            <td>{{ attendance.tuesday_hours }}</td>
+            <td>{{ attendance.wednesday_hours }}</td>
+            <td>{{ attendance.thursday_hours }}</td>
+            <td>{{ attendance.friday_hours }}</td>
+            <td>{{ attendance.total_hours }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

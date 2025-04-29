@@ -139,3 +139,19 @@ class SupportAgentLoginForm(OTPLoginForm):
         super().__init__(*args, **kwargs)
         self.fields['user_type'].initial = 'support_agent'
         self.fields['user_type'].widget = forms.HiddenInput()
+
+
+from django import forms
+from django_jalali.forms import jDateField, jdatetime
+from core._models import WeeklyAttendance
+class WeeklyAttendanceForm(forms.ModelForm):
+    class Meta:
+        model = WeeklyAttendance
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # تنظیم مقدار پیش‌فرض برای تاریخ شروع هفته (شنبه هفته جاری)
+        today = jdatetime.date.today()
+        start_of_week = today - jdatetime.timedelta(days=today.weekday())
+        self.fields['week_start_date'].initial = start_of_week.togregorian()

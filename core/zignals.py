@@ -3,6 +3,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 from datetime import timedelta
 from core._models import Purchase, Task, SalesAgent
+from django.db import models
 
 
 @receiver(post_save, sender=Purchase)
@@ -31,3 +32,23 @@ def create_task_for_purchase(sender, instance, created, **kwargs):
                 due_date=due_date,  # زمان انجام تسک (۱۵ دقیقه بعد)
                 status=False  # تسک به‌صورت پیش‌فرض انجام نشده است
             )
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from core._models import WeeklyAttendance, MonthlyAttendance
+from django.utils.timezone import now
+
+@receiver(post_save, sender=WeeklyAttendance)
+def update_monthly_attendance(sender, instance, **kwargs):
+    month = instance.week_start_date.strftime('%Y-%m')  # استخراج ماه از تاریخ شروع هفته
+    monthly_attendance, created = MonthlyAttendance.objects.get_or_create(
+        employee=instance.employee,
+        month=month
+    )
+    # جمع‌آوری مجموع ساعات هفتگی
+    total_hours = WeeklyAttendance.objects.filter(
+        employee=instance.employee,
+        week_start_date__month=instance.week_start_date.month
+    ).aggregate(models.Sum('total_hours'))['total_hours__sum'] or 0
+    monthly_attendance.total_hours = total_hours
+    monthly_attendance.save()

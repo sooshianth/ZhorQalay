@@ -15,6 +15,11 @@ from .NotificationModel import Notification
 from .SupportAgentModel import SupportAgent
 from sms_api.models import SmsQueue
 from sms_api.apis import queue_sms
+from ._models import WeeklyAttendance
+from django.urls import path
+from django.template.response import TemplateResponse
+from django.contrib.auth.models import User
+
 # @admin.register(Notification)
 # class NotificationAdmin(admin.ModelAdmin):
 #     list_display = ('user', 'message')
@@ -457,4 +462,58 @@ class DebugSmsQueue:
 # class PaymentPreferenceAdmin(admin.ModelAdmin):
 #     list_display = ('code', '__str__')
 #     search_fields = ('code',)
+
+admin.site.unregister(User)
+
+class WeeklyAttendanceInline(admin.TabularInline):
+    model = WeeklyAttendance
+    extra = 1
+    fields = (
+        'week_start_date', 'saturday_hours', 'sunday_hours', 'monday_hours',
+        'tuesday_hours', 'wednesday_hours', 'thursday_hours', 'friday_hours', 'total_hours'
+    )
+    readonly_fields = ('total_hours',)
+
+@admin.register(User)
+class EmployeeAdmin(admin.ModelAdmin):
+    list_display = ('username', 'first_name', 'last_name', 'email')
+    search_fields = ('username', 'first_name', 'last_name', 'email')
+    inlines = [WeeklyAttendanceInline]
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('<int:employee_id>/attendance/', self.admin_site.admin_view(self.attendance_view), name='employee-attendance'),
+        ]
+        return custom_urls + urls
+
+    def attendance_view(self, request, employee_id):
+        from django.shortcuts import get_object_or_404
+        from ._models import MonthlyAttendance
+        employee = get_object_or_404(User, pk=employee_id)
+        weekly_attendance = WeeklyAttendance.objects.filter(employee=employee).order_by('-week_start_date')
+        monthly_total_hours = MonthlyAttendance.objects.filter(employee=employee).aggregate(models.Sum('total_hours'))['total_hours__sum'] or 0
+        return TemplateResponse(request, 'admin/employee_attendance.html', {
+            'employee': employee,
+            'weekly_attendance': weekly_attendance,
+            'monthly_total_hours': monthly_total_hours,
+            'title': f'حضور هفتگی {employee.username}',
+        })
+
+from .forms.forms import WeeklyAttendanceForm
+
+@admin.register(WeeklyAttendance)
+class WeeklyAttendanceAdmin(admin.ModelAdmin):
+    form = WeeklyAttendanceForm
+    list_display = ('employee', 'week_start_date', 'total_hours')
+    list_filter = ('week_start_date', 'employee')
+    search_fields = ('employee__username',)
+
+
+from ._models import MonthlyAttendance
+
+@admin.register(MonthlyAttendance)
+class MonthlyAttendanceAdmin(admin.ModelAdmin):
+    list_display = ('employee', 'month', 'total_hours')
+    list_filter = ('month', 'employee')
+    search_fields = ('employee__username', 'month')
 
