@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}تسک‌های انجام‌شده{% endblock %}
+
+{% block content %}
+<div class="todo-container">
+    <h1 class="todo-title">تسک‌های انجام‌شده</h1>
+    <div class="todo-card">
+        {% if tasks %}
+            <ul class="todo-list">
+                {% for task in tasks %}
+                    <li class="todo-item">
+                        <div class="todo-info">
+                            <h3>{{ task.title }}</h3>
+                            <p>{{ task.description|truncatewords:30 }}</p>
+                            <div class="todo-meta">
+                                <span class="todo-due-date">انجام شده در: {{ task.created_at|date:"Y/m/d H:i" }}</span>
+                                <span class="todo-priority todo-priority-{{ task.priority }}">{{ task.get_priority_display }}</span>
+                            </div>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="todo-no-tasks">هیچ تسک انجام‌شده‌ای وجود ندارد 😊</p>
+        {% endif %}
+    </div>
+
+    <div class="todo-actions">
+        <a href="{% url 'task_dashboard' %}" class="todo-action-btn todo-create-btn">بازگشت به داشبورد تسک‌ها</a>
+    </div>
+</div>
+{% endblock %}

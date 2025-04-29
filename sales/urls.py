@@ -8,7 +8,8 @@ from .views import (
     sales_agent_profile_view,
     mark_notification_read, 
     sales_dashboard_view, 
-    pop_notification
+    pop_notification,
+    todo_list_view
 ) 
 from .views.general_customer_CRUD_page import general_customer_CRUD_view, customer_search, change_task_status, get_related_products, predict_next_purchase
 from .views.phone_assignment_views import (admin_import_phone_numbers, admin_phone_assignment_list, 
@@ -51,4 +52,10 @@ urlpatterns = [
     path('phone-assignment/list/', sales_phone_assignment_list, name='sales_phone_assignment_list'),
     path('phone-assignment/<int:pk>/delete/', delete_phone_assignment, name='delete_phone_assignment'),
     path('phone-assignment/<int:pk>/add-customer/', add_customer_from_assignment, name='add_customer_from_assignment'),
+
+    path('tasks/', todo_list_view.task_dashboard_view, name='task_dashboard'),
+    path('tasks/create/', todo_list_view.create_task_view, name='create_task'),
+    path('tasks/completed/', todo_list_view.completed_tasks_view, name='completed_tasks'),
+    path('tasks/change-status/<int:task_id>/', todo_list_view.change_task_status, name='change_task_status'),
+
 ]

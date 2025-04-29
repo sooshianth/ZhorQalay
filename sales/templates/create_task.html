@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}ایجاد تسک جدید{% endblock %}
+
+{% block content %}
+<div class="todo-container max-w-2xl mx-auto">
+    <h1 class="todo-title">ایجاد تسک جدید</h1>
+    <form method="post" class="todo-form">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="title">عنوان تسک</label>
+            <input type="text" name="title" id="title" required placeholder="عنوان تسک را وارد کنید...">
+        </div>
+        <div class="form-group">
+            <label for="description">توضیحات تسک</label>
+            <textarea name="description" id="description" rows="4" placeholder="توضیحات تسک را وارد کنید..."></textarea>
+        </div>
+        <div class="form-group">
+            <label for="due_date">تاریخ سررسید</label>
+            <input type="datetime-local" name="due_date" id="due_date" required>
+        </div>
+        <div class="form-group">
+            <label for="priority">اولویت</label>
+            <select name="priority" id="priority">
+                <option value="low">کم</option>
+                <option value="medium" selected>متوسط</option>
+                <option value="high">زیاد</option>
+            </select>
+        </div>
+        <button type="submit">ایجاد تسک</button>
+    </form>
+</div>
+{% endblock %}

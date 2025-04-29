@@ -917,3 +917,179 @@ textarea {
         color: var(--text-color);
     }
 }
+
+/* Enhanced ToDo List Styles */
+.todo-container {
+    @apply max-w-6xl mx-auto p-6;
+}
+
+.todo-card {
+    @apply bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 mb-8 transition-all duration-500;
+    background: linear-gradient(135deg, #ffffff, #f1f5f9);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dark-mode .todo-card {
+    background: linear-gradient(135deg, #1f2937, #111827);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.todo-card:hover {
+    @apply transform scale-102;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+}
+
+.todo-title {
+    @apply text-3xl font-extrabold mb-8 text-gray-900 dark:text-white tracking-tight;
+    background: linear-gradient(to right, #3b82f6, #10b981);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.todo-list {
+    @apply space-y-6;
+}
+
+.todo-item {
+    @apply flex flex-col sm:flex-row justify-between items-start sm:items-center p-6 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 transition-all duration-300;
+}
+
+.todo-item:hover {
+    @apply bg-gray-100 dark:bg-gray-700/70 transform translate-x-2;
+}
+
+.todo-info h3 {
+    @apply text-xl font-semibold text-gray-900 dark:text-white mb-2;
+}
+
+.todo-info p {
+    @apply text-gray-600 dark:text-gray-300 text-sm;
+}
+
+.todo-meta {
+    @apply mt-3 flex items-center space-x-4 space-x-reverse;
+}
+
+.todo-due-date {
+    @apply text-sm text-gray-500 dark:text-gray-400 flex items-center;
+}
+
+.todo-due-date::before {
+    content: '📅';
+    margin-left: 8px;
+}
+
+.todo-priority {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium transition-all duration-200;
+}
+
+.todo-priority-high {
+    @apply bg-red-500/20 text-red-500 dark:bg-red-500/30 dark:text-red-400;
+    animation: pulse 2s infinite;
+}
+
+.todo-priority-medium {
+    @apply bg-yellow-500/20 text-yellow-500 dark:bg-yellow-500/30 dark:text-yellow-400;
+}
+
+.todo-priority-low {
+    @apply bg-green-500/20 text-green-500 dark:bg-green-500/30 dark:text-green-400;
+}
+
+.todo-priority::before {
+    content: '★';
+    margin-left: 8px;
+}
+
+.todo-action {
+    @apply mt-4 sm:mt-0;
+}
+
+.todo-complete-btn {
+    @apply bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-2 rounded-full font-medium hover:from-green-600 hover:to-emerald-600 focus:ring-4 focus:ring-green-300/50 transition-all duration-300 transform hover:scale-105;
+}
+
+.todo-form {
+    @apply space-y-8 p-8 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-inner;
+}
+
+.todo-form .form-group {
+    @apply relative;
+}
+
+.todo-form label {
+    @apply absolute -top-2 right-3 bg-white dark:bg-gray-900 px-2 text-sm font-medium text-gray-700 dark:text-gray-300 transition-all duration-200;
+}
+
+.todo-form input,
+.todo-form textarea,
+.todo-form select {
+    @apply w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 p-4;
+}
+
+.todo-form textarea {
+    @apply resize-y;
+}
+
+.todo-form button {
+    @apply w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full py-3 font-semibold hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300/50 transition-all duration-300 transform hover:scale-105;
+}
+
+.todo-actions {
+    @apply mt-8 flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 sm:space-x-reverse;
+}
+
+.todo-action-btn {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-full font-semibold text-white transition-all duration-300 transform hover:scale-105;
+}
+
+.todo-create-btn {
+    @apply bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600;
+}
+
+.todo-completed-btn {
+    @apply bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700;
+}
+
+.todo-no-tasks {
+    @apply text-center text-gray-500 dark:text-gray-400 py-12 text-lg font-medium;
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M8 10s1.5 2 4 2 4-2 4-2"/><path d="M9 15s1 1 3 1 3-1 3-1"/></svg>') no-repeat center top;
+    padding-top: 40px;
+}
+
+/* Animations */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.todo-item {
+    animation: slideIn 0.4s ease-out;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+    .todo-item {
+        @apply flex-col space-y-6;
+    }
+
+    .todo-action-btn {
+        @apply w-full;
+    }
+
+    .todo-form {
+        @apply p-6;
+    }
+}
+
+/* Dark Mode Enhancements */
+.dark-mode .todo-no-tasks {
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M8 10s1.5 2 4 2 4-2 4-2"/><path d="M9 15s1 1 3 1 3-1 3-1"/></svg>') no-repeat center top;
+    padding-top: 40px;
+}
