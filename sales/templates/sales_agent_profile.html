@@ -411,6 +411,10 @@
                         <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
                     </div>
                     <a href="{% url 'purchase_CRUD' purchase.id %}" class="button">مشاهده جزئیات</a>
+                    <form method="post" action="{% url 'delete_unpaid_purchase' purchase.id %}" style="display:inline;" onsubmit="return confirm('آیا از حذف این خرید مطمئن هستید؟');">
+                        {% csrf_token %}
+                        <button type="submit" class="button" style="background:#ef4444;margin-right:8px;">حذف</button>
+                    </form>
                 </li>
             {% empty %}
                 <li class="purchase-item empty-purchase slide-in">هیچ خرید پرداخت نشده‌ای یافت نشد</li>

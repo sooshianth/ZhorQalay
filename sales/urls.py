@@ -27,6 +27,7 @@ urlpatterns = [
     path('profile/', sales_agent_profile_view.sales_agent_profile_view, name='sales_agent_profile'),
     path('customers/', sales_agent_profile_view.customer_list_view, name='customer_list'),
     path('export_customers/', sales_agent_profile_view.export_customers_to_excel, name='export_customers'),
+    path('delete-unpaid-purchase/<int:purchase_id>/', sales_agent_profile_view.delete_unpaid_purchase, name='delete_unpaid_purchase'),
 
     path('notifications/delete/<int:notification_id>/', mark_notification_read.mark_notification_read, name='delete_notification'),
     path('notifications/deleteAll/', mark_notification_read.mark_all_notifications_read, name='delete_all_notification'),

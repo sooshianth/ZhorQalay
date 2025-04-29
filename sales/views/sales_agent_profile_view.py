@@ -1,4 +1,4 @@
-from core._models import Notification, Customer
+from core._models import Notification, Customer, Purchase
 from django.shortcuts import render, redirect, get_object_or_404, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -248,3 +248,16 @@ def export_customers_to_excel(request):
     except Exception as e:
         logger.error(f"Error exporting customers to Excel: {str(e)}")
         return HttpResponse(f"خطا در تولید فایل اکسل: {str(e)}", status=500)
+
+@login_required
+def delete_unpaid_purchase(request, purchase_id):
+    if not hasattr(request.user, 'sales_agent'):
+        return HttpResponse("Unauthorized", status=403)
+    sales_agent = request.user.sales_agent
+    # فقط خریدهای unpaid متعلق به همین کارشناس
+    purchase = sales_agent.get_all_unpaid_sales().filter(id=purchase_id).first()
+    if not purchase:
+        return HttpResponse("خرید یافت نشد یا قابل حذف نیست.", status=404)
+    purchase.delete()
+    messages.success(request, "خرید با موفقیت حذف شد.")
+    return redirect('sales_agent_profile')

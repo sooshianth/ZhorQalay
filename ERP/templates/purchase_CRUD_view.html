@@ -294,6 +294,13 @@
 </style>
 
 <div class="container">
+  <div class="notification-container" id="notification-container">
+    <div class="notification-bell" id="notification-bell">
+        <i class="fas fa-bell"></i>
+        <span class="notification-count" id="notification-count">0</span>
+    </div>
+    <div class="notification-list" id="notification-list"></div>
+</div>
 
 <!-- Display error and success messages in a styled box -->
 
@@ -795,6 +802,118 @@ document.addEventListener('DOMContentLoaded', function() {
         // اضافه کردن راهنمای توضیحی در هنگام هاور
         field.title = "این فیلد در مرحله فعلی خرید غیرقابل ویرایش است";
     });
+});
+</script>
+<script>
+class NotificationManager {
+    constructor() {
+        this.container = document.getElementById('notification-container');
+        this.bell = document.getElementById('notification-bell');
+        this.counter = document.getElementById('notification-count');
+        this.list = document.getElementById('notification-list');
+        this.setupEventListeners();
+        this.checkNotifications();
+    }
+
+    setupEventListeners() {
+        this.bell.addEventListener('click', () => {
+            this.list.classList.toggle('show');
+            this.loadNotifications();
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!this.container.contains(e.target)) {
+                this.list.classList.remove('show');
+            }
+        });
+    }
+
+    async loadNotifications() {
+        try {
+            const response = await fetch('/api/notifications/');
+            const data = await response.json();
+            this.renderNotifications(data.notifications);
+        } catch (error) {
+            console.error('Error loading notifications:', error);
+        }
+    }
+
+    renderNotifications(notifications) {
+        this.list.innerHTML = '';
+        if (notifications.length === 0) {
+            this.list.innerHTML = '<div class="no-notifications">نوتیفیکیشن جدیدی وجود ندارد</div>';
+            this.updateCounter(0);
+            return;
+        }
+
+        notifications.forEach(notification => {
+            const item = this.createNotificationElement(notification);
+            this.list.appendChild(item);
+        });
+
+        this.updateCounter(notifications.length);
+    }
+
+    createNotificationElement(notification) {
+        const div = document.createElement('div');
+        div.className = `notification-item ${notification.priority}`;
+        div.innerHTML = `
+            <div class="notification-header">
+                <span class="notification-title">${notification.title}</span>
+                <span class="notification-time">${notification.created_at}</span>
+            </div>
+            <div class="notification-message">${notification.message}</div>
+            <button class="mark-read-btn" data-id="${notification.id}">
+                <i class="fas fa-check"></i> خوانده شده
+            </button>
+        `;
+
+        const markReadBtn = div.querySelector('.mark-read-btn');
+        markReadBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await this.markAsRead(notification.id);
+            div.remove();
+            this.updateCounter(this.list.querySelectorAll('.notification-item').length);
+        });
+
+        return div;
+    }
+
+    async markAsRead(notificationId) {
+        try {
+            await fetch(`/api/notifications/${notificationId}/read/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': this.getCsrfToken()
+                }
+            });
+        } catch (error) {
+            console.error('Error marking notification as read:', error);
+        }
+    }
+
+    updateCounter(count) {
+        if (count > 0) {
+            this.counter.textContent = count;
+            this.counter.style.display = 'block';
+            this.bell.classList.add('has-notifications');
+        } else {
+            this.counter.style.display = 'none';
+            this.bell.classList.remove('has-notifications');
+        }
+    }
+
+    getCsrfToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
+
+    checkNotifications() {
+        setInterval(() => this.loadNotifications(), 30000);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    new NotificationManager();
 });
 </script>
 {% endblock %}

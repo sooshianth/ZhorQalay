@@ -7,6 +7,8 @@ from .CargoProductModel import CargoProduct
 from .SalesAgentModel import SalesAgent
 from django.contrib import messages
 from django.contrib.auth.models import User
+from ERP.models.NotificationService import NotificationService
+from ERP.models.Notification import Notification
 
 # حذف ایمپورت مستقیم sms_api برای جلوگیری از ایمپورت دایره‌ای
 # from sms_api.apis import (
@@ -103,6 +105,27 @@ class Purchase(models.Model):
     is_urgent = models.BooleanField("آیا خرید فوری است؟", default=False)
     is_canceled = models.BooleanField("آیا خرید لغو شده است؟", default=False)
     is_archived = models.BooleanField("آیا خرید آرشیو شده است؟", default=False)
+
+    PRIORITY_CHOICES = [
+        ('low', 'عادی'),
+        ('medium', 'مهم'),
+        ('high', 'فوری'),
+        ('critical', 'بحرانی')
+    ]
+    
+    # اضافه کردن فیلد جدید
+    priority = models.CharField(
+        "اولویت",
+        max_length=10,
+        choices=PRIORITY_CHOICES,
+        default='low'
+    )
+    priority_reason = models.TextField(
+        "دلیل اولویت",
+        blank=True,
+        null=True
+    )
+
     def change_state(self, new_state, user, notes=None):
         """
         متد عمومی برای تغییر وضعیت خرید و ثبت آن در تاریخچه
@@ -161,7 +184,19 @@ class Purchase(models.Model):
         sms_api = get_sms_api()
         sms_api.send_payment_confirmation(self)
         
+        notification_message = (
+            f"پرداخت خرید {self.invoice_id} به مبلغ {self.amount_paid:,} ریال "
+            f"برای مشتری {self.customer.name} تایید شد"
+        )
+        self.notify_relevant_users(
+            message=notification_message,
+            title="تایید پرداخت",
+            notification_type='payment',
+            priority='high'
+        )
+        
         return self.change_state('PAYMENT_VERIFIED', user, 'تایید مالی انجام شد')
+
         
     def register_allocation(self, user):
         """
@@ -250,7 +285,19 @@ class Purchase(models.Model):
         sms_api = get_sms_api()
         sms_api.send_barnameh_notification(self)
         
+        notification_message = (
+            f"بارنامه خرید {self.invoice_id} به شماره {self.barnameh} "
+            f"برای مشتری {self.customer.name} صادر شد"
+        )
+        self.notify_relevant_users(
+            message=notification_message,
+            title="صدور بارنامه",
+            notification_type='shipping',
+            priority='medium'
+        )
+        
         return self.change_state('BARNAMEH_ISSUED', user, 'بارنامه صادر شد')
+
         
     def mark_as_delivered(self, user):
         """
@@ -263,8 +310,19 @@ class Purchase(models.Model):
         if self.state != 'BARNAMEH_ISSUED':
             raise ValidationError('ابتدا باید بارنامه صادر شود')
         
-        # تحویل به مشتری انجام شد - بعد از این مرحله باید اختلاف تایید شود
+        notification_message = (
+            f"خرید {self.invoice_id} به وزن {self.delivered_weight:,} کیلوگرم "
+            f"به مشتری {self.customer.name} تحویل داده شد"
+        )
+        self.notify_relevant_users(
+            message=notification_message,
+            title="تحویل به مشتری",
+            notification_type='delivery',
+            priority='medium'
+        )
+        
         return self.change_state('DELIVERED', user, 'تحویل به مشتری انجام شد')
+
         
     def approve_difference(self, user):
         """
@@ -285,7 +343,20 @@ class Purchase(models.Model):
             sms_api = get_sms_api()
             sms_api.send_extelaf_notification(self)
         
+        notification_message = (
+            f"اختلاف {self.extelaf_type} خرید {self.invoice_id} "
+            f"به میزان {self.extelaf_weight:,} کیلوگرم "
+            f"و مبلغ {self.extelaf_amount:,} ریال تایید شد"
+        )
+        self.notify_relevant_users(
+            message=notification_message,
+            title="تایید اختلاف",
+            notification_type='difference',
+            priority='high'
+        )
+        
         return self.change_state('DIFFERENCE_APPROVED', user, 'مبلغ اختلاف تایید شد')
+
                 
     def deposit_difference(self, user):
         """
@@ -374,9 +445,19 @@ class Purchase(models.Model):
         if self.state != 'INVOICE_ISSUED' and self.state != 'SALES_APPROVED' and self.state != 'LOGISTICS_APPROVED':
             raise ValidationError('ابتدا باید فاکتور صادر شود یا واحدهای دیگر تایید کنند')
         
-        # با تایید واحد مالی، خرید تکمیل می‌شود
-        return self.change_state('COMPLETED', user, 'تایید واحد مالی انجام شد و خرید تکمیل شد')
+        notification_message = (
+            f"خرید {self.invoice_id} به مبلغ {self.amount_paid:,} ریال "
+            f"برای مشتری {self.customer.name} تکمیل شد"
+        )
+        self.notify_relevant_users(
+            message=notification_message,
+            title="تکمیل خرید",
+            notification_type='system',
+            priority='medium'
+        )
         
+        return self.change_state('COMPLETED', user, 'تایید واحد مالی انجام شد و خرید تکمیل شد')
+            
     def mark_as_urgent(self, user):
         """
         پیگیری فوری
@@ -385,9 +466,21 @@ class Purchase(models.Model):
         if user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
         
+        notification_message = (
+            f"⚠️ خرید {self.invoice_id} به حالت فوری تغییر وضعیت داد. "
+            f"لطفا در اسرع وقت پیگیری شود."
+        )
+        self.notify_relevant_users(
+            message=notification_message,
+            title="پیگیری فوری",
+            notification_type='system',
+            priority='critical'
+        )
+        
         self.is_urgent = True
         self.save(update_fields=['is_urgent'])
         return True
+    
         
     def cancel_purchase(self, user):
         """
@@ -516,6 +609,39 @@ class Purchase(models.Model):
             self.extelaf_amount = self.extelaf_weight * self.cargo.customer_price
             super().save(update_fields=['extelaf_amount'])
 
+
+    def send_notification(self, user, title, message, notification_type='purchase', priority='medium'):
+        """ارسال نوتیفیکیشن برای کاربر"""
+        NotificationService.create_notification(
+            user=user,
+            title=title,
+            message=message,
+            notification_type=notification_type,
+            priority=priority
+        )
+
+    def notify_relevant_users(self, message, title, notification_type='purchase', priority='medium'):
+        """ارسال نوتیفیکیشن به کاربران مرتبط"""
+        # ارسال به نماینده فروش
+        for agent in self.customer.sales_agent.all():
+            if agent.user:
+                self.send_notification(agent.user, title, message, notification_type, priority)
+        
+        # ارسال به مدیر لجستیک
+        from core._models import LogisticsManager
+        logistics_managers = LogisticsManager.objects.all()
+        for manager in logistics_managers:
+            if manager.user:
+                self.send_notification(manager.user, title, message, notification_type, priority)
+
+        # ارسال به مدیر مالی
+        from core._models import FinancialManager
+        financial_managers = FinancialManager.objects.all()
+        for manager in financial_managers:
+            if manager.user:
+                self.send_notification(manager.user, title, message, notification_type, priority)
+
+
 from django.contrib.auth.models import User
 class PurchaseHistory(models.Model):
     purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE)
@@ -585,3 +711,30 @@ class PurchaseReceipts(models.Model):
     def __str__(self):
         return f"{self.reciept_type} - {self.purchase.purchase_number} - {self.created_at}"
 
+class PriceHistory(models.Model):
+    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE)
+    old_price = models.DecimalField(max_digits=12, decimal_places=0)
+    new_price = models.DecimalField(max_digits=12, decimal_places=0)
+    changed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    changed_at = models.DateTimeField(auto_now_add=True)
+    reason = models.TextField()
+    
+    class Meta:
+        ordering = ['-changed_at']
+
+class PurchaseApproval(models.Model):
+    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE)
+    step = models.CharField(max_length=50)
+    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    approved_at = models.DateTimeField(auto_now_add=True)
+    comments = models.TextField(blank=True)
+    
+    def notify_next_approver(self):
+        next_approver = self.get_next_approver()
+        if next_approver:
+            # ارسال نوتیفیکیشن به تأییدکننده بعدی
+            Notification.objects.create(
+                user=next_approver,
+                title="درخواست تأیید خرید",
+                message=f"خرید {self.purchase.invoice_id} منتظر تأیید شماست"
+            )

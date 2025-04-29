@@ -25,6 +25,7 @@ import uuid
 from django.utils.text import slugify
 import mimetypes
 from django.utils import timezone
+from ERP.models.NotificationService import NotificationService
 
 try:
     import arabic_reshaper
@@ -528,6 +529,9 @@ def purchase_CRUD_view(request, purchase_id):
     else:
         form = RoleBasedPurchaseForm(instance=purchase, user_role=user_role)
 
+    notifications = NotificationService.get_unread_notifications(request.user)
+    
+
     context = {
         'purchase': purchase,
         'form': form,
@@ -535,6 +539,7 @@ def purchase_CRUD_view(request, purchase_id):
         'history_logs': history_logs,
         'state_changes': state_changes,
         'user_role': user_role,
+        'notifications' : notifications,
     }
     return render(request, 'purchase_CRUD_view.html', context)
 
