@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% block title %}ارسال پیام واتساپ{% endblock %}
+
+{% block content %}
+<div class="create-wa-container">
+    <h1 class="page-title">ارسال پیام واتساپ جدید</h1>
+    <div class="form-container">
+        <form method="post" class="wa-form">
+            {% csrf_token %}
+
+            {% if messages %}
+            <div class="messages-container">
+                {% for message in messages %}
+                <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="customer_id">مشتری</label>
+                <select id="customer_id" name="customer_id" class="form-control" required>
+                    <option value="">انتخاب کنید...</option>
+                    {% for customer in customers %}
+                    <option value="{{ customer.id }}">{{ customer.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="phone_number">شماره موبایل (اختیاری)</label>
+                <input type="text" id="phone_number" name="phone_number" class="form-control" placeholder="مثال: 09123456789">
+                <small class="form-text text-muted">در صورت وارد کردن شماره، پیام به این شماره ارسال می‌شود و نیازی به انتخاب مشتری نیست.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="template_type">قالب پیام</label>
+                <select id="template_type" name="template_type" class="form-control" required>
+                    <option value="">انتخاب کنید...</option>
+                    {% for tpl in templates %}
+                    <option value="{{ tpl.template_type }}">{{ tpl.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="action-button teal">
+                    <i class="fab fa-whatsapp"></i>
+                    ارسال پیام
+                </button>
+                <a href="{% url 'whatsapp_api:whatsapp-dashboard' %}" class="action-button light-teal">
+                    <i class="fas fa-arrow-right"></i>
+                    بازگشت به داشبورد
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --wa-teal: #25d366;
+        --wa-dark: #075e54;
+        --wa-light: #e9f7ef;
+        --wa-gray: #ece5dd;
+        --wa-border: #bdbdbd;
+        --wa-shadow: 0 2px 12px rgba(37, 211, 102, 0.08);
+    }
+    .create-wa-container {
+        padding: 2rem 0;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    .page-title {
+        color: var(--wa-dark);
+        text-align: center;
+        margin-bottom: 2rem;
+        font-size: 2rem;
+        border-bottom: 2px solid var(--wa-teal);
+        padding-bottom: 1rem;
+        letter-spacing: 1px;
+    }
+    .form-container {
+        background: var(--wa-light);
+        border-radius: 12px;
+        box-shadow: var(--wa-shadow);
+        padding: 2rem 2.5rem;
+        border: 1px solid var(--wa-border);
+    }
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--wa-dark);
+    }
+    .form-control {
+        width: 100%;
+        padding: 0.8rem;
+        border: 1px solid var(--wa-border);
+        border-radius: 6px;
+        font-size: 1rem;
+        background: white;
+        transition: border-color 0.3s;
+    }
+    .form-control:focus {
+        border-color: var(--wa-teal);
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.15);
+    }
+    .messages-container {
+        margin-bottom: 1.5rem;
+    }
+    .alert {
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+        font-size: 1rem;
+    }
+    .alert-danger {
+        background: #ffebee;
+        color: #d32f2f;
+        border: 1px solid #ffcdd2;
+    }
+    .alert-success {
+        background: #e8f5e9;
+        color: #388e3c;
+        border: 1px solid #c8e6c9;
+    }
+    .alert-info {
+        background: #e3f2fd;
+        color: #1976d2;
+        border: 1px solid #bbdefb;
+    }
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        justify-content: flex-end;
+    }
+    .action-button {
+        display: flex;
+        align-items: center;
+        padding: 0.8rem 1.5rem;
+        border-radius: 6px;
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+    }
+    .action-button i {
+        margin-left: 0.5rem;
+        font-size: 1.2rem;
+    }
+    .action-button.teal {
+        background: var(--wa-teal);
+    }
+    .action-button.light-teal {
+        background: var(--wa-dark);
+    }
+    .action-button:hover {
+        filter: brightness(1.1);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(37, 211, 102, 0.13);
+    }
+    @media (max-width: 768px) {
+        .create-wa-container {
+            padding: 1rem;
+        }
+        .form-container {
+            padding: 1rem;
+        }
+        .form-actions {
+            flex-direction: column;
+        }
+        .action-button {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const phoneInput = document.getElementById('phone_number');
+    const customerSelect = document.getElementById('customer_id');
+
+    function toggleFields() {
+        if (phoneInput.value.trim()) {
+            customerSelect.disabled = true;
+        } else {
+            customerSelect.disabled = false;
+        }
+    }
+
+    phoneInput.addEventListener('input', toggleFields);
+    customerSelect.addEventListener('change', function() {
+        if (customerSelect.value) {
+            phoneInput.disabled = true;
+        } else {
+            phoneInput.disabled = false;
+        }
+    });
+
+    // مقدار اولیه
+    toggleFields();
+});
+</script>
+{% endblock %}

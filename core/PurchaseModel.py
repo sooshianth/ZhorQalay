@@ -158,6 +158,17 @@ class Purchase(models.Model):
         if not self.purchase_number:
             raise ValidationError('شماره خرید الزامی است')
         
+        notification_message = (
+            f"خرید {self.invoice_id} در بازارگاه تایید شد. "
+            f"منتظر تایید پرداخت توسط واحد مالی"
+        )
+        self.notify_relevant_users(
+            message=notification_message,
+            title="تایید در بازارگاه",
+            notification_type='purchase',
+            priority='medium'
+        )
+        
         return self.change_state('BAZAARGAH_CONFIRMED', user, 'تایید شده در بازارگاه')
         
     def verify_payment(self, user):
@@ -209,6 +220,17 @@ class Purchase(models.Model):
         if not self.shenase_takhsis:
             raise ValidationError('شناسه تخصیص الزامی است')
         
+        notification_message = (
+            f"شناسه تخصیص برای خرید {self.invoice_id} "
+            f"توسط {user.get_full_name()} ثبت شد"
+        )
+        self.notify_relevant_users(
+            message=notification_message,
+            title="ثبت شناسه تخصیص",
+            notification_type='allocation',
+            priority='high'
+         )
+    
         return self.change_state('ALLOCATION_REGISTERED', user, 'تخصیص ثبت شد')
         
     def approve_allocation(self, user):
@@ -234,6 +256,17 @@ class Purchase(models.Model):
             
         if self.state != 'PAYMENT_VERIFIED' and self.state != 'ALLOCATION_APPROVED':
             raise ValidationError('ابتدا باید پرداخت تایید شود')
+        
+        notification_message = (
+            f"تسویه با واردکننده برای خرید {self.invoice_id} "
+            f"به مبلغ {self.amount_paid:,} ریال انجام شد"
+        )
+        self.notify_relevant_users(
+            message=notification_message,
+            title="تسویه با واردکننده",
+            notification_type='payment',
+            priority='high'
+        )
         
         return self.change_state('VENDOR_SETTLED', user, 'تسویه با واردکننده انجام شد')
         
@@ -264,6 +297,17 @@ class Purchase(models.Model):
             
         if self.state != 'ADDRESS_SENT':
             raise ValidationError('ابتدا باید آدرس به واردکننده ارسال شود')
+        
+        notification_message = (
+            f"خرید {self.invoice_id} به وزن {self.order_weight:,} کیلوگرم "
+            f"به باربری ارسال شد"
+        )
+        self.notify_relevant_users(
+            message=notification_message,
+            title="ارسال به باربری",
+            notification_type='shipping',
+            priority='medium'
+        )
         
         return self.change_state('SENT_TO_SHIPPING', user, 'ارسال به باربری انجام شد')
         
@@ -393,6 +437,17 @@ class Purchase(models.Model):
         if self.state not in valid_states:
             raise ValidationError('ابتدا باید کسری یا سرک واریز شود')
         
+        notification_message = (
+            f"رسید واریز برای خرید {self.invoice_id} "
+            f"توسط {user.get_full_name()} ثبت شد"
+        )
+        self.notify_relevant_users(
+            message=notification_message,
+            title="ثبت رسید",
+            notification_type='system',
+            priority='medium'
+        )
+        
         return self.change_state('RECEIPT_SUBMITTED', user, 'رسید اختلاف ثبت شد')
         
     def issue_invoice(self, user):
@@ -406,6 +461,17 @@ class Purchase(models.Model):
         if self.state != 'RECEIPT_SUBMITTED':
             raise ValidationError('ابتدا باید رسید ثبت شود')
         
+        notification_message = (
+            f"فاکتور خرید {self.invoice_id} به مبلغ {self.amount_paid:,} ریال "
+            f"صادر شد"
+        )
+        self.notify_relevant_users(
+            message=notification_message,
+            title="صدور فاکتور",
+            notification_type='system',
+            priority='medium'
+        )
+        
         return self.change_state('INVOICE_ISSUED', user, 'فاکتور صادر شد')
         
     def approve_by_sales(self, user):
@@ -418,6 +484,17 @@ class Purchase(models.Model):
             
         if self.state != 'RECEIPT_SUBMITTED' and self.state != 'INVOICE_ISSUED':
             raise ValidationError('ابتدا باید رسید ثبت شود یا فاکتور صادر شود')
+        
+        notification_message = (
+            f"خرید {self.invoice_id} توسط واحد فروش "
+            f"({user.get_full_name()}) تایید نهایی شد"
+        )
+        self.notify_relevant_users(
+            message=notification_message,
+            title="تایید واحد فروش",
+            notification_type='system',
+            priority='medium'
+        )
         
         return self.change_state('SALES_APPROVED', user, 'تایید واحد فروش انجام شد')
         
@@ -490,6 +567,16 @@ class Purchase(models.Model):
         if user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
         
+        notification_message = (
+            f"⚠️ خرید {self.invoice_id} توسط {user.get_full_name()} لغو شد"
+        )
+        self.notify_relevant_users(
+            message=notification_message,
+            title="لغو خرید",
+            notification_type='system',
+            priority='critical'
+    )
+
         self.is_canceled = True
         self.save(update_fields=['is_canceled'])
         return True

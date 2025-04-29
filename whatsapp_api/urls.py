@@ -1,9 +1,11 @@
 from django.urls import path
-from .views import whatsapp_dashboard
-from .views import send_whatsapp, message_history
+from . import views
 
 urlpatterns = [
-    path('send_whatapp', send_whatsapp),
-    path('whatsapp_dashboard', whatsapp_dashboard),
-    path('history', message_history),
+    path('send-whatsapp/', views.send_whatsapp, name='send-whatsapp'),
+    path('whatsapp-dashboard/', views.whatsapp_dashboard, name='whatsapp-dashboard'),
+    path('history/', views.message_history, name='message-history'),
+    path('templates/', views.templates, name='templates'),
+    path('queue/', views.whatsapp_queue, name='whatsapp-queue'),
+
 ]

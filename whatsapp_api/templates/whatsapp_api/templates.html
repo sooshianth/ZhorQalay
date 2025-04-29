@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% block title %}مدیریت قالب‌های واتساپ{% endblock %}
+{% block content %}
+<div class="wa-templates-container">
+    <h1>مدیریت قالب‌های واتساپ</h1>
+    <form method="post" class="add-template-form" style="margin-bottom:2rem;">
+        {% csrf_token %}
+        <div style="display:flex; flex-wrap:wrap; gap:1rem; align-items:flex-end;">
+            <div>
+                <label>نام قالب</label>
+                <input type="text" name="name" class="form-control" required>
+            </div>
+            <div>
+                <label>نوع قالب</label>
+                <select name="template_type" class="form-control" required>
+                    <option value="">انتخاب کنید...</option>
+                    {% for key, val in template_types %}
+                    <option value="{{ key }}">{{ val }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="flex:2;">
+                <label>متن پیام (content)</label>
+                <textarea name="content" class="form-control" required rows="2"></textarea>
+            </div>
+            <div>
+                <label>فعال</label>
+                <input type="checkbox" name="is_active" checked>
+            </div>
+            <div>
+                <button type="submit" class="action-button teal">افزودن قالب</button>
+            </div>
+        </div>
+    </form>
+    <table class="wa-table">
+        <thead>
+            <tr>
+                <th>نام قالب</th>
+                <th>نوع قالب</th>
+                <th>متن</th>
+                <th>وضعیت</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tpl in templates %}
+            <tr>
+                <td>{{ tpl.name }}</td>
+                <td>{{ tpl.get_template_type_display }}</td>
+                <td>{{ tpl.content|truncatechars:60 }}</td>
+                <td>
+                    {% if tpl.is_active %}
+                        <span class="status-badge status-active">فعال</span>
+                    {% else %}
+                        <span class="status-badge status-inactive">غیرفعال</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="empty-message">هیچ قالبی ثبت نشده است</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+    :root {
+        --wa-teal: #25d366;
+        --wa-dark: #075e54;
+        --wa-light: #e9f7ef;
+        --wa-border: #bdbdbd;
+    }
+    .wa-templates-container {
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 2rem 1rem;
+        background: var(--wa-light);
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(37, 211, 102, 0.08);
+    }
+    .wa-templates-container h1 {
+        color: var(--wa-dark);
+        margin-bottom: 2rem;
+        text-align: center;
+        font-size: 1.7rem;
+        border-bottom: 2px solid var(--wa-teal);
+        padding-bottom: 1rem;
+    }
+    .wa-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(37, 211, 102, 0.08);
+    }
+    .wa-table th, .wa-table td {
+        padding: 1rem;
+        text-align: right;
+        border-bottom: 1px solid #eee;
+    }
+    .wa-table th {
+        background: var(--wa-light);
+        color: var(--wa-dark);
+        font-weight: 600;
+    }
+    .wa-table tr:last-child td {
+        border-bottom: none;
+    }
+    .wa-table tr:hover {
+        background: #f1fdf6;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 0.3rem 0.7rem;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    .status-active {
+        background: var(--wa-teal);
+        color: white;
+    }
+    .status-inactive {
+        background: #eee;
+        color: #888;
+    }
+    .empty-message {
+        text-align: center;
+        color: #757575;
+        padding: 2rem;
+    }
+    @media (max-width: 768px) {
+        .wa-templates-container { padding: 1rem; }
+        .wa-table th, .wa-table td { padding: 0.7rem; }
+    }
+</style>
+{% endblock %}

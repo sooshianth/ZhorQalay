@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+{% block title %}تاریخچه پیام‌های واتساپ{% endblock %}
+{% block content %}
+<div class="wa-history-container">
+    <div class="page-header">
+        <h1>تاریخچه پیام‌های واتساپ</h1>
+        <div class="header-actions">
+            <a href="{% url 'whatsapp_api:send-whatsapp' %}" class="action-button teal">
+                <i class="fas fa-plus"></i>
+                ارسال پیام جدید
+            </a>
+            <a href="{% url 'whatsapp_api:whatsapp-dashboard' %}" class="action-button light-teal">
+                <i class="fas fa-home"></i>
+                داشبورد
+            </a>
+        </div>
+    </div>
+    <form method="get" class="filter-form">
+        <select name="template_type" class="filter-control">
+            <option value="">همه قالب‌ها</option>
+            {% for tpl in templates %}
+            <option value="{{ tpl.template_type }}" {% if current_template == tpl.template_type %}selected{% endif %}>{{ tpl.name }}</option>
+            {% endfor %}
+        </select>
+        <input type="text" name="search" class="filter-control" placeholder="جستجو..." value="{{ search }}">
+        <button type="submit" class="filter-button"><i class="fas fa-filter"></i> فیلتر</button>
+    </form>
+    <div class="table-responsive">
+        <table class="wa-table">
+            <thead>
+                <tr>
+                    <th>شماره گیرنده</th>
+                    <th>قالب</th>
+                    <th>تاریخ ارسال</th>
+                    <th>وضعیت</th>
+                    <th>متن پیام</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.recipient_number }}</td>
+                    <td>{{ log.template_type }}</td>
+                    <td>{{ log.sent_at|date:"Y/m/d H:i" }}</td>
+                    <td>{{ log.get_status_display }}</td>
+                    <td>{{ log.message|truncatechars:60 }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="empty-message">هیچ پیامی یافت نشد</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if logs.has_other_pages %}
+    <div class="pagination">
+        {% if logs.has_previous %}
+        <a href="?page={{ logs.previous_page_number }}&template_type={{ current_template }}&search={{ search }}" class="pagination-link">
+            <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+        <span class="pagination-info">
+            صفحه {{ logs.number }} از {{ logs.paginator.num_pages }}
+        </span>
+        {% if logs.has_next %}
+        <a href="?page={{ logs.next_page_number }}&template_type={{ current_template }}&search={{ search }}" class="pagination-link">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    :root {
+        --wa-teal: #25d366;
+        --wa-dark: #075e54;
+        --wa-light: #e9f7ef;
+        --wa-gray: #ece5dd;
+        --wa-border: #bdbdbd;
+    }
+    .wa-history-container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--wa-light);
+    }
+    .page-header h1 {
+        color: var(--wa-dark);
+        margin: 0;
+        font-size: 1.8rem;
+    }
+    .header-actions {
+        display: flex;
+        gap: 0.8rem;
+    }
+    .action-button {
+        display: flex;
+        align-items: center;
+        padding: 0.6rem 1rem;
+        border-radius: 6px;
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s;
+        border: none;
+        font-size: 1rem;
+    }
+    .action-button.teal { background: var(--wa-teal); }
+    .action-button.light-teal { background: var(--wa-dark); }
+    .action-button:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+    .filter-form {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+    .filter-control {
+        padding: 0.7rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-family: 'Vazir', sans-serif;
+        min-width: 160px;
+    }
+    .filter-button {
+        background: var(--wa-teal);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 0.7rem 1.2rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+    }
+    .filter-button i { margin-left: 0.5rem; }
+    .table-responsive {
+        overflow-x: auto;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(37, 211, 102, 0.08);
+    }
+    .wa-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .wa-table th, .wa-table td {
+        padding: 1rem;
+        text-align: right;
+        border-bottom: 1px solid #eee;
+    }
+    .wa-table th {
+        background: var(--wa-light);
+        color: var(--wa-dark);
+        font-weight: 600;
+    }
+    .wa-table tr:last-child td {
+        border-bottom: none;
+    }
+    .wa-table tr:hover {
+        background: #f1fdf6;
+    }
+    .empty-message {
+        text-align: center;
+        color: #757575;
+        padding: 2rem;
+    }
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 2rem 0 1rem;
+    }
+    .pagination-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: white;
+        color: #555;
+        text-decoration: none;
+        transition: all 0.2s;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .pagination-info {
+        text-align: center;
+        color: #666;
+        font-size: 0.9rem;
+    }
+    @media (max-width: 768px) {
+        .filter-form { flex-direction: column; }
+        .filter-control { width: 100%; }
+        .header-actions { width: 100%; }
+    }
+</style>
+{% endblock %}

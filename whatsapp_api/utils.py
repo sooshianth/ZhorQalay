@@ -58,52 +58,40 @@ def get_available_number():
         working_days__contains=str(timezone.now().isoweekday())
     ).order_by('priority', 'sent_today').first()
 
-def send_whatsapp_message(customer, template_type, context = None):
+def send_whatsapp_message(customer, template_type, context=None):
     assigned_number = get_available_number()
     if not assigned_number:
         print("هیچ شماره WhatsApp فعالی با ظرفیت باقی‌مونده برای امروز وجود ندارد!")
         return False
 
     try:
-        message = generate_message(customer, template_type, context)
-        assigned_number = get_available_number()
-        
-        if not assigned_number:
-            raise ValueError("شماره واتساپ فعالی یافت نشد")
-            
-        # کدهای ارسال پیام (مانند قبل)
-        to_number = customer.phone_number if customer.phone_number.startswith('+') else f'+98{customer.phone_number}'
-        
+        # اگر customer یک رشته (شماره موبایل) باشد
+        if isinstance(customer, str):
+            to_number = customer if customer.startswith('+') else f'+98{customer}'
+            message = WhatsappTemplate.objects.get(template_type=template_type, is_active=True).content
+        else:
+            to_number = customer.phone_number if customer.phone_number.startswith('+') else f'+98{customer.phone_number}'
+            message = generate_message(customer, template_type, context)
+
         options = webdriver.ChromeOptions()
         options.add_argument(r"--user-data-dir=C:\Users\Asus\AppData\Local\Google\Chrome\User Data")
         options.add_argument(rf"--profile-directory={assigned_number.chrome_profile}")
-        
+
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
         whatsapp_url = f"https://web.whatsapp.com/send?phone={to_number}&text={message}"
         driver.get(whatsapp_url)
         print("صفحه واتس‌اپ باز شد، منتظر لود شدن...")
 
-        # صبر تا وقتی که صفحه کامل لود بشه
         wait = WebDriverWait(driver, 30)
-        
-        # پیدا کردن فیلد پیام با XPath به‌روز
         message_input = wait.until(EC.presence_of_element_located((By.XPATH, '//div[@contenteditable="true" and @data-tab="10"]')))
-        print("فیلدメッセージ پیدا شد.")
+        print("فیلد پیام پیدا شد.")
 
-        # چک کردن متن فعلی
-        current_text = message_input.text
-        print(f"متن فعلی فیلد: {current_text}")
-
-        # صبر اضافی برای لود کامل
         time.sleep(2)
-
-        # ارسال با Enter
         message_input.send_keys(Keys.ENTER)
         print("Enter زده شد، پیام باید ارسال شده باشه.")
 
-        time.sleep(2)  # صبر برای اطمینان از ارسال
+        time.sleep(2)
 
-        # ثبت لاگ و به‌روزرسانی
         WhatsappLog.objects.create(
             recipient_number=to_number,
             message=message,
@@ -117,9 +105,9 @@ def send_whatsapp_message(customer, template_type, context = None):
         driver.quit()
         return True
     except Exception as e:
-        print(f"خطا در ارسال به {to_number}: {e}")
-        # چاپ HTML صفحه برای دیباگ
-        print("HTML صفحه:")
-        print(driver.page_source[:1000])  # فقط 1000 کاراکتر اول برای خوانایی
-        driver.quit()
+        print(f"خطا در ارسال به {to_number if 'to_number' in locals() else '---'}: {e}")
+        if 'driver' in locals():
+            print("HTML صفحه:")
+            print(driver.page_source[:1000])
+            driver.quit()
         return False

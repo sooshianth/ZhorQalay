@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% block title %}داشبورد واتساپ{% endblock %}
+{% block content %}
+<div class="whatsapp-dashboard">
+    <h1 class="dashboard-title">سامانه مدیریت پیام‌های واتساپ</h1>
+    <div class="dashboard-stats">
+        <div class="stat-card teal">
+            <i class="fab fa-whatsapp stat-icon"></i>
+            <div class="stat-info">
+                <h3>{{ active_numbers }}</h3>
+                <p>شماره فعال</p>
+            </div>
+        </div>
+        <div class="stat-card light-teal">
+            <i class="fas fa-paper-plane stat-icon"></i>
+            <div class="stat-info">
+                <h3>{{ total_sent }}</h3>
+                <p>کل پیام‌های ارسالی</p>
+            </div>
+        </div>
+        <div class="stat-card cyan">
+            <i class="fas fa-calendar-day stat-icon"></i>
+            <div class="stat-info">
+                <h3>{{ today_sent }}</h3>
+                <p>امروز ارسال شده</p>
+            </div>
+        </div>
+    </div>
+    <div class="dashboard-actions">
+        <a href="{% url 'whatsapp_api:send-whatsapp' %}" class="action-button teal">
+            <i class="fas fa-plus"></i>
+            ارسال پیام جدید
+        </a>
+        <a href="{% url 'whatsapp_api:whatsapp-queue' %}" class="action-button light-teal">
+            <i class="fas fa-list"></i>
+            مشاهده صف پیام‌های واتساپ
+        </a>
+        <a href="{% url 'whatsapp_api:message-history' %}" class="action-button light-teal">
+            <i class="fas fa-history"></i>
+            تاریخچه پیام‌ها
+        </a>
+        <a href="{% url 'whatsapp_api:templates' %}" class="action-button dark-teal">
+            <i class="fas fa-list"></i>
+            مدیریت قالب‌ها
+        </a>
+    </div>
+    <div class="recent-section">
+        <h2 class="section-title">آخرین پیام‌های ارسال شده</h2>
+        <div class="table-container">
+            <table class="wa-table">
+                <thead>
+                    <tr>
+                        <th>شماره گیرنده</th>
+                        <th>قالب</th>
+                        <th>تاریخ ارسال</th>
+                        <th>وضعیت</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for msg in recent_messages %}
+                    <tr>
+                        <td>{{ msg.recipient_number }}</td>
+                        <td>{{ msg.template_type }}</td>
+                        <td>{{ msg.sent_at|date:"Y/m/d H:i" }}</td>
+                        <td>{{ msg.get_status_display }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="empty-message">هیچ پیامی یافت نشد</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    :root {
+        --wa-teal: #25d366;
+        --wa-dark: #075e54;
+        --wa-light: #e9f7ef;
+        --wa-gray: #ece5dd;
+        --wa-border: #bdbdbd;
+        --wa-shadow: 0 2px 12px rgba(37, 211, 102, 0.08);
+    }
+    .whatsapp-dashboard {
+        padding: 2rem 0;
+    }
+    .dashboard-title {
+        color: var(--wa-dark);
+        text-align: center;
+        margin-bottom: 2rem;
+        font-size: 2rem;
+        border-bottom: 2px solid var(--wa-teal);
+        padding-bottom: 1rem;
+    }
+    .dashboard-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2.5rem;
+    }
+    .stat-card {
+        display: flex;
+        align-items: center;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: var(--wa-shadow);
+        color: white;
+    }
+    .stat-card.teal { background: var(--wa-teal); }
+    .stat-card.light-teal { background: #53e2a7; }
+    .stat-card.cyan { background: #00bfae; }
+    .stat-icon {
+        font-size: 2.5rem;
+        margin-left: 1rem;
+    }
+    .stat-info h3 {
+        font-size: 1.8rem;
+        margin: 0;
+        font-weight: 700;
+    }
+    .stat-info p {
+        margin: 0.5rem 0 0;
+        font-size: 1rem;
+    }
+    .dashboard-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 2.5rem;
+        justify-content: center;
+    }
+    .action-button {
+        display: flex;
+        align-items: center;
+        padding: 0.8rem 1.5rem;
+        border-radius: 6px;
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+    }
+    .action-button i {
+        margin-left: 0.5rem;
+    }
+    .action-button.teal { background: var(--wa-teal); }
+    .action-button.light-teal { background: var(--wa-dark); }
+    .action-button.dark-teal { background: #128c7e; }
+    .action-button:hover {
+        filter: brightness(1.1);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(37, 211, 102, 0.13);
+    }
+    .recent-section {
+        margin-top: 2rem;
+    }
+    .section-title {
+        color: var(--wa-dark);
+        font-size: 1.3rem;
+        margin-bottom: 1.5rem;
+        padding-right: 1rem;
+        border-right: 4px solid var(--wa-teal);
+    }
+    .table-container {
+        overflow-x: auto;
+        background: white;
+        border-radius: 8px;
+        box-shadow: var(--wa-shadow);
+    }
+    .wa-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .wa-table th, .wa-table td {
+        padding: 1rem;
+        text-align: right;
+        border-bottom: 1px solid #eee;
+    }
+    .wa-table th {
+        background: var(--wa-light);
+        color: var(--wa-dark);
+        font-weight: 600;
+    }
+    .wa-table tr:last-child td {
+        border-bottom: none;
+    }
+    .wa-table tr:hover {
+        background: #f1fdf6;
+    }
+    .empty-message {
+        text-align: center;
+        color: #757575;
+        padding: 2rem;
+    }
+    @media (max-width: 768px) {
+        .dashboard-stats { grid-template-columns: 1fr; }
+        .dashboard-actions { flex-direction: column; }
+        .action-button { width: 100%; }
+    }
+</style>
+{% endblock %}

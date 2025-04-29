@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from CRM.views import home_view
 from sms_api.views import sms_dashboard
+from whatsapp_api.views import whatsapp_dashboard
 
 urlpatterns = [
     path('ewdfsrgtyuiougyjgtrdthugghuji/', admin.site.urls),
@@ -14,6 +15,9 @@ urlpatterns = [
     path('sms/', include('sms_api.urls')),
     path('sms/dashborad', sms_dashboard, name='sms-dashboard'),
     path('', home_view.home_view, name='home_view'),
+    path('whatsapp/', include(('whatsapp_api.urls', 'whatsapp_api'), namespace='whatsapp_api')),
+    path('whatsapp/', whatsapp_dashboard, name='whatsapp-dashboard'),
+
 ]
 
 # اضافه کردن URL های مربوط به media در حالت دیباگ

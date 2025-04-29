@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+{% block title %}صف پیام‌های واتساپ{% endblock %}
+
+{% block content %}
+<div class="wa-queue-container">
+    <div class="page-header">
+        <h1>صف پیام‌های واتساپ</h1>
+        <div class="header-actions">
+            <a href="{% url 'whatsapp_api:send-whatsapp' %}" class="action-button teal">
+                <i class="fas fa-plus"></i>
+                ارسال پیام جدید
+            </a>
+            <a href="{% url 'whatsapp_api:whatsapp-dashboard' %}" class="action-button light-teal">
+                <i class="fas fa-home"></i>
+                داشبورد
+            </a>
+        </div>
+    </div>
+
+    <form method="get" class="filter-form">
+        <select name="status" class="filter-control">
+            <option value="">همه وضعیت‌ها</option>
+            <option value="pending" {% if status == 'pending' %}selected{% endif %}>در انتظار ارسال</option>
+            <option value="sent" {% if status == 'sent' %}selected{% endif %}>ارسال شده</option>
+            <option value="failed" {% if status == 'failed' %}selected{% endif %}>ناموفق</option>
+            <option value="suspended" {% if status == 'suspended' %}selected{% endif %}>معلق</option>
+        </select>
+        <input type="text" name="search" class="filter-control" placeholder="جستجو..." value="{{ search }}">
+        <button type="submit" class="filter-button"><i class="fas fa-filter"></i> فیلتر</button>
+    </form>
+
+    <div class="table-responsive">
+        <table class="wa-table">
+            <thead>
+                <tr>
+                    <th>شماره گیرنده</th>
+                    <th>قالب</th>
+                    <th>متن پیام</th>
+                    <th>تاریخ ایجاد</th>
+                    <th>وضعیت</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in queue_items %}
+                <tr>
+                    <td>{{ item.recipient_number }}</td>
+                    <td>{{ item.template_type }}</td>
+                    <td>{{ item.message|truncatechars:50 }}</td>
+                    <td>{{ item.created_at|date:"Y/m/d H:i" }}</td>
+                    <td>
+                        <span class="status-badge status-{{ item.status }}">
+                            {{ item.get_status_display }}
+                        </span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="empty-message">هیچ پیامی در صف یافت نشد</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if queue_items.has_other_pages %}
+    <div class="pagination">
+        {% if queue_items.has_previous %}
+        <a href="?page={{ queue_items.previous_page_number }}&status={{ status }}&search={{ search }}" class="pagination-link">
+            <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+        <span class="pagination-info">
+            صفحه {{ queue_items.number }} از {{ queue_items.paginator.num_pages }}
+        </span>
+        {% if queue_items.has_next %}
+        <a href="?page={{ queue_items.next_page_number }}&status={{ status }}&search={{ search }}" class="pagination-link">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --wa-teal: #25d366;
+        --wa-dark: #075e54;
+        --wa-light: #e9f7ef;
+        --wa-gray: #ece5dd;
+        --wa-border: #bdbdbd;
+    }
+    .wa-queue-container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--wa-light);
+    }
+    .page-header h1 {
+        color: var(--wa-dark);
+        margin: 0;
+        font-size: 1.8rem;
+    }
+    .header-actions {
+        display: flex;
+        gap: 0.8rem;
+    }
+    .action-button {
+        display: flex;
+        align-items: center;
+        padding: 0.6rem 1rem;
+        border-radius: 6px;
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s;
+        border: none;
+        font-size: 1rem;
+    }
+    .action-button.teal { background: var(--wa-teal); }
+    .action-button.light-teal { background: var(--wa-dark); }
+    .action-button:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+    .filter-form {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+    .filter-control {
+        padding: 0.7rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-family: 'Vazir', sans-serif;
+        min-width: 160px;
+    }
+    .filter-button {
+        background: var(--wa-teal);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 0.7rem 1.2rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+    }
+    .filter-button i { margin-left: 0.5rem; }
+    .table-responsive {
+        overflow-x: auto;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(37, 211, 102, 0.08);
+    }
+    .wa-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .wa-table th, .wa-table td {
+        padding: 1rem;
+        text-align: right;
+        border-bottom: 1px solid #eee;
+    }
+    .wa-table th {
+        background: var(--wa-light);
+        color: var(--wa-dark);
+        font-weight: 600;
+    }
+    .wa-table tr:last-child td {
+        border-bottom: none;
+    }
+    .wa-table tr:hover {
+        background: #f1fdf6;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 0.3rem 0.7rem;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    .status-badge.status-pending {
+        background: #FFF3E0;
+        color: #FFA000;
+    }
+    .status-badge.status-sent {
+        background: var(--wa-light);
+        color: var(--wa-dark);
+    }
+    .status-badge.status-failed {
+        background: #FFEBEE;
+        color: #D32F2F;
+    }
+    .status-badge.status-suspended {
+        background: #F5F5F5;
+        color: #616161;
+    }
+    .empty-message {
+        text-align: center;
+        color: #757575;
+        padding: 2rem;
+    }
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 2rem 0 1rem;
+    }
+    .pagination-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: white;
+        color: #555;
+        text-decoration: none;
+        transition: all 0.2s;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .pagination-info {
+        text-align: center;
+        color: #666;
+        font-size: 0.9rem;
+        margin: 0 1rem;
+    }
+    @media (max-width: 768px) {
+        .filter-form { flex-direction: column; }
+        .filter-control { width: 100%; }
+        .header-actions { width: 100%; }
+    }
+</style>
+{% endblock %}

@@ -75,3 +75,19 @@ class WhatsappTemplate(models.Model):
         verbose_name_plural = "تمپلیت‌های واتساپ"
         ordering = ['template_type', 'name']
 
+
+class WhatsappQueue(models.Model):
+    recipient_number = models.CharField(max_length=20)
+    template_type = models.CharField(max_length=50)
+    message = models.TextField()
+    status = models.CharField(max_length=20, choices=[
+        ('pending', 'در انتظار ارسال'),
+        ('sent', 'ارسال شده'),
+        ('failed', 'ناموفق'),
+        ('suspended', 'معلق'),
+    ], default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    retry_count = models.IntegerField(default=0)
+    # سایر فیلدهای مورد نیاز...
+
