@@ -16,9 +16,10 @@ import json
 from django.contrib.auth.decorators import login_required
 from .apis import queue_sms, process_sms_queue
 from core.PurchaseModel import Purchase
-
+from core.decorators.decorators import role_required
 logger = logging.getLogger(__name__)
 
+@role_required('admin')
 @login_required
 def sms_dashboard(request):
     """داشبورد مدیریت پیامک‌ها"""
@@ -42,6 +43,7 @@ def sms_dashboard(request):
     return render(request, 'sms_api/sms_dashboard.html', context)
 
 
+@role_required('admin')
 @login_required
 def sms_queue(request):
     """مشاهده صف پیامک‌ها"""
@@ -94,6 +96,7 @@ def sms_queue(request):
     return render(request, 'sms_api/sms_queue.html', context)
 
 
+@role_required('admin')
 @login_required
 def sms_log(request):
     """مشاهده تاریخچه پیامک‌ها"""
@@ -181,6 +184,7 @@ def get_default_templates():
         'welcome': 'به خانواده ژور قلعه خوش آمدید! برای مشاهده محصولات ما به وبسایت مراجعه کنید.'
     }
 
+@role_required('admin')
 @login_required
 def create_sms(request):
     """
@@ -306,6 +310,7 @@ def create_sms(request):
     })
 
 
+@role_required('admin')
 @login_required
 def sms_detail(request, sms_id):
     """مشاهده جزئیات پیامک"""
@@ -323,6 +328,7 @@ def sms_detail(request, sms_id):
     return render(request, 'sms_api/sms_detail.html', context)
 
 
+@role_required('admin')
 @login_required
 def edit_sms(request, sms_id):
     """ویرایش پیامک"""
@@ -384,6 +390,7 @@ def edit_sms(request, sms_id):
     return render(request, 'sms_api/edit_sms.html', context)
 
 
+@role_required('admin')
 @login_required
 @require_POST
 def delete_sms(request, sms_id):
@@ -400,6 +407,7 @@ def delete_sms(request, sms_id):
     return redirect('sms_api:sms_queue')
 
 
+@role_required('admin')
 @login_required
 @require_POST
 def suspend_sms(request, sms_id):
@@ -419,6 +427,7 @@ def suspend_sms(request, sms_id):
     return redirect('sms_api:sms_detail', sms_id=sms.id)
 
 
+@role_required('admin')
 @login_required
 @require_POST
 def resume_sms(request, sms_id):
@@ -438,6 +447,7 @@ def resume_sms(request, sms_id):
     return redirect('sms_api:sms_detail', sms_id=sms.id)
 
 
+@role_required('admin')
 @login_required
 @require_POST
 def send_sms_now(request, sms_id):
@@ -512,6 +522,7 @@ def send_sms_now(request, sms_id):
     return redirect('sms_api:sms_detail', sms_id=sms.id)
 
 
+@role_required('admin')
 @login_required
 @require_POST
 def retry_sms(request, sms_id):
@@ -531,6 +542,7 @@ def retry_sms(request, sms_id):
     return redirect('sms_api:sms_detail', sms_id=sms.id)
 
 
+@role_required('admin')
 @login_required
 def export_sms_log_excel(request):
     """خروجی اکسل از تاریخچه پیامک‌ها"""
@@ -625,6 +637,7 @@ def export_sms_log_excel(request):
     return response
 
 
+@role_required('admin')
 @login_required
 def export_sms_log_pdf(request):
     """خروجی PDF از تاریخچه پیامک‌ها"""
@@ -694,14 +707,16 @@ def export_sms_log_pdf(request):
     
     return HttpResponse('خطا در ایجاد PDF', status=400)
 
+@role_required('admin')
 @login_required
 def sms_logs(request):
     """نمایش لیست پیامک‌های ارسال شده"""
     logs = SmsLog.objects.all().order_by('-sent_at')
     return render(request, 'sms_api/sms_logs.html', {'logs': logs})
 
-@require_POST
+@role_required('admin')
 @login_required
+@require_POST
 def process_sms_queue_manually(request):
     """
     اجرای دستی پردازش صف پیامک ها

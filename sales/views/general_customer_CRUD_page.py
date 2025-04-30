@@ -25,6 +25,7 @@ from core.CallSessionModel import CallSession
 from core.PurchaseModel import Purchase
 from core.CargoProductModel import CargoProduct
 from core.SalesAgentModel import SalesAgent
+from core.decorators.decorators import role_required
 
 def persian_digits_to_english(persian_text):
     """تبدیل اعداد فارسی به انگلیسی در یک رشته."""
@@ -201,6 +202,7 @@ def check_customer_sales_agent(customer, sales_agent):
     if sales_agent not in customer.sales_agent.all():
         raise PermissionDenied("You do not have permission to access this customer.")
 
+@role_required('sales_agent', 'admin')
 @login_required
 def change_task_status(request, pk):
     task = get_object_or_404(Task, id=pk)
@@ -217,6 +219,7 @@ def change_task_status(request, pk):
     
     return redirect(request.META.get('HTTP_REFERER'))
 
+@role_required('sales_agent', 'admin')
 @login_required
 def customer_search(request):
     query = request.GET.get('query', '')
@@ -245,6 +248,7 @@ def customer_search(request):
             results = []
     return JsonResponse(results, safe=False)
 
+@role_required('sales_agent', 'admin')
 @login_required
 def general_customer_CRUD_view(request):
     """
@@ -687,6 +691,8 @@ def general_customer_CRUD_view(request):
     print( context )
     return render(request, 'general_customer_CRUD_view.html', context)
 
+@role_required('sales_agent', 'admin')
+@login_required
 def get_related_products(request):
     customer_id = request.GET.get('customer_id')
     country_filter = request.GET.get('country', '')
@@ -756,6 +762,7 @@ from datetime import timedelta
 from core._models import Purchase
 from django.utils import timezone
 
+@role_required('sales_agent', 'admin')
 @login_required
 def predict_next_purchase(request):
     customer_id = request.GET.get('customer_id')

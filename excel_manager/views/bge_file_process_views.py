@@ -10,7 +10,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from django.core.files import File
-
+from core.decorators.decorators import role_required
 from ..models import ExcelFile, BGExcelFile, ExcelProcessingLog
 from core._models import CargoProduct, Purchase
 from core.PurchaseModel import ShenaseTakhsis, PurchaseStateChange
@@ -26,6 +26,7 @@ from .utils import (
 # ایجاد یک لاگر برای دیباگ
 logger = logging.getLogger(__name__)
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 def process_bge_file(request, file_id):
     """

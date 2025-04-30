@@ -10,7 +10,10 @@ from .models import WhatsappNumber, WhatsappLog, WhatsappTemplate, WhatsappQueue
 from .utils import send_whatsapp_message
 from core._models import Customer
 from django.db import models
+from core.decorators.decorators import role_required
 
+@role_required('admin')
+@login_required
 def whatsapp_dashboard(request):
     """داشبورد مدیریت پیام‌های واتساپ"""
     # آمار فعالیت شماره‌های واتساپ
@@ -30,6 +33,7 @@ def whatsapp_dashboard(request):
     
     return render(request, 'whatsapp_api/whatsapp_dashboard.html', context)
 
+@role_required('admin')
 @login_required
 def send_whatsapp(request):
     if request.method == 'POST':
@@ -124,6 +128,8 @@ def send_whatsapp(request):
 
     return render(request, 'whatsapp_api/send_whatsapp.html', context)
 
+@role_required('admin')
+@login_required
 def message_history(request):
     """تاریخچه پیام‌های واتساپ"""
     template_type = request.GET.get('template_type')
@@ -156,6 +162,7 @@ def message_history(request):
     
     return render(request, 'whatsapp_api/message_history.html', context)
 
+@role_required('admin')
 @login_required
 def templates(request):
     """مدیریت تمپلیت‌های واتساپ و افزودن تمپلیت جدید"""
@@ -184,6 +191,7 @@ def templates(request):
     }
     return render(request, 'whatsapp_api/templates.html', context)
 
+@role_required('admin')
 @login_required
 def whatsapp_queue(request):
     status = request.GET.get('status', '')

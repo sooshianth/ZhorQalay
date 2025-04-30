@@ -10,7 +10,7 @@ import os
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from django.core.cache import cache
-
+from core.decorators.decorators import role_required
 logger = logging.getLogger(__name__)
 
 file_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'iran_cities_fa.json')
@@ -126,11 +126,9 @@ def calculate_ml_prediction(sales_agent, monthly_sales):
         cache.set(cache_key, avg_sales, 604800)
         return avg_sales
 
+@role_required('sales_agent', 'admin')
 @login_required
 def sales_dashboard_view(request):
-    if not hasattr(request.user, 'sales_agent'):
-        logger.warning(f"Unauthorized access attempt by user {request.user.username}")
-        return redirect('sales_agent_login')
 
     sales_agent = request.user.sales_agent
     today = timezone.now()

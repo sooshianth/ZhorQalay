@@ -10,11 +10,12 @@ from ..forms import PhoneImportForm, PhoneAssignmentForm
 from core.SalesAgentModel import SalesAgent
 from core.CustomerModel import Customer, PhoneNumber
 from core._models import Customer as CustomerAlias
-
+from core.decorators.decorators import role_required
 def is_admin(user):
     """بررسی دسترسی ادمین"""
     return user.is_superuser or user.is_staff
 
+@role_required('admin')
 @login_required
 @user_passes_test(is_admin)
 def admin_import_phone_numbers(request):
@@ -74,8 +75,8 @@ def admin_import_phone_numbers(request):
     
     return render(request, 'phone_assignment/admin_import.html', context)
 
+@role_required('admin')
 @login_required
-@user_passes_test(is_admin)
 def admin_phone_assignment_list(request):
     """ویو مدیریت لیست شماره تلفن‌های تخصیص داده شده توسط ادمین"""
     # فیلترها
@@ -113,6 +114,7 @@ def admin_phone_assignment_list(request):
     
     return render(request, 'phone_assignment/admin_list.html', context)
 
+@role_required('sales_agent', 'admin')
 @login_required
 def sales_phone_assignment_list(request):
     """ویو نمایش شماره تلفن‌های تخصیص داده شده به کارشناس فروش"""
@@ -146,6 +148,7 @@ def sales_phone_assignment_list(request):
     
     return render(request, 'phone_assignment/sales_list.html', context)
 
+@role_required('sales_agent', 'admin')
 @login_required
 def delete_phone_assignment(request, pk):
     """حذف شماره تلفن از لیست"""
@@ -164,6 +167,7 @@ def delete_phone_assignment(request, pk):
     # بازگشت به صفحه قبل
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse('sales_phone_assignment_list')))
 
+@role_required('sales_agent', 'admin')
 @login_required
 def add_customer_from_assignment(request, pk):
     """تبدیل به مشتری جدید"""

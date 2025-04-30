@@ -17,9 +17,10 @@ import json
 from core._models import Customer
 from django.utils import timezone
 from datetime import datetime, timedelta
-
+from core.decorators.decorators import role_required
 logger = logging.getLogger(__name__)
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @method_decorator(csrf_exempt, name='dispatch')
 class UploadExcelFileView(View):
     """
@@ -121,6 +122,8 @@ class UploadExcelFileView(View):
                 'message': f'خطا در آپلود فایل: {str(e)}'
             }, status=500)
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
+@login_required     
 def get_excel_file_detail(request, file_id):
     """
     دریافت و نمایش جزئیات یک فایل اکسل
@@ -166,6 +169,8 @@ def get_excel_file_detail(request, file_id):
     
     return JsonResponse(response_data)
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
+@login_required
 def download_excel_file(request, file_id):
     """
     دانلود فایل اکسل
@@ -206,6 +211,8 @@ def download_excel_file(request, file_id):
         
         return response
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
+@login_required
 def list_excel_files(request):
     """
     نمایش لیست فایل‌های اکسل

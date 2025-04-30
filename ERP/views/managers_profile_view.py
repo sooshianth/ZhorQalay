@@ -1,7 +1,9 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from core.PurchaseModel import Purchase, determine_user_role
+from core.decorators.decorators import role_required
 
+@role_required('logistics_manager')
 @login_required
 def logistics_manager_profile_view(request):
     manager = request.user.logistics_manager
@@ -30,6 +32,7 @@ def logistics_manager_profile_view(request):
         'user_role': user_role
     })
 
+@role_required('financial_manager')
 @login_required
 def financial_manager_profile_view(request):
     manager = request.user.financial_manager
@@ -59,6 +62,7 @@ def financial_manager_profile_view(request):
         'user_role': user_role
     })
 
+@role_required('support_agent')
 @login_required
 def support_agent_profile_view(request):
     agent = request.user.support_agent

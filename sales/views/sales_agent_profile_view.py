@@ -7,9 +7,10 @@ from datetime import timedelta
 from django.db.models import Q, Count
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 import logging
-
+from core.decorators.decorators import role_required
 logger = logging.getLogger(__name__)
 
+@role_required('sales_agent', 'admin')
 @login_required
 def sales_agent_profile_view(request):
     if not hasattr(request.user, 'sales_agent'):
@@ -134,6 +135,7 @@ def sales_agent_profile_view(request):
     return render(request, 'sales_agent_profile.html', context)
 
 
+@role_required('sales_agent', 'admin')
 @login_required
 def customer_list_view(request):
     if not hasattr(request.user, 'sales_agent'):
@@ -219,8 +221,11 @@ def customer_list_view(request):
     
     return render(request, 'customer_list.html', context)
 
+@role_required('sales_agent', 'admin')
 @login_required
 def export_customers_to_excel(request):
+    return render(request, 'customer_list.html')
+    # این تابع فعلا حذف شده است
     if not hasattr(request.user, 'sales_agent'):
         logger.warning(f"Unauthorized access attempt by user {request.user.username}")
         return redirect('sales_agent_login')
@@ -249,6 +254,7 @@ def export_customers_to_excel(request):
         logger.error(f"Error exporting customers to Excel: {str(e)}")
         return HttpResponse(f"خطا در تولید فایل اکسل: {str(e)}", status=500)
 
+@role_required('sales_agent', 'admin')
 @login_required
 def delete_unpaid_purchase(request, purchase_id):
     if not hasattr(request.user, 'sales_agent'):

@@ -1,6 +1,6 @@
 # This file is now deprecated. Import functions from new modular views.
 # Keeping this file for backward compatibility.
-
+from core.decorators.decorators import role_required
 from .bge_file_list_views import (
     bge_files_list,
     view_excel_file,
@@ -42,6 +42,8 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
+@login_required
 def get_bge_file_detail(request, file_id):
     """
     دریافت و نمایش جزئیات یک فایل بازارگاه بر اساس شناسه فایل
@@ -87,6 +89,8 @@ def get_bge_file_detail(request, file_id):
     
     return JsonResponse(response_data)
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
+@login_required
 def download_bge_file(request, file_id):
     """
     دانلود فایل بازارگاه
@@ -127,6 +131,8 @@ def download_bge_file(request, file_id):
         
         return response
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
+@login_required
 def get_bge_file_stats(request, file_id):
     """
     دریافت آمار و اطلاعات تحلیلی فایل بازارگاه

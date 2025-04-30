@@ -5,6 +5,8 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from sms_ir import SmsIr
+from django.core.cache import cache
+import time
 
 
 def send_verify_code(number:str):
@@ -62,13 +64,32 @@ class OTPLoginForm(forms.Form):
         user = self.find_user_by_phone(phone, user_type)
         if not user:
             raise forms.ValidationError(f"شماره موبایل {phone} در سیستم یافت نشد")
+        
+        # Check if there's a cooldown period active
+        cooldown_key = f"cooldown_{phone}"
+        cooldown_expires_key = f"cooldown_expires_{phone}"
+        
+        if cache.get(cooldown_key):
+            # Get the expiration time
+            expires_at = cache.get(cooldown_expires_key, 0)
+            current_time = int(time.time())
+            remaining_seconds = max(1, expires_at - current_time)
+            
+            raise forms.ValidationError(f"لطفا {remaining_seconds} ثانیه صبر کنید تا بتوانید مجددا درخواست کد تایید نمایید")
             
         if phone:
             code = send_verify_code(phone)
             if code:
                 # Store code in session or cache for validation
-                from django.core.cache import cache
                 cache.set(f"otp_{phone}", code, timeout=300)  # 5 minute expiry
+                
+                # Set a cooldown period of 2 minutes
+                cooldown_time = 120  # 2 minutes in seconds
+                expires_at = int(time.time()) + cooldown_time
+                
+                cache.set(cooldown_key, True, timeout=cooldown_time)  # 2 minute cooldown
+                cache.set(cooldown_expires_key, expires_at, timeout=cooldown_time)
+                
                 return True
         return False
 

@@ -14,7 +14,8 @@ import re
 from django.contrib.auth.models import User
 from ..models import CargoProduct
 from core.CustomerModel import FIELD_OF_ACTIVITY
-
+from core.decorators.decorators import role_required
+from django.contrib.auth.decorators import login_required
 # ایجاد یک لاگر برای دیباگ و ثبت وقایع
 logger = logging.getLogger(__name__)
 

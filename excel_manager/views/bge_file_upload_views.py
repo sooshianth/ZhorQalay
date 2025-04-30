@@ -10,11 +10,12 @@ from django.utils import timezone
 
 from ..models import BGExcelFile, CargoProduct
 from .utils import fix_excel_headers
-
+from core.decorators.decorators import role_required
 # ایجاد یک لاگر برای دیباگ
 logger = logging.getLogger(__name__)
 
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 def upload_bge_file(request):
     """آپلود فایل اکسل بازارگاه"""
@@ -246,6 +247,7 @@ def upload_bge_file(request):
     return render(request, 'excel_manager/upload_bge_file.html', context)
 
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 def approve_bge_file(request, file_id):
     """

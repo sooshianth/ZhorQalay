@@ -8,13 +8,14 @@ from django.http import JsonResponse
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 from django.urls import reverse
-
+from core.decorators.decorators import role_required
 from ..models import ExcelFile, BGExcelFile, CargoProduct
 from .utils import fix_excel_headers
 
 # ایجاد یک لاگر برای دیباگ
 logger = logging.getLogger(__name__)
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 def bge_files_list(request):
     """
@@ -28,7 +29,7 @@ def bge_files_list(request):
     }
     return render(request, 'excel_manager/bge_files_list.html', context)
 
-
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 def search_cargo_products(request):
     """
@@ -53,6 +54,7 @@ def search_cargo_products(request):
     return JsonResponse({'results': results})
 
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 def view_excel_file(request, file_id):
     """
@@ -161,6 +163,7 @@ def view_excel_file(request, file_id):
         return redirect('excel_manager:bge_files_list')
 
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 def save_excel_changes(request, file_id):
     """
@@ -338,6 +341,8 @@ def save_excel_changes(request, file_id):
         return JsonResponse({'success': False, 'message': f'خطای داخلی سرور: {str(e)}'}, status=500)
 
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
+@login_required
 def is_html_file(file_path):
     """
     بررسی می‌کند که آیا فایل حاوی HTML است یا خیر
@@ -351,6 +356,8 @@ def is_html_file(file_path):
     except Exception:
         return False 
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
+@login_required
 def delete_excel_file(request, file_id):
     """
     حذف فایل اکسل از دیتابیس
