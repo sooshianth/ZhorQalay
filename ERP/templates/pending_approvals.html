@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}تایید ساعات{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">ساعات منتظر تایید</h2>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>کارمند</th>
+                <th>تاریخ</th>
+                <th>روز</th>
+                <th>مجموع ساعات</th>
+                <th>توضیحات</th>
+                <th>تایید کاربر 1</th>
+                <th>تایید کاربر 2</th>
+                <th>تایید ادمین</th>
+                <th>عملیات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for attendance in pending_attendances %}
+            <tr>
+                <td>{{ attendance.employee.username }}</td>
+                <td>{{ attendance.week_start_date }}</td>
+                <td>{{ attendance.day }}</td>
+                <td>{{ attendance.total_hours }}</td>
+                <td>{{ attendance.description }}</td>
+                <td><span class="badge {% if attendance.user1_approved %}bg-success{% else %}bg-danger{% endif %}">{{ attendance.user1_approved|yesno:"تایید شده,در انتظار" }}</span></td>
+                <td><span class="badge {% if attendance.user2_approved %}bg-success{% else %}bg-danger{% endif %}">{{ attendance.user2_approved|yesno:"تایید شده,در انتظار" }}</span></td>
+                <td><span class="badge {% if attendance.approved_by_admin %}bg-success{% else %}bg-danger{% endif %}">{{ attendance.approved_by_admin|yesno:"تایید شده,در انتظار" }}</span></td>
+                <td>
+                    <form method="post" action="{% url 'approve_attendance' attendance.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success">تایید</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9">هیچ ساعت منتظر تاییدی وجود ندارد.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
