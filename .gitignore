@@ -12,6 +12,7 @@
 /core/management/__pycache__
 /core/management/commands/__pycache__
 /core/tasks/__pycache__
+/core/decorators/__pycache__
 
 /sales/__pycache__
 /sales/views/__pycache__
@@ -24,9 +25,11 @@
 /ERP/views/__pycache__
 /ERP/__pycache__
 /ERP/migrations/__pycache__
+/ERP/models/__pycache__
 
 /CRM/__pycache__
 /CRM/views/__pycache__
+/CRM/migrations/__pycache__
 
 /chat/__pycache__
 /chat/views/__pycache__
