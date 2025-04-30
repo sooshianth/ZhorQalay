@@ -5,6 +5,7 @@ import jdatetime
 class WeeklyAttendance(models.Model):
     employee = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کارمند")
     week_start_date = models.DateField(verbose_name="تاریخ شروع هفته")  # تاریخ شروع هفته (شنبه)
+    day = models.CharField(max_length=10, verbose_name="روز", null=True, blank=True)  # روز خاص
     saturday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات شنبه", null=True, blank=True)
     sunday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات یکشنبه", null=True, blank=True)
     monday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات دوشنبه", null=True, blank=True)
@@ -13,7 +14,14 @@ class WeeklyAttendance(models.Model):
     thursday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات پنج‌شنبه", null=True, blank=True)
     friday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات جمعه", null=True, blank=True)
     total_hours = models.DecimalField(max_digits=6, decimal_places=2, verbose_name="مجموع ساعات", editable=False)
-    
+    total_hours = models.DecimalField(max_digits=6, decimal_places=2, verbose_name="مجموع ساعات", editable=False)
+    description = models.TextField(verbose_name='توضیحات', null=True, blank=True)
+    approved_by_user1 = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="approver1", null=True, blank=True, verbose_name="تایید توسط کاربر 1")
+    approved_by_user2 = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="approver2", null=True, blank=True, verbose_name="تایید توسط کاربر 2")
+    approved_by_admin = models.BooleanField(default=False, verbose_name='تایید توسط ادمین')
+    user1_approved = models.BooleanField(default=False, verbose_name="تایید توسط کاربر 1 انجام شده")
+    user2_approved = models.BooleanField(default=False, verbose_name="تایید توسط کاربر 2 انجام شده")
+
     def calculate_total_hours(self):
         self.total_hours = sum([
             self.saturday_hours or 0,

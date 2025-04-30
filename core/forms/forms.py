@@ -163,20 +163,69 @@ class SupportAgentLoginForm(OTPLoginForm):
 
 
 from django import forms
-from django_jalali.forms import jDateField, jdatetime
 from core._models import WeeklyAttendance
+from django.contrib.auth.models import User
+
 class WeeklyAttendanceForm(forms.ModelForm):
-   
-    week_start_date = jDateField(label="تاریخ شروع هفته (جلالی)")  # استفاده از تاریخ جلالی
+    approved_by_user1 = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        required=False,
+        label="تایید توسط کاربر 1",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    approved_by_user2 = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        required=False,
+        label="تایید توسط کاربر 2",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
 
     class Meta:
         model = WeeklyAttendance
-        fields = '__all__'
+        fields = [
+            'week_start_date', 'day', 'saturday_hours', 'sunday_hours', 'description',
+            'approved_by_user1', 'approved_by_user2'
+        ]
+        widgets = {
+            'week_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+        labels = {
+            'week_start_date': 'تاریخ شروع هفته',
+            'day': 'روز',
+            'description': 'توضیحات',
+        }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # تنظیم مقدار پیش‌فرض برای تاریخ شروع هفته (شنبه هفته جاری)
-        import jdatetime
-        today = jdatetime.date.today()
-        start_of_week = today - jdatetime.timedelta(days=today.weekday())
-        self.fields['week_start_date'].initial = start_of_week.togregorian()
+
+from django import forms
+from django.contrib.auth.models import User
+from core._models import WeeklyAttendance
+
+class DailyAttendanceForm(forms.Form):
+    date = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        label="تاریخ"
+    )
+    hours = forms.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={'class': 'form-control'}),
+        label="ساعات کاری"
+    )
+    description = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        required=False,
+        label="توضیحات"
+    )
+    approved_by_user1 = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        required=True,
+        label="تأیید توسط کاربر ۱",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    approved_by_user2 = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        required=True,
+        label="تأیید توسط کاربر ۲",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )

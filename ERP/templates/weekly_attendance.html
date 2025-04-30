@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}ثبت ساعات هفتگی{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">ثبت ساعات روزانه</h2>
+    <form id="daily-attendance-form" method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="form-group">
+            <label for="day-of-week">روز هفته:</label>
+            <input type="text" id="day-of-week" class="form-control" readonly>
+        </div>
+        <button type="submit" class="btn btn-primary">ثبت</button>
+    </form>
+
+    <!-- دکمه دانلود گزارش -->
+    <a href="{% url 'download_attendance_report' %}" class="btn btn-success mb-4">دانلود گزارش</a>
+
+    <!-- جدول نمایش رکوردها -->
+    <h3>لیست ساعات ثبت‌شده</h3>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>تاریخ شروع هفته</th>
+                <th>روز</th>
+                <th>ساعات کاری</th>
+                <th>توضیحات</th>
+                <th>تأیید ادمین</th>
+                <th>تأیید کاربر ۱</th>
+                <th>تأیید کاربر ۲</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for attendance in attendances %}
+            <tr>
+                <td>{{ attendance.week_start_date }}</td>
+                <td>{{ attendance.day }}</td>
+                <td>{{ attendance.total_hours }}</td>
+                <td>{{ attendance.description }}</td>
+                <td><span class="badge {% if attendance.approved_by_admin %}bg-success{% else %}bg-danger{% endif %}">{{ attendance.approved_by_admin|yesno:"تأیید شده,در انتظار" }}</span></td>
+                <td>{{ attendance.approved_by_user1.username }}</td>
+                <td>{{ attendance.approved_by_user2.username }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7">هیچ اطلاعاتی ثبت نشده است.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <li><a href="{% url 'pending_approvals' %}"><i class="fas fa-check-circle"></i> تایید ساعات</a></li>
+    <li><a href="{% url 'attendance_summary' %}"><i class="fas fa-chart-bar"></i> خلاصه ساعات</a></li>
+</div>
+
+<script>
+    // ارسال فرم با AJAX
+    document.getElementById('attendance-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        fetch("{% url 'weekly_attendance_view' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('ساعات با موفقیت ثبت شد!');
+                location.reload();
+            } else {
+                alert('خطا در ثبت اطلاعات!');
+            }
+        });
+    });
+
+    // فیلتر و جستجو
+    document.getElementById('search-input').addEventListener('input', function() {
+        const query = this.value;
+        const status = document.getElementById('status-filter').value;
+        window.location.href = `?q=${query}&status=${status}`;
+    });
+
+    document.getElementById('status-filter').addEventListener('change', function() {
+        const query = document.getElementById('search-input').value;
+        const status = this.value;
+        window.location.href = `?q=${query}&status=${status}`;
+    });
+</script>
+<script>
+    document.getElementById('daily-attendance-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        fetch("{% url 'weekly_attendance_view' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('خطا در ثبت اطلاعات!');
+            }
+        });
+    });
+</script>
+<script>
+    // تشخیص روز هفته به‌صورت خودکار
+    document.getElementById('id_date').addEventListener('change', function() {
+        const date = new Date(this.value);
+        const weekdays = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه', 'شنبه'];
+        const dayOfWeek = weekdays[date.getDay()];
+        document.getElementById('day-of-week').value = dayOfWeek;
+    });
+</script>
+{% endblock %}

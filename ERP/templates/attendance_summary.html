@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}خلاصه ساعات{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">خلاصه ساعات</h2>
+
+    <h3>خلاصه هفتگی</h3>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>تاریخ شروع هفته</th>
+                <th>مجموع ساعات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for summary in weekly_summary %}
+            <tr>
+                <td>{{ summary.week_start_date }}</td>
+                <td>{{ summary.total_hours }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="2">هیچ اطلاعاتی ثبت نشده است.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h3>خلاصه ماهانه</h3>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>ماه</th>
+                <th>مجموع ساعات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for summary in monthly_summary %}
+            <tr>
+                <td>{{ summary.month }}</td>
+                <td>{{ summary.total_hours }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="2">هیچ اطلاعاتی ثبت نشده است.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
