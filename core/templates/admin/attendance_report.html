@@ -1,0 +1,29 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>گزارش ساعات حضور</h1>
+
+<form method="get" action="">
+    <label for="start_date">تاریخ شروع:</label>
+    <input type="date" id="start_date" name="start_date" value="{{ start_date }}">
+    <label for="end_date">تاریخ پایان:</label>
+    <input type="date" id="end_date" name="end_date" value="{{ end_date }}">
+    <button type="submit">نمایش</button>
+</form>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>کارمند</th>
+            <th>مجموع ساعات</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in report %}
+        <tr>
+            <td>{{ row.employee__username }}</td>
+            <td>{{ row.total_hours }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

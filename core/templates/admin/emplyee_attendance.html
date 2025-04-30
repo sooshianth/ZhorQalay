@@ -2,6 +2,34 @@
 {% block content %}
 <h1>حضور هفتگی {{ employee.username }}</h1>
 <h2>مجموع ساعات ماهانه: {{ monthly_total_hours }}</h2>
+
+<h2>تقویم کاری</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>تاریخ</th>
+            <th>تعطیل</th>
+            <th>ساعات کاری</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for day in work_calendar %}
+        <tr>
+            <td>{{ day.date }}</td>
+            <td>{{ "بله" if day.is_holiday else "خیر" }}</td>
+            <td>{{ day.working_hours }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- فرم انتخاب هفته -->
+<form method="get" action="">
+    <label for="week">انتخاب هفته:</label>
+    <input type="date" id="week" name="week" value="{{ selected_week }}">
+    <button type="submit">نمایش</button>
+</form>
+
 <table class="table">
     <thead>
         <tr>

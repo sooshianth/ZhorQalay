@@ -166,6 +166,9 @@ from django import forms
 from django_jalali.forms import jDateField, jdatetime
 from core._models import WeeklyAttendance
 class WeeklyAttendanceForm(forms.ModelForm):
+   
+    week_start_date = jDateField(label="تاریخ شروع هفته (جلالی)")  # استفاده از تاریخ جلالی
+
     class Meta:
         model = WeeklyAttendance
         fields = '__all__'
@@ -173,6 +176,7 @@ class WeeklyAttendanceForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # تنظیم مقدار پیش‌فرض برای تاریخ شروع هفته (شنبه هفته جاری)
+        import jdatetime
         today = jdatetime.date.today()
         start_of_week = today - jdatetime.timedelta(days=today.weekday())
         self.fields['week_start_date'].initial = start_of_week.togregorian()
