@@ -1,0 +1,1 @@
+# Tests for the whatsapp_api app 
