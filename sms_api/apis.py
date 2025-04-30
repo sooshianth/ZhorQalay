@@ -2,11 +2,11 @@ from django.utils import timezone
 import json
 from .models import SmsLog, SmsQueue, is_celery_active
 from sms_ir import SmsIr
+from django.conf import settings
 
-
-api_key='mbdRODVCB2JHUX5c3IpetXsiDXFIT6bo7JZo0PhiTFWkuIN4'
-linenumber=90008316
-
+# Get API key and line number from settings
+api_key = settings.SMS_API_KEY
+linenumber = settings.SMS_LINE_NUMBER
 
 sms_account = SmsIr(api_key, linenumber)
 
@@ -103,8 +103,8 @@ def process_sms_queue(batch_size=20, sms_account=sms_account):
     for sms in pending_messages:
         try:
             # ارسال پیام بدون پارامتر linenumber
-            api_key='mbdRODVCB2JHUX5c3IpetXsiDXFIT6bo7JZo0PhiTFWkuIN4'
-            linenumber=90008316
+            api_key = settings.SMS_API_KEY
+            linenumber = settings.SMS_LINE_NUMBER
             sms_account = SmsIr(api_key, linenumber)
 
             result = sms_account.send_sms(sms.recipient_number, sms.message)

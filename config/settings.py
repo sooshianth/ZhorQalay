@@ -1,6 +1,11 @@
 import os
 from pathlib import Path
 from celery.schedules import crontab
+import dotenv
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -52,6 +57,7 @@ INSTALLED_APPS = [
     'excel_manager.apps.ExcelManagerConfig',
     'sms_api.apps.SmsApiConfig',
     'chat.apps.ChatConfig',
+    'bki_api.apps.BkiApiConfig',
 ]
 
 MIDDLEWARE = [
@@ -202,3 +208,11 @@ CHANNEL_LAYERS = {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
     },
 }
+
+# SMS API Settings
+SMS_API_KEY = os.environ.get('SMS_API_KEY', '')
+SMS_LINE_NUMBER = int(os.environ.get('SMS_LINE_NUMBER', '0'))
+
+# BKI API Settings
+BKI_USERNAME = os.environ.get('BKI_USERNAME', '')
+BKI_PASSWORD = os.environ.get('BKI_PASSWORD', '')

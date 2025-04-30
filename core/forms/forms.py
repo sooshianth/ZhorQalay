@@ -7,14 +7,15 @@ from django.core.exceptions import ValidationError
 from sms_ir import SmsIr
 from django.core.cache import cache
 import time
+from django.conf import settings
 
 
 def send_verify_code(number:str):
     """
     Send a verification code to a phone number
     """
-    api_key='mbdRODVCB2JHUX5c3IpetXsiDXFIT6bo7JZo0PhiTFWkuIN4'
-    linenumber=90008316
+    api_key = settings.SMS_API_KEY
+    linenumber = settings.SMS_LINE_NUMBER
     sms_account = SmsIr(api_key, linenumber)
     
     # Generate a random 6-digit code
