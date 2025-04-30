@@ -1,0 +1,27 @@
+<h1>گزارش حقوق و مزایا</h1>
+<table class="table">
+    <thead>
+        <tr>
+            <th>کارمند</th>
+            <th>ماه</th>
+            <th>حقوق پایه</th>
+            <th>ساعات اضافه‌کاری</th>
+            <th>پرداخت اضافه‌کاری</th>
+            <th>کسری حقوق</th>
+            <th>حقوق کل</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for salary in salaries %}
+        <tr>
+            <td>{{ salary.employee.username }}</td>
+            <td>{{ salary.month }}</td>
+            <td>{{ salary.base_salary }}</td>
+            <td>{{ salary.overtime_hours }}</td>
+            <td>{{ salary.overtime_pay }}</td>
+            <td>{{ salary.deductions }}</td>
+            <td>{{ salary.total_salary }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

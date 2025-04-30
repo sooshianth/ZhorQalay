@@ -50,3 +50,41 @@ class MonthlyAttendance(models.Model):
 
     def __str__(self):
         return f"{self.employee.username} - {self.month}"
+    
+
+class WorkCalendar(models.Model):
+    date = models.DateField(verbose_name="تاریخ")
+    is_holiday = models.BooleanField(default=False, verbose_name="تعطیل")
+    working_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات کاری", default=8)
+
+    class Meta:
+        verbose_name = "تقویم کاری"
+        verbose_name_plural = "تقویم کاری"
+        ordering = ['date']
+
+    def __str__(self):
+        return f"{self.date} - {'تعطیل' if self.is_holiday else f'{self.working_hours} ساعت کاری'}"
+    
+class Salary(models.Model):
+    employee = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کارمند")
+    month = models.CharField(max_length=7, verbose_name="ماه (YYYY-MM)")
+    base_salary = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="حقوق پایه")
+    overtime_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات اضافه‌کاری", default=0)
+    overtime_pay = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="پرداخت اضافه‌کاری", default=0)
+    deductions = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="کسری حقوق", default=0)
+    total_salary = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="حقوق کل", editable=False)
+
+    class Meta:
+        verbose_name = "حقوق و مزایا"
+        verbose_name_plural = "حقوق و مزایا"
+        unique_together = ('employee', 'month')
+
+    def calculate_total_salary(self):
+        self.total_salary = self.base_salary + self.overtime_pay - self.deductions
+
+    def save(self, *args, **kwargs):
+        self.calculate_total_salary()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.employee.username} - {self.month}"
