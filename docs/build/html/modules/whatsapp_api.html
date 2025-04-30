@@ -1,0 +1,333 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="fa" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ماژول WhatsApp API &mdash; مستندات Kunqalay1.0</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=c39f560d" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=9bf54d47"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/translations.js?v=5df48d09"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="فهرست" href="../genindex.html" />
+    <link rel="search" title="جستجو" href="../search.html" />
+    <link rel="next" title="راهنمای کاربری" href="../user_guide/index.html" />
+    <link rel="prev" title="ماژول Core" href="core.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Kunqalay
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="جستجوی مستندات" aria-label="جستجوی مستندات" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">محتوای مستندات:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../introduction/index.html">معرفی</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation/index.html">راهنمای نصب و راه‌اندازی</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">معماری سیستم</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">ماژول‌های سیستم</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="core.html">ماژول Core</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ماژول WhatsApp API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">مدل‌های اصلی</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#whatsappmessage">مدل WhatsAppMessage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#whatsapptemplate">مدل WhatsAppTemplate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#whatsappaccount">مدل WhatsAppAccount</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">توابع اصلی</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#send-whatsapp-message">تابع send_whatsapp_message</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#send-whatsapp-template">تابع send_whatsapp_template</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#celery">وظایف Celery</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#send-bulk-whatsapp-messages">وظیفه send_bulk_whatsapp_messages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#process-whatsapp-webhook">وظیفه process_whatsapp_webhook</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">تنظیم و پیکربندی</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-endpoints">API Endpoints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">داشبورد</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#core">ماژول Core</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#crm">ماژول CRM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#erp">ماژول ERP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#sales">ماژول Sales</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#sms-api">ماژول SMS API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#whatsapp-api">ماژول WhatsApp API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#excel-manager">ماژول Excel Manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#chat">ماژول Chat</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/index.html">راهنمای کاربری</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Kunqalay</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">ماژول‌های سیستم</a></li>
+      <li class="breadcrumb-item active">ماژول WhatsApp API</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/modules/whatsapp_api.rst.txt" rel="nofollow"> نمایش متن منبع صفحه</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="whatsapp-api">
+<span id="whatsapp-api-module"></span><h1>ماژول WhatsApp API<a class="headerlink" href="#whatsapp-api" title="Link to this heading"></a></h1>
+<p>ماژول WhatsApp API برای ارسال و دریافت پیام‌های واتساپ طراحی شده است. این ماژول با API واتساپ یکپارچه‌سازی شده و امکان ارسال پیام به مشتریان و دریافت پاسخ آن‌ها را فراهم می‌کند.</p>
+<section id="id1">
+<h2>مدل‌های اصلی<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<section id="whatsappmessage">
+<h3>مدل WhatsAppMessage<a class="headerlink" href="#whatsappmessage" title="Link to this heading"></a></h3>
+<p>مدل WhatsAppMessage برای نگهداری اطلاعات پیام‌های واتساپ طراحی شده است.</p>
+<p><strong>فیلدهای اصلی</strong>:</p>
+<ul class="simple">
+<li><p><strong>sender</strong>: فرستنده پیام</p></li>
+<li><p><strong>recipient</strong>: گیرنده پیام</p></li>
+<li><p><strong>message</strong>: متن پیام</p></li>
+<li><p><strong>media_url</strong>: آدرس محتوای چندرسانه‌ای</p></li>
+<li><p><strong>media_type</strong>: نوع محتوای چندرسانه‌ای</p></li>
+<li><p><strong>status</strong>: وضعیت پیام</p></li>
+<li><p><strong>message_id</strong>: شناسه پیام در واتساپ</p></li>
+<li><p><strong>customer</strong>: ارتباط با مشتری</p></li>
+<li><p><strong>sales_agent</strong>: ارتباط با کارشناس فروش</p></li>
+<li><p><strong>sent_at</strong>: تاریخ ارسال</p></li>
+<li><p><strong>received_at</strong>: تاریخ دریافت</p></li>
+<li><p><strong>created_at</strong>: تاریخ ثبت</p></li>
+<li><p><strong>updated_at</strong>: تاریخ بروزرسانی</p></li>
+</ul>
+</section>
+<section id="whatsapptemplate">
+<h3>مدل WhatsAppTemplate<a class="headerlink" href="#whatsapptemplate" title="Link to this heading"></a></h3>
+<p>مدل WhatsAppTemplate برای نگهداری اطلاعات قالب‌های پیام واتساپ طراحی شده است.</p>
+<p><strong>فیلدهای اصلی</strong>:</p>
+<ul class="simple">
+<li><p><strong>name</strong>: نام قالب</p></li>
+<li><p><strong>type</strong>: نوع قالب</p></li>
+<li><p><strong>category</strong>: دسته‌بندی قالب</p></li>
+<li><p><strong>components</strong>: اجزای قالب</p></li>
+<li><p><strong>language</strong>: زبان قالب</p></li>
+<li><p><strong>status</strong>: وضعیت قالب</p></li>
+<li><p><strong>created_at</strong>: تاریخ ثبت</p></li>
+<li><p><strong>updated_at</strong>: تاریخ بروزرسانی</p></li>
+</ul>
+</section>
+<section id="whatsappaccount">
+<h3>مدل WhatsAppAccount<a class="headerlink" href="#whatsappaccount" title="Link to this heading"></a></h3>
+<p>مدل WhatsAppAccount برای نگهداری اطلاعات حساب‌های واتساپ طراحی شده است.</p>
+<p><strong>فیلدهای اصلی</strong>:</p>
+<ul class="simple">
+<li><p><strong>phone_number</strong>: شماره تلفن</p></li>
+<li><p><strong>business_name</strong>: نام کسب و کار</p></li>
+<li><p><strong>api_key</strong>: کلید API</p></li>
+<li><p><strong>api_secret</strong>: رمز API</p></li>
+<li><p><strong>webhook_url</strong>: آدرس وب‌هوک</p></li>
+<li><p><strong>status</strong>: وضعیت حساب</p></li>
+<li><p><strong>created_at</strong>: تاریخ ثبت</p></li>
+<li><p><strong>updated_at</strong>: تاریخ بروزرسانی</p></li>
+</ul>
+</section>
+</section>
+<section id="id2">
+<h2>توابع اصلی<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<section id="send-whatsapp-message">
+<h3>تابع send_whatsapp_message<a class="headerlink" href="#send-whatsapp-message" title="Link to this heading"></a></h3>
+<p>این تابع برای ارسال پیام واتساپ استفاده می‌شود.</p>
+<p><strong>پارامترها</strong>:</p>
+<ul class="simple">
+<li><p><strong>to</strong>: شماره تلفن گیرنده</p></li>
+<li><p><strong>message</strong>: متن پیام</p></li>
+<li><p><strong>media_url</strong>: آدرس محتوای چندرسانه‌ای (اختیاری)</p></li>
+<li><p><strong>media_type</strong>: نوع محتوای چندرسانه‌ای (اختیاری)</p></li>
+<li><p><strong>customer_id</strong>: شناسه مشتری (اختیاری)</p></li>
+<li><p><strong>sales_agent_id</strong>: شناسه کارشناس فروش (اختیاری)</p></li>
+</ul>
+<p><strong>مثال استفاده</strong>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">whatsapp_api.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">send_whatsapp_message</span>
+
+<span class="n">send_whatsapp_message</span><span class="p">(</span>
+    <span class="n">to</span><span class="o">=</span><span class="s2">&quot;989123456789&quot;</span><span class="p">,</span>
+    <span class="n">message</span><span class="o">=</span><span class="s2">&quot;سلام، خوش آمدید!&quot;</span><span class="p">,</span>
+    <span class="n">customer_id</span><span class="o">=</span><span class="mi">1</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="send-whatsapp-template">
+<h3>تابع send_whatsapp_template<a class="headerlink" href="#send-whatsapp-template" title="Link to this heading"></a></h3>
+<p>این تابع برای ارسال پیام واتساپ با استفاده از قالب استفاده می‌شود.</p>
+<p><strong>پارامترها</strong>:</p>
+<ul class="simple">
+<li><p><strong>to</strong>: شماره تلفن گیرنده</p></li>
+<li><p><strong>template_name</strong>: نام قالب</p></li>
+<li><p><strong>template_params</strong>: پارامترهای قالب</p></li>
+<li><p><strong>customer_id</strong>: شناسه مشتری (اختیاری)</p></li>
+<li><p><strong>sales_agent_id</strong>: شناسه کارشناس فروش (اختیاری)</p></li>
+</ul>
+<p><strong>مثال استفاده</strong>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">whatsapp_api.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">send_whatsapp_template</span>
+
+<span class="n">send_whatsapp_template</span><span class="p">(</span>
+    <span class="n">to</span><span class="o">=</span><span class="s2">&quot;989123456789&quot;</span><span class="p">,</span>
+    <span class="n">template_name</span><span class="o">=</span><span class="s2">&quot;welcome_message&quot;</span><span class="p">,</span>
+    <span class="n">template_params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;علی&quot;</span><span class="p">,</span> <span class="s2">&quot;company&quot;</span><span class="p">:</span> <span class="s2">&quot;کانقالای&quot;</span><span class="p">},</span>
+    <span class="n">customer_id</span><span class="o">=</span><span class="mi">1</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="celery">
+<h2>وظایف Celery<a class="headerlink" href="#celery" title="Link to this heading"></a></h2>
+<section id="send-bulk-whatsapp-messages">
+<h3>وظیفه send_bulk_whatsapp_messages<a class="headerlink" href="#send-bulk-whatsapp-messages" title="Link to this heading"></a></h3>
+<p>این وظیفه برای ارسال پیام واتساپ به صورت انبوه استفاده می‌شود.</p>
+<p><strong>پارامترها</strong>:</p>
+<ul class="simple">
+<li><p><strong>numbers</strong>: لیست شماره تلفن‌ها</p></li>
+<li><p><strong>message</strong>: متن پیام</p></li>
+<li><p><strong>media_url</strong>: آدرس محتوای چندرسانه‌ای (اختیاری)</p></li>
+<li><p><strong>media_type</strong>: نوع محتوای چندرسانه‌ای (اختیاری)</p></li>
+</ul>
+<p><strong>مثال استفاده</strong>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">whatsapp_api.tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">send_bulk_whatsapp_messages</span>
+
+<span class="n">send_bulk_whatsapp_messages</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span>
+    <span class="n">numbers</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;989123456789&quot;</span><span class="p">,</span> <span class="s2">&quot;989123456788&quot;</span><span class="p">],</span>
+    <span class="n">message</span><span class="o">=</span><span class="s2">&quot;سلام، خوش آمدید!&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="process-whatsapp-webhook">
+<h3>وظیفه process_whatsapp_webhook<a class="headerlink" href="#process-whatsapp-webhook" title="Link to this heading"></a></h3>
+<p>این وظیفه برای پردازش وب‌هوک‌های واتساپ استفاده می‌شود.</p>
+<p><strong>پارامترها</strong>:</p>
+<ul class="simple">
+<li><p><strong>data</strong>: داده‌های وب‌هوک</p></li>
+</ul>
+<p><strong>مثال استفاده</strong>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">whatsapp_api.tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">process_whatsapp_webhook</span>
+
+<span class="n">process_whatsapp_webhook</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">webhook_data</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="id3">
+<h2>تنظیم و پیکربندی<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>برای استفاده از ماژول WhatsApp API، نیاز به تنظیم موارد زیر است:</p>
+<ol class="arabic simple">
+<li><p>ثبت‌نام در سرویس واتساپ بیزینس API</p></li>
+<li><p>دریافت کلید API</p></li>
+<li><p>تنظیم وب‌هوک</p></li>
+<li><p>تنظیم قالب‌های پیام</p></li>
+</ol>
+<p><strong>مثال تنظیمات در فایل settings.py</strong>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># تنظیمات واتساپ</span>
+<span class="n">WHATSAPP_API_KEY</span> <span class="o">=</span> <span class="s2">&quot;your_api_key&quot;</span>
+<span class="n">WHATSAPP_API_SECRET</span> <span class="o">=</span> <span class="s2">&quot;your_api_secret&quot;</span>
+<span class="n">WHATSAPP_PHONE_NUMBER</span> <span class="o">=</span> <span class="s2">&quot;your_phone_number&quot;</span>
+<span class="n">WHATSAPP_WEBHOOK_URL</span> <span class="o">=</span> <span class="s2">&quot;your_webhook_url&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="api-endpoints">
+<h2>API Endpoints<a class="headerlink" href="#api-endpoints" title="Link to this heading"></a></h2>
+<p>ماژول WhatsApp API چندین API endpoint برای ارسال و دریافت پیام‌های واتساپ فراهم می‌کند:</p>
+<ul class="simple">
+<li><p><strong>/whatsapp/send/</strong>: ارسال پیام واتساپ</p></li>
+<li><p><strong>/whatsapp/send-template/</strong>: ارسال پیام واتساپ با استفاده از قالب</p></li>
+<li><p><strong>/whatsapp/webhook/</strong>: دریافت وب‌هوک‌های واتساپ</p></li>
+<li><p><strong>/whatsapp/messages/</strong>: دریافت لیست پیام‌های واتساپ</p></li>
+<li><p><strong>/whatsapp/templates/</strong>: دریافت لیست قالب‌های واتساپ</p></li>
+</ul>
+</section>
+<section id="id4">
+<h2>داشبورد<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<p>ماژول WhatsApp API دارای یک داشبورد برای مدیریت پیام‌های واتساپ است. این داشبورد در آدرس زیر قابل دسترسی است:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/whatsapp/dashboard/
+</pre></div>
+</div>
+<p>در این داشبورد، امکانات زیر فراهم شده است:</p>
+<ul class="simple">
+<li><p>مشاهده لیست پیام‌های ارسالی و دریافتی</p></li>
+<li><p>ارسال پیام جدید</p></li>
+<li><p>ارسال پیام انبوه</p></li>
+<li><p>مدیریت قالب‌های پیام</p></li>
+<li><p>مشاهده گزارش‌های ارسال پیام</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="core.html" class="btn btn-neutral float-left" title="ماژول Core" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> پیشین</a>
+        <a href="../user_guide/index.html" class="btn btn-neutral float-right" title="راهنمای کاربری" accesskey="n" rel="next">بعدی <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; حق انتشار2024, Documentation Team.</p>
+  </div>
+
+  ساخته شده با <a href="https://www.sphinx-doc.org/">Sphinx</a>
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">پوسته</a>
+    تهیّه شده با <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,296 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="fa" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ماژول Core &mdash; مستندات Kunqalay1.0</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=c39f560d" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=9bf54d47"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/translations.js?v=5df48d09"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="فهرست" href="../genindex.html" />
+    <link rel="search" title="جستجو" href="../search.html" />
+    <link rel="next" title="ماژول WhatsApp API" href="whatsapp_api.html" />
+    <link rel="prev" title="ماژول‌های سیستم" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Kunqalay
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="جستجوی مستندات" aria-label="جستجوی مستندات" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">محتوای مستندات:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../introduction/index.html">معرفی</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation/index.html">راهنمای نصب و راه‌اندازی</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">معماری سیستم</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">ماژول‌های سیستم</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ماژول Core</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">مدل‌های اصلی</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#customer">مدل Customer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#salesagent">مدل SalesAgent</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cargoproduct">مدل CargoProduct</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#purchasemodel">مدل PurchaseModel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#taskmodel">مدل TaskModel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#notificationmodel">مدل NotificationModel</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">فرم‌ها</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">میان‌افزارها</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">دکوراتورها</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="whatsapp_api.html">ماژول WhatsApp API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#core">ماژول Core</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#crm">ماژول CRM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#erp">ماژول ERP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#sales">ماژول Sales</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#sms-api">ماژول SMS API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#whatsapp-api">ماژول WhatsApp API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#excel-manager">ماژول Excel Manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#chat">ماژول Chat</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/index.html">راهنمای کاربری</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Kunqalay</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">ماژول‌های سیستم</a></li>
+      <li class="breadcrumb-item active">ماژول Core</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/modules/core.rst.txt" rel="nofollow"> نمایش متن منبع صفحه</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="core">
+<span id="core-module"></span><h1>ماژول Core<a class="headerlink" href="#core" title="Link to this heading"></a></h1>
+<p>ماژول Core هسته اصلی سیستم کانقالای است که مدل‌های پایه و کلاس‌های مشترک مورد استفاده در سایر ماژول‌ها را تعریف می‌کند.</p>
+<section id="id1">
+<h2>مدل‌های اصلی<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<section id="customer">
+<h3>مدل Customer<a class="headerlink" href="#customer" title="Link to this heading"></a></h3>
+<p>مدل Customer برای نگهداری اطلاعات مشتریان طراحی شده است.</p>
+<p><strong>فیلدهای اصلی</strong>:</p>
+<ul class="simple">
+<li><p><strong>phone_number</strong>: شماره تلفن مشتری (در حال منسوخ شدن)</p></li>
+<li><p><strong>sales_agent</strong>: ارتباط چند به چند با کارشناسان فروش</p></li>
+<li><p><strong>name</strong>: نام مشتری</p></li>
+<li><p><strong>city</strong>: شهر مشتری</p></li>
+<li><p><strong>whatsapp_preference</strong>: ترجیح استفاده از واتساپ</p></li>
+<li><p><strong>field_of_activity</strong>: حیطه فعالیت مشتری</p></li>
+<li><p><strong>purchase_preferences</strong>: ترجیحات پرداخت</p></li>
+<li><p><strong>product_preferences</strong>: ترجیحات کالایی</p></li>
+<li><p><strong>contact_start_time</strong>: زمان شروع تماس</p></li>
+<li><p><strong>contact_end_time</strong>: زمان پایان تماس</p></li>
+<li><p><strong>social_media</strong>: اطلاعات شبکه‌های اجتماعی</p></li>
+<li><p><strong>added_description</strong>: توضیحات تکمیلی</p></li>
+<li><p><strong>sms_preference</strong>: ترجیح دریافت پیامک</p></li>
+<li><p><strong>day_of_week</strong>: روز هفته برای ارسال پیام</p></li>
+<li><p><strong>quota</strong>: سهمیه</p></li>
+<li><p><strong>created_at</strong>: تاریخ ثبت</p></li>
+<li><p><strong>updated_at</strong>: تاریخ بروزرسانی</p></li>
+<li><p><strong>is_bazaargah_enjoyer</strong>: استفاده از بازارگاه</p></li>
+</ul>
+<p><strong>متدهای اصلی</strong>:</p>
+<ul class="simple">
+<li><p><strong>get_customer_by_phone</strong>: یافتن مشتری بر اساس شماره تلفن</p></li>
+<li><p><strong>get_primary_phone</strong>: دریافت شماره تلفن اصلی</p></li>
+<li><p><strong>get_all_phone_numbers</strong>: دریافت تمام شماره‌های تلفن</p></li>
+<li><p><strong>get_tasks_by_time</strong>: دریافت وظایف مرتبط با مشتری بر اساس زمان</p></li>
+<li><p><strong>get_calls_by_time</strong>: دریافت تماس‌های مرتبط با مشتری بر اساس زمان</p></li>
+<li><p><strong>get_purchases_by_time</strong>: دریافت خریدهای مشتری بر اساس زمان</p></li>
+<li><p><strong>get_field_of_activity_display</strong>: نمایش حیطه فعالیت مشتری</p></li>
+<li><p><strong>get_field_of_activity_list</strong>: دریافت لیست حیطه‌های فعالیت</p></li>
+<li><p><strong>set_field_of_activity_list</strong>: تنظیم لیست حیطه‌های فعالیت</p></li>
+</ul>
+</section>
+<section id="salesagent">
+<h3>مدل SalesAgent<a class="headerlink" href="#salesagent" title="Link to this heading"></a></h3>
+<p>مدل SalesAgent برای نگهداری اطلاعات کارشناسان فروش طراحی شده است.</p>
+<p><strong>فیلدهای اصلی</strong>:</p>
+<ul class="simple">
+<li><p><strong>user</strong>: ارتباط یک به یک با مدل User</p></li>
+<li><p><strong>name</strong>: نام کارشناس فروش</p></li>
+<li><p><strong>email</strong>: ایمیل کارشناس فروش</p></li>
+<li><p><strong>phone</strong>: شماره تلفن کارشناس فروش</p></li>
+<li><p><strong>created_at</strong>: تاریخ ثبت</p></li>
+<li><p><strong>updated_at</strong>: تاریخ بروزرسانی</p></li>
+</ul>
+<p><strong>متدهای اصلی</strong>:</p>
+<ul class="simple">
+<li><p><strong>get_customers</strong>: دریافت مشتریان مرتبط با کارشناس فروش</p></li>
+<li><p><strong>get_tasks</strong>: دریافت وظایف مرتبط با کارشناس فروش</p></li>
+<li><p><strong>get_calls</strong>: دریافت تماس‌های مرتبط با کارشناس فروش</p></li>
+<li><p><strong>get_purchases</strong>: دریافت خریدهای مرتبط با کارشناس فروش</p></li>
+</ul>
+</section>
+<section id="cargoproduct">
+<h3>مدل CargoProduct<a class="headerlink" href="#cargoproduct" title="Link to this heading"></a></h3>
+<p>مدل CargoProduct برای نگهداری اطلاعات محصولات طراحی شده است.</p>
+<p><strong>فیلدهای اصلی</strong>:</p>
+<ul class="simple">
+<li><p><strong>product_name</strong>: نام محصول</p></li>
+<li><p><strong>product_type</strong>: نوع محصول</p></li>
+<li><p><strong>brand</strong>: برند محصول</p></li>
+<li><p><strong>model</strong>: مدل محصول</p></li>
+<li><p><strong>origin</strong>: مبدا محصول</p></li>
+<li><p><strong>volume</strong>: حجم محصول</p></li>
+<li><p><strong>weight</strong>: وزن محصول</p></li>
+<li><p><strong>description</strong>: توضیحات محصول</p></li>
+<li><p><strong>barcode</strong>: بارکد محصول</p></li>
+<li><p><strong>created_at</strong>: تاریخ ثبت</p></li>
+<li><p><strong>updated_at</strong>: تاریخ بروزرسانی</p></li>
+</ul>
+</section>
+<section id="purchasemodel">
+<h3>مدل PurchaseModel<a class="headerlink" href="#purchasemodel" title="Link to this heading"></a></h3>
+<p>مدل PurchaseModel برای نگهداری اطلاعات خریدها طراحی شده است.</p>
+<p><strong>فیلدهای اصلی</strong>:</p>
+<ul class="simple">
+<li><p><strong>customer</strong>: ارتباط با مشتری</p></li>
+<li><p><strong>sales_agent</strong>: ارتباط با کارشناس فروش</p></li>
+<li><p><strong>product</strong>: ارتباط با محصول</p></li>
+<li><p><strong>quantity</strong>: تعداد</p></li>
+<li><p><strong>price</strong>: قیمت</p></li>
+<li><p><strong>total_price</strong>: قیمت کل</p></li>
+<li><p><strong>purchase_date</strong>: تاریخ خرید</p></li>
+<li><p><strong>status</strong>: وضعیت خرید</p></li>
+<li><p><strong>payment_method</strong>: روش پرداخت</p></li>
+<li><p><strong>created_at</strong>: تاریخ ثبت</p></li>
+<li><p><strong>updated_at</strong>: تاریخ بروزرسانی</p></li>
+</ul>
+</section>
+<section id="taskmodel">
+<h3>مدل TaskModel<a class="headerlink" href="#taskmodel" title="Link to this heading"></a></h3>
+<p>مدل TaskModel برای نگهداری اطلاعات وظایف طراحی شده است.</p>
+<p><strong>فیلدهای اصلی</strong>:</p>
+<ul class="simple">
+<li><p><strong>title</strong>: عنوان وظیفه</p></li>
+<li><p><strong>description</strong>: توضیحات وظیفه</p></li>
+<li><p><strong>assigned_to</strong>: ارتباط با کاربر مسئول</p></li>
+<li><p><strong>customer</strong>: ارتباط با مشتری</p></li>
+<li><p><strong>due_date</strong>: تاریخ سررسید</p></li>
+<li><p><strong>status</strong>: وضعیت وظیفه</p></li>
+<li><p><strong>priority</strong>: اولویت وظیفه</p></li>
+<li><p><strong>created_at</strong>: تاریخ ثبت</p></li>
+<li><p><strong>updated_at</strong>: تاریخ بروزرسانی</p></li>
+</ul>
+</section>
+<section id="notificationmodel">
+<h3>مدل NotificationModel<a class="headerlink" href="#notificationmodel" title="Link to this heading"></a></h3>
+<p>مدل NotificationModel برای نگهداری اطلاعات اعلان‌ها طراحی شده است.</p>
+<p><strong>فیلدهای اصلی</strong>:</p>
+<ul class="simple">
+<li><p><strong>user</strong>: ارتباط با کاربر</p></li>
+<li><p><strong>title</strong>: عنوان اعلان</p></li>
+<li><p><strong>message</strong>: متن اعلان</p></li>
+<li><p><strong>type</strong>: نوع اعلان</p></li>
+<li><p><strong>read</strong>: خوانده شده/نشده</p></li>
+<li><p><strong>created_at</strong>: تاریخ ثبت</p></li>
+</ul>
+</section>
+</section>
+<section id="id2">
+<h2>فرم‌ها<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>در ماژول Core، فرم‌های مختلفی برای کار با مدل‌های فوق تعریف شده‌اند، از جمله:</p>
+<ul class="simple">
+<li><p><strong>CustomerForm</strong>: فرم ایجاد و ویرایش مشتری</p></li>
+<li><p><strong>SalesAgentForm</strong>: فرم ایجاد و ویرایش کارشناس فروش</p></li>
+<li><p><strong>ProductForm</strong>: فرم ایجاد و ویرایش محصول</p></li>
+<li><p><strong>PurchaseForm</strong>: فرم ایجاد و ویرایش خرید</p></li>
+<li><p><strong>TaskForm</strong>: فرم ایجاد و ویرایش وظیفه</p></li>
+</ul>
+</section>
+<section id="id3">
+<h2>میان‌افزارها<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>ماژول Core شامل چندین میان‌افزار (Middleware) است که وظایف مختلفی را انجام می‌دهند:</p>
+<ul class="simple">
+<li><p><strong>SessionTimeoutMiddleware</strong>: میان‌افزار مدیریت زمان‌سنجی نشست کاربر</p></li>
+<li><p><strong>AuthenticationMiddleware</strong>: میان‌افزار احراز هویت کاربر</p></li>
+</ul>
+</section>
+<section id="id4">
+<h2>دکوراتورها<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<p>ماژول Core شامل چندین دکوراتور است که برای مدیریت دسترسی و کنترل رفتار توابع view طراحی شده‌اند:</p>
+<ul class="simple">
+<li><p><strong>login_required</strong>: بررسی لاگین بودن کاربر</p></li>
+<li><p><strong>permission_required</strong>: بررسی دسترسی‌های کاربر</p></li>
+<li><p><strong>sales_agent_required</strong>: بررسی کارشناس فروش بودن کاربر</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="ماژول‌های سیستم" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> پیشین</a>
+        <a href="whatsapp_api.html" class="btn btn-neutral float-right" title="ماژول WhatsApp API" accesskey="n" rel="next">بعدی <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; حق انتشار2024, Documentation Team.</p>
+  </div>
+
+  ساخته شده با <a href="https://www.sphinx-doc.org/">Sphinx</a>
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">پوسته</a>
+    تهیّه شده با <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

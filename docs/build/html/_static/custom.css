@@ -1,0 +1,101 @@
+/* Custom styles for Kunqalay documentation */
+
+/* Improve RTL support for Persian language */
+html[lang="fa"] .wy-nav-content {
+    direction: rtl;
+    text-align: right;
+}
+
+html[lang="fa"] .wy-side-nav-search, 
+html[lang="fa"] .wy-nav-side {
+    text-align: right;
+}
+
+html[lang="fa"] .wy-menu-vertical li span.toctree-expand {
+    float: left;
+    margin-left: 0;
+    margin-right: -1.4em;
+}
+
+html[lang="fa"] .rst-content .admonition,
+html[lang="fa"] .rst-content .note,
+html[lang="fa"] .rst-content .attention,
+html[lang="fa"] .rst-content .caution,
+html[lang="fa"] .rst-content .danger,
+html[lang="fa"] .rst-content .error,
+html[lang="fa"] .rst-content .hint,
+html[lang="fa"] .rst-content .important,
+html[lang="fa"] .rst-content .tip,
+html[lang="fa"] .rst-content .warning {
+    direction: rtl;
+}
+
+/* Better fonts for Persian */
+@font-face {
+    font-family: 'Vazir';
+    src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v27.2.2/dist/Vazir-Regular.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Vazir';
+    src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v27.2.2/dist/Vazir-Bold.woff2') format('woff2');
+    font-weight: bold;
+    font-style: normal;
+}
+
+html[lang="fa"] body,
+html[lang="fa"] h1,
+html[lang="fa"] h2,
+html[lang="fa"] h3,
+html[lang="fa"] h4,
+html[lang="fa"] h5,
+html[lang="fa"] h6,
+html[lang="fa"] p,
+html[lang="fa"] a,
+html[lang="fa"] span,
+html[lang="fa"] div {
+    font-family: 'Vazir', sans-serif !important;
+}
+
+/* Improve general styling */
+.rst-content table.docutils {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.rst-content code.literal {
+    color: #e74c3c;
+    border: 1px solid #e1e4e5;
+    padding: 2px 5px;
+    border-radius: 3px;
+}
+
+.highlight {
+    background: #f8f8f8;
+    border-radius: 3px;
+}
+
+.rst-content .section ul li > p:only-child {
+    margin-bottom: 0;
+}
+
+.wy-side-nav-search {
+    background-color: #2980b9;
+}
+
+.wy-nav-top {
+    background-color: #2980b9;
+}
+
+/* Improve table readability */
+.rst-content table.docutils:not(.field-list) tr:nth-child(2n-1) td {
+    background-color: #f3f6f6;
+}
+
+/* Improve code blocks */
+.rst-content div[class^="highlight"] {
+    border-radius: 5px;
+    border: 1px solid #e1e4e5;
+} 
