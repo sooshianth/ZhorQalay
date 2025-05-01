@@ -9,7 +9,8 @@ from .views import (
     mark_notification_read, 
     sales_dashboard_view, 
     pop_notification,
-    todo_list_view
+    todo_list_view,
+    customer_list_view,
 ) 
 from .views.general_customer_CRUD_page import general_customer_CRUD_view, customer_search, change_task_status, get_related_products, predict_next_purchase
 from .views.phone_assignment_views import (admin_import_phone_numbers, admin_phone_assignment_list, 
@@ -26,8 +27,10 @@ urlpatterns = [
     path('get-related-products/', general_customer_CRUD_page.get_related_products, name='get_related_products'),
 
     path('profile/', sales_agent_profile_view.sales_agent_profile_view, name='sales_agent_profile'),
-    path('customers/', sales_agent_profile_view.customer_list_view, name='customer_list'),
-    path('export_customers/', sales_agent_profile_view.export_customers_to_excel, name='export_customers'),
+    path('customers/', RedirectView.as_view(pattern_name='enhanced_customer_list', permanent=False), name='customer_list'),
+    path('customers/enhanced/', customer_list_view.enhanced_customer_list_view, name='enhanced_customer_list'),
+    path('customers/toggle-favorite/', customer_list_view.toggle_favorite, name='toggle_favorite'),
+    path('customers/send-sms/', customer_list_view.send_sms_to_selected, name='send_sms_to_selected'),
     path('delete-unpaid-purchase/<int:purchase_id>/', sales_agent_profile_view.delete_unpaid_purchase, name='delete_unpaid_purchase'),
 
     path('notifications/delete/<int:notification_id>/', mark_notification_read.mark_notification_read, name='delete_notification'),

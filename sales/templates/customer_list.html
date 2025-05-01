@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load humanize %}
 
 {% block title %}لیست پیشرفته مشتریان{% endblock %}
 
@@ -117,14 +118,6 @@
         border-top: 3px solid #4299e1;
     }
 </style>
-<script>
-    // تست ساده برای بررسی اجرای جاوااسکریپت
-    console.log('زمان لود شدن صفحه:', new Date().toLocaleTimeString());
-    window.addEventListener('load', function() {
-        console.log('صفحه کاملاً لود شد:', new Date().toLocaleTimeString());
-        alert('جاوااسکریپت اجرا شد - لطفاً کنسول را بررسی کنید');
-    });
-</script>
 {% endblock %}
 
 {% block content %}
@@ -139,13 +132,19 @@
             <button id="toggle-filters-btn" class="btn-secondary ml-2">
                 فیلترهای پیشرفته
             </button>
-            <a href="{% url 'export_customers' %}" class="btn-primary ml-2">
-                خروجی اکسل
-            </a>
             <a href="{% url 'sales_agent_profile' %}" class="btn-secondary">
                 بازگشت به پروفایل
             </a>
         </div>
+    </div>
+    
+    <!-- فیلتر سریع جستجو -->
+    <div class="mb-4">
+        <form method="get" action="" class="flex">
+            <input type="text" name="search" id="quick-search" placeholder="جستجو بر اساس نام یا شماره تلفن" value="{{ search_query }}" 
+                class="p-2 border rounded-md ml-2 flex-grow">
+            <button type="submit" class="btn-primary">جستجو</button>
+        </form>
     </div>
     
     <!-- اطلاعات سهمیه پیامک -->
@@ -292,13 +291,15 @@
         </div>
         <div>
             <label for="sort" class="ml-2">مرتب‌سازی:</label>
-            <select id="sort" class="p-2 border rounded-md" onchange="sortCustomers(this.value)">
+            <select id="sort" class="p-2 border rounded-md">
                 <option value="name_asc" {% if sort_key == 'name_asc' %}selected{% endif %}>نام (صعودی)</option>
                 <option value="name_desc" {% if sort_key == 'name_desc' %}selected{% endif %}>نام (نزولی)</option>
                 <option value="city_asc" {% if sort_key == 'city_asc' %}selected{% endif %}>شهر (صعودی)</option>
                 <option value="city_desc" {% if sort_key == 'city_desc' %}selected{% endif %}>شهر (نزولی)</option>
                 <option value="purchase_asc" {% if sort_key == 'purchase_asc' %}selected{% endif %}>تعداد خرید (صعودی)</option>
                 <option value="purchase_desc" {% if sort_key == 'purchase_desc' %}selected{% endif %}>تعداد خرید (نزولی)</option>
+                <option value="amount_asc" {% if sort_key == 'amount_asc' %}selected{% endif %}>حجم خرید (صعودی)</option>
+                <option value="amount_desc" {% if sort_key == 'amount_desc' %}selected{% endif %}>حجم خرید (نزولی)</option>
                 <option value="updated_asc" {% if sort_key == 'updated_asc' %}selected{% endif %}>تاریخ بروزرسانی (صعودی)</option>
                 <option value="updated_desc" {% if sort_key == 'updated_desc' %}selected{% endif %}>تاریخ بروزرسانی (نزولی)</option>
             </select>
@@ -318,6 +319,7 @@
                     <th>شهر</th>
                     <th>حوزه فعالیت</th>
                     <th>تعداد خرید</th>
+                    <th>حجم خرید کل (کیلوگرم)</th>
                 </tr>
             </thead>
             <tbody>
@@ -344,10 +346,11 @@
                                 0
                             {% endif %}
                         </td>
+                        <td>{{ customer.total_purchase_weight|floatformat:0|default:"0"|intcomma }}</td>
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="7" class="text-center py-4">مشتری‌ای یافت نشد</td>
+                        <td colspan="8" class="text-center py-4">مشتری‌ای یافت نشد</td>
                     </tr>
                 {% endfor %}
             </tbody>
@@ -399,91 +402,232 @@
 </div>
 {% endblock %}
 
-{% block extra_js %}
+{% block extra_scripts %}
 <script>
-    // اسکریپت ساده برای تست عملکرد دکمه‌ها
-    function setupButtonListeners() {
-        console.log('شروع تنظیم دکمه‌ها');
+    // تابع ساده برای نشان دادن/مخفی کردن فیلترها
+    document.getElementById('toggle-filters-btn').addEventListener('click', function() {
+        var filtersContainer = document.getElementById('filters-container');
+        if (filtersContainer) {
+            filtersContainer.classList.toggle('hidden');
+        }
+    });
+
+    // انتخاب همه
+    document.getElementById('select-all-btn').addEventListener('click', function() {
+        var checkboxes = document.querySelectorAll('.customer-checkbox');
+        checkboxes.forEach(function(checkbox) {
+            checkbox.checked = true;
+        });
+        updateSelectionCount();
+    });
+
+    // لغو انتخاب همه
+    document.getElementById('deselect-all-btn').addEventListener('click', function() {
+        var checkboxes = document.querySelectorAll('.customer-checkbox');
+        checkboxes.forEach(function(checkbox) {
+            checkbox.checked = false;
+        });
+        updateSelectionCount();
+    });
+
+    // انتخاب همه در هدر جدول
+    document.getElementById('select-all-checkbox').addEventListener('change', function() {
+        var checkboxes = document.querySelectorAll('.customer-checkbox');
+        checkboxes.forEach(function(checkbox) {
+            checkbox.checked = this.checked;
+        });
+        updateSelectionCount();
+    });
+
+    // محاسبه تعداد انتخاب‌ها
+    function updateSelectionCount() {
+        var count = document.querySelectorAll('.customer-checkbox:checked').length;
+        document.getElementById('send-sms-btn').disabled = count === 0;
+        var selectedCount = document.getElementById('selected-count');
+        if (selectedCount) {
+            selectedCount.textContent = count;
+        }
+    }
+
+    // اضافه کردن event listener به تمام چک‌باکس‌ها
+    document.querySelectorAll('.customer-checkbox').forEach(function(checkbox) {
+        checkbox.addEventListener('change', updateSelectionCount);
+    });
+
+    // نمایش پنل ارسال پیامک
+    document.getElementById('send-sms-btn').addEventListener('click', function() {
+        var smsPanel = document.getElementById('sms-panel');
+        if (smsPanel) {
+            smsPanel.style.display = 'block';
+        }
+    });
+
+    // بستن پنل پیامک
+    document.getElementById('close-sms-panel').addEventListener('click', function() {
+        var smsPanel = document.getElementById('sms-panel');
+        if (smsPanel) {
+            smsPanel.style.display = 'none';
+        }
+    });
+
+    // شمارش کاراکترهای پیام
+    var smsMessage = document.getElementById('sms-message');
+    if (smsMessage) {
+        smsMessage.addEventListener('input', function() {
+            var charCount = document.getElementById('char-count');
+            if (charCount) {
+                charCount.textContent = this.value.length;
+            }
+        });
+    }
+
+    // مرتب‌سازی
+    document.getElementById('sort').addEventListener('change', function() {
+        var url = new URL(window.location.href);
+        url.searchParams.set('sort', this.value);
+        window.location.href = url.toString();
+    });
+
+    // حذف فیلترها
+    document.getElementById('reset-filters').addEventListener('click', function() {
+        window.location.href = window.location.pathname;
+    });
+
+    // تغییر وضعیت علاقه‌مندی
+    document.querySelectorAll('.favorite-icon').forEach(function(icon) {
+        icon.addEventListener('click', function() {
+            var customerId = this.getAttribute('data-customer-id');
+            toggleFavorite(customerId, this);
+        });
+    });
+
+    // تابع تغییر وضعیت علاقه‌مندی
+    function toggleFavorite(customerId, iconElement) {
+        var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
         
-        // دکمه تاگل فیلترها
-        var toggleBtn = document.getElementById('toggle-filters-btn');
-        if (toggleBtn) {
-            console.log('دکمه تاگل فیلترها پیدا شد');
-            toggleBtn.onclick = function() {
-                console.log('کلیک روی دکمه تاگل فیلترها');
-                var filtersContainer = document.getElementById('filters-container');
-                if (filtersContainer) {
-                    filtersContainer.classList.toggle('hidden');
+        var params = new URLSearchParams();
+        params.append('customer_id', customerId);
+        
+        fetch('{% url "toggle_favorite" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: params
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.success) {
+                if (data.is_favorite) {
+                    iconElement.innerHTML = '<i class="fas fa-star"></i>';
+                    iconElement.setAttribute('data-is-favorite', 'true');
+                } else {
+                    iconElement.innerHTML = '<i class="far fa-star"></i>';
+                    iconElement.setAttribute('data-is-favorite', 'false');
                 }
-            };
-        } else {
-            console.error('دکمه تاگل فیلترها پیدا نشد!');
+            } else {
+                alert(data.error || 'خطایی رخ داد');
+            }
+        })
+        .catch(function(error) {
+            console.error('خطا در ارسال درخواست:', error);
+        });
+    }
+
+    // ارسال پیامک
+    document.getElementById('send-sms-submit').addEventListener('click', function() {
+        var smsMessage = document.getElementById('sms-message');
+        if (!smsMessage) return;
+        
+        var message = smsMessage.value.trim();
+        if (!message) {
+            alert('لطفا متن پیام را وارد کنید.');
+            return;
         }
         
-        // دکمه انتخاب همه
-        var selectAllBtn = document.getElementById('select-all-btn');
-        if (selectAllBtn) {
-            console.log('دکمه انتخاب همه پیدا شد');
-            selectAllBtn.onclick = function() {
-                console.log('کلیک روی دکمه انتخاب همه');
-                var checkboxes = document.querySelectorAll('.customer-checkbox');
-                checkboxes.forEach(function(checkbox) {
-                    checkbox.checked = true;
-                });
-            };
-        } else {
-            console.error('دکمه انتخاب همه پیدا نشد!');
+        if (message.length > 255) {
+            alert('طول پیام نمیتواند بیشتر از 255 کاراکتر باشد.');
+            return;
         }
         
-        // دکمه لغو انتخاب همه
-        var deselectAllBtn = document.getElementById('deselect-all-btn');
-        if (deselectAllBtn) {
-            console.log('دکمه لغو انتخاب همه پیدا شد');
-            deselectAllBtn.onclick = function() {
-                console.log('کلیک روی دکمه لغو انتخاب همه');
+        var checkedBoxes = document.querySelectorAll('.customer-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+            alert('لطفا حداقل یک مشتری را انتخاب کنید.');
+            return;
+        }
+        
+        var selectedCustomersContainer = document.getElementById('selected-customers-container');
+        if (selectedCustomersContainer) {
+            selectedCustomersContainer.innerHTML = '';
+            
+            var customerIds = Array.from(checkedBoxes).map(function(checkbox) {
+                return checkbox.value;
+            });
+            
+            customerIds.forEach(function(id) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'customer_ids[]';
+                input.value = id;
+                selectedCustomersContainer.appendChild(input);
+            });
+        }
+        
+        var form = document.getElementById('sms-form');
+        var formData = new FormData(form);
+        var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        fetch('{% url "send_sms_to_selected" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.success) {
+                alert(data.message);
+                
+                var smsPanel = document.getElementById('sms-panel');
+                if (smsPanel) smsPanel.style.display = 'none';
+                
+                if (smsMessage) smsMessage.value = '';
+                
+                var charCount = document.getElementById('char-count');
+                if (charCount) charCount.textContent = '0';
+                
                 var checkboxes = document.querySelectorAll('.customer-checkbox');
                 checkboxes.forEach(function(checkbox) {
                     checkbox.checked = false;
                 });
-            };
-        } else {
-            console.error('دکمه لغو انتخاب همه پیدا نشد!');
-        }
-        
-        // ستاره‌های مورد علاقه
-        var favoriteIcons = document.querySelectorAll('.favorite-icon');
-        console.log('تعداد آیکون‌های مورد علاقه یافت شده:', favoriteIcons.length);
-        favoriteIcons.forEach(function(icon) {
-            icon.onclick = function() {
-                var customerId = this.getAttribute('data-customer-id');
-                console.log('کلیک روی مورد علاقه برای مشتری:', customerId);
-                alert('کلیک روی آیکون مورد علاقه برای مشتری:' + customerId);
                 
-                // بعداً کد ارسال AJAX را اینجا اضافه می‌کنیم
-            };
+                var selectAllCheckbox = document.getElementById('select-all-checkbox');
+                if (selectAllCheckbox) selectAllCheckbox.checked = false;
+                
+                updateSelectionCount();
+            } else {
+                alert(data.error || 'خطایی رخ داد');
+            }
+        })
+        .catch(function(error) {
+            console.error('خطا در ارسال پیامک:', error);
+            alert('خطایی در ارسال پیامک رخ داد. لطفا دوباره تلاش کنید.');
         });
-        
-        console.log('اتمام تنظیم دکمه‌ها');
+    });
+
+    // نمایش وضعیت جاوااسکریپت
+    var jsStatus = document.getElementById('js-status');
+    if (jsStatus) {
+        jsStatus.classList.remove('hidden');
+        setTimeout(function() {
+            jsStatus.classList.add('hidden');
+        }, 3000);
     }
-    
-    // اجرای کد پس از لود شدن صفحه
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', setupButtonListeners);
-    } else {
-        setupButtonListeners();
-    }
-    
-    // روش جایگزین با استفاده از onload
-    window.onload = function() {
-        console.log('صفحه کاملاً لود شد - onload event');
-        var jsStatus = document.getElementById('js-status');
-        if (jsStatus) {
-            jsStatus.textContent = "جاوااسکریپت با موفقیت اجرا شد. در حال بررسی دکمه‌ها...";
-            jsStatus.classList.remove('hidden');
-        }
-        
-        // اجرای دوباره تنظیم دکمه‌ها برای اطمینان
-        setupButtonListeners();
-    };
 </script>
 {% endblock %} 

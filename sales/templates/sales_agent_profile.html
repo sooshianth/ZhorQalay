@@ -237,6 +237,9 @@
         <a href="{% url 'sales_phone_assignment_list' %}" class="button bg-blue-600 hover:bg-blue-700">
             <i class="fas fa-phone-alt me-2"></i> شماره‌های ویزیت
         </a>
+        <a href="{% url 'enhanced_customer_list' %}" class="button bg-green-600 hover:bg-green-700">
+            <i class="fas fa-users me-2"></i> لیست پیشرفته مشتریان
+        </a>
         {% comment %} <a href="{% url 'sales_dashboard' %}" class="button">
             مشاهده داشبورد فروش
         </a> {% endcomment %}
@@ -507,7 +510,10 @@
 <br>
 {% comment %} <p>مجموع فروش‌های این ماه به تن: {{ all_sales }}</p> {% endcomment %}
 <br>
-<a href="{% url 'customer_list' %}" class="button" aria-label="مشاهده لیست مشتریان">مشاهده لیست مشتریان</a>
+<div class="flex gap-3">
+    <a href="{% url 'customer_list' %}" class="button" aria-label="مشاهده لیست مشتریان">مشاهده لیست مشتریان</a>
+    <a href="{% url 'enhanced_customer_list' %}" class="button bg-green-600 hover:bg-green-700" aria-label="مشاهده لیست پیشرفته مشتریان">مشاهده لیست پیشرفته مشتریان</a>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
