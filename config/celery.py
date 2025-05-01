@@ -42,6 +42,10 @@ app.conf.beat_schedule = {
     #     'schedule': crontab(hour=2, minute=0),  # هر روز ساعت 2 صبح
     #     'kwargs': {'days': 1},  # خریدهای قدیمی‌تر از 1 روز حذف شوند
     # },
+    'change-sales-agents-after-two-months-of-no-purchase': {
+        'task': 'core.tasks.tasks.change_sales_agents_after_two_months_of_no_purchase',
+        'schedule': crontab(hour=2, minute=0),  # هر روز ساعت 02:00
+    },
 }
 
 app.autodiscover_tasks()

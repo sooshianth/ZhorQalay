@@ -61,3 +61,15 @@ def purge_unpaid_purchases_task(days=1):
         'end_time': str(end_time),
         'duration_seconds': duration
     } 
+
+
+from core.CustomerModel import Customer
+
+@shared_task
+def change_sales_agents_after_two_months_of_no_purchase():
+    """
+    Change the sales agent for customers after two months of no purchase.
+    """
+    customers = Customer.objects.filter(purchases_made__isnull=False)
+    for customer in customers:
+        customer.change_sales_agents_after_two_months_of_no_purchase()

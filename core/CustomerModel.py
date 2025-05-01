@@ -6,8 +6,8 @@ from .SalesAgentModel import SalesAgent
 from .CargoProductModel import CargoProduct
 from django.contrib.postgres.fields import ArrayField
 from django.db.models import JSONField
-
-
+from django.utils import timezone
+from datetime import timedelta
 FIELD_OF_ACTIVITY = [
     ('chicken', 'مرغدار'),
     ('livestock', 'دامدار'),
@@ -162,6 +162,10 @@ class Customer(models.Model):
     created_at = jmodels.jDateTimeField(_("تاریخ ثبت"), auto_now_add=True, null=True,    blank=True)
     updated_at = jmodels.jDateTimeField(_("تاریخ بروزرسانی"), auto_now=True, null=True, blank=True)
     is_bazaargah_enjoyer = models.BooleanField(_("داخل بازارگاه؟"), default=True)
+    is_favorite = models.BooleanField(_("مورد علاقه"), default=False)
+    is_active = models.BooleanField(_("فعال"), default=True)
+    is_blocked = models.BooleanField(_("مسدود"), default=False)
+    
 
     class Meta:
         verbose_name = _("مشتری")
@@ -331,3 +335,31 @@ class Customer(models.Model):
             raise ValidationError(_('نام را وارد کنید.'))
         
         # No need to validate phone_number here as it's now in the PhoneNumber model
+
+def change_sales_agent(self):
+    """
+    Change the sales agent for a customer.to next sales agent in the list
+    """
+    all_sales_agents = SalesAgent.objects.all()
+    current_sales_agents = self.sales_agent.all()
+    if not current_sales_agents:
+        return None
+    if SalesAgent.objects.get(user__username='Ms_Sadri') in current_sales_agents:
+        next_sales_agent = SalesAgent.objects.get(user__username='Ms_Sadri')
+    else:
+        next_sales_agent = all_sales_agents.next()
+    self.sales_agent.set([next_sales_agent])
+    self.save()
+
+def change_sales_agents_after_two_months_of_no_purchase(self):
+    """
+    Change the sales agent for a customer after two months of no purchase.
+    """
+    if self.purchases_made.count() == 0:
+        return None
+    
+    last_purchase = self.purchases_made.order_by('-created_at').first()
+    if last_purchase.created_at < timezone.now() - timedelta(days=60):
+        return None
+    else:
+        change_sales_agent(self)

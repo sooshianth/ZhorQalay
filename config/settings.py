@@ -217,3 +217,6 @@ SMS_LINE_NUMBER = int(os.environ.get('SMS_LINE_NUMBER', '0'))
 # BKI API Settings
 BKI_USERNAME = os.environ.get('BKI_USERNAME', '')
 BKI_PASSWORD = os.environ.get('BKI_PASSWORD', '')
+
+# Sales Agent SMS Qouta
+SALES_AGENT_SMS_QOUTA = int(os.environ.get('SALES_AGENT_SMS_QOUTA', '0'))
