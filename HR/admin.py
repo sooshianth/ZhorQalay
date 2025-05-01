@@ -6,6 +6,13 @@ from django.utils.timezone import now
 from django.template.response import TemplateResponse
 from django.urls import path
 from django.contrib.auth.models import User
+from .EmployeeModel import Employee
+
+@admin.register(Employee)
+class EmployeeAdmin(admin.ModelAdmin):
+    list_display = ('user__username', 'first_name', 'last_name', 'email')
+    search_fields = ('user__username', 'first_name', 'last_name', 'email')
+
 
 # class MonthFilter(admin.SimpleListFilter):
 #     title = 'ماه'

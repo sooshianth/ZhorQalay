@@ -1,5 +1,5 @@
 from django.urls import path
-from HR.views import weekly_attendance
+from HR.views import weekly_attendance, employee_profile
 
 urlpatterns = [
     path('attendance/', weekly_attendance.daily_attendance_view, name='weekly_attendance_view'),
@@ -7,4 +7,5 @@ urlpatterns = [
     path('attendance/pending/', weekly_attendance.pending_approvals_view, name='pending_approvals'),
     path('attendance/approve/<int:attendance_id>/', weekly_attendance.approve_attendance, name='approve_attendance'),
     path('attendance/summary/', weekly_attendance.attendance_summary_view, name='attendance_summary'),
+    path('employee/profile/', employee_profile.employee_profile_view, name='employee_profile'),
 ]

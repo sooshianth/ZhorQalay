@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}پروفایل کارمند{% endblock %}
+{% load static %}
+
+{% block head_styles %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css_files/manager_profile_style.css' %}" type="text/css">
+{% endblock %}
+
+{% block content %}
+    <div class="profile-container">
+        <div class="profile-header">
+            <h2>پروفایل کارمند</h2>
+            <div class="profile-date">تاریخ امروز: <span id="current-date"></span></div>
+        </div>
+
+        <div class="profile-tabs">
+            <div class="profile-tab">
+                <div class="section-title">اطلاعات شخصی</div>
+                <table class="profile-info" dir="rtl">
+                    <tr>
+                        <td>نام کاربری</td>
+                        <td>{{ user.username }}</td>
+                    </tr>
+                    <tr>
+                        <td>نام و نام خانوادگی</td>
+                        <td>{{ employee.first_name }} {{ employee.last_name }}</td>
+                    </tr>
+                    <tr>
+                        <td>شماره تماس</td>
+                        <td><a href="tel:{{ employee.phone_number }}" class="phone-link">{{ employee.phone_number }}</a></td>
+                    </tr>
+                    <tr>
+                        <td>ایمیل</td>
+                        <td><a href="mailto:{{ employee.email }}" class="email-link">{{ employee.email }}</a></td>
+                    </tr>
+                    <tr>
+                        <td>عنوان شغلی</td>
+                        <td>{{ employee.job_title }}</td>
+                    </tr>
+                    <tr>
+                        <td>تاریخ استخدام</td>
+                        <td>{{ employee.hire_date }}</td>
+                    </tr>
+                    <tr>
+                        <td>آدرس</td>
+                        <td>{{ employee.address }}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="profile-tab">
+                <div class="section-title">گزارش کارکرد</div>
+                <table class="profile-info" dir="rtl">
+                    <tr>
+                        <td>مجموع ساعات کاری ماه جاری</td>
+                        <td>{{ current_month_hours }} ساعت</td>
+                    </tr>
+                </table>
+                <div class="text-center mt-4">
+                    <a href="{% url 'weekly_attendance_view' %}" class="btn btn-primary">ثبت ساعات کاری</a>
+                    <a href="{% url 'attendance_summary' %}" class="btn btn-outline-primary">گزارش حضور و غیاب</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // نمایش تاریخ جاری
+            const months = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
+            const today = new Date();
+            const persianDate = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
+            document.getElementById('current-date').textContent = persianDate;
+        });
+    </script>
+{% endblock %} 

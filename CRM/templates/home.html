@@ -1,6 +1,25 @@
 {% extends "base.html" %}
     
     {% block content %}
-        <h1>خانه</h1>
-        <p>به سامانه سیمرغ افزار شرکت تامین نهاده سیمرغ خوش آمدید، از نواربالا به حساب مربوطه خود وارد شوید..</p>
+        <div class="container">
+            <div class="jumbotron mt-5 text-center">
+                <h1>سامانه سیمرغ</h1>
+                <p>به سامانه سیمرغ افزار شرکت تامین نهاده سیمرغ خوش آمدید.</p>
+                {% if user.is_authenticated %}
+                    {% if user.financial_manager %}
+                        <a href="{% url 'financial_manager_profile' %}" class="btn btn-primary">ورود به پنل مدیریت مالی</a>
+                    {% elif user.logistics_manager %}
+                        <a href="{% url 'logistics_manager_profile' %}" class="btn btn-primary">ورود به پنل مدیریت لجستیک</a>
+                    {% elif user.sales_agent %}
+                        <a href="{% url 'sales_agent_profile' %}" class="btn btn-primary">ورود به پنل فروش</a>
+                    {% elif user.support_agent %}
+                        <a href="{% url 'support_agent_profile' %}" class="btn btn-primary">ورود به پنل پشتیبانی</a>
+                    {% elif user.employee %}
+                        <a href="{% url 'employee_profile' %}" class="btn btn-primary">ورود به پنل کارمند</a>
+                    {% endif %}
+                {% else %}
+                    <a href="{% url 'unified_login' %}" class="btn btn-primary">ورود به سامانه</a>
+                {% endif %}
+            </div>
+        </div>
     {% endblock %}

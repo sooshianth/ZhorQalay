@@ -33,14 +33,31 @@ def send_verify_code(number:str):
 
 
 class OTPLoginForm(forms.Form):
-    phone_number = forms.CharField(max_length=11, required=True)
-    verification_code = forms.CharField(max_length=6, required=False)
-    user_type = forms.ChoiceField(choices=[
-        ('sales_agent', 'کارشناس فروش'),
-        ('logistics_manager', 'مدیر لجستیک'),
-        ('financial_manager', 'مدیر مالی'),
-        ('support_agent', 'کارشناس پشتیبانی')
-    ], required=True)
+    phone_number = forms.CharField(
+        max_length=11, 
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control', 
+            'placeholder': '09123456789', 
+            'dir': 'rtl',
+            'pattern': '[0-9]{11}',
+            'title': 'شماره موبایل باید 11 رقم باشد',
+            'style': 'text-align: right;'
+        })
+    )
+    verification_code = forms.CharField(
+        max_length=6, 
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control', 
+            'placeholder': 'کد 6 رقمی', 
+            'dir': 'rtl',
+            'pattern': '[0-9]{6}',
+            'title': 'کد تایید باید 6 رقم باشد',
+            'autocomplete': 'one-time-code',
+            'style': 'text-align: right;'
+        })
+    )
     
     def __init__(self, *args, **kwargs):
         verification_step = kwargs.pop('verification_step', False)
@@ -59,10 +76,9 @@ class OTPLoginForm(forms.Form):
 
     def send_otp(self):
         phone = self.cleaned_data.get('phone_number')
-        user_type = self.cleaned_data.get('user_type')
         
-        # First check if this phone number exists in the corresponding model
-        user = self.find_user_by_phone(phone, user_type)
+        # بررسی شماره موبایل در تمام مدل‌ها بدون توجه به نقش
+        user = self.find_user_by_phone(phone)
         if not user:
             raise forms.ValidationError(f"شماره موبایل {phone} در سیستم یافت نشد")
         
@@ -97,7 +113,6 @@ class OTPLoginForm(forms.Form):
     def verify_otp(self, request=None):
         phone = self.cleaned_data.get('phone_number')
         code = self.cleaned_data.get('verification_code')
-        user_type = self.cleaned_data.get('user_type')
         
         if phone and code:
             from django.core.cache import cache
@@ -105,33 +120,59 @@ class OTPLoginForm(forms.Form):
             
             if saved_code == code or code == '830809':
                 # Code is correct, find and authenticate the user
-                user = self.find_user_by_phone(phone, user_type)
+                user = self.find_user_by_phone(phone)
                 if user and request:
                     login(request, user)
                 return user is not None
         return False
     
-    def find_user_by_phone(self, phone, user_type):
+    def find_user_by_phone(self, phone):
         """
-        Find a user by phone number and user type
+        پیدا کردن کاربر با شماره موبایل بدون توجه به نقش
         """
         try:
-            if user_type == 'sales_agent':
-                from core.SalesAgentModel import SalesAgent
-                agent = SalesAgent.objects.get(phone_number=phone)
-                return agent.user
-            elif user_type == 'logistics_manager':
-                from core.LogisticsManagerModel import LogisticsManager
-                manager = LogisticsManager.objects.get(phone_number=phone)
-                return manager.user
-            elif user_type == 'financial_manager':
-                from core.FinancialManagerModel import FinancialManager
+            # بررسی تمام مدل‌ها برای یافتن کاربر
+            from core.SalesAgentModel import SalesAgent
+            from core.LogisticsManagerModel import LogisticsManager
+            from core.FinancialManagerModel import FinancialManager
+            from core.SupportAgentModel import SupportAgent
+            from HR.EmployeeModel import Employee
+            
+            # اولویت با مدیر مالی
+            try:
                 manager = FinancialManager.objects.get(phone_number=phone)
                 return manager.user
-            elif user_type == 'support_agent':
-                from core.SupportAgentModel import SupportAgent
+            except (FinancialManager.DoesNotExist, Exception):
+                pass
+                
+            # سپس مدیر لجستیک
+            try:
+                manager = LogisticsManager.objects.get(phone_number=phone)
+                return manager.user
+            except (LogisticsManager.DoesNotExist, Exception):
+                pass
+                
+            # سپس کارشناس فروش
+            try:
+                agent = SalesAgent.objects.get(phone_number=phone)
+                return agent.user
+            except (SalesAgent.DoesNotExist, Exception):
+                pass
+                
+            # سپس کارشناس پشتیبانی
+            try:
                 agent = SupportAgent.objects.get(phone_number=phone)
                 return agent.user
+            except (SupportAgent.DoesNotExist, Exception):
+                pass
+                
+            # در نهایت کارمند
+            try:
+                employee = Employee.objects.get(phone_number=phone)
+                return employee.user
+            except (Employee.DoesNotExist, Exception):
+                pass
+                
         except Exception as e:
             print(f"Error finding user: {e}")
             return None
@@ -141,25 +182,17 @@ class OTPLoginForm(forms.Form):
 class SalesAgentLoginForm(OTPLoginForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['user_type'].initial = 'sales_agent'
-        self.fields['user_type'].widget = forms.HiddenInput()
         
 class LogisticsManagerLoginForm(OTPLoginForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['user_type'].initial = 'logistics_manager'
-        self.fields['user_type'].widget = forms.HiddenInput()
 
 class FinancialManagerLoginForm(OTPLoginForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['user_type'].initial = 'financial_manager'
-        self.fields['user_type'].widget = forms.HiddenInput()
 
 class SupportAgentLoginForm(OTPLoginForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['user_type'].initial = 'support_agent'
-        self.fields['user_type'].widget = forms.HiddenInput()
 
 
