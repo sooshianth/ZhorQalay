@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'excel_manager.apps.ExcelManagerConfig',
     'sms_api.apps.SmsApiConfig',
     'chat.apps.ChatConfig',
+    'HR.apps.HRConfig',
     'bki_api.apps.BkiApiConfig',
 ]
 

@@ -2,8 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.db.models import Q
-from core._models import WeeklyAttendance, MonthlyAttendance
-from core.forms.forms import WeeklyAttendanceForm, DailyAttendanceForm
+from ..EmployeeAttendanceModel import WeeklyAttendance, MonthlyAttendance
+from ..forms.forms import WeeklyAttendanceForm, DailyAttendanceForm
 import csv
 from django.http import HttpResponse
 from datetime import datetime, timedelta

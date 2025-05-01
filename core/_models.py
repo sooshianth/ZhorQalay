@@ -9,8 +9,3 @@ from .TaskModel import Task
 from .PurchaseModel import Purchase
 from .SupportAgentModel import SupportAgent
 from .ToDoModel import ToDoItem
-from .EmployeeAttendanceModel import WeeklyAttendance
-from .EmployeeAttendanceModel import MonthlyAttendance
-from .EmployeeAttendanceModel import WorkCalendar
-from .EmployeeAttendanceModel import Salary
-

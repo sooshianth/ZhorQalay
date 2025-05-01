@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-import jdatetime
+from django_jalali.db import models as jmodels
 
 class WeeklyAttendance(models.Model):
     employee = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کارمند")

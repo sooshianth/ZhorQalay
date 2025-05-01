@@ -35,7 +35,7 @@ def create_task_for_purchase(sender, instance, created, **kwargs):
 
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from core._models import WeeklyAttendance, MonthlyAttendance
+from HR.EmployeeAttendanceModel import WeeklyAttendance, MonthlyAttendance
 from django.utils.timezone import now
 
 @receiver(post_save, sender=WeeklyAttendance)

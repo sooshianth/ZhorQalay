@@ -30,6 +30,12 @@
 /ERP/migrations/__pycache__
 /ERP/models/__pycache__
 
+/HR/__pycache__
+/HR/views/__pycache__
+/HR/migrations/__pycache__
+/HR/models/__pycache__
+/HR/forms/__pycache__
+
 /CRM/__pycache__
 /CRM/views/__pycache__
 /CRM/migrations/__pycache__
