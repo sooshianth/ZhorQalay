@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}مدیریت قالب‌های پیامک{% endblock %}
+
+{% block styles %}
+<style>
+    .placeholder-badge {
+        margin: 3px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .placeholder-badge:hover {
+        transform: scale(1.05);
+    }
+    .template-card {
+        transition: all 0.3s;
+    }
+    .template-card:hover {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transform: translateY(-3px);
+    }
+    .template-content {
+        max-height: 100px;
+        overflow: hidden;
+        position: relative;
+    }
+    .template-content::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 20px;
+        background: linear-gradient(transparent, white);
+    }
+    .default-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>مدیریت قالب‌های پیامک</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'sms_api:template_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> ایجاد قالب جدید
+            </a>
+        </div>
+    </div>
+
+    <!-- کارت‌های آمار -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">کل قالب‌ها</h5>
+                    <h2 class="display-4">{{ total_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">قالب‌های پیش‌فرض</h5>
+                    <h2 class="display-4">{{ default_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">متغیرهای قالب</h5>
+                    <h2 class="display-4">{{ placeholders|length }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- فیلترها -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">جستجو و فیلتر</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" action="{% url 'sms_api:template_list' %}">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="search">جستجو:</label>
+                            <input type="text" class="form-control" id="search" name="search" value="{{ search }}" placeholder="جستجو در نام، محتوا و توضیحات">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="template_type">نوع قالب:</label>
+                            <select class="form-control" id="template_type" name="template_type">
+                                <option value="">-- همه --</option>
+                                {% for key, label in template_types %}
+                                <option value="{{ key }}" {% if template_type == key %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="is_default">قالب پیش‌فرض:</label>
+                            <select class="form-control" id="is_default" name="is_default">
+                                <option value="">-- همه --</option>
+                                <option value="true" {% if is_default == 'true' %}selected{% endif %}>بله</option>
+                                <option value="false" {% if is_default == 'false' %}selected{% endif %}>خیر</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">فیلتر</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- راهنمای متغیرها -->
+    <div class="card mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">متغیرهای قابل استفاده در قالب‌ها</h5>
+            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#placeholdersHelp">
+                نمایش/مخفی‌سازی
+            </button>
+        </div>
+        <div class="card-body collapse" id="placeholdersHelp">
+            <div class="row">
+                {% for key, label in placeholders.items %}
+                <div class="col-md-3 mb-2">
+                    <span class="badge bg-secondary placeholder-badge" data-clipboard-text="&#123;&#123; {{ key }} &#125;&#125;">
+                        {{ label }} <small class="text-white-50">&#123;&#123; {{ key }} &#125;&#125;</small>
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="alert alert-info mt-3">
+                برای کپی متغیر، روی آن کلیک کنید. در ایجاد و ویرایش قالب دکمه‌های اضافه کردن متغیر در دسترس خواهد بود.
+            </div>
+        </div>
+    </div>
+
+    <!-- لیست قالب‌ها -->
+    <div class="row">
+        {% for template in templates %}
+        <div class="col-md-6 mb-4">
+            <div class="card template-card h-100">
+                {% if template.is_default %}
+                <span class="badge bg-success default-badge">پیش‌فرض</span>
+                {% endif %}
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ template.name }}</h5>
+                    <span class="badge bg-primary">{{ template.get_template_type_display }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="template-content mb-3">
+                        <pre class="text-muted">{{ template.content }}</pre>
+                    </div>
+                    {% if template.description %}
+                    <div class="text-muted small">
+                        <strong>توضیحات:</strong> {{ template.description }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer d-flex justify-content-between bg-light">
+                    <div>
+                        <small class="text-muted">ایجاد: {{ template.created_at|date:"Y/m/d" }}</small>
+                        <small class="text-muted me-2">بروزرسانی: {{ template.updated_at|date:"Y/m/d" }}</small>
+                    </div>
+                    <div class="btn-group btn-group-sm">
+                        <a href="{% url 'sms_api:template_detail' template.id %}" class="btn btn-outline-info">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{% url 'sms_api:template_edit' template.id %}" class="btn btn-outline-primary">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'sms_api:template_preview' template.id %}" class="btn btn-outline-success">
+                            <i class="fas fa-search"></i>
+                        </a>
+                        <a href="{% url 'sms_api:template_test' template.id %}" class="btn btn-outline-warning">
+                            <i class="fas fa-paper-plane"></i>
+                        </a>
+                        {% if not template.is_default %}
+                        <form method="post" action="{% url 'sms_api:set_template_default' template.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-success">
+                                <i class="fas fa-star"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                        <form method="post" action="{% url 'sms_api:template_delete' template.id %}" class="d-inline" onsubmit="return confirm('آیا از حذف این قالب اطمینان دارید؟');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                هیچ قالبی یافت نشد. <a href="{% url 'sms_api:template_create' %}">ایجاد قالب جدید</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- صفحه‌بندی -->
+    {% if templates.has_other_pages %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if templates.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ templates.previous_page_number }}&search={{ search }}&template_type={{ template_type }}&is_default={{ is_default }}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+            </li>
+            {% endif %}
+
+            {% for i in templates.paginator.page_range %}
+            {% if templates.number == i %}
+            <li class="page-item active">
+                <span class="page-link">{{ i }}</span>
+            </li>
+            {% else %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ i }}&search={{ search }}&template_type={{ template_type }}&is_default={{ is_default }}">{{ i }}</a>
+            </li>
+            {% endif %}
+            {% endfor %}
+
+            {% if templates.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ templates.next_page_number }}&search={{ search }}&template_type={{ template_type }}&is_default={{ is_default }}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.8/clipboard.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // کپی کردن متغیرها با کلیک
+        var clipboard = new ClipboardJS('.placeholder-badge');
+        clipboard.on('success', function(e) {
+            // نمایش پیام موفقیت
+            var badge = e.trigger;
+            var originalBg = badge.classList.contains('bg-secondary') ? 'bg-secondary' : 'bg-primary';
+            badge.classList.remove(originalBg);
+            badge.classList.add('bg-success');
+            setTimeout(function() {
+                badge.classList.remove('bg-success');
+                badge.classList.add(originalBg);
+            }, 1000);
+            e.clearSelection();
+        });
+    });
+</script>
+{% endblock %} 

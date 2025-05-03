@@ -25,4 +25,14 @@ urlpatterns = [
     # خروجی گزارش
     path('export/excel/', views.export_sms_log_excel, name='export_sms_log_excel'),
     path('export/pdf/', views.export_sms_log_pdf, name='export_sms_log_pdf'),
+    
+    # مدیریت قالب‌های پیامک
+    path('templates/', views.template_list, name='template_list'),
+    path('templates/create/', views.template_create, name='template_create'),
+    path('templates/<int:template_id>/', views.template_detail, name='template_detail'),
+    path('templates/<int:template_id>/edit/', views.template_edit, name='template_edit'),
+    path('templates/<int:template_id>/delete/', views.template_delete, name='template_delete'),
+    path('templates/<int:template_id>/set-default/', views.set_template_default, name='set_template_default'),
+    path('templates/<int:template_id>/preview/', views.template_preview, name='template_preview'),
+    path('templates/<int:template_id>/test/', views.template_test, name='template_test'),
 ] 

@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ویرایش قالب پیامک{% endblock %}
+
+{% block styles %}
+<style>
+    .btn-placeholder {
+        margin: 5px;
+    }
+    .template-editor {
+        position: relative;
+    }
+    .placeholders-toolbar {
+        margin-bottom: 10px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+    }
+    .content-textarea {
+        min-height: 200px;
+        direction: rtl;
+        font-family: tahoma, arial, sans-serif;
+    }
+    .preview-box {
+        min-height: 200px;
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+        direction: rtl;
+        font-family: tahoma, arial, sans-serif;
+        white-space: pre-wrap;
+    }
+    .character-counter {
+        position: absolute;
+        bottom: 5px;
+        right: 10px;
+        background: rgba(255,255,255,0.7);
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 12px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>ویرایش قالب پیامک</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'sms_api:template_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> بازگشت به لیست قالب‌ها
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">ویرایش قالب "{{ template.name }}"</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" action="{% url 'sms_api:template_edit' template.id %}">
+                {% csrf_token %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="name">نام قالب <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ template.name }}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="template_type">نوع قالب <span class="text-danger">*</span></label>
+                            <select class="form-control" id="template_type" name="template_type" required>
+                                <option value="">-- انتخاب کنید --</option>
+                                {% for key, label in template_types %}
+                                <option value="{{ key }}" {% if template.template_type == key %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group mb-3">
+                    <label for="description">توضیحات</label>
+                    <textarea class="form-control" id="description" name="description" rows="2">{{ template.description }}</textarea>
+                </div>
+                
+                <div class="form-check mb-4">
+                    <input class="form-check-input" type="checkbox" id="is_default" name="is_default" {% if template.is_default %}checked{% endif %}>
+                    <label class="form-check-label" for="is_default">
+                        استفاده به عنوان قالب پیش‌فرض
+                    </label>
+                    <small class="form-text text-muted d-block">اگر این گزینه را انتخاب کنید، این قالب به عنوان پیش‌فرض برای نوع انتخاب شده تنظیم می‌شود.</small>
+                </div>
+                
+                <div class="form-group mb-3">
+                    <label for="content">متن قالب <span class="text-danger">*</span></label>
+                    <div class="alert alert-info">
+                        متغیرها را با کلیک روی دکمه‌های زیر به متن قالب اضافه کنید. هر متغیر با فرمت &#123;&#123; نام_متغیر &#125;&#125; در متن قرار می‌گیرد.
+                    </div>
+                    
+                    <div class="placeholders-toolbar">
+                        <div class="d-flex flex-wrap">
+                            {% for key, label in placeholders.items %}
+                            <button type="button" class="btn btn-sm btn-outline-secondary btn-placeholder" data-template="{{ key }}">
+                                {{ label }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="template-editor">
+                        <textarea class="form-control content-textarea" id="content" name="content" required>{{ template.content }}</textarea>
+                        <div class="character-counter">
+                            <span id="charCount">0</span> / <span id="smsCount">1</span> پیامک
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3 mt-4">
+                    <div class="col-md-12">
+                        <label>پیش‌نمایش:</label>
+                        <div class="preview-box" id="preview"></div>
+                    </div>
+                </div>
+                
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> ذخیره تغییرات
+                    </button>
+                    <a href="{% url 'sms_api:template_preview' template.id %}" class="btn btn-success" target="_blank">
+                        <i class="fas fa-search"></i> پیش‌نمایش کامل
+                    </a>
+                    <a href="{% url 'sms_api:template_list' %}" class="btn btn-secondary">
+                        انصراف
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const contentTextarea = document.getElementById('content');
+        const previewBox = document.getElementById('preview');
+        const charCount = document.getElementById('charCount');
+        const smsCount = document.getElementById('smsCount');
+        const placeholderButtons = document.querySelectorAll('.btn-placeholder');
+        
+        // Define placeholders and sample data
+        const sampleData = {
+            'customer_name': 'مشتری نمونه',
+            'purchase_number': '1234567',
+            'invoice_id': '12345',
+            'order_weight': '25000',
+            'customer_price': '150000',
+            'amount_paid': '3750000000',
+            'barnameh': 'B-987654',
+            'extelaf_weight': '500',
+            'extelaf_amount': '75000000',
+            'cottage': '12345678',
+            'product_type': 'ذرت',
+            'product_country': 'برزیل',
+            'sales_agent_phone': '09123456789',
+            'sales_agent_name': 'کارشناس فروش نمونه',
+            'shenase_takhsis': 'ABC123456789'
+        };
+        
+        // افزودن متغیر به متن قالب با کلیک روی دکمه
+        placeholderButtons.forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Get the key from the button
+                const key = this.getAttribute('data-template');
+                
+                // Format the placeholder manually
+                const placeholder = '{{ ' + key + ' }}';
+                
+                // افزودن متغیر به موقعیت کرسر
+                const cursorPos = contentTextarea.selectionStart;
+                const textBefore = contentTextarea.value.substring(0, cursorPos);
+                const textAfter = contentTextarea.value.substring(cursorPos);
+                
+                contentTextarea.value = textBefore + placeholder + textAfter;
+                
+                // تنظیم موقعیت کرسر بعد از متغیر افزوده شده
+                const newCursorPos = cursorPos + placeholder.length;
+                contentTextarea.focus();
+                contentTextarea.setSelectionRange(newCursorPos, newCursorPos);
+                
+                // بروزرسانی پیش‌نمایش
+                updatePreview();
+            });
+        });
+        
+        // بروزرسانی پیش‌نمایش و شمارنده کاراکترها
+        contentTextarea.addEventListener('input', updatePreview);
+        
+        function updatePreview() {
+            // برای پیش‌نمایش، متغیرها را با مقادیر نمونه جایگزین می‌کنیم
+            let previewText = contentTextarea.value;
+            
+            // Replace all placeholders with sample data
+            previewText = replacePlaceholders(previewText, sampleData);
+            
+            // نمایش در پیش‌نمایش
+            previewBox.textContent = previewText;
+            
+            // بروزرسانی شمارنده کاراکترها
+            const chars = contentTextarea.value.length;
+            charCount.textContent = chars;
+            
+            // محاسبه تعداد پیامک (هر پیامک حداکثر 70 کاراکتر)
+            smsCount.textContent = Math.ceil(chars / 70);
+        }
+        
+        function replacePlaceholders(text, data) {
+            // Function to replace all placeholders without dynamically building the regex
+            let processedText = text;
+            
+            for (let key in data) {
+                const value = data[key];
+                const search = "{{ " + key + " }}";
+                
+                // Use split and join to replace all occurrences
+                while (processedText.includes(search)) {
+                    processedText = processedText.split(search).join(value);
+                }
+            }
+            
+            return processedText;
+        }
+        
+        // بروزرسانی اولیه
+        updatePreview();
+    });
+</script>
+{% endblock %} 

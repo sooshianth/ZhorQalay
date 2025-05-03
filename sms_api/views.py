@@ -5,7 +5,7 @@ from django.db.models import Q
 from django.http import HttpResponse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
-from .models import SmsQueue, SmsLog
+from .models import SmsQueue, SmsLog, SmsTemplate
 import datetime
 import xlsxwriter
 import io
@@ -749,3 +749,274 @@ def process_sms_queue_manually(request):
     
     # بازگشت به صفحه قبلی
     return redirect('sms_api:sms_queue')
+
+@role_required('admin')
+@login_required
+def template_list(request):
+    """نمایش لیست قالب‌های پیامک"""
+    # پارامترهای فیلتر
+    template_type = request.GET.get('template_type', '')
+    search = request.GET.get('search', '')
+    is_default = request.GET.get('is_default', '')
+    
+    # فیلتر کردن داده‌ها
+    templates = SmsTemplate.objects.all()
+    
+    if template_type:
+        templates = templates.filter(template_type=template_type)
+    
+    if search:
+        templates = templates.filter(
+            Q(name__icontains=search) | 
+            Q(content__icontains=search) |
+            Q(description__icontains=search)
+        )
+    
+    if is_default:
+        is_default_bool = is_default.lower() == 'true'
+        templates = templates.filter(is_default=is_default_bool)
+    
+    # مرتب‌سازی
+    templates = templates.order_by('-updated_at')
+    
+    # صفحه‌بندی
+    paginator = Paginator(templates, 10)  # 10 آیتم در هر صفحه
+    page_number = request.GET.get('page', 1)
+    templates = paginator.get_page(page_number)
+    
+    # آمار
+    total_count = SmsTemplate.objects.count()
+    default_count = SmsTemplate.objects.filter(is_default=True).count()
+    
+    context = {
+        'templates': templates,
+        'template_type': template_type,
+        'search': search,
+        'is_default': is_default,
+        'total_count': total_count,
+        'default_count': default_count,
+        'template_types': SmsTemplate.TEMPLATE_TYPES,
+        'placeholders': SmsTemplate.get_available_placeholders()
+    }
+    
+    return render(request, 'sms_api/template_list.html', context)
+
+@role_required('admin')
+@login_required
+def template_create(request):
+    """ایجاد قالب پیامک جدید"""
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        template_type = request.POST.get('template_type')
+        content = request.POST.get('content')
+        description = request.POST.get('description', '')
+        is_default = request.POST.get('is_default') == 'on'
+        
+        if not name or not template_type or not content:
+            messages.error(request, 'لطفاً تمام فیلدهای ضروری را پر کنید.')
+            return redirect('sms_api:template_create')
+        
+        try:
+            template = SmsTemplate.objects.create(
+                name=name,
+                template_type=template_type,
+                content=content,
+                description=description,
+                is_default=is_default
+            )
+            messages.success(request, f'قالب "{template.name}" با موفقیت ایجاد شد.')
+            return redirect('sms_api:template_list')
+        except Exception as e:
+            messages.error(request, f'خطا در ایجاد قالب: {str(e)}')
+            
+    context = {
+        'template_types': SmsTemplate.TEMPLATE_TYPES,
+        'placeholders': SmsTemplate.get_available_placeholders()
+    }
+    
+    return render(request, 'sms_api/template_create.html', context)
+
+@role_required('admin')
+@login_required
+def template_edit(request, template_id):
+    """ویرایش قالب پیامک"""
+    template = get_object_or_404(SmsTemplate, id=template_id)
+    
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        template_type = request.POST.get('template_type')
+        content = request.POST.get('content')
+        description = request.POST.get('description', '')
+        is_default = request.POST.get('is_default') == 'on'
+        
+        if not name or not template_type or not content:
+            messages.error(request, 'لطفاً تمام فیلدهای ضروری را پر کنید.')
+            return redirect('sms_api:template_edit', template_id=template_id)
+        
+        try:
+            template.name = name
+            template.template_type = template_type
+            template.content = content
+            template.description = description
+            template.is_default = is_default
+            template.save()
+            
+            messages.success(request, f'قالب "{template.name}" با موفقیت بروزرسانی شد.')
+            return redirect('sms_api:template_list')
+        except Exception as e:
+            messages.error(request, f'خطا در بروزرسانی قالب: {str(e)}')
+    
+    context = {
+        'template': template,
+        'template_types': SmsTemplate.TEMPLATE_TYPES,
+        'placeholders': SmsTemplate.get_available_placeholders()
+    }
+    
+    return render(request, 'sms_api/template_edit.html', context)
+
+@role_required('admin')
+@login_required
+def template_detail(request, template_id):
+    """مشاهده جزئیات قالب پیامک"""
+    template = get_object_or_404(SmsTemplate, id=template_id)
+    
+    context = {
+        'template': template,
+        'placeholders': SmsTemplate.get_available_placeholders()
+    }
+    
+    return render(request, 'sms_api/template_detail.html', context)
+
+@role_required('admin')
+@login_required
+@require_POST
+def template_delete(request, template_id):
+    """حذف قالب پیامک"""
+    template = get_object_or_404(SmsTemplate, id=template_id)
+    
+    # اگر قالب پیش‌فرض است و قالب دیگری از این نوع وجود ندارد، اجازه حذف نمی‌دهیم
+    if template.is_default and SmsTemplate.objects.filter(template_type=template.template_type).count() == 1:
+        messages.error(request, 'نمی‌توانید تنها قالب پیش‌فرض یک نوع را حذف کنید.')
+        return redirect('sms_api:template_list')
+    
+    try:
+        template_name = template.name
+        template.delete()
+        messages.success(request, f'قالب "{template_name}" با موفقیت حذف شد.')
+    except Exception as e:
+        messages.error(request, f'خطا در حذف قالب: {str(e)}')
+    
+    return redirect('sms_api:template_list')
+
+@role_required('admin')
+@login_required
+@require_POST
+def set_template_default(request, template_id):
+    """تنظیم قالب به عنوان پیش‌فرض"""
+    template = get_object_or_404(SmsTemplate, id=template_id)
+    
+    try:
+        # قالب‌های پیش‌فرض دیگر از همین نوع را غیرفعال می‌کنیم
+        SmsTemplate.objects.filter(template_type=template.template_type, is_default=True).update(is_default=False)
+        
+        # این قالب را پیش‌فرض می‌کنیم
+        template.is_default = True
+        template.save()
+        
+        messages.success(request, f'قالب "{template.name}" به عنوان پیش‌فرض تنظیم شد.')
+    except Exception as e:
+        messages.error(request, f'خطا در تنظیم قالب پیش‌فرض: {str(e)}')
+    
+    return redirect('sms_api:template_list')
+
+@role_required('admin')
+@login_required
+def template_preview(request, template_id):
+    """پیش‌نمایش قالب با داده‌های آزمایشی"""
+    template = get_object_or_404(SmsTemplate, id=template_id)
+    
+    # داده‌های آزمایشی برای پیش‌نمایش
+    sample_data = {
+        'customer_name': 'مشتری نمونه',
+        'purchase_number': '1234567',
+        'invoice_id': '12345',
+        'order_weight': '25000',
+        'customer_price': '150000',
+        'amount_paid': '3750000000',
+        'barnameh': 'B-987654',
+        'extelaf_weight': '500',
+        'extelaf_amount': '75000000',
+        'cottage': '12345678',
+        'product_type': 'ذرت',
+        'product_country': 'برزیل',
+        'sales_agent_phone': '09123456789',
+        'sales_agent_name': 'کارشناس فروش نمونه',
+        'shenase_takhsis': 'ABC123456789',
+    }
+    
+    # پردازش قالب
+    preview_text = template.content
+    for key, value in sample_data.items():
+        placeholder = '{{{{ {} }}}}'.format(key)
+        preview_text = preview_text.replace(placeholder, value)
+    
+    context = {
+        'template': template,
+        'preview_text': preview_text,
+        'sample_data': sample_data
+    }
+    
+    return render(request, 'sms_api/template_preview.html', context)
+
+@role_required('admin')
+@login_required
+def template_test(request, template_id):
+    """ارسال پیامک آزمایشی با استفاده از قالب"""
+    template = get_object_or_404(SmsTemplate, id=template_id)
+    
+    if request.method == 'POST':
+        recipient_number = request.POST.get('recipient_number')
+        
+        if not recipient_number:
+            messages.error(request, 'لطفاً شماره تلفن را وارد کنید.')
+            return redirect('sms_api:template_test', template_id=template_id)
+        
+        try:
+            # داده‌های آزمایشی برای پیش‌نمایش
+            sample_data = {
+                'customer_name': 'مشتری نمونه',
+                'purchase_number': '1234567',
+                'invoice_id': '12345',
+                'order_weight': '25000',
+                'customer_price': '150000',
+                'amount_paid': '3750000000',
+                'barnameh': 'B-987654',
+                'extelaf_weight': '500',
+                'extelaf_amount': '75000000',
+                'cottage': '12345678',
+                'product_type': 'ذرت',
+                'product_country': 'برزیل',
+                'sales_agent_phone': '09123456789',
+                'sales_agent_name': 'کارشناس فروش نمونه',
+                'shenase_takhsis': 'ABC123456789',
+            }
+            
+            # پردازش قالب
+            message_text = template.content
+            for key, value in sample_data.items():
+                placeholder = '{{{{ {} }}}}'.format(key)
+                message_text = message_text.replace(placeholder, value)
+            
+            # ارسال پیامک
+            queue_sms(recipient_number, message_text, notification_type='custom')
+            
+            messages.success(request, f'پیامک آزمایشی به شماره {recipient_number} ارسال شد.')
+            return redirect('sms_api:template_list')
+        except Exception as e:
+            messages.error(request, f'خطا در ارسال پیامک آزمایشی: {str(e)}')
+    
+    context = {
+        'template': template
+    }
+    
+    return render(request, 'sms_api/template_test.html', context)
