@@ -53,6 +53,9 @@
             <a href="{% url 'sms_api:template_create' %}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> ایجاد قالب جدید
             </a>
+            <a href="{% url 'sms_api:template_check' %}" class="btn btn-info">
+                <i class="fas fa-check-circle"></i> بررسی قالب‌ها
+            </a>
         </div>
     </div>
 
@@ -100,22 +103,22 @@
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="template_type">نوع قالب:</label>
-                            <select class="form-control" id="template_type" name="template_type">
+                            <label for="status">وضعیت خرید:</label>
+                            <select class="form-control" id="status" name="status">
                                 <option value="">-- همه --</option>
-                                {% for key, label in template_types %}
-                                <option value="{{ key }}" {% if template_type == key %}selected{% endif %}>{{ label }}</option>
+                                {% for key, label in status_choices %}
+                                <option value="{{ key }}" {% if status_filter == key %}selected{% endif %}>{{ label }}</option>
                                 {% endfor %}
                             </select>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label for="is_default">قالب پیش‌فرض:</label>
-                            <select class="form-control" id="is_default" name="is_default">
+                            <label for="is_active">قالب پیش‌فرض:</label>
+                            <select class="form-control" id="is_active" name="is_active">
                                 <option value="">-- همه --</option>
-                                <option value="true" {% if is_default == 'true' %}selected{% endif %}>بله</option>
-                                <option value="false" {% if is_default == 'false' %}selected{% endif %}>خیر</option>
+                                <option value="true" {% if is_active == 'true' %}selected{% endif %}>بله</option>
+                                <option value="false" {% if is_active == 'false' %}selected{% endif %}>خیر</option>
                             </select>
                         </div>
                     </div>
@@ -139,9 +142,9 @@
             <div class="row">
                 {% for key, label in placeholders.items %}
                 <div class="col-md-3 mb-2">
-                    <span class="badge bg-secondary placeholder-badge" data-clipboard-text="&#123;&#123; {{ key }} &#125;&#125;">
-                        {{ label }} <small class="text-white-50">&#123;&#123; {{ key }} &#125;&#125;</small>
-                    </span>
+                    <button class="btn btn-sm btn-secondary w-100" data-clipboard-text="&#123;&#123; {{ key }} &#125;&#125;">
+                        {{ label }} <small class="text-light">&#123;&#123; {{ key }} &#125;&#125;</small>
+                    </button>
                 </div>
                 {% endfor %}
             </div>
@@ -156,12 +159,12 @@
         {% for template in templates %}
         <div class="col-md-6 mb-4">
             <div class="card template-card h-100">
-                {% if template.is_default %}
-                <span class="badge bg-success default-badge">پیش‌فرض</span>
+                {% if template.is_active %}
+                <span class="text-success fw-bold position-absolute top-0 end-0 p-2">پیش‌فرض</span>
                 {% endif %}
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">{{ template.name }}</h5>
-                    <span class="badge bg-primary">{{ template.get_template_type_display }}</span>
+                    <span class="text-primary">{{ template.get_status_display }}</span>
                 </div>
                 <div class="card-body">
                     <div class="template-content mb-3">
@@ -191,7 +194,7 @@
                         <a href="{% url 'sms_api:template_test' template.id %}" class="btn btn-outline-warning">
                             <i class="fas fa-paper-plane"></i>
                         </a>
-                        {% if not template.is_default %}
+                        {% if not template.is_active %}
                         <form method="post" action="{% url 'sms_api:set_template_default' template.id %}" class="d-inline">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-outline-success">
@@ -224,7 +227,7 @@
         <ul class="pagination justify-content-center">
             {% if templates.has_previous %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ templates.previous_page_number }}&search={{ search }}&template_type={{ template_type }}&is_default={{ is_default }}">
+                <a class="page-link" href="?page={{ templates.previous_page_number }}&search={{ search }}&status={{ status_filter }}&is_active={{ is_active }}">
                     <i class="fas fa-chevron-right"></i>
                 </a>
             </li>
@@ -241,14 +244,14 @@
             </li>
             {% else %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ i }}&search={{ search }}&template_type={{ template_type }}&is_default={{ is_default }}">{{ i }}</a>
+                <a class="page-link" href="?page={{ i }}&search={{ search }}&status={{ status_filter }}&is_active={{ is_active }}">{{ i }}</a>
             </li>
             {% endif %}
             {% endfor %}
 
             {% if templates.has_next %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ templates.next_page_number }}&search={{ search }}&template_type={{ template_type }}&is_default={{ is_default }}">
+                <a class="page-link" href="?page={{ templates.next_page_number }}&search={{ search }}&status={{ status_filter }}&is_active={{ is_active }}">
                     <i class="fas fa-chevron-left"></i>
                 </a>
             </li>
@@ -268,16 +271,16 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // کپی کردن متغیرها با کلیک
-        var clipboard = new ClipboardJS('.placeholder-badge');
+        var clipboard = new ClipboardJS('.btn-secondary');
         clipboard.on('success', function(e) {
             // نمایش پیام موفقیت
-            var badge = e.trigger;
-            var originalBg = badge.classList.contains('bg-secondary') ? 'bg-secondary' : 'bg-primary';
-            badge.classList.remove(originalBg);
-            badge.classList.add('bg-success');
+            var button = e.trigger;
+            var originalClass = 'btn-secondary';
+            button.classList.remove(originalClass);
+            button.classList.add('btn-success');
             setTimeout(function() {
-                badge.classList.remove('bg-success');
-                badge.classList.add(originalBg);
+                button.classList.remove('btn-success');
+                button.classList.add(originalClass);
             }, 1000);
             e.clearSelection();
         });

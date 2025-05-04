@@ -14,12 +14,14 @@ from xhtml2pdf import pisa
 import logging
 import json
 from django.contrib.auth.decorators import login_required
-from .apis import queue_sms, process_sms_queue
+from .apis import queue_sms, process_sms_queue, check_missing_templates, create_default_templates
 from core.PurchaseModel import Purchase
 from core.decorators.decorators import role_required
+import re
+from django.db import connection
 logger = logging.getLogger(__name__)
 
-@role_required('admin')
+@role_required('admin', 'support_agent')
 @login_required
 def sms_dashboard(request):
     """داشبورد مدیریت پیامک‌ها"""
@@ -173,15 +175,16 @@ def sms_log(request):
 
 def get_default_templates():
     """
-    تولید قالب‌های پیش‌فرض برای انواع مختلف اطلاع‌رسانی
+    تولید قالب‌های پیش‌فرض برای وضعیت‌های مختلف خرید
     """
     return {
-        'purchase_created': 'مشتری گرامی، سفارش شما با موفقیت ثبت شد. کد پیگیری: {tracking_code}',
-        'payment_confirmed': 'مشتری گرامی، پرداخت شما با موفقیت انجام شد. مبلغ: {amount} تومان',
-        'order_delivered': 'مشتری گرامی، سفارش شما تحویل داده شد. از خرید شما متشکریم.',
-        'address_notification': 'مشتری گرامی، آدرس تحویل سفارش شما: {address}',
-        'shipping_notification': 'مشتری گرامی، سفارش شما ارسال شد و تا {delivery_date} به دست شما خواهد رسید.',
-        'welcome': 'به خانواده ژور قلعه خوش آمدید! برای مشاهده محصولات ما به وبسایت مراجعه کنید.'
+        'INITIATED': 'مشتری گرامی، خرید جدید شما با موفقیت ثبت شد. کد پیگیری: {purchase_number}',
+        'PAYMENT_VERIFIED': 'مشتری گرامی، پرداخت شما برای سفارش {purchase_number} به مبلغ {amount_paid} ریال تایید شد.',
+        'ADDRESS_SENT': 'مشتری گرامی، آدرس ارسال برای سفارش {purchase_number} به واردکننده ارسال شد.',
+        'BARNAMEH_ISSUED': 'مشتری گرامی، بارنامه برای سفارش {purchase_number} صادر شد. شماره بارنامه: {barnameh}',
+        'DELIVERED': 'مشتری گرامی، سفارش {purchase_number} شما تحویل داده شد. از خرید شما متشکریم.',
+        'DIFFERENCE_APPROVED': 'مشتری گرامی، سفارش {purchase_number} با اختلاف وزن ({extelaf_type}) به میزان {extelaf_weight} کیلوگرم تحویل شده است. مبلغ قابل پرداخت: {extelaf_amount} ریال',
+        'SMS_SENT': 'مشتری گرامی، کوتاژ {cottage}، {product_type} {product_country} با قیمت {customer_price} ریال و به وزن {order_weight} کیلوگرم برای شما ثبت شد.',
     }
 
 @role_required('admin')
@@ -755,15 +758,15 @@ def process_sms_queue_manually(request):
 def template_list(request):
     """نمایش لیست قالب‌های پیامک"""
     # پارامترهای فیلتر
-    template_type = request.GET.get('template_type', '')
+    status = request.GET.get('status', '')
     search = request.GET.get('search', '')
-    is_default = request.GET.get('is_default', '')
+    is_active = request.GET.get('is_active', '')
     
     # فیلتر کردن داده‌ها
     templates = SmsTemplate.objects.all()
     
-    if template_type:
-        templates = templates.filter(template_type=template_type)
+    if status:
+        templates = templates.filter(status=status)
     
     if search:
         templates = templates.filter(
@@ -772,9 +775,9 @@ def template_list(request):
             Q(description__icontains=search)
         )
     
-    if is_default:
-        is_default_bool = is_default.lower() == 'true'
-        templates = templates.filter(is_default=is_default_bool)
+    if is_active:
+        is_active_bool = is_active.lower() == 'true'
+        templates = templates.filter(is_active=is_active_bool)
     
     # مرتب‌سازی
     templates = templates.order_by('-updated_at')
@@ -786,16 +789,16 @@ def template_list(request):
     
     # آمار
     total_count = SmsTemplate.objects.count()
-    default_count = SmsTemplate.objects.filter(is_default=True).count()
+    default_count = SmsTemplate.objects.filter(is_active=True).count()
     
     context = {
         'templates': templates,
-        'template_type': template_type,
+        'status_filter': status,
         'search': search,
-        'is_default': is_default,
+        'is_active': is_active,
         'total_count': total_count,
         'default_count': default_count,
-        'template_types': SmsTemplate.TEMPLATE_TYPES,
+        'status_choices': SmsTemplate.STATUS_CHOICES,
         'placeholders': SmsTemplate.get_available_placeholders()
     }
     
@@ -807,22 +810,22 @@ def template_create(request):
     """ایجاد قالب پیامک جدید"""
     if request.method == 'POST':
         name = request.POST.get('name')
-        template_type = request.POST.get('template_type')
+        status = request.POST.get('status')
         content = request.POST.get('content')
         description = request.POST.get('description', '')
-        is_default = request.POST.get('is_default') == 'on'
+        is_active = request.POST.get('is_active') == 'on'
         
-        if not name or not template_type or not content:
+        if not name or not status or not content:
             messages.error(request, 'لطفاً تمام فیلدهای ضروری را پر کنید.')
             return redirect('sms_api:template_create')
         
         try:
             template = SmsTemplate.objects.create(
                 name=name,
-                template_type=template_type,
+                status=status,
                 content=content,
                 description=description,
-                is_default=is_default
+                is_active=is_active
             )
             messages.success(request, f'قالب "{template.name}" با موفقیت ایجاد شد.')
             return redirect('sms_api:template_list')
@@ -830,7 +833,7 @@ def template_create(request):
             messages.error(request, f'خطا در ایجاد قالب: {str(e)}')
             
     context = {
-        'template_types': SmsTemplate.TEMPLATE_TYPES,
+        'status_choices': SmsTemplate.STATUS_CHOICES,
         'placeholders': SmsTemplate.get_available_placeholders()
     }
     
@@ -844,21 +847,21 @@ def template_edit(request, template_id):
     
     if request.method == 'POST':
         name = request.POST.get('name')
-        template_type = request.POST.get('template_type')
+        status = request.POST.get('status')
         content = request.POST.get('content')
         description = request.POST.get('description', '')
-        is_default = request.POST.get('is_default') == 'on'
+        is_active = request.POST.get('is_active') == 'on'
         
-        if not name or not template_type or not content:
+        if not name or not status or not content:
             messages.error(request, 'لطفاً تمام فیلدهای ضروری را پر کنید.')
             return redirect('sms_api:template_edit', template_id=template_id)
         
         try:
             template.name = name
-            template.template_type = template_type
+            template.status = status
             template.content = content
             template.description = description
-            template.is_default = is_default
+            template.is_active = is_active
             template.save()
             
             messages.success(request, f'قالب "{template.name}" با موفقیت بروزرسانی شد.')
@@ -868,7 +871,7 @@ def template_edit(request, template_id):
     
     context = {
         'template': template,
-        'template_types': SmsTemplate.TEMPLATE_TYPES,
+        'status_choices': SmsTemplate.STATUS_CHOICES,
         'placeholders': SmsTemplate.get_available_placeholders()
     }
     
@@ -895,8 +898,8 @@ def template_delete(request, template_id):
     template = get_object_or_404(SmsTemplate, id=template_id)
     
     # اگر قالب پیش‌فرض است و قالب دیگری از این نوع وجود ندارد، اجازه حذف نمی‌دهیم
-    if template.is_default and SmsTemplate.objects.filter(template_type=template.template_type).count() == 1:
-        messages.error(request, 'نمی‌توانید تنها قالب پیش‌فرض یک نوع را حذف کنید.')
+    if template.is_active and SmsTemplate.objects.filter(status=template.status).count() == 1:
+        messages.error(request, 'نمی‌توانید تنها قالب پیش‌فرض یک وضعیت را حذف کنید.')
         return redirect('sms_api:template_list')
     
     try:
@@ -916,14 +919,14 @@ def set_template_default(request, template_id):
     template = get_object_or_404(SmsTemplate, id=template_id)
     
     try:
-        # قالب‌های پیش‌فرض دیگر از همین نوع را غیرفعال می‌کنیم
-        SmsTemplate.objects.filter(template_type=template.template_type, is_default=True).update(is_default=False)
+        # قالب‌های پیش‌فرض دیگر از همین وضعیت را غیرفعال می‌کنیم
+        SmsTemplate.objects.filter(status=template.status, is_active=True).update(is_active=False)
         
         # این قالب را پیش‌فرض می‌کنیم
-        template.is_default = True
+        template.is_active = True
         template.save()
         
-        messages.success(request, f'قالب "{template.name}" به عنوان پیش‌فرض تنظیم شد.')
+        messages.success(request, f'قالب "{template.name}" به عنوان پیش‌فرض برای وضعیت "{template.get_status_display()}" تنظیم شد.')
     except Exception as e:
         messages.error(request, f'خطا در تنظیم قالب پیش‌فرض: {str(e)}')
     
@@ -935,30 +938,31 @@ def template_preview(request, template_id):
     """پیش‌نمایش قالب با داده‌های آزمایشی"""
     template = get_object_or_404(SmsTemplate, id=template_id)
     
-    # داده‌های آزمایشی برای پیش‌نمایش
+    # داده‌های آزمایشی برای پیش‌نمایش - با فرمت ساختاری
     sample_data = {
-        'customer_name': 'مشتری نمونه',
-        'purchase_number': '1234567',
-        'invoice_id': '12345',
-        'order_weight': '25000',
-        'customer_price': '150000',
-        'amount_paid': '3750000000',
-        'barnameh': 'B-987654',
-        'extelaf_weight': '500',
-        'extelaf_amount': '75000000',
-        'cottage': '12345678',
-        'product_type': 'ذرت',
-        'product_country': 'برزیل',
-        'sales_agent_phone': '09123456789',
-        'sales_agent_name': 'کارشناس فروش نمونه',
-        'shenase_takhsis': 'ABC123456789',
+        'customer.name': 'مشتری نمونه',
+        'purchase.purchase_number': '1234567',
+        'purchase.invoice_id': '12345',
+        'purchase.order_weight': '25000',
+        'purchase.customer_price': '150000',
+        'purchase.amount_paid': '3750000000',
+        'purchase.barnameh': 'B-987654',
+        'purchase.extelaf_weight': '500',
+        'purchase.extelaf_amount': '75000000',
+        'cargo.cottage': '12345678',
+        'cargo.product_type': 'ذرت',
+        'cargo.country': 'برزیل',
+        'customer.sales_agent.phone_number': '09123456789',
+        'customer.sales_agent.name': 'کارشناس فروش نمونه',
+        'purchase.shenase_takhsis': 'ABC123456789',
     }
     
     # پردازش قالب
     preview_text = template.content
     for key, value in sample_data.items():
-        placeholder = '{{{{ {} }}}}'.format(key)
-        preview_text = preview_text.replace(placeholder, value)
+        # ایجاد الگوی جستجو با در نظر گرفتن فضای خالی احتمالی
+        pattern = r'{{\s*' + re.escape(key) + r'\s*}}'
+        preview_text = re.sub(pattern, value, preview_text)
     
     context = {
         'template': template,
@@ -982,30 +986,31 @@ def template_test(request, template_id):
             return redirect('sms_api:template_test', template_id=template_id)
         
         try:
-            # داده‌های آزمایشی برای پیش‌نمایش
+            # داده‌های آزمایشی برای پردازش قالب - با فرمت ساختاری
             sample_data = {
-                'customer_name': 'مشتری نمونه',
-                'purchase_number': '1234567',
-                'invoice_id': '12345',
-                'order_weight': '25000',
-                'customer_price': '150000',
-                'amount_paid': '3750000000',
-                'barnameh': 'B-987654',
-                'extelaf_weight': '500',
-                'extelaf_amount': '75000000',
-                'cottage': '12345678',
-                'product_type': 'ذرت',
-                'product_country': 'برزیل',
-                'sales_agent_phone': '09123456789',
-                'sales_agent_name': 'کارشناس فروش نمونه',
-                'shenase_takhsis': 'ABC123456789',
+                'customer.name': 'مشتری نمونه',
+                'purchase.purchase_number': '1234567',
+                'purchase.invoice_id': '12345',
+                'purchase.order_weight': '25000',
+                'purchase.customer_price': '150000',
+                'purchase.amount_paid': '3750000000',
+                'purchase.barnameh': 'B-987654',
+                'purchase.extelaf_weight': '500',
+                'purchase.extelaf_amount': '75000000',
+                'cargo.cottage': '12345678',
+                'cargo.product_type': 'ذرت',
+                'cargo.country': 'برزیل',
+                'customer.sales_agent.phone_number': '09123456789',
+                'customer.sales_agent.name': 'کارشناس فروش نمونه',
+                'purchase.shenase_takhsis': 'ABC123456789',
             }
             
             # پردازش قالب
             message_text = template.content
             for key, value in sample_data.items():
-                placeholder = '{{{{ {} }}}}'.format(key)
-                message_text = message_text.replace(placeholder, value)
+                # ایجاد الگوی جستجو با در نظر گرفتن فضای خالی احتمالی
+                pattern = r'{{\s*' + re.escape(key) + r'\s*}}'
+                message_text = re.sub(pattern, value, message_text)
             
             # ارسال پیامک
             queue_sms(recipient_number, message_text, notification_type='custom')
@@ -1020,3 +1025,33 @@ def template_test(request, template_id):
     }
     
     return render(request, 'sms_api/template_test.html', context)
+
+@role_required('admin')
+@login_required
+def template_check(request):
+    """نمایش وضعیت قالب‌های پیامک و ایجاد قالب‌های پیش‌فرض"""
+    # Check for missing templates
+    missing_templates = check_missing_templates()
+    
+    # If form submitted, create missing templates
+    if request.method == 'POST':
+        replace_existing = request.POST.get('replace_existing', 'off') == 'on'
+        created, updated, skipped = create_default_templates(replace_existing)
+        
+        if created > 0:
+            messages.success(request, f"{created} قالب جدید با موفقیت ایجاد شد.")
+        if updated > 0:
+            messages.success(request, f"{updated} قالب موجود به‌روزرسانی شد.")
+        if skipped > 0:
+            messages.info(request, f"{skipped} قالب موجود بدون تغییر باقی ماند.")
+            
+        # Redirect to avoid resubmission
+        return redirect('sms_api:template_check')
+    
+    context = {
+        'missing_templates': missing_templates,
+        'missing_count': len(missing_templates),
+        'all_statuses_count': len([status[0] for status in Purchase.STATUS_CHOICES]),
+    }
+    
+    return render(request, 'sms_api/template_check.html', context)

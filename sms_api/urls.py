@@ -35,4 +35,5 @@ urlpatterns = [
     path('templates/<int:template_id>/set-default/', views.set_template_default, name='set_template_default'),
     path('templates/<int:template_id>/preview/', views.template_preview, name='template_preview'),
     path('templates/<int:template_id>/test/', views.template_test, name='template_test'),
+    path('templates/check/', views.template_check, name='template_check'),
 ] 

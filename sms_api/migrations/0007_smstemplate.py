@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=100, verbose_name='نام قالب')),
                 ('template_type', models.CharField(choices=[('new_purchase', 'اطلاع رسانی خرید جدید'), ('payment_confirmation', 'تایید پرداخت'), ('address_notification', 'اطلاع رسانی آدرس'), ('barnameh_notification', 'اطلاع رسانی بارنامه'), ('extelaf_notification', 'اطلاع رسانی اختلاف'), ('custom', 'پیام سفارشی')], default='custom', max_length=30, verbose_name='نوع قالب')),
                 ('content', models.TextField(verbose_name='متن قالب')),
-                ('is_default', models.BooleanField(default=False, verbose_name='قالب پیش\u200cفرض')),
+                ('is_active', models.BooleanField(default=False, verbose_name='قالب پیش\u200cفرض')),
                 ('created_at', django_jalali.db.models.jDateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')),
                 ('updated_at', django_jalali.db.models.jDateTimeField(auto_now=True, verbose_name='تاریخ بروزرسانی')),
                 ('description', models.TextField(blank=True, null=True, verbose_name='توضیحات')),

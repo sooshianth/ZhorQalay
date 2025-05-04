@@ -9,20 +9,12 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from ERP.models.NotificationService import NotificationService
 from ERP.models.Notification import Notification
-
-# حذف ایمپورت مستقیم sms_api برای جلوگیری از ایمپورت دایره‌ای
-# from sms_api.apis import (
-#     send_new_purchase_notification, 
-#     send_payment_confirmation, 
-#     send_address_notification, 
-#     send_barnameh_notification, 
-#     send_extelaf_notification
-# )
-
-# تابع کمکی برای ایمپورت با تاخیر توابع sms
-def get_sms_api():
-    from sms_api import apis
-    return apis
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+import uuid
+import random
+from django.db.models import Sum, Q, F
+import re
 
 def determine_user_role(user):
     """
@@ -142,6 +134,34 @@ class Purchase(models.Model):
             changed_by=user,
             notes=notes
         )
+        
+        # اگر مشتری تنظیمات ارسال پیامک را فعال کرده باشد، پیامک ارسال می‌کنیم
+        try:
+            if self.customer and self.customer.sms_preference:
+                from sms_api.apis import send_purchase_status_notification
+                notification_sent = send_purchase_status_notification(self)
+                
+                if notification_sent:
+                    print(f"Notification sent for state change to {new_state} for purchase {self.invoice_id}")
+                    # Add a note to the purchase history
+                    PurchaseHistory.objects.create(
+                        purchase=self,
+                        user=user,
+                        changes=f"ارسال پیامک تغییر وضعیت به {self.get_state_display()}"
+                    )
+                else:
+                    print(f"Notification not sent for purchase {self.invoice_id}. Check SMS settings and templates.")
+        except Exception as e:
+            import traceback
+            print(f"Error sending notification for status change to {new_state} for purchase {self.invoice_id}: {e}")
+            print(traceback.format_exc())
+            # Log the error to the purchase history
+            PurchaseHistory.objects.create(
+                purchase=self,
+                user=user,
+                changes=f"خطا در ارسال پیامک: {str(e)}"
+            )
+        
         return True
 
     def confirm_bazaargah(self, user):
@@ -191,10 +211,6 @@ class Purchase(models.Model):
             self.cargo.weight -= self.order_weight
             self.cargo.save()
             
-        # ارسال پیامک تایید پرداخت با استفاده از ایمپورت تاخیری
-        sms_api = get_sms_api()
-        sms_api.send_payment_confirmation(self)
-        
         notification_message = (
             f"پرداخت خرید {self.invoice_id} به مبلغ {self.amount_paid:,} ریال "
             f"برای مشتری {self.customer.name} تایید شد"
@@ -278,12 +294,19 @@ class Purchase(models.Model):
         if user_role != 'logistics_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
-        if self.state != 'VENDOR_SETTLED':
-            raise ValidationError('ابتدا باید با واردکننده تسویه شود')
-                        
-        # ارسال پیامک آدرس با استفاده از ایمپورت تاخیری
-        sms_api = get_sms_api()
-        sms_api.send_address_notification(self)
+        if not self.address:
+            raise ValidationError('آدرس باید ثبت شده باشد')
+
+        notification_message = (
+            f"آدرس مشتری {self.customer.name} برای خرید {self.invoice_id} "
+            f"توسط {user.get_full_name()} به واردکننده ارسال شد"
+        )
+        self.notify_relevant_users(
+            message=notification_message,
+            title="ارسال آدرس به واردکننده",
+            notification_type='address',
+            priority='medium'
+        )
         
         return self.change_state('ADDRESS_SENT', user, 'آدرس به واردکننده ارسال شد')
         
@@ -325,10 +348,6 @@ class Purchase(models.Model):
         if not hasattr(self, 'barnameh') or not self.barnameh:
             raise ValidationError('شماره بارنامه الزامی است')
             
-        # ارسال پیامک بارنامه با استفاده از ایمپورت تاخیری
-        sms_api = get_sms_api()
-        sms_api.send_barnameh_notification(self)
-        
         notification_message = (
             f"بارنامه خرید {self.invoice_id} به شماره {self.barnameh} "
             f"برای مشتری {self.customer.name} صادر شد"
@@ -381,11 +400,6 @@ class Purchase(models.Model):
         
         if not self.extelaf_amount and not self.extelaf_weight:
             raise ValidationError('مقادیر اختلاف ثبت نشده است')
-        
-        # اگر اختلاف از نوع سرک باشد، پیامک ارسال شود
-        if self.extelaf_type == 'سرک' and self.extelaf_weight and self.extelaf_amount:
-            sms_api = get_sms_api()
-            sms_api.send_extelaf_notification(self)
         
         notification_message = (
             f"اختلاف {self.extelaf_type} خرید {self.invoice_id} "
@@ -679,8 +693,8 @@ class Purchase(models.Model):
         # Send SMS notification for new purchase only on creation
         if is_new and self.customer.sms_preference and has_non_admin:
             if self.send_cottage_sms:
-                sms_api = get_sms_api()
-                sms_api.send_new_purchase_notification(self)
+                from sms_api.apis import send_purchase_status_notification
+                send_purchase_status_notification(self)
                 # تنظیم وضعیت SMS ارسال شده
             if not PurchaseStateChange.objects.filter(purchase=self, new_state='SMS_SENT').exists():
                 PurchaseStateChange.objects.create(

@@ -5,6 +5,7 @@ from sms_ir import SmsIr
 from django.conf import settings
 from core.templatetags.custom_filters import to_persian_digits
 import re
+from django.db import connection
 
 # Get API key and line number from settings
 api_key = settings.SMS_API_KEY
@@ -19,18 +20,19 @@ def render_template(template_type, context_data):
     
     Args:
         template_type (str): Type of template to render ('new_purchase', 'payment_confirmation', etc.)
+                            OR status from Purchase.STATUS_CHOICES
         context_data (dict): Dictionary of values to replace placeholders in the template
         
     Returns:
         str: Rendered template text with placeholders replaced by values
     """
     try:
-        # Try to get the default template for the given type
-        template = SmsTemplate.objects.filter(template_type=template_type, is_default=True).first()
+        # Try to get the default template for the given status
+        template = SmsTemplate.objects.filter(status=template_type, is_active=True).first()
         
-        # If no default template exists, get any template of the given type
+        # If no default template exists, get any template of the given status
         if not template:
-            template = SmsTemplate.objects.filter(template_type=template_type).first()
+            template = SmsTemplate.objects.filter(status=template_type).first()
             
         # If no template found at all, return None
         if not template:
@@ -39,7 +41,7 @@ def render_template(template_type, context_data):
         # Get the template content
         content = template.content
         
-        # Replace placeholders with values from context data
+        # پردازش متغیرهای ساده
         for key, value in context_data.items():
             # Use regex to find placeholders with any amount of whitespace
             placeholder_pattern = r'{{\s*' + re.escape(key) + r'\s*}}'
@@ -49,12 +51,148 @@ def render_template(template_type, context_data):
                 str_value = to_persian_digits(value)
             # Replace the placeholder with the value
             content = re.sub(placeholder_pattern, str_value, content)
+        
+        # پردازش متغیرهای ساختاری (با نقطه)
+        # برای مثال customer.name یا purchase.invoice_id
+        for model_name in ['customer', 'purchase', 'cargo']:
+            if model_name in context_data and isinstance(context_data[model_name], object):
+                model_obj = context_data[model_name]
+                # جستجوی الگوهای متغیر با نقطه
+                pattern = r'{{\s*' + model_name + r'\.([a-zA-Z0-9_]+)\s*}}'
+                matches = re.finditer(pattern, content)
+                
+                for match in matches:
+                    field_name = match.group(1)
+                    try:
+                        # تلاش برای دستیابی به فیلد مورد نظر
+                        field_value = getattr(model_obj, field_name, '')
+                        # تبدیل به رشته و اعداد فارسی در صورت لزوم
+                        str_value = str(field_value) if field_value is not None else ''
+                        if isinstance(field_value, (int, float)) or (isinstance(field_value, str) and field_value.isdigit()):
+                            str_value = to_persian_digits(field_value)
+                        # جایگزینی متغیر با مقدار
+                        placeholder = match.group(0)  # کل عبارت {{ model.field }}
+                        content = content.replace(placeholder, str_value)
+                    except (AttributeError, Exception) as e:
+                        print(f"Error accessing {field_name} in {model_name}: {str(e)}")
             
         return content
     except Exception as e:
         print(f"Error rendering template: {e}")
         return None
 
+
+def send_purchase_status_notification(purchase):
+    """
+    Send SMS notification based on purchase status
+    
+    This is a generic function that replaces specific notification functions
+    like send_new_purchase_notification, send_payment_confirmation, etc.
+    
+    Args:
+        purchase: Purchase object with updated status
+        
+    Returns:
+        bool: True if notification was sent successfully, False otherwise
+    """
+    if not purchase.customer.sms_preference:
+        print(f"SMS notifications disabled for customer {purchase.customer.name}")
+        return False
+    
+    try:
+        # Get all customer phone numbers
+        phone_numbers = purchase.customer.get_all_phone_numbers()
+        if not phone_numbers:
+            print(f"No phone numbers found for customer {purchase.customer.name}")
+            return False
+        
+        # Get purchase status
+        status = purchase.state
+        
+        # Prepare context data for template
+        context = {
+            'customer': purchase.customer,
+            'purchase': purchase,
+            'cargo': purchase.cargo,
+            'customer_name': purchase.customer.name,
+            'purchase_number': purchase.purchase_number or '',
+            'invoice_id': purchase.invoice_id or '',
+            'order_weight': purchase.order_weight,
+            'customer_price': purchase.customer_price,
+            'amount_paid': purchase.amount_paid or (purchase.order_weight * purchase.customer_price if purchase.order_weight and purchase.customer_price else 0),
+            'barnameh': purchase.barnameh or '',
+            'shenase_takhsis': ', '.join(st.code for st in purchase.shenase_takhsis_set.all()) if hasattr(purchase, 'shenase_takhsis_set') else purchase.shenase_takhsis or '',
+        }
+        
+        # Add cargo-related data if available
+        if purchase.cargo:
+            context.update({
+                'cottage': purchase.cargo.cottage,
+                'product_type': purchase.cargo.get_product_type_display(),
+                'product_country': purchase.cargo.get_country_display(),
+                'port': purchase.cargo.port,
+                'loading_time': purchase.cargo.loading_time,
+                'description': purchase.cargo.description,
+            })
+            
+        # Add sales agent data if available
+        sales_agents = purchase.customer.sales_agent.filter(user__is_superuser=False)
+        if sales_agents:
+            context.update({
+                'sales_agent_phone': ', '.join([sa.phone_number for sa in sales_agents]),
+                'sales_agent_name': ', '.join([sa.name for sa in sales_agents]),
+            })
+            
+        # Add extelaf data if relevant
+        if status == 'DIFFERENCE_APPROVED' and purchase.extelaf_type and purchase.extelaf_weight:
+            context.update({
+                'extelaf_type': purchase.extelaf_type,
+                'extelaf_weight': purchase.extelaf_weight,
+                'extelaf_amount': purchase.extelaf_amount,
+            })
+        
+        # Render the template based on purchase status
+        message = render_template(status, context)
+        
+        # If no template found, log and return
+        if not message:
+            print(f"No template found for status {status} ({purchase.get_state_display()})")
+            return False
+            
+        # Send to all phone numbers
+        results = []
+        for phone in phone_numbers:
+            try:
+                result = queue_sms(phone, message, notification_type=status, purchase=purchase)
+                results.append(result)
+                print(f"SMS queued for {phone} for purchase {purchase.invoice_id}, status: {status}")
+            except Exception as e:
+                print(f"Error queueing SMS for {phone}: {e}")
+                # Continue to the next phone number if one fails
+                continue
+        
+        sms_sent = any(results)
+        
+        # If SMS was sent and the purchase status is INITIATED, change status to SMS_SENT
+        if sms_sent and status == 'INITIATED' and purchase.send_cottage_sms:
+            # We need to update via raw SQL or get_or_create to avoid infinite recursion
+            # because change_state would call this function again
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE core_purchase SET state = %s WHERE id = %s",
+                    ['SMS_SENT', purchase.id]
+                )
+            # Also update the state field of the purchase instance
+            purchase.state = 'SMS_SENT'
+            
+        print(f"SMS notification result for purchase {purchase.invoice_id}, status {status}: {'Success' if sms_sent else 'Failed'}")
+        # Return True if at least one message was queued successfully
+        return sms_sent
+    except Exception as e:
+        import traceback
+        print(f"Error in send_purchase_status_notification for purchase {purchase.id}: {e}")
+        print(traceback.format_exc())
+        return False
 
 def send_instant_sms(number:str, message:str, sms_account=sms_account):
     """
@@ -236,9 +374,14 @@ def send_new_purchase_notification(purchase):
             print(f"No cargo found for purchase {purchase.id}")
             return False
         
+        customer = purchase.customer
+        if not customer:
+            print(f"No customer found for purchase {purchase.id}")
+            return False
+        
         # Prepare context data for template
         context = {
-            'customer_name': purchase.customer.name,
+            'customer_name': customer.name,
             'purchase_number': purchase.purchase_number or '',
             'invoice_id': purchase.invoice_id or '',
             'order_weight': purchase.order_weight,
@@ -247,8 +390,15 @@ def send_new_purchase_notification(purchase):
             'cottage': cargo.cottage,
             'product_type': cargo.get_product_type_display(),
             'product_country': cargo.get_country_display(),
-            'sales_agent_phone': ', '.join([sa.phone_number for sa in purchase.customer.sales_agent.filter(user__is_superuser=False)]),
-            'sales_agent_name': ', '.join([sa.name for sa in purchase.customer.sales_agent.filter(user__is_superuser=False)]),
+            'sales_agent_phone': ', '.join([sa.phone_number for sa in customer.sales_agent.filter(user__is_superuser=False)]),
+            'sales_agent_name': ', '.join([sa.name for sa in customer.sales_agent.filter(user__is_superuser=False)]),
+            'payment_method': purchase.payment_method,
+            'port': cargo.port,
+            'loading_time': cargo.loading_time,
+            'description': cargo.description,
+            'weight': purchase.order_weight,
+            'cargo_type': cargo.get_product_type_display(),
+            'cargo_country': cargo.get_country_display(),
         }
         
         # Render the template
@@ -454,4 +604,95 @@ def send_extelaf_notification(purchase):
     except Exception as e:
         print(f"Error in send_extelaf_notification: {e}")
         return False
+
+def check_missing_templates():
+    """
+    Check if there are any purchase status types without corresponding SMS templates
+    Returns a list of status types that don't have templates
+    """
+    from .models import SmsTemplate
+    from core.PurchaseModel import Purchase
+    
+    # Get all possible purchase status choices
+    all_statuses = [status[0] for status in Purchase.STATUS_CHOICES]
+    
+    # Get all statuses that have templates
+    template_statuses = SmsTemplate.objects.values_list('status', flat=True).distinct()
+    
+    # Find statuses without templates
+    missing_templates = []
+    for status in all_statuses:
+        if status not in template_statuses:
+            status_display = dict(Purchase.STATUS_CHOICES).get(status, status)
+            missing_templates.append((status, status_display))
+    
+    return missing_templates
+
+def create_default_templates(replace_existing=False):
+    """
+    Create default templates for all purchase statuses if they don't exist
+    
+    Args:
+        replace_existing (bool): If True, will replace existing templates
+                               If False, will only create templates for statuses without templates
+                               
+    Returns:
+        tuple: (created_count, updated_count, skipped_count)
+    """
+    from .models import SmsTemplate
+    from core.PurchaseModel import Purchase
+    
+    # Default template messages for each status
+    default_templates = {
+        'INITIATED': 'مشتری گرامی {{customer_name}}، \nخرید جدید شما با شماره {{purchase_number}} با موفقیت ثبت شد. \nنوع کالا: {{product_type}} {{product_country}}\nوزن: {{order_weight}} کیلوگرم\nقیمت: {{customer_price}} ریال',
+        'SMS_SENT': 'مشتری گرامی {{customer_name}}، \nکالای {{product_type}} {{product_country}} به وزن {{order_weight}} کیلوگرم و قیمت {{customer_price}} ریال برای شما ثبت شد. کوتاژ: {{cottage}}',
+        'BAZAARGAH_CONFIRMED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} در بازارگاه تایید شد. نوع کالا: {{product_type}} {{product_country}}',
+        'ALLOCATION_REGISTERED': 'مشتری گرامی {{customer_name}}، \nشناسه تخصیص برای خرید شما با شماره {{purchase_number}} ثبت گردید. منتظر تایید لجستیک باشید.',
+        'ALLOCATION_APPROVED': 'مشتری گرامی {{customer_name}}، \nشناسه تخصیص برای خرید شما با شماره {{purchase_number}} تایید شد.',
+        'PAYMENT_VERIFIED': 'مشتری گرامی {{customer_name}}، \nپرداخت شما برای خرید {{purchase_number}} به مبلغ {{amount_paid}} ریال تایید شد.\nشناسه‌های تخصیص: {{shenase_takhsis}}',
+        'VENDOR_SETTLED': 'مشتری گرامی {{customer_name}}، \nتسویه با واردکننده برای خرید شما با شماره {{purchase_number}} انجام شد.',
+        'ADDRESS_SENT': 'مشتری گرامی {{customer_name}}، \nآدرس ارسال برای خرید شما با شماره {{purchase_number}} به واردکننده ارسال شد. به زودی اطلاعات ارسال برای شما پیامک می‌شود.',
+        'SENT_TO_SHIPPING': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} به باربری ارسال شد.',
+        'BARNAMEH_ISSUED': 'مشتری گرامی {{customer_name}}، \nبارنامه برای خرید شما با شماره {{purchase_number}} صادر شد. شماره بارنامه: {{barnameh}}',
+        'DELIVERED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} به وزن {{order_weight}} کیلوگرم تحویل داده شد. از انتخاب شما متشکریم.',
+        'DIFFERENCE_APPROVED': 'مشتری گرامی {{customer_name}}، \nاختلاف {{extelaf_type}} برای خرید شما با شماره {{purchase_number}} به میزان {{extelaf_weight}} کیلوگرم و مبلغ {{extelaf_amount}} ریال تایید شد.',
+        'DIFFERENCE_DEPOSITED': 'مشتری گرامی {{customer_name}}، \nمبلغ اختلاف برای خرید شما با شماره {{purchase_number}} واریز شد.',
+        'RECEIPT_SUBMITTED': 'مشتری گرامی {{customer_name}}، \nرسید واریز برای خرید شما با شماره {{purchase_number}} ثبت شد.',
+        'INVOICE_ISSUED': 'مشتری گرامی {{customer_name}}، \nفاکتور خرید شما با شماره {{purchase_number}} صادر شد.',
+        'COMPLETED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} با موفقیت به اتمام رسید. از انتخاب شما متشکریم.'
+    }
+    
+    created_count = 0
+    updated_count = 0
+    skipped_count = 0
+    
+    # Create templates for each status
+    for status, message in default_templates.items():
+        # Check if template already exists
+        existing_template = SmsTemplate.objects.filter(status=status, is_active=True).first()
+        
+        if existing_template and not replace_existing:
+            skipped_count += 1
+            continue
+            
+        if existing_template and replace_existing:
+            existing_template.content = message
+            existing_template.save()
+            updated_count += 1
+            continue
+            
+        # Get display name for the status
+        status_display = dict(Purchase.STATUS_CHOICES).get(status, status)
+        
+        # Create new template
+        SmsTemplate.objects.create(
+            name=f"قالب پیش‌فرض {status_display}",
+            status=status,
+            content=message,
+            description=f"قالب پیش‌فرض برای وضعیت {status_display}",
+            is_active=True
+        )
+        created_count += 1
+    
+    return (created_count, updated_count, skipped_count)
 

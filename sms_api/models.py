@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django_jalali.db import models as jmodels
+from core.PurchaseModel import Purchase
 
 is_celery_active = False
 
@@ -78,35 +79,18 @@ class SmsLog(models.Model):
         ordering = ['-sent_at']
 
 class SmsTemplate(models.Model):
-    TEMPLATE_TYPES = [
-        ('new_purchase', 'اطلاع رسانی خرید جدید'),
-        ('payment_confirmation', 'تایید پرداخت'),
-        ('address_notification', 'اطلاع رسانی آدرس'),
-        ('barnameh_notification', 'اطلاع رسانی بارنامه'),
-        ('extelaf_notification', 'اطلاع رسانی اختلاف'),
-        ('custom', 'پیام سفارشی'),
-    ]
-    
+    STATUS_CHOICES = Purchase.STATUS_CHOICES
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='custom', verbose_name="بعد از چه وضعیتی ارسال شود؟")
     name = models.CharField(max_length=100, verbose_name="نام قالب")
-    template_type = models.CharField(max_length=30, choices=TEMPLATE_TYPES, default='custom', verbose_name="نوع قالب")
     content = models.TextField(verbose_name="متن قالب")
-    is_default = models.BooleanField(default=False, verbose_name="قالب پیش‌فرض")
+    description = models.TextField(blank=True, null=True, verbose_name="توضیحات")
+    is_active = models.BooleanField(default=True, verbose_name="فعال")
     created_at = jmodels.jDateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
     updated_at = jmodels.jDateTimeField(auto_now=True, verbose_name="تاریخ بروزرسانی")
-    description = models.TextField(blank=True, null=True, verbose_name="توضیحات")
     
     def __str__(self):
-        return f"{self.name} ({self.get_template_type_display()})"
-    
-    def save(self, *args, **kwargs):
-        # اگر این قالب به عنوان پیش‌فرض تنظیم شده، قالب‌های پیش‌فرض دیگر با همین نوع را غیرفعال کنیم
-        if self.is_default:
-            SmsTemplate.objects.filter(
-                template_type=self.template_type, 
-                is_default=True
-            ).exclude(id=self.id).update(is_default=False)
-        super().save(*args, **kwargs)
-    
+        return f"{self.name} ({self.get_status_display()})"
+        
     class Meta:
         verbose_name = "قالب پیامک"
         verbose_name_plural = "قالب‌های پیامک"
@@ -120,7 +104,7 @@ class SmsTemplate(models.Model):
         return {
             'customer_name': 'نام مشتری',
             'purchase_number': 'شماره خرید',
-            'invoice_id': 'شناسه فاکتور',
+            'invoice_id': 'شناسه سازمانی',
             'order_weight': 'وزن سفارش',
             'customer_price': 'فی فروش',
             'amount_paid': 'مبلغ پرداختی',
@@ -128,9 +112,14 @@ class SmsTemplate(models.Model):
             'extelaf_weight': 'وزن اختلاف',
             'extelaf_amount': 'مبلغ اختلاف',
             'cottage': 'شماره کوتاژ',
-            'product_type': 'نوع محصول',
-            'product_country': 'کشور محصول',
             'sales_agent_phone': 'شماره تلفن کارشناس فروش',
             'sales_agent_name': 'نام کارشناس فروش',
             'shenase_takhsis': 'شناسه تخصیص',
+            'payment_method': 'شیوۀ پرداخت',
+            'port': 'محل بارگیری',
+            'loading_time': 'زمان بارگیری',
+            'description': 'توضیحات',
+            'weight': 'وزن',
+            'cargo_type': 'نوع کوتاژ',
+            'cargo_country': 'کشور کوتاژ',    
         }

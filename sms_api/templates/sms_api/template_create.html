@@ -73,10 +73,10 @@
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="template_type">نوع قالب <span class="text-danger">*</span></label>
-                            <select class="form-control" id="template_type" name="template_type" required>
+                            <label for="status">وضعیت خرید <span class="text-danger">*</span></label>
+                            <select class="form-control" id="status" name="status" required>
                                 <option value="">-- انتخاب کنید --</option>
-                                {% for key, label in template_types %}
+                                {% for key, label in status_choices %}
                                 <option value="{{ key }}">{{ label }}</option>
                                 {% endfor %}
                             </select>
@@ -90,23 +90,23 @@
                 </div>
                 
                 <div class="form-check mb-4">
-                    <input class="form-check-input" type="checkbox" id="is_default" name="is_default">
-                    <label class="form-check-label" for="is_default">
+                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active">
+                    <label class="form-check-label" for="is_active">
                         استفاده به عنوان قالب پیش‌فرض
                     </label>
-                    <small class="form-text text-muted d-block">اگر این گزینه را انتخاب کنید، این قالب به عنوان پیش‌فرض برای نوع انتخاب شده تنظیم می‌شود.</small>
+                    <small class="form-text text-muted d-block">اگر این گزینه را انتخاب کنید، این قالب به عنوان پیش‌فرض برای وضعیت خرید انتخاب شده تنظیم می‌شود.</small>
                 </div>
                 
                 <div class="form-group mb-3">
                     <label for="content">متن قالب <span class="text-danger">*</span></label>
                     <div class="alert alert-info">
-                        متغیرها را با کلیک روی دکمه‌های زیر به متن قالب اضافه کنید. هر متغیر با فرمت &#123;&#123; نام_متغیر &#125;&#125; در متن قرار می‌گیرد.
+                        متغیرها را با کلیک روی دکمه‌های زیر به متن قالب اضافه کنید. هر متغیر با فرمت &#123;&#123; متغیر &#125;&#125; در متن قرار می‌گیرد.
                     </div>
                     
                     <div class="placeholders-toolbar">
                         <div class="d-flex flex-wrap">
                             {% for key, label in placeholders.items %}
-                            <button type="button" class="btn btn-sm btn-outline-secondary btn-placeholder" data-template="{{ key }}">
+                            <button type="button" class="btn btn-sm btn-outline-secondary btn-placeholder" data-placeholder="{{ key }}">
                                 {{ label }}
                             </button>
                             {% endfor %}
@@ -142,7 +142,8 @@
 </div>
 {% endblock %}
 
-{% block scripts %}
+{% block extra_scripts %}
+{% verbatim %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const contentTextarea = document.getElementById('content');
@@ -151,62 +152,95 @@
         const smsCount = document.getElementById('smsCount');
         const placeholderButtons = document.querySelectorAll('.btn-placeholder');
         
-        // Define placeholders and sample data
+        // تعریف مسیرهای دسترسی کامل به فیلدها و مقادیر نمونه برای پیش‌نمایش
+        const placeholderPaths = {
+            'customer_name': 'customer.name',
+            'purchase_number': 'purchase.purchase_number',
+            'invoice_id': 'purchase.invoice_id',
+            'order_weight': 'purchase.order_weight',
+            'customer_price': 'purchase.customer_price',
+            'amount_paid': 'purchase.amount_paid',
+            'barnameh': 'purchase.barnameh',
+            'extelaf_weight': 'purchase.extelaf_weight',
+            'extelaf_amount': 'purchase.extelaf_amount',
+            'cottage': 'cargo.cottage',
+            'product_type': 'cargo.product_type',
+            'product_country': 'cargo.country',
+            'sales_agent_phone': 'customer.sales_agent.phone_number',
+            'sales_agent_name': 'customer.sales_agent.name',
+            'shenase_takhsis': 'purchase.shenase_takhsis'
+        };
+        
+        // مقادیر نمونه برای پیش‌نمایش
         const sampleData = {
-            'customer_name': 'مشتری نمونه',
-            'purchase_number': '1234567',
-            'invoice_id': '12345',
-            'order_weight': '25000',
-            'customer_price': '150000',
-            'amount_paid': '3750000000',
-            'barnameh': 'B-987654',
-            'extelaf_weight': '500',
-            'extelaf_amount': '75000000',
-            'cottage': '12345678',
-            'product_type': 'ذرت',
-            'product_country': 'برزیل',
-            'sales_agent_phone': '09123456789',
-            'sales_agent_name': 'کارشناس فروش نمونه',
-            'shenase_takhsis': 'ABC123456789'
+            'customer.name': 'مشتری نمونه',
+            'purchase.purchase_number': '1234567',
+            'purchase.invoice_id': '12345',
+            'purchase.order_weight': '25000',
+            'purchase.customer_price': '150000',
+            'purchase.amount_paid': '3750000000',
+            'purchase.barnameh': 'B-987654',
+            'purchase.extelaf_weight': '500',
+            'purchase.extelaf_amount': '75000000',
+            'cargo.cottage': '12345678',
+            'cargo.product_type': 'ذرت',
+            'cargo.country': 'برزیل',
+            'customer.sales_agent.phone_number': '09123456789',
+            'customer.sales_agent.name': 'کارشناس فروش نمونه',
+            'purchase.shenase_takhsis': 'ABC123456789'
         };
         
         // افزودن متغیر به متن قالب با کلیک روی دکمه
         placeholderButtons.forEach(function(button) {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
+            button.addEventListener('click', function() {
+                // دریافت کلید از دکمه
+                const key = this.getAttribute('data-placeholder');
                 
-                // Get the key from the button
-                const key = this.getAttribute('data-template');
+                // دریافت مسیر کامل مدل
+                const modelPath = placeholderPaths[key] || key;
                 
-                // Format the placeholder manually
-                const placeholder = '{{ ' + key + ' }}';
+                // ایجاد فرمت متغیر برای قالب
+                const placeholder = '{{ ' + modelPath + ' }}';
                 
-                // افزودن متغیر به موقعیت کرسر
-                const cursorPos = contentTextarea.selectionStart;
-                const textBefore = contentTextarea.value.substring(0, cursorPos);
-                const textAfter = contentTextarea.value.substring(cursorPos);
-                
-                contentTextarea.value = textBefore + placeholder + textAfter;
-                
-                // تنظیم موقعیت کرسر بعد از متغیر افزوده شده
-                const newCursorPos = cursorPos + placeholder.length;
-                contentTextarea.focus();
-                contentTextarea.setSelectionRange(newCursorPos, newCursorPos);
+                // درج در موقعیت کرسر
+                insertAtCursor(contentTextarea, placeholder);
                 
                 // بروزرسانی پیش‌نمایش
                 updatePreview();
+                
+                // تمرکز مجدد روی کادر متن
+                contentTextarea.focus();
             });
         });
         
         // بروزرسانی پیش‌نمایش و شمارنده کاراکترها
         contentTextarea.addEventListener('input', updatePreview);
         
+        // درج متن در موقعیت کرسر در textarea
+        function insertAtCursor(textArea, text) {
+            // ذخیره نقاط شروع و پایان انتخاب
+            const start = textArea.selectionStart;
+            const end = textArea.selectionEnd;
+            
+            // بروزرسانی فیلد متن
+            textArea.value = textArea.value.substring(0, start) + text + textArea.value.substring(end);
+            
+            // بروزرسانی موقعیت کرسر
+            textArea.selectionStart = start + text.length;
+            textArea.selectionEnd = start + text.length;
+        }
+        
         function updatePreview() {
             // برای پیش‌نمایش، متغیرها را با مقادیر نمونه جایگزین می‌کنیم
             let previewText = contentTextarea.value;
             
-            // Replace all placeholders with sample data
-            previewText = replacePlaceholders(previewText, sampleData);
+            // جایگزینی متغیرها با مقادیر نمونه با استفاده از روشی ایمن‌تر
+            for (let path in sampleData) {
+                const value = sampleData[path];
+                // ایجاد یک regex که می‌تواند تغییرات فاصله را مدیریت کند
+                const searchPattern = new RegExp('\\{\\{\\s*' + path.replace('.', '\\.') + '\\s*\\}\\}', 'g');
+                previewText = previewText.replace(searchPattern, value);
+            }
             
             // نمایش در پیش‌نمایش
             previewBox.textContent = previewText;
@@ -219,25 +253,9 @@
             smsCount.textContent = Math.ceil(chars / 70);
         }
         
-        function replacePlaceholders(text, data) {
-            // Function to replace all placeholders without dynamically building the regex
-            let processedText = text;
-            
-            for (let key in data) {
-                const value = data[key];
-                const search = "{{ " + key + " }}";
-                
-                // Use split and join to replace all occurrences
-                while (processedText.includes(search)) {
-                    processedText = processedText.split(search).join(value);
-                }
-            }
-            
-            return processedText;
-        }
-        
         // بروزرسانی اولیه
         updatePreview();
     });
 </script>
+{% endverbatim %}
 {% endblock %} 

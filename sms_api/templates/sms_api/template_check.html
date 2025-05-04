@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}بررسی قالب‌های پیامک{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>بررسی و ایجاد قالب‌های پیامک</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'sms_api:template_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> بازگشت به لیست قالب‌ها
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">وضعیت قالب‌های پیامک</h5>
+                    <span class="badge bg-light text-dark">{{ all_statuses_count - missing_count }} از {{ all_statuses_count }}</span>
+                </div>
+                <div class="card-body">
+                    {% if missing_templates %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>{{ missing_count }} قالب پیامک</strong> برای وضعیت‌های خرید وجود ندارد.
+                        </div>
+                        
+                        <h5 class="mt-4">وضعیت‌های بدون قالب پیامک:</h5>
+                        <ul class="list-group mb-4">
+                            {% for status_code, status_name in missing_templates %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ status_name }}
+                                <span class="badge bg-warning">{{ status_code }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        
+                        <form method="post" action="{% url 'sms_api:template_check' %}">
+                            {% csrf_token %}
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="replace_existing" name="replace_existing">
+                                <label class="form-check-label" for="replace_existing">
+                                    جایگزینی قالب‌های موجود با قالب‌های پیش‌فرض
+                                </label>
+                                <small class="form-text text-muted d-block">اگر این گزینه را فعال کنید، تمام قالب‌های موجود با قالب‌های پیش‌فرض جایگزین می‌شوند.</small>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-magic"></i> ایجاد قالب‌های پیش‌فرض
+                            </button>
+                            <a href="{% url 'sms_api:template_list' %}" class="btn btn-secondary">
+                                انصراف
+                            </a>
+                        </form>
+                    {% else %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i>
+                            تمام وضعیت‌های خرید قالب پیامک دارند.
+                        </div>
+                        
+                        <div class="mt-4">
+                            <form method="post" action="{% url 'sms_api:template_check' %}">
+                                {% csrf_token %}
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="replace_existing" name="replace_existing">
+                                    <label class="form-check-label" for="replace_existing">
+                                        جایگزینی قالب‌های موجود با قالب‌های پیش‌فرض
+                                    </label>
+                                    <small class="form-text text-muted d-block">اگر این گزینه را فعال کنید، تمام قالب‌های موجود با قالب‌های پیش‌فرض جایگزین می‌شوند.</small>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-sync"></i> به‌روزرسانی قالب‌های پیش‌فرض
+                                </button>
+                                <a href="{% url 'sms_api:template_list' %}" class="btn btn-secondary">
+                                    انصراف
+                                </a>
+                            </form>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">راهنمای قالب‌های پیامک</h5>
+                </div>
+                <div class="card-body">
+                    <p>
+                        قالب‌های پیامک براساس وضعیت‌های مختلف خرید ارسال می‌شوند. هر وضعیت باید یک قالب پیامک داشته باشد.
+                    </p>
+                    
+                    <p>
+                        <strong>اگر برای یک وضعیت قالب پیامک وجود نداشته باشد، پیامک ارسال نخواهد شد.</strong>
+                    </p>
+                    
+                    <div class="alert alert-light border">
+                        <h6 class="mb-2">متغیرهای قابل استفاده در قالب‌ها:</h6>
+                        <ul class="small">
+                            <li>customer_name - نام مشتری</li>
+                            <li>purchase_number - شماره خرید</li>
+                            <li>invoice_id - شناسه فاکتور</li>
+                            <li>order_weight - وزن سفارش</li>
+                            <li>customer_price - قیمت فروش</li>
+                            <li>cottage - شماره کوتاژ</li>
+                            <li>product_type - نوع محصول</li>
+                            <li>product_country - کشور محصول</li>
+                            <li>barnameh - شماره بارنامه</li>
+                            <li>shenase_takhsis - شناسه تخصیص</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

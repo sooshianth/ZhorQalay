@@ -58,7 +58,7 @@
                         
                         <dt class="col-sm-4">قالب پیش‌فرض:</dt>
                         <dd class="col-sm-8">
-                            {% if template.is_default %}
+                            {% if template.is_active %}
                             <span class="badge bg-success">بله</span>
                             {% else %}
                             <span class="badge bg-secondary">خیر</span>
@@ -116,7 +116,7 @@
                 <a href="{% url 'sms_api:template_edit' template.id %}" class="btn btn-primary">
                     <i class="fas fa-edit"></i> ویرایش
                 </a>
-                {% if not template.is_default %}
+                {% if not template.is_active %}
                 <form method="post" action="{% url 'sms_api:set_template_default' template.id %}" class="d-inline">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-success">
