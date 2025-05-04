@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django_jalali.db import models as jmodels
+from django.db.models import Sum
+
 
 class WeeklyAttendance(models.Model):
     employee = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کارمند")
@@ -13,7 +15,6 @@ class WeeklyAttendance(models.Model):
     wednesday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات چهارشنبه", null=True, blank=True)
     thursday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات پنج‌شنبه", null=True, blank=True)
     friday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات جمعه", null=True, blank=True)
-    total_hours = models.DecimalField(max_digits=6, decimal_places=2, verbose_name="مجموع ساعات", editable=False)
     total_hours = models.DecimalField(max_digits=6, decimal_places=2, verbose_name="مجموع ساعات", editable=False)
     description = models.TextField(verbose_name='توضیحات', null=True, blank=True)
     approved_by_user1 = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="approver1", null=True, blank=True, verbose_name="تایید توسط کاربر 1")
@@ -40,6 +41,8 @@ class WeeklyAttendance(models.Model):
     def save(self, *args, **kwargs):
         self.calculate_total_hours()
         super().save(*args, **kwargs)
+        from .EmployeeAttendanceModel import MonthlyAttendance
+        MonthlyAttendance.update_monthly_hours(self.employee, self.week_start_date)
 
     class Meta:
         verbose_name = "حضور هفتگی"
@@ -54,6 +57,17 @@ class MonthlyAttendance(models.Model):
     employee = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کارمند")
     month = models.CharField(max_length=7, verbose_name="ماه (YYYY-MM)")
     total_hours = models.DecimalField(max_digits=8, decimal_places=2, verbose_name="مجموع ساعات ماهانه", default=0)
+
+    @classmethod
+    def update_monthly_hours(cls, employee, week_start_date):
+        month = week_start_date.strftime('%Y-%m')
+        total = WeeklyAttendance.objects.filter(
+            employee=employee,
+            week_start_date__startswith=month[:7]
+        ).aggregate(Sum('total_hours'))['total_hours__sum'] or 0
+        obj, created = cls.objects.get_or_create(employee=employee, month=month)
+        obj.total_hours = total
+        obj.save()
 
     class Meta:
         verbose_name = "حضور ماهانه"

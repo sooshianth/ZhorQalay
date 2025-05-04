@@ -20,10 +20,16 @@
 
     <!-- جدول نمایش رکوردها -->
     <form class="row mb-3">
-        <div class="col-md-4">
-            <input type="text" name="q" class="form-control" placeholder="جستجو بر اساس توضیحات یا روز..." value="{{ request.GET.q }}">
-        </div>
         <div class="col-md-3">
+            <input type="text" name="q" class="form-control" placeholder="جستجو..." value="{{ request.GET.q }}">
+        </div>
+        <div class="col-md-2">
+            <input type="date" name="start_date" class="form-control" value="{{ request.GET.start_date }}">
+        </div>
+        <div class="col-md-2">
+            <input type="date" name="end_date" class="form-control" value="{{ request.GET.end_date }}">
+        </div>
+        <div class="col-md-2">
             <select name="status" class="form-control">
                 <option value="">همه وضعیت‌ها</option>
                 <option value="approved" {% if request.GET.status == "approved" %}selected{% endif %}>تایید نهایی</option>
@@ -34,9 +40,12 @@
             <button type="submit" class="btn btn-secondary">فیلتر</button>
         </div>
     </form>
+    <!-- <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+<div id="calendar"></div>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script> -->
     <h3>لیست ساعات ثبت‌شده</h3>
-    <table class="table table-bordered">
-        <thead>
+    <table class="table table-bordered table-hover table-striped text-center align-middle shadow">
+        <thead class="table-dark">
             <tr>
                 <th>تاریخ شروع هفته</th>
                 <th>روز</th>
@@ -53,23 +62,23 @@
             <tr>
                 <td>{{ attendance.week_start_date }}</td>
                 <td>{{ attendance.day }}</td>
-                <td>{{ attendance.total_hours }}</td>
+                <td>
+                    {% if attendance.is_fully_approved %}
+                        <span class="fw-bold text-success">{{ attendance.total_hours }}</span>
+                    {% else %}
+                        <span class="text-muted">در انتظار تایید</span>
+                    {% endif %}
+                </td>
                 <td>{{ attendance.description }}</td>
                 <td>
-                    <span class="badge {% if attendance.approved_by_admin %}bg-success{% else %}bg-warning{% endif %}">
-                        {% if attendance.approved_by_admin %}✔ تایید شده{% else %}⏳ در انتظار{% endif %}
+                    <span class="badge {% if attendance.approved_by_admin %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                        {% if attendance.approved_by_admin %}<i class="fas fa-check"></i> تایید شده{% else %}<i class="fas fa-hourglass-half"></i> در انتظار{% endif %}
                     </span>
-                    <div class="small text-muted">
-                        {% if attendance.approved_by_admin %}
-                            ادمین
-                        {% else %}
-                            ادمین
-                        {% endif %}
-                    </div>
+                    <div class="small text-muted">ادمین</div>
                 </td>
                 <td>
-                    <span class="badge {% if attendance.user1_approved %}bg-success{% else %}bg-warning{% endif %}">
-                        {% if attendance.user1_approved %}✔ تایید شده{% else %}⏳ در انتظار{% endif %}
+                    <span class="badge {% if attendance.user1_approved %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                        {% if attendance.user1_approved %}<i class="fas fa-check"></i> تایید شده{% else %}<i class="fas fa-hourglass-half"></i> در انتظار{% endif %}
                     </span>
                     <div class="small text-muted">
                         {% if attendance.approved_by_user1 %}
@@ -80,8 +89,8 @@
                     </div>
                 </td>
                 <td>
-                    <span class="badge {% if attendance.user2_approved %}bg-success{% else %}bg-warning{% endif %}">
-                        {% if attendance.user2_approved %}✔ تایید شده{% else %}⏳ در انتظار{% endif %}
+                    <span class="badge {% if attendance.user2_approved %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                        {% if attendance.user2_approved %}<i class="fas fa-check"></i> تایید شده{% else %}<i class="fas fa-hourglass-half"></i> در انتظار{% endif %}
                     </span>
                     <div class="small text-muted">
                         {% if attendance.approved_by_user2 %}
@@ -93,7 +102,7 @@
                 </td>
                 <td>
                     {% if attendance.is_fully_approved %}
-                        <span class="badge bg-success"><i class="fas fa-check"></i> تایید نهایی</span>
+                        <span class="badge bg-success"><i class="fas fa-check-circle"></i> تایید نهایی</span>
                     {% else %}
                         <span class="badge bg-warning text-dark"><i class="fas fa-hourglass-half"></i> در انتظار تایید</span>
                     {% endif %}
@@ -101,7 +110,7 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="8">هیچ اطلاعاتی ثبت نشده است.</td>
+                <td colspan="8"><i class="fas fa-info-circle"></i> هیچ اطلاعاتی ثبت نشده است.</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -184,4 +193,25 @@
         document.getElementById('day-of-week').value = dayOfWeek;
     });
 </script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            locale: 'fa',
+            events: [
+                {% for attendance in attendances %}
+                {
+                    title: '{{ attendance.total_hours }} ساعت',
+                    start: '{{ attendance.week_start_date }}',
+                    color: '{% if attendance.is_fully_approved %}green{% else %}orange{% endif %}'
+                },
+                {% endfor %}
+            ]
+        });
+        calendar.render();
+    });
+    </script>
+
 {% endblock %}

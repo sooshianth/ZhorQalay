@@ -66,7 +66,23 @@ def daily_attendance_view(request):
         form = DailyAttendanceForm(user=request.user)
 
     attendances = WeeklyAttendance.objects.filter(employee=request.user).order_by('-week_start_date')
-    return render(request, 'weekly_attendance.html', {'form': form, 'attendances': attendances})
+    status = request.GET.get('status')
+    if status == 'approved':
+        attendances = attendances.filter(user1_approved=True, user2_approved=True, approved_by_admin=True)
+    elif status == 'pending':
+        attendances = attendances.exclude(user1_approved=True, user2_approved=True, approved_by_admin=True)
+
+    q = request.GET.get('q')
+    if q:
+        attendances = attendances.filter(Q(description__icontains=q) | Q(day__icontains=q))
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    if start_date:
+        attendances = attendances.filter(week_start_date__gte=start_date)
+    if end_date:
+        attendances = attendances.filter(week_start_date__lte=end_date)
+
+    return render(request, 'weekly_attendance.html', {'form': form, 'attendances': attendances, 'status':status, 'q':q})
 
 
 @login_required
