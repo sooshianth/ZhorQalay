@@ -13,7 +13,9 @@ from core.PurchaseModel import Purchase
 from datetime import datetime
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+from core.decorators.decorators import role_required
 
+@role_required('admin')
 def update_env_file(key, value):
     """Update a specific key in the .env file."""
     env_path = os.path.join(settings.BASE_DIR, '.env')
@@ -41,6 +43,7 @@ def update_env_file(key, value):
     # Reload environment variables
     load_dotenv()
 
+@role_required('admin')
 def credentials_view(request):
     """View for managing BKI API credentials."""
     # Get current credentials from environment variables
@@ -67,6 +70,7 @@ def credentials_view(request):
     
     return render(request, 'bki_api/credentials_form.html', context)
 
+@role_required('admin')
 def test_kharid_info(request):
     """View for testing getKharidInfo API."""
     if request.method != 'POST':
@@ -199,6 +203,7 @@ def test_kharid_info(request):
         return render(request, 'bki_api/test_result.html', context)
 
 
+@role_required('admin')
 @csrf_exempt
 def update_purchase_info(request):
     """
@@ -606,6 +611,7 @@ def update_purchase_info(request):
             'error': f'خطا در ارتباط با سرویس BKI: {str(e)}'
         }, status=500)
 
+@role_required('admin')
 def bulk_update_purchases(request):
     """
     نمایش فرم وارد کردن شماره خرید‌ها و به‌روزرسانی آنها به صورت دسته‌ای
