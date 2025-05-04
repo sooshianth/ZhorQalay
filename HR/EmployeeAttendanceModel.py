@@ -33,6 +33,10 @@ class WeeklyAttendance(models.Model):
             self.friday_hours or 0,
         ])
 
+    @property
+    def is_fully_approved(self):
+        return self.user1_approved and self.user2_approved and self.approved_by_admin
+    
     def save(self, *args, **kwargs):
         self.calculate_total_hours()
         super().save(*args, **kwargs)

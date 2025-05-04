@@ -5,6 +5,12 @@
 {% block content %}
 <div class="container mt-5">
     <h2 class="mb-4">خلاصه ساعات</h2>
+    
+    <form method="get" class="mb-3">
+        <label>انتخاب هفته: <input type="date" name="week" value="{{ selected_week }}"></label>
+        <label>انتخاب ماه: <input type="month" name="month" value="{{ selected_month }}"></label>
+        <button type="submit" class="btn btn-info">نمایش</button>
+    </form>
 
     <h3>خلاصه هفتگی</h3>
     <table class="table table-bordered">

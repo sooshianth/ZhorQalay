@@ -65,3 +65,10 @@ class DailyAttendanceForm(forms.Form):
         label="تأیید توسط کاربر ۲",
         widget=forms.Select(attrs={'class': 'form-control'})
     )
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields['approved_by_user1'].queryset = User.objects.exclude(is_superuser=True).exclude(id=user.id)
+            self.fields['approved_by_user2'].queryset = User.objects.exclude(is_superuser=True).exclude(id=user.id)

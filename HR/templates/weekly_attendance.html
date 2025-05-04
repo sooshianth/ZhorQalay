@@ -19,6 +19,21 @@
     <a href="{% url 'download_attendance_report' %}" class="btn btn-success mb-4">دانلود گزارش</a>
 
     <!-- جدول نمایش رکوردها -->
+    <form class="row mb-3">
+        <div class="col-md-4">
+            <input type="text" name="q" class="form-control" placeholder="جستجو بر اساس توضیحات یا روز..." value="{{ request.GET.q }}">
+        </div>
+        <div class="col-md-3">
+            <select name="status" class="form-control">
+                <option value="">همه وضعیت‌ها</option>
+                <option value="approved" {% if request.GET.status == "approved" %}selected{% endif %}>تایید نهایی</option>
+                <option value="pending" {% if request.GET.status == "pending" %}selected{% endif %}>در انتظار تایید</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-secondary">فیلتر</button>
+        </div>
+    </form>
     <h3>لیست ساعات ثبت‌شده</h3>
     <table class="table table-bordered">
         <thead>
@@ -30,6 +45,7 @@
                 <th>تأیید ادمین</th>
                 <th>تأیید کاربر ۱</th>
                 <th>تأیید کاربر ۲</th>
+                <th>وضعیت کلی</th>
             </tr>
         </thead>
         <tbody>
@@ -39,19 +55,66 @@
                 <td>{{ attendance.day }}</td>
                 <td>{{ attendance.total_hours }}</td>
                 <td>{{ attendance.description }}</td>
-                <td><span class="badge {% if attendance.approved_by_admin %}bg-success{% else %}bg-danger{% endif %}">{{ attendance.approved_by_admin|yesno:"تأیید شده,در انتظار" }}</span></td>
-                <td>{{ attendance.approved_by_user1.username }}</td>
-                <td>{{ attendance.approved_by_user2.username }}</td>
+                <td>
+                    <span class="badge {% if attendance.approved_by_admin %}bg-success{% else %}bg-warning{% endif %}">
+                        {% if attendance.approved_by_admin %}✔ تایید شده{% else %}⏳ در انتظار{% endif %}
+                    </span>
+                    <div class="small text-muted">
+                        {% if attendance.approved_by_admin %}
+                            ادمین
+                        {% else %}
+                            ادمین
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    <span class="badge {% if attendance.user1_approved %}bg-success{% else %}bg-warning{% endif %}">
+                        {% if attendance.user1_approved %}✔ تایید شده{% else %}⏳ در انتظار{% endif %}
+                    </span>
+                    <div class="small text-muted">
+                        {% if attendance.approved_by_user1 %}
+                            {{ attendance.approved_by_user1.username }}
+                        {% else %}
+                            کاربر ۱
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    <span class="badge {% if attendance.user2_approved %}bg-success{% else %}bg-warning{% endif %}">
+                        {% if attendance.user2_approved %}✔ تایید شده{% else %}⏳ در انتظار{% endif %}
+                    </span>
+                    <div class="small text-muted">
+                        {% if attendance.approved_by_user2 %}
+                            {{ attendance.approved_by_user2.username }}
+                        {% else %}
+                            کاربر ۲
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    {% if attendance.is_fully_approved %}
+                        <span class="badge bg-success"><i class="fas fa-check"></i> تایید نهایی</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark"><i class="fas fa-hourglass-half"></i> در انتظار تایید</span>
+                    {% endif %}
+                </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="7">هیچ اطلاعاتی ثبت نشده است.</td>
+                <td colspan="8">هیچ اطلاعاتی ثبت نشده است.</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    <li><a href="{% url 'pending_approvals' %}"><i class="fas fa-check-circle"></i> تایید ساعات</a></li>
-    <li><a href="{% url 'attendance_summary' %}"><i class="fas fa-chart-bar"></i> خلاصه ساعات</a></li>
+    <!-- جایگزین خطوط <li> ... -->
+<div class="mt-4 d-flex gap-2">
+    <a href="{% url 'pending_approvals' %}" class="btn btn-outline-primary">
+        <i class="fas fa-check-circle"></i> تایید ساعات
+    </a>
+    <a href="{% url 'attendance_summary' %}" class="btn btn-outline-info">
+        <i class="fas fa-chart-bar"></i> خلاصه ساعات
+    </a>
+</div>
 </div>
 
 <script>

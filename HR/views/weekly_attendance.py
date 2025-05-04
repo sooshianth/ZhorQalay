@@ -12,6 +12,7 @@ import jdatetime
 from django.utils.timezone import datetime
 import jdatetime
 
+# ...existing code...
 @login_required
 def daily_attendance_view(request):
     if request.method == 'POST':
@@ -23,30 +24,50 @@ def daily_attendance_view(request):
             approved_by_user1 = form.cleaned_data['approved_by_user1']
             approved_by_user2 = form.cleaned_data['approved_by_user2']
 
-            # استخراج روز هفته
-            weekdays = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه', 'شنبه']
-            day_of_week = weekdays[date.weekday()]  # استخراج نام روز هفته
+            # نگاشت روز هفته به فیلد مدل
+            weekday_map = {
+                5: 'saturday_hours',   # شنبه
+                6: 'sunday_hours',     # یکشنبه
+                0: 'monday_hours',     # دوشنبه
+                1: 'tuesday_hours',    # سه‌شنبه
+                2: 'wednesday_hours',  # چهارشنبه
+                3: 'thursday_hours',   # پنج‌شنبه
+                4: 'friday_hours',     # جمعه
+            }
+            weekday_names = ['دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه', 'شنبه', 'یکشنبه']
+            weekday_index = date.weekday()
+            field_name = weekday_map[weekday_index]
+            day_of_week = weekday_names[weekday_index]
 
-            # ثبت ساعات کاری برای روز خاص
             attendance, created = WeeklyAttendance.objects.get_or_create(
                 employee=request.user,
-                week_start_date=date - timedelta(days=date.weekday()),  # تاریخ شروع هفته
+                week_start_date=date - timedelta(days=date.weekday()),
+                defaults={
+                    'approved_by_user1': approved_by_user1,
+                    'approved_by_user2': approved_by_user2,
+                    'user1_approved': False,
+                    'user2_approved': False,
+                    'approved_by_admin': False,
+                }
             )
-            setattr(attendance, f"{day_of_week.lower()}_hours", hours)  # تنظیم ساعات برای روز خاص
-            attendance.day = day_of_week  # ذخیره روز هفته
+            # اگر رکورد جدید نیست، تاییدکننده‌ها را آپدیت کن ولی وضعیت تایید را ریست نکن
+            if not created:
+                attendance.approved_by_user1 = approved_by_user1
+                attendance.approved_by_user2 = approved_by_user2
+            setattr(attendance, field_name, hours)
+            attendance.day = day_of_week
             attendance.description = description
-            attendance.approved_by_user1 = approved_by_user1
-            attendance.approved_by_user2 = approved_by_user2
             attendance.save()
 
             return JsonResponse({'success': True, 'message': f'ساعات کاری برای {day_of_week} با موفقیت ثبت شد!'})
         else:
             return JsonResponse({'success': False, 'errors': form.errors})
     else:
-        form = DailyAttendanceForm()
+        form = DailyAttendanceForm(user=request.user)
 
     attendances = WeeklyAttendance.objects.filter(employee=request.user).order_by('-week_start_date')
     return render(request, 'weekly_attendance.html', {'form': form, 'attendances': attendances})
+
 
 @login_required
 def download_attendance_report(request):
@@ -71,15 +92,23 @@ def download_attendance_report(request):
 
 @login_required
 def pending_approvals_view(request):
-    pending_attendances = WeeklyAttendance.objects.filter(
-        Q(approved_by_user1=request.user, user1_approved=False) |
-        Q(approved_by_user2=request.user, user2_approved=False) |
-        Q(approved_by_admin=False, employee=request.user),
-    ).order_by('-week_start_date')
+    if request.user.is_superuser:
+        pending_attendances = WeeklyAttendance.objects.filter(
+            approved_by_admin=False
+        ).order_by('-week_start_date')
+    else:
+        pending_attendances = WeeklyAttendance.objects.filter(
+            (
+                Q(approved_by_user1=request.user, user1_approved=False) |
+                Q(approved_by_user2=request.user, user2_approved=False)
+            )
+        ).order_by('-week_start_date')
 
     return render(request, 'pending_approvals.html', {
         'pending_attendances': pending_attendances
     })
+
+from django.contrib import messages
 
 @login_required
 def approve_attendance(request, attendance_id):
@@ -87,32 +116,44 @@ def approve_attendance(request, attendance_id):
 
     if attendance.approved_by_user1 == request.user:
         attendance.user1_approved = True
+        attendance.save()
+        messages.success(request, "تایید شما ثبت شد!")
     elif attendance.approved_by_user2 == request.user:
         attendance.user2_approved = True
+        attendance.save()
+        messages.success(request, "تایید شما ثبت شد!")
     elif request.user.is_superuser:
         attendance.approved_by_admin = True
-
-    attendance.save()
-
-    if attendance.is_fully_approved():
-        # اگر همه تاییدها انجام شده باشد، پیام موفقیت ارسال شود
-        return JsonResponse({'success': True, 'message': 'ساعات کاری با موفقیت تایید شد!'})
+        attendance.save()
+        messages.success(request, "تایید ادمین ثبت شد!")
     else:
-        return JsonResponse({'success': True, 'message': 'تایید شما ثبت شد!'})
+        messages.error(request, "شما مجاز به تایید این رکورد نیستید.")
+        return redirect('pending_approvals')
 
+    if attendance.is_fully_approved:
+        messages.success(request, "ساعات کاری با موفقیت تایید شد!")
+
+    return redirect('pending_approvals')
 from django.db.models import Sum
 
 @login_required
 def attendance_summary_view(request):
-    # جمع ساعات هفتگی
-    weekly_summary = WeeklyAttendance.objects.filter(employee=request.user).values(
-        'week_start_date'
-    ).annotate(total_hours=Sum('total_hours')).order_by('-week_start_date')
+    week = request.GET.get('week')
+    month = request.GET.get('month')
+    weekly_qs = WeeklyAttendance.objects.filter(employee=request.user)
+    monthly_qs = MonthlyAttendance.objects.filter(employee=request.user)
 
-    # جمع ساعات ماهانه
-    monthly_summary = MonthlyAttendance.objects.filter(employee=request.user).order_by('-month')
+    if week:
+        weekly_qs = weekly_qs.filter(week_start_date=week)
+    if month:
+        monthly_qs = monthly_qs.filter(month=month)
+
+    weekly_summary = weekly_qs.values('week_start_date').annotate(total_hours=Sum('total_hours')).order_by('-week_start_date')
+    monthly_summary = monthly_qs.order_by('-month')
 
     return render(request, 'attendance_summary.html', {
         'weekly_summary': weekly_summary,
         'monthly_summary': monthly_summary,
+        'selected_week': week,
+        'selected_month': month,
     })
