@@ -3,7 +3,6 @@
 
 import os
 import requests
-import xml.dom.minidom
 import xmltodict
 from django.conf import settings
 from django.utils import timezone
@@ -12,27 +11,24 @@ from core.PurchaseModel import Purchase
 from core.CustomerModel import Customer, PhoneNumber
 from core.CargoProductModel import CargoProduct
 from .models import BKILog
+from django_jalali.db import models as jmodels
 
 def get_bki_credentials():
-    """
-    Get BKI API credentials from Django settings
-    """
+    """دریافت اطلاعات کاربری API بازارگاه از تنظیمات جنگو"""
     username = getattr(settings, 'BKI_USERNAME', None)
     password = getattr(settings, 'BKI_PASSWORD', None)
     return username, password
 
 def send_soap_request(kharid_id):
-    """
-    Send SOAP request to BKI API and return the response
-    """
+    """ارسال درخواست SOAP به API بازارگاه و دریافت پاسخ"""
     username, password = get_bki_credentials()
     if not username or not password:
-        raise ValueError("BKI API credentials are not configured in settings")
+        raise ValueError("اطلاعات کاربری API بازارگاه در تنظیمات وجود ندارد")
 
-    # API endpoint with HTTPS
+    # آدرس API با HTTPS
     url = "https://spsws.bki.ir/spsws.asmx"
 
-    # Create SOAP 1.1 request body 
+    # ایجاد درخواست SOAP 1.1
     soap_request = f"""<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
@@ -44,52 +40,52 @@ def send_soap_request(kharid_id):
   </soap:Body>
 </soap:Envelope>"""
 
-    # Set headers for the request
+    # تنظیم هدرهای درخواست
     headers = {
         'Content-Type': 'text/xml; charset=utf-8',
         'SOAPAction': 'http://tempuri.org/getKharidInfo',
         'Host': 'spsws.bki.ir'
     }
 
-    # Create log entry for the request
+    # ایجاد لاگ برای درخواست
     log_entry = BKILog(
         request_type='getKharidInfo',
         request_data=soap_request
     )
 
     try:
-        # Send the request with verify=False to bypass SSL certificate verification if needed
+        # ارسال درخواست با verify=False برای رد کردن بررسی گواهی SSL در صورت نیاز
         response = requests.post(url, data=soap_request, headers=headers, verify=False)
         
-        # Save response to log
+        # ذخیره پاسخ در لاگ
         log_entry.response_data = response.text
         
         if response.status_code != 200:
             log_entry.is_successful = False
-            log_entry.error_message = f"HTTP Error: {response.status_code}"
+            log_entry.error_message = f"خطای HTTP: {response.status_code}"
             log_entry.save()
-            return None, log_entry, f"HTTP Error: {response.status_code}"
+            return None, log_entry, f"خطای HTTP: {response.status_code}"
         
-        # Parse the XML response
+        # تجزیه پاسخ XML
         try:
             response_dict = xmltodict.parse(response.text)
-            # Get the result from the response
+            # دریافت نتیجه از پاسخ
             soap_body = response_dict['soap:Envelope']['soap:Body']
             result = soap_body['getKharidInfoResponse']['getKharidInfoResult']
             
             if not result or not isinstance(result, dict):
                 log_entry.is_successful = False
-                log_entry.error_message = "Invalid response format"
+                log_entry.error_message = "فرمت پاسخ نامعتبر است"
                 log_entry.save()
-                return None, log_entry, "Invalid response format"
+                return None, log_entry, "فرمت پاسخ نامعتبر است"
             
-            # Check for diffgram data
+            # بررسی داده‌های diffgram
             if 'diffgr:diffgram' in result:
                 diffgram = result['diffgr:diffgram']
                 if 'NewDataSet' in diffgram and diffgram['NewDataSet']:
                     if 'Table1' in diffgram['NewDataSet']:
                         table1 = diffgram['NewDataSet']['Table1']
-                        # Table1 might be a list or a single dictionary
+                        # Table1 ممکن است یک لیست یا یک دیکشنری باشد
                         if isinstance(table1, list):
                             log_entry.is_successful = True
                             log_entry.save()
@@ -99,28 +95,26 @@ def send_soap_request(kharid_id):
                             log_entry.save()
                             return [table1], log_entry, None
             
-            # If we got here, we didn't find expected data
+            # اگر به اینجا رسیدیم، داده‌های مورد انتظار پیدا نشد
             log_entry.is_successful = False
-            log_entry.error_message = "No purchase data found in response"
+            log_entry.error_message = "هیچ داده خرید در پاسخ یافت نشد"
             log_entry.save()
-            return None, log_entry, "No purchase data found in response"
+            return None, log_entry, "هیچ داده خرید در پاسخ یافت نشد"
         
         except Exception as e:
             log_entry.is_successful = False
-            log_entry.error_message = f"Error parsing response: {str(e)}"
+            log_entry.error_message = f"خطا در تجزیه پاسخ: {str(e)}"
             log_entry.save()
-            return None, log_entry, f"Error parsing response: {str(e)}"
+            return None, log_entry, f"خطا در تجزیه پاسخ: {str(e)}"
     
     except Exception as e:
         log_entry.is_successful = False
-        log_entry.error_message = f"Error sending request: {str(e)}"
+        log_entry.error_message = f"خطا در ارسال درخواست: {str(e)}"
         log_entry.save()
-        return None, log_entry, f"Error sending request: {str(e)}"
+        return None, log_entry, f"خطا در ارسال درخواست: {str(e)}"
 
 def determine_product_type(product_title):
-    """
-    Determine product type based on title
-    """
+    """تعیین نوع محصول براساس عنوان"""
     if not product_title:
         return 'other'
     
@@ -150,12 +144,91 @@ def determine_product_type(product_title):
     else:
         return 'other'
 
+def clean_phone_number(phone):
+    """پاکسازی شماره تلفن برای استفاده در دیتابیس"""
+    if not phone:
+        return None, "شماره تلفن خالی است"
+        
+    # تبدیل اعداد فارسی به انگلیسی
+    persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+    english_digits = "0123456789"
+    translation_table = str.maketrans(persian_digits, english_digits)
+    phone = str(phone).strip().translate(translation_table)
+    
+    # پاکسازی شماره از کاراکترهای غیرعددی
+    cleaned_number = ''.join(c for c in phone if c.isdigit())
+    
+    # حذف صفر ابتدایی اگر وجود داشته باشد
+    if cleaned_number.startswith('0'):
+        cleaned_number = cleaned_number[1:]
+        
+    # بررسی اینکه شماره با 9 شروع شود
+    if cleaned_number and len(cleaned_number) > 0 and not cleaned_number.startswith('9'):
+        # در اینجا علاوه بر مقدار None یک پیام خطا هم برگردانیم تا بتوانیم لاگ بگیریم
+        return None, f"شماره تلفن باید با 9 شروع شود: {phone} -> {cleaned_number}"
+        
+    # بررسی طول شماره تلفن (باید 10 رقم باشد)
+    if cleaned_number and len(cleaned_number) != 10:
+        return None, f"طول شماره تلفن باید 10 رقم باشد: {phone} -> {cleaned_number} (طول: {len(cleaned_number)})"
+    
+    return cleaned_number, None
+
+def convert_persian_date_to_gregorian(persian_date_str):
+    """
+    تبدیل تاریخ فارسی (شمسی) به میلادی با فرمت استاندارد
+    ورودی: رشته تاریخ فارسی با فرمت YYYY/MM/DD
+    خروجی: آبجکت datetime میلادی یا None در صورت بروز خطا
+    """
+    if not persian_date_str:
+        return None
+        
+    try:
+        # پاکسازی تاریخ و تقسیم آن به اجزا
+        parts = persian_date_str.strip().split('/')
+        if len(parts) != 3:
+            return None
+            
+        # تبدیل اعداد فارسی به انگلیسی در صورت نیاز
+        persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+        english_digits = "0123456789"
+        translation_table = str.maketrans(persian_digits, english_digits)
+        
+        persian_year = int(parts[0].translate(translation_table))
+        persian_month = int(parts[1].translate(translation_table))
+        persian_day = int(parts[2].translate(translation_table))
+        
+        # سال و ماه و روز باید در محدوده مجاز باشند
+        if persian_year < 1300 or persian_year > 1500:
+            return None
+        if persian_month < 1 or persian_month > 12:
+            return None
+        if persian_day < 1 or persian_day > 31:
+            return None
+            
+        # استفاده از کتابخانه django-jalali برای تبدیل تاریخ
+        from jdatetime import datetime as jdatetime
+        
+        # ایجاد تاریخ جلالی
+        jdt = jdatetime(persian_year, persian_month, persian_day, 12, 0, 0)
+        
+        # تبدیل به تاریخ میلادی
+        dt = jdt.togregorian()
+        
+        # ساخت آبجکت datetime با منطقه زمانی
+        return timezone.make_aware(dt)
+    except (ValueError, ImportError, AttributeError) as e:
+        # در صورت هر خطایی، None برگردان
+        return None
+
 def process_purchase_data(purchase_data, create_if_not_exists=True):
     """
-    Process purchase data and update or create purchase record
-    Returns (purchase, created, error_message)
+    پردازش داده‌های خرید و به‌روزرسانی یا ایجاد رکورد خرید
+    برمی‌گرداند: (purchase, created, error_message)
     """
-    # Map XML fields to database fields
+    # ذخیره اطلاعات خرید برای لاگ
+    purchase_id = purchase_data.get('kharididentity', 'نامشخص')
+    
+    # نگاشت فیلدهای XML به فیلدهای دیتابیس
     field_mappings = {
         'kharididentity': 'purchase_number',
         'kutajnumber': 'cargo__cottage',
@@ -175,23 +248,64 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
         'cityname': 'customer__city_detail',
     }
     
-    # Extract values from purchase_data
+    # استخراج مقادیر از داده‌های خرید
     data = {}
     for xml_field, db_field in field_mappings.items():
         if xml_field in purchase_data:
             data[db_field] = purchase_data[xml_field]
     
-    # Check if purchase_number is present
+    # بررسی وجود شماره خرید
     purchase_number = data.get('purchase_number')
     if not purchase_number:
-        return None, False, "Purchase number not found in response"
+        return None, False, "شماره خرید در پاسخ یافت نشد"
+    
+    # پاکسازی شماره تلفن
+    mobile_number = None
+    phone_error = None
+    
+    if 'customer__phone_number' in data:
+        mobile_number, phone_error = clean_phone_number(data['customer__phone_number'])
+        
+        if not mobile_number:
+            print(f"هشدار: شماره تلفن نامعتبر برای خرید {purchase_number}: {data['customer__phone_number']} - خطا: {phone_error}")
+            # نباید فیلد را پاپ کنیم، بلکه باید یک مقدار معتبر را جایگزین کنیم
+            
+            # تلاش برای استخراج اعداد از شماره تلفن و ایجاد یک شماره معتبر
+            raw_number = data['customer__phone_number']
+            digits = ''.join(c for c in str(raw_number) if c.isdigit())
+            
+            # اگر مقدار عددی داریم، سعی کنیم یک شماره موبایل معتبر بسازیم
+            if digits:
+                if len(digits) >= 10:
+                    # اگر طول کافی دارد، 10 رقم آخر را بگیریم
+                    digits = digits[-10:]
+                    # اگر با 9 شروع نمی‌شود، 9 را اضافه کنیم
+                    if not digits.startswith('9'):
+                        digits = '9' + digits[1:]
+                    mobile_number = digits
+                    print(f"شماره تلفن اصلاح شده: {mobile_number}")
+                else:
+                    # یک شماره پیش‌فرض برای مشتری بسازیم که با شماره خرید ترکیب شده است
+                    # این به ما امکان می‌دهد مشتری را بعداً ردیابی کنیم
+                    mobile_number = '9' + purchase_number.zfill(9)
+                    print(f"ایجاد شماره تلفن مجازی براساس شماره خرید: {mobile_number}")
+            else:
+                # اگر هیچ رقمی نداریم، از شماره خرید استفاده کنیم
+                mobile_number = '9' + purchase_number.zfill(9)
+                print(f"ایجاد شماره تلفن مجازی براساس شماره خرید: {mobile_number}")
+    else:
+        print(f"هشدار: هیچ شماره تلفنی برای خرید {purchase_number} ارائه نشده است")
+        # یک شماره پیش‌فرض برای مشتری بسازیم که با شماره خرید ترکیب شده است
+        mobile_number = '9' + purchase_number.zfill(9)
+        print(f"ایجاد شماره تلفن مجازی براساس شماره خرید: {mobile_number}")
+        data['customer__phone_number'] = mobile_number
     
     try:
-        # Try to find existing purchase
+        # سعی در یافتن خرید موجود
         purchase = Purchase.objects.get(purchase_number=purchase_number)
         created = False
         
-        # Update simple fields
+        # به‌روزرسانی فیلدهای ساده
         simple_fields = [
             'delivered_weight', 'tracking_number', 'address', 
             'tahvil_phone_number', 'amount_paid', 'payment_method', 
@@ -202,7 +316,7 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
             if field in data and data[field]:
                 setattr(purchase, field, data[field])
         
-        # Update customer fields
+        # به‌روزرسانی فیلدهای مشتری
         if purchase.customer:
             if 'customer__name' in data and data['customer__name']:
                 purchase.customer.name = data['customer__name']
@@ -210,49 +324,43 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
             if 'customer__city' in data and data['customer__city']:
                 purchase.customer.city = data['customer__city']
             
-            if 'customer__phone_number' in data and data['customer__phone_number']:
+            if mobile_number and 'customer__phone_number' in data:
                 primary_phone = purchase.customer.get_primary_phone()
-                new_phone = data['customer__phone_number']
                 
-                if primary_phone != new_phone:
-                    # Update primary phone
+                if primary_phone != mobile_number:
+                    # به‌روزرسانی شماره تلفن اصلی
                     phone = purchase.customer.phone_numbers.filter(is_primary=True).first()
                     if phone:
-                        phone.number = new_phone
-                        phone.save()
+                        try:
+                            phone.number = mobile_number
+                            phone.save()
+                        except Exception as e:
+                            # خطا در به‌روزرسانی شماره تلفن را نادیده می‌گیریم
+                            print(f"خطا در به‌روزرسانی شماره تلفن: {str(e)}")
                     else:
-                        # Create new phone number
-                        PhoneNumber.objects.create(
-                            customer=purchase.customer,
-                            number=new_phone,
-                            is_primary=True
-                        )
+                        # ایجاد شماره تلفن جدید
+                        try:
+                            PhoneNumber.objects.create(
+                                customer=purchase.customer,
+                                number=mobile_number,
+                                is_primary=True
+                            )
+                        except Exception as e:
+                            # خطا در ایجاد شماره تلفن را نادیده می‌گیریم
+                            print(f"خطا در ایجاد شماره تلفن: {str(e)}")
             
-            # Save customer changes
+            # ذخیره تغییرات مشتری
             purchase.customer.save()
         
-        # Update dates if needed
+        # به‌روزرسانی تاریخ‌ها در صورت نیاز
         if 'created_at' in data and data['created_at']:
-            try:
-                # Handle Persian date format (1404/01/24)
-                parts = data['created_at'].split('/')
-                if len(parts) == 3:
-                    # Convert Persian year to Gregorian (very simplified)
-                    persian_year = int(parts[0])
-                    persian_month = int(parts[1])
-                    persian_day = int(parts[2])
-                    
-                    # Simple conversion: Persian to Gregorian
-                    gregorian_year = persian_year - 621
-                    
-                    # This is a simplification, proper conversion needs a calendar library
-                    # For accurate conversion, use jdatetime or similar library
-                    gregorian_date = datetime(gregorian_year, persian_month, persian_day)
-                    purchase.created_at = timezone.make_aware(gregorian_date)
-            except (ValueError, TypeError):
-                pass  # Use default date if conversion fails
+            # استفاده از تابع جدید برای تبدیل تاریخ
+            persian_date = data['created_at']
+            gregorian_date = convert_persian_date_to_gregorian(persian_date)
+            if gregorian_date:
+                purchase.created_at = gregorian_date
         
-        # Update purchase
+        # به‌روزرسانی خرید
         purchase.updated_at = timezone.now()
         purchase.save()
         
@@ -260,33 +368,59 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
     
     except Purchase.DoesNotExist:
         if not create_if_not_exists:
-            return None, False, f"Purchase with number {purchase_number} not found"
+            return None, False, f"خرید با شماره {purchase_number} یافت نشد"
         
-        # Create new purchase
+        # ایجاد خرید جدید
         try:
-            # 1. Find or create customer
-            mobile_number = data.get('customer__phone_number')
-            if not mobile_number:
-                return None, False, "Customer mobile number not found in response"
+            # واردات مدل SalesAgent
+            from core.SalesAgentModel import SalesAgent
             
+            # 1. یافتن یا ایجاد مشتری
+            if not mobile_number:
+                # این نباید هرگز اتفاق بیفتد چون همیشه یک شماره موبایل معتبر ایجاد می‌کنیم
+                return None, False, "خطای داخلی در پردازش شماره موبایل مشتری"
+            
+            customer = None
+            customer_existed = False
+            
+            # جستجوی مشتری با شماره تلفن
             customer = Customer.get_customer_by_phone(mobile_number)
             customer_existed = customer is not None
             
             if not customer:
-                # Create new customer
+                # ایجاد مشتری جدید
                 customer = Customer.objects.create(
-                    name=data.get('customer__name', 'Unknown Customer'),
+                    name=data.get('customer__name', 'مشتری ناشناس'),
                     city=data.get('customer__city'),
+                    phone_number=mobile_number,  # تنظیم فیلد موروثی شماره تلفن برای حفظ سازگاری با کد قدیمی
                 )
                 
-                # Create phone number for customer
-                PhoneNumber.objects.create(
-                    customer=customer,
-                    number=mobile_number,
-                    is_primary=True
-                )
+                # یافتن کارشناس فروش "مدیریت سیستم"
+                try:
+                    system_admin = SalesAgent.objects.get(user__username='admin')
+                    customer.sales_agent.add(system_admin)
+                except (SalesAgent.DoesNotExist, SalesAgent.MultipleObjectsReturned) as e:
+                    # اگر کارشناس فروش مورد نظر پیدا نشد، سعی می‌کنیم اولین کارشناس فروش موجود را انتخاب کنیم
+                    try:
+                        first_agent = SalesAgent.objects.first()
+                        if first_agent:
+                            customer.sales_agent.add(first_agent)
+                    except Exception:
+                        pass  # اگر هیچ کارشناس فروشی موجود نبود، ادامه می‌دهیم
+                
+                # ایجاد شماره تلفن برای مشتری
+                try:
+                    PhoneNumber.objects.create(
+                        customer=customer,
+                        number=mobile_number,
+                        is_primary=True
+                    )
+                except Exception as e:
+                    # اگر ایجاد شماره تلفن با خطا مواجه شد، مشتری را حذف می‌کنیم
+                    customer.delete()
+                    return None, False, f"خطا در ایجاد شماره تلفن: {str(e)}"
             
-            # 2. Find or create cargo product
+            # 2. یافتن یا ایجاد محصول
             cottage_number = data.get('cargo__cottage')
             cargo = None
             cargo_existed = False
@@ -296,7 +430,7 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
                     cargo = CargoProduct.objects.get(cottage=cottage_number)
                     cargo_existed = True
                 except CargoProduct.DoesNotExist:
-                    # Create new cargo
+                    # ایجاد محصول جدید
                     product_type = 'other'
                     if 'cargo__product_type' in data:
                         product_type = determine_product_type(data['cargo__product_type'])
@@ -304,15 +438,15 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
                     cargo = CargoProduct.objects.create(
                         type='bazaargah',
                         cottage=cottage_number,
-                        company_price=data.get('customer_price', 0),
+                        company_price=0,  # همیشه صفر
                         customer_price=data.get('customer_price', 0),
                         product_type=product_type,
-                        country='iran',  # Default
-                        port='امام خمینی',  # Default
-                        weight=1000000  # Default: 1000 tons
+                        country='iran',  # پیش‌فرض
+                        port='امام خمینی',  # پیش‌فرض
+                        weight=1000000  # پیش‌فرض: 1000 تن
                     )
             
-            # 3. Create new purchase
+            # 3. ایجاد خرید جدید
             new_purchase = Purchase.objects.create(
                 purchase_number=purchase_number,
                 customer=customer,
@@ -324,47 +458,35 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
                 amount_paid=data.get('amount_paid', 0),
                 payment_method=data.get('payment_method', 'نقدی'),
                 customer_price=data.get('customer_price', 0),
-                company_price=data.get('customer_price', 0),
+                company_price=0,  # همیشه صفر
                 code_melli_tahvil=data.get('code_melli_tahvil'),
                 type='bazaargah',
                 state='PAYMENT_VERIFIED'
             )
             
-            # Add flags to track if objects existed (for reporting)
+            # افزودن پرچم‌ها برای پیگیری وجود قبلی اشیاء (برای گزارش‌دهی)
             new_purchase._customer_existed = customer_existed
             new_purchase._cargo_existed = cargo_existed
             
-            # Set creation date if available
+            # تنظیم تاریخ ایجاد در صورت وجود
             if 'created_at' in data and data['created_at']:
-                try:
-                    # Handle Persian date format (1404/01/24)
-                    parts = data['created_at'].split('/')
-                    if len(parts) == 3:
-                        # Convert Persian year to Gregorian (very simplified)
-                        persian_year = int(parts[0])
-                        persian_month = int(parts[1])
-                        persian_day = int(parts[2])
-                        
-                        # Simple conversion: Persian to Gregorian
-                        gregorian_year = persian_year - 621
-                        
-                        # This is a simplification, proper conversion needs a calendar library
-                        gregorian_date = datetime(gregorian_year, persian_month, persian_day)
-                        new_purchase.created_at = timezone.make_aware(gregorian_date)
-                        new_purchase.save(update_fields=['created_at'])
-                except (ValueError, TypeError):
-                    pass  # Use default date if conversion fails
+                # استفاده از تابع جدید برای تبدیل تاریخ
+                persian_date = data['created_at']
+                gregorian_date = convert_persian_date_to_gregorian(persian_date)
+                if gregorian_date:
+                    new_purchase.created_at = gregorian_date
+                    new_purchase.save(update_fields=['created_at'])
             
             return new_purchase, True, None
         
         except Exception as e:
-            return None, False, f"Error creating purchase: {str(e)}"
+            return None, False, f"خطا در ایجاد خرید: {str(e)}"
 
 def get_purchase_info(kharid_id, create_if_not_exists=True):
     """
-    Get purchase information from BKI API and update or create in database
+    دریافت اطلاعات خرید از API بازارگاه و به‌روزرسانی یا ایجاد در دیتابیس
     """
-    # Send SOAP request
+    # ارسال درخواست SOAP
     purchases_data, log_entry, error = send_soap_request(kharid_id)
     if error:
         return None, False, error
@@ -373,7 +495,7 @@ def get_purchase_info(kharid_id, create_if_not_exists=True):
     for purchase_data in purchases_data:
         purchase, created, error = process_purchase_data(purchase_data, create_if_not_exists)
         if purchase:
-            # Update log entry with purchase reference
+            # به‌روزرسانی مرجع خرید در لاگ
             if log_entry and not log_entry.purchase:
                 log_entry.purchase = purchase
                 log_entry.save()
@@ -390,21 +512,21 @@ def get_purchase_info(kharid_id, create_if_not_exists=True):
                 'error': error
             })
     
-    # Return the first result or None if no results
+    # برگرداندن اولین نتیجه یا None اگر نتیجه‌ای وجود نداشت
     if results:
         return results[0]['purchase'], results[0]['created'], results[0]['error']
-    return None, False, "No purchases found in API response"
+    return None, False, "هیچ خریدی در پاسخ API یافت نشد"
 
 def bulk_update_purchase_info(kharid_ids):
     """
-    Update multiple purchases from BKI API
+    به‌روزرسانی چند خرید از API بازارگاه
     """
     if isinstance(kharid_ids, str):
-        # Split string of IDs by commas, spaces, or newlines
+        # تقسیم رشته شناسه‌ها با کاما، فاصله یا خط جدید
         import re
         kharid_ids = re.split(r'[,\s]+', kharid_ids)
     
-    # Filter out empty strings
+    # فیلتر کردن رشته‌های خالی
     kharid_ids = [kid.strip() for kid in kharid_ids if kid.strip()]
     
     results = []
@@ -417,12 +539,12 @@ def bulk_update_purchase_info(kharid_ids):
                     'kharid_id': kharid_id,
                     'success': True,
                     'created': created,
-                    'is_new': created,  # Template expects is_new instead of created
+                    'is_new': created,  # قالب انتظار is_new به جای created دارد
                     'purchase': purchase
                 }
                 
                 if created:
-                    # For new purchases, provide created objects info
+                    # برای خریدهای جدید، ارائه اطلاعات اشیاء ایجاد شده
                     result['message'] = f'خرید جدید با شماره {purchase.purchase_number} با موفقیت ایجاد شد'
                     result['created_objects'] = {
                         'customer': {
@@ -440,15 +562,14 @@ def bulk_update_purchase_info(kharid_ids):
                         }
                     }
                 else:
-                    # For existing purchases, provide update info
+                    # برای خریدهای موجود، ارائه اطلاعات به‌روزرسانی
                     result['message'] = f'اطلاعات خرید {purchase.purchase_number} با موفقیت به‌روزرسانی شد'
-                    
-                    # These fields are set by update_purchase_info but we need to provide them
-                    # since we're bypassing that function - use empty arrays for now
+                    # این فیلدها توسط update_purchase_info تنظیم می‌شوند اما ما نیاز داریم آنها را ارائه دهیم
+                    # زیرا از آن تابع عبور می‌کنیم - فعلاً از آرایه‌های خالی استفاده می‌کنیم
                     result['purchase_updates'] = []
                     result['customer_updates'] = {}
             else:
-                # Error case
+                # حالت خطا
                 result = {
                     'kharid_id': kharid_id,
                     'success': False,
