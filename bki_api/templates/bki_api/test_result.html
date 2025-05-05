@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}نتیجه تست BKI API{% endblock %}
+{% block title %}نتیجه تست API بانک کشاورزی{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
@@ -8,74 +8,164 @@
         <div class="col-md-10">
             <div class="card shadow">
                 <div class="card-header {% if success %}bg-success{% else %}bg-danger{% endif %} text-white">
-                    <h4 class="mb-0">نتیجه تست دریافت اطلاعات خرید (کد شناسه: {{ kharid_id }})</h4>
+                    <h4 class="mb-0">نتیجه تست درخواست API (شماره خرید: {{ kharid_id }})</h4>
                 </div>
                 <div class="card-body">
-                    {% if success %}
-                        <div class="alert alert-success mb-4">
-                            <strong>موفقیت:</strong> اطلاعات با موفقیت دریافت شد.
+                    <div class="row mb-3">
+                        <div class="col-md-12 text-center">
+                            {% if success %}
+                                <div class="alert alert-success">
+                                    <i class="fa fa-check-circle fa-2x mr-2"></i>
+                                    <span class="h4">درخواست با موفقیت انجام شد.</span>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-danger">
+                                    <i class="fa fa-times-circle fa-2x mr-2"></i>
+                                    <span class="h4">خطا در اجرای درخواست</span>
+                                    {% if error_message %}
+                                        <p class="mt-2">{{ error_message }}</p>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
                         </div>
-                        
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="card mb-4">
-                                    <div class="card-header bg-primary text-white">
-                                        <h5 class="mb-0">داده‌های دریافتی از سرویس</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <pre class="bg-light p-3" style="direction: ltr; text-align: left; overflow-x: auto;">{{ response_data }}</pre>
-                                    </div>
+                    </div>
+
+                    {% if success and purchase %}
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">اطلاعات خرید</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th>شماره خرید:</th>
+                                            <td>{{ purchase.purchase_number }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>وضعیت خرید:</th>
+                                            <td>{{ purchase.get_state_display }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>وزن تحویلی:</th>
+                                            <td>{{ purchase.delivered_weight }} کیلوگرم</td>
+                                        </tr>
+                                        <tr>
+                                            <th>مبلغ پرداختی:</th>
+                                            <td>{{ purchase.amount_paid }} ریال</td>
+                                        </tr>
+                                        <tr>
+                                            <th>روش پرداخت:</th>
+                                            <td>{{ purchase.payment_method }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th>تاریخ ایجاد:</th>
+                                            <td>{{ purchase.created_at }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>شماره پیگیری:</th>
+                                            <td>{{ purchase.tracking_number|default:"ثبت نشده" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>کد ملی تحویل:</th>
+                                            <td>{{ purchase.code_melli_tahvil|default:"ثبت نشده" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>شماره تلفن تحویل:</th>
+                                            <td>{{ purchase.tahvil_phone_number|default:"ثبت نشده" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>فی مشتری:</th>
+                                            <td>{{ purchase.customer_price }} ریال</td>
+                                        </tr>
+                                    </table>
                                 </div>
                             </div>
                         </div>
-                        
-                        {% if parsed_data %}
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="card">
-                                    <div class="card-header bg-info text-white">
-                                        <h5 class="mb-0">اطلاعات پردازش شده</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <table class="table table-bordered table-striped">
-                                            <thead class="thead-dark">
-                                                <tr>
-                                                    <th>فیلد</th>
-                                                    <th>مقدار</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {% for key, value in parsed_data.items %}
-                                                <tr>
-                                                    <td>{{ key }}</td>
-                                                    <td>{{ value }}</td>
-                                                </tr>
-                                                {% endfor %}
-                                            </tbody>
-                                        </table>
-                                    </div>
+
+                        {% if purchase.customer %}
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">اطلاعات مشتری</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th>نام مشتری:</th>
+                                            <td>{{ purchase.customer.name|default:"ثبت نشده" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>شماره تماس:</th>
+                                            <td>{{ purchase.customer.get_primary_phone }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>شهر:</th>
+                                            <td>{{ purchase.customer.city|default:"ثبت نشده" }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th>آدرس:</th>
+                                            <td>{{ purchase.address|default:"ثبت نشده" }}</td>
+                                        </tr>
+                                    </table>
                                 </div>
                             </div>
                         </div>
                         {% endif %}
-                    {% else %}
-                        <div class="alert alert-danger">
-                            <strong>خطا:</strong> {{ error_message }}
-                        </div>
-                        {% if response_data %}
-                        <div class="card mt-4">
-                            <div class="card-header bg-secondary text-white">
-                                <h5 class="mb-0">پاسخ دریافتی</h5>
-                            </div>
-                            <div class="card-body">
-                                <pre class="bg-light p-3" style="direction: ltr; text-align: left; overflow-x: auto;">{{ response_data }}</pre>
+
+                        {% if purchase.cargo %}
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">اطلاعات محصول</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th>شماره کوتاژ:</th>
+                                            <td>{{ purchase.cargo.cottage|default:"ثبت نشده" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>نوع محصول:</th>
+                                            <td>{{ purchase.cargo.get_product_type_display }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>کشور:</th>
+                                            <td>{{ purchase.cargo.get_country_display }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th>وزن موجود:</th>
+                                            <td>{{ purchase.cargo.weight }} کیلوگرم</td>
+                                        </tr>
+                                        <tr>
+                                            <th>فی خرید:</th>
+                                            <td>{{ purchase.cargo.company_price }} ریال</td>
+                                        </tr>
+                                        <tr>
+                                            <th>فی فروش:</th>
+                                            <td>{{ purchase.cargo.customer_price }} ریال</td>
+                                        </tr>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                         {% endif %}
                     {% endif %}
-                    
+
                     <div class="text-center mt-4">
-                        <a href="{% url 'bki_api:credentials' %}" class="btn btn-primary">بازگشت به صفحه تنظیمات</a>
+                        <a href="{% url 'bki_api:credentials' %}" class="btn btn-primary">بازگشت به تنظیمات</a>
+                        
+                        {% if success and purchase %}
+                            <a href="{% url 'bki_api:update_purchase_info' %}?kharid_id={{ kharid_id }}" class="btn btn-success mx-2">به‌روزرسانی مجدد</a>
+                        {% else %}
+                            <button class="btn btn-secondary mx-2" onclick="window.history.back();">تلاش مجدد</button>
+                        {% endif %}
                     </div>
                 </div>
             </div>
