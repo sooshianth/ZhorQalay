@@ -18,7 +18,7 @@ from sms_api.apis import queue_sms
 from django.urls import path
 from django.template.response import TemplateResponse
 from django.contrib.auth.models import User
-
+from .BarnamehModel import Barnameh
 # @admin.register(Notification)
 # class NotificationAdmin(admin.ModelAdmin):
 #     list_display = ('user', 'message')
@@ -472,4 +472,11 @@ class DebugSmsQueue:
 #     search_fields = ('code',)
 
 # admin.site.unregister(User)
+
+@admin.register(Barnameh)
+class BarnamehAdmin(admin.ModelAdmin):
+    list_display = ('purchase__purchase_number', 'number', 'serial', 'barnameh_date', 'is_sent_to_bki', 'is_sent_to_bki_at')
+    list_filter = ('is_sent_to_bki', 'purchase__customer')
+    search_fields = ('purchase__purchase_number', 'number', 'serial')
+    ordering = ('-barnameh_date',)
 

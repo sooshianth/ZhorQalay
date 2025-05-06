@@ -776,6 +776,7 @@ class PurchaseStateChange(models.Model):
 class ShenaseTakhsis(models.Model):
     purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='shenase_takhsis_set', verbose_name="خرید مرتبط")
     code = models.CharField("شناسه تخصیص", max_length=255, unique=True)
+    weight = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="وزن", null=True, blank=True)
     created_at = jmodels.jDateTimeField("تاریخ ثبت", auto_now_add=True)
     
     class Meta:

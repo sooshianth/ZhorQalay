@@ -692,195 +692,65 @@ def get_all_bazaargah_purchases():
         return 0, 0, 0, 0, 0, ["اطلاعات کاربری API بازارگاه در تنظیمات وجود ندارد"]
     
     # تست اتصال به سرور API
-    try:
-        print("تست اتصال به سرور API...")
-        test_response = requests.get("https://spsws.bki.ir", verify=False, timeout=10)
-        print(f"وضعیت پاسخ تست اتصال: {test_response.status_code}")
-        if test_response.status_code >= 400:
-            print(f"هشدار: سرور API با کد وضعیت {test_response.status_code} پاسخ داد")
-    except Exception as e:
-        print(f"هشدار: خطا در اتصال به سرور API: {str(e)}")
+    is_connected, connection_message = test_api_connection()
+    if not is_connected:
+        return 0, 0, 0, 0, 0, [f"خطا در اتصال به API بازارگاه: {connection_message}"]
     
-    # ایجاد درخواست SOAP برای دریافت تمام خریدها با استفاده از تابع send_soap_request
-    # اما با تغییر نام متد به getAllKharidInfo
-    url = "https://spsws.bki.ir/spsws.asmx"
+    print("تست اتصال به API بازارگاه موفقیت‌آمیز بود. درحال دریافت خریدها...")
     
-    # ایجاد درخواست SOAP 1.1 برای دریافت تمام خریدها
-    soap_request = f"""<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Body>
-    <getAllKharidInfo xmlns="http://tempuri.org/">
-      <userName>{username}</userName>
-      <pass>{password}</pass>
-    </getAllKharidInfo>
-  </soap:Body>
-</soap:Envelope>"""
+    # برای دریافت تمام خریدها، از یک شناسه خرید نمونه استفاده می‌کنیم
+    # از تابع send_soap_request استفاده می‌کنیم که به خوبی کار می‌کند
+    sample_kharid_id = "1"  # یک شناسه خرید نمونه
     
-    # تنظیم هدرهای درخواست
-    headers = {
-        'Content-Type': 'text/xml; charset=utf-8',
-        'SOAPAction': 'http://tempuri.org/getAllKharidInfo',
-        'Host': 'spsws.bki.ir'
-    }
+    # ارسال درخواست SOAP با استفاده از تابع send_soap_request
+    purchases_data, log_entry, error = send_soap_request(sample_kharid_id)
     
-    # ایجاد لاگ برای درخواست
-    log_entry = BKILog(
-        request_type='getAllKharidInfo',
-        request_data=soap_request
-    )
+    if error:
+        print(f"خطا در ارسال درخواست SOAP: {error}")
+        return 0, 0, 0, 0, 0, [f"خطا در ارسال درخواست SOAP: {error}"]
     
-    try:
-        # ارسال درخواست با verify=False برای رد کردن بررسی گواهی SSL در صورت نیاز
-        print("ارسال درخواست SOAP به API بازارگاه...")
-        response = requests.post(url, data=soap_request, headers=headers, verify=False, timeout=30)
-        print(f"وضعیت پاسخ API: {response.status_code}")
-        
-        # ذخیره پاسخ در لاگ
-        log_entry.response_data = response.text
-        
-        # بررسی کد وضعیت HTTP
-        if response.status_code != 200:
-            log_entry.is_successful = False
-            log_entry.error_message = f"خطای HTTP: {response.status_code}"
-            log_entry.save()
-            return 0, 0, 0, 0, 0, [f"خطای HTTP: {response.status_code}"]
-        
-        # بررسی اگر پاسخ خالی است
-        if not response.text or response.text.strip() == '':
-            log_entry.is_successful = False
-            log_entry.error_message = "پاسخ API خالی است"
-            log_entry.save()
-            return 0, 0, 0, 0, 0, ["پاسخ API خالی است"]
-        
-        # تجزیه پاسخ XML
+    # بررسی اگر هیچ داده خریدی یافت نشد
+    if not purchases_data:
+        print("هیچ داده خرید در پاسخ یافت نشد")
+        return 0, 0, 0, 0, 0, ["هیچ داده خرید در پاسخ یافت نشد"]
+    
+    # چاپ تعداد خریدهای یافت شده برای دیباگ
+    print(f"تعداد خریدهای یافت شده: {len(purchases_data)}")
+    
+    # پردازش داده‌های خرید با استفاده از تابع process_purchase_data موجود
+    total_count = len(purchases_data)
+    success_count = 0
+    created_count = 0
+    updated_count = 0
+    failed_count = 0
+    errors = []
+    
+    for purchase_data in purchases_data:
         try:
-            # استفاده از روش مشابه با send_soap_request برای تجزیه پاسخ
-            response_dict = xmltodict.parse(response.text)
+            # چاپ شناسه خرید برای دیباگ
+            purchase_id = purchase_data.get('kharididentity', 'نامشخص')
+            print(f"پردازش خرید با شناسه: {purchase_id}")
             
-            # دریافت نتیجه از پاسخ
-            soap_body = response_dict['soap:Envelope']['soap:Body']
-            
-            # بررسی وجود کلید getAllKharidInfoResponse در پاسخ
-            if 'getAllKharidInfoResponse' not in soap_body:
-                log_entry.is_successful = False
-                log_entry.error_message = "فرمت پاسخ نامعتبر است - کلید getAllKharidInfoResponse یافت نشد"
-                log_entry.save()
-                print("خطا: کلید getAllKharidInfoResponse در پاسخ یافت نشد")
-                print("بخشی از پاسخ:", response.text[:500])
-                return 0, 0, 0, 0, 0, ["فرمت پاسخ نامعتبر است - کلید getAllKharidInfoResponse یافت نشد"]
-                
-            # بررسی وجود کلید getAllKharidInfoResult در پاسخ
-            if 'getAllKharidInfoResult' not in soap_body['getAllKharidInfoResponse']:
-                log_entry.is_successful = False
-                log_entry.error_message = "فرمت پاسخ نامعتبر است - کلید getAllKharidInfoResult یافت نشد"
-                log_entry.save()
-                print("خطا: کلید getAllKharidInfoResult در پاسخ یافت نشد")
-                print("بخشی از پاسخ:", response.text[:500])
-                return 0, 0, 0, 0, 0, ["فرمت پاسخ نامعتبر است - کلید getAllKharidInfoResult یافت نشد"]
-            
-            result = soap_body['getAllKharidInfoResponse']['getAllKharidInfoResult']
-            
-            # بررسی اگر نتیجه خالی است
-            if not result:
-                log_entry.is_successful = False
-                log_entry.error_message = "نتیجه API خالی است"
-                log_entry.save()
-                print("خطا: نتیجه API خالی است")
-                return 0, 0, 0, 0, 0, ["نتیجه API خالی است"]
-            
-            # بررسی نوع داده نتیجه
-            if not isinstance(result, dict):
-                log_entry.is_successful = False
-                log_entry.error_message = f"فرمت پاسخ نامعتبر است - نتیجه از نوع {type(result)} است، dict انتظار می‌رود"
-                log_entry.save()
-                print(f"خطا: نتیجه از نوع {type(result)} است، dict انتظار می‌رود")
-                return 0, 0, 0, 0, 0, [f"فرمت پاسخ نامعتبر است - نتیجه از نوع {type(result)} است، dict انتظار می‌رود"]
-            
-            # چاپ کلیدهای موجود در نتیجه برای دیباگ
-            print("کلیدهای موجود در نتیجه:", list(result.keys()))
-            
-            # بررسی داده‌های diffgram
-            purchases_data = []
-            if 'diffgr:diffgram' in result:
-                diffgram = result['diffgr:diffgram']
-                print("کلیدهای موجود در diffgram:", list(diffgram.keys()))
-                
-                if 'NewDataSet' in diffgram and diffgram['NewDataSet']:
-                    print("کلیدهای موجود در NewDataSet:", list(diffgram['NewDataSet'].keys()))
-                    
-                    if 'Table1' in diffgram['NewDataSet']:
-                        table1 = diffgram['NewDataSet']['Table1']
-                        # Table1 ممکن است یک لیست یا یک دیکشنری باشد
-                        if isinstance(table1, list):
-                            purchases_data = table1
-                        else:
-                            purchases_data = [table1]
-            
-            # بررسی اگر هیچ داده خریدی یافت نشد
-            if not purchases_data:
-                log_entry.is_successful = False
-                log_entry.error_message = "هیچ داده خرید در پاسخ یافت نشد"
-                log_entry.save()
-                # چاپ پاسخ برای دیباگ
-                print("پاسخ API بدون داده خرید:", response.text[:500])
-                return 0, 0, 0, 0, 0, ["هیچ داده خرید در پاسخ یافت نشد"]
-            
-            # چاپ تعداد خریدهای یافت شده برای دیباگ
-            print(f"تعداد خریدهای یافت شده: {len(purchases_data)}")
-            
-            # پردازش داده‌های خرید با استفاده از تابع process_purchase_data موجود
-            total_count = len(purchases_data)
-            success_count = 0
-            created_count = 0
-            updated_count = 0
-            failed_count = 0
-            errors = []
-            
-            for purchase_data in purchases_data:
-                try:
-                    # چاپ شناسه خرید برای دیباگ
-                    purchase_id = purchase_data.get('kharididentity', 'نامشخص')
-                    print(f"پردازش خرید با شناسه: {purchase_id}")
-                    
-                    # استفاده از تابع موجود process_purchase_data برای پردازش هر خرید
-                    purchase, created, error = process_purchase_data(purchase_data, create_if_not_exists=True)
-                    if purchase:
-                        success_count += 1
-                        if created:
-                            created_count += 1
-                            print(f"خرید جدید ایجاد شد: {purchase_id}")
-                        else:
-                            updated_count += 1
-                            print(f"خرید موجود به‌روزرسانی شد: {purchase_id}")
-                    else:
-                        failed_count += 1
-                        if error:
-                            errors.append(f"خطا در پردازش خرید {purchase_id}: {error}")
-                            print(f"خطا در پردازش خرید {purchase_id}: {error}")
-                except Exception as e:
-                    failed_count += 1
-                    purchase_id = purchase_data.get('kharididentity', 'نامشخص')
-                    errors.append(f"خطا در پردازش خرید {purchase_id}: {str(e)}")
-                    print(f"خطا در پردازش خرید {purchase_id}: {str(e)}")
-            
-            log_entry.is_successful = True
-            log_entry.save()
-            
-            print(f"نتیجه نهایی: کل={total_count}, موفق={success_count}, جدید={created_count}, بروزرسانی={updated_count}, خطا={failed_count}")
-            return total_count, success_count, created_count, updated_count, failed_count, errors
-            
+            # استفاده از تابع موجود process_purchase_data برای پردازش هر خرید
+            purchase, created, error = process_purchase_data(purchase_data, create_if_not_exists=True)
+            if purchase:
+                success_count += 1
+                if created:
+                    created_count += 1
+                    print(f"خرید جدید ایجاد شد: {purchase_id}")
+                else:
+                    updated_count += 1
+                    print(f"خرید موجود به‌روزرسانی شد: {purchase_id}")
+            else:
+                failed_count += 1
+                if error:
+                    errors.append(f"خطا در پردازش خرید {purchase_id}: {error}")
+                    print(f"خطا در پردازش خرید {purchase_id}: {error}")
         except Exception as e:
-            log_entry.is_successful = False
-            log_entry.error_message = f"خطا در تجزیه پاسخ: {str(e)}"
-            log_entry.save()
-            # چاپ خطا و بخشی از پاسخ برای دیباگ
-            print(f"خطا در تجزیه پاسخ: {str(e)}")
-            print("بخشی از پاسخ:", response.text[:500])
-            return 0, 0, 0, 0, 0, [f"خطا در تجزیه پاسخ: {str(e)}"]
+            failed_count += 1
+            purchase_id = purchase_data.get('kharididentity', 'نامشخص')
+            errors.append(f"خطا در پردازش خرید {purchase_id}: {str(e)}")
+            print(f"خطا در پردازش خرید {purchase_id}: {str(e)}")
     
-    except Exception as e:
-        log_entry.is_successful = False
-        log_entry.error_message = f"خطا در ارسال درخواست: {str(e)}"
-        log_entry.save()
-        print(f"خطا در ارسال درخواست: {str(e)}")
-        return 0, 0, 0, 0, 0, [f"خطا در ارسال درخواست: {str(e)}"] 
+    print(f"نتیجه نهایی: کل={total_count}, موفق={success_count}, جدید={created_count}, بروزرسانی={updated_count}, خطا={failed_count}")
+    return total_count, success_count, created_count, updated_count, failed_count, errors 

@@ -63,10 +63,10 @@ config/settings.py
 /-p
 /admin-interface
 
-/db.sqlite3
+db.sqlite3
 
 /bki_api/migrations/__pycache__
-/bki_api/__pycache__
+bki_api/__pycache__
 /bki_api/views/__pycache__
 /bki_api/urls/__pycache__
 /bki_api/models/__pycache__
