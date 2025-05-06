@@ -42,7 +42,7 @@ class ActivityField(models.Model):
 
 class ProductPreference(models.Model):
     """Model representing product preference"""
-    code = models.CharField(_("کد"), max_length=50, choices=CargoProduct.PRODUCT_TYPES, unique=True)
+    code = models.CharField(_("کد"), max_length=50, choices=CargoProduct.PRODUCT_TYPES)
     
     class Meta:
         verbose_name = _("ترجیح کالایی")

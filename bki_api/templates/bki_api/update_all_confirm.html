@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}تایید به‌روزرسانی همه خریدها{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h4 class="mb-0">تایید به‌روزرسانی همه خریدهای بازارگاه</h4>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                    <div class="messages mb-4">
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="alert alert-warning">
+                        <h5>هشدار!</h5>
+                        <p>شما در حال به‌روزرسانی تمام خریدهای موجود در دیتابیس که دارای شماره خرید بازارگاه هستند، می‌باشید. این عملیات:</p>
+                        <ul>
+                            <li>ممکن است زمان‌بر باشد</li>
+                            <li>فشار زیادی بر روی سرور و API بازارگاه وارد می‌کند</li>
+                            <li>در صورت وجود تعداد زیادی خرید، ممکن است چند دقیقه طول بکشد</li>
+                        </ul>
+                        <p>آیا مطمئن هستید که می‌خواهید ادامه دهید؟</p>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <form method="post">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-warning btn-block">بله، به‌روزرسانی را انجام بده</button>
+                            </form>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="{% url 'bki_api:credentials' %}" class="btn btn-secondary btn-block">خیر، انصراف</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

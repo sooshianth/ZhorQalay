@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}نتایج دریافت و ثبت خریدهای بازارگاه{% endblock %}
+
+{% block content %}
+<div class="container mt-4 rtl-text">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">نتایج دریافت و ثبت خریدهای بازارگاه</h4>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-4">
+                        <a href="{% url 'bki_api:credentials' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-right ml-1"></i> بازگشت به مدیریت API
+                        </a>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body">
+                                    <h5 class="card-title">تعداد کل</h5>
+                                    <p class="card-text display-4">{{ total }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body">
+                                    <h5 class="card-title">موفق</h5>
+                                    <p class="card-text display-4">{{ successes }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body">
+                                    <h5 class="card-title">جدید</h5>
+                                    <p class="card-text display-4">{{ created }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-dark">
+                                <div class="card-body">
+                                    <h5 class="card-title">به‌روزرسانی</h5>
+                                    <p class="card-text display-4">{{ updated }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if failures > 0 %}
+                    <div class="card bg-danger text-white mt-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">خطاها ({{ failures }})</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group">
+                                {% for error in errors %}
+                                <li class="list-group-item text-danger">{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}دریافت و ثبت تمام خریدهای بازارگاه{% endblock %}
+
+{% block content %}
+<div class="container mt-4 rtl-text">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">دریافت و ثبت تمام خریدهای بازارگاه</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning mb-4">
+                        <strong>هشدار!</strong> این عملیات تمام خریدهای موجود در بازارگاه را دریافت و در سیستم ثبت می‌کند.
+                        <ul class="mt-2 mb-0">
+                            <li>خریدهای جدید در سیستم ایجاد می‌شوند.</li>
+                            <li>خریدهای موجود به‌روزرسانی می‌شوند.</li>
+                            <li>این عملیات ممکن است زمان‌بر باشد و بسته به تعداد خریدها، ممکن است چند دقیقه طول بکشد.</li>
+                        </ul>
+                    </div>
+                    
+                    <form method="post" class="text-center">
+                        {% csrf_token %}
+                        <p>آیا مطمئن هستید که می‌خواهید تمام خریدهای بازارگاه را دریافت و ثبت کنید؟</p>
+                        <div class="mt-4">
+                            <a href="{% url 'bki_api:credentials' %}" class="btn btn-secondary me-2">انصراف</a>
+                            <button type="submit" class="btn btn-primary">تایید و شروع فرآیند</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

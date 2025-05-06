@@ -146,8 +146,12 @@ def determine_product_type(product_title):
 
 def clean_phone_number(phone):
     """پاکسازی شماره تلفن برای استفاده در دیتابیس"""
+    # ایجاد یک شماره تلفن پیش‌فرض برای مواقعی که شماره ورودی معتبر نیست
+    default_number = "9000000000"
+    
     if not phone:
-        return None, "شماره تلفن خالی است"
+        # اگر شماره خالی است، شماره پیش‌فرض را برگردان
+        return default_number, None
         
     # تبدیل اعداد فارسی به انگلیسی
     persian_digits = "۰۱۲۳۴۵۶۷۸۹"
@@ -158,19 +162,40 @@ def clean_phone_number(phone):
     # پاکسازی شماره از کاراکترهای غیرعددی
     cleaned_number = ''.join(c for c in phone if c.isdigit())
     
+    # اگر هیچ رقمی استخراج نشد، شماره پیش‌فرض را برگردان
+    if not cleaned_number:
+        return default_number, None
+    
     # حذف صفر ابتدایی اگر وجود داشته باشد
     if cleaned_number.startswith('0'):
         cleaned_number = cleaned_number[1:]
-        
-    # بررسی اینکه شماره با 9 شروع شود
-    if cleaned_number and len(cleaned_number) > 0 and not cleaned_number.startswith('9'):
-        # در اینجا علاوه بر مقدار None یک پیام خطا هم برگردانیم تا بتوانیم لاگ بگیریم
-        return None, f"شماره تلفن باید با 9 شروع شود: {phone} -> {cleaned_number}"
-        
-    # بررسی طول شماره تلفن (باید 10 رقم باشد)
-    if cleaned_number and len(cleaned_number) != 10:
-        return None, f"طول شماره تلفن باید 10 رقم باشد: {phone} -> {cleaned_number} (طول: {len(cleaned_number)})"
     
+    # حذف کد کشور ایران اگر وجود داشته باشد (98)
+    if cleaned_number.startswith('98'):
+        cleaned_number = cleaned_number[2:]
+        
+    # اگر شماره بیشتر از 10 رقم دارد، 10 رقم آخر را نگه داریم
+    if len(cleaned_number) > 10:
+        cleaned_number = cleaned_number[-10:]
+        
+    # بررسی اینکه شماره با 9 شروع شود (برای تبدیل به موبایل)
+    if not cleaned_number.startswith('9'):
+        # اگر طول کافی دارد (حداقل 7 رقم)، 9 را اضافه کرده و آخرین 9 رقم را نگه می‌داریم
+        if len(cleaned_number) >= 7:
+            cleaned_number = '9' + cleaned_number[:9]
+        else:
+            # اگر کوتاه است، با صفر پر می‌کنیم
+            cleaned_number = '9' + cleaned_number.zfill(9)[:9]
+    
+    # اطمینان از اینکه طول شماره دقیقاً 10 رقم است
+    if len(cleaned_number) < 10:
+        # اگر کمتر از 10 رقم است، با صفر پر می‌کنیم
+        cleaned_number = cleaned_number + '0' * (10 - len(cleaned_number))
+    elif len(cleaned_number) > 10:
+        # اگر بیشتر از 10 رقم است، اضافه‌ها را حذف می‌کنیم
+        cleaned_number = cleaned_number[:10]
+    
+    # همیشه یک شماره معتبر برمی‌گرداند
     return cleaned_number, None
 
 def convert_persian_date_to_gregorian(persian_date_str):
@@ -265,40 +290,14 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
     
     if 'customer__phone_number' in data:
         mobile_number, phone_error = clean_phone_number(data['customer__phone_number'])
-        
-        if not mobile_number:
-            print(f"هشدار: شماره تلفن نامعتبر برای خرید {purchase_number}: {data['customer__phone_number']} - خطا: {phone_error}")
-            # نباید فیلد را پاپ کنیم، بلکه باید یک مقدار معتبر را جایگزین کنیم
-            
-            # تلاش برای استخراج اعداد از شماره تلفن و ایجاد یک شماره معتبر
-            raw_number = data['customer__phone_number']
-            digits = ''.join(c for c in str(raw_number) if c.isdigit())
-            
-            # اگر مقدار عددی داریم، سعی کنیم یک شماره موبایل معتبر بسازیم
-            if digits:
-                if len(digits) >= 10:
-                    # اگر طول کافی دارد، 10 رقم آخر را بگیریم
-                    digits = digits[-10:]
-                    # اگر با 9 شروع نمی‌شود، 9 را اضافه کنیم
-                    if not digits.startswith('9'):
-                        digits = '9' + digits[1:]
-                    mobile_number = digits
-                    print(f"شماره تلفن اصلاح شده: {mobile_number}")
-                else:
-                    # یک شماره پیش‌فرض برای مشتری بسازیم که با شماره خرید ترکیب شده است
-                    # این به ما امکان می‌دهد مشتری را بعداً ردیابی کنیم
-                    mobile_number = '9' + purchase_number.zfill(9)
-                    print(f"ایجاد شماره تلفن مجازی براساس شماره خرید: {mobile_number}")
-            else:
-                # اگر هیچ رقمی نداریم، از شماره خرید استفاده کنیم
-                mobile_number = '9' + purchase_number.zfill(9)
-                print(f"ایجاد شماره تلفن مجازی براساس شماره خرید: {mobile_number}")
+        # تابع clean_phone_number اصلاح شده همیشه یک شماره معتبر برمی‌گرداند
+        data['customer__phone_number'] = mobile_number
     else:
         print(f"هشدار: هیچ شماره تلفنی برای خرید {purchase_number} ارائه نشده است")
-        # یک شماره پیش‌فرض برای مشتری بسازیم که با شماره خرید ترکیب شده است
-        mobile_number = '9' + purchase_number.zfill(9)
-        print(f"ایجاد شماره تلفن مجازی براساس شماره خرید: {mobile_number}")
+        # استفاده از تابع clean_phone_number برای ایجاد شماره پیش‌فرض
+        mobile_number, _ = clean_phone_number('')
         data['customer__phone_number'] = mobile_number
+        print(f"ایجاد شماره تلفن پیش‌فرض: {mobile_number}")
     
     try:
         # سعی در یافتن خرید موجود
@@ -584,4 +583,133 @@ def bulk_update_purchase_info(kharid_ids):
                 'error': str(e)
             })
     
-    return results 
+    return results
+
+def get_all_bazaargah_purchases():
+    """
+    دریافت تمام خریدهای موجود در بازارگاه و ثبت آنها در دیتابیس
+    
+    این تابع با استفاده از API بازارگاه، تمام خریدهای موجود را دریافت کرده و در دیتابیس ثبت می‌کند.
+    خریدهای موجود به‌روزرسانی شده و خریدهای جدید ایجاد می‌شوند.
+    
+    برمی‌گرداند: (total_count, success_count, created_count, updated_count, failed_count, errors)
+    """
+    # دریافت اطلاعات کاربری API بازارگاه
+    username, password = get_bki_credentials()
+    if not username or not password:
+        return 0, 0, 0, 0, 0, ["اطلاعات کاربری API بازارگاه در تنظیمات وجود ندارد"]
+    
+    # آدرس API با HTTPS
+    url = "https://spsws.bki.ir/spsws.asmx"
+    
+    # ایجاد درخواست SOAP 1.1 برای دریافت تمام خریدها
+    soap_request = f"""<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <getAllKharidInfo xmlns="http://tempuri.org/">
+      <userName>{username}</userName>
+      <pass>{password}</pass>
+    </getAllKharidInfo>
+  </soap:Body>
+</soap:Envelope>"""
+    
+    # تنظیم هدرهای درخواست
+    headers = {
+        'Content-Type': 'text/xml; charset=utf-8',
+        'SOAPAction': 'http://tempuri.org/getAllKharidInfo',
+        'Host': 'spsws.bki.ir'
+    }
+    
+    # ایجاد لاگ برای درخواست
+    log_entry = BKILog(
+        request_type='getAllKharidInfo',
+        request_data=soap_request
+    )
+    
+    try:
+        # ارسال درخواست با verify=False برای رد کردن بررسی گواهی SSL در صورت نیاز
+        response = requests.post(url, data=soap_request, headers=headers, verify=False)
+        
+        # ذخیره پاسخ در لاگ
+        log_entry.response_data = response.text
+        
+        if response.status_code != 200:
+            log_entry.is_successful = False
+            log_entry.error_message = f"خطای HTTP: {response.status_code}"
+            log_entry.save()
+            return 0, 0, 0, 0, 0, [f"خطای HTTP: {response.status_code}"]
+        
+        # تجزیه پاسخ XML
+        try:
+            response_dict = xmltodict.parse(response.text)
+            # دریافت نتیجه از پاسخ
+            soap_body = response_dict['soap:Envelope']['soap:Body']
+            result = soap_body['getAllKharidInfoResponse']['getAllKharidInfoResult']
+            
+            if not result or not isinstance(result, dict):
+                log_entry.is_successful = False
+                log_entry.error_message = "فرمت پاسخ نامعتبر است"
+                log_entry.save()
+                return 0, 0, 0, 0, 0, ["فرمت پاسخ نامعتبر است"]
+            
+            # بررسی داده‌های diffgram
+            purchases_data = []
+            if 'diffgr:diffgram' in result:
+                diffgram = result['diffgr:diffgram']
+                if 'NewDataSet' in diffgram and diffgram['NewDataSet']:
+                    if 'Table1' in diffgram['NewDataSet']:
+                        table1 = diffgram['NewDataSet']['Table1']
+                        # Table1 ممکن است یک لیست یا یک دیکشنری باشد
+                        if isinstance(table1, list):
+                            purchases_data = table1
+                        else:
+                            purchases_data = [table1]
+            
+            if not purchases_data:
+                log_entry.is_successful = False
+                log_entry.error_message = "هیچ داده خرید در پاسخ یافت نشد"
+                log_entry.save()
+                return 0, 0, 0, 0, 0, ["هیچ داده خرید در پاسخ یافت نشد"]
+            
+            # پردازش داده‌های خرید با استفاده از تابع process_purchase_data موجود
+            total_count = len(purchases_data)
+            success_count = 0
+            created_count = 0
+            updated_count = 0
+            failed_count = 0
+            errors = []
+            
+            for purchase_data in purchases_data:
+                try:
+                    # استفاده از تابع موجود process_purchase_data برای پردازش هر خرید
+                    purchase, created, error = process_purchase_data(purchase_data, create_if_not_exists=True)
+                    if purchase:
+                        success_count += 1
+                        if created:
+                            created_count += 1
+                        else:
+                            updated_count += 1
+                    else:
+                        failed_count += 1
+                        if error:
+                            errors.append(f"خطا در پردازش خرید {purchase_data.get('kharididentity', 'نامشخص')}: {error}")
+                except Exception as e:
+                    failed_count += 1
+                    errors.append(f"خطا در پردازش خرید {purchase_data.get('kharididentity', 'نامشخص')}: {str(e)}")
+            
+            log_entry.is_successful = True
+            log_entry.save()
+            
+            return total_count, success_count, created_count, updated_count, failed_count, errors
+            
+        except Exception as e:
+            log_entry.is_successful = False
+            log_entry.error_message = f"خطا در تجزیه پاسخ: {str(e)}"
+            log_entry.save()
+            return 0, 0, 0, 0, 0, [f"خطا در تجزیه پاسخ: {str(e)}"]
+    
+    except Exception as e:
+        log_entry.is_successful = False
+        log_entry.error_message = f"خطا در ارسال درخواست: {str(e)}"
+        log_entry.save()
+        return 0, 0, 0, 0, 0, [f"خطا در ارسال درخواست: {str(e)}"] 
