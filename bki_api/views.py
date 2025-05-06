@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from .models import BKILog
 from django.views.decorators.csrf import csrf_exempt
 from core.decorators.decorators import role_required
-from .bki_api_utils import get_purchase_info, bulk_update_purchase_info, send_soap_request, process_purchase_data
+from .bki_api_utils import get_purchase_info, bulk_update_purchase_info, send_soap_request, process_purchase_data, get_all_bazaargah_purchases
 from core.PurchaseModel import Purchase
 
 def update_env_file(key, value):
@@ -106,15 +106,16 @@ def test_kharid_info(request):
         messages.error(request, 'اطلاعات کاربری BKI تنظیم نشده است.')
         return redirect('bki_api:credentials')
     
-    # فراخوانی تابع کمکی برای دریافت اطلاعات خرید
-    purchase, created, error = get_purchase_info(kharid_id, create_if_not_exists=False)
+    # فراخوانی تابع send_soap_request برای تست اتصال به API
+    from .bki_api_utils import send_soap_request
+    purchases_data, log_entry, error = send_soap_request(kharid_id)
     
     context = {
         'kharid_id': kharid_id,
-        'success': purchase is not None,
+        'success': purchases_data is not None,
         'error_message': error,
-        'purchase': purchase,
-        'created': created
+        'purchases_data': purchases_data,
+        'log_entry': log_entry
     }
     
     return render(request, 'bki_api/test_result.html', context)
@@ -293,151 +294,73 @@ def get_all_bazaargah_purchases_view(request):
         messages.error(request, 'اطلاعات کاربری BKI تنظیم نشده است.')
         return redirect('bki_api:credentials')
     
-    # ارسال درخواست SOAP برای دریافت تمام خریدها
-    import requests
-    import xmltodict
+    # چاپ اطلاعات برای دیباگ (بدون نمایش رمز عبور کامل)
+    print(f"استفاده از نام کاربری: {username}")
+    print(f"رمز عبور وارد شده: {'*' * (len(password) if password else 0)}")
     
-    # آدرس API با HTTPS
-    url = "https://spsws.bki.ir/spsws.asmx"
+    # تست اتصال به API بازارگاه
+    from .bki_api_utils import test_api_connection
+    is_connected, connection_message = test_api_connection()
+    if not is_connected:
+        messages.error(request, f'خطا در اتصال به API بازارگاه: {connection_message}')
+        return redirect('bki_api:credentials')
+    else:
+        print(f"تست اتصال به API بازارگاه: {connection_message}")
     
-    # ایجاد درخواست SOAP 1.1 برای دریافت تمام خریدها
-    soap_request = f"""<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Body>
-    <getAllKharidInfo xmlns="http://tempuri.org/">
-      <userName>{username}</userName>
-      <pass>{password}</pass>
-    </getAllKharidInfo>
-  </soap:Body>
-</soap:Envelope>"""
-    
-    # تنظیم هدرهای درخواست
-    headers = {
-        'Content-Type': 'text/xml; charset=utf-8',
-        'SOAPAction': 'http://tempuri.org/getAllKharidInfo',
-        'Host': 'spsws.bki.ir'
-    }
-    
-    # ایجاد لاگ برای درخواست
-    log_entry = BKILog(
-        request_type='getAllKharidInfo',
-        request_data=soap_request
-    )
-    
+    # استفاده از تابع get_all_bazaargah_purchases از ماژول bki_api_utils
     try:
-        # ارسال درخواست با verify=False برای رد کردن بررسی گواهی SSL در صورت نیاز
-        response = requests.post(url, data=soap_request, headers=headers, verify=False)
+        # فراخوانی تابع برای دریافت و پردازش تمام خریدها
+        print("شروع فراخوانی تابع get_all_bazaargah_purchases")
+        total_count, success_count, created_count, updated_count, failed_count, errors = get_all_bazaargah_purchases()
+        print(f"نتیجه فراخوانی: کل={total_count}, موفق={success_count}, جدید={created_count}, بروزرسانی={updated_count}, خطا={failed_count}")
         
-        # ذخیره پاسخ در لاگ
-        log_entry.response_data = response.text
+        # ارسال به صفحه نتایج
+        context = {
+            'total': total_count,
+            'successes': success_count,
+            'failures': failed_count,
+            'updated': updated_count,
+            'created': created_count,
+            'errors': errors
+        }
         
-        if response.status_code != 200:
-            log_entry.is_successful = False
-            log_entry.error_message = f"خطای HTTP: {response.status_code}"
-            log_entry.save()
-            messages.error(request, f"خطای HTTP: {response.status_code}")
-            return redirect('bki_api:credentials')
+        # نمایش پیام‌های مناسب
+        if success_count > 0:
+            messages.success(
+                request,
+                f'عملیات با موفقیت انجام شد. از {total_count} خرید، {success_count} مورد با موفقیت پردازش شد. '
+                f'({created_count} خرید جدید ایجاد شد، {updated_count} خرید موجود به‌روزرسانی شد)'
+            )
+        else:
+            messages.warning(
+                request,
+                'هیچ خرید جدیدی ثبت نشد و هیچ خریدی به‌روزرسانی نشد.'
+            )
         
-        # تجزیه پاسخ XML
-        try:
-            response_dict = xmltodict.parse(response.text)
-            # دریافت نتیجه از پاسخ
-            soap_body = response_dict['soap:Envelope']['soap:Body']
-            result = soap_body['getAllKharidInfoResponse']['getAllKharidInfoResult']
-            
-            if not result or not isinstance(result, dict):
-                log_entry.is_successful = False
-                log_entry.error_message = "فرمت پاسخ نامعتبر است"
-                log_entry.save()
-                messages.error(request, "فرمت پاسخ نامعتبر است")
-                return redirect('bki_api:credentials')
-            
-            # بررسی داده‌های diffgram
-            purchases_data = []
-            if 'diffgr:diffgram' in result:
-                diffgram = result['diffgr:diffgram']
-                if 'NewDataSet' in diffgram and diffgram['NewDataSet']:
-                    if 'Table1' in diffgram['NewDataSet']:
-                        table1 = diffgram['NewDataSet']['Table1']
-                        # Table1 ممکن است یک لیست یا یک دیکشنری باشد
-                        if isinstance(table1, list):
-                            purchases_data = table1
-                        else:
-                            purchases_data = [table1]
-            
-            if not purchases_data:
-                log_entry.is_successful = False
-                log_entry.error_message = "هیچ داده خرید در پاسخ یافت نشد"
-                log_entry.save()
-                messages.error(request, "هیچ داده خرید در پاسخ یافت نشد")
-                return redirect('bki_api:credentials')
-            
-            # پردازش داده‌های خرید
-            total_count = len(purchases_data)
-            success_count = 0
-            created_count = 0
-            updated_count = 0
-            failed_count = 0
-            errors = []
-            
-            for purchase_data in purchases_data:
-                try:
-                    # استفاده از تابع موجود process_purchase_data برای پردازش هر خرید
-                    purchase, created, error = process_purchase_data(purchase_data, create_if_not_exists=True)
-                    if purchase:
-                        success_count += 1
-                        if created:
-                            created_count += 1
-                        else:
-                            updated_count += 1
-                    else:
-                        failed_count += 1
-                        if error:
-                            errors.append(f"خطا در پردازش خرید {purchase_data.get('kharididentity', 'نامشخص')}: {error}")
-                except Exception as e:
-                    failed_count += 1
-                    errors.append(f"خطا در پردازش خرید {purchase_data.get('kharididentity', 'نامشخص')}: {str(e)}")
-            
-            log_entry.is_successful = True
-            log_entry.save()
-            
-            # ارسال به صفحه نتایج
-            context = {
-                'total': total_count,
-                'successes': success_count,
-                'failures': failed_count,
-                'updated': updated_count,
-                'created': created_count,
-                'errors': errors
-            }
-            
-            # نمایش پیام‌های مناسب
-            if success_count > 0:
-                messages.success(
-                    request,
-                    f'عملیات با موفقیت انجام شد. از {total_count} خرید، {success_count} مورد با موفقیت پردازش شد. '
-                    f'({created_count} خرید جدید ایجاد شد، {updated_count} خرید موجود به‌روزرسانی شد)'
-                )
-            
-            if failed_count > 0:
-                messages.warning(
-                    request,
-                    f'{failed_count} خرید با خطا مواجه شد.'
-                )
-            
-            return render(request, 'bki_api/get_all_purchases_results.html', context)
-            
-        except Exception as e:
-            log_entry.is_successful = False
-            log_entry.error_message = f"خطا در تجزیه پاسخ: {str(e)}"
-            log_entry.save()
-            messages.error(request, f"خطا در تجزیه پاسخ: {str(e)}")
-            return redirect('bki_api:credentials')
-    
+        if failed_count > 0:
+            messages.warning(
+                request,
+                f'{failed_count} خرید با خطا مواجه شد. جزئیات را در جدول نتایج ببینید.'
+            )
+        
+        return render(request, 'bki_api/get_all_purchases_results.html', context)
+        
     except Exception as e:
-        log_entry.is_successful = False
-        log_entry.error_message = f"خطا در ارسال درخواست: {str(e)}"
+        import traceback
+        error_details = traceback.format_exc()
+        error_message = f"خطا در اجرای تابع دریافت خریدها: {str(e)}"
+        print(error_message)
+        print(error_details)
+        messages.error(request, error_message)
+        
+        # ثبت خطا در لاگ
+        from .models import BKILog
+        log_entry = BKILog(
+            request_type='getAllKharidInfo',
+            is_successful=False,
+            error_message=f"خطا در اجرای تابع: {str(e)}\n{error_details}"
+        )
         log_entry.save()
-        messages.error(request, f"خطا در ارسال درخواست: {str(e)}")
+        
         return redirect('bki_api:credentials')
 

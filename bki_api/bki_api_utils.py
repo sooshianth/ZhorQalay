@@ -12,11 +12,32 @@ from core.CustomerModel import Customer, PhoneNumber
 from core.CargoProductModel import CargoProduct
 from .models import BKILog
 from django_jalali.db import models as jmodels
+import urllib3
+
+# غیرفعال کردن هشدارهای SSL برای اطمینان از کارکرد درست با API
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# چاپ نسخه کتابخانه‌های مورد استفاده برای دیباگ
+print(f"نسخه کتابخانه requests: {requests.__version__}")
+try:
+    print(f"نسخه کتابخانه xmltodict: {xmltodict.__version__}")
+except AttributeError:
+    print("نسخه کتابخانه xmltodict نامشخص است")
 
 def get_bki_credentials():
     """دریافت اطلاعات کاربری API بازارگاه از تنظیمات جنگو"""
     username = getattr(settings, 'BKI_USERNAME', None)
     password = getattr(settings, 'BKI_PASSWORD', None)
+    
+    # بررسی اعتبار نام کاربری و رمز عبور
+    if not username or username.strip() == '':
+        print("خطا: نام کاربری API بازارگاه تنظیم نشده است")
+        return None, None
+        
+    if not password or password.strip() == '':
+        print("خطا: رمز عبور API بازارگاه تنظیم نشده است")
+        return None, None
+    
     return username, password
 
 def send_soap_request(kharid_id):
@@ -585,6 +606,77 @@ def bulk_update_purchase_info(kharid_ids):
     
     return results
 
+def test_api_connection():
+    """
+    تست اتصال به API بازارگاه با یک درخواست SOAP ساده
+    
+    این تابع یک درخواست SOAP ساده به API بازارگاه ارسال می‌کند تا اتصال را تست کند.
+    
+    برمی‌گرداند: (is_successful, message)
+    """
+    # دریافت اطلاعات کاربری API بازارگاه
+    username, password = get_bki_credentials()
+    if not username or not password:
+        return False, "اطلاعات کاربری API بازارگاه در تنظیمات وجود ندارد"
+    
+    # آدرس API با HTTPS
+    url = "https://spsws.bki.ir/spsws.asmx"
+    
+    # ایجاد درخواست SOAP 1.1 برای تست اتصال
+    soap_request = f"""<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <getKharidInfo xmlns="http://tempuri.org/">
+      <userName>{username}</userName>
+      <pass>{password}</pass>
+      <kharidId>123456</kharidId>
+    </getKharidInfo>
+  </soap:Body>
+</soap:Envelope>"""
+    
+    # تنظیم هدرهای درخواست
+    headers = {
+        'Content-Type': 'text/xml; charset=utf-8',
+        'SOAPAction': 'http://tempuri.org/getKharidInfo',
+        'Host': 'spsws.bki.ir'
+    }
+    
+    try:
+        # ارسال درخواست با verify=False برای رد کردن بررسی گواهی SSL در صورت نیاز
+        print("تست اتصال به API بازارگاه...")
+        response = requests.post(url, data=soap_request, headers=headers, verify=False, timeout=10)
+        print(f"وضعیت پاسخ API: {response.status_code}")
+        
+        if response.status_code != 200:
+            return False, f"خطای HTTP: {response.status_code}"
+        
+        # بررسی اگر پاسخ خالی است
+        if not response.text or response.text.strip() == '':
+            return False, "پاسخ API خالی است"
+            
+        # تجزیه پاسخ XML
+        try:
+            response_dict = xmltodict.parse(response.text)
+            # دریافت نتیجه از پاسخ
+            soap_body = response_dict['soap:Envelope']['soap:Body']
+            
+            # بررسی وجود کلید getKharidInfoResponse در پاسخ
+            if 'getKharidInfoResponse' not in soap_body:
+                return False, "فرمت پاسخ نامعتبر است - کلید getKharidInfoResponse یافت نشد"
+                
+            # بررسی وجود کلید getKharidInfoResult در پاسخ
+            if 'getKharidInfoResult' not in soap_body['getKharidInfoResponse']:
+                return False, "فرمت پاسخ نامعتبر است - کلید getKharidInfoResult یافت نشد"
+            
+            # اتصال موفق بود
+            return True, "اتصال به API بازارگاه با موفقیت انجام شد"
+            
+        except Exception as e:
+            return False, f"خطا در تجزیه پاسخ: {str(e)}"
+    
+    except Exception as e:
+        return False, f"خطا در ارسال درخواست: {str(e)}"
+
 def get_all_bazaargah_purchases():
     """
     دریافت تمام خریدهای موجود در بازارگاه و ثبت آنها در دیتابیس
@@ -599,7 +691,18 @@ def get_all_bazaargah_purchases():
     if not username or not password:
         return 0, 0, 0, 0, 0, ["اطلاعات کاربری API بازارگاه در تنظیمات وجود ندارد"]
     
-    # آدرس API با HTTPS
+    # تست اتصال به سرور API
+    try:
+        print("تست اتصال به سرور API...")
+        test_response = requests.get("https://spsws.bki.ir", verify=False, timeout=10)
+        print(f"وضعیت پاسخ تست اتصال: {test_response.status_code}")
+        if test_response.status_code >= 400:
+            print(f"هشدار: سرور API با کد وضعیت {test_response.status_code} پاسخ داد")
+    except Exception as e:
+        print(f"هشدار: خطا در اتصال به سرور API: {str(e)}")
+    
+    # ایجاد درخواست SOAP برای دریافت تمام خریدها با استفاده از تابع send_soap_request
+    # اما با تغییر نام متد به getAllKharidInfo
     url = "https://spsws.bki.ir/spsws.asmx"
     
     # ایجاد درخواست SOAP 1.1 برای دریافت تمام خریدها
@@ -628,35 +731,83 @@ def get_all_bazaargah_purchases():
     
     try:
         # ارسال درخواست با verify=False برای رد کردن بررسی گواهی SSL در صورت نیاز
-        response = requests.post(url, data=soap_request, headers=headers, verify=False)
+        print("ارسال درخواست SOAP به API بازارگاه...")
+        response = requests.post(url, data=soap_request, headers=headers, verify=False, timeout=30)
+        print(f"وضعیت پاسخ API: {response.status_code}")
         
         # ذخیره پاسخ در لاگ
         log_entry.response_data = response.text
         
+        # بررسی کد وضعیت HTTP
         if response.status_code != 200:
             log_entry.is_successful = False
             log_entry.error_message = f"خطای HTTP: {response.status_code}"
             log_entry.save()
             return 0, 0, 0, 0, 0, [f"خطای HTTP: {response.status_code}"]
         
+        # بررسی اگر پاسخ خالی است
+        if not response.text or response.text.strip() == '':
+            log_entry.is_successful = False
+            log_entry.error_message = "پاسخ API خالی است"
+            log_entry.save()
+            return 0, 0, 0, 0, 0, ["پاسخ API خالی است"]
+        
         # تجزیه پاسخ XML
         try:
+            # استفاده از روش مشابه با send_soap_request برای تجزیه پاسخ
             response_dict = xmltodict.parse(response.text)
+            
             # دریافت نتیجه از پاسخ
             soap_body = response_dict['soap:Envelope']['soap:Body']
+            
+            # بررسی وجود کلید getAllKharidInfoResponse در پاسخ
+            if 'getAllKharidInfoResponse' not in soap_body:
+                log_entry.is_successful = False
+                log_entry.error_message = "فرمت پاسخ نامعتبر است - کلید getAllKharidInfoResponse یافت نشد"
+                log_entry.save()
+                print("خطا: کلید getAllKharidInfoResponse در پاسخ یافت نشد")
+                print("بخشی از پاسخ:", response.text[:500])
+                return 0, 0, 0, 0, 0, ["فرمت پاسخ نامعتبر است - کلید getAllKharidInfoResponse یافت نشد"]
+                
+            # بررسی وجود کلید getAllKharidInfoResult در پاسخ
+            if 'getAllKharidInfoResult' not in soap_body['getAllKharidInfoResponse']:
+                log_entry.is_successful = False
+                log_entry.error_message = "فرمت پاسخ نامعتبر است - کلید getAllKharidInfoResult یافت نشد"
+                log_entry.save()
+                print("خطا: کلید getAllKharidInfoResult در پاسخ یافت نشد")
+                print("بخشی از پاسخ:", response.text[:500])
+                return 0, 0, 0, 0, 0, ["فرمت پاسخ نامعتبر است - کلید getAllKharidInfoResult یافت نشد"]
+            
             result = soap_body['getAllKharidInfoResponse']['getAllKharidInfoResult']
             
-            if not result or not isinstance(result, dict):
+            # بررسی اگر نتیجه خالی است
+            if not result:
                 log_entry.is_successful = False
-                log_entry.error_message = "فرمت پاسخ نامعتبر است"
+                log_entry.error_message = "نتیجه API خالی است"
                 log_entry.save()
-                return 0, 0, 0, 0, 0, ["فرمت پاسخ نامعتبر است"]
+                print("خطا: نتیجه API خالی است")
+                return 0, 0, 0, 0, 0, ["نتیجه API خالی است"]
+            
+            # بررسی نوع داده نتیجه
+            if not isinstance(result, dict):
+                log_entry.is_successful = False
+                log_entry.error_message = f"فرمت پاسخ نامعتبر است - نتیجه از نوع {type(result)} است، dict انتظار می‌رود"
+                log_entry.save()
+                print(f"خطا: نتیجه از نوع {type(result)} است، dict انتظار می‌رود")
+                return 0, 0, 0, 0, 0, [f"فرمت پاسخ نامعتبر است - نتیجه از نوع {type(result)} است، dict انتظار می‌رود"]
+            
+            # چاپ کلیدهای موجود در نتیجه برای دیباگ
+            print("کلیدهای موجود در نتیجه:", list(result.keys()))
             
             # بررسی داده‌های diffgram
             purchases_data = []
             if 'diffgr:diffgram' in result:
                 diffgram = result['diffgr:diffgram']
+                print("کلیدهای موجود در diffgram:", list(diffgram.keys()))
+                
                 if 'NewDataSet' in diffgram and diffgram['NewDataSet']:
+                    print("کلیدهای موجود در NewDataSet:", list(diffgram['NewDataSet'].keys()))
+                    
                     if 'Table1' in diffgram['NewDataSet']:
                         table1 = diffgram['NewDataSet']['Table1']
                         # Table1 ممکن است یک لیست یا یک دیکشنری باشد
@@ -665,11 +816,17 @@ def get_all_bazaargah_purchases():
                         else:
                             purchases_data = [table1]
             
+            # بررسی اگر هیچ داده خریدی یافت نشد
             if not purchases_data:
                 log_entry.is_successful = False
                 log_entry.error_message = "هیچ داده خرید در پاسخ یافت نشد"
                 log_entry.save()
+                # چاپ پاسخ برای دیباگ
+                print("پاسخ API بدون داده خرید:", response.text[:500])
                 return 0, 0, 0, 0, 0, ["هیچ داده خرید در پاسخ یافت نشد"]
+            
+            # چاپ تعداد خریدهای یافت شده برای دیباگ
+            print(f"تعداد خریدهای یافت شده: {len(purchases_data)}")
             
             # پردازش داده‌های خرید با استفاده از تابع process_purchase_data موجود
             total_count = len(purchases_data)
@@ -681,35 +838,49 @@ def get_all_bazaargah_purchases():
             
             for purchase_data in purchases_data:
                 try:
+                    # چاپ شناسه خرید برای دیباگ
+                    purchase_id = purchase_data.get('kharididentity', 'نامشخص')
+                    print(f"پردازش خرید با شناسه: {purchase_id}")
+                    
                     # استفاده از تابع موجود process_purchase_data برای پردازش هر خرید
                     purchase, created, error = process_purchase_data(purchase_data, create_if_not_exists=True)
                     if purchase:
                         success_count += 1
                         if created:
                             created_count += 1
+                            print(f"خرید جدید ایجاد شد: {purchase_id}")
                         else:
                             updated_count += 1
+                            print(f"خرید موجود به‌روزرسانی شد: {purchase_id}")
                     else:
                         failed_count += 1
                         if error:
-                            errors.append(f"خطا در پردازش خرید {purchase_data.get('kharididentity', 'نامشخص')}: {error}")
+                            errors.append(f"خطا در پردازش خرید {purchase_id}: {error}")
+                            print(f"خطا در پردازش خرید {purchase_id}: {error}")
                 except Exception as e:
                     failed_count += 1
-                    errors.append(f"خطا در پردازش خرید {purchase_data.get('kharididentity', 'نامشخص')}: {str(e)}")
+                    purchase_id = purchase_data.get('kharididentity', 'نامشخص')
+                    errors.append(f"خطا در پردازش خرید {purchase_id}: {str(e)}")
+                    print(f"خطا در پردازش خرید {purchase_id}: {str(e)}")
             
             log_entry.is_successful = True
             log_entry.save()
             
+            print(f"نتیجه نهایی: کل={total_count}, موفق={success_count}, جدید={created_count}, بروزرسانی={updated_count}, خطا={failed_count}")
             return total_count, success_count, created_count, updated_count, failed_count, errors
             
         except Exception as e:
             log_entry.is_successful = False
             log_entry.error_message = f"خطا در تجزیه پاسخ: {str(e)}"
             log_entry.save()
+            # چاپ خطا و بخشی از پاسخ برای دیباگ
+            print(f"خطا در تجزیه پاسخ: {str(e)}")
+            print("بخشی از پاسخ:", response.text[:500])
             return 0, 0, 0, 0, 0, [f"خطا در تجزیه پاسخ: {str(e)}"]
     
     except Exception as e:
         log_entry.is_successful = False
         log_entry.error_message = f"خطا در ارسال درخواست: {str(e)}"
         log_entry.save()
+        print(f"خطا در ارسال درخواست: {str(e)}")
         return 0, 0, 0, 0, 0, [f"خطا در ارسال درخواست: {str(e)}"] 
