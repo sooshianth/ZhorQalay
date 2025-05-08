@@ -672,7 +672,7 @@ class Purchase(models.Model):
                 new_serial = int(last_serial) + 1
             else:
                 new_serial = 1
-            self.invoice_id = f"{factor_code}{str(new_serial).zfill(4)}"
+            self.invoice_id = f"{factor_code}{str(new_serial).zfill(6)}"
 
         if self.cargo:
             self.type = self.cargo.type
@@ -707,7 +707,7 @@ class Purchase(models.Model):
                 super().save(update_fields=['state'])
 
         if self.extelaf_weight:
-            self.extelaf_amount = self.extelaf_weight * self.cargo.customer_price
+            self.extelaf_amount = self.extelaf_weight * self.customer_price
             super().save(update_fields=['extelaf_amount'])
 
 

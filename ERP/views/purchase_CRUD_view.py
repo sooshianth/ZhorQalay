@@ -573,7 +573,7 @@ def generate_purchase_pdf(request, purchase_id):
     buffer = io.BytesIO()
     
     # تنظیم فونت فارسی
-    font_path = os.path.join(settings.BASE_DIR, 'crm', 'static', 'fonts', 'Vazir.ttf')
+    font_path = os.path.join(settings.BASE_DIR, 'ERP', 'static', 'fonts', 'Vazir.ttf')
     pdfmetrics.registerFont(TTFont('Vazir', font_path))
     
     # تابع کمکی برای تبدیل متن فارسی به حالت صحیح برای نمایش
