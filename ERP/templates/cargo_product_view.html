@@ -47,14 +47,66 @@
         margin-top: 0;
         border-top: none;
     }
+    .action-buttons {
+        margin: 20px 0;
+    }
+    .action-buttons a, .action-buttons button {
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 14px;
+        margin-right: 10px;
+        transition: background-color 0.3s ease;
+    }
+    .action-buttons a:hover, .action-buttons button:hover {
+        background-color: #45a049;
+    }
+    .cargo-product-list table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .cargo-product-list th, .cargo-product-list td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center;
+    }
+    .cargo-product-list th {
+        background-color: #f2f2f2;
+    }
+    .cargo-product-list tr:hover {
+        background-color: #f5f5f5;
+        cursor: pointer;
+    }
+    .cargo-product-list input[type='checkbox'] {
+        width: auto;
+    }
+    .cargo-product-list tr.selected {
+        background-color: rgba(52, 152, 219, 0.15);
+    }
+    .cargo-product-list tr.selected:hover {
+        background-color: rgba(52, 152, 219, 0.25);
+    }
 </style>
 
 
     <div class="cargo-product-list">
         <h2>لیست محصولات و کوتاژها</h2>
+        <div class="action-buttons">
+            <a href="{% url 'cargo_product_crud_panel' %}">ایجاد محصول جدید</a>
+            <button onclick="bulkEdit()">ویرایش گروهی</button>
+        </div>
+        <form id="bulkEditForm" action="{% url 'bulk_edit_cargo_products' %}" method="post" style="display: none;">
+            {% csrf_token %}
+            <input type="hidden" name="product_ids" id="product_ids">
+        </form>
         <table>
             <thead>
                 <tr>
+                    <th>انتخاب</th>
                     <th>کوتاژ</th>
                     <th>نوع محصول</th>
                     <th>کشور</th>
@@ -63,11 +115,13 @@
                     <th>زمان بارگیری</th>
                     <th>توضیحات</th>
                     <th>وضعیت</th>
+                    <th>ویرایش</th>
                 </tr>
             </thead>
             <tbody>
                 {% for product in cargo_products %}
-                    <tr>
+                    <tr onclick="toggleSelection(this, {{ product.id }});">
+                        <td><input type="checkbox" name="product_id" value="{{ product.id }}" onclick="event.stopPropagation();"></td>
                         <td>{{ product.cottage }}</td>
                         <td>{{ product.get_product_type_display }}</td>
                         <td>{{ product.get_country_display }}</td>
@@ -76,6 +130,7 @@
                         <td>{{ product.loading_time }}</td>
                         <td>{{ product.description }}</td>
                         <td>{{ product.status|yesno:"فعال,غیرفعال" }}</td>
+                        <td><a href="{% url 'cargo_product_crud_panel' product.id %}" onclick="event.stopPropagation();">ویرایش</a></td>
                     </tr>
                 {% endfor %}
             </tbody>
@@ -86,6 +141,7 @@
             <table>
                 <thead>
                     <tr>
+                        <th>انتخاب</th>
                         <th>کوتاژ</th>
                         <th>نوع محصول</th>
                         <th>کشور</th>
@@ -94,11 +150,13 @@
                         <th>زمان بارگیری</th>
                         <th>توضیحات</th>
                         <th>وضعیت</th>
+                        <th>ویرایش</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for product in deactive_cargo_products %}
-                        <tr>
+                        <tr onclick="toggleSelection(this, {{ product.id }});">
+                            <td><input type="checkbox" name="product_id" value="{{ product.id }}" onclick="event.stopPropagation();"></td>
                             <td>{{ product.cottage }}</td>
                             <td>{{ product.get_product_type_display }}</td>
                             <td>{{ product.get_country_display }}</td>
@@ -107,6 +165,7 @@
                             <td>{{ product.loading_time }}</td>
                             <td>{{ product.description }}</td>
                             <td>{{ product.status|yesno:"فعال,غیرفعال" }}</td>
+                            <td><a href="{% url 'cargo_product_crud_panel' product.id %}" onclick="event.stopPropagation();">ویرایش</a></td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -114,4 +173,29 @@
         </details>
     </div>
     
+    <script>
+        function bulkEdit() {
+            var checkedProducts = document.querySelectorAll('input[name="product_id"]:checked');
+            if (checkedProducts.length > 0) {
+                var productIds = Array.from(checkedProducts).map(function(checkbox) { return checkbox.value; });
+                document.getElementById('product_ids').value = productIds.join(',');
+                console.log("محصولات انتخاب شده:", document.getElementById('product_ids').value);
+                document.getElementById('bulkEditForm').submit();
+            } else {
+                alert('لطفاً حداقل یک محصول را انتخاب کنید.');
+            }
+        }
+        
+        function toggleSelection(row, productId) {
+            var checkbox = row.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+            
+            // اضافه کردن یا حذف کلاس selected برای نمایش انتخاب
+            if (checkbox.checked) {
+                row.classList.add('selected');
+            } else {
+                row.classList.remove('selected');
+            }
+        }
+    </script>
 {% endblock %}

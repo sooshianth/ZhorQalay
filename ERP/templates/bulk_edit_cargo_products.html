@@ -4,64 +4,302 @@
 
 {% block content %}
 <style>
-    .form-container {
-        max-width: 800px;
+    :root {
+        --success-color: #2ecc71;
+        --warning-color: #f39c12;
+        --danger-color: #e74c3c;
+        --dark-color: #34495e;
+        --light-color: #f9f9f9;
+        --border-color: #ddd;
+        --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.15);
+        --radius: 8px;
+    }
+
+    .bulk-edit-container {
+        max-width: 1200px;
         margin: 30px auto;
-        padding: 20px;
-        background-color: #f9f9f9;
-        border-radius: 10px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        padding: 0;
+        background-color: var(--light-color);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
     }
-    .form-group {
-        margin-bottom: 15px;
-    }
-    .form-group label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: bold;
-        color: #333;
-    }
-    .form-group input[type='checkbox'] {
-        width: auto;
-    }
-    .btn-submit {
-        background-color: #4CAF50;
+
+    .bulk-edit-header {
+        background-color: var(--primary-color);
         color: white;
-        padding: 12px 20px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 16px;
-        transition: background-color 0.3s ease;
+        padding: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
-    .btn-submit:hover {
-        background-color: #45a049;
+
+    .bulk-edit-header h2 {
+        margin: 0;
+        font-size: 24px;
     }
+
     .product-list {
-        margin: 20px 0;
+        margin: 0;
+        padding: 20px;
+        background-color: white;
+        border-bottom: 1px solid var(--border-color);
     }
+
     .product-list table {
         width: 100%;
         border-collapse: collapse;
+        box-shadow: var(--shadow);
+        border-radius: var(--radius);
+        overflow: hidden;
     }
+
     .product-list th, .product-list td {
-        border: 1px solid #ddd;
-        padding: 8px;
+        padding: 12px 15px;
         text-align: center;
     }
+
     .product-list th {
-        background-color: #f2f2f2;
+        background-color: var(--dark-color);
+        color: white;
+        font-weight: 500;
+    }
+
+    .product-list tr:nth-child(even) {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+
+    .product-list tr:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 50px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .badge-success {
+        background-color: var(--success-color);
+        color: white;
+    }
+
+    .badge-danger {
+        background-color: var(--danger-color);
+        color: white;
+    }
+
+    .bulk-edit-form {
+        padding: 20px;
+    }
+
+    .edit-section {
+        background-color: white;
+        padding: 20px;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        margin-bottom: 20px;
+    }
+
+    .edit-section-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .edit-section-title {
+        margin: 0;
+        font-size: 18px;
+        color: var(--dark-color);
+    }
+
+    .form-row {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 -10px;
+    }
+
+    .form-group {
+        flex: 1 0 200px;
+        margin: 0 10px 15px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: var(--dark-color);
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        font-size: 14px;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        outline: none;
+    }
+
+    select.form-control {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23333' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: left 12px center;
+        padding-left: 32px;
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+        margin-right: 10px;
+    }
+
+    .checkbox-wrapper {
+        position: relative;
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 10px;
+    }
+
+    .checkbox-wrapper input[type="checkbox"] {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+        height: 0;
+        width: 0;
+    }
+
+    .checkmark {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 20px;
+        width: 20px;
+        background-color: #fff;
+        border: 2px solid var(--border-color);
+        border-radius: 3px;
+    }
+
+    .checkbox-wrapper:hover input ~ .checkmark {
+        border-color: var(--primary-color);
+    }
+
+    .checkbox-wrapper input:checked ~ .checkmark {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .checkmark:after {
+        content: "";
+        position: absolute;
+        display: none;
+    }
+
+    .checkbox-wrapper input:checked ~ .checkmark:after {
+        display: block;
+    }
+
+    .checkbox-wrapper .checkmark:after {
+        left: 6px;
+        top: 2px;
+        width: 5px;
+        height: 10px;
+        border: solid white;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+    }
+
+    .checkbox-label {
+        margin-right: 30px;
+        user-select: none;
+        cursor: pointer;
+    }
+
+    .btn {
+        display: inline-block;
+        font-weight: 500;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: middle;
+        user-select: none;
+        border: 1px solid transparent;
+        padding: 10px 20px;
+        font-size: 14px;
+        line-height: 1.5;
+        border-radius: 4px;
+        transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        cursor: pointer;
+    }
+
+    .btn-primary {
+        color: #fff;
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background-color: #2980b9;
+        border-color: #2980b9;
+    }
+
+    .btn-success {
+        color: #fff;
+        background-color: var(--success-color);
+        border-color: var(--success-color);
+    }
+
+    .btn-success:hover {
+        background-color: #27ae60;
+        border-color: #27ae60;
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 20px;
+    }
+
+    .toggle-section {
+        margin-top: 10px;
+        margin-bottom: 20px;
+    }
+
+    .toggle-btn {
+        color: var(--primary-color);
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        text-decoration: underline;
     }
 </style>
-<div class='form-container'>
-    <h2>ویرایش گروهی محصولات</h2>
-    <div class='product-list'>
+
+<div class="bulk-edit-container">
+    <div class="bulk-edit-header">
+        <h2>ویرایش گروهی محصولات</h2>
+    </div>
+
+    <div class="product-list">
         <table>
             <thead>
                 <tr>
                     <th>کوتاژ</th>
                     <th>نوع محصول</th>
                     <th>کشور</th>
+                    <th>قیمت فروش</th>
+                    <th>محل بارگیری</th>
                     <th>وضعیت</th>
                 </tr>
             </thead>
@@ -71,19 +309,171 @@
                         <td>{{ product.cottage }}</td>
                         <td>{{ product.get_product_type_display }}</td>
                         <td>{{ product.get_country_display }}</td>
-                        <td>{{ product.status|yesno:"فعال,غیرفعال" }}</td>
+                        <td>{{ product.customer_price }}</td>
+                        <td>{{ product.port }}</td>
+                        <td>
+                            {% if product.status %}
+                                <span class="badge badge-success">فعال</span>
+                            {% else %}
+                                <span class="badge badge-danger">غیرفعال</span>
+                            {% endif %}
+                        </td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    <form method='post'>
-        {% csrf_token %}
-        <div class='form-group'>
-            <label for='status'>تغییر وضعیت:</label>
-            <input type='checkbox' id='status' name='status'>
-        </div>
-        <button type='submit' class='btn-submit'>به‌روزرسانی وضعیت</button>
-    </form>
+
+    <div class="bulk-edit-form">
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="product_ids_str" value="{{ products_ids_str }}">
+            <input type="hidden" name="apply_changes" value="true">
+
+            <div class="edit-section">
+                <div class="edit-section-header">
+                    <h3 class="edit-section-title">تغییر وضعیت محصولات</h3>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="checkbox-wrapper">
+                            <input type="checkbox" id="enable_status" name="enable_status">
+                            <span class="checkmark"></span>
+                            <span class="checkbox-label">تغییر وضعیت</span>
+                        </label>
+                    </div>
+                    <div class="form-group" id="status_options" style="display: none;">
+                        <label>وضعیت جدید:</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-wrapper">
+                                <input type="radio" name="status" value="on" checked>
+                                <span class="checkmark"></span>
+                                <span class="checkbox-label">فعال</span>
+                            </label>
+                            <label class="checkbox-wrapper">
+                                <input type="radio" name="status" value="off">
+                                <span class="checkmark"></span>
+                                <span class="checkbox-label">غیرفعال</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="edit-section">
+                <div class="edit-section-header">
+                    <h3 class="edit-section-title">تغییر قیمت</h3>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="checkbox-wrapper">
+                            <input type="checkbox" id="enable_price" name="enable_price">
+                            <span class="checkmark"></span>
+                            <span class="checkbox-label">تغییر قیمت‌ها</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="price_options" style="display: none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="company_price">فی خرید (ریال):</label>
+                            <input type="number" id="company_price" name="company_price" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="customer_price">فی فروش (ریال):</label>
+                            <input type="number" id="customer_price" name="customer_price" class="form-control">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="edit-section">
+                <div class="edit-section-header">
+                    <h3 class="edit-section-title">تغییر اطلاعات بارگیری</h3>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="checkbox-wrapper">
+                            <input type="checkbox" id="enable_loading" name="enable_loading">
+                            <span class="checkmark"></span>
+                            <span class="checkbox-label">تغییر اطلاعات بارگیری</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="loading_options" style="display: none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="port">محل بارگیری:</label>
+                            <select id="port" name="port" class="form-control">
+                                <option value="">انتخاب کنید</option>
+                                {% for value, label in ports %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="loading_time">زمان بارگیری:</label>
+                            <input type="text" id="loading_time" name="loading_time" class="form-control">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="edit-section">
+                <div class="edit-section-header">
+                    <h3 class="edit-section-title">سایر اطلاعات</h3>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="checkbox-wrapper">
+                            <input type="checkbox" id="enable_other" name="enable_other">
+                            <span class="checkmark"></span>
+                            <span class="checkbox-label">تغییر سایر اطلاعات</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="other_options" style="display: none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="weight">وزن موجود:</label>
+                            <input type="number" id="weight" name="weight" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="description">توضیحات:</label>
+                            <textarea id="description" name="description" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success">به‌روزرسانی محصولات</button>
+            </div>
+        </form>
+    </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // تغییر وضعیت
+        document.getElementById('enable_status').addEventListener('change', function() {
+            document.getElementById('status_options').style.display = this.checked ? 'block' : 'none';
+        });
+
+        // تغییر قیمت
+        document.getElementById('enable_price').addEventListener('change', function() {
+            document.getElementById('price_options').style.display = this.checked ? 'block' : 'none';
+        });
+
+        // تغییر اطلاعات بارگیری
+        document.getElementById('enable_loading').addEventListener('change', function() {
+            document.getElementById('loading_options').style.display = this.checked ? 'block' : 'none';
+        });
+
+        // تغییر سایر اطلاعات
+        document.getElementById('enable_other').addEventListener('change', function() {
+            document.getElementById('other_options').style.display = this.checked ? 'block' : 'none';
+        });
+    });
+</script>
 {% endblock %} 
