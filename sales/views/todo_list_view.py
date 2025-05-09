@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
 from django.urls import reverse
@@ -41,7 +41,7 @@ def completed_tasks_view(request):
 @login_required
 def change_task_status(request, task_id):
     if request.method == 'POST':
-        task = ToDoItem.objects.get(id=task_id, user=request.user)
+        task = get_object_or_404(ToDoItem, id=task_id, user=request.user)
         task.is_completed = True
         task.save()
         return HttpResponseRedirect(reverse('task_dashboard'))

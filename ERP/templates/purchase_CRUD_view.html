@@ -504,7 +504,7 @@
 
 <!-- ✅ دکمه‌های مخصوص فروش -->
 {% if user_role == "sales_agent" or user_role == "admin" %}
-    {% if purchase.type == 'bazaargah' and purchase.state == 'SMS_SENT' or purchase.state == 'BAZAARGAH_CONFIRMED' or purchase.state == 'PAYMENT_VERIFIED' %}
+    {% if purchase.type == 'bazaargah' and purchase.state == 'PAYMENT_VERIFIED' %}
         <button type="submit" name="approve_allocation" class="button approve-btn sales" formnovalidate>
             🛒 مشتری تخصیص را ثبت کرده است
         </button>
@@ -523,12 +523,7 @@
 
 <!-- ✅ دکمه‌های مخصوص لجستیک -->
 {% if user_role == "logistics_manager" or user_role == "admin" %}
-    {% if purchase.type == 'bazaargah' and purchase.state == 'SMS_SENT' or purchase.state == 'INITIATED' %}
-        <button type="submit" name="approve_bazaargah" class="button approve-btn logistics" formnovalidate>
-            ✅ تأیید کردن ثبت شدن در بازارگاه
-        </button>
-    {% endif %}
-    {% if purchase.state == 'ALLOCATION_REGISTERED' %}
+    {% if purchase.state == 'PAYMENT_VERIFIED' %}
         <button type="submit" name="approve_allocation_approval" class="button approve-btn logistics" formnovalidate>
             🛒 تأیید کردن تخصیص
         </button>
@@ -547,8 +542,19 @@
         <button type="submit" name="approve_barnamed" class="button approve-btn logistics" formnovalidate>
             📋 تایید صدور بارنامه
         </button>
+        <button type="submit" name="approve_mark_barnameh_incomplete" class="button approve-btn logistics" formnovalidate>
+            ⚠️ ثبت بارنامه ناقص
+        </button>
     {% endif %}
     {% if purchase.state == 'BARNAMEH_ISSUED' %}
+        <button type="submit" name="approve_delivered" class="button approve-btn logistics" formnovalidate>
+            🏠 تایید تحویل به مشتری
+        </button>
+        <button type="submit" name="approve_mark_barnameh_incomplete" class="button approve-btn logistics" formnovalidate>
+            ⚠️ ثبت بارنامه ناقص
+        </button>
+    {% endif %}
+    {% if purchase.state == 'BARNAMEH_INCOMPLETE' %}
         <button type="submit" name="approve_delivered" class="button approve-btn logistics" formnovalidate>
             🏠 تایید تحویل به مشتری
         </button>
@@ -567,7 +573,7 @@
 
 <!-- ✅ دکمه‌های مخصوص مالی -->
 {% if user_role == "financial_manager" or user_role == "admin" %}
-    {% if purchase.type == 'bazaargah' and purchase.state == 'BAZAARGAH_CONFIRMED' %}
+    {% if purchase.type == 'bazaargah' and purchase.state == 'SMS_SENT' or purchase.state == 'INITIATED' %}
         <button type="submit" name="approve_payment" class="button approve-btn financial" formnovalidate>
             💰 تأیید پرداخت
         </button>

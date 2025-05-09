@@ -11,13 +11,14 @@ def logistics_manager_profile_view(request):
     
     # وضعیت‌هایی که مدیر لجستیک می‌تواند بر روی آنها اقدام کند
     states_to_action = [
-        'SMS_SENT',                 # تایید بازارگاه (پس از ارسال پیامک)
-        'BAZAARGAH_CONFIRMED',      # تایید بازارگاه
-        'ALLOCATION_REGISTERED',    # تایید تخصیص
+        'SMS_SENT',                 # تایید پرداخت (توسط API)
+        'PAYMENT_VERIFIED',         # تایید تخصیص
+        'ALLOCATION_APPROVED',      # تایید تخصیص
         'VENDOR_SETTLED',           # ارسال آدرس به واردکننده
         'ADDRESS_SENT',             # ارسال به باربری
-        'SENT_TO_SHIPPING',         # صدور بارنامه
-        'BARNAMEH_ISSUED',          # تحویل به مشتری
+        'SENT_TO_SHIPPING',         # صدور بارنامه یا ثبت بارنامه ناقص
+        'BARNAMEH_ISSUED',          # تحویل به مشتری یا ثبت بارنامه ناقص
+        'BARNAMEH_INCOMPLETE',      # تحویل به مشتری 
         'DELIVERED',                # تایید مبلغ اختلاف (لجستیک)
         'INVOICE_ISSUED',           # تایید واحد لجستیک
         'SALES_APPROVED',           # تایید واحد لجستیک
@@ -40,8 +41,7 @@ def financial_manager_profile_view(request):
     
     # وضعیت‌هایی که مدیر مالی می‌تواند بر روی آنها اقدام کند
     states_to_action = [
-        'BAZAARGAH_CONFIRMED',      # تایید پرداخت
-        'SMS_SENT',                 # تایید پرداخت (خرید خارج از بازارگاه)
+        'SMS_SENT',                 # تایید پرداخت (همه خریدها)
         'PAYMENT_VERIFIED',         # تسویه با واردکننده 
         'ALLOCATION_APPROVED',      # تسویه با واردکننده
         'DELIVERED',                # تایید مبلغ اختلاف

@@ -334,6 +334,7 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
         'kutajnumber': 'cargo__cottage',
         'goodtitle': 'cargo__product_type',
         'weight': 'delivered_weight',
+        'wbarnamehshode': 'delivered_weight',  # اولویت بالاتر برای wbarnamehshode
         'buydate': 'created_at',
         'rrn': 'tracking_number',
         'byername': 'customer__name',
@@ -346,6 +347,7 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
         'buyermellicode': 'code_melli_tahvil',
         'ostanname': 'customer__city',
         'cityname': 'customer__city_detail',
+        'qty': 'order_weight',  # اضافه کردن qty به عنوان منبع order_weight
     }
     
     # استخراج مقادیر از داده‌های خرید
@@ -383,12 +385,41 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
         simple_fields = [
             'delivered_weight', 'tracking_number', 'address', 
             'tahvil_phone_number', 'amount_paid', 'payment_method', 
-            'customer_price', 'code_melli_tahvil'
+            'customer_price', 'code_melli_tahvil', 'order_weight'
         ]
         
         for field in simple_fields:
             if field in data and data[field]:
                 setattr(purchase, field, data[field])
+        
+        # ذخیره نام خریدار در فیلد buyer_name
+        if 'customer__name' in data and data['customer__name']:
+            purchase.buyer_name = data['customer__name']
+            print(f"نام خریدار در فیلد buyer_name ذخیره شد: {data['customer__name']}")
+            
+        # ذخیره شماره تلفن بازارگاه
+        if 'customer__phone_number' in data and data['customer__phone_number']:
+            purchase.bazaargah_phone_number = data['customer__phone_number']
+            print(f"شماره تلفن بازارگاه ذخیره شد: {data['customer__phone_number']}")
+            
+        # اضافه کردن کارشناس فروش "مدیریت سیستم" به خرید
+        try:
+            from core.PurchaseModel import PuchaseSalesAgent
+            from core.SalesAgentModel import SalesAgent
+            
+            # یافتن کارشناس فروش "مدیریت سیستم"
+            admin_agent = SalesAgent.objects.get(user__username='admin')
+            
+            # بررسی اینکه آیا این کارشناس فروش قبلا به خرید اضافه شده است
+            if not PuchaseSalesAgent.objects.filter(purchase=purchase, sales_agent=admin_agent).exists():
+                # اضافه کردن کارشناس فروش به خرید
+                PuchaseSalesAgent.objects.create(
+                    purchase=purchase,
+                    sales_agent=admin_agent
+                )
+                print(f"کارشناس فروش 'مدیریت سیستم' به خرید {purchase_number} اضافه شد")
+        except Exception as e:
+            print(f"خطا در اضافه کردن کارشناس فروش به خرید: {str(e)}")
         
         # به‌روزرسانی فیلدهای مشتری
         if purchase.customer:
@@ -423,9 +454,35 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
                             # خطا در ایجاد شماره تلفن را نادیده می‌گیریم
                             print(f"خطا در ایجاد شماره تلفن: {str(e)}")
             
+            # به‌روزرسانی حیطه فعالیت مشتری
+            if 'customer__activity_field' in data and data['customer__activity_field']:
+                try:
+                    from core.CustomerModel import ActivityField
+                    activity_field_code = data['customer__activity_field'].lower()
+                    
+                    # تبدیل کد حیطه فعالیت به کد استاندارد
+                    if 'دام' in activity_field_code or 'دامدار' in activity_field_code:
+                        activity_field_code = 'livestock'
+                    elif 'طیور' in activity_field_code or 'مرغدار' in activity_field_code:
+                        activity_field_code = 'poultry'
+                    elif 'آبزی' in activity_field_code or 'ماهی' in activity_field_code:
+                        activity_field_code = 'aquaculture'
+                    else:
+                        activity_field_code = 'other'
+                    
+                    # یافتن یا ایجاد حیطه فعالیت
+                    activity_field, created = ActivityField.objects.get_or_create(code=activity_field_code)
+                    
+                    # اضافه کردن حیطه فعالیت به مشتری اگر وجود نداشته باشد
+                    if not purchase.customer.field_of_activity.filter(code=activity_field_code).exists():
+                        purchase.customer.field_of_activity.add(activity_field)
+                        print(f"حیطه فعالیت {activity_field_code} به مشتری {purchase.customer.name} اضافه شد")
+                except Exception as e:
+                    print(f"خطا در به‌روزرسانی حیطه فعالیت: {str(e)}")
+            
             # ذخیره تغییرات مشتری
             purchase.customer.save()
-        
+            
         # به‌روزرسانی تاریخ‌ها در صورت نیاز
         if 'created_at' in data and data['created_at']:
             # استفاده از تابع جدید برای تبدیل تاریخ
@@ -527,6 +584,7 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
                 cargo=cargo,
                 address=data.get('address'),
                 delivered_weight=data.get('delivered_weight', 0),
+                order_weight=data.get('order_weight', 0),
                 tracking_number=data.get('tracking_number'),
                 tahvil_phone_number=data.get('tahvil_phone_number'),
                 amount_paid=data.get('amount_paid', 0),
@@ -535,8 +593,26 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
                 company_price=0,  # همیشه صفر
                 code_melli_tahvil=data.get('code_melli_tahvil'),
                 type='bazaargah',
-                state='PAYMENT_VERIFIED'
+                state='PAYMENT_VERIFIED',
+                bazaargah_phone_number=data.get('customer__phone_number'),  # ذخیره شماره تلفن بازارگاه
+                buyer_name=data.get('customer__name')  # ذخیره نام خریدار
             )
+            
+            # اضافه کردن کارشناس فروش "مدیریت سیستم" به خرید
+            try:
+                from core.PurchaseModel import PuchaseSalesAgent
+                
+                # یافتن کارشناس فروش "مدیریت سیستم"
+                admin_agent = SalesAgent.objects.get(user__username='admin')
+                
+                # اضافه کردن کارشناس فروش به خرید
+                PuchaseSalesAgent.objects.create(
+                    purchase=new_purchase,
+                    sales_agent=admin_agent
+                )
+                print(f"کارشناس فروش 'مدیریت سیستم' به خرید جدید {purchase_number} اضافه شد")
+            except Exception as e:
+                print(f"خطا در اضافه کردن کارشناس فروش به خرید جدید: {str(e)}")
             
             # افزودن پرچم‌ها برای پیگیری وجود قبلی اشیاء (برای گزارش‌دهی)
             new_purchase._customer_existed = customer_existed
@@ -838,7 +914,7 @@ def process_purchase_data_new(purchase_data, create_if_not_exists=True):
         'productname': 'cargo__product_type',
         'goodtitle': 'cargo__product_type',  # اضافه کردن goodtitle
         'faktorshode': 'delivered_weight',
-        'wbarnamehshode': 'delivered_weight',  # اضافه کردن wbarnamehshode
+        'wbarnamehshode': 'delivered_weight',  # اضافه کردن wbarnamehshode با اولویت بالاتر
         'date': 'created_at',
         'tracecode': 'tracking_number',
         'buyername': 'customer__name',
@@ -852,7 +928,7 @@ def process_purchase_data_new(purchase_data, create_if_not_exists=True):
         'provincename': 'customer__city',
         'cityname': 'customer__city_detail',
         'orderedweight': 'order_weight',  # وزن درخواستی
-        'qty': 'order_weight',  # اضافه کردن qty
+        'qty': 'order_weight',  # اضافه کردن qty با اولویت بالاتر
         'allocationid': 'shenase_takhsis',  # اضافه کردن شناسه تخصیص
         'activityfield': 'customer__activity_field',  # اضافه کردن حیطه فعالیت
         
@@ -923,6 +999,35 @@ def process_purchase_data_new(purchase_data, create_if_not_exists=True):
             if field in data and data[field]:
                 setattr(purchase, field, data[field])
         
+        # ذخیره نام خریدار در فیلد buyer_name
+        if 'customer__name' in data and data['customer__name']:
+            purchase.buyer_name = data['customer__name']
+            print(f"نام خریدار در فیلد buyer_name ذخیره شد: {data['customer__name']}")
+        
+        # ذخیره شماره تلفن بازارگاه
+        if 'customer__phone_number' in data and data['customer__phone_number']:
+            purchase.bazaargah_phone_number = data['customer__phone_number']
+            print(f"شماره تلفن بازارگاه ذخیره شد: {data['customer__phone_number']}")
+            
+        # اضافه کردن کارشناس فروش "مدیریت سیستم" به خرید
+        try:
+            from core.PurchaseModel import PuchaseSalesAgent
+            from core.SalesAgentModel import SalesAgent
+            
+            # یافتن کارشناس فروش "مدیریت سیستم"
+            admin_agent = SalesAgent.objects.get(user__username='admin')
+            
+            # بررسی اینکه آیا این کارشناس فروش قبلا به خرید اضافه شده است
+            if not PuchaseSalesAgent.objects.filter(purchase=purchase, sales_agent=admin_agent).exists():
+                # اضافه کردن کارشناس فروش به خرید
+                PuchaseSalesAgent.objects.create(
+                    purchase=purchase,
+                    sales_agent=admin_agent
+                )
+                print(f"کارشناس فروش 'مدیریت سیستم' به خرید {purchase_number} اضافه شد")
+        except Exception as e:
+            print(f"خطا در اضافه کردن کارشناس فروش به خرید: {str(e)}")
+        
         # به‌روزرسانی فیلدهای مشتری
         if purchase.customer:
             if 'customer__name' in data and data['customer__name']:
@@ -984,7 +1089,7 @@ def process_purchase_data_new(purchase_data, create_if_not_exists=True):
             
             # ذخیره تغییرات مشتری
             purchase.customer.save()
-        
+            
         # به‌روزرسانی تاریخ‌ها در صورت نیاز
         if 'created_at' in data and data['created_at']:
             # استفاده از تابع جدید برای تبدیل تاریخ
@@ -993,101 +1098,11 @@ def process_purchase_data_new(purchase_data, create_if_not_exists=True):
             if gregorian_date:
                 purchase.created_at = gregorian_date
         
-        # به‌روزرسانی اطلاعات کوتاژ
-        if 'cargo__cottage' in data and data['cargo__cottage']:
-            cottage_number = data.get('cargo__cottage')
-            try:
-                # بررسی وجود محصول با شماره کوتاژ
-                cargo = CargoProduct.objects.get(cottage=cottage_number)
-                # فقط کوتاژ را به خرید اختصاص می‌دهیم، به قیمت کوتاژ دست نمی‌زنیم
-                purchase.cargo = cargo
-                print(f"کوتاژ موجود {cottage_number} به خرید {purchase_number} اختصاص داده شد")
-            except CargoProduct.DoesNotExist:
-                # ایجاد محصول جدید اگر وجود نداشت
-                product_type = 'other'
-                if 'cargo__product_type' in data:
-                    product_type = determine_product_type(data['cargo__product_type'])
-                
-                # ایجاد کوتاژ جدید با قیمت پیش‌فرض صفر - قیمت باید توسط ادمین سیستم تنظیم شود
-                cargo = CargoProduct.objects.create(
-                    type='bazaargah',
-                    cottage=cottage_number,
-                    company_price=0,  # همیشه صفر
-                    customer_price=0,  # قیمت پیش‌فرض صفر - باید توسط ادمین تنظیم شود
-                    product_type=product_type,
-                    country='australia',  # پیش‌فرض: استرالیا
-                    port='امام خمینی',  # پیش‌فرض
-                    weight=1000000  # پیش‌فرض: 1000 تن
-                )
-                purchase.cargo = cargo
-                print(f"محصول جدید با کوتاژ {cottage_number} و نوع {product_type} ایجاد شد - قیمت باید توسط ادمین تنظیم شود")
-        
-        # ثبت شناسه تخصیص
-        if 'shenase_takhsis' in data and data['shenase_takhsis']:
-            from core.PurchaseModel import ShenaseTakhsis
-            
-            # شناسه تخصیص ممکن است یک رشته حاوی چندین شناسه باشد
-            allocation_ids = str(data['shenase_takhsis']).split(',')
-            
-            for allocation_id in allocation_ids:
-                allocation_id = allocation_id.strip()
-                if allocation_id:
-                    # بررسی وجود شناسه تخصیص
-                    try:
-                        ShenaseTakhsis.objects.get_or_create(
-                            purchase=purchase,
-                            code=allocation_id
-                        )
-                        print(f"شناسه تخصیص {allocation_id} برای خرید {purchase_number} ثبت شد")
-                    except Exception as e:
-                        print(f"خطا در ثبت شناسه تخصیص {allocation_id}: {str(e)}")
-            
-            # به‌روزرسانی فیلد shenase_takhsis در خرید
-            purchase.shenase_takhsis = data['shenase_takhsis']
-        
-        # محاسبه و به‌روزرسانی اختلاف (سرک/کسری)
-        if 'order_weight' in data and 'delivered_weight' in data:
-            order_weight = int(data.get('order_weight', 0))
-            delivered_weight = int(data.get('delivered_weight', 0))
-            
-            if order_weight > 0 and delivered_weight > 0:
-                # محاسبه اختلاف وزن
-                weight_diff = delivered_weight - order_weight
-                
-                if weight_diff != 0:
-                    # تعیین نوع اختلاف (سرک یا کسری)
-                    extelaf_type = 'سرک' if weight_diff > 0 else 'کسری'
-                    
-                    # مقدار مطلق اختلاف وزن
-                    extelaf_weight = abs(weight_diff)
-                    
-                    # محاسبه مبلغ اختلاف
-                    customer_price = int(data.get('customer_price', 0))
-                    if customer_price <= 0 and purchase.customer_price > 0:
-                        customer_price = purchase.customer_price
-                        
-                    if customer_price <= 0 and purchase.cargo and purchase.cargo.customer_price > 0:
-                        customer_price = purchase.cargo.customer_price
-                        
-                    extelaf_amount = extelaf_weight * customer_price
-                    
-                    # ذخیره اطلاعات اختلاف
-                    purchase.extelaf_type = extelaf_type
-                    purchase.extelaf_weight = extelaf_weight
-                    purchase.extelaf_amount = extelaf_amount
-                    
-                    print(f"اختلاف محاسبه شد: نوع={extelaf_type}, وزن={extelaf_weight}, مبلغ={extelaf_amount}")
-                    
-                    # تغییر وضعیت به DIFFERENCE_APPROVED اگر وزن بارنامه شده داشته باشیم
-                    if delivered_weight > 0:
-                        purchase.state = 'DIFFERENCE_APPROVED'
-                        print(f"وضعیت خرید به DIFFERENCE_APPROVED تغییر کرد")
-        
         # به‌روزرسانی خرید
         purchase.updated_at = timezone.now()
         purchase.save()
         
-        return purchase, created, None
+        return new_purchase, True, None
     
     except Purchase.DoesNotExist:
         if not create_if_not_exists:
@@ -1095,10 +1110,8 @@ def process_purchase_data_new(purchase_data, create_if_not_exists=True):
         
         # ایجاد خرید جدید
         try:
-            # واردات مدل‌های مورد نیاز
+            # واردات مدل SalesAgent
             from core.SalesAgentModel import SalesAgent
-            from core.CustomerModel import ActivityField
-            from core.PurchaseModel import ShenaseTakhsis
             
             # 1. یافتن یا ایجاد مشتری
             if not mobile_number:
@@ -1145,37 +1158,6 @@ def process_purchase_data_new(purchase_data, create_if_not_exists=True):
                     customer.delete()
                     return None, False, f"خطا در ایجاد شماره تلفن: {str(e)}"
             
-            # تنظیم حیطه فعالیت مشتری
-            if 'customer__activity_field' in data and data['customer__activity_field']:
-                try:
-                    activity_field_code = data['customer__activity_field'].lower()
-                    
-                    # تبدیل کد حیطه فعالیت به کد استاندارد
-                    if 'دام' in activity_field_code or 'دامدار' in activity_field_code:
-                        activity_field_code = 'livestock'
-                    elif 'طیور' in activity_field_code or 'مرغدار' in activity_field_code:
-                        activity_field_code = 'poultry'
-                    elif 'آبزی' in activity_field_code or 'ماهی' in activity_field_code:
-                        activity_field_code = 'aquaculture'
-                    else:
-                        activity_field_code = 'other'
-                    
-                    # یافتن یا ایجاد حیطه فعالیت
-                    activity_field, created = ActivityField.objects.get_or_create(code=activity_field_code)
-                    
-                    # اضافه کردن حیطه فعالیت به مشتری
-                    customer.field_of_activity.add(activity_field)
-                    print(f"حیطه فعالیت {activity_field_code} به مشتری {customer.name} اضافه شد")
-                except Exception as e:
-                    print(f"خطا در تنظیم حیطه فعالیت: {str(e)}")
-            else:
-                # تنظیم حیطه فعالیت پیش‌فرض (دامداری)
-                try:
-                    default_activity = ActivityField.objects.get_or_create(code='livestock')[0]
-                    customer.field_of_activity.add(default_activity)
-                except Exception as e:
-                    print(f"خطا در تنظیم حیطه فعالیت پیش‌فرض: {str(e)}")
-            
             # 2. یافتن یا ایجاد محصول
             cottage_number = data.get('cargo__cottage')
             cargo = None
@@ -1191,25 +1173,16 @@ def process_purchase_data_new(purchase_data, create_if_not_exists=True):
                     if 'cargo__product_type' in data:
                         product_type = determine_product_type(data['cargo__product_type'])
                     
-                    # ایجاد کوتاژ جدید با قیمت پیش‌فرض صفر - قیمت باید توسط ادمین سیستم تنظیم شود
                     cargo = CargoProduct.objects.create(
                         type='bazaargah',
                         cottage=cottage_number,
                         company_price=0,  # همیشه صفر
-                        customer_price=0,  # قیمت پیش‌فرض صفر - باید توسط ادمین تنظیم شود
+                        customer_price=data.get('customer_price', 0),
                         product_type=product_type,
-                        country='australia',  # پیش‌فرض: استرالیا
+                        country='iran',  # پیش‌فرض
                         port='امام خمینی',  # پیش‌فرض
                         weight=1000000  # پیش‌فرض: 1000 تن
                     )
-                    print(f"محصول جدید با کوتاژ {cottage_number} و نوع {product_type} ایجاد شد - قیمت باید توسط ادمین تنظیم شود")
-            
-            # تعیین وضعیت اولیه خرید
-            initial_state = 'PAYMENT_VERIFIED'
-            delivered_weight = int(data.get('delivered_weight', 0))
-            if delivered_weight > 0:
-                initial_state = 'DIFFERENCE_APPROVED'
-                print(f"وضعیت اولیه خرید به DIFFERENCE_APPROVED تنظیم شد (وزن بارنامه شده: {delivered_weight})")
             
             # 3. ایجاد خرید جدید
             new_purchase = Purchase.objects.create(
@@ -1218,7 +1191,6 @@ def process_purchase_data_new(purchase_data, create_if_not_exists=True):
                 cargo=cargo,
                 address=data.get('address'),
                 delivered_weight=data.get('delivered_weight', 0),
-                order_weight=data.get('order_weight', 0),
                 tracking_number=data.get('tracking_number'),
                 tahvil_phone_number=data.get('tahvil_phone_number'),
                 amount_paid=data.get('amount_paid', 0),
@@ -1227,60 +1199,8 @@ def process_purchase_data_new(purchase_data, create_if_not_exists=True):
                 company_price=0,  # همیشه صفر
                 code_melli_tahvil=data.get('code_melli_tahvil'),
                 type='bazaargah',
-                state=initial_state
+                state='PAYMENT_VERIFIED'
             )
-            
-            # ثبت شناسه تخصیص
-            if 'shenase_takhsis' in data and data['shenase_takhsis']:
-                # شناسه تخصیص ممکن است یک رشته حاوی چندین شناسه باشد
-                allocation_ids = str(data['shenase_takhsis']).split(',')
-                
-                for allocation_id in allocation_ids:
-                    allocation_id = allocation_id.strip()
-                    if allocation_id:
-                        # ثبت شناسه تخصیص
-                        try:
-                            ShenaseTakhsis.objects.create(
-                                purchase=new_purchase,
-                                code=allocation_id
-                            )
-                            print(f"شناسه تخصیص {allocation_id} برای خرید {purchase_number} ثبت شد")
-                        except Exception as e:
-                            print(f"خطا در ثبت شناسه تخصیص {allocation_id}: {str(e)}")
-                
-                # به‌روزرسانی فیلد shenase_takhsis در خرید
-                new_purchase.shenase_takhsis = data['shenase_takhsis']
-                new_purchase.save(update_fields=['shenase_takhsis'])
-            
-            # محاسبه و ذخیره اختلاف (سرک/کسری)
-            order_weight = int(data.get('order_weight', 0))
-            delivered_weight = int(data.get('delivered_weight', 0))
-            
-            if order_weight > 0 and delivered_weight > 0:
-                # محاسبه اختلاف وزن
-                weight_diff = delivered_weight - order_weight
-                
-                if weight_diff != 0:
-                    # تعیین نوع اختلاف (سرک یا کسری)
-                    extelaf_type = 'سرک' if weight_diff > 0 else 'کسری'
-                    
-                    # مقدار مطلق اختلاف وزن
-                    extelaf_weight = abs(weight_diff)
-                    
-                    # محاسبه مبلغ اختلاف
-                    customer_price = int(data.get('customer_price', 0))
-                    if customer_price <= 0 and cargo and cargo.customer_price > 0:
-                        customer_price = cargo.customer_price
-                    
-                    extelaf_amount = extelaf_weight * customer_price
-                    
-                    # ذخیره اطلاعات اختلاف
-                    new_purchase.extelaf_type = extelaf_type
-                    new_purchase.extelaf_weight = extelaf_weight
-                    new_purchase.extelaf_amount = extelaf_amount
-                    new_purchase.save(update_fields=['extelaf_type', 'extelaf_weight', 'extelaf_amount'])
-                    
-                    print(f"اختلاف محاسبه شد: نوع={extelaf_type}, وزن={extelaf_weight}, مبلغ={extelaf_amount}")
             
             # افزودن پرچم‌ها برای پیگیری وجود قبلی اشیاء (برای گزارش‌دهی)
             new_purchase._customer_existed = customer_existed

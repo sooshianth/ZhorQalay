@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from .models import BKILog
 from django.views.decorators.csrf import csrf_exempt
 from core.decorators.decorators import role_required
-from .bki_api_utils import get_purchase_info, bulk_update_purchase_info, send_soap_request, process_purchase_data, get_all_bazaargah_purchases, process_purchase_data_new
+from .bki_api_utils import get_purchase_info, bulk_update_purchase_info, send_soap_request, get_all_bazaargah_purchases, process_purchase_data_new #process_purchase_data
 from .bki_kharid_list_by_date import send_kharid_list_by_date_request, get_all_purchases_by_date_range
 from core.PurchaseModel import Purchase
 from jdatetime import datetime as jdatetime

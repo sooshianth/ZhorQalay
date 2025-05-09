@@ -1627,16 +1627,6 @@ body {
   transform: translateY(-3px);
 }
 
-.status-badge {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  background-color: #fef3c7;
-  color: #92400e;
-}
 
 .approved-table {
   width: 100%;
@@ -2111,20 +2101,6 @@ body {
   color: var(--text-color);
 }
 
-.badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  background: #ef4444;
-  color: white;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.7rem;
-}
 
 .notification-dropdown {
   position: absolute;

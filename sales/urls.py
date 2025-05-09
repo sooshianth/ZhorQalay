@@ -46,7 +46,7 @@ urlpatterns = [
 
     path('customer/', general_customer_CRUD_view, name='general_customer_CRUD'),
     path('customer/search/', customer_search, name='customer_search'),
-    path('task/<int:pk>/change_status/', change_task_status, name='change_task_status'),
+    path('task/<int:pk>/change_status/', change_task_status, name='change_task_status_todo'),
     path('customer/get_related_products/', get_related_products, name='get_related_products'),
     path('customer/predict_next_purchase/', predict_next_purchase, name='predict_next_purchase'),
     
@@ -59,6 +59,6 @@ urlpatterns = [
     path('tasks/', todo_list_view.task_dashboard_view, name='task_dashboard'),
     path('tasks/create/', todo_list_view.create_task_view, name='create_task'),
     path('tasks/completed/', todo_list_view.completed_tasks_view, name='completed_tasks'),
-    path('tasks/change-status/<int:task_id>/', todo_list_view.change_task_status, name='change_task_status'),
+    path('tasks/change-status/<int:task_id>/', todo_list_view.change_task_status, name='change_task_status_todo '),
 
 ]

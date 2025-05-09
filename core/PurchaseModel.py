@@ -35,20 +35,19 @@ def determine_user_role(user):
         return 'admin'
     return None
 
+
 class Purchase(models.Model):
     # وضعیت‌های مختلف خرید
     STATUS_CHOICES = [
         ('INITIATED', 'شروع شده'), # system
         ('SMS_SENT', 'پیامک ارسال شده'), # system
-        ('BAZAARGAH_CONFIRMED', 'تایید بازارگاه'), # logistics_manager
-        ('ALLOCATION_REGISTERED', 'ثبت تخصیص'), # sales_agent
-        ('ALLOCATION_APPROVED', 'تایید تخصیص'),  # logistics_manager
-        ('PAYMENT_VERIFIED', 'تایید مالی'),  # financial_manager
+        ('PAYMENT_VERIFIED', 'تایید نشستن در بازارگاه'),  # system (with bazaargah api :D )
+        ('ALLOCATION_APPROVED', 'تایید تخصیص'),  # system
         ('VENDOR_SETTLED', 'تسویه با واردکننده'),  # financial_manager
         ('ADDRESS_SENT', 'ارسال آدرس به واردکننده'), # logistics_manager
         ('SENT_TO_SHIPPING', 'ارسال به باربری'), # logistics_manager
-        ('BARNAMEH_ISSUED', 'بارنامه صادر شده'), # logistics_manager
-        ('DELIVERED', 'تحویل به مشتری'), # logistics_manager
+        ('BARNAMEH_ISSUED', 'بارنامه صادر شده'), # system
+        ('BARNAMEH_INCOMPLETE', 'بارنامه ناقص'), # system
         ('DIFFERENCE_APPROVED', 'تایید مقدار و مبلغ اختلاف'), # financial_manager
         ('DIFFERENCE_DEPOSITED', 'ثبت واریز اختلاف'), # sales_agent financial_manager 
         ('RECEIPT_SUBMITTED', 'ثبت رسید واریزی اختلاف'), # financial_manager
@@ -65,7 +64,8 @@ class Purchase(models.Model):
     id = models.AutoField(primary_key=True)
     state = models.CharField("وضعیت", max_length=50, choices=STATUS_CHOICES, default='INITIATED')
     invoice_id = models.CharField(max_length=20, verbose_name='کد درون سازمانی', unique=True, editable=False, blank=True, null=True)
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, verbose_name="مشتری", help_text="ارتباط یک‌به‌یک با مشتری از طریق شماره تلفن یا آیدی", related_name='purchases_made')
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, verbose_name="مشتری", help_text="ارتباط یک‌به‌یک با مشتری از طریق شماره تلفن یا آیدی", related_name='purchases_made', null=True, blank=True)
+    sales_agent = models.ManyToManyField(SalesAgent, through='PuchaseSalesAgent', verbose_name="کارشناس فروش", blank=True, related_name='purchase_assignments')
     address = models.TextField("آدرس", blank=True, null=True)
     description = models.TextField("توضیحات", blank=True, null=True)
     company_price = models.PositiveIntegerField("فی خرید(ریال)", default=0)
@@ -76,6 +76,7 @@ class Purchase(models.Model):
     shenase_takhsis = models.CharField("شناسه تخصیص", max_length=255, blank=True, null=True, unique=False)
     code_melli_tahvil = models.CharField("کد ملی تحویل", max_length=255, blank=True, null=True)
     bazaargah_phone_number = models.CharField("شماره تلفن بازارگاه", max_length=11, blank=True, null=True)
+    buyer_name = models.CharField("نام خریدار", max_length=255, blank=True, null=True)
     tahvil_phone_number = models.CharField("شماره تلفن تحویل", max_length=11, blank=True, null=True)
     barnameh = models.CharField("شماره بارنامه", max_length=255, blank=True, null=True)
     
@@ -166,7 +167,8 @@ class Purchase(models.Model):
 
     def confirm_bazaargah(self, user):
         """
-        تایید خرید در بازارگاه
+        تایید خرید در بازارگاه - این تابع به خاطر سازگاری با کد قبلی حفظ شده است
+        در سیستم جدید، تاییدیه بازارگاه از طریق API انجام می‌شود
         """
         user_role = determine_user_role(user)
         if user_role != 'logistics_manager' and user_role != 'admin':
@@ -189,19 +191,20 @@ class Purchase(models.Model):
             priority='medium'
         )
         
-        return self.change_state('BAZAARGAH_CONFIRMED', user, 'تایید شده در بازارگاه')
+        # تغییر مستقیم به PAYMENT_VERIFIED به جای BAZAARGAH_CONFIRMED
+        return self.change_state('PAYMENT_VERIFIED', user, 'تایید شده در بازارگاه و تایید نشستن در بازارگاه')
         
     def verify_payment(self, user):
         """
-        تایید پرداخت
+        تایید پرداخت - در سیستم جدید، پرداخت توسط API تایید می‌شود
+        به خاطر سازگاری با کد قبلی، این تابع همچنان وجود دارد
         """
         user_role = determine_user_role(user)
         if user_role != 'financial_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
-        if self.type == 'bazaargah' and self.state != 'BAZAARGAH_CONFIRMED':
-            raise ValidationError('ابتدا باید خرید در بازارگاه تایید شود')
-            
+        # در سیستم جدید، تایید پرداخت بازارگاه از طریق API انجام می‌شود
+        # بنابراین بررسی state قبلی لزومی ندارد
         if not self.amount_paid or self.amount_paid <= 10000000:
             raise ValidationError('مبلغ پرداختی باید بزرگتر از 10 میلیون ریال باشد')
             
@@ -222,12 +225,14 @@ class Purchase(models.Model):
             priority='high'
         )
         
+        # وضعیت خرید به تایید نشستن در بازارگاه تغییر می‌کند
         return self.change_state('PAYMENT_VERIFIED', user, 'تایید مالی انجام شد')
 
         
     def register_allocation(self, user):
         """
-        ثبت تخصیص
+        ثبت تخصیص - در سیستم جدید، تخصیص از طریق API تایید می‌شود
+        به خاطر سازگاری با کد قبلی، این تابع همچنان وجود دارد
         """
         user_role = determine_user_role(user)
         if user_role != 'sales_agent' and user_role != 'admin':
@@ -247,18 +252,33 @@ class Purchase(models.Model):
             priority='high'
          )
     
-        return self.change_state('ALLOCATION_REGISTERED', user, 'تخصیص ثبت شد')
+        # در سیستم جدید، مستقیما به وضعیت تایید تخصیص می‌رویم
+        return self.change_state('ALLOCATION_APPROVED', user, 'تخصیص ثبت و تایید شد')
         
     def approve_allocation(self, user):
         """
-        تایید تخصیص
+        تایید تخصیص - این تابع در سیستم جدید صرفا برای سازگاری با کد قدیمی حفظ شده است
+        در سیستم جدید، تخصیص از طریق API تایید می‌شود
         """
         user_role = determine_user_role(user)
         if user_role != 'logistics_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
-        if self.state != 'ALLOCATION_REGISTERED':
-            raise ValidationError('ابتدا باید تخصیص ثبت شود')
+        # در سیستم جدید، نیازی به بررسی وضعیت قبلی نیست، چون با API تایید می‌شود
+        # اما برای اطمینان، تایید می‌کنیم که خرید در وضعیت تایید پرداخت باشد
+        if self.state != 'PAYMENT_VERIFIED' and self.state != 'ALLOCATION_APPROVED':
+            raise ValidationError('ابتدا باید پرداخت تایید شود')
+        
+        notification_message = (
+            f"تخصیص خرید {self.invoice_id} "
+            f"توسط {user.get_full_name()} تایید شد"
+        )
+        self.notify_relevant_users(
+            message=notification_message,
+            title="تایید تخصیص",
+            notification_type='allocation',
+            priority='high'
+        )
         
         return self.change_state('ALLOCATION_APPROVED', user, 'تخصیص تایید شد')
         
@@ -270,8 +290,9 @@ class Purchase(models.Model):
         if user_role != 'financial_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
+        # تغییر شرایط براساس وضعیت‌های جدید
         if self.state != 'PAYMENT_VERIFIED' and self.state != 'ALLOCATION_APPROVED':
-            raise ValidationError('ابتدا باید پرداخت تایید شود')
+            raise ValidationError('ابتدا باید پرداخت و تخصیص تایید شود')
         
         notification_message = (
             f"تسویه با واردکننده برای خرید {self.invoice_id} "
@@ -361,6 +382,30 @@ class Purchase(models.Model):
         
         return self.change_state('BARNAMEH_ISSUED', user, 'بارنامه صادر شد')
 
+    def mark_barnameh_incomplete(self, user):
+        """
+        ثبت بارنامه ناقص
+        """
+        user_role = determine_user_role(user)
+        if user_role != 'logistics_manager' and user_role != 'admin':
+            raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
+            
+        if self.state != 'SENT_TO_SHIPPING' and self.state != 'BARNAMEH_ISSUED':
+            raise ValidationError('این وضعیت تنها برای خریدهایی است که به باربری ارسال شده و یا بارنامه صادر شده است')
+            
+        notification_message = (
+            f"بارنامه خرید {self.invoice_id} "
+            f"توسط {user.get_full_name()} ناقص اعلام شد. نیاز به پیگیری دارد."
+        )
+        self.notify_relevant_users(
+            message=notification_message,
+            title="بارنامه ناقص",
+            notification_type='shipping',
+            priority='high'
+        )
+        
+        return self.change_state('BARNAMEH_INCOMPLETE', user, 'بارنامه ناقص اعلام شد')
+
         
     def mark_as_delivered(self, user):
         """
@@ -370,8 +415,8 @@ class Purchase(models.Model):
         if user_role != 'logistics_manager' and user_role != 'admin':
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
-        if self.state != 'BARNAMEH_ISSUED':
-            raise ValidationError('ابتدا باید بارنامه صادر شود')
+        if self.state != 'BARNAMEH_ISSUED' and self.state != 'BARNAMEH_INCOMPLETE':
+            raise ValidationError('ابتدا باید بارنامه صادر شود یا وضعیت بارنامه ناقص داشته باشد')
         
         notification_message = (
             f"خرید {self.invoice_id} به وزن {self.delivered_weight:,} کیلوگرم "
@@ -840,3 +885,12 @@ class PurchaseApproval(models.Model):
                 title="درخواست تأیید خرید",
                 message=f"خرید {self.purchase.invoice_id} منتظر تأیید شماست"
             )
+
+class PuchaseSalesAgent(models.Model):
+    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='purchase_sales_agents')
+    sales_agent = models.ForeignKey(SalesAgent, on_delete=models.CASCADE, related_name='purchase_relations')
+    created_at = jmodels.jDateTimeField("تاریخ ثبت", auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "کارشناس فروش خرید"
+        verbose_name_plural = "کارشناس فروش خریدها"
