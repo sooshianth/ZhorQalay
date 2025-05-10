@@ -2,11 +2,12 @@ from django.db import models
 from django.contrib.auth.models import User
 from django_jalali.db import models as jmodels
 from django.db.models import Sum
+from django_jalali.db import models as jmodels
 
 
 class WeeklyAttendance(models.Model):
     employee = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کارمند")
-    week_start_date = models.DateField(verbose_name="تاریخ شروع هفته")  # تاریخ شروع هفته (شنبه)
+    week_start_date = jmodels.jDateField(verbose_name="تاریخ شروع هفته")  # تاریخ شروع هفته (شنبه)
     day = models.CharField(max_length=10, verbose_name="روز", null=True, blank=True)  # روز خاص
     saturday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات شنبه", null=True, blank=True)
     sunday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات یکشنبه", null=True, blank=True)
@@ -39,7 +40,20 @@ class WeeklyAttendance(models.Model):
         return self.user1_approved and self.user2_approved and self.approved_by_admin
     
     def save(self, *args, **kwargs):
-        self.calculate_total_hours()
+        if self.day and not self.day.endswith('شنبه'):  # اگر روز هفته با 'شنبه' تمام نشده باشد
+            # تبدیل به فرمت صحیح
+            day_mapping = {
+                'شنبه': 'شنبه',
+                'یکشنبه': 'یکشنبه',
+                'دوشنبه': 'دوشنبه',
+                'سه‌شنبه': 'سه‌شنبه',
+                'چهارشنبه': 'چهارشنبه',
+                'پنج‌شنبه': 'پنج‌شنبه',
+                'جمعه': 'جمعه'
+            }
+            self.day = day_mapping.get(self.day, self.day)
+
+        
         super().save(*args, **kwargs)
         from .EmployeeAttendanceModel import MonthlyAttendance
         MonthlyAttendance.update_monthly_hours(self.employee, self.week_start_date)

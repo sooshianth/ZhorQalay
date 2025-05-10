@@ -8,60 +8,68 @@ import csv
 from django.http import HttpResponse
 from datetime import datetime, timedelta
 import jdatetime
-
 from django.utils.timezone import datetime
 import jdatetime
 
-# ...existing code...
 @login_required
 def daily_attendance_view(request):
     if request.method == 'POST':
-        form = DailyAttendanceForm(request.POST)
+        form = DailyAttendanceForm(request.POST, user=request.user)
         if form.is_valid():
-            date = form.cleaned_data['date']
-            hours = form.cleaned_data['hours']
-            description = form.cleaned_data['description']
-            approved_by_user1 = form.cleaned_data['approved_by_user1']
-            approved_by_user2 = form.cleaned_data['approved_by_user2']
+            try:
+                date = form.cleaned_data['date']
+                hours = form.cleaned_data['hours']
+                description = form.cleaned_data['description']
+                approved_by_user1 = form.cleaned_data['approved_by_user1']
+                approved_by_user2 = form.cleaned_data['approved_by_user2']
 
-            # نگاشت روز هفته به فیلد مدل
-            weekday_map = {
-                5: 'saturday_hours',   # شنبه
-                6: 'sunday_hours',     # یکشنبه
-                0: 'monday_hours',     # دوشنبه
-                1: 'tuesday_hours',    # سه‌شنبه
-                2: 'wednesday_hours',  # چهارشنبه
-                3: 'thursday_hours',   # پنج‌شنبه
-                4: 'friday_hours',     # جمعه
-            }
-            weekday_names = ['دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه', 'شنبه', 'یکشنبه']
-            weekday_index = date.weekday()
-            field_name = weekday_map[weekday_index]
-            day_of_week = weekday_names[weekday_index]
+                # تبدیل تاریخ میلادی به جلالی
+                jalali_date = jdatetime.date.fromgregorian(date=date)
+                weekday_names = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه']
+                day_of_week = weekday_names[jalali_date.weekday()]
 
-            attendance, created = WeeklyAttendance.objects.get_or_create(
-                employee=request.user,
-                week_start_date=date - timedelta(days=date.weekday()),
-                defaults={
-                    'approved_by_user1': approved_by_user1,
-                    'approved_by_user2': approved_by_user2,
-                    'user1_approved': False,
-                    'user2_approved': False,
-                    'approved_by_admin': False,
+                # محاسبه تاریخ شروع هفته (شنبه همان هفته)
+                week_start_date = date - timedelta(days=(date.weekday() + 2) % 7)
+                
+                # ایجاد یا به‌روزرسانی رکورد حضور
+                attendance, created = WeeklyAttendance.objects.update_or_create(
+                    employee=request.user,
+                    week_start_date=week_start_date,
+                    defaults={
+                        'approved_by_user1': approved_by_user1,
+                        'approved_by_user2': approved_by_user2,
+                        'user1_approved': False,
+                        'user2_approved': False,
+                        'approved_by_admin': False,
+                        'description': description,
+                        'day': day_of_week
+                    }
+                )
+                
+                # تنظیم ساعات کاری برای روز مربوطه
+                weekday_map = {
+                    0: 'saturday_hours',
+                    1: 'sunday_hours',
+                    2: 'monday_hours',
+                    3: 'tuesday_hours',
+                    4: 'wednesday_hours',
+                    5: 'thursday_hours',
+                    6: 'friday_hours'
                 }
-            )
-            # اگر رکورد جدید نیست، تاییدکننده‌ها را آپدیت کن ولی وضعیت تایید را ریست نکن
-            if not created:
-                attendance.approved_by_user1 = approved_by_user1
-                attendance.approved_by_user2 = approved_by_user2
-            setattr(attendance, field_name, hours)
-            attendance.day = day_of_week
-            attendance.description = description
-            attendance.save()
+                setattr(attendance, weekday_map[jalali_date.weekday()], hours)
+                attendance.save()
 
-            return JsonResponse({'success': True, 'message': f'ساعات کاری برای {day_of_week} با موفقیت ثبت شد!'})
-        else:
-            return JsonResponse({'success': False, 'errors': form.errors})
+                return JsonResponse({
+                    'success': True,
+                    'message': f'ساعات کاری برای {day_of_week} با موفقیت ثبت شد!',
+                    'day_of_week': day_of_week
+                }, json_dumps_params={'ensure_ascii': False})
+                
+            except Exception as e:
+                return JsonResponse({
+                    'success': False,
+                    'errors': str(e)
+                })
     else:
         form = DailyAttendanceForm(user=request.user)
 

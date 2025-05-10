@@ -32,37 +32,48 @@ class WeeklyAttendanceForm(forms.ModelForm):
             'description': 'توضیحات',
         }
 
-
 from django import forms
-from django.contrib.auth.models import User
 from HR.EmployeeAttendanceModel import WeeklyAttendance
+from django.contrib.auth.models import User
+from django.utils.translation import gettext_lazy as _
+import jdatetime
 
 class DailyAttendanceForm(forms.Form):
     date = forms.DateField(
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-        label="تاریخ"
+        widget=forms.DateInput(attrs={
+            'type': 'date', 
+            'class': 'form-control',
+            'id': 'attendance-date'
+        }),
+        label="تاریخ",
+        input_formats=['%Y-%m-%d']
     )
     hours = forms.DecimalField(
         max_digits=5,
         decimal_places=2,
-        widget=forms.NumberInput(attrs={'class': 'form-control'}),
-        label="ساعات کاری"
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'readonly': 'readonly',
+            'id': 'total-hours-field'
+        }),
+        label="ساعات کاری",
+        initial=0
     )
     description = forms.CharField(
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         required=False,
-        label="توضیحات"
+        label=_("توضیحات")
     )
     approved_by_user1 = forms.ModelChoiceField(
         queryset=User.objects.all(),
         required=True,
-        label="تأیید توسط کاربر ۱",
+        label=_("تأیید توسط کاربر ۱"),
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     approved_by_user2 = forms.ModelChoiceField(
         queryset=User.objects.all(),
         required=True,
-        label="تأیید توسط کاربر ۲",
+        label=_("تأیید توسط کاربر ۲"),
         widget=forms.Select(attrs={'class': 'form-control'})
     )
 
@@ -72,3 +83,7 @@ class DailyAttendanceForm(forms.Form):
         if user:
             self.fields['approved_by_user1'].queryset = User.objects.exclude(is_superuser=True).exclude(id=user.id)
             self.fields['approved_by_user2'].queryset = User.objects.exclude(is_superuser=True).exclude(id=user.id)
+        
+        # مقداردهی اولیه تاریخ به امروز در تقویم جلالی
+        today = jdatetime.date.today()
+        self.fields['date'].initial = today.strftime('%Y-%m-%d')
