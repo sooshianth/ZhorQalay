@@ -197,7 +197,7 @@ def get_all_purchases_by_date_range(start_date, end_date):
         cottage_number = purchase_data.get('kutajnumber', purchase_data.get('goodno', 'نامشخص'))
         
         # استخراج وزن سفارش
-        order_weight = int(purchase_data.get('qty', purchase_data.get('orderedweight', 0)) or 0)
+        order_weight = int(purchase_data.get('weighttakhsis', purchase_data.get('qty', purchase_data.get('orderedweight', 0))) or 0)
         
         # استخراج وزن تحویلی
         delivered_weight = int(purchase_data.get('wbarnamehshode', purchase_data.get('faktorshode', purchase_data.get('weight', 0))) or 0)

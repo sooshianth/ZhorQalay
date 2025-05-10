@@ -6,7 +6,9 @@ from django.db import transaction
 from django.core.exceptions import ValidationError
 from core._models import Purchase
 from core.PurchaseModel import PurchaseHistory, PurchaseStateChange, ShenaseTakhsis, PurchaseReceipts
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
+from django.template.loader import get_template
+from django.utils import timezone
 import io
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -26,6 +28,15 @@ from django.utils.text import slugify
 import mimetypes
 from django.utils import timezone
 from ERP.models.NotificationService import NotificationService
+from core.SalesAgentModel import SalesAgent
+import base64
+from xhtml2pdf import pisa
+from django.core.cache import cache
+from django.db import transaction
+import datetime
+from bki_api.views import merge_purchases_view
+from django.http import HttpRequest, QueryDict
+import json
 
 try:
     import arabic_reshaper
@@ -965,5 +976,96 @@ def upload_purchase_document(request, purchase_id):
                 messages.success(request, 'سند با موفقیت بارگذاری شد')
         except Exception as e:
             messages.error(request, f'خطا در بارگذاری سند: {str(e)}')
+    
+    return redirect('purchase_CRUD', purchase_id=purchase_id)
+
+@login_required
+def link_bazaargah_purchase(request, purchase_id):
+    """
+    ارتباط دادن خرید موجود با خرید بازارگاه از طریق شماره خرید
+    """
+    purchase = get_object_or_404(Purchase, id=purchase_id)
+    user_role = determine_user_role(request.user)
+    
+    # بررسی دسترسی کاربر
+    if user_role not in ['sales_agent', 'admin']:
+        messages.error(request, 'شما اجازه انجام این عملیات را ندارید')
+        return redirect('purchase_CRUD', purchase_id=purchase_id)
+    
+    # بررسی دسترسی کارشناس فروش به خرید
+    # if user_role == 'sales_agent':
+    #     sales_agent = SalesAgent.objects.get(user=request.user)
+    #     if not purchase.sales_agent.filter(id=sales_agent.id).exists():
+    #         messages.error(request, 'شما اجازه دسترسی به این خرید را ندارید')
+    #         return redirect('purchase_CRUD', purchase_id=purchase_id)
+    
+    # بررسی نوع درخواست
+    if request.method != 'POST':
+        messages.error(request, 'درخواست نامعتبر')
+        return redirect('purchase_CRUD', purchase_id=purchase_id)
+        
+    purchase_number = request.POST.get('purchase_number')
+    
+    if not purchase_number:
+        messages.error(request, 'شماره خرید بازارگاه الزامی است')
+        return redirect('purchase_CRUD', purchase_id=purchase_id)
+    
+    # بررسی اینکه آیا خرید مورد نظر قبلا شماره خرید دارد یا خیر
+    if purchase.purchase_number:
+        messages.error(request, 'این خرید قبلا به خرید بازارگاه متصل شده است')
+        return redirect('purchase_CRUD', purchase_id=purchase_id)
+    
+    # جستجوی خرید بازارگاه با شماره خرید داده شده
+    api_purchase = Purchase.objects.filter(purchase_number=purchase_number, type='bazaargah').first()
+    
+    if not api_purchase:
+        messages.error(request, f'خریدی با شماره {purchase_number} در سیستم یافت نشد. ممکن است هنوز توسط API بازارگاه دریافت نشده باشد.')
+        return redirect('purchase_CRUD', purchase_id=purchase_id)
+    
+    # بررسی محدودیت زمانی 24 ساعت
+    time_threshold = timezone.now() - datetime.timedelta(hours=24)
+    if api_purchase.created_at < time_threshold:
+        messages.error(request, 'امکان ادغام خرید‌های بازارگاه با عمر بیشتر از 24 ساعت وجود ندارد.')
+        return redirect('purchase_CRUD', purchase_id=purchase_id)
+    
+    # بررسی که خرید انتخاب شده توسط خود کاربر ایجاد نشده باشد
+    if user_role == 'sales_agent':
+        sales_agent = SalesAgent.objects.get(user=request.user)
+        if api_purchase.sales_agent.filter(id=sales_agent.id).exists():
+            messages.error(request, 'این خرید بازارگاه توسط شما ایجاد شده است و نیازی به ادغام ندارد')
+            return redirect('purchase_CRUD', purchase_id=purchase_id)
+
+    # ارسال درخواست به API برای ادغام خریدها
+    try:
+        # ساخت یک درخواست مشابه برای ارسال به تابع
+        merge_request = HttpRequest()
+        merge_request.method = 'POST'
+        merge_request.user = request.user
+        
+        # انتقال کوکی‌ها و هدرها برای حفظ احراز هویت
+        merge_request.COOKIES = request.COOKIES
+        merge_request.META = request.META
+        
+        # ایجاد داده‌های POST
+        post_data = QueryDict('', mutable=True)
+        post_data.update({
+            'agent_purchase_id': purchase.id,
+            'api_purchase_id': api_purchase.id
+        })
+        merge_request.POST = post_data
+        
+        # فراخوانی مستقیم تابع
+        merge_response = merge_purchases_view(merge_request)
+        
+        # بررسی پاسخ
+        response_data = json.loads(merge_response.content)
+        
+        if merge_response.status_code == 200 and response_data.get('success'):
+            messages.success(request, 'خرید با موفقیت با خرید بازارگاه ادغام شد')
+        else:
+            error_message = response_data.get('error', 'خطای نامشخص در ادغام خریدها')
+            messages.error(request, f'خطا در ادغام خریدها: {error_message}')
+    except Exception as e:
+        messages.error(request, f'خطا در ارتباط با سرور: {str(e)}')
     
     return redirect('purchase_CRUD', purchase_id=purchase_id)

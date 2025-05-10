@@ -120,8 +120,16 @@ class OTPLoginForm(forms.Form):
                 # Code is correct, find and authenticate the user
                 user = self.find_user_by_phone(phone)
                 if not user:
+                    # Clear the cooldown cache for this phone number
+                    cooldown_key = f"cooldown_{phone}"
+                    cooldown_expires_key = f"cooldown_expires_{phone}"
+                    cache.delete(cooldown_key)
+                    cache.delete(cooldown_expires_key)
+                    cache.delete(f"otp_{phone}")  # Also clear the OTP to force a new code request
+                    
+                    # Return a special value to indicate phone number reset needed
                     raise forms.ValidationError(f"شماره موبایل {phone} در سیستم یافت نشد")
-                
+                    
                 if user and request:
                     login(request, user)
                 return user is not None

@@ -7,10 +7,13 @@ from dotenv import load_dotenv
 from .models import BKILog
 from django.views.decorators.csrf import csrf_exempt
 from core.decorators.decorators import role_required
-from .bki_api_utils import get_purchase_info, bulk_update_purchase_info, send_soap_request, get_all_bazaargah_purchases, process_purchase_data_new #process_purchase_data
+from .bki_api_utils import get_purchase_info, bulk_update_purchase_info, send_soap_request, get_all_bazaargah_purchases, process_purchase_data_new
 from .bki_kharid_list_by_date import send_kharid_list_by_date_request, get_all_purchases_by_date_range
 from core.PurchaseModel import Purchase
 from jdatetime import datetime as jdatetime
+from django.db import transaction
+from django.utils import timezone
+import datetime
 
 def update_env_file(key, value):
     """به‌روزرسانی یک کلید مشخص در فایل .env"""
@@ -476,4 +479,183 @@ def get_all_bazaargah_purchases_view(request):
         log_entry.save()
         
         return redirect('bki_api:credentials')
+
+@role_required('sales_agent', 'admin')
+@csrf_exempt
+def merge_purchases_view(request):
+    """
+    ادغام خرید ایجاد شده توسط کارشناس فروش با خرید ایجاد شده توسط API بازارگاه
+    
+    این تابع دو خرید را ادغام می‌کند:
+    1. خریدی که کارشناس فروش ایجاد کرده و پیامکش را ارسال کرده
+    2. خریدی که از طریق API بازارگاه شناسایی و ایجاد شده
+    
+    مقادیر invoice_id و customer از خرید کارشناس فروش حفظ می‌شوند
+    و سایر اطلاعات از خرید API بازارگاه گرفته می‌شود.
+    """
+    if request.method != 'POST':
+        return JsonResponse({
+            'success': False,
+            'error': 'درخواست باید با متد POST ارسال شود'
+        }, status=405)
+    
+    # دریافت شناسه‌های خرید
+    try:
+        agent_purchase_id = request.POST.get('agent_purchase_id')
+        api_purchase_id = request.POST.get('api_purchase_id')
+        
+        if not agent_purchase_id or not api_purchase_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'هر دو شناسه خرید الزامی هستند'
+            }, status=400)
+            
+        # تبدیل به عدد
+        agent_purchase_id = int(agent_purchase_id)
+        api_purchase_id = int(api_purchase_id)
+    except (ValueError, TypeError):
+        return JsonResponse({
+            'success': False,
+            'error': 'فرمت شناسه‌های خرید نامعتبر است'
+        }, status=400)
+    
+    # دریافت خریدها
+    from core.PurchaseModel import Purchase, PurchaseHistory, PuchaseSalesAgent
+    
+    try:
+        agent_purchase = Purchase.objects.get(id=agent_purchase_id)
+        api_purchase = Purchase.objects.get(id=api_purchase_id)
+    except Purchase.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'یک یا هر دو خرید مورد نظر یافت نشد'
+        }, status=404)
+    
+    # بررسی دسترسی کارشناس فروش به خرید خودش
+    if not request.user.is_superuser:
+        sales_agent = None
+        try:
+            from core.SalesAgentModel import SalesAgent
+            sales_agent = SalesAgent.objects.get(user=request.user)
+        except SalesAgent.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'کاربر جاری کارشناس فروش نیست'
+            }, status=403)
+            
+        # بررسی دسترسی کارشناس فروش به خرید
+        # if not agent_purchase.sales_agent.filter(id=sales_agent.id).exists():
+        #     return JsonResponse({
+        #         'success': False,
+        #         'error': 'شما اجازه دسترسی به این خرید را ندارید'
+        #     }, status=403)
+    
+    # بررسی این که خرید API از نوع بازارگاه باشد
+    if api_purchase.type != 'bazaargah':
+        return JsonResponse({
+            'success': False,
+            'error': 'خرید API باید از نوع بازارگاه باشد'
+        }, status=400)
+    
+    # بررسی وجود شماره خرید بازارگاه در خرید API
+    if not api_purchase.purchase_number:
+        return JsonResponse({
+            'success': False,
+            'error': 'خرید API باید دارای شماره خرید بازارگاه باشد'
+        }, status=400)
+    
+    # بررسی زمان ایجاد خرید API (محدودیت 24 ساعت)
+    time_threshold = timezone.now() - datetime.timedelta(hours=24)
+    if api_purchase.created_at < time_threshold:
+        return JsonResponse({
+            'success': False,
+            'error': 'خرید‌های بازارگاه با عمر بیشتر از 24 ساعت قابل ادغام نیستند'
+        }, status=400)
+    
+    # ایجاد تراکنش برای ادغام خریدها
+    with transaction.atomic():
+        # ذخیره مقادیر مهم از خرید کارشناس فروش
+        invoice_id = agent_purchase.invoice_id
+        customer = agent_purchase.customer
+        sales_agents = list(agent_purchase.sales_agent.all())
+        
+        # لاگ تغییرات
+        PurchaseHistory.objects.create(
+            purchase=agent_purchase,
+            user=request.user,
+            changes=f"ادغام با خرید API بازارگاه با شناسه {api_purchase.id} و شماره خرید {api_purchase.purchase_number}"
+        )
+        
+        # مقادیری که از خرید API گرفته می‌شوند
+        # به‌روزرسانی فیلدهای خرید کارشناس فروش با مقادیر خرید API
+        fields_to_update = [
+            'purchase_number', 'tracking_number', 'shenase_takhsis',
+            'code_melli_tahvil', 'bazaargah_phone_number', 'buyer_name',
+            'tahvil_phone_number', 'barnameh', 'order_weight',
+            'delivered_weight', 'cargo', 'amount_paid', 'payment_method',
+            'address', 'state'
+        ]
+        
+        # کپی مقادیر از خرید API به خرید کارشناس فروش
+        for field in fields_to_update:
+            setattr(agent_purchase, field, getattr(api_purchase, field))
+        
+        # حفظ invoice_id و customer از خرید کارشناس فروش
+        agent_purchase.invoice_id = invoice_id
+        agent_purchase.customer = customer
+        
+        # ذخیره تغییرات
+        agent_purchase.save()
+        
+        # بازگرداندن کارشناس فروش‌های اصلی
+        agent_purchase.sales_agent.clear()
+        for agent in sales_agents:
+            PuchaseSalesAgent.objects.create(
+                purchase=agent_purchase,
+                sales_agent=agent
+            )
+            
+        # انتقال شناسه‌های تخصیص از خرید API به خرید ادغام شده
+        from core.PurchaseModel import ShenaseTakhsis
+        api_allocation_ids = ShenaseTakhsis.objects.filter(purchase=api_purchase)
+        
+        # حذف شناسه‌های تخصیص فعلی خرید کارشناس فروش
+        ShenaseTakhsis.objects.filter(purchase=agent_purchase).delete()
+        
+        # افزودن شناسه‌های تخصیص از خرید API
+        for allocation in api_allocation_ids:
+            ShenaseTakhsis.objects.create(
+                purchase=agent_purchase,
+                code=allocation.code,
+                weight=allocation.weight
+            )
+        
+        # رسیدهای خرید
+        from core.PurchaseModel import PurchaseReceipts
+        api_receipts = PurchaseReceipts.objects.filter(purchase=api_purchase)
+        
+        # انتقال رسیدها به خرید ادغام شده
+        for receipt in api_receipts:
+            # ایجاد یک کپی از رسید در خرید ادغام شده
+            new_receipt = PurchaseReceipts(
+                purchase=agent_purchase,
+                user=receipt.user,
+                reciept_type=receipt.reciept_type,
+                created_at=receipt.created_at
+            )
+            # کپی فایل اگر موجود است
+            if receipt.reciept_file:
+                new_receipt.reciept_file = receipt.reciept_file
+            
+            new_receipt.save()
+        
+        # حذف خرید API
+        api_purchase.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'خرید‌ها با موفقیت ادغام شدند',
+            'purchase_id': agent_purchase.id,
+            'invoice_id': agent_purchase.invoice_id
+        })
 
