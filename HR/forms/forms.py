@@ -1,6 +1,8 @@
 from django import forms
 from HR.EmployeeAttendanceModel import WeeklyAttendance
 from django.contrib.auth.models import User
+from django.utils.translation import gettext_lazy as _
+import jdatetime
 
 class WeeklyAttendanceForm(forms.ModelForm):
     approved_by_user1 = forms.ModelChoiceField(
@@ -23,7 +25,7 @@ class WeeklyAttendanceForm(forms.ModelForm):
             'approved_by_user1', 'approved_by_user2'
         ]
         widgets = {
-            'week_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'week_start_date': forms.TextInput(attrs={'type': 'text', 'class': 'form-control persian-datepicker'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
         labels = {
@@ -32,28 +34,21 @@ class WeeklyAttendanceForm(forms.ModelForm):
             'description': 'توضیحات',
         }
 
-from django import forms
-from HR.EmployeeAttendanceModel import WeeklyAttendance
-from django.contrib.auth.models import User
-from django.utils.translation import gettext_lazy as _
-import jdatetime
-
 class DailyAttendanceForm(forms.Form):
     date = forms.DateField(
-        widget=forms.DateInput(attrs={
-            'type': 'date', 
-            'class': 'form-control',
-            'id': 'attendance-date'
+        widget=forms.TextInput(attrs={
+            'class': 'form-control persian-datepicker',
+            'id': 'attendance-date',
+            'data-date-format': 'yyyy/mm/dd'
         }),
         label="تاریخ",
-        input_formats=['%Y-%m-%d']
+        input_formats=['%Y/%m/%d']
     )
     hours = forms.DecimalField(
         max_digits=5,
         decimal_places=2,
         widget=forms.NumberInput(attrs={
             'class': 'form-control',
-            'readonly': 'readonly',
             'id': 'total-hours-field'
         }),
         label="ساعات کاری",
@@ -83,7 +78,25 @@ class DailyAttendanceForm(forms.Form):
         if user:
             self.fields['approved_by_user1'].queryset = User.objects.exclude(is_superuser=True).exclude(id=user.id)
             self.fields['approved_by_user2'].queryset = User.objects.exclude(is_superuser=True).exclude(id=user.id)
-        
-        # مقداردهی اولیه تاریخ به امروز در تقویم جلالی
+
+        # تنظیم مقدار اولیه تاریخ به امروز (تقویم جلالی)
         today = jdatetime.date.today()
-        self.fields['date'].initial = today.strftime('%Y-%m-%d')
+        self.fields['date'].widget.attrs['value'] = today.strftime('%Y/%m/%d')
+
+    def clean_date(self):
+        date_str = self.cleaned_data.get('date')
+        if not date_str:
+            raise forms.ValidationError("لطفاً یک تاریخ وارد کنید.")
+
+        # اگر تاریخ به صورت رشته باشد (مانند خروجی persian-datepicker)
+        if isinstance(date_str, str):
+            try:
+                # جایگزینی جداکننده‌های احتمالی (مانند . یا -)
+                date_str = date_str.replace('.', '/').replace('-', '/').strip()
+                # تبدیل تاریخ جلالی به گرگوری
+                jalali_date = jdatetime.date.strptime(date_str, '%Y/%m/%d')
+                gregorian_date = jalali_date.togregorian()
+                return gregorian_date
+            except ValueError:
+                raise forms.ValidationError("لطفاً تاریخ را به فرمت معتبر (مثلاً 1404/02/20) وارد کنید.")
+        return date_str

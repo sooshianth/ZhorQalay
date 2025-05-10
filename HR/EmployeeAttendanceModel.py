@@ -2,21 +2,19 @@ from django.db import models
 from django.contrib.auth.models import User
 from django_jalali.db import models as jmodels
 from django.db.models import Sum
-from django_jalali.db import models as jmodels
-
 
 class WeeklyAttendance(models.Model):
     employee = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کارمند")
     week_start_date = jmodels.jDateField(verbose_name="تاریخ شروع هفته")  # تاریخ شروع هفته (شنبه)
     day = models.CharField(max_length=10, verbose_name="روز", null=True, blank=True)  # روز خاص
-    saturday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات شنبه", null=True, blank=True)
-    sunday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات یکشنبه", null=True, blank=True)
-    monday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات دوشنبه", null=True, blank=True)
-    tuesday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات سه‌شنبه", null=True, blank=True)
-    wednesday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات چهارشنبه", null=True, blank=True)
-    thursday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات پنج‌شنبه", null=True, blank=True)
-    friday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات جمعه", null=True, blank=True)
-    total_hours = models.DecimalField(max_digits=6, decimal_places=2, verbose_name="مجموع ساعات", editable=False)
+    saturday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات شنبه", default=0)
+    sunday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات یکشنبه", default=0)
+    monday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات دوشنبه", default=0)
+    tuesday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات سه‌شنبه", default=0)
+    wednesday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات چهارشنبه", default=0)
+    thursday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات پنج‌شنبه", default=0)
+    friday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات جمعه", default=0)
+    total_hours = models.DecimalField(max_digits=6, decimal_places=2, verbose_name="مجموع ساعات", default=0)
     description = models.TextField(verbose_name='توضیحات', null=True, blank=True)
     approved_by_user1 = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="approver1", null=True, blank=True, verbose_name="تایید توسط کاربر 1")
     approved_by_user2 = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="approver2", null=True, blank=True, verbose_name="تایید توسط کاربر 2")
@@ -25,7 +23,8 @@ class WeeklyAttendance(models.Model):
     user2_approved = models.BooleanField(default=False, verbose_name="تایید توسط کاربر 2 انجام شده")
 
     def calculate_total_hours(self):
-        self.total_hours = sum([
+        # جمع ساعات روزانه، با اطمینان از اینکه مقادیر None به 0 تبدیل شوند
+        hours = [
             self.saturday_hours or 0,
             self.sunday_hours or 0,
             self.monday_hours or 0,
@@ -33,15 +32,15 @@ class WeeklyAttendance(models.Model):
             self.wednesday_hours or 0,
             self.thursday_hours or 0,
             self.friday_hours or 0,
-        ])
+        ]
+        self.total_hours = sum(float(hour) for hour in hours)
 
     @property
     def is_fully_approved(self):
         return self.user1_approved and self.user2_approved and self.approved_by_admin
     
     def save(self, *args, **kwargs):
-        if self.day and not self.day.endswith('شنبه'):  # اگر روز هفته با 'شنبه' تمام نشده باشد
-            # تبدیل به فرمت صحیح
+        if self.day and not self.day.endswith('شنبه'):
             day_mapping = {
                 'شنبه': 'شنبه',
                 'یکشنبه': 'یکشنبه',
@@ -52,10 +51,10 @@ class WeeklyAttendance(models.Model):
                 'جمعه': 'جمعه'
             }
             self.day = day_mapping.get(self.day, self.day)
-
         
+        # اطمینان از محاسبه total_hours قبل از ذخیره
+        self.calculate_total_hours()
         super().save(*args, **kwargs)
-        from .EmployeeAttendanceModel import MonthlyAttendance
         MonthlyAttendance.update_monthly_hours(self.employee, self.week_start_date)
 
     class Meta:
@@ -65,7 +64,6 @@ class WeeklyAttendance(models.Model):
 
     def __str__(self):
         return f"{self.employee.username} - {self.week_start_date}"
-    
 
 class MonthlyAttendance(models.Model):
     employee = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کارمند")
@@ -90,10 +88,9 @@ class MonthlyAttendance(models.Model):
 
     def __str__(self):
         return f"{self.employee.username} - {self.month}"
-    
 
 class WorkCalendar(models.Model):
-    date = models.DateField(verbose_name="تاریخ")
+    date = jmodels.jDateField(verbose_name="تاریخ")
     is_holiday = models.BooleanField(default=False, verbose_name="تعطیل")
     working_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات کاری", default=8)
 
@@ -104,7 +101,7 @@ class WorkCalendar(models.Model):
 
     def __str__(self):
         return f"{self.date} - {'تعطیل' if self.is_holiday else f'{self.working_hours} ساعت کاری'}"
-    
+
 class Salary(models.Model):
     employee = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کارمند")
     month = models.CharField(max_length=7, verbose_name="ماه (YYYY-MM)")

@@ -83,3 +83,14 @@ def split(value, arg):
 @register.filter
 def to_persian_digits(value):
     return str(value).replace("0", "۰").replace("1", "۱").replace("2", "۲").replace("3", "۳").replace("4", "۴").replace("5", "۵").replace("6", "۶").replace("7", "۷").replace("8", "۸").replace("9", "۹")
+
+@register.filter
+def sum_attribute(queryset, attribute):
+    return sum(getattr(obj, attribute) for obj in queryset) if queryset else 0
+
+@register.filter
+def average(queryset, attribute):
+    if not queryset or not queryset.exists():
+        return 0
+    total = sum(getattr(obj, attribute) for obj in queryset)
+    return total / queryset.count() if queryset.count() > 0 else 0

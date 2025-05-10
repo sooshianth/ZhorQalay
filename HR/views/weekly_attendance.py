@@ -1,15 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from django.db.models import Q
+from django.contrib import messages
+from django.db.models import Q, Sum
 from ..EmployeeAttendanceModel import WeeklyAttendance, MonthlyAttendance
-from ..forms.forms import WeeklyAttendanceForm, DailyAttendanceForm
+from ..forms.forms import DailyAttendanceForm
 import csv
 from django.http import HttpResponse
-from datetime import datetime, timedelta
-import jdatetime
-from django.utils.timezone import datetime
-import jdatetime
+from datetime import timedelta
+import datetime
 
 @login_required
 def daily_attendance_view(request):
@@ -23,14 +21,13 @@ def daily_attendance_view(request):
                 approved_by_user1 = form.cleaned_data['approved_by_user1']
                 approved_by_user2 = form.cleaned_data['approved_by_user2']
 
-                # تبدیل تاریخ میلادی به جلالی
-                jalali_date = jdatetime.date.fromgregorian(date=date)
-                weekday_names = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه']
-                day_of_week = weekday_names[jalali_date.weekday()]
+                # تبدیل تاریخ گرگوری به فرمت ساده
+                weekday_names = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+                day_of_week = weekday_names[date.weekday()]
 
                 # محاسبه تاریخ شروع هفته (شنبه همان هفته)
                 week_start_date = date - timedelta(days=(date.weekday() + 2) % 7)
-                
+
                 # ایجاد یا به‌روزرسانی رکورد حضور
                 attendance, created = WeeklyAttendance.objects.update_or_create(
                     employee=request.user,
@@ -56,20 +53,23 @@ def daily_attendance_view(request):
                     5: 'thursday_hours',
                     6: 'friday_hours'
                 }
-                setattr(attendance, weekday_map[jalali_date.weekday()], hours)
+                # تنظیم مقدار ساعات برای روز مربوطه
+                setattr(attendance, weekday_map[date.weekday()], hours)
+                # اطمینان از اینکه سایر فیلدها مقدار پیش‌فرض 0 دارند
+                for day in weekday_map.values():
+                    if getattr(attendance, day) is None:
+                        setattr(attendance, day, 0)
+                # محاسبه مجموع ساعات
+                attendance.calculate_total_hours()
                 attendance.save()
 
-                return JsonResponse({
-                    'success': True,
-                    'message': f'ساعات کاری برای {day_of_week} با موفقیت ثبت شد!',
-                    'day_of_week': day_of_week
-                }, json_dumps_params={'ensure_ascii': False})
+                messages.success(request, f'ساعات کاری برای {day_of_week} با موفقیت ثبت شد!')
+                return redirect('weekly_attendance_view')
                 
             except Exception as e:
-                return JsonResponse({
-                    'success': False,
-                    'errors': str(e)
-                })
+                messages.error(request, f'خطا در ثبت اطلاعات: {str(e)}')
+        else:
+            messages.error(request, 'لطفاً فرم را به‌درستی پر کنید.')
     else:
         form = DailyAttendanceForm(user=request.user)
 
@@ -90,12 +90,30 @@ def daily_attendance_view(request):
     if end_date:
         attendances = attendances.filter(week_start_date__lte=end_date)
 
-    return render(request, 'weekly_attendance.html', {'form': form, 'attendances': attendances, 'status':status, 'q':q})
+    # تبدیل تاریخ‌ها به فرمت ساده گرگوری
+    formatted_attendances = []
+    for attendance in attendances:
+        formatted_date = attendance.week_start_date.strftime('%Y-%m-%d')
+        formatted_attendances.append({
+            'week_start_date': formatted_date,
+            'day': attendance.day,
+            'total_hours': attendance.total_hours,
+            'description': attendance.description,
+            'approved_by_admin': attendance.approved_by_admin,
+            'user1_approved': attendance.user1_approved,
+            'user2_approved': attendance.user2_approved,
+            'is_fully_approved': attendance.is_fully_approved,
+        })
 
+    return render(request, 'weekly_attendance.html', {
+        'form': form,
+        'attendances': formatted_attendances,
+        'status': status,
+        'q': q
+    })
 
 @login_required
 def download_attendance_report(request):
-    # دانلود گزارش به‌صورت CSV
     attendances = WeeklyAttendance.objects.filter(employee=request.user).order_by('-week_start_date')
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="attendance_report.csv"'
@@ -104,12 +122,12 @@ def download_attendance_report(request):
     writer.writerow(['تاریخ شروع هفته', 'مجموع ساعات', 'توضیحات', 'تأیید ادمین', 'تأیید کاربر ۱', 'تأیید کاربر ۲'])
     for attendance in attendances:
         writer.writerow([
-            attendance.week_start_date,
+            attendance.week_start_date.strftime('%Y-%m-%d'),
             attendance.total_hours,
             attendance.description,
             '✅' if attendance.approved_by_admin else '❌',
-            '✅' if attendance.approved_by_user1 else '❌',
-            '✅' if attendance.approved_by_user2 else '❌',
+            '✅' if attendance.user1_approved else '❌',
+            '✅' if attendance.user2_approved else '❌',
         ])
 
     return response
@@ -132,8 +150,6 @@ def pending_approvals_view(request):
         'pending_attendances': pending_attendances
     })
 
-from django.contrib import messages
-
 @login_required
 def approve_attendance(request, attendance_id):
     attendance = get_object_or_404(WeeklyAttendance, id=attendance_id)
@@ -141,24 +157,23 @@ def approve_attendance(request, attendance_id):
     if attendance.approved_by_user1 == request.user:
         attendance.user1_approved = True
         attendance.save()
-        messages.success(request, "تایید شما ثبت شد!")
+        messages.success(request, "تأیید شما ثبت شد!")
     elif attendance.approved_by_user2 == request.user:
         attendance.user2_approved = True
         attendance.save()
-        messages.success(request, "تایید شما ثبت شد!")
+        messages.success(request, "تأیید شما ثبت شد!")
     elif request.user.is_superuser:
         attendance.approved_by_admin = True
         attendance.save()
-        messages.success(request, "تایید ادمین ثبت شد!")
+        messages.success(request, "تأیید ادمین ثبت شد!")
     else:
-        messages.error(request, "شما مجاز به تایید این رکورد نیستید.")
+        messages.error(request, "شما مجاز به تأیید این رکورد نیستید.")
         return redirect('pending_approvals')
 
     if attendance.is_fully_approved:
-        messages.success(request, "ساعات کاری با موفقیت تایید شد!")
+        messages.success(request, "ساعات کاری با موفقیت تأیید شد!")
 
     return redirect('pending_approvals')
-from django.db.models import Sum
 
 @login_required
 def attendance_summary_view(request):
@@ -175,9 +190,26 @@ def attendance_summary_view(request):
     weekly_summary = weekly_qs.values('week_start_date').annotate(total_hours=Sum('total_hours')).order_by('-week_start_date')
     monthly_summary = monthly_qs.order_by('-month')
 
+    # محاسبه جمع و میانگین به صورت دستی
+    total_weekly_hours = sum(item['total_hours'] for item in weekly_summary) if weekly_summary else 0
+    total_monthly_hours = sum(item.total_hours for item in monthly_summary) if monthly_summary else 0
+    avg_weekly_hours = total_weekly_hours / len(weekly_summary) if weekly_summary else 0
+
+    # تبدیل تاریخ‌ها به فرمت ساده گرگوری
+    formatted_weekly_summary = []
+    for summary in weekly_summary:
+        formatted_date = summary['week_start_date'].strftime('%Y-%m-%d')
+        formatted_weekly_summary.append({
+            'week_start_date': formatted_date,
+            'total_hours': summary['total_hours']
+        })
+
     return render(request, 'attendance_summary.html', {
-        'weekly_summary': weekly_summary,
+        'weekly_summary': formatted_weekly_summary,
         'monthly_summary': monthly_summary,
         'selected_week': week,
         'selected_month': month,
+        'total_weekly_hours': total_weekly_hours,
+        'total_monthly_hours': total_monthly_hours,
+        'avg_weekly_hours': round(avg_weekly_hours, 2),
     })
