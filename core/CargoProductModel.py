@@ -57,7 +57,7 @@ class CargoProduct(models.Model):
     port = models.CharField(_("محل بارگیری"), max_length=25, choices=PORTS, default='جنوب')
     loading_time = models.CharField(_('زمان بارگیری'), max_length=50, null=True, blank=True)
     description = models.CharField(_('توضیحات'), max_length=300, null=True, blank=True)
-    weight = models.PositiveIntegerField(_('وزن موجود'), default=100000000)
+    weight = models.PositiveIntegerField(_('وزن موجود'), default=100000000, null=True, blank=True)
     created_at = jmodels.jDateTimeField(_('تاریخ ثبت'), auto_now_add=True)
     last_modified = jmodels.jDateTimeField(_('تاریخ آخرین ویرایش'), auto_now=True)
     status = models.BooleanField(_('فعال/غیرفعال'), default=True)

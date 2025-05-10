@@ -1,0 +1,196 @@
+<?xml version="1.0" ?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <soap:Body>
+    <getOstanListResponse xmlns="http://tempuri.org/">
+      <getOstanListResult>
+        <xs:schema xmlns="" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" id="NewDataSet">
+          <xs:element name="NewDataSet" msdata:IsDataSet="true" msdata:UseCurrentLocale="true">
+            <xs:complexType>
+              <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <xs:element name="Table1">
+                  <xs:complexType>
+                    <xs:sequence>
+                      <xs:element name="bazargahostancode" type="xs:long" minOccurs="0"/>
+                      <xs:element name="vezaratostancode" type="xs:int" minOccurs="0"/>
+                      <xs:element name="nameostan" type="xs:string" minOccurs="0"/>
+                      <xs:element name="ErrorCode" type="xs:string" minOccurs="0"/>
+                      <xs:element name="ErrorMsg" type="xs:string" minOccurs="0"/>
+                    </xs:sequence>
+                  </xs:complexType>
+                </xs:element>
+              </xs:choice>
+            </xs:complexType>
+          </xs:element>
+        </xs:schema>
+        <diffgr:diffgram xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" xmlns:diffgr="urn:schemas-microsoft-com:xml-diffgram-v1">
+          <NewDataSet xmlns="">
+            <Table1 diffgr:id="Table11" msdata:rowOrder="0" diffgr:hasChanges="inserted">
+              <bazargahostancode>1</bazargahostancode>
+              <vezaratostancode>0</vezaratostancode>
+              <nameostan>مركزی</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table12" msdata:rowOrder="1" diffgr:hasChanges="inserted">
+              <bazargahostancode>2</bazargahostancode>
+              <vezaratostancode>1</vezaratostancode>
+              <nameostan>گیلان</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table13" msdata:rowOrder="2" diffgr:hasChanges="inserted">
+              <bazargahostancode>3</bazargahostancode>
+              <vezaratostancode>2</vezaratostancode>
+              <nameostan>مازندران</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table14" msdata:rowOrder="3" diffgr:hasChanges="inserted">
+              <bazargahostancode>4</bazargahostancode>
+              <vezaratostancode>3</vezaratostancode>
+              <nameostan>آذربایجان شرقی</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table15" msdata:rowOrder="4" diffgr:hasChanges="inserted">
+              <bazargahostancode>5</bazargahostancode>
+              <vezaratostancode>4</vezaratostancode>
+              <nameostan>آذربایجان غربی</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table16" msdata:rowOrder="5" diffgr:hasChanges="inserted">
+              <bazargahostancode>6</bazargahostancode>
+              <vezaratostancode>5</vezaratostancode>
+              <nameostan>كرمانشاه</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table17" msdata:rowOrder="6" diffgr:hasChanges="inserted">
+              <bazargahostancode>7</bazargahostancode>
+              <vezaratostancode>6</vezaratostancode>
+              <nameostan>خوزستان</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table18" msdata:rowOrder="7" diffgr:hasChanges="inserted">
+              <bazargahostancode>8</bazargahostancode>
+              <vezaratostancode>7</vezaratostancode>
+              <nameostan>فارس</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table19" msdata:rowOrder="8" diffgr:hasChanges="inserted">
+              <bazargahostancode>9</bazargahostancode>
+              <vezaratostancode>8</vezaratostancode>
+              <nameostan>كرمان</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table110" msdata:rowOrder="9" diffgr:hasChanges="inserted">
+              <bazargahostancode>10</bazargahostancode>
+              <vezaratostancode>9</vezaratostancode>
+              <nameostan>خراسان رضوی</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table111" msdata:rowOrder="10" diffgr:hasChanges="inserted">
+              <bazargahostancode>11</bazargahostancode>
+              <vezaratostancode>10</vezaratostancode>
+              <nameostan>اصفهان</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table112" msdata:rowOrder="11" diffgr:hasChanges="inserted">
+              <bazargahostancode>12</bazargahostancode>
+              <vezaratostancode>11</vezaratostancode>
+              <nameostan>سیستان و بلوچستان</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table113" msdata:rowOrder="12" diffgr:hasChanges="inserted">
+              <bazargahostancode>13</bazargahostancode>
+              <vezaratostancode>12</vezaratostancode>
+              <nameostan>كردستان</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table114" msdata:rowOrder="13" diffgr:hasChanges="inserted">
+              <bazargahostancode>14</bazargahostancode>
+              <vezaratostancode>13</vezaratostancode>
+              <nameostan>همدان</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table115" msdata:rowOrder="14" diffgr:hasChanges="inserted">
+              <bazargahostancode>15</bazargahostancode>
+              <vezaratostancode>14</vezaratostancode>
+              <nameostan>چهارمحال و بختیاری</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table116" msdata:rowOrder="15" diffgr:hasChanges="inserted">
+              <bazargahostancode>16</bazargahostancode>
+              <vezaratostancode>15</vezaratostancode>
+              <nameostan>لرستان</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table117" msdata:rowOrder="16" diffgr:hasChanges="inserted">
+              <bazargahostancode>17</bazargahostancode>
+              <vezaratostancode>16</vezaratostancode>
+              <nameostan>ایلام</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table118" msdata:rowOrder="17" diffgr:hasChanges="inserted">
+              <bazargahostancode>18</bazargahostancode>
+              <vezaratostancode>17</vezaratostancode>
+              <nameostan>كهكیلویه و بویراحمد</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table119" msdata:rowOrder="18" diffgr:hasChanges="inserted">
+              <bazargahostancode>19</bazargahostancode>
+              <vezaratostancode>18</vezaratostancode>
+              <nameostan>بوشهر</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table120" msdata:rowOrder="19" diffgr:hasChanges="inserted">
+              <bazargahostancode>20</bazargahostancode>
+              <vezaratostancode>19</vezaratostancode>
+              <nameostan>زنجان</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table121" msdata:rowOrder="20" diffgr:hasChanges="inserted">
+              <bazargahostancode>21</bazargahostancode>
+              <vezaratostancode>20</vezaratostancode>
+              <nameostan>سمنان</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table122" msdata:rowOrder="21" diffgr:hasChanges="inserted">
+              <bazargahostancode>22</bazargahostancode>
+              <vezaratostancode>21</vezaratostancode>
+              <nameostan>یزد</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table123" msdata:rowOrder="22" diffgr:hasChanges="inserted">
+              <bazargahostancode>23</bazargahostancode>
+              <vezaratostancode>22</vezaratostancode>
+              <nameostan>هرمزگان</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table124" msdata:rowOrder="23" diffgr:hasChanges="inserted">
+              <bazargahostancode>24</bazargahostancode>
+              <vezaratostancode>23</vezaratostancode>
+              <nameostan>تهران</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table125" msdata:rowOrder="24" diffgr:hasChanges="inserted">
+              <bazargahostancode>25</bazargahostancode>
+              <vezaratostancode>24</vezaratostancode>
+              <nameostan>اردبیل</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table126" msdata:rowOrder="25" diffgr:hasChanges="inserted">
+              <bazargahostancode>26</bazargahostancode>
+              <vezaratostancode>25</vezaratostancode>
+              <nameostan>قم</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table127" msdata:rowOrder="26" diffgr:hasChanges="inserted">
+              <bazargahostancode>27</bazargahostancode>
+              <vezaratostancode>26</vezaratostancode>
+              <nameostan>قزوین</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table128" msdata:rowOrder="27" diffgr:hasChanges="inserted">
+              <bazargahostancode>28</bazargahostancode>
+              <vezaratostancode>27</vezaratostancode>
+              <nameostan>گلستان</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table129" msdata:rowOrder="28" diffgr:hasChanges="inserted">
+              <bazargahostancode>29</bazargahostancode>
+              <vezaratostancode>28</vezaratostancode>
+              <nameostan>خراسان شمالی</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table130" msdata:rowOrder="29" diffgr:hasChanges="inserted">
+              <bazargahostancode>30</bazargahostancode>
+              <vezaratostancode>29</vezaratostancode>
+              <nameostan>خراسان جنوبی</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table131" msdata:rowOrder="30" diffgr:hasChanges="inserted">
+              <bazargahostancode>31</bazargahostancode>
+              <vezaratostancode>30</vezaratostancode>
+              <nameostan>البرز</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table132" msdata:rowOrder="31" diffgr:hasChanges="inserted">
+              <bazargahostancode>32</bazargahostancode>
+              <vezaratostancode>31</vezaratostancode>
+              <nameostan>جنوب استان كرمان</nameostan>
+            </Table1>
+            <Table1 diffgr:id="Table133" msdata:rowOrder="32" diffgr:hasChanges="inserted">
+              <ErrorCode>0</ErrorCode>
+              <ErrorMsg/>
+            </Table1>
+          </NewDataSet>
+        </diffgr:diffgram>
+      </getOstanListResult>
+    </getOstanListResponse>
+  </soap:Body>
+</soap:Envelope>

@@ -45,9 +45,9 @@ class SalesAgent(models.Model):
         
         # فیلتر بر اساس وضعیت پرداخت
         paid_states = [
-            'PAYMENT_VERIFIED', 'ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 
+            'PAYMENT_VERIFIED', 'ALLOCATION_APPROVED', 
             'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 
-            'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED',
+            'BARNAMEH_ISSUED', 'BARNAMEH_INCOMPLETE', 'DELIVERED', 'DIFFERENCE_APPROVED',
             'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED',
             'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED',
             'FINANCIAL_APPROVED', 'COMPLETED'
@@ -107,7 +107,7 @@ class SalesAgent(models.Model):
         start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         
         # وضعیت‌های پرداخت نشده
-        unpaid_states = ['INITIATED', 'SMS_SENT', 'BAZAARGAH_CONFIRMED']
+        unpaid_states = ['INITIATED', 'SMS_SENT']
         
         filters = Q(created_at__gte=start_of_month, created_at__lte=timezone.now())
         filters &= Q(state__in=unpaid_states)
@@ -122,7 +122,7 @@ class SalesAgent(models.Model):
     def get_all_unpaid_sales(self):
         """دریافت همه خریدهای پرداخت نشده صرف نظر از وضعیت آرشیو."""
         # وضعیت‌های پرداخت نشده
-        unpaid_states = ['INITIATED', 'SMS_SENT', 'BAZAARGAH_CONFIRMED']
+        unpaid_states = ['INITIATED', 'SMS_SENT']
         
         unpaid_sales = []
         for customer in self.get_all_customers():
@@ -133,9 +133,9 @@ class SalesAgent(models.Model):
         """دریافت همه خریدهای پرداخت شده و غیرآرشیوی."""
         # وضعیت‌های پرداخت شده و فعال
         active_states = [
-            'PAYMENT_VERIFIED', 'ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 
+            'PAYMENT_VERIFIED', 'ALLOCATION_APPROVED', 
             'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 
-            'BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED',
+            'BARNAMEH_ISSUED', 'BARNAMEH_INCOMPLETE', 'DELIVERED', 'DIFFERENCE_APPROVED',
             'SHORTAGE_DEPOSITED', 'SURPLUS_DEPOSITED', 'RECEIPT_SUBMITTED',
             'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED',
             'FINANCIAL_APPROVED', 'COMPLETED'

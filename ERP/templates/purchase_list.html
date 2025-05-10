@@ -42,10 +42,15 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.rtl.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
-</head>
-<body>
 <div class="container py-4">
 <h1 class="mb-4 section-title">لیست خریدها</h1>
+
+<!-- دکمه ویرایش فله‌ای خریدها -->
+<div class="text-start mb-4">
+    <a href="{% url 'bulk_purchase_edit' %}" class="btn btn-primary">
+        <i class="fas fa-edit me-2"></i> پنل ویرایش گروهی خریدها
+    </a>
+</div>
 
 <!-- نوار جستجوی اصلی -->
 <div class="search-panel mb-4">
@@ -129,6 +134,8 @@
                     <span class="table-status-badge bg-danger text-white">فوری</span>
                 {% elif purchase.state == 'DELIVERED' %}
                     <span class="table-status-badge bg-primary text-white">تحویل داده شده</span>
+                {% elif purchase.state == 'BARNAMEH_INCOMPLETE' %}
+                    <span class="table-status-badge bg-warning text-dark">بارنامه ناقص</span>
                 {% elif purchase.state == 'BARNAMEH_ISSUED' %}
                     <span class="table-status-badge bg-info text-white">بارنامه صادر شده</span>
                 {% elif purchase.state == 'SENT_TO_SHIPPING' %}
@@ -139,12 +146,8 @@
                     <span class="table-status-badge bg-info text-white">تسویه با واردکننده</span>
                 {% elif purchase.state == 'ALLOCATION_APPROVED' %}
                     <span class="table-status-badge bg-warning text-dark">تایید تخصیص</span>
-                {% elif purchase.state == 'ALLOCATION_REGISTERED' %}
-                    <span class="table-status-badge bg-warning text-dark">تخصیص شده</span>
                 {% elif purchase.state == 'PAYMENT_VERIFIED' %}
                     <span class="table-status-badge bg-success text-white">پرداخت شده</span>
-                {% elif purchase.state == 'BAZAARGAH_CONFIRMED' %}
-                    <span class="table-status-badge bg-secondary text-white">تایید بازارگاه</span>
                 {% elif purchase.state == 'DIFFERENCE_APPROVED' %}
                     <span class="table-status-badge bg-warning text-dark">تایید اختلاف</span>
                 {% elif purchase.state == 'DIFFERENCE_DEPOSITED' %}

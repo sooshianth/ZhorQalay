@@ -29,7 +29,8 @@ def send_verify_code(number:str):
         return code
     except Exception as e:
         print(f"SMS sending error: {e}")
-        return None
+        # Still return the code even if SMS fails
+        return code
 
 
 class OTPLoginForm(forms.Form):
@@ -77,11 +78,6 @@ class OTPLoginForm(forms.Form):
     def send_otp(self):
         phone = self.cleaned_data.get('phone_number')
         
-        # بررسی شماره موبایل در تمام مدل‌ها بدون توجه به نقش
-        user = self.find_user_by_phone(phone)
-        if not user:
-            raise forms.ValidationError(f"شماره موبایل {phone} در سیستم یافت نشد")
-        
         # Check if there's a cooldown period active
         cooldown_key = f"cooldown_{phone}"
         cooldown_expires_key = f"cooldown_expires_{phone}"
@@ -95,9 +91,11 @@ class OTPLoginForm(forms.Form):
             raise forms.ValidationError(f"لطفا {remaining_seconds} ثانیه صبر کنید تا بتوانید مجددا درخواست کد تایید نمایید")
             
         if phone:
+            # Generate code regardless of user existence in system
             code = send_verify_code(phone)
+            
+            # Store code in session or cache for validation even if SMS failed
             if code:
-                # Store code in session or cache for validation
                 cache.set(f"otp_{phone}", code, timeout=300)  # 5 minute expiry
                 
                 # Set a cooldown period of 2 minutes
@@ -121,6 +119,9 @@ class OTPLoginForm(forms.Form):
             if saved_code == code or code == '830809':
                 # Code is correct, find and authenticate the user
                 user = self.find_user_by_phone(phone)
+                if not user:
+                    raise forms.ValidationError(f"شماره موبایل {phone} در سیستم یافت نشد")
+                
                 if user and request:
                     login(request, user)
                 return user is not None
@@ -130,52 +131,32 @@ class OTPLoginForm(forms.Form):
         """
         پیدا کردن کاربر با شماره موبایل بدون توجه به نقش
         """
-        try:
-            # بررسی تمام مدل‌ها برای یافتن کاربر
-            from core.SalesAgentModel import SalesAgent
-            from core.LogisticsManagerModel import LogisticsManager
-            from core.FinancialManagerModel import FinancialManager
-            from core.SupportAgentModel import SupportAgent
-            from HR.EmployeeModel import Employee
-            
-            # اولویت با مدیر مالی
+        # Import all models at the beginning to avoid repeated imports
+        from core.SalesAgentModel import SalesAgent
+        from core.LogisticsManagerModel import LogisticsManager
+        from core.FinancialManagerModel import FinancialManager
+        from core.SupportAgentModel import SupportAgent
+        from HR.EmployeeModel import Employee
+        
+        models_to_check = [
+            (FinancialManager, 'phone_number'),
+            (LogisticsManager, 'phone_number'),
+            (SalesAgent, 'phone_number'),
+            (SupportAgent, 'phone_number'),
+            (Employee, 'phone_number')
+        ]
+        
+        for model, field_name in models_to_check:
             try:
-                manager = FinancialManager.objects.get(phone_number=phone)
-                return manager.user
-            except (FinancialManager.DoesNotExist, Exception):
-                pass
-                
-            # سپس مدیر لجستیک
-            try:
-                manager = LogisticsManager.objects.get(phone_number=phone)
-                return manager.user
-            except (LogisticsManager.DoesNotExist, Exception):
-                pass
-                
-            # سپس کارشناس فروش
-            try:
-                agent = SalesAgent.objects.get(phone_number=phone)
-                return agent.user
-            except (SalesAgent.DoesNotExist, Exception):
-                pass
-                
-            # سپس کارشناس پشتیبانی
-            try:
-                agent = SupportAgent.objects.get(phone_number=phone)
-                return agent.user
-            except (SupportAgent.DoesNotExist, Exception):
-                pass
-                
-            # در نهایت کارمند
-            try:
-                employee = Employee.objects.get(phone_number=phone)
-                return employee.user
-            except (Employee.DoesNotExist, Exception):
-                pass
-                
-        except Exception as e:
-            print(f"Error finding user: {e}")
-            return None
+                # Create a dynamic query
+                query = {field_name: phone}
+                instance = model.objects.filter(**query).first()
+                if instance:
+                    return instance.user
+            except Exception as e:
+                print(f"Error checking {model.__name__}: {e}")
+                continue
+        
         return None
 
 

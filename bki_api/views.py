@@ -7,8 +7,10 @@ from dotenv import load_dotenv
 from .models import BKILog
 from django.views.decorators.csrf import csrf_exempt
 from core.decorators.decorators import role_required
-from .bki_api_utils import get_purchase_info, bulk_update_purchase_info, send_soap_request, process_purchase_data, get_all_bazaargah_purchases
+from .bki_api_utils import get_purchase_info, bulk_update_purchase_info, send_soap_request, get_all_bazaargah_purchases, process_purchase_data_new #process_purchase_data
+from .bki_kharid_list_by_date import send_kharid_list_by_date_request, get_all_purchases_by_date_range
 from core.PurchaseModel import Purchase
+from jdatetime import datetime as jdatetime
 
 def update_env_file(key, value):
     """به‌روزرسانی یک کلید مشخص در فایل .env"""
@@ -148,8 +150,29 @@ def update_purchase_info(request):
     if not kharid_id:
         return JsonResponse({'error': 'شناسه خرید الزامی است.'}, status=400)
     
-    # فراخوانی تابع کمکی برای دریافت و به‌روزرسانی اطلاعات خرید
-    purchase, created, error = get_purchase_info(kharid_id)
+    # استفاده از API جدید برای دریافت اطلاعات خرید
+    # تنظیم تاریخ امروز برای جستجوی خرید
+    from_date = "1403/11/05"  # تاریخ پیش‌فرض
+    to_date = "1403/11/05"  # تاریخ پیش‌فرض
+    
+    # دریافت لیست خریدها
+    purchases_data, log_entry, error = send_kharid_list_by_date_request(from_date, to_date)
+    
+    if error:
+        return JsonResponse({'success': False, 'error': error}, status=400)
+    
+    # جستجوی خرید مورد نظر در لیست
+    found_purchase_data = None
+    for purchase_data in purchases_data:
+        if str(purchase_data.get('idkharid', '')) == str(kharid_id):
+            found_purchase_data = purchase_data
+            break
+    
+    if not found_purchase_data:
+        return JsonResponse({'success': False, 'error': f'خرید با شناسه {kharid_id} در بازه زمانی مشخص شده یافت نشد'}, status=400)
+    
+    # پردازش داده خرید یافت شده
+    purchase, created, error = process_purchase_data_new(found_purchase_data)
     
     if error:
         return JsonResponse({'success': False, 'error': error}, status=400)
@@ -191,8 +214,93 @@ def bulk_update_purchases(request):
         # ذخیره شناسه‌های خرید در context برای نمایش مجدد پس از پردازش
         context['purchase_ids'] = purchase_ids
         
-        # پردازش شناسه‌های خرید
-        results = bulk_update_purchase_info(purchase_ids)
+        # استفاده از API جدید برای به‌روزرسانی دسته‌ای
+        from_date = "1403/11/05"  # تاریخ پیش‌فرض
+        to_date = "1403/11/05"  # تاریخ پیش‌فرض
+        
+        # دریافت لیست خریدها
+        purchases_data, log_entry, error = send_kharid_list_by_date_request(from_date, to_date)
+        
+        if error:
+            messages.error(request, f'خطا در دریافت اطلاعات خرید: {error}')
+            return render(request, 'bki_api/bulk_update.html', context)
+        
+        # تبدیل رشته شناسه‌ها به لیست
+        import re
+        purchase_ids_list = re.split(r'[,\s]+', purchase_ids)
+        purchase_ids_list = [kid.strip() for kid in purchase_ids_list if kid.strip()]
+        
+        # پردازش هر خرید
+        results = []
+        for kharid_id in purchase_ids_list:
+            # جستجوی خرید مورد نظر در لیست
+            found_purchase_data = None
+            for purchase_data in purchases_data:
+                if str(purchase_data.get('idkharid', '')) == str(kharid_id):
+                    found_purchase_data = purchase_data
+                    break
+            
+            if not found_purchase_data:
+                results.append({
+                    'kharid_id': kharid_id,
+                    'success': False,
+                    'error': f'خرید با شناسه {kharid_id} در بازه زمانی مشخص شده یافت نشد'
+                })
+                continue
+            
+            # پردازش داده خرید یافت شده
+            try:
+                purchase, created, error = process_purchase_data_new(found_purchase_data)
+                
+                if error:
+                    results.append({
+                        'kharid_id': kharid_id,
+                        'success': False,
+                        'error': error
+                    })
+                else:
+                    if purchase:
+                        result = {
+                            'kharid_id': kharid_id,
+                            'success': True,
+                            'created': created,
+                            'is_new': created,  # قالب انتظار is_new به جای created دارد
+                            'purchase': purchase
+                        }
+                        
+                        if created:
+                            # برای خریدهای جدید، ارائه اطلاعات اشیاء ایجاد شده
+                            result['message'] = f'خرید جدید با شماره {purchase.purchase_number} با موفقیت ایجاد شد'
+                            result['created_objects'] = {
+                                'customer': {
+                                    'status': 'found' if hasattr(purchase, '_customer_existed') and purchase._customer_existed else 'created',
+                                    'id': purchase.customer.id
+                                },
+                                'cargo': {
+                                    'status': 'found' if hasattr(purchase, '_cargo_existed') and purchase._cargo_existed else 'created' if purchase.cargo else 'not_created',
+                                    'id': purchase.cargo.id if purchase.cargo else None,
+                                    'reason': 'cottage_number_missing' if not purchase.cargo else None
+                                },
+                                'purchase': {
+                                    'status': 'created',
+                                    'id': purchase.id
+                                }
+                            }
+                        else:
+                            # برای خریدهای موجود، ارائه اطلاعات به‌روزرسانی
+                            result['message'] = f'اطلاعات خرید {purchase.purchase_number} با موفقیت به‌روزرسانی شد'
+                            # این فیلدها توسط update_purchase_info تنظیم می‌شوند اما ما نیاز داریم آنها را ارائه دهیم
+                            result['purchase_updates'] = []
+                            result['customer_updates'] = {}
+                        
+                        results.append(result)
+            except Exception as e:
+                results.append({
+                    'kharid_id': kharid_id,
+                    'success': False,
+                    'error': str(e)
+                })
+        
         context['results'] = results
         
         # شمارش موفقیت‌ها و شکست‌ها
@@ -240,41 +348,39 @@ def update_all_purchases(request):
         messages.error(request, 'اطلاعات کاربری BKI تنظیم نشده است.')
         return redirect('bki_api:credentials')
     
-    # جمع‌آوری تمام شماره‌های خرید
-    purchase_numbers = list(purchases.values_list('purchase_number', flat=True))
+    # استفاده از API جدید برای به‌روزرسانی همه خریدها
+    # استفاده از تاریخ امروز به جای تاریخ ثابت
+    today_jalali = jdatetime.now().strftime("%Y/%m/%d")
+    from_date = "1403/11/05"  # تاریخ شروع ثابت
+    to_date = today_jalali     # تاریخ امروز
     
-    # به‌روزرسانی همه خریدها با تابع به‌روزرسانی دسته‌ای
-    results = bulk_update_purchase_info(purchase_numbers)
+    print(f"دریافت خریدها از تاریخ {from_date} تا {to_date}")
     
-    # تحلیل نتایج
-    total = len(results)
-    successes = sum(1 for r in results if r.get('success', False))
-    failures = total - successes
-    updated = sum(1 for r in results if r.get('success', False) and not r.get('is_new', False))
-    created = successes - updated
+    # دریافت لیست خریدها از API
+    total_count, success_count, created_count, updated_count, failed_count, errors = get_all_purchases_by_date_range(from_date, to_date)
     
     # نمایش پیام‌های مناسب
-    if successes > 0:
+    if success_count > 0:
         messages.success(
             request,
-            f'عملیات با موفقیت انجام شد. از {total} خرید، {successes} مورد با موفقیت به‌روزرسانی شد. '
-            f'({updated} خرید موجود به‌روزرسانی شد، {created} خرید جدید ایجاد شد)'
+            f'عملیات با موفقیت انجام شد. از {total_count} خرید، {success_count} مورد با موفقیت به‌روزرسانی شد. '
+            f'({created_count} خرید جدید ایجاد شد، {updated_count} خرید موجود به‌روزرسانی شد)'
         )
     
-    if failures > 0:
+    if failed_count > 0:
         messages.warning(
             request,
-            f'{failures} خرید با خطا مواجه شد.'
+            f'{failed_count} خرید با خطا مواجه شد.'
         )
     
     # ارسال به صفحه نتایج
     context = {
-        'results': results,
-        'total': total,
-        'successes': successes,
-        'failures': failures,
-        'updated': updated,
-        'created': created
+        'total': total_count,
+        'successes': success_count,
+        'failures': failed_count,
+        'updated': updated_count,
+        'created': created_count,
+        'errors': errors
     }
     
     return render(request, 'bki_api/update_all_results.html', context)
@@ -307,11 +413,18 @@ def get_all_bazaargah_purchases_view(request):
     else:
         print(f"تست اتصال به API بازارگاه: {connection_message}")
     
-    # استفاده از تابع get_all_bazaargah_purchases از ماژول bki_api_utils
+    # استفاده از API جدید برای دریافت تمام خریدها
     try:
+        # استفاده از تاریخ امروز به جای تاریخ ثابت
+        today_jalali = jdatetime.now().strftime("%Y/%m/%d")
+        from_date = "1403/11/05"  # تاریخ شروع ثابت
+        to_date = today_jalali     # تاریخ امروز
+        
+        print(f"دریافت خریدها از تاریخ {from_date} تا {to_date}")
+        
         # فراخوانی تابع برای دریافت و پردازش تمام خریدها
-        print("شروع فراخوانی تابع get_all_bazaargah_purchases")
-        total_count, success_count, created_count, updated_count, failed_count, errors = get_all_bazaargah_purchases()
+        print("شروع فراخوانی تابع get_all_purchases_by_date_range")
+        total_count, success_count, created_count, updated_count, failed_count, errors = get_all_purchases_by_date_range(from_date, to_date)
         print(f"نتیجه فراخوانی: کل={total_count}, موفق={success_count}, جدید={created_count}, بروزرسانی={updated_count}, خطا={failed_count}")
         
         # ارسال به صفحه نتایج

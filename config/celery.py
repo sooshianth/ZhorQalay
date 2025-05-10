@@ -46,6 +46,24 @@ app.conf.beat_schedule = {
         'task': 'core.tasks.tasks.change_sales_agents_after_two_months_of_no_purchase',
         'schedule': crontab(hour=2, minute=0),  # هر روز ساعت 02:00
     },
+    
+    # تسک‌های جدید برای به‌روزرسانی خریدهای بازارگاه
+    'update-purchases-last-24-hours': {
+        'task': 'bki_api.tasks.update_purchases_last_24_hours',
+        'schedule': crontab(minute='*/30'),  # هر 30 ثانیه
+    },
+    'update-purchases-last-week': {
+        'task': 'bki_api.tasks.update_purchases_last_week',
+        'schedule': crontab(minute=0, hour='*/2'),  # هر 2 ساعت
+    },
+    'update-purchases-last-month': {
+        'task': 'bki_api.tasks.update_purchases_last_month',
+        'schedule': crontab(minute=0, hour='*/4'),  # هر 4 ساعت
+    },
+    'update-purchases-all-time': {
+        'task': 'bki_api.tasks.update_purchases_all_time',
+        'schedule': crontab(minute=0, hour='*/8'),  # هر 8 ساعت
+    },
 }
 
 app.autodiscover_tasks()

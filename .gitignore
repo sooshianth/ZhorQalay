@@ -79,3 +79,4 @@ bki_api/__pycache__
 .env
 
 soap11_https_response.xml
+kharid_list_response.xml

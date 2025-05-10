@@ -10,10 +10,15 @@ from .views import (
     managers_profile_view, 
     purchase_list_view,
     notification_view,
+    bulk_purchase_edit,
+    cargo_product_CRUD_panel,
 )
 
 urlpatterns = [
-    path('cargo_products/', cargo_product_view.cargo_product_list, name='cargo_product_list'),
+    path('cargo-products/', cargo_product_view.cargo_product_list, name='cargo_product_list'),
+    path('cargo-product/add/', cargo_product_CRUD_panel.cargo_product_crud_panel, name='cargo_product_crud_panel'),
+    path('cargo-product/edit/<int:product_id>/', cargo_product_CRUD_panel.cargo_product_crud_panel, name='cargo_product_crud_panel'),
+    path('cargo-product/bulk-edit/', cargo_product_CRUD_panel.bulk_edit_cargo_products, name='bulk_edit_cargo_products'),
     path('financial_manager_login/', managers_login.financial_manager_login_view, name='financial_manager_login'),
     path('logistics_manager_login/', managers_login.logistics_manager_login_view, name='logistics_manager_login'),
     path('support_agent_login/', managers_login.support_agent_login_view, name='support_agent_login'),
@@ -33,5 +38,9 @@ urlpatterns = [
     path('purchase_CRUD/notifications/', notification_view.get_notifications, name='get_notifications'),
     path('purchase_CRUD/notifications/<int:notification_id>/read/', notification_view.mark_notification_read, name='mark_notification_read'),
 
-
+    path('bulk-purchase-edit/', bulk_purchase_edit.bulk_purchase_edit, name='bulk_purchase_edit'),
+    path('bulk-purchase-edit/upload-excel/', bulk_purchase_edit.upload_excel, name='bulk_purchase_upload_excel'),
+    path('bulk-purchase-edit/apply/', bulk_purchase_edit.apply_bulk_edit, name='bulk_purchase_apply_edit'),
+    path('bulk-purchase-edit/details/<int:purchase_id>/', bulk_purchase_edit.get_purchase_details, name='bulk_purchase_details'),
+    path('bulk-purchase-edit/export/', bulk_purchase_edit.export_purchase_list, name='bulk_purchase_export'),
 ]
