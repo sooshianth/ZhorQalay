@@ -72,7 +72,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'config.middleware.SessionTimeoutMiddleware',
-    'config.middleware.RestrictAdminAccessMiddleware',
+    # 'config.middleware.RestrictAdminAccessMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'

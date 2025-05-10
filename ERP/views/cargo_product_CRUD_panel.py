@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect
 from core._models import CargoProduct
 from django.contrib.auth.decorators import login_required
 from core.decorators.decorators import role_required
+from django.http import JsonResponse
+from django.db.models import Q
 
 @role_required('admin', 'logistics_manager')
 @login_required
@@ -123,3 +125,188 @@ def bulk_edit_cargo_products(request):
     
     # اگر درخواست GET باشد، به صفحه لیست برگرد
     return redirect('cargo_product_list')
+
+@login_required
+def bulk_edit_purchase_cargo(request):
+    """
+    ویرایش گروهی کوتاژ برای خریدهای انتخاب شده
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'روش درخواست نامعتبر است'}, status=405)
+    
+    try:
+        # دریافت شناسه‌های خریدها
+        purchase_ids_str = request.POST.get('purchase_ids', '')
+        if not purchase_ids_str:
+            return JsonResponse({'status': 'error', 'message': 'شناسه‌های خرید ارسال نشده است'}, status=400)
+        
+        purchase_ids = [pid for pid in purchase_ids_str.split(',') if pid]
+        
+        # شناسه کوتاژ
+        cargo_id = request.POST.get('cargo_id')
+        cargo = None
+        
+        # بررسی اگر کوتاژ با آی‌دی ارسال شده وجود دارد
+        if cargo_id:
+            try:
+                cargo = CargoProduct.objects.get(id=cargo_id)
+            except CargoProduct.DoesNotExist:
+                # اگر cargo_id داده شده ولی وجود ندارد
+                return JsonResponse({'status': 'error', 'message': 'کوتاژ مورد نظر یافت نشد'}, status=404)
+        
+        # اگر حالت ایجاد کوتاژ جدید است
+        cottage = request.POST.get('cottage')
+        if not cargo_id and cottage:
+            # بررسی اینکه آیا کوتاژی با این شماره قبلاً وجود دارد
+            existing_cargo = CargoProduct.objects.filter(cottage=cottage).first()
+            if existing_cargo:
+                return JsonResponse({'status': 'error', 'message': f'کوتاژی با شماره {cottage} قبلاً وجود دارد'}, status=400)
+                
+            # ایجاد کوتاژ جدید
+            cargo = CargoProduct(
+                cottage=cottage,
+                type=request.POST.get('type', 'bazaargah'),
+                company_price=int(request.POST.get('company_price', 0)),
+                customer_price=int(request.POST.get('customer_price', 0)),
+                product_type=request.POST.get('product_type', 'corn'),
+                country=request.POST.get('country', 'iran'),
+                importer_name=request.POST.get('importer_name', ''),
+                weight=int(request.POST.get('weight', 100000)),
+                status=request.POST.get('status') == 'on'
+            )
+            cargo.save()
+        elif not cargo:
+            # اگر نه cargo_id وجود دارد و نه اطلاعات کافی برای ایجاد کوتاژ جدید
+            return JsonResponse({'status': 'error', 'message': 'اطلاعات کافی برای ایجاد یا انتخاب کوتاژ ارسال نشده است'}, status=400)
+            
+        # به‌روزرسانی فیلدهای کوتاژ اگر مقادیر جدید در درخواست ارسال شده باشد
+        if cargo_id:  # تنها اگر کوتاژ موجود را ویرایش می‌کنیم
+            if cottage:
+                cargo.cottage = cottage
+            
+            if 'type' in request.POST and request.POST.get('type'):
+                cargo.type = request.POST.get('type')
+            
+            if 'company_price' in request.POST and request.POST.get('company_price'):
+                cargo.company_price = int(request.POST.get('company_price'))
+            
+            if 'customer_price' in request.POST and request.POST.get('customer_price'):
+                cargo.customer_price = int(request.POST.get('customer_price'))
+            
+            if 'product_type' in request.POST and request.POST.get('product_type'):
+                cargo.product_type = request.POST.get('product_type')
+            
+            if 'country' in request.POST and request.POST.get('country'):
+                cargo.country = request.POST.get('country')
+            
+            if 'importer_name' in request.POST and request.POST.get('importer_name'):
+                cargo.importer_name = request.POST.get('importer_name')
+            
+            if 'weight' in request.POST and request.POST.get('weight'):
+                cargo.weight = int(request.POST.get('weight'))
+            
+            if 'status' in request.POST:
+                cargo.status = request.POST.get('status') == 'on'
+            
+            # ذخیره تغییرات کوتاژ
+            cargo.save()
+        
+        # تعداد خریدهای به‌روزرسانی شده
+        from core._models import Purchase
+        updated_count = 0
+        
+        # به‌روزرسانی خریدهای انتخاب شده
+        purchases = Purchase.objects.filter(id__in=purchase_ids)
+        for purchase in purchases:
+            purchase.cargo = cargo
+            purchase.save()
+            updated_count += 1
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': f'کوتاژ {cargo.cottage} در {updated_count} خرید اعمال شد.',
+            'updated_count': updated_count
+        })
+    
+    except ValueError as e:
+        return JsonResponse({'status': 'error', 'message': f'خطای مقدار: {str(e)}'}, status=400)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@login_required
+def get_cargo_product_details(request):
+    """
+    دریافت اطلاعات کوتاژ براساس شماره کوتاژ
+    """
+    cottage = request.GET.get('cottage', '')
+    
+    if not cottage:
+        return JsonResponse({'status': 'error', 'message': 'شماره کوتاژ ارسال نشده است'}, status=400)
+    
+    try:
+        cargo = CargoProduct.objects.get(cottage=cottage)
+        
+        # ساخت دیکشنری از داده‌های کوتاژ
+        cargo_data = {
+            'id': cargo.id,
+            'cottage': cargo.cottage,
+            'type': cargo.type,
+            'company_price': cargo.company_price,
+            'customer_price': cargo.customer_price,
+            'product_type': cargo.product_type,
+            'country': cargo.country,
+            'importer_name': cargo.importer_name,
+            'port': cargo.port,
+            'loading_time': cargo.loading_time,
+            'weight': cargo.weight,
+            'status': cargo.status,
+            'description': cargo.description
+        }
+        
+        return JsonResponse({'status': 'success', 'cargo': cargo_data})
+    
+    except CargoProduct.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'کوتاژ مورد نظر یافت نشد'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@login_required
+def list_cargo_products(request):
+    """
+    دریافت لیست کوتاژهای فعال
+    """
+    try:
+        # فیلتر جستجو
+        search_term = request.GET.get('q', '')
+        
+        # دریافت کوتاژهای فعال
+        query = CargoProduct.objects.filter(status=True)
+        
+        # اعمال جستجو اگر عبارت جستجو ارسال شده باشد
+        if search_term:
+            query = query.filter(
+                Q(cottage__icontains=search_term) |
+                Q(product_type__icontains=search_term) |
+                Q(country__icontains=search_term) |
+                Q(importer_name__icontains=search_term)
+            )
+        
+        # محدود کردن تعداد نتایج برای بهبود کارایی
+        cargos = query.order_by('-created_at')[:100]
+        
+        # ساخت لیست از داده‌های کوتاژها
+        cargos_data = []
+        for cargo in cargos:
+            cargos_data.append({
+                'id': cargo.id,
+                'cottage': cargo.cottage,
+                'product_type': cargo.get_product_type_display(),
+                'country': cargo.get_country_display(),
+                'importer_name': cargo.importer_name or '',
+                'weight': cargo.weight
+            })
+        
+        return JsonResponse({'status': 'success', 'cargos': cargos_data})
+    
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

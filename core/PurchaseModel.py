@@ -894,3 +894,37 @@ class PuchaseSalesAgent(models.Model):
     class Meta:
         verbose_name = "کارشناس فروش خرید"
         verbose_name_plural = "کارشناس فروش خریدها"
+
+class PurchaseEditLog(models.Model):
+    """
+    مدل برای ذخیره تاریخچه تغییرات فیلدهای خرید
+    """
+    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='edit_logs')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کاربر ویرایش کننده")
+    field_name = models.CharField("نام فیلد", max_length=100)
+    old_value = models.TextField("مقدار قبلی", blank=True, null=True)
+    new_value = models.TextField("مقدار جدید", blank=True, null=True)
+    edit_time = jmodels.jDateTimeField("زمان ویرایش", auto_now_add=True)
+    is_revert = models.BooleanField("بازگشت به نسخه قبلی", default=False)
+    reverted_log = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, 
+                                   related_name='revert_logs', verbose_name="لاگ بازگشتی")
+    
+    class Meta:
+        verbose_name = "تاریخچه ویرایش خرید"
+        verbose_name_plural = "تاریخچه‌های ویرایش خرید"
+        ordering = ['-edit_time']
+        
+    def __str__(self):
+        return f"ویرایش {self.field_name} خرید {self.purchase.invoice_id} در {self.edit_time}"
+        
+    def get_field_display_name(self):
+        """
+        نام نمایشی فیلد را برمی‌گرداند
+        """
+        field_mappings = {
+            'invoice_id': 'کد درون سازمانی',
+            'purchase_number': 'شماره خرید',
+            'order_weight': 'وزن سفارش',
+            'state': 'وضعیت',
+        }
+        return field_mappings.get(self.field_name, self.field_name)
