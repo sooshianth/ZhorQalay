@@ -9,7 +9,7 @@ class Barnameh(models.Model):
     purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='barnamehs', verbose_name='خرید', null=True, blank=True)
     shenase_takhsis = models.ForeignKey(ShenaseTakhsis, on_delete=models.CASCADE, related_name='barnameh', verbose_name='شناسه تخصیص', null=True, blank=True)
 
-    number = models.CharField(max_length=255, verbose_name='شماره برنامه', null=True, blank=True)
+    number = models.CharField(max_length=255, verbose_name='شماره برنامه', null=True, blank=True, unique=True)
     serial = models.CharField(max_length=255, verbose_name='سریال برنامه', null=True, blank=True)
     driver_phone = models.CharField(max_length=255, verbose_name='شماره تلفن راننده', null=True, blank=True)
     driver_name = models.CharField(max_length=255, verbose_name='نام راننده', null=True, blank=True)

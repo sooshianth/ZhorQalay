@@ -10,4 +10,5 @@ urlpatterns = [
     path('bulk-update/', views.bulk_update_purchases, name='bulk_update'),
     path('update-all-purchases/', views.update_all_purchases, name='update_all_purchases'),
     path('get-all-purchases/', views.get_all_bazaargah_purchases_view, name='get_all_purchases'),
+    path('merge-purchases/', views.merge_purchases_view, name='merge_purchases'),
 ] 

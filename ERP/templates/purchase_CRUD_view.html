@@ -3,6 +3,52 @@
 
 {% block content %}
 <style>
+  /* استایل برای بخش ادغام با خرید بازارگاه */
+  .bazaargah-link-section {
+    margin: 30px 0;
+    padding: 20px;
+    background-color: #f2f7ff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .bazaargah-link-section .section-title {
+    color: #3f51b5;
+    border-bottom: 2px solid #c5cae9;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .bazaargah-link-section .alert {
+    padding: 10px 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+  }
+  
+  .bazaargah-link-section .alert-info {
+    background-color: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    color: #0b76cc;
+  }
+  
+  .bazaargah-link-section .link-form {
+    margin-top: 15px;
+  }
+  
+  .bazaargah-link-section .link-button {
+    background-color: #3f51b5;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .bazaargah-link-section .link-button:hover {
+    background-color: #303f9f;
+  }
+
   /* استایل برای تایم‌لاین افقی با قابلیت اسکرول */
   .timeline-container {
     width: 100%;
@@ -617,36 +663,41 @@
 </div>
 </form>
 
-{% comment %} {% if purchase.state not in 'PAYMENT_VERIFIED,ALLOCATION_REGISTERED,ALLOCATION_APPROVED,VENDOR_SETTLED,ADDRESS_SENT,SENT_TO_SHIPPING,BARNAMEH_ISSUED,DELIVERED,DIFFERENCE_APPROVED,DIFFERENCE_DEPOSITED,RECEIPT_SUBMITTED,INVOICE_ISSUED,SALES_APPROVED,LOGISTICS_APPROVED,FINANCIAL_APPROVED,COMPLETED'|split:',' %}
-<form method="post" action="{% url 'purchase_delete' purchase.id %}" class="delete-form">
-    {% csrf_token %}
-    <button type="submit" class="button delete-button" onclick="return confirm('آیا مطمئن هستید که می‌خواهید این خرید را حذف کنید؟');">
-        حذف خرید
-    </button>
-</form>
-{% endif %} {% endcomment %}
-
-{% comment %} <!-- ✅ جدول تاریخچه تغییرات -->
-<table class="history-table">
-<tr>
-<th>📅 تاریخ</th>
-<th>👤 کاربر</th>
-<th>🔄 تغییرات</th>
-<th>✅ وضعیت</th>
-</tr>
-{% for log in history_logs %}
-<tr>
-<td>{{ log.timestamp|date:"Y/m/d H:i" }}</td>
-<td>{{ log.user.get_full_name }}</td>
-<td>{{ log.changes }}</td>
-<td>✔</td>
-</tr>
-{% empty %}
-<tr>
-<td colspan="4" class="empty-state">❌ هیچ سابقه‌ای ثبت نشده است</td>
-</tr>
-{% endfor %}
-</table> {% endcomment %}
+<!-- ادغام با خرید بازارگاه - نمایش بالاتر و برجسته‌تر -->
+{% if user_role == 'sales_agent' or user_role == 'admin' %}
+  {% if not purchase.purchase_number and purchase.state in 'INITIATED,SMS_SENT,PAYMENT_VERIFIED,ALLOCATION_APPROVED'|split:',' %}
+  <div class="bazaargah-link-section" style="margin-top: 30px; background-color: #e3f7ff; border: 2px solid #2196F3; border-radius: 8px; padding: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <h3 class="section-title" style="color: #0d47a1; font-size: 1.3rem; margin-bottom: 15px; border-bottom: 2px solid #2196F3; padding-bottom: 10px;">
+        <i class="fas fa-link" style="margin-right: 8px;"></i> ادغام با خرید بازارگاه
+    </h3>
+    <div class="alert alert-info" style="background-color: #bbdefb; border-left: 5px solid #1976D2; padding: 12px 15px;">
+      <p>
+        <i class="fas fa-info-circle" style="margin-right: 8px; color: #0d47a1;"></i>
+        برای ادغام این خرید با خرید ثبت شده در بازارگاه، لطفاً شماره خرید 7 رقمی بازارگاه را وارد کنید.
+      </p>
+    </div>
+    <div class="alert alert-warning" style="background-color: #fff3cd; border-left: 5px solid #ffc107; margin-top: 10px; padding: 12px 15px;">
+      <p>
+        <i class="fas fa-exclamation-triangle" style="margin-right: 8px; color: #856404;"></i>
+        <strong>توجه:</strong> امکان ادغام تنها برای خریدهایی که کمتر از 24 ساعت از ایجاد آنها در سیستم گذشته باشد وجود دارد.
+      </p>
+    </div>
+    <form method="post" action="{% url 'link_bazaargah_purchase' purchase.id %}" class="link-form" style="margin-top: 20px;">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="purchase_number" style="font-weight: bold; margin-bottom: 8px; display: block;">
+          <i class="fas fa-hashtag" style="margin-right: 5px;"></i> شماره خرید بازارگاه:
+        </label>
+        <input type="text" id="purchase_number" name="purchase_number" class="form-control" placeholder="مثال: 1234567" required pattern="[0-9]{7}" title="شماره خرید بازارگاه باید دقیقاً 7 رقم باشد" style="font-size: 1.1rem; padding: 10px; border: 2px solid #64B5F6; border-radius: 5px;">
+        <small class="form-helptext" style="color: #555; margin-top: 5px; display: block;">شماره خرید 7 رقمی بازارگاه را وارد کنید</small>
+      </div>
+      <button type="submit" class="button link-button" style="background-color: #1976D2; color: white; padding: 10px 20px; font-size: 1.1rem; margin-top: 10px; border: none; border-radius: 5px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+        <i class="fas fa-link" style="margin-right: 8px;"></i> اتصال به خرید بازارگاه
+      </button>
+    </form>
+  </div>
+  {% endif %}
+{% endif %}
 
 <!-- بخش آپلود و مدیریت فایل‌های اسناد -->
 <div class="document-management-section">

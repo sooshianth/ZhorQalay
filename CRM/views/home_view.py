@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from core.forms.forms import OTPLoginForm
 from django.core.cache import cache
+from django import forms
 
 def home_view(request):
     show_admin_link = False
@@ -59,30 +60,42 @@ def unified_login_view(request):
             
             # اگر کد تایید داریم، بررسی آن
             if verification_code:
-                if form.verify_otp(request):
-                    # پاک کردن داده‌های نشست بعد از ورود موفق
+                try:
+                    if form.verify_otp(request):
+                        # پاک کردن داده‌های نشست بعد از ورود موفق
+                        if 'phone_number' in request.session:
+                            del request.session['phone_number']
+                        
+                        # اگر کاربر سوپریوزر باشه، دسترسی ادمین رو فعال کن
+                        if request.user.is_superuser:
+                            request.session['admin_access_allowed'] = True
+                        
+                        # پس از ورود موفق، تشخیص نقش کاربر و هدایت به صفحه مناسب
+                        if hasattr(request.user, 'financial_manager') and request.user.financial_manager is not None:
+                            return redirect('financial_manager_profile')
+                        elif hasattr(request.user, 'logistics_manager') and request.user.logistics_manager is not None:
+                            return redirect('logistics_manager_profile')
+                        elif hasattr(request.user, 'sales_agent') and request.user.sales_agent is not None:
+                            return redirect('sales_agent_profile')
+                        elif hasattr(request.user, 'support_agent') and request.user.support_agent is not None:
+                            return redirect('support_agent_profile')
+                        elif hasattr(request.user, 'employee') and request.user.employee is not None:
+                            return redirect('employee_profile')
+                        else:
+                            return redirect('home_view')
+                    else:
+                        messages.error(request, "کد تایید اشتباه است. لطفا مجددا تلاش کنید.")
+                except forms.ValidationError as e:
+                    # اگر شماره تلفن در سیستم یافت نشد
+                    messages.error(request, str(e))
+                    # حذف اطلاعات مرحله تایید از نشست
                     if 'phone_number' in request.session:
                         del request.session['phone_number']
-                    
-                    # اگر کاربر سوپریوزر باشه، دسترسی ادمین رو فعال کن
-                    if request.user.is_superuser:
-                        request.session['admin_access_allowed'] = True
-                    
-                    # پس از ورود موفق، تشخیص نقش کاربر و هدایت به صفحه مناسب
-                    if hasattr(request.user, 'financial_manager') and request.user.financial_manager is not None:
-                        return redirect('financial_manager_profile')
-                    elif hasattr(request.user, 'logistics_manager') and request.user.logistics_manager is not None:
-                        return redirect('logistics_manager_profile')
-                    elif hasattr(request.user, 'sales_agent') and request.user.sales_agent is not None:
-                        return redirect('sales_agent_profile')
-                    elif hasattr(request.user, 'support_agent') and request.user.support_agent is not None:
-                        return redirect('support_agent_profile')
-                    elif hasattr(request.user, 'employee') and request.user.employee is not None:
-                        return redirect('employee_profile')
-                    else:
-                        return redirect('home_view')
-                else:
-                    messages.error(request, "کد تایید اشتباه است. لطفا مجددا تلاش کنید.")
+                    # برگشت به مرحله اول ورود شماره تلفن
+                    return render(request, "unified_login.html", {
+                        'form': OTPLoginForm(),
+                        'verification_step': False
+                    })
             # در غیر این صورت، ارسال کد تایید
             else:
                 try:

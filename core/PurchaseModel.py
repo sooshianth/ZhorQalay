@@ -41,22 +41,20 @@ class Purchase(models.Model):
     STATUS_CHOICES = [
         ('INITIATED', 'شروع شده'), # system
         ('SMS_SENT', 'پیامک ارسال شده'), # system
-        ('PAYMENT_VERIFIED', 'تایید نشستن در بازارگاه'),  # system (with bazaargah api :D )
-        ('ALLOCATION_APPROVED', 'تایید تخصیص'),  # system
-        ('VENDOR_SETTLED', 'تسویه با واردکننده'),  # financial_manager
-        ('ADDRESS_SENT', 'ارسال آدرس به واردکننده'), # logistics_manager
-        ('SENT_TO_SHIPPING', 'ارسال به باربری'), # logistics_manager
-        ('BARNAMEH_ISSUED', 'بارنامه صادر شده'), # system
-        ('BARNAMEH_INCOMPLETE', 'بارنامه ناقص'), # system
-        ('DIFFERENCE_APPROVED', 'تایید مقدار و مبلغ اختلاف'), # financial_manager
-        ('DIFFERENCE_DEPOSITED', 'ثبت واریز اختلاف'), # sales_agent financial_manager 
-        ('RECEIPT_SUBMITTED', 'ثبت رسید واریزی اختلاف'), # financial_manager
+        ('PAYMENT_VERIFIED', 'ثبت خرید در بازارگاه'),  # system (with bazaargah api :D )
+        ('ALLOCATION_APPROVED', 'ثبت تخصیص در بازارگاه'),  # system #sms
+        # ('VENDOR_SETTLED', 'تسویه با واردکننده'),  # financial_manager #sms
+        ('ADDRESS_SENT', 'ارسال آدرس به واردکننده'), # logistics_manager #sms
+        ('SENT_TO_SHIPPING', 'در انتظار بارنامه'), # logistics_manager
+        ('SENT_TO_SHIPPING', 'صدور بارنامه (ناقص)'), # logistics_manager #sms
+        ('BARNAMEH_ISSUED', 'صدور بارنامه'), # system
+        ('BARNAMEH_INCOMPLETE', 'بستن خرید در بازارگاه'), # system #sms
+        ('DIFFERENCE_APPROVED', 'پرداخت کسری'), # financial_manager
+        ('DIFFERENCE_APPROVED', 'دریافت سرک'), # financial_manager
+        # ('RECEIPT_SUBMITTED', 'ثبت رسید واریزی اختلاف'), # financial_manager
+        ('FULLY_SETTLED', 'تسویه کامل'), # financial_manager
         ('INVOICE_ISSUED', 'صدور فاکتور'), # financial_manager
-        ('SALES_APPROVED', 'تایید واحد فروش'), # sales_agent
-        ('LOGISTICS_APPROVED', 'تایید واحد لجستیک'), # logistics_manager
-        ('FINANCIAL_APPROVED', 'تایید واحد مالی'), # financial_manager
-        ('COMPLETED', 'تکمیل شده'), # system
-        ('URGENT', 'پیگیری فوری'), # admin
+
         ('CANCELED', 'لغو شده'), # admin
         ('ARCHIVED', 'آرشیو شده'), # admin
     ]
@@ -98,6 +96,10 @@ class Purchase(models.Model):
     is_urgent = models.BooleanField("آیا خرید فوری است؟", default=False)
     is_canceled = models.BooleanField("آیا خرید لغو شده است؟", default=False)
     is_archived = models.BooleanField("آیا خرید آرشیو شده است؟", default=False)
+
+    is_fully_tasvied = models.BooleanField("تسویه کامل", default=False)
+    is_factored = models.BooleanField("ثبت فاکتور", default=False)
+
 
     PRIORITY_CHOICES = [
         ('low', 'عادی'),
