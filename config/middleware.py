@@ -3,6 +3,8 @@ from django.utils import timezone
 from django.shortcuts import redirect
 from datetime import timedelta
 from django.conf import settings
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 
 
 class SessionTimeoutMiddleware:
@@ -36,3 +38,20 @@ class SessionTimeoutMiddleware:
 
         response = self.get_response(request)
         return response 
+    
+class RestrictAdminAccessMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # اگر درخواست به مسیر /ewdfsrgtyuiougyjgtrdthugghuji/ یا زیرمسیرهای آن باشد
+        if request.path.startswith('/ewdfsrgtyuiougyjgtrdthugghuji/'):
+            # اگر کاربر لاگین نکرده یا سوپریوزر نیست، مستقیماً ریدایرکت شود
+            if not request.user.is_authenticated or not request.user.is_superuser:
+                return HttpResponseRedirect(reverse('home_view'))
+            # اگر از مسیر درست نیامده باشد (یعنی admin_access_allowed در session نباشد)
+            if not request.session.get('admin_access_allowed', False):
+                return HttpResponseRedirect(reverse('home_view'))
+
+        response = self.get_response(request)
+        return response

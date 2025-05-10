@@ -4,7 +4,30 @@ from core.forms.forms import OTPLoginForm
 from django.core.cache import cache
 
 def home_view(request):
-    return render(request, 'home.html')
+    show_admin_link = False
+    if request.user.is_authenticated:
+        # اگر کاربر سوپریوزر باشه و بعد از لاگین موفقیت‌آمیز باشه، لینک ادمین رو نشون بده
+        if request.user.is_superuser:
+            request.session['admin_access_allowed'] = True
+            show_admin_link = True
+    
+    # هدایت به پروفایل مناسب بر اساس نقش
+    if request.user.is_authenticated:
+        if hasattr(request.user, 'financial_manager') and request.user.financial_manager is not None:
+            return redirect('financial_manager_profile')
+        elif hasattr(request.user, 'logistics_manager') and request.user.logistics_manager is not None:
+            return redirect('logistics_manager_profile')
+        elif hasattr(request.user, 'sales_agent') and request.user.sales_agent is not None:
+            return redirect('sales_agent_profile')
+        elif hasattr(request.user, 'support_agent') and request.user.support_agent is not None:
+            return redirect('support_agent_profile')
+        elif hasattr(request.user, 'employee') and request.user.employee is not None:
+            return redirect('employee_profile')
+
+    context = {
+        'show_admin_link': show_admin_link,
+    }
+    return render(request, 'home.html', context)
 
 def unified_login_view(request):
     """
@@ -41,6 +64,10 @@ def unified_login_view(request):
                     if 'phone_number' in request.session:
                         del request.session['phone_number']
                     
+                    # اگر کاربر سوپریوزر باشه، دسترسی ادمین رو فعال کن
+                    if request.user.is_superuser:
+                        request.session['admin_access_allowed'] = True
+                    
                     # پس از ورود موفق، تشخیص نقش کاربر و هدایت به صفحه مناسب
                     if hasattr(request.user, 'financial_manager') and request.user.financial_manager is not None:
                         return redirect('financial_manager_profile')
@@ -60,11 +87,7 @@ def unified_login_view(request):
             else:
                 try:
                     form.send_otp()
-                    # ذخیره داده‌های فرم در نشست برای مرحله بعد
                     request.session['phone_number'] = phone_number
-                    
-                    # بدون نمایش پیام در این مرحله، چون در خود صفحه نمایش می‌دهیم
-                    # صرفاً تنظیم verification_step برای نمایش فیلد کد تایید
                     return render(request, "unified_login.html", {
                         'form': OTPLoginForm(initial={'phone_number': phone_number}, verification_step=True),
                         'verification_step': True
@@ -75,15 +98,10 @@ def unified_login_view(request):
             for error in form.errors.values():
                 messages.error(request, error)
     else:
-        # پر کردن فرم با شماره تلفن ذخیره شده در صورت وجود
         initial_data = {}
         if 'phone_number' in request.session:
             initial_data['phone_number'] = request.session.get('phone_number')
-            
-        # در مرحله دوم فیلد شماره موبایل را مخفی می‌کنیم
         form = OTPLoginForm(initial=initial_data, verification_step=verification_step)
-        
-        # در صورت فراخوانی مستقیم صفحه در حالت تایید، باید فیلد phone_number با hidden نمایش داده شود 
         if verification_step:
             form.fields['phone_number'].widget.input_type = 'hidden'
 

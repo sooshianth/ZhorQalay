@@ -72,6 +72,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'config.middleware.SessionTimeoutMiddleware',
+    'config.middleware.RestrictAdminAccessMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -152,6 +153,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 DEFAULT_LOGIN_URL = 'sales_agent_login'
+DEFAULT_LOGIN_REDIRECT_URL = 'home_view'
 DEFAULT_LOGOUT_URL = 'logout'
 
 # تنظیمات آپلود فایل
