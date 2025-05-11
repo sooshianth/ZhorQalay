@@ -555,16 +555,6 @@
             🛒 مشتری تخصیص را ثبت کرده است
         </button>
     {% endif %}
-    {% if purchase.state == 'DIFFERENCE_APPROVED' %}
-        <button type="submit" name="approve_sarak" class="button approve-btn sales" formnovalidate>
-            💰 تأیید واریز اختلاف
-        </button>
-    {% endif %}
-    {% if purchase.state == 'RECEIPT_SUBMITTED' or purchase.state == 'INVOICE_ISSUED' %}
-        <button type="submit" name="approve_salesman" class="button approve-btn sales" formnovalidate>
-            ✅ تایید نهایی واحد فروش
-        </button>
-    {% endif %}
 {% endif %}
 
 <!-- ✅ دکمه‌های مخصوص لجستیک -->
@@ -574,18 +564,18 @@
             🛒 تأیید کردن تخصیص
         </button>
     {% endif %}
-    {% if purchase.state == 'VENDOR_SETTLED' %}
+    {% if purchase.state == 'ALLOCATION_APPROVED' %}
         <button type="submit" name="approve_address" class="button approve-btn logistics" formnovalidate>
             📍 تأیید ارسال آدرس به واردکننده
         </button>
     {% endif %}
     {% if purchase.state == 'ADDRESS_SENT' %}
-        <button type="submit" name="approve_sent_to_barbari" class="button approve-btn logistics" formnovalidate>
-            🚛 تایید ارسال به باربری
+        <button type="submit" name="approve_wait_for_barnameh" class="button approve-btn logistics" formnovalidate>
+            🚛 انتقال به وضعیت انتظار برای بارنامه
         </button>
     {% endif %}
-    {% if purchase.state == 'SENT_TO_SHIPPING' %}
-        <button type="submit" name="approve_barnamed" class="button approve-btn logistics" formnovalidate>
+    {% if purchase.state == 'WAITING_FOR_BARNAMEH' %}
+        <button type="submit" name="approve_barnameh" class="button approve-btn logistics" formnovalidate>
             📋 تایید صدور بارنامه
         </button>
         <button type="submit" name="approve_mark_barnameh_incomplete" class="button approve-btn logistics" formnovalidate>
@@ -593,26 +583,16 @@
         </button>
     {% endif %}
     {% if purchase.state == 'BARNAMEH_ISSUED' %}
-        <button type="submit" name="approve_delivered" class="button approve-btn logistics" formnovalidate>
-            🏠 تایید تحویل به مشتری
+        <button type="submit" name="approve_close_purchase" class="button approve-btn logistics" formnovalidate>
+            🏠 بستن خرید در بازارگاه
         </button>
         <button type="submit" name="approve_mark_barnameh_incomplete" class="button approve-btn logistics" formnovalidate>
             ⚠️ ثبت بارنامه ناقص
         </button>
     {% endif %}
     {% if purchase.state == 'BARNAMEH_INCOMPLETE' %}
-        <button type="submit" name="approve_delivered" class="button approve-btn logistics" formnovalidate>
-            🏠 تایید تحویل به مشتری
-        </button>
-    {% endif %}
-    {% if purchase.state == 'DELIVERED' %}
-        <button type="submit" name="approve_ekhtelaf" class="button approve-btn logistics" formnovalidate>
-            ⚖️ تایید اختلاف (لجستیک)
-        </button>
-    {% endif %}
-    {% if purchase.state == 'RECEIPT_SUBMITTED' or purchase.state == 'SALES_APPROVED' or purchase.state == 'INVOICE_ISSUED' %}
-        <button type="submit" name="approve_logistics" class="button approve-btn logistics" formnovalidate>
-            ✅ تایید نهایی واحد لجستیک
+        <button type="submit" name="approve_close_purchase" class="button approve-btn logistics" formnovalidate>
+            🏠 بستن خرید در بازارگاه
         </button>
     {% endif %}
 {% endif %}
@@ -629,36 +609,33 @@
             💰 تأیید پرداخت
         </button>
     {% endif %}
-    {% if purchase.state == 'PAYMENT_VERIFIED' or purchase.state == 'ALLOCATION_APPROVED' %}
-        <button type="submit" name="approve_tasvied_with_vared_konandeh" class="button approve-btn financial" formnovalidate>
-            🔄 تایید تسویه با واردکننده
-        </button>
-    {% endif %}
-    {% if purchase.state == 'DELIVERED' %}
+    {% if purchase.state == 'PURCHASE_CLOSED' %}
         <button type="submit" name="approve_ekhtelaf" class="button approve-btn financial" formnovalidate>
             ⚖️ تایید اختلاف (مالی)
         </button>
     {% endif %}
-    {% if purchase.state == 'DIFFERENCE_APPROVED' %}
-        <button type="submit" name="approve_kasri" class="button approve-btn financial" formnovalidate>
-            💰 تایید واریز اختلاف
+    {% if purchase.state == 'DIFFERENCE_APPROVED' or purchase.state == 'PURCHASE_CLOSED' %}
+        <button type="submit" name="approve_fully_settle" class="button approve-btn financial" formnovalidate>
+            💰 تسویه کامل
         </button>
     {% endif %}
-    {% if purchase.state == 'DIFFERENCE_DEPOSITED' %}
-        <button type="submit" name="approve_kasri_reciept" class="button approve-btn financial" formnovalidate>
-            📝 تایید رسید کسری/سرک
-        </button>
-    {% endif %}
-    {% if purchase.state == 'RECEIPT_SUBMITTED' %}
+    {% if purchase.state == 'FULLY_SETTLED' %}
         <button type="submit" name="approve_factor" class="button approve-btn financial" formnovalidate>
-            📋 تایید صدور فاکتور
+            📋 صدور فاکتور
         </button>
     {% endif %}
-    {% if purchase.state == 'INVOICE_ISSUED' or purchase.state == 'SALES_APPROVED' or purchase.state == 'LOGISTICS_APPROVED' %}
-        <button type="submit" name="approve_financial" class="button approve-btn financial" formnovalidate>
-            ✅ تایید نهایی مالی
-        </button>
-    {% endif %}
+{% endif %}
+
+<!-- ✅ دکمه‌های مخصوص ادمین -->
+{% if user_role == "admin" %}
+    <button type="submit" name="cancel_purchase" class="button approve-btn danger" formnovalidate
+            onclick="return confirm('آیا از لغو کردن این خرید اطمینان دارید؟');">
+        ❌ لغو خرید
+    </button>
+    <button type="submit" name="archive_purchase" class="button approve-btn warning" formnovalidate
+            onclick="return confirm('آیا از آرشیو کردن این خرید اطمینان دارید؟');">
+        📦 آرشیو خرید
+    </button>
 {% endif %}
 </div>
 </form>

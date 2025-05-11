@@ -305,22 +305,16 @@ def purchase_CRUD_view(request, purchase_id):
     progress_steps = [
         {'name': 'شروع شده', 'status': True},  # همیشه شروع شده
         {'name': 'پیامک ارسال شده', 'status': purchase.state != 'INITIATED'},
-        {'name': 'تأیید نشستن در بازارگاه', 'status': purchase.state in ['PAYMENT_VERIFIED', 'ALLOCATION_APPROVED', 'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'BARNAMEH_INCOMPLETE', 'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'تایید تخصیص', 'status': purchase.state in ['ALLOCATION_APPROVED', 'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'BARNAMEH_INCOMPLETE', 'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'تسویه با واردکننده', 'status': purchase.state in ['VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'BARNAMEH_INCOMPLETE', 'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'ارسال آدرس به واردکننده', 'status': purchase.state in ['ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'BARNAMEH_INCOMPLETE', 'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'ارسال آدرس به باربری', 'status': purchase.state in ['SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 'BARNAMEH_INCOMPLETE', 'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'بارنامه صادر شده', 'status': purchase.state in ['BARNAMEH_ISSUED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'بارنامه ناقص', 'status': purchase.state in ['BARNAMEH_INCOMPLETE', 'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'تحویل به مشتری', 'status': purchase.state in ['DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'تایید اختلاف', 'status': purchase.state in ['DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'کسری/سرک واریز شده', 'status': purchase.state in ['DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'ثبت رسید', 'status': purchase.state in ['RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'صدور فاکتور', 'status': purchase.state in ['INVOICE_ISSUED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'تایید نهایی واحد فروش', 'status': purchase.state in ['SALES_APPROVED', 'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'تایید نهایی واحد لجستیک', 'status': purchase.state in ['LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'تایید نهایی واحد مالی', 'status': purchase.state in ['FINANCIAL_APPROVED', 'COMPLETED']},
-        {'name': 'تکمیل شده', 'status': purchase.state == 'COMPLETED'},
+        {'name': 'ثبت خرید در بازارگاه', 'status': purchase.state in ['PAYMENT_VERIFIED', 'ALLOCATION_APPROVED', 'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED']},
+        {'name': 'تایید تخصیص', 'status': purchase.state in ['ALLOCATION_APPROVED', 'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED']},
+        {'name': 'ارسال آدرس به واردکننده', 'status': purchase.state in ['ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED']},
+        {'name': 'در انتظار بارنامه', 'status': purchase.state in ['WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED']},
+        {'name': 'بارنامه صادر شده', 'status': purchase.state in ['BARNAMEH_ISSUED', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED']},
+        {'name': 'بارنامه ناقص', 'status': purchase.state in ['BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED']},
+        {'name': 'بستن خرید در بازارگاه', 'status': purchase.state in ['PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED']},
+        {'name': 'تایید اختلاف', 'status': purchase.state in ['DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED']},
+        {'name': 'تسویه کامل', 'status': purchase.state in ['FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED']},
+        {'name': 'صدور فاکتور', 'status': purchase.state in ['INVOICE_ISSUED', 'CANCELED']},
     ]
     
     # برای خریدهای خارج از بازارگاه مراحل مرتبط با بازارگاه را حذف می‌کنیم
@@ -340,11 +334,11 @@ def purchase_CRUD_view(request, purchase_id):
         # بررسی اینکه آیا یک دکمه اکشن فشرده شده است
         action_buttons = [
             'approve_payment', 'approve_allocation', 
-            'approve_allocation_approval', 'approve_tasvied_with_vared_konandeh',
-            'approve_address', 'approve_sent_to_barbari', 'approve_barnamed',
-            'approve_mark_barnameh_incomplete', 'approve_delivered', 'approve_ekhtelaf', 'approve_kasri', 
-            'approve_sarak', 'approve_kasri_reciept', 'approve_factor',
-            'approve_salesman', 'approve_logistics', 'approve_financial'
+            'approve_allocation_approval', 'approve_address',
+            'approve_wait_for_barnameh', 'approve_barnameh',
+            'approve_mark_barnameh_incomplete', 'approve_close_purchase',
+            'approve_ekhtelaf', 'approve_fully_settle', 'approve_factor',
+            'cancel_purchase', 'archive_purchase'
         ]
         
         is_action_button_pressed = any(action in request.POST for action in action_buttons)
@@ -405,52 +399,35 @@ def purchase_CRUD_view(request, purchase_id):
                         elif purchase.state == 'PAYMENT_VERIFIED' and 'approve_allocation_approval' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
                             purchase.approve_allocation(request.user)
                             action_taken = True
-                        elif purchase.state == 'ALLOCATION_APPROVED' and 'approve_tasvied_with_vared_konandeh' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
-                            purchase.settle_with_vendor(request.user)
-                            action_taken = True
-                        elif purchase.state == 'VENDOR_SETTLED' and 'approve_address' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
+                        elif purchase.state == 'ALLOCATION_APPROVED' and 'approve_address' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
                             purchase.send_address_to_vendor(request.user)
                             action_taken = True
-                        elif purchase.state == 'ADDRESS_SENT' and 'approve_sent_to_barbari' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
-                            purchase.send_to_shipping(request.user)
+                        elif purchase.state == 'ADDRESS_SENT' and 'approve_wait_for_barnameh' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
+                            purchase.wait_for_barnameh(request.user)
                             action_taken = True
-                        elif purchase.state == 'SENT_TO_SHIPPING' and 'approve_barnamed' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
+                        elif purchase.state == 'WAITING_FOR_BARNAMEH' and 'approve_barnameh' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
                             purchase.issue_barnameh(request.user)
                             action_taken = True
-                        elif (purchase.state == 'SENT_TO_SHIPPING' or purchase.state == 'BARNAMEH_ISSUED') and 'approve_mark_barnameh_incomplete' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
+                        elif (purchase.state == 'WAITING_FOR_BARNAMEH' or purchase.state == 'BARNAMEH_ISSUED') and 'approve_mark_barnameh_incomplete' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
                             purchase.mark_barnameh_incomplete(request.user)
                             action_taken = True
-                        elif (purchase.state == 'BARNAMEH_ISSUED' or purchase.state == 'BARNAMEH_INCOMPLETE') and 'approve_delivered' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
-                            purchase.mark_as_delivered(request.user)
+                        elif (purchase.state == 'BARNAMEH_ISSUED' or purchase.state == 'BARNAMEH_INCOMPLETE') and 'approve_close_purchase' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
+                            purchase.close_purchase(request.user)
                             action_taken = True
-                        elif purchase.state == 'DELIVERED' and 'approve_ekhtelaf' in request.POST and (user_role == 'financial_manager' or user_role == 'logistics_manager' or user_role == 'admin'):
+                        elif purchase.state == 'PURCHASE_CLOSED' and 'approve_ekhtelaf' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
                             purchase.approve_difference(request.user)
                             action_taken = True
-                        elif purchase.state == 'DIFFERENCE_APPROVED' and 'approve_kasri' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
-                            success_message = purchase.deposit_difference(request.user)
-                            if success_message:
-                                messages.success(request, success_message)
-                                return redirect('purchase_CRUD', purchase_id=purchase_id)
+                        elif (purchase.state == 'DIFFERENCE_APPROVED' or purchase.state == 'PURCHASE_CLOSED') and 'approve_fully_settle' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
+                            purchase.fully_settle(request.user)
                             action_taken = True
-                        elif purchase.state == 'DIFFERENCE_APPROVED' and 'approve_sarak' in request.POST and (user_role == 'sales_agent' or user_role == 'financial_manager' or user_role == 'admin'):
-                            success_message = purchase.deposit_difference(request.user)
-                            if success_message:
-                                messages.success(request, success_message)
-                                return redirect('purchase_CRUD', purchase_id=purchase_id)
-                        elif purchase.state == 'DIFFERENCE_DEPOSITED' and 'approve_kasri_reciept' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
-                            purchase.submit_receipt(request.user)
-                            action_taken = True
-                        elif purchase.state == 'RECEIPT_SUBMITTED' and 'approve_factor' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
+                        elif purchase.state == 'FULLY_SETTLED' and 'approve_factor' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
                             purchase.issue_invoice(request.user)
                             action_taken = True
-                        elif purchase.state == 'INVOICE_ISSUED' and 'approve_salesman' in request.POST and (user_role == 'sales_agent' or user_role == 'admin'):
-                            purchase.approve_by_sales(request.user)
+                        elif 'cancel_purchase' in request.POST and user_role == 'admin':
+                            purchase.cancel_purchase(request.user)
                             action_taken = True
-                        elif purchase.state == 'SALES_APPROVED' and 'approve_logistics' in request.POST and (user_role == 'logistics_manager' or user_role == 'admin'):
-                            purchase.approve_by_logistics(request.user)
-                            action_taken = True
-                        elif purchase.state == 'LOGISTICS_APPROVED' and 'approve_financial' in request.POST and (user_role == 'financial_manager' or user_role == 'admin'):
-                            purchase.approve_by_financial(request.user)
+                        elif 'archive_purchase' in request.POST and user_role == 'admin':
+                            purchase.archive_purchase(request.user)
                             action_taken = True
                     except ValidationError as action_error:
                         # نمایش خطای اعتبارسنجی به صورت پیام دوستانه کاربر

@@ -7,13 +7,15 @@ from dotenv import load_dotenv
 from .models import BKILog
 from django.views.decorators.csrf import csrf_exempt
 from core.decorators.decorators import role_required
-from .bki_api_utils import get_purchase_info, bulk_update_purchase_info, send_soap_request, get_all_bazaargah_purchases, process_purchase_data_new
+from .bki_api_utils.api_client import test_api_connection, get_all_bazaargah_purchases
+from .bki_api_utils.api_client import analyze_api_response
 from .bki_kharid_list_by_date import send_kharid_list_by_date_request, get_all_purchases_by_date_range
 from core.PurchaseModel import Purchase
 from jdatetime import datetime as jdatetime
 from django.db import transaction
 from django.utils import timezone
 import datetime
+import json
 
 def update_env_file(key, value):
     """به‌روزرسانی یک کلید مشخص در فایل .env"""
@@ -64,18 +66,17 @@ def credentials_view(request):
                 return redirect('bki_api:credentials')
             
             # تلاش برای ارتباط با API بازارگاه
-            purchases_data, log_entry, error = send_soap_request(test_kharid_id)
+            is_successful, error_message = test_api_connection()
             
             # اضافه کردن نتیجه تست به context
             context['test_connection'] = True
-            context['success'] = purchases_data is not None
-            context['error_message'] = error
-            context['purchases_data'] = purchases_data
+            context['success'] = is_successful
+            context['error_message'] = error_message
             
-            if purchases_data:
+            if is_successful:
                 messages.success(request, 'اتصال با سرویس BKI با موفقیت برقرار شد.')
             else:
-                messages.error(request, f'خطا در اتصال به سرویس BKI: {error}')
+                messages.error(request, f'خطا در اتصال به سرویس BKI: {error_message}')
         else:
             # به‌روزرسانی اطلاعات اعتباری
             username = request.POST.get('username')
@@ -111,16 +112,13 @@ def test_kharid_info(request):
         messages.error(request, 'اطلاعات کاربری BKI تنظیم نشده است.')
         return redirect('bki_api:credentials')
     
-    # فراخوانی تابع send_soap_request برای تست اتصال به API
-    from .bki_api_utils import send_soap_request
-    purchases_data, log_entry, error = send_soap_request(kharid_id)
+    # تست API
+    is_successful, error_message = test_api_connection()
     
     context = {
         'kharid_id': kharid_id,
-        'success': purchases_data is not None,
-        'error_message': error,
-        'purchases_data': purchases_data,
-        'log_entry': log_entry
+        'success': is_successful,
+        'error_message': error_message
     }
     
     return render(request, 'bki_api/test_result.html', context)
@@ -128,7 +126,7 @@ def test_kharid_info(request):
 @role_required('admin')
 @csrf_exempt
 def update_purchase_info(request):
-    """تابع برای دریافت اطلاعات خرید از سرویس BKI و به‌روزرسانی دیتابیس محلی"""
+    """تابع برای تست دریافت اطلاعات خرید از API بازارگاه (فقط برای تست)"""
     # دریافت اطلاعات اعتباری
     username = settings.BKI_USERNAME
     password = settings.BKI_PASSWORD
@@ -153,52 +151,17 @@ def update_purchase_info(request):
     if not kharid_id:
         return JsonResponse({'error': 'شناسه خرید الزامی است.'}, status=400)
     
-    # استفاده از API جدید برای دریافت اطلاعات خرید
-    # تنظیم تاریخ امروز برای جستجوی خرید
-    from_date = "1403/11/05"  # تاریخ پیش‌فرض
-    to_date = "1403/11/05"  # تاریخ پیش‌فرض
+    # تست اتصال به API
+    is_successful, message = test_api_connection()
+    if not is_successful:
+        return JsonResponse({'success': False, 'error': message}, status=400)
     
-    # دریافت لیست خریدها
-    purchases_data, log_entry, error = send_kharid_list_by_date_request(from_date, to_date)
-    
-    if error:
-        return JsonResponse({'success': False, 'error': error}, status=400)
-    
-    # جستجوی خرید مورد نظر در لیست
-    found_purchase_data = None
-    for purchase_data in purchases_data:
-        if str(purchase_data.get('idkharid', '')) == str(kharid_id):
-            found_purchase_data = purchase_data
-            break
-    
-    if not found_purchase_data:
-        return JsonResponse({'success': False, 'error': f'خرید با شناسه {kharid_id} در بازه زمانی مشخص شده یافت نشد'}, status=400)
-    
-    # پردازش داده خرید یافت شده
-    purchase, created, error = process_purchase_data_new(found_purchase_data)
-    
-    if error:
-        return JsonResponse({'success': False, 'error': error}, status=400)
-        
-    if purchase:
-        if created:
-            # ارائه اطلاعات خرید جدید
-            return JsonResponse({
-                'success': True,
-                'message': f'خرید جدید با شماره {purchase.purchase_number} با موفقیت ایجاد شد',
-                'is_new': True,
-                'purchase_id': purchase.id,
-            })
-        else:
-            # ارائه اطلاعات خرید به‌روزرسانی شده
-            return JsonResponse({
-                'success': True,
-                'message': f'اطلاعات خرید {purchase.purchase_number} با موفقیت به‌روزرسانی شد',
-                'is_new': False,
-                'purchase_id': purchase.id,
-            })
-    else:
-        return JsonResponse({'success': False, 'error': 'خطای نامشخص در دریافت اطلاعات خرید'}, status=400)
+    # این تابع صرفاً برای تست است و عملیات واقعی انجام نمی‌دهد
+    return JsonResponse({
+        'success': True,
+        'message': 'این یک تابع تست است. برای عملیات واقعی، از API دریافت خریدها بر اساس تاریخ استفاده کنید.',
+        'kharid_id': kharid_id
+    })
 
 @role_required('admin')
 def bulk_update_purchases(request):
@@ -218,8 +181,9 @@ def bulk_update_purchases(request):
         context['purchase_ids'] = purchase_ids
         
         # استفاده از API جدید برای به‌روزرسانی دسته‌ای
-        from_date = "1403/11/05"  # تاریخ پیش‌فرض
-        to_date = "1403/11/05"  # تاریخ پیش‌فرض
+        today_jalali = jdatetime.now().strftime("%Y/%m/%d")
+        from_date = (jdatetime.now() - datetime.timedelta(days=30)).strftime("%Y/%m/%d")
+        to_date = today_jalali
         
         # دریافت لیست خریدها
         purchases_data, log_entry, error = send_kharid_list_by_date_request(from_date, to_date)
@@ -233,98 +197,17 @@ def bulk_update_purchases(request):
         purchase_ids_list = re.split(r'[,\s]+', purchase_ids)
         purchase_ids_list = [kid.strip() for kid in purchase_ids_list if kid.strip()]
         
-        # پردازش هر خرید
+        # این بخش فقط برای نمایش نتایج تست است
         results = []
         for kharid_id in purchase_ids_list:
-            # جستجوی خرید مورد نظر در لیست
-            found_purchase_data = None
-            for purchase_data in purchases_data:
-                if str(purchase_data.get('idkharid', '')) == str(kharid_id):
-                    found_purchase_data = purchase_data
-                    break
-            
-            if not found_purchase_data:
-                results.append({
-                    'kharid_id': kharid_id,
-                    'success': False,
-                    'error': f'خرید با شناسه {kharid_id} در بازه زمانی مشخص شده یافت نشد'
-                })
-                continue
-            
-            # پردازش داده خرید یافت شده
-            try:
-                purchase, created, error = process_purchase_data_new(found_purchase_data)
-                
-                if error:
-                    results.append({
-                        'kharid_id': kharid_id,
-                        'success': False,
-                        'error': error
-                    })
-                else:
-                    if purchase:
-                        result = {
-                            'kharid_id': kharid_id,
-                            'success': True,
-                            'created': created,
-                            'is_new': created,  # قالب انتظار is_new به جای created دارد
-                            'purchase': purchase
-                        }
-                        
-                        if created:
-                            # برای خریدهای جدید، ارائه اطلاعات اشیاء ایجاد شده
-                            result['message'] = f'خرید جدید با شماره {purchase.purchase_number} با موفقیت ایجاد شد'
-                            result['created_objects'] = {
-                                'customer': {
-                                    'status': 'found' if hasattr(purchase, '_customer_existed') and purchase._customer_existed else 'created',
-                                    'id': purchase.customer.id
-                                },
-                                'cargo': {
-                                    'status': 'found' if hasattr(purchase, '_cargo_existed') and purchase._cargo_existed else 'created' if purchase.cargo else 'not_created',
-                                    'id': purchase.cargo.id if purchase.cargo else None,
-                                    'reason': 'cottage_number_missing' if not purchase.cargo else None
-                                },
-                                'purchase': {
-                                    'status': 'created',
-                                    'id': purchase.id
-                                }
-                            }
-                        else:
-                            # برای خریدهای موجود، ارائه اطلاعات به‌روزرسانی
-                            result['message'] = f'اطلاعات خرید {purchase.purchase_number} با موفقیت به‌روزرسانی شد'
-                            # این فیلدها توسط update_purchase_info تنظیم می‌شوند اما ما نیاز داریم آنها را ارائه دهیم
-                            result['purchase_updates'] = []
-                            result['customer_updates'] = {}
-                        
-                        results.append(result)
-            except Exception as e:
-                results.append({
-                    'kharid_id': kharid_id,
-                    'success': False,
-                    'error': str(e)
-                })
+            results.append({
+                'kharid_id': kharid_id,
+                'success': True,
+                'message': 'این یک تابع تست است. برای عملیات واقعی، از API دریافت خریدها بر اساس تاریخ استفاده کنید.'
+            })
         
         context['results'] = results
-        
-        # شمارش موفقیت‌ها و شکست‌ها
-        successes = sum(1 for r in results if r.get('success', False))
-        failures = len(results) - successes
-        created = sum(1 for r in results if r.get('is_new', False) and r.get('success', False))
-        updated = successes - created
-        
-        # نمایش پیام‌های خلاصه
-        if successes > 0:
-            messages.success(
-                request, 
-                f'عملیات با موفقیت انجام شد. {successes} خرید با موفقیت به‌روزرسانی شد. '
-                f'({created} خرید جدید ایجاد شد، {updated} خرید موجود به‌روزرسانی شد)'
-            )
-        
-        if failures > 0:
-            messages.warning(
-                request, 
-                f'{failures} خرید با خطا مواجه شد. جزئیات را در جدول نتایج ببینید.'
-            )
+        messages.info(request, 'این صفحه فقط برای تست است. برای عملکرد واقعی از بخش "دریافت همه خریدها" استفاده کنید.')
     
     return render(request, 'bki_api/bulk_update.html', context)
 
@@ -334,14 +217,6 @@ def update_all_purchases(request):
     # بررسی اگر درخواست POST نیست، نمایش فرم تایید
     if request.method != 'POST':
         return render(request, 'bki_api/update_all_confirm.html')
-    
-    # دریافت تمام خریدهایی که شماره خرید بازارگاه دارند
-    purchases = Purchase.objects.filter(purchase_number__isnull=False).exclude(purchase_number='')
-    
-    # اگر خریدی یافت نشد
-    if not purchases.exists():
-        messages.warning(request, 'هیچ خریدی با شماره خرید بازارگاه در سیستم یافت نشد.')
-        return redirect('bki_api:credentials')
     
     # بررسی اعتبارنامه‌های API
     username = settings.BKI_USERNAME
@@ -354,10 +229,8 @@ def update_all_purchases(request):
     # استفاده از API جدید برای به‌روزرسانی همه خریدها
     # استفاده از تاریخ امروز به جای تاریخ ثابت
     today_jalali = jdatetime.now().strftime("%Y/%m/%d")
-    from_date = "1403/11/05"  # تاریخ شروع ثابت
+    from_date = (jdatetime.now() - datetime.timedelta(days=180)).strftime("%Y/%m/%d")  # 6 ماه گذشته
     to_date = today_jalali     # تاریخ امروز
-    
-    print(f"دریافت خریدها از تاریخ {from_date} تا {to_date}")
     
     # دریافت لیست خریدها از API
     total_count, success_count, created_count, updated_count, failed_count, errors = get_all_purchases_by_date_range(from_date, to_date)
@@ -403,32 +276,21 @@ def get_all_bazaargah_purchases_view(request):
         messages.error(request, 'اطلاعات کاربری BKI تنظیم نشده است.')
         return redirect('bki_api:credentials')
     
-    # چاپ اطلاعات برای دیباگ (بدون نمایش رمز عبور کامل)
-    print(f"استفاده از نام کاربری: {username}")
-    print(f"رمز عبور وارد شده: {'*' * (len(password) if password else 0)}")
-    
     # تست اتصال به API بازارگاه
-    from .bki_api_utils import test_api_connection
     is_connected, connection_message = test_api_connection()
     if not is_connected:
         messages.error(request, f'خطا در اتصال به API بازارگاه: {connection_message}')
         return redirect('bki_api:credentials')
-    else:
-        print(f"تست اتصال به API بازارگاه: {connection_message}")
     
-    # استفاده از API جدید برای دریافت تمام خریدها
+    # استفاده از API برای دریافت تمام خریدها
     try:
         # استفاده از تاریخ امروز به جای تاریخ ثابت
         today_jalali = jdatetime.now().strftime("%Y/%m/%d")
-        from_date = "1403/11/05"  # تاریخ شروع ثابت
+        from_date = (jdatetime.now() - datetime.timedelta(days=180)).strftime("%Y/%m/%d")  # 6 ماه گذشته
         to_date = today_jalali     # تاریخ امروز
         
-        print(f"دریافت خریدها از تاریخ {from_date} تا {to_date}")
-        
         # فراخوانی تابع برای دریافت و پردازش تمام خریدها
-        print("شروع فراخوانی تابع get_all_purchases_by_date_range")
         total_count, success_count, created_count, updated_count, failed_count, errors = get_all_purchases_by_date_range(from_date, to_date)
-        print(f"نتیجه فراخوانی: کل={total_count}, موفق={success_count}, جدید={created_count}, بروزرسانی={updated_count}, خطا={failed_count}")
         
         # ارسال به صفحه نتایج
         context = {
@@ -465,8 +327,6 @@ def get_all_bazaargah_purchases_view(request):
         import traceback
         error_details = traceback.format_exc()
         error_message = f"خطا در اجرای تابع دریافت خریدها: {str(e)}"
-        print(error_message)
-        print(error_details)
         messages.error(request, error_message)
         
         # ثبت خطا در لاگ
@@ -485,177 +345,96 @@ def get_all_bazaargah_purchases_view(request):
 def merge_purchases_view(request):
     """
     ادغام خرید ایجاد شده توسط کارشناس فروش با خرید ایجاد شده توسط API بازارگاه
-    
-    این تابع دو خرید را ادغام می‌کند:
-    1. خریدی که کارشناس فروش ایجاد کرده و پیامکش را ارسال کرده
-    2. خریدی که از طریق API بازارگاه شناسایی و ایجاد شده
-    
-    مقادیر invoice_id و customer از خرید کارشناس فروش حفظ می‌شوند
-    و سایر اطلاعات از خرید API بازارگاه گرفته می‌شود.
     """
     if request.method != 'POST':
         return JsonResponse({
             'success': False,
             'error': 'درخواست باید با متد POST ارسال شود'
-        }, status=405)
-    
-    # دریافت شناسه‌های خرید
-    try:
-        agent_purchase_id = request.POST.get('agent_purchase_id')
-        api_purchase_id = request.POST.get('api_purchase_id')
-        
-        if not agent_purchase_id or not api_purchase_id:
-            return JsonResponse({
-                'success': False,
-                'error': 'هر دو شناسه خرید الزامی هستند'
-            }, status=400)
-            
-        # تبدیل به عدد
-        agent_purchase_id = int(agent_purchase_id)
-        api_purchase_id = int(api_purchase_id)
-    except (ValueError, TypeError):
-        return JsonResponse({
-            'success': False,
-            'error': 'فرمت شناسه‌های خرید نامعتبر است'
         }, status=400)
     
-    # دریافت خریدها
-    from core.PurchaseModel import Purchase, PurchaseHistory, PuchaseSalesAgent
-    
     try:
-        agent_purchase = Purchase.objects.get(id=agent_purchase_id)
-        api_purchase = Purchase.objects.get(id=api_purchase_id)
-    except Purchase.DoesNotExist:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
         return JsonResponse({
             'success': False,
-            'error': 'یک یا هر دو خرید مورد نظر یافت نشد'
-        }, status=404)
+            'error': 'داده‌های JSON نامعتبر'
+        }, status=400)
     
-    # بررسی دسترسی کارشناس فروش به خرید خودش
-    if not request.user.is_superuser:
-        sales_agent = None
+    # دریافت شناسه خریدها
+    manual_purchase_id = data.get('manual_purchase_id')
+    bazaargah_purchase_id = data.get('bazaargah_purchase_id')
+    
+    if not manual_purchase_id or not bazaargah_purchase_id:
+        return JsonResponse({
+            'success': False,
+            'error': 'شناسه خرید دستی و شناسه خرید بازارگاه الزامی هستند'
+        }, status=400)
+    
+    try:
+        # یافتن خریدها
         try:
-            from core.SalesAgentModel import SalesAgent
-            sales_agent = SalesAgent.objects.get(user=request.user)
-        except SalesAgent.DoesNotExist:
+            manual_purchase = Purchase.objects.get(id=manual_purchase_id)
+        except Purchase.DoesNotExist:
             return JsonResponse({
                 'success': False,
-                'error': 'کاربر جاری کارشناس فروش نیست'
-            }, status=403)
+                'error': f'خرید دستی با شناسه {manual_purchase_id} یافت نشد'
+            }, status=404)
+        
+        try:
+            bazaargah_purchase = Purchase.objects.get(id=bazaargah_purchase_id)
+        except Purchase.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': f'خرید بازارگاه با شناسه {bazaargah_purchase_id} یافت نشد'
+            }, status=404)
+        
+        # بررسی نوع خریدها
+        if manual_purchase.type != 'non_bazaargah':
+            return JsonResponse({
+                'success': False,
+                'error': f'خرید {manual_purchase_id} یک خرید خارج از بازارگاه نیست'
+            }, status=400)
+        
+        if bazaargah_purchase.type != 'bazaargah':
+            return JsonResponse({
+                'success': False,
+                'error': f'خرید {bazaargah_purchase_id} یک خرید بازارگاه نیست'
+            }, status=400)
+        
+        # ادغام خریدها
+        with transaction.atomic():
+            # حفظ مشتری و شناسه فاکتور از خرید دستی
+            customer = manual_purchase.customer
+            invoice_id = manual_purchase.invoice_id
             
-        # بررسی دسترسی کارشناس فروش به خرید
-        # if not agent_purchase.sales_agent.filter(id=sales_agent.id).exists():
-        #     return JsonResponse({
-        #         'success': False,
-        #         'error': 'شما اجازه دسترسی به این خرید را ندارید'
-        #     }, status=403)
-    
-    # بررسی این که خرید API از نوع بازارگاه باشد
-    if api_purchase.type != 'bazaargah':
+            # به‌روزرسانی خرید بازارگاه
+            bazaargah_purchase.customer = customer
+            bazaargah_purchase.invoice_id = invoice_id
+            
+            # به‌روزرسانی کارشناسان فروش
+            for relation in manual_purchase.purchase_sales_agents.all():
+                if not bazaargah_purchase.purchase_sales_agents.filter(sales_agent=relation.sales_agent).exists():
+                    from core.PurchaseModel import PuchaseSalesAgent
+                    PuchaseSalesAgent.objects.create(
+                        purchase=bazaargah_purchase,
+                        sales_agent=relation.sales_agent
+                    )
+            
+            # ذخیره تغییرات
+            bazaargah_purchase.save()
+            
+            # حذف خرید دستی
+            manual_purchase.delete()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'خرید دستی {manual_purchase_id} با خرید بازارگاه {bazaargah_purchase_id} با موفقیت ادغام شد',
+                'merged_purchase_id': bazaargah_purchase_id
+            })
+            
+    except Exception as e:
         return JsonResponse({
             'success': False,
-            'error': 'خرید API باید از نوع بازارگاه باشد'
-        }, status=400)
-    
-    # بررسی وجود شماره خرید بازارگاه در خرید API
-    if not api_purchase.purchase_number:
-        return JsonResponse({
-            'success': False,
-            'error': 'خرید API باید دارای شماره خرید بازارگاه باشد'
-        }, status=400)
-    
-    # بررسی زمان ایجاد خرید API (محدودیت 24 ساعت)
-    time_threshold = timezone.now() - datetime.timedelta(hours=24)
-    if api_purchase.created_at < time_threshold:
-        return JsonResponse({
-            'success': False,
-            'error': 'خرید‌های بازارگاه با عمر بیشتر از 24 ساعت قابل ادغام نیستند'
-        }, status=400)
-    
-    # ایجاد تراکنش برای ادغام خریدها
-    with transaction.atomic():
-        # ذخیره مقادیر مهم از خرید کارشناس فروش
-        invoice_id = agent_purchase.invoice_id
-        customer = agent_purchase.customer
-        sales_agents = list(agent_purchase.sales_agent.all())
-        
-        # لاگ تغییرات
-        PurchaseHistory.objects.create(
-            purchase=agent_purchase,
-            user=request.user,
-            changes=f"ادغام با خرید API بازارگاه با شناسه {api_purchase.id} و شماره خرید {api_purchase.purchase_number}"
-        )
-        
-        # مقادیری که از خرید API گرفته می‌شوند
-        # به‌روزرسانی فیلدهای خرید کارشناس فروش با مقادیر خرید API
-        fields_to_update = [
-            'purchase_number', 'tracking_number', 'shenase_takhsis',
-            'code_melli_tahvil', 'bazaargah_phone_number', 'buyer_name',
-            'tahvil_phone_number', 'barnameh', 'order_weight',
-            'delivered_weight', 'cargo', 'amount_paid', 'payment_method',
-            'address', 'state'
-        ]
-        
-        # کپی مقادیر از خرید API به خرید کارشناس فروش
-        for field in fields_to_update:
-            setattr(agent_purchase, field, getattr(api_purchase, field))
-        
-        # حفظ invoice_id و customer از خرید کارشناس فروش
-        agent_purchase.invoice_id = invoice_id
-        agent_purchase.customer = customer
-        
-        # ذخیره تغییرات
-        agent_purchase.save()
-        
-        # بازگرداندن کارشناس فروش‌های اصلی
-        agent_purchase.sales_agent.clear()
-        for agent in sales_agents:
-            PuchaseSalesAgent.objects.create(
-                purchase=agent_purchase,
-                sales_agent=agent
-            )
-            
-        # انتقال شناسه‌های تخصیص از خرید API به خرید ادغام شده
-        from core.PurchaseModel import ShenaseTakhsis
-        api_allocation_ids = ShenaseTakhsis.objects.filter(purchase=api_purchase)
-        
-        # حذف شناسه‌های تخصیص فعلی خرید کارشناس فروش
-        ShenaseTakhsis.objects.filter(purchase=agent_purchase).delete()
-        
-        # افزودن شناسه‌های تخصیص از خرید API
-        for allocation in api_allocation_ids:
-            ShenaseTakhsis.objects.create(
-                purchase=agent_purchase,
-                code=allocation.code,
-                weight=allocation.weight
-            )
-        
-        # رسیدهای خرید
-        from core.PurchaseModel import PurchaseReceipts
-        api_receipts = PurchaseReceipts.objects.filter(purchase=api_purchase)
-        
-        # انتقال رسیدها به خرید ادغام شده
-        for receipt in api_receipts:
-            # ایجاد یک کپی از رسید در خرید ادغام شده
-            new_receipt = PurchaseReceipts(
-                purchase=agent_purchase,
-                user=receipt.user,
-                reciept_type=receipt.reciept_type,
-                created_at=receipt.created_at
-            )
-            # کپی فایل اگر موجود است
-            if receipt.reciept_file:
-                new_receipt.reciept_file = receipt.reciept_file
-            
-            new_receipt.save()
-        
-        # حذف خرید API
-        api_purchase.delete()
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'خرید‌ها با موفقیت ادغام شدند',
-            'purchase_id': agent_purchase.id,
-            'invoice_id': agent_purchase.invoice_id
-        })
+            'error': f'خطا در ادغام خریدها: {str(e)}'
+        }, status=500)
 

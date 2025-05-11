@@ -55,7 +55,6 @@ INSTALLED_APPS = [
     'sales.apps.SalesConfig',
     'ERP.apps.ERPConfig',
     'CRM.apps.CRMConfig',
-    'excel_manager.apps.ExcelManagerConfig',
     'sms_api.apps.SmsApiConfig',
     'chat.apps.ChatConfig',
     'HR.apps.HRConfig',

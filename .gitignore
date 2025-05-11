@@ -74,6 +74,7 @@ bki_api/__pycache__
 /bki_api/templates/__pycache__
 /bki_api/forms/__pycache__
 /bki_api/management/__pycache__
+/bki_api/bki_api_utils/__pycache__
 
 # Environment files
 .env

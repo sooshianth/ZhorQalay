@@ -12,6 +12,7 @@ from .models import BKILog
 import json
 import xml.etree.ElementTree as ET
 from datetime import timedelta
+from .bki_api_utils.data_processing import process_purchase_data
 
 def send_kharid_list_by_date_request(from_date="1403/11/05", to_date="1403/11/05"):
     """
@@ -83,7 +84,7 @@ def send_kharid_list_by_date_request(from_date="1403/11/05", to_date="1403/11/05
         # تجزیه پاسخ XML با استفاده از تابع analyze_api_response
         try:
             print("پاسخ XML دریافت شد. در حال تجزیه...")
-            from .bki_api_utils import analyze_api_response
+            from .bki_api_utils.api_client   import analyze_api_response
             
             # تحلیل ساختار پاسخ
             analysis = analyze_api_response(response.text)
@@ -152,8 +153,6 @@ def get_all_purchases_by_date_range(start_date, end_date):
     Returns:
         tuple: (تعداد کل, تعداد موفق, تعداد ایجاد شده, تعداد به‌روزرسانی شده, تعداد خطا, لیست خطاها)
     """
-    from bki_api.bki_api_utils import process_purchase_data_new
-    
     # ارسال درخواست SOAP با استفاده از تابع موجود
     purchases_data, log_entry, error = send_kharid_list_by_date_request(start_date, end_date)
     
@@ -179,9 +178,9 @@ def get_all_purchases_by_date_range(start_date, end_date):
     
     # چاپ اطلاعات خریدها
     print("\nاطلاعات خریدها:")
-    print("-" * 80)
-    print(f"{'شناسه خرید':<15} {'نام مشتری':<25} {'نوع محصول':<15} {'شماره کوتاژ':<15} {'وزن سفارش':<15} {'وزن تحویلی':<15} {'اختلاف':<10}")
-    print("-" * 80)
+    print("-" * 100)
+    print(f"{'شناسه خرید':<15} {'نام مشتری':<25} {'نوع محصول':<15} {'شماره کوتاژ':<15} {'کوتاژ جدید':<15} {'وزن سفارش':<15} {'وزن تحویلی':<15} {'اختلاف':<10}")
+    print("-" * 100)
     
     for purchase_data in purchases_data:
         # استخراج شناسه خرید
@@ -193,14 +192,17 @@ def get_all_purchases_by_date_range(start_date, end_date):
         # استخراج نوع محصول
         product_type = purchase_data.get('goodtitle', purchase_data.get('productname', 'نامشخص'))
         
-        # استخراج شماره کوتاژ
+        # استخراج شماره کوتاژ (قدیمی)
         cottage_number = purchase_data.get('kutajnumber', purchase_data.get('goodno', 'نامشخص'))
         
-        # استخراج وزن سفارش
-        order_weight = int(purchase_data.get('weighttakhsis', purchase_data.get('qty', purchase_data.get('orderedweight', 0))) or 0)
+        # استخراج کوتاژ جدید
+        goodtag = purchase_data.get('goodtag', 'نامشخص')
+        
+        # استخراج وزن سفارش - اصلاح فیلد برای استفاده از qty بجای totalweight
+        order_weight = int(purchase_data.get('qty', purchase_data.get('weighttakhsis', purchase_data.get('orderedweight', 0))) or 0)
         
         # استخراج وزن تحویلی
-        delivered_weight = int(purchase_data.get('wbarnamehshode', purchase_data.get('faktorshode', purchase_data.get('weight', 0))) or 0)
+        delivered_weight = int(purchase_data.get('wbarnameshode', purchase_data.get('faktorshode', purchase_data.get('weight', 0))) or 0)
         
         # محاسبه اختلاف وزن
         weight_diff = delivered_weight - order_weight
@@ -208,11 +210,11 @@ def get_all_purchases_by_date_range(start_date, end_date):
         diff_display = f"{diff_type} {abs(weight_diff)}" if weight_diff != 0 else "-"
         
         # چاپ اطلاعات خرید
-        print(f"{purchase_id:<15} {customer_name[:23]:<25} {product_type[:13]:<15} {cottage_number:<15} {order_weight:<15} {delivered_weight:<15} {diff_display:<10}")
+        print(f"{purchase_id:<15} {customer_name[:23]:<25} {product_type[:13]:<15} {cottage_number:<15} {goodtag:<15} {order_weight:<15} {delivered_weight:<15} {diff_display:<10}")
         
         try:
             # پردازش داده‌های خرید
-            purchase, created, error = process_purchase_data_new(purchase_data)
+            purchase, created, error = process_purchase_data(purchase_data)
             
             if error:
                 print(f"خطا در پردازش خرید {purchase_id}: {error}")
@@ -232,85 +234,61 @@ def get_all_purchases_by_date_range(start_date, end_date):
             failed_count += 1
             errors.append(f"خرید {purchase_id}: {str(e)}")
     
-    print("-" * 80)
+    print("-" * 100)
     print(f"نتیجه: کل={total_count}, موفق={success_count}, جدید={created_count}, به‌روزرسانی={updated_count}, خطا={failed_count}")
     
     return total_count, success_count, created_count, updated_count, failed_count, errors
 
-def get_purchases_last_24_hours():
+def get_purchases_recent_period(period_days=1):
     """
-    دریافت خریدهای 24 ساعت اخیر از API بازارگاه و ثبت آنها در دیتابیس
+    دریافت خریدهای بازه زمانی اخیر
+    
+    Args:
+        period_days: تعداد روزهای قبل تا امروز
     
     Returns:
-        tuple: (تعداد کل, تعداد موفق, تعداد ایجاد شده, تعداد به‌روزرسانی شده, تعداد خطا, لیست خطاها)
+        tuple: نتیجه فراخوانی get_all_purchases_by_date_range
     """
-    # محاسبه تاریخ امروز و دیروز به فرمت شمسی
-    today = jdatetime.now().strftime('%Y/%m/%d')
-    yesterday = (jdatetime.now() - timedelta(days=1)).strftime('%Y/%m/%d')
+    # تبدیل تاریخ امروز به شمسی
+    today_jalali = jdatetime.now()
+    today_str = today_jalali.strftime("%Y/%m/%d")
     
-    print(f"دریافت خریدهای از {yesterday} تا {today}")
+    # تبدیل تاریخ روزهای قبل به شمسی
+    past_date = jdatetime.now() - timedelta(days=period_days)
+    past_str = past_date.strftime("%Y/%m/%d")
     
-    # فراخوانی تابع دریافت خریدها با بازه زمانی مشخص
-    return get_all_purchases_by_date_range(yesterday, today)
+    return get_all_purchases_by_date_range(past_str, today_str)
+
+def get_purchases_last_24_hours():
+    """
+    دریافت خریدهای 24 ساعت گذشته
+    """
+    return get_purchases_recent_period(1)
 
 def get_purchases_last_week():
     """
-    دریافت خریدهای هفته اخیر از API بازارگاه و ثبت آنها در دیتابیس
-    
-    Returns:
-        tuple: (تعداد کل, تعداد موفق, تعداد ایجاد شده, تعداد به‌روزرسانی شده, تعداد خطا, لیست خطاها)
+    دریافت خریدهای یک هفته گذشته
     """
-    # محاسبه تاریخ امروز و یک هفته قبل به فرمت شمسی
-    today = jdatetime.now().strftime('%Y/%m/%d')
-    last_week = (jdatetime.now() - timedelta(days=7)).strftime('%Y/%m/%d')
-    
-    print(f"دریافت خریدهای از {last_week} تا {today}")
-    
-    # فراخوانی تابع دریافت خریدها با بازه زمانی مشخص
-    return get_all_purchases_by_date_range(last_week, today)
+    return get_purchases_recent_period(7)
 
 def get_purchases_last_month():
     """
-    دریافت خریدهای یک ماه اخیر از API بازارگاه
-    
-    Returns:
-        tuple: (total_count, success_count, created_count, updated_count, failed_count, errors)
+    دریافت خریدهای یک ماه گذشته
     """
-    # تبدیل تاریخ امروز به شمسی
-    today_jalali = jdatetime.now().strftime("%Y/%m/%d")
-    
-    # تبدیل تاریخ یک ماه قبل به شمسی
-    month_ago = datetime.datetime.now() - datetime.timedelta(days=30)
-    month_ago_jalali = jdatetime.fromgregorian(date=month_ago.date()).strftime("%Y/%m/%d")
-    
-    print(f"دریافت خریدها از {month_ago_jalali} تا {today_jalali}")
-    
-    # فراخوانی تابع دریافت خریدها با بازه زمانی مشخص شده
-    return get_all_purchases_by_date_range(
-        from_date=month_ago_jalali, 
-        to_date=today_jalali
-    )
+    return get_purchases_recent_period(30)
 
 def get_purchases_all_time():
     """
-    دریافت تمام خریدها از تاریخ شروع (1403/11/05) تا امروز
-    
-    Returns:
-        tuple: (total_count, success_count, created_count, updated_count, failed_count, errors)
+    دریافت همه خریدها از تاریخ شروع تا امروز
     """
     # تبدیل تاریخ امروز به شمسی
-    today_jalali = jdatetime.now().strftime("%Y/%m/%d")
+    today_jalali = jdatetime.now()
+    today_str = today_jalali.strftime("%Y/%m/%d")
     
     # تاریخ شروع ثابت
-    start_date = "1403/11/05"
+    start_date = "1403/01/01"
     
-    print(f"دریافت خریدها از {start_date} تا {today_jalali}")
-    
-    # فراخوانی تابع دریافت خریدها با بازه زمانی مشخص شده
-    return get_all_purchases_by_date_range(
-        from_date=start_date, 
-        to_date=today_jalali
-    )
+    return get_all_purchases_by_date_range(start_date, today_str)
 
 def main():
     """

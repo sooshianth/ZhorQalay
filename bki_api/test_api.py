@@ -12,7 +12,8 @@ django.setup()
 
 # واردات توابع مورد نیاز
 from bki_api.bki_kharid_list_by_date import get_purchases_last_24_hours, get_all_purchases_by_date_range
-from bki_api.bki_api_utils import analyze_api_response, process_purchase_data_new
+from bki_api.bki_api_utils.api_client import analyze_api_response
+from bki_api.bki_api_utils.data_processing import process_purchase_data as process_purchase_data_new
 from bki_api.models import BKILog
 
 def test_get_purchases_last_24_hours():
