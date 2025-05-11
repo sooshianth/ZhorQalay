@@ -1,0 +1,205 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}جزئیات بارنامه{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-file-invoice me-2"></i>
+            جزئیات بارنامه
+        </h5>
+        <div>
+            <a href="{% url 'barnameh_list' %}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-right me-1"></i>
+                بازگشت به لیست
+            </a>
+            {% if not barnameh.is_sent_to_bki %}
+            <a href="{% url 'barnameh_edit' barnameh.id %}" class="btn btn-warning btn-sm">
+                <i class="fas fa-edit me-1"></i>
+                ویرایش
+            </a>
+            <a href="{% url 'barnameh_delete' barnameh.id %}" class="btn btn-danger btn-sm">
+                <i class="fas fa-trash me-1"></i>
+                حذف
+            </a>
+            {% if barnameh.status == 'BARNAMEH_COMPLETE' %}
+            <form method="post" action="{% url 'send_to_bki' barnameh.id %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-paper-plane me-1"></i>
+                    نشاندن در بازارگاه
+                </button>
+            </form>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h6 class="mb-0">اطلاعات بارنامه</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-striped">
+                            <tr>
+                                <th style="width: 40%">شماره بارنامه:</th>
+                                <td>{{ barnameh.number|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>سریال بارنامه:</th>
+                                <td>{{ barnameh.serial|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>تاریخ بارنامه:</th>
+                                <td>{{ barnameh.barnameh_date|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>وزن (تن):</th>
+                                <td>{{ barnameh.tonnage|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>وضعیت:</th>
+                                <td>
+                                    {% if barnameh.status == 'BARNAMEH_INCOMPLETE' %}
+                                    <span class="badge bg-warning">بارنامه ناقص</span>
+                                    {% elif barnameh.status == 'BARNAMEH_COMPLETE' %}
+                                    <span class="badge bg-success">بارنامه کامل</span>
+                                    {% elif barnameh.status == 'PURCHASE_CLOSED' %}
+                                    <span class="badge bg-primary">ارسال شده به بازارگاه</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>ارسال به بازارگاه:</th>
+                                <td>
+                                    {% if barnameh.is_sent_to_bki %}
+                                    <span class="badge bg-success">ارسال شده</span>
+                                    <br>
+                                    <small class="text-muted">{{ barnameh.is_sent_to_bki_at }}</small>
+                                    {% else %}
+                                    <span class="badge bg-danger">ارسال نشده</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h6 class="mb-0">اطلاعات خرید و تخصیص</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-striped">
+                            <tr>
+                                <th style="width: 40%">شناسه خرید:</th>
+                                <td>{{ barnameh.purchase_number|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>شناسه تخصیص:</th>
+                                <td>{{ barnameh.shenase_takhsis_code|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>ایجاد شده توسط اکسل:</th>
+                                <td>
+                                    {% if barnameh.is_created_by_excel %}
+                                    <span class="badge bg-info">بله</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">خیر</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>تاریخ ایجاد:</th>
+                                <td>{{ barnameh.barnameh_created_at }}</td>
+                            </tr>
+                            <tr>
+                                <th>تاریخ آخرین بروزرسانی:</th>
+                                <td>{{ barnameh.barnameh_updated_at }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h6 class="mb-0">اطلاعات حمل و نقل</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-striped">
+                            <tr>
+                                <th style="width: 40%">نام راننده:</th>
+                                <td>{{ barnameh.driver_name|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>شماره تلفن راننده:</th>
+                                <td>{{ barnameh.driver_phone|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>پلاک خودرو:</th>
+                                <td>{{ barnameh.vehicle_plate|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>نام گیرنده:</th>
+                                <td>{{ barnameh.receiver_name|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>مقصد:</th>
+                                <td>{{ barnameh.destination|default:"-" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            {% if barnameh.api_logs.exists %}
+            <div class="col-md-12 mt-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">تاریخچه درخواست‌های API</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>تاریخ</th>
+                                        <th>نوع درخواست</th>
+                                        <th>وضعیت</th>
+                                        <th>پیام خطا</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for log in barnameh.api_logs.all %}
+                                    <tr>
+                                        <td>{{ log.created_at }}</td>
+                                        <td>{{ log.request_type }}</td>
+                                        <td>
+                                            {% if log.is_successful %}
+                                            <span class="badge bg-success">موفق</span>
+                                            {% else %}
+                                            <span class="badge bg-danger">ناموفق</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ log.error_message|default:"-" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -18,7 +18,7 @@ from sms_api.apis import queue_sms
 from django.urls import path
 from django.template.response import TemplateResponse
 from django.contrib.auth.models import User
-from .BarnamehModel import Barnameh
+from bki_barnameh.models.BarnamehModel import Barnameh
 # @admin.register(Notification)
 # class NotificationAdmin(admin.ModelAdmin):
 #     list_display = ('user', 'message')

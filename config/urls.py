@@ -27,6 +27,7 @@ urlpatterns = [
     path('whatsapp/', include(('whatsapp_api.urls', 'whatsapp_api'), namespace='whatsapp_api')),
     path('whatsapp/', whatsapp_dashboard, name='whatsapp-dashboard'),
     path('bki/', include('bki_api.urls')),
+    path('bki/barnameh/', include('bki_barnameh.urls')),
 ]
 
 # اضافه کردن URL های مربوط به media در حالت دیباگ

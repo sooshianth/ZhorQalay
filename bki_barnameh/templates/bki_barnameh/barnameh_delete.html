@@ -1,0 +1,75 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}حذف بارنامه{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-trash me-2"></i>
+            حذف بارنامه
+        </h5>
+        <div>
+            <a href="{% url 'barnameh_detail' barnameh.id %}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-right me-1"></i>
+                بازگشت به جزئیات
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            آیا از حذف این بارنامه اطمینان دارید؟ این عملیات قابل بازگشت نیست.
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">اطلاعات بارنامه</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <tr>
+                        <th style="width: 40%">شماره بارنامه:</th>
+                        <td>{{ barnameh.number|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>سریال بارنامه:</th>
+                        <td>{{ barnameh.serial|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>تاریخ بارنامه:</th>
+                        <td>{{ barnameh.barnameh_date|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>وزن (تن):</th>
+                        <td>{{ barnameh.tonnage|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>شناسه خرید:</th>
+                        <td>{{ barnameh.purchase_number|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>شناسه تخصیص:</th>
+                        <td>{{ barnameh.shenase_takhsis_code|default:"-" }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash me-1"></i>
+                    تأیید حذف
+                </button>
+                <a href="{% url 'barnameh_detail' barnameh.id %}" class="btn btn-secondary">
+                    <i class="fas fa-times me-1"></i>
+                    انصراف
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %} 

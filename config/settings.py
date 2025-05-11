@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'chat.apps.ChatConfig',
     'HR.apps.HRConfig',
     'bki_api.apps.BkiApiConfig',
+    'bki_barnameh.apps.BkiBarnamehConfig',
 ]
 
 MIDDLEWARE = [
