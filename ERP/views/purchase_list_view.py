@@ -8,6 +8,8 @@ from django.http import HttpResponse, JsonResponse
 import json
 from django.utils import timezone
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from core.CargoProductModel import CargoProduct
+from django.core.exceptions import ValidationError
 
 def determine_user_role(user):
     """
@@ -418,5 +420,169 @@ def get_purchase_edit_logs(request, purchase_id):
     
     except Purchase.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'خرید مورد نظر یافت نشد'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@login_required
+def cargo_products_list(request):
+    """
+    API برای دریافت لیست کوتاژها
+    """
+    try:
+        # فیلتر بر اساس وضعیت فعال
+        active_only = request.GET.get('active_only', '1') == '1'
+        
+        if active_only:
+            cargos = CargoProduct.objects.filter(status=True).order_by('-created_at')
+        else:
+            cargos = CargoProduct.objects.all().order_by('-created_at')
+        
+        # جستجو بر اساس پارامتر search (اگر ارسال شده باشد)
+        search_term = request.GET.get('search', '')
+        if search_term:
+            cargos = cargos.filter(
+                Q(cottage__icontains=search_term) |
+                Q(product_type__icontains=search_term) |
+                Q(country__icontains=search_term) |
+                Q(importer_name__icontains=search_term)
+            )
+        
+        cargos_data = []
+        for cargo in cargos:
+            cargos_data.append({
+                'id': cargo.id,
+                'cottage': cargo.cottage,
+                'type': cargo.type,
+                'product_type': cargo.product_type,
+                'product_type_display': cargo.get_product_type_display(),
+                'country': cargo.country,
+                'country_display': cargo.get_country_display(),
+                'importer_name': cargo.importer_name,
+                'weight': cargo.weight,
+                'company_price': cargo.company_price,
+                'customer_price': cargo.customer_price,
+                'status': cargo.status
+            })
+            
+        return JsonResponse({'status': 'success', 'cargos': cargos_data})
+    
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@login_required
+def cargo_product_details(request):
+    """
+    API برای دریافت جزئیات یک کوتاژ بر اساس شماره کوتاژ
+    """
+    try:
+        cottage = request.GET.get('cottage', '')
+        
+        if not cottage:
+            return JsonResponse({'status': 'error', 'message': 'شماره کوتاژ ارسال نشده است'}, status=400)
+        
+        try:
+            cargo = CargoProduct.objects.get(cottage=cottage)
+        except CargoProduct.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'کوتاژ مورد نظر یافت نشد'}, status=404)
+        
+        cargo_data = {
+            'id': cargo.id,
+            'cottage': cargo.cottage,
+            'type': cargo.type,
+            'product_type': cargo.product_type,
+            'product_type_display': cargo.get_product_type_display(),
+            'country': cargo.country,
+            'country_display': cargo.get_country_display(),
+            'importer_name': cargo.importer_name,
+            'weight': cargo.weight,
+            'company_price': cargo.company_price,
+            'customer_price': cargo.customer_price,
+            'status': cargo.status
+        }
+        
+        return JsonResponse({'status': 'success', 'cargo': cargo_data})
+    
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@require_POST
+@login_required
+def bulk_edit_cargo(request):
+    """
+    API برای ویرایش گروهی کوتاژ
+    """
+    try:
+        # دریافت لیست خریدهای انتخاب شده
+        purchase_ids = request.POST.get('purchase_ids', '').split(',')
+        purchase_ids = [pid for pid in purchase_ids if pid]
+        
+        if not purchase_ids:
+            return JsonResponse({'status': 'error', 'message': 'هیچ خریدی انتخاب نشده است'}, status=400)
+        
+        # دریافت اطلاعات کوتاژ
+        cargo_id = request.POST.get('cargo_id', '')
+        cottage = request.POST.get('cottage', '')
+        
+        # حالت اول: استفاده از یک کوتاژ موجود
+        if cargo_id:
+            try:
+                cargo = CargoProduct.objects.get(id=cargo_id)
+            except CargoProduct.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': 'کوتاژ مورد نظر یافت نشد'}, status=404)
+                
+        # حالت دوم: ایجاد کوتاژ جدید
+        elif cottage:
+            # بررسی اینکه آیا کوتاژ قبلاً وجود دارد
+            if CargoProduct.objects.filter(cottage=cottage).exists():
+                return JsonResponse({'status': 'error', 'message': 'این شماره کوتاژ قبلاً ثبت شده است'}, status=400)
+                
+            # ایجاد کوتاژ جدید
+            try:
+                cargo = CargoProduct(
+                    cottage=cottage,
+                    type=request.POST.get('type', 'bazaargah'),
+                    product_type=request.POST.get('product_type', 'corn'),
+                    country=request.POST.get('country', 'iran'),
+                    importer_name=request.POST.get('importer_name', ''),
+                    weight=int(request.POST.get('weight', 100000) or 100000),
+                    company_price=int(request.POST.get('company_price', 50000) or 50000),
+                    customer_price=int(request.POST.get('customer_price', 50000) or 50000),
+                    status=request.POST.get('status') == 'on'
+                )
+                cargo.save()
+            except ValidationError as e:
+                return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+            except Exception as e:
+                return JsonResponse({'status': 'error', 'message': f'خطا در ایجاد کوتاژ جدید: {str(e)}'}, status=500)
+        else:
+            return JsonResponse({'status': 'error', 'message': 'اطلاعات کوتاژ ناقص است'}, status=400)
+        
+        # اعمال کوتاژ به خریدهای انتخاب شده
+        purchases = Purchase.objects.filter(id__in=purchase_ids)
+        updated_count = 0
+        
+        for purchase in purchases:
+            purchase.cargo = cargo
+            purchase.save()
+            updated_count += 1
+            
+            # ثبت در لاگ تغییرات
+            old_cargo = 'بدون کوتاژ' if not hasattr(purchase, 'old_cargo') or purchase.old_cargo is None else purchase.old_cargo
+            log_entry = PurchaseEditLog(
+                purchase=purchase,
+                user=request.user,
+                field_name='cargo',
+                old_value=old_cargo,
+                new_value=str(cargo),
+                edit_time=timezone.now()
+            )
+            log_entry.save()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': f'کوتاژ با موفقیت به {updated_count} خرید اختصاص داده شد',
+            'updated_count': updated_count
+        })
+        
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

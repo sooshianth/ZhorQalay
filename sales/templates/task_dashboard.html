@@ -1,41 +1,761 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}داشبورد تسک‌ها{% endblock %}
+{% block title %}مدیریت تسک‌ها{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --primary-color: #065F46;
+    --primary-light: #ECFDF5;
+    --secondary-color: #22C55E;
+    --danger-color: #e74c3c;
+    --warning-color: #f39c12;
+    --dark-color: #0F172A;
+    --light-color: #f5f5f5;
+    --gray-color: #95a5a6;
+    --border-radius: 8px;
+    --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-container {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 20px;
+    padding: 20px;
+    height: calc(100vh - 80px);
+}
+
+/* Sidebar */
+.sidebar {
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    padding: 20px;
+    position: sticky;
+    top: 20px;
+    height: calc(100vh - 120px);
+    overflow-y: auto;
+}
+
+.sidebar-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: var(--dark-color);
+    display: flex;
+    align-items: center;
+}
+
+.sidebar-title i {
+    margin-left: 8px;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    border-radius: var(--border-radius);
+    color: var(--dark-color);
+    margin-bottom: 5px;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.nav-link i {
+    margin-left: 10px;
+    font-size: 1.1rem;
+    width: 20px;
+    text-align: center;
+}
+
+.nav-link:hover {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.nav-link.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.category-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.category-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-left: 8px;
+}
+
+.category-count {
+    margin-right: auto;
+    background-color: var(--light-color);
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 0.8rem;
+}
+
+.tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.tag-item {
+    background-color: var(--light-color);
+    border-radius: 15px;
+    padding: 2px 10px;
+    font-size: 0.8rem;
+    color: var(--dark-color);
+    text-decoration: none;
+}
+
+.tag-item:hover {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+}
+
+/* Main Content */
+.main-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+}
+
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.stat-card {
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-title {
+    font-size: 0.9rem;
+    color: var(--gray-color);
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: var(--dark-color);
+}
+
+.stat-icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: var(--primary-color);
+}
+
+.section {
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    overflow: hidden;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--light-color);
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--dark-color);
+    display: flex;
+    align-items: center;
+}
+
+.section-title i {
+    margin-left: 8px;
+}
+
+.section-actions a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.task-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.task-item {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--light-color);
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+}
+
+.task-item:last-child {
+    border-bottom: none;
+}
+
+.task-item:hover {
+    background-color: var(--primary-light);
+}
+
+.task-checkbox {
+    margin-left: 15px;
+}
+
+.task-content {
+    flex: 1;
+}
+
+.task-title {
+    font-weight: bold;
+    color: var(--dark-color);
+    margin-bottom: 5px;
+}
+
+.task-title a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.task-title a:hover {
+    color: var(--primary-color);
+}
+
+.task-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 0.8rem;
+    color: var(--gray-color);
+}
+
+.task-due-date {
+    display: flex;
+    align-items: center;
+}
+
+.task-due-date i {
+    margin-left: 4px;
+}
+
+.task-priority {
+    padding: 1px 8px;
+    border-radius: 10px;
+}
+
+.task-priority-urgent {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.task-priority-high {
+    background-color: var(--warning-color);
+    color: white;
+}
+
+.task-priority-medium {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.task-priority-low {
+    background-color: var(--gray-color);
+    color: white;
+}
+
+.task-category {
+    display: flex;
+    align-items: center;
+}
+
+.task-category-color {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-left: 4px;
+}
+
+.task-actions {
+    margin-right: 15px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.task-item:hover .task-actions {
+    opacity: 1;
+}
+
+.action-button {
+    background: none;
+    border: none;
+    color: var(--gray-color);
+    cursor: pointer;
+    font-size: 1rem;
+    transition: color 0.2s;
+    padding: 5px;
+}
+
+.action-button:hover {
+    color: var(--primary-color);
+}
+
+.no-tasks {
+    padding: 30px;
+    text-align: center;
+    color: var(--gray-color);
+}
+
+.no-tasks i {
+    font-size: 3rem;
+    margin-bottom: 10px;
+    display: block;
+    color: var(--gray-color);
+}
+
+.no-tasks .btn-primary {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+}
+
+.no-tasks .btn-primary:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.overdue {
+    border-right: 4px solid var(--danger-color);
+}
+
+.completed {
+    opacity: 0.7;
+}
+
+.completed .task-title {
+    text-decoration: line-through;
+}
+
+@media (max-width: 768px) {
+    .dashboard-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .sidebar {
+        position: relative;
+        height: auto;
+        top: 0;
+    }
+    
+    .stats-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="todo-container">
-    <h1 class="todo-title">داشبورد تسک‌ها</h1>
-    <div class="todo-card">
-        <h2 class="text-2xl font-semibold mb-6 text-gray-800 dark:text-gray-200">تسک‌های انجام‌نشده</h2>
-        {% if tasks %}
-            <ul class="todo-list">
-                {% for task in tasks %}
-                    <li class="todo-item">
-                        <div class="todo-info">
-                            <h3>{{ task.title }}</h3>
-                            <p>{{ task.description|truncatewords:30 }}</p>
-                            <div class="todo-meta">
-                                <span class="todo-due-date">سررسید: {{ task.due_date|date:"Y/m/d H:i" }}</span>
-                                <span class="todo-priority todo-priority-{{ task.priority }}">{{ task.get_priority_display }}</span>
-                            </div>
+<div class="dashboard-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h3 class="sidebar-title"><i class="fas fa-tasks"></i> تسک‌های من</h3>
+        
+        <nav class="sidebar-nav">
+            <a href="{% url 'task_dashboard' %}" class="nav-link active">
+                <i class="fas fa-home"></i> داشبورد
+            </a>
+            <a href="{% url 'create_task' %}" class="nav-link">
+                <i class="fas fa-plus"></i> تسک جدید
+            </a>
+            <a href="{% url 'task_list' %}" class="nav-link">
+                <i class="fas fa-list"></i> همه تسک‌ها
+            </a>
+            <a href="{% url 'completed_tasks' %}" class="nav-link">
+                <i class="fas fa-check-double"></i> تکمیل شده
+            </a>
+        </nav>
+        
+        <hr>
+        
+        <div class="sidebar-section">
+            <h4 class="sidebar-title"><i class="fas fa-filter"></i> فیلترها</h4>
+            
+            <h5>دسته‌بندی‌ها</h5>
+            <div class="category-list">
+                {% for category in categories %}
+                <a href="{% url 'task_list' %}?category={{ category.id }}" class="nav-link category-item">
+                    <span class="category-color" style="background-color: {{ category.color }};"></span>
+                    {{ category.name }}
+                    <span class="category-count">{{ category.task_count }}</span>
+                </a>
+                {% empty %}
+                <p class="text-center text-muted">دسته‌بندی وجود ندارد</p>
+                {% endfor %}
+            </div>
+            
+            <h5>اولویت</h5>
+            <a href="{% url 'task_list' %}?priority=urgent" class="nav-link">
+                <i class="fas fa-exclamation-circle text-danger"></i> فوری
+                <span class="category-count">{{ priority_counts.urgent }}</span>
+            </a>
+            <a href="{% url 'task_list' %}?priority=high" class="nav-link">
+                <i class="fas fa-arrow-up text-warning"></i> زیاد
+                <span class="category-count">{{ priority_counts.high }}</span>
+            </a>
+            <a href="{% url 'task_list' %}?priority=medium" class="nav-link">
+                <i class="fas fa-equals text-primary"></i> متوسط
+                <span class="category-count">{{ priority_counts.medium }}</span>
+            </a>
+            <a href="{% url 'task_list' %}?priority=low" class="nav-link">
+                <i class="fas fa-arrow-down text-secondary"></i> کم
+                <span class="category-count">{{ priority_counts.low }}</span>
+            </a>
+            
+            {% if tags %}
+            <h5>برچسب‌ها</h5>
+            <div class="tag-list">
+                {% for tag in tags %}
+                <a href="{% url 'task_list' %}?tag={{ tag }}" class="tag-item">{{ tag }}</a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="stats-container">
+            <div class="stat-card">
+                <i class="fas fa-tasks stat-icon text-primary"></i>
+                <div class="stat-title">تسک‌های باز</div>
+                <div class="stat-value">{{ total_pending }}</div>
+            </div>
+            
+            <div class="stat-card">
+                <i class="fas fa-check-circle stat-icon text-success"></i>
+                <div class="stat-title">تکمیل شده</div>
+                <div class="stat-value">{{ total_completed }}</div>
+            </div>
+            
+            <div class="stat-card">
+                <i class="fas fa-exclamation-triangle stat-icon text-danger"></i>
+                <div class="stat-title">گذشته از موعد</div>
+                <div class="stat-value">{{ overdue_tasks|length }}</div>
+            </div>
+            
+            <div class="stat-card">
+                <i class="fas fa-calendar-day stat-icon text-warning"></i>
+                <div class="stat-title">امروز</div>
+                <div class="stat-value">{{ due_today_tasks|length }}</div>
+            </div>
+        </div>
+        
+        <!-- Overdue Tasks -->
+        {% if overdue_tasks %}
+        <div class="section">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-exclamation-triangle text-danger"></i> تسک‌های گذشته از موعد
+                </h3>
+                <div class="section-actions">
+                    <a href="{% url 'task_list' %}?status=active&order_by=due_date">نمایش همه</a>
+                </div>
+            </div>
+            
+            <ul class="task-list">
+                {% for task in overdue_tasks %}
+                <li class="task-item overdue">
+                    <div class="task-checkbox">
+                        <form method="post" action="{% url 'toggle_task_status' %}" class="complete-task-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="task_id" value="{{ task.id }}">
+                            <input type="checkbox" class="task-complete-checkbox" {% if task.is_completed %}checked{% endif %}>
+                        </form>
+                    </div>
+                    
+                    <div class="task-content">
+                        <h4 class="task-title">
+                            <a href="{% url 'task_detail' task.id %}">{{ task.title }}</a>
+                        </h4>
+                        <div class="task-meta">
+                            <span class="task-due-date text-danger">
+                                <i class="fas fa-calendar-times"></i>
+                                {{ task.due_date }}
+                                {% if task.due_time %}
+                                <i class="fas fa-clock ml-1"></i> {{ task.due_time|time:"H:i" }}
+                                {% endif %}
+                            </span>
+                            
+                            <span class="task-priority task-priority-{{ task.priority }}">
+                                {{ task.get_priority_display }}
+                            </span>
+                            
+                            {% if task.category %}
+                            <span class="task-category">
+                                <span class="task-category-color" style="background-color: {{ task.category.color }};"></span>
+                                {{ task.category.name }}
+                            </span>
+                            {% endif %}
                         </div>
-                        <div class="todo-action">
-                            <form method="post" action="{% url 'change_task_status' task.id %}">
-                                {% csrf_token %}
-                                <button type="submit" class="todo-complete-btn">انجام شد</button>
-                            </form>
-                        </div>
-                    </li>
+                    </div>
+                    
+                    <div class="task-actions">
+                        <a href="{% url 'edit_task' task.id %}" class="action-button" title="ویرایش">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                    </div>
+                </li>
                 {% endfor %}
             </ul>
-        {% else %}
-            <p class="todo-no-tasks">هیچ تسک انجام‌نشده‌ای وجود ندارد 😊</p>
+        </div>
         {% endif %}
-    </div>
-
-    <div class="todo-actions">
-        <a href="{% url 'create_task' %}" class="todo-action-btn todo-create-btn">ایجاد تسک جدید</a>
-        <a href="{% url 'completed_tasks' %}" class="todo-action-btn todo-completed-btn">مشاهده تسک‌های انجام‌شده</a>
+        
+        <!-- Today's Tasks -->
+        <div class="section">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-calendar-day text-primary"></i> تسک‌های امروز
+                </h3>
+                <div class="section-actions">
+                    <a href="{% url 'task_list' %}?status=active&order_by=due_date">نمایش همه</a>
+                </div>
+            </div>
+            
+            <ul class="task-list">
+                {% for task in due_today_tasks %}
+                <li class="task-item {% if task.is_completed %}completed{% endif %}">
+                    <div class="task-checkbox">
+                        <form method="post" action="{% url 'toggle_task_status' %}" class="complete-task-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="task_id" value="{{ task.id }}">
+                            <input type="checkbox" class="task-complete-checkbox" {% if task.is_completed %}checked{% endif %}>
+                        </form>
+                    </div>
+                    
+                    <div class="task-content">
+                        <h4 class="task-title">
+                            <a href="{% url 'task_detail' task.id %}">{{ task.title }}</a>
+                        </h4>
+                        <div class="task-meta">
+                            {% if task.due_time %}
+                            <span class="task-due-date">
+                                <i class="fas fa-clock"></i>
+                                {{ task.due_time|time:"H:i" }}
+                            </span>
+                            {% endif %}
+                            
+                            <span class="task-priority task-priority-{{ task.priority }}">
+                                {{ task.get_priority_display }}
+                            </span>
+                            
+                            {% if task.category %}
+                            <span class="task-category">
+                                <span class="task-category-color" style="background-color: {{ task.category.color }};"></span>
+                                {{ task.category.name }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="task-actions">
+                        <a href="{% url 'edit_task' task.id %}" class="action-button" title="ویرایش">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                    </div>
+                </li>
+                {% empty %}
+                <div class="no-tasks">
+                    <i class="fas fa-smile"></i>
+                    <p>برای امروز تسکی ندارید!</p>
+                    <a href="{% url 'create_task' %}" class="btn btn-primary mt-2">ایجاد تسک جدید</a>
+                </div>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <!-- Upcoming Tasks -->
+        <div class="section">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-calendar-alt text-success"></i> تسک‌های آینده
+                </h3>
+                <div class="section-actions">
+                    <a href="{% url 'task_list' %}?status=active&order_by=due_date">نمایش همه</a>
+                </div>
+            </div>
+            
+            <ul class="task-list">
+                {% for task in upcoming_tasks %}
+                <li class="task-item">
+                    <div class="task-checkbox">
+                        <form method="post" action="{% url 'toggle_task_status' %}" class="complete-task-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="task_id" value="{{ task.id }}">
+                            <input type="checkbox" class="task-complete-checkbox" {% if task.is_completed %}checked{% endif %}>
+                        </form>
+                    </div>
+                    
+                    <div class="task-content">
+                        <h4 class="task-title">
+                            <a href="{% url 'task_detail' task.id %}">{{ task.title }}</a>
+                        </h4>
+                        <div class="task-meta">
+                            {% if task.due_date %}
+                            <span class="task-due-date">
+                                <i class="fas fa-calendar"></i>
+                                {{ task.due_date }}
+                            </span>
+                            {% endif %}
+                            
+                            <span class="task-priority task-priority-{{ task.priority }}">
+                                {{ task.get_priority_display }}
+                            </span>
+                            
+                            {% if task.category %}
+                            <span class="task-category">
+                                <span class="task-category-color" style="background-color: {{ task.category.color }};"></span>
+                                {{ task.category.name }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="task-actions">
+                        <a href="{% url 'edit_task' task.id %}" class="action-button" title="ویرایش">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                    </div>
+                </li>
+                {% empty %}
+                <div class="no-tasks">
+                    <i class="fas fa-calendar-check"></i>
+                    <p>تسک آینده‌ای ندارید!</p>
+                    <a href="{% url 'create_task' %}" class="btn btn-primary mt-2">ایجاد تسک جدید</a>
+                </div>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <!-- Recently Completed -->
+        <div class="section">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-check-double text-success"></i> اخیراً تکمیل شده
+                </h3>
+                <div class="section-actions">
+                    <a href="{% url 'completed_tasks' %}">نمایش همه</a>
+                </div>
+            </div>
+            
+            <ul class="task-list">
+                {% for task in recently_completed %}
+                <li class="task-item completed">
+                    <div class="task-checkbox">
+                        <input type="checkbox" checked disabled>
+                    </div>
+                    
+                    <div class="task-content">
+                        <h4 class="task-title">
+                            <a href="{% url 'task_detail' task.id %}">{{ task.title }}</a>
+                        </h4>
+                        <div class="task-meta">
+                            <span class="task-due-date">
+                                <i class="fas fa-check-circle"></i>
+                                {{ task.completed_at|date:"Y/m/d H:i" }}
+                            </span>
+                            
+                            {% if task.category %}
+                            <span class="task-category">
+                                <span class="task-category-color" style="background-color: {{ task.category.color }};"></span>
+                                {{ task.category.name }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </li>
+                {% empty %}
+                <div class="no-tasks">
+                    <i class="fas fa-check-circle"></i>
+                    <p>هنوز تسکی تکمیل نکرده‌اید</p>
+                </div>
+                {% endfor %}
+            </ul>
+        </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Complete task with Ajax
+    document.querySelectorAll('.task-complete-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const form = this.closest('form');
+            const taskItem = this.closest('.task-item');
+            const formData = new FormData(form);
+            
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.is_completed) {
+                        taskItem.classList.add('completed');
+                    } else {
+                        taskItem.classList.remove('completed');
+                    }
+                    
+                    // Refresh the page after a short delay
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('خطا در تغییر وضعیت تسک');
+            });
+        });
+    });
+    
+    // Add custom styling to match the theme
+    document.querySelectorAll('.stat-icon').forEach(icon => {
+        icon.style.color = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+    });
+    
+    document.querySelectorAll('.section-title i').forEach(icon => {
+        icon.style.color = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+    });
+    
+    // Style checkboxes
+    document.querySelectorAll('.task-complete-checkbox').forEach(checkbox => {
+        checkbox.style.accentColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+    });
+});
+</script>
 {% endblock %}

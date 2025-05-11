@@ -8,5 +8,5 @@ from .NotificationModel import Notification
 from .TaskModel import Task
 from .PurchaseModel import Purchase
 from .SupportAgentModel import SupportAgent
-from .ToDoModel import ToDoItem
+from .ToDoModel import ToDoItem, TaskCategory, TaskReminder
 from .PurchaseModel import PurchaseEditLog

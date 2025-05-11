@@ -1512,7 +1512,7 @@ document.addEventListener('DOMContentLoaded', function() {
         bulkEditCargoForm.classList.remove('d-none');
         
         // ارسال درخواست به سرور برای دریافت لیست کوتاژها
-        fetch('/cargo-products/list/')
+        fetch('{% url 'cargo_products_list' %}')
             .then(response => {
                 if (!response.ok) {
                     throw new Error('خطا در دریافت لیست کوتاژها');
@@ -1675,7 +1675,7 @@ document.addEventListener('DOMContentLoaded', function() {
         bulkEditCargoForm.classList.remove('d-none');
         
         // ارسال درخواست به سرور
-        fetch(`/cargo-product/details/?cottage=${encodeURIComponent(cottageName)}`)
+        fetch(`{% url 'cargo_product_details' %}?cottage=${encodeURIComponent(cottageName)}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('خطا در دریافت اطلاعات کوتاژ');
@@ -1790,7 +1790,7 @@ document.addEventListener('DOMContentLoaded', function() {
         this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> در حال ذخیره...';
         
         // ارسال درخواست به سرور
-        fetch('/bulk-edit-cargo/', {
+        fetch('{% url 'bulk_edit_cargo' %}', {
             method: 'POST',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}'
@@ -2024,7 +2024,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>`;
         
         // ارسال درخواست به سرور
-        fetch(`/cargo-product/details/?cottage=${encodeURIComponent(cottageName)}`)
+        fetch(`{% url 'cargo_product_details' %}?cottage=${encodeURIComponent(cottageName)}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('کوتاژ مورد نظر یافت نشد');
