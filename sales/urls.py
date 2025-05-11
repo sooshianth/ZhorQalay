@@ -59,6 +59,11 @@ urlpatterns = [
     path('tasks/', todo_list_view.task_dashboard_view, name='task_dashboard'),
     path('tasks/create/', todo_list_view.create_task_view, name='create_task'),
     path('tasks/completed/', todo_list_view.completed_tasks_view, name='completed_tasks'),
-    path('tasks/change-status/<int:task_id>/', todo_list_view.change_task_status, name='change_task_status_todo '),
+    path('tasks/change-status/<int:task_id>/', todo_list_view.change_task_status, name='change_task_status'),
+    path('tasks/toggle-status/', todo_list_view.toggle_task_status, name='toggle_task_status'),
+    path('tasks/list/', todo_list_view.task_list_view, name='task_list'),
+    path('tasks/<int:task_id>/', todo_list_view.task_detail_view, name='task_detail'),
+    path('tasks/<int:task_id>/edit/', todo_list_view.edit_task_view, name='edit_task'),
+    path('tasks/search/', todo_list_view.search_tasks, name='search_tasks'),
 
 ]
