@@ -42,10 +42,30 @@ class Barnameh(models.Model):
         return f" {self.number} - {self.serial}"
     
     def set_the_purchase_and_shenase_takhsis(self):
-        self.purchase = Purchase.objects.get(purchase_number=self.purchase_number)
-        self.shenase_takhsis = ShenaseTakhsis.objects.get(code=self.shenase_takhsis_code)
+        if self.shenase_takhsis_code:
+            self.shenase_takhsis = ShenaseTakhsis.objects.get(code=self.shenase_takhsis_code)
+        if self.purchase_number:
+            self.purchase = Purchase.objects.get(purchase_number=self.purchase_number)
+
+    def set_the_purchase_number_and_shenase_takhsis_code(self):
+        if self.shenase_takhsis:
+            self.shenase_takhsis_code=self.shenase_takhsis.code
+        if self.purchase:
+            self.purchase_number=self.purchase.purchase_number
+
+    def set_the_barnameh_for_purchase(self):
+        if self.purchase and self.number:
+            self.purchase.barnameh_object=self
+            self.purchase.barnameh=self.number
+            self.purchase.save()
 
     def save(self, *args, **kwargs):
+        is_new = False if self.pk else True
         if not self.purchase or not self.shenase_takhsis:
             self.set_the_purchase_and_shenase_takhsis()
+        if not self.purchase_number or not self.shenase_takhsis_code:
+            self.set_the_purchase_number_and_shenase_takhsis_code()
+        if not is_new:    
+            if not self.purchase.barnameh or not self.purchase.barnameh_object:
+                self.set_the_barnameh_for_purchase()
         super().save(*args, **kwargs)

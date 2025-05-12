@@ -12,6 +12,8 @@ from core.CargoProductModel import CargoProduct
 from core.SalesAgentModel import SalesAgent
 from .helpers import clean_phone_number, determine_product_type
 from .location import get_province_name
+import jdatetime
+from django.utils import timezone
 
 
 def create_or_get_customer(buyer_name, buyer_phone, buyer_address, province_code):
@@ -206,6 +208,11 @@ def update_purchase(purchase, purchase_data):
         buyer_address = purchase_data.get('buyeraddress')
         payment_type = purchase_data.get('paymentterm', 'نقدی')
         fee = int(purchase_data.get('fee', 0) or 0)
+        total_value = int(purchase_data.get('totalvalue', 0) or 0)  # مبلغ کل پرداختی
+        receiver_phone = purchase_data.get('receiverphone')  # شماره تلفن تحویل
+        trace_code = purchase_data.get('tracecode')  # شماره پیگیری
+        receiver_id = purchase_data.get('receiverid')  # کد ملی تحویل
+        purchase_date = purchase_data.get('date')  # تاریخ خرید به فرمت جلالی (مثلا 1404/02/22)
         
         # Calculate weight difference
         weight_diff = 0
@@ -233,6 +240,31 @@ def update_purchase(purchase, purchase_data):
         purchase.bazaargah_phone_number = buyer_phone
         purchase.payment_method = payment_type
         purchase.customer_price = fee
+        purchase.amount_paid = total_value
+        purchase.tahvil_phone_number = receiver_phone
+        purchase.tracking_number = trace_code
+        purchase.code_melli_tahvil = receiver_id
+        
+        # تبدیل تاریخ جلالی به فرمت مناسب
+        if purchase_date:
+            try:
+                # تبدیل رشته تاریخ به شی jdatetime
+                j_date_parts = purchase_date.split('/')
+                if len(j_date_parts) == 3:
+                    jyear = int(j_date_parts[0])
+                    jmonth = int(j_date_parts[1])
+                    jday = int(j_date_parts[2])
+                    jdate = jdatetime.date(jyear, jmonth, jday)
+                    # تنظیم ساعت فعلی
+                    now = timezone.now()
+                    # ایجاد datetime ترکیبی
+                    purchase.created_at = jdatetime.datetime(
+                        jyear, jmonth, jday, 
+                        now.hour, now.minute, now.second, 
+                        tzinfo=now.tzinfo
+                    )
+            except Exception as e:
+                print(f"خطا در تبدیل تاریخ: {str(e)}")
         
         # Update difference fields
         if extelaf_type:
@@ -298,6 +330,11 @@ def create_purchase(purchase_data):
         product_name = purchase_data.get('productname')
         payment_type = purchase_data.get('paymentterm', 'نقدی')
         fee = int(purchase_data.get('fee', 0) or 0)
+        total_value = int(purchase_data.get('totalvalue', 0) or 0)  # مبلغ کل پرداختی
+        receiver_phone = purchase_data.get('receiverphone')  # شماره تلفن تحویل
+        trace_code = purchase_data.get('tracecode')  # شماره پیگیری
+        receiver_id = purchase_data.get('receiverid')  # کد ملی تحویل
+        purchase_date = purchase_data.get('date')  # تاریخ خرید به فرمت جلالی (مثلا 1404/02/22)
         
         # Calculate weight difference
         weight_diff = 0
@@ -338,25 +375,52 @@ def create_purchase(purchase_data):
         if error:
             return None, error
         
+        # تنظیم پارامترهای پایه برای ایجاد خرید
+        purchase_params = {
+            'purchase_number': purchase_number,
+            'customer': customer,
+            'cargo': cargo,
+            'buyer_name': buyer_name,
+            'bazaargah_phone_number': buyer_phone,
+            'address': buyer_address,
+            'order_weight': qty,
+            'delivered_weight': wbarnameshode,
+            'customer_price': fee,
+            'payment_method': payment_type,
+            'type': 'bazaargah',
+            'state': purchase_state,
+            'extelaf_type': extelaf_type,
+            'extelaf_weight': extelaf_weight,
+            'extelaf_amount': extelaf_weight * fee if extelaf_weight and fee else 0,
+            'amount_paid': total_value,
+            'tahvil_phone_number': receiver_phone,
+            'tracking_number': trace_code,
+            'code_melli_tahvil': receiver_id,
+        }
+        
+        # تبدیل تاریخ جلالی به فرمت مناسب
+        if purchase_date:
+            try:
+                # تبدیل رشته تاریخ به شی jdatetime
+                j_date_parts = purchase_date.split('/')
+                if len(j_date_parts) == 3:
+                    jyear = int(j_date_parts[0])
+                    jmonth = int(j_date_parts[1])
+                    jday = int(j_date_parts[2])
+                    jdate = jdatetime.date(jyear, jmonth, jday)
+                    # تنظیم ساعت فعلی
+                    now = timezone.now()
+                    # ایجاد datetime ترکیبی
+                    purchase_params['created_at'] = jdatetime.datetime(
+                        jyear, jmonth, jday, 
+                        now.hour, now.minute, now.second, 
+                        tzinfo=now.tzinfo
+                    )
+            except Exception as e:
+                print(f"خطا در تبدیل تاریخ: {str(e)}")
+        
         # Create a new purchase
-        purchase = Purchase.objects.create(
-            purchase_number=purchase_number,
-            customer=customer,
-            cargo=cargo,
-            buyer_name=buyer_name,
-            bazaargah_phone_number=buyer_phone,
-            address=buyer_address,
-            order_weight=qty,
-            delivered_weight=wbarnameshode,
-            customer_price=fee,
-            company_price=fee,
-            payment_method=payment_type,
-            type='bazaargah',
-            state=purchase_state,
-            extelaf_type=extelaf_type,
-            extelaf_weight=extelaf_weight,
-            extelaf_amount=extelaf_weight * fee if extelaf_weight and fee else 0
-        )
+        purchase = Purchase.objects.create(**purchase_params)
         
         # Create allocation ID
         if takhsisid and takhsisid != '0':

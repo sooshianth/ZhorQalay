@@ -98,6 +98,7 @@ class Purchase(models.Model):
     is_fully_tasvied = models.BooleanField("تسویه کامل", default=False)
     is_factored = models.BooleanField("ثبت فاکتور", default=False)
 
+    barnameh_object = models.ForeignKey('bki_barnameh.Barnameh', verbose_name='بارنامه', on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_from_barnameh')
 
     PRIORITY_CHOICES = [
         ('low', 'عادی'),

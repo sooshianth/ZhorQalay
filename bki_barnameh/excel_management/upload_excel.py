@@ -81,7 +81,14 @@ def process_excel_file(excel_file_id):
                         'status': 'BARNAMEH_COMPLETE' if all([barnameh_number, barnameh_serial, tonnage]) else 'BARNAMEH_INCOMPLETE'
                     }
                 )
-                
+
+                from core.PurchaseModel import Purchase
+                if purchase_number and barnameh:
+                    purchase=Purchase.objects.get(purchase_number=purchase_number)
+                    purchase.barnameh=barnameh_number
+                    purchase.barnameh_object=barnameh
+                    purchase.save()
+
                 processed_rows += 1
                 
             except Exception as e:
