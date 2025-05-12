@@ -1,88 +1,162 @@
-{% extends 'core/base.html' %}
+{% extends 'bki_barnameh/base_bki.html' %}
 {% load static %}
 
-{% block title %}آپلود فایل اکسل بارنامه{% endblock %}
+{% block title %}آپلود فایل اکسل{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
+<div class="card shadow-sm border-0 rounded-lg">
+    <div class="card-header bg-gradient-info text-white d-flex justify-content-between align-items-center py-3">
+        <h5 class="mb-0 fw-bold">
             <i class="fas fa-file-excel me-2"></i>
-            آپلود فایل اکسل بارنامه
+            آپلود فایل اکسل
         </h5>
         <div>
-            <a href="{% url 'barnameh_list' %}" class="btn btn-secondary btn-sm">
+            <a href="{% url 'barnameh_list' %}" class="btn btn-light btn-sm rounded-pill shadow-sm">
                 <i class="fas fa-arrow-right me-1"></i>
                 بازگشت به لیست
             </a>
-            <a href="{% url 'download_excel_template' %}" class="btn btn-info btn-sm">
+            <a href="{% url 'download_excel_template' %}" class="btn btn-success btn-sm rounded-pill shadow-sm ms-1">
                 <i class="fas fa-download me-1"></i>
                 دانلود قالب اکسل
             </a>
         </div>
     </div>
-    <div class="card-body">
+    <div class="card-body p-4">
         <div class="row">
-            <div class="col-md-6">
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h6 class="mb-0">آپلود فایل</h6>
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm border-0 rounded-lg h-100">
+                    <div class="card-header bg-light py-3">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="fas fa-info-circle me-2"></i>
+                            راهنمای آپلود فایل
+                        </h6>
                     </div>
                     <div class="card-body">
-                        <form method="post" enctype="multipart/form-data">
-                            {% csrf_token %}
-                            <div class="mb-3">
-                                <label for="excel_file" class="form-label">انتخاب فایل اکسل</label>
-                                <input type="file" class="form-control" id="excel_file" name="excel_file" accept=".xls,.xlsx" required>
-                                <div class="form-text text-muted">
-                                    فرمت‌های مجاز: .xls و .xlsx
-                                </div>
+                        <div class="alert alert-info border-0 shadow-sm rounded-lg">
+                            <h6 class="alert-heading fw-bold mb-2">نکات مهم:</h6>
+                            <ul class="mb-0 ps-3">
+                                <li>فایل اکسل باید طبق قالب ارائه شده تنظیم شود.</li>
+                                <li>ستون‌های اجباری: شماره بارنامه، سریال بارنامه، وزن، شناسه خرید و شناسه تخصیص.</li>
+                                <li>اطلاعات از سطر دوم به بعد خوانده می‌شود (سطر اول عنوان ستون‌هاست).</li>
+                                <li>در صورت وجود خطا در داده‌ها، سیستم پیام خطا نمایش می‌دهد.</li>
+                                <li>برای دریافت نمونه فایل اکسل، از دکمه "دانلود قالب اکسل" استفاده کنید.</li>
+                            </ul>
+                        </div>
+                        <div class="mt-3">
+                            <h6 class="fw-bold">ستون‌های اجباری:</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>نام ستون</th>
+                                            <th>توضیحات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>شماره بارنامه</td>
+                                            <td>شماره منحصر به فرد بارنامه</td>
+                                        </tr>
+                                        <tr>
+                                            <td>سریال بارنامه</td>
+                                            <td>سریال بارنامه</td>
+                                        </tr>
+                                        <tr>
+                                            <td>وزن</td>
+                                            <td>وزن بار بر حسب کیلوگرم</td>
+                                        </tr>
+                                        <tr>
+                                            <td>شناسه خرید</td>
+                                            <td>کد شناسه خرید در سامانه بازارگاه</td>
+                                        </tr>
+                                        <tr>
+                                            <td>شناسه تخصیص</td>
+                                            <td>کد شناسه تخصیص در سامانه بازارگاه</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-upload me-1"></i>
-                                    آپلود و پردازش
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm border-0 rounded-lg h-100">
+                    <div class="card-header bg-light py-3">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="fas fa-upload me-2"></i>
+                            آپلود فایل
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                            {% csrf_token %}
+                            
+                            {% if messages %}
+                            <div class="mb-4">
+                                {% for message in messages %}
+                                <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-{{ message.tags }}{% endif %} border-0 shadow-sm rounded-lg">
+                                    <div class="d-flex align-items-center">
+                                        {% if message.tags == 'error' %}
+                                        <i class="fas fa-exclamation-circle fa-lg me-2 text-danger"></i>
+                                        {% elif message.tags == 'success' %}
+                                        <i class="fas fa-check-circle fa-lg me-2 text-success"></i>
+                                        {% else %}
+                                        <i class="fas fa-info-circle fa-lg me-2"></i>
+                                        {% endif %}
+                                        <div>{{ message }}</div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            
+                            <div class="mb-4">
+                                <label for="excel_file" class="form-label fw-bold">انتخاب فایل اکسل <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-file-excel"></i></span>
+                                    <input type="file" class="form-control" id="excel_file" name="excel_file" accept=".xlsx, .xls" required>
+                                </div>
+                                <div class="invalid-feedback">لطفاً یک فایل اکسل انتخاب کنید.</div>
+                                <div class="form-text text-muted">فرمت‌های قابل قبول: .xlsx و .xls</div>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow">
+                                    <i class="fas fa-upload me-2"></i>
+                                    آپلود و پردازش فایل
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
             </div>
-            
-            <div class="col-md-6">
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h6 class="mb-0">راهنمای آپلود</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            برای آپلود فایل اکسل بارنامه‌ها، لطفاً از قالب استاندارد استفاده کنید.
-                        </div>
-                        
-                        <h6 class="mt-3">ستون‌های مورد نیاز:</h6>
-                        <ul class="list-group mb-3">
-                            <li class="list-group-item">شماره بارنامه <span class="badge bg-danger">ضروری</span></li>
-                            <li class="list-group-item">سریال بارنامه <span class="badge bg-danger">ضروری</span></li>
-                            <li class="list-group-item">وزن <span class="badge bg-danger">ضروری</span></li>
-                            <li class="list-group-item">شناسه خرید <span class="badge bg-danger">ضروری</span></li>
-                            <li class="list-group-item">شناسه تخصیص <span class="badge bg-danger">ضروری</span></li>
-                            <li class="list-group-item">تاریخ بارنامه <span class="badge bg-secondary">اختیاری</span></li>
-                            <li class="list-group-item">نام راننده <span class="badge bg-secondary">اختیاری</span></li>
-                            <li class="list-group-item">شماره تلفن راننده <span class="badge bg-secondary">اختیاری</span></li>
-                            <li class="list-group-item">پلاک خودرو <span class="badge bg-secondary">اختیاری</span></li>
-                            <li class="list-group-item">نام گیرنده <span class="badge bg-secondary">اختیاری</span></li>
-                            <li class="list-group-item">مقصد <span class="badge bg-secondary">اختیاری</span></li>
-                        </ul>
-                        
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            در صورت وجود بارنامه با شماره مشابه در سیستم، اطلاعات آن بروزرسانی خواهد شد.
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // اعتبارسنجی فرم
+    (function () {
+        'use strict'
+        
+        // فرم‌های نیازمند اعتبارسنجی
+        var forms = document.querySelectorAll('.needs-validation')
+        
+        // حلقه برای جلوگیری از ارسال و اعتبارسنجی
+        Array.prototype.slice.call(forms).forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+</script>
 {% endblock %} 

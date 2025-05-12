@@ -1,0 +1,189 @@
+{% extends 'bki_barnameh/base_bki.html' %}
+{% load static %}
+
+{% block title %}ویرایش گروهی بارنامه‌ها{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0 rounded-lg">
+    <div class="card-header bg-gradient-warning text-white d-flex justify-content-between align-items-center py-2">
+        <h5 class="mb-0 fw-bold">
+            <i class="fas fa-edit me-2"></i>
+            ویرایش گروهی بارنامه‌ها
+        </h5>
+        <div>
+            <a href="{% url 'barnameh_list' %}" class="btn btn-light btn-sm rounded-pill shadow-sm">
+                <i class="fas fa-arrow-right me-1"></i>
+                بازگشت به لیست بارنامه‌ها
+            </a>
+        </div>
+    </div>
+    <div class="card-body p-3">
+        {% if barnamehs %}
+            <div class="alert alert-info shadow-sm border-0 rounded-lg mb-3">
+                <i class="fas fa-info-circle me-2"></i>
+                شما در حال ویرایش گروهی <strong>{{ barnamehs.count }}</strong> بارنامه هستید. توجه کنید که فقط بارنامه‌هایی که هنوز به بازارگاه ارسال نشده‌اند قابل ویرایش هستند.
+            </div>
+            
+            <div class="table-responsive mb-3">
+                <table class="table table-hover align-middle table-sm">
+                    <thead class="table-light">
+                        <tr>
+                            <th>شماره بارنامه</th>
+                            <th>سریال بارنامه</th>
+                            <th>وزن (کیلوگرم)</th>
+                            <th>شناسه خرید</th>
+                            <th>شناسه تخصیص</th>
+                            <th>وضعیت</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for barnameh in barnamehs %}
+                        <tr class="align-middle {% if barnameh.is_sent_to_bki %}table-secondary{% endif %}">
+                            <td>{{ barnameh.number|default:"-" }}</td>
+                            <td>{{ barnameh.serial|default:"-" }}</td>
+                            <td>{{ barnameh.tonnage|default:"-" }}</td>
+                            <td>{{ barnameh.purchase_number|default:"-" }}</td>
+                            <td>{{ barnameh.shenase_takhsis_code|default:"-" }}</td>
+                            <td>
+                                {% if barnameh.is_sent_to_bki %}
+                                <span class="badge rounded-pill bg-primary">ارسال شده</span>
+                                {% elif barnameh.status == 'BARNAMEH_INCOMPLETE' %}
+                                <span class="badge rounded-pill bg-warning text-dark">ناقص</span>
+                                {% elif barnameh.status == 'BARNAMEH_COMPLETE' %}
+                                <span class="badge rounded-pill bg-success">کامل</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <form method="post" class="needs-validation" novalidate>
+                {% csrf_token %}
+                {% for barnameh in barnamehs %}
+                <input type="hidden" name="barnameh_ids" value="{{ barnameh.id }}">
+                {% endfor %}
+                
+                <div class="card shadow-sm border-0 rounded-lg">
+                    <div class="card-header bg-light py-2">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="fas fa-sliders-h me-2"></i>
+                            تنظیمات ویرایش گروهی
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label for="field_to_update" class="form-label fw-bold">فیلد مورد نظر برای ویرایش <span class="text-danger">*</span></label>
+                                <select class="form-select" id="field_to_update" name="field_to_update" required>
+                                    <option value="" selected disabled>انتخاب کنید...</option>
+                                    <option value="tonnage">وزن (کیلوگرم)</option>
+                                    <option value="driver_name">نام راننده</option>
+                                    <option value="driver_phone">شماره تلفن راننده</option>
+                                    <option value="vehicle_plate">پلاک خودرو</option>
+                                    <option value="receiver_name">نام گیرنده</option>
+                                    <option value="destination">مقصد</option>
+                                    <option value="barnameh_date">تاریخ بارنامه</option>
+                                </select>
+                                <div class="invalid-feedback">لطفاً فیلد مورد نظر را انتخاب کنید.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="new_value" class="form-label fw-bold">مقدار جدید <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="new_value" name="new_value" required>
+                                <div class="invalid-feedback">لطفاً مقدار جدید را وارد کنید.</div>
+                                <div class="form-text text-muted small" id="value_hint"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+                    <button type="submit" name="save_changes" class="btn btn-warning btn-lg px-4 rounded-pill shadow">
+                        <i class="fas fa-save me-2"></i>
+                        اعمال تغییرات گروهی
+                    </button>
+                    <a href="{% url 'barnameh_list' %}" class="btn btn-outline-secondary btn-lg px-4 rounded-pill">
+                        <i class="fas fa-times me-2"></i>
+                        انصراف
+                    </a>
+                </div>
+            </form>
+        {% else %}
+            <div class="alert alert-warning shadow-sm border-0 rounded-lg">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                هیچ بارنامه‌ای برای ویرایش گروهی انتخاب نشده است.
+            </div>
+            <div class="text-center mt-3">
+                <a href="{% url 'barnameh_list' %}" class="btn btn-primary btn-lg px-4 rounded-pill shadow">
+                    <i class="fas fa-arrow-right me-2"></i>
+                    بازگشت به لیست بارنامه‌ها
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // اعتبارسنجی فرم
+    (function () {
+        'use strict'
+        
+        // فرم‌های نیازمند اعتبارسنجی
+        var forms = document.querySelectorAll('.needs-validation')
+        
+        // حلقه برای جلوگیری از ارسال و اعتبارسنجی
+        Array.prototype.slice.call(forms).forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+    
+    // نمایش راهنمای مناسب برای هر فیلد
+    $(document).ready(function() {
+        $('#field_to_update').on('change', function() {
+            var field = $(this).val();
+            var hint = '';
+            
+            switch(field) {
+                case 'tonnage':
+                    hint = 'مقدار عددی وارد کنید. مثال: 1000';
+                    $('#new_value').attr('type', 'number').attr('step', '0.01');
+                    break;
+                case 'barnameh_date':
+                    hint = 'تاریخ را به فرمت 1402/01/01 وارد کنید.';
+                    $('#new_value').attr('type', 'text');
+                    break;
+                case 'driver_phone':
+                    hint = 'شماره تلفن را بدون خط تیره وارد کنید.';
+                    $('#new_value').attr('type', 'text');
+                    break;
+                default:
+                    hint = 'مقدار مورد نظر را وارد کنید.';
+                    $('#new_value').attr('type', 'text');
+            }
+            
+            $('#value_hint').text(hint);
+        });
+        
+        // اطمینان از نمایش صحیح کارت‌ها
+        setTimeout(function() {
+            $('.card.h-100').css('height', 'auto').css('min-height', 'auto');
+            $('.card').css('overflow', 'visible');
+            $('.row').css('overflow', 'visible');
+            
+            // اطمینان از فاصله کافی با فوتر
+            $('main.container').css('margin-bottom', '100px');
+            $('body').css('padding-bottom', '100px');
+        }, 100);
+    });
+</script>
+{% endblock %} 

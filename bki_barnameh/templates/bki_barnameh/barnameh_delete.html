@@ -1,71 +1,89 @@
-{% extends 'core/base.html' %}
+{% extends 'bki_barnameh/base_bki.html' %}
 {% load static %}
 
 {% block title %}حذف بارنامه{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
+<div class="card shadow-sm border-0 rounded-lg">
+    <div class="card-header bg-gradient-danger text-white d-flex justify-content-between align-items-center py-3">
+        <h5 class="mb-0 fw-bold">
             <i class="fas fa-trash me-2"></i>
             حذف بارنامه
         </h5>
         <div>
-            <a href="{% url 'barnameh_detail' barnameh.id %}" class="btn btn-secondary btn-sm">
+            <a href="{% url 'barnameh_list' %}" class="btn btn-light btn-sm rounded-pill shadow-sm">
                 <i class="fas fa-arrow-right me-1"></i>
-                بازگشت به جزئیات
+                بازگشت به لیست
             </a>
         </div>
     </div>
-    <div class="card-body">
-        <div class="alert alert-danger">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            آیا از حذف این بارنامه اطمینان دارید؟ این عملیات قابل بازگشت نیست.
+    <div class="card-body p-4">
+        <div class="alert alert-danger border-0 shadow-sm rounded-lg mb-4">
+            <div class="d-flex">
+                <div class="me-3">
+                    <i class="fas fa-exclamation-triangle fa-2x"></i>
+                </div>
+                <div>
+                    <h5 class="alert-heading fw-bold">هشدار!</h5>
+                    <p>آیا از حذف این بارنامه اطمینان دارید؟ این عملیات غیرقابل بازگشت است.</p>
+                </div>
+            </div>
         </div>
         
-        <div class="card mb-4">
-            <div class="card-header">
-                <h6 class="mb-0">اطلاعات بارنامه</h6>
+        <div class="card shadow-sm border-0 rounded-lg mb-4">
+            <div class="card-header bg-light py-3">
+                <h6 class="mb-0 fw-bold">
+                    <i class="fas fa-info-circle me-2"></i>
+                    اطلاعات بارنامه
+                </h6>
             </div>
             <div class="card-body">
-                <table class="table table-striped">
-                    <tr>
-                        <th style="width: 40%">شماره بارنامه:</th>
-                        <td>{{ barnameh.number|default:"-" }}</td>
-                    </tr>
-                    <tr>
-                        <th>سریال بارنامه:</th>
-                        <td>{{ barnameh.serial|default:"-" }}</td>
-                    </tr>
-                    <tr>
-                        <th>تاریخ بارنامه:</th>
-                        <td>{{ barnameh.barnameh_date|default:"-" }}</td>
-                    </tr>
-                    <tr>
-                        <th>وزن (تن):</th>
-                        <td>{{ barnameh.tonnage|default:"-" }}</td>
-                    </tr>
-                    <tr>
-                        <th>شناسه خرید:</th>
-                        <td>{{ barnameh.purchase_number|default:"-" }}</td>
-                    </tr>
-                    <tr>
-                        <th>شناسه تخصیص:</th>
-                        <td>{{ barnameh.shenase_takhsis_code|default:"-" }}</td>
-                    </tr>
-                </table>
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-5">شماره بارنامه:</dt>
+                            <dd class="col-sm-7">{{ barnameh.number|default:"-" }}</dd>
+                            
+                            <dt class="col-sm-5">سریال بارنامه:</dt>
+                            <dd class="col-sm-7">{{ barnameh.serial|default:"-" }}</dd>
+                            
+                            <dt class="col-sm-5">وزن (تن):</dt>
+                            <dd class="col-sm-7">{{ barnameh.tonnage|default:"-" }}</dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-5">شناسه خرید:</dt>
+                            <dd class="col-sm-7">{{ barnameh.purchase_number|default:"-" }}</dd>
+                            
+                            <dt class="col-sm-5">شناسه تخصیص:</dt>
+                            <dd class="col-sm-7">{{ barnameh.shenase_takhsis_code|default:"-" }}</dd>
+                            
+                            <dt class="col-sm-5">وضعیت:</dt>
+                            <dd class="col-sm-7">
+                                {% if barnameh.status == 'BARNAMEH_INCOMPLETE' %}
+                                <span class="badge rounded-pill bg-warning text-dark">بارنامه ناقص</span>
+                                {% elif barnameh.status == 'BARNAMEH_COMPLETE' %}
+                                <span class="badge rounded-pill bg-success">بارنامه کامل</span>
+                                {% elif barnameh.status == 'PURCHASE_CLOSED' %}
+                                <span class="badge rounded-pill bg-primary">ارسال شده به بازارگاه</span>
+                                {% endif %}
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
             </div>
         </div>
         
-        <form method="post">
+        <form method="post" class="text-center">
             {% csrf_token %}
-            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                <button type="submit" class="btn btn-danger">
-                    <i class="fas fa-trash me-1"></i>
+            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                <button type="submit" class="btn btn-danger btn-lg px-5 rounded-pill shadow">
+                    <i class="fas fa-trash me-2"></i>
                     تأیید حذف
                 </button>
-                <a href="{% url 'barnameh_detail' barnameh.id %}" class="btn btn-secondary">
-                    <i class="fas fa-times me-1"></i>
+                <a href="{% url 'barnameh_list' %}" class="btn btn-outline-secondary btn-lg px-5 rounded-pill">
+                    <i class="fas fa-times me-2"></i>
                     انصراف
                 </a>
             </div>

@@ -168,12 +168,21 @@ th, td {
 <div class="container py-4">
 <h1 class="mb-4 section-title">لیست خریدها</h1>
 
+{% if user_role == 'admin' or user_role == 'logistics_manager' %}
 <!-- دکمه ویرایش فله‌ای خریدها -->
 <div class="text-start mb-4">
     <a href="{% url 'bulk_purchase_edit' %}" class="btn btn-primary">
         <i class="fas fa-edit me-2"></i> پنل ویرایش گروهی خریدها
     </a>
 </div>
+{% endif %}
+{% if user_role == 'admin' or user_role == 'logistics_manager' or user_role == 'financial_manager' %}
+<div class="text-start mb-4">
+    <a href="{% url 'barnameh_list' %}" class="btn btn-lg btn-success shadow-lg rounded-pill">
+        <i class="fas fa-truck me-2"></i> پنل ویرایش بارنامه‌ها
+    </a>
+</div>
+{% endif %}
 <div class="text-start mb-4 d-flex gap-2">
     <!-- دکمه مدیریت ستون‌ها -->
     <button class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#columnsModal">

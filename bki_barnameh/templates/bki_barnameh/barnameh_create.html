@@ -1,111 +1,183 @@
-{% extends 'core/base.html' %}
+{% extends 'bki_barnameh/base_bki.html' %}
 {% load static %}
 
 {% block title %}ایجاد بارنامه جدید{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
+<div class="card shadow-sm border-0 rounded-lg">
+    <div class="card-header bg-gradient-success text-white d-flex justify-content-between align-items-center py-3">
+        <h5 class="mb-0 fw-bold">
             <i class="fas fa-plus me-2"></i>
             ایجاد بارنامه جدید
         </h5>
         <div>
-            <a href="{% url 'barnameh_list' %}" class="btn btn-secondary btn-sm">
+            <a href="{% url 'barnameh_list' %}" class="btn btn-light btn-sm rounded-pill shadow-sm">
                 <i class="fas fa-arrow-right me-1"></i>
                 بازگشت به لیست
             </a>
         </div>
     </div>
-    <div class="card-body">
-        <form method="post">
+    <div class="card-body p-4">
+        <form method="post" class="needs-validation" novalidate>
             {% csrf_token %}
             
-            <div class="row">
+            <div class="row g-4">
                 <div class="col-md-6">
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h6 class="mb-0">اطلاعات بارنامه</h6>
+                    <div class="card shadow-sm h-100 border-0 rounded-lg">
+                        <div class="card-header bg-light py-3">
+                            <h6 class="mb-0 fw-bold">
+                                <i class="fas fa-file-invoice me-2"></i>
+                                اطلاعات بارنامه
+                            </h6>
                         </div>
                         <div class="card-body">
                             <div class="mb-3">
-                                <label for="number" class="form-label">شماره بارنامه <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="number" name="number" required>
+                                <label for="number" class="form-label fw-bold">شماره بارنامه <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-hashtag"></i></span>
+                                    <input type="text" class="form-control" id="number" name="number" required>
+                                </div>
+                                <div class="invalid-feedback">لطفاً شماره بارنامه را وارد کنید.</div>
                             </div>
                             <div class="mb-3">
-                                <label for="serial" class="form-label">سریال بارنامه <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="serial" name="serial" required>
+                                <label for="serial" class="form-label fw-bold">سریال بارنامه <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-barcode"></i></span>
+                                    <input type="text" class="form-control" id="serial" name="serial" required>
+                                </div>
+                                <div class="invalid-feedback">لطفاً سریال بارنامه را وارد کنید.</div>
                             </div>
                             <div class="mb-3">
-                                <label for="tonnage" class="form-label">وزن (تن) <span class="text-danger">*</span></label>
-                                <input type="number" step="0.01" class="form-control" id="tonnage" name="tonnage" required>
+                                <label for="tonnage" class="form-label fw-bold">وزن (کیلوگرم) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-weight-hanging"></i></span>
+                                    <input type="number" step="0.01" class="form-control" id="tonnage" name="tonnage" required>
+                                </div>
+                                <div class="invalid-feedback">لطفاً وزن را وارد کنید.</div>
                             </div>
                             <div class="mb-3">
-                                <label for="barnameh_date" class="form-label">تاریخ بارنامه (مثال: 1402/01/01)</label>
-                                <input type="text" class="form-control" id="barnameh_date" name="barnameh_date" placeholder="1402/01/01">
+                                <label for="barnameh_date" class="form-label fw-bold">تاریخ بارنامه</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                    <input type="text" class="form-control" id="barnameh_date" name="barnameh_date" placeholder="1402/01/01">
+                                </div>
+                                <div class="form-text text-muted">مثال: 1402/01/01</div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h6 class="mb-0">اطلاعات خرید و تخصیص</h6>
+                    <div class="card shadow-sm border-0 rounded-lg mt-4">
+                        <div class="card-header bg-light py-3">
+                            <h6 class="mb-0 fw-bold">
+                                <i class="fas fa-shopping-cart me-2"></i>
+                                اطلاعات خرید و تخصیص
+                            </h6>
                         </div>
                         <div class="card-body">
                             <div class="mb-3">
-                                <label for="purchase_number" class="form-label">شناسه خرید <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="purchase_number" name="purchase_number" required>
+                                <label for="purchase_number" class="form-label fw-bold">شناسه خرید <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-tag"></i></span>
+                                    <input type="text" class="form-control" id="purchase_number" name="purchase_number" required>
+                                </div>
+                                <div class="invalid-feedback">لطفاً شناسه خرید را وارد کنید.</div>
                             </div>
                             <div class="mb-3">
-                                <label for="shenase_takhsis_code" class="form-label">شناسه تخصیص <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="shenase_takhsis_code" name="shenase_takhsis_code" required>
+                                <label for="shenase_takhsis_code" class="form-label fw-bold">شناسه تخصیص <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                    <input type="text" class="form-control" id="shenase_takhsis_code" name="shenase_takhsis_code" required>
+                                </div>
+                                <div class="invalid-feedback">لطفاً شناسه تخصیص را وارد کنید.</div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
                 <div class="col-md-6">
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h6 class="mb-0">اطلاعات حمل و نقل</h6>
+                    <div class="card shadow-sm h-100 border-0 rounded-lg">
+                        <div class="card-header bg-light py-3">
+                            <h6 class="mb-0 fw-bold">
+                                <i class="fas fa-truck me-2"></i>
+                                اطلاعات حمل و نقل
+                            </h6>
                         </div>
                         <div class="card-body">
                             <div class="mb-3">
-                                <label for="driver_name" class="form-label">نام راننده</label>
-                                <input type="text" class="form-control" id="driver_name" name="driver_name">
+                                <label for="driver_name" class="form-label fw-bold">نام راننده</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                    <input type="text" class="form-control" id="driver_name" name="driver_name">
+                                </div>
                             </div>
                             <div class="mb-3">
-                                <label for="driver_phone" class="form-label">شماره تلفن راننده</label>
-                                <input type="text" class="form-control" id="driver_phone" name="driver_phone">
+                                <label for="driver_phone" class="form-label fw-bold">شماره تلفن راننده</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                    <input type="text" class="form-control" id="driver_phone" name="driver_phone" dir="ltr">
+                                </div>
                             </div>
                             <div class="mb-3">
-                                <label for="vehicle_plate" class="form-label">پلاک خودرو</label>
-                                <input type="text" class="form-control" id="vehicle_plate" name="vehicle_plate">
+                                <label for="vehicle_plate" class="form-label fw-bold">پلاک خودرو</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-truck-moving"></i></span>
+                                    <input type="text" class="form-control" id="vehicle_plate" name="vehicle_plate">
+                                </div>
                             </div>
                             <div class="mb-3">
-                                <label for="receiver_name" class="form-label">نام گیرنده</label>
-                                <input type="text" class="form-control" id="receiver_name" name="receiver_name">
+                                <label for="receiver_name" class="form-label fw-bold">نام گیرنده</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-user-check"></i></span>
+                                    <input type="text" class="form-control" id="receiver_name" name="receiver_name">
+                                </div>
                             </div>
                             <div class="mb-3">
-                                <label for="destination" class="form-label">مقصد</label>
-                                <input type="text" class="form-control" id="destination" name="destination">
+                                <label for="destination" class="form-label fw-bold">مقصد</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
+                                    <input type="text" class="form-control" id="destination" name="destination">
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save me-1"></i>
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                <button type="submit" class="btn btn-success btn-lg px-5 rounded-pill shadow">
+                    <i class="fas fa-save me-2"></i>
                     ذخیره
                 </button>
-                <a href="{% url 'barnameh_list' %}" class="btn btn-secondary">
-                    <i class="fas fa-times me-1"></i>
+                <a href="{% url 'barnameh_list' %}" class="btn btn-outline-secondary btn-lg px-5 rounded-pill">
+                    <i class="fas fa-times me-2"></i>
                     انصراف
                 </a>
             </div>
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // اعتبارسنجی فرم
+    (function () {
+        'use strict'
+        
+        // فرم‌های نیازمند اعتبارسنجی
+        var forms = document.querySelectorAll('.needs-validation')
+        
+        // حلقه برای جلوگیری از ارسال و اعتبارسنجی
+        Array.prototype.slice.call(forms).forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+</script>
 {% endblock %} 

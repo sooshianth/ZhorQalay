@@ -10,7 +10,12 @@ urlpatterns = [
     path('upload-excel/', views.upload_excel, name='upload_excel'),
     path('send-to-bki/<int:barnameh_id>/', views.send_to_bki, name='send_to_bki'),
     path('bulk-send-to-bki/', views.bulk_send_to_bki, name='bulk_send_to_bki'),
+    path('bulk-edit/', views.bulk_edit, name='bulk_edit'),
     path('api/', views.barnameh_api, name='barnameh_api'),
     path('download-excel-template/', views.download_excel_template, name='download_excel_template'),
+    
+    # مسیرهای جدید
+    path('export-excel/', views.export_excel, name='export_excel'),
+    path('edit-in-bki/<int:barnameh_id>/', views.edit_barnameh_in_bki, name='edit_barnameh_in_bki'),
 ]
 

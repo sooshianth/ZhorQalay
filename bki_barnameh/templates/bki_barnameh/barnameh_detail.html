@@ -1,33 +1,33 @@
-{% extends 'core/base.html' %}
+{% extends 'bki_barnameh/base_bki.html' %}
 {% load static %}
 
 {% block title %}جزئیات بارنامه{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
+<div class="card shadow-sm border-0 rounded-lg">
+    <div class="card-header bg-gradient-info text-white d-flex justify-content-between align-items-center py-3">
+        <h5 class="mb-0 fw-bold">
             <i class="fas fa-file-invoice me-2"></i>
             جزئیات بارنامه
         </h5>
         <div>
-            <a href="{% url 'barnameh_list' %}" class="btn btn-secondary btn-sm">
+            <a href="{% url 'barnameh_list' %}" class="btn btn-light btn-sm rounded-pill shadow-sm">
                 <i class="fas fa-arrow-right me-1"></i>
                 بازگشت به لیست
             </a>
             {% if not barnameh.is_sent_to_bki %}
-            <a href="{% url 'barnameh_edit' barnameh.id %}" class="btn btn-warning btn-sm">
+            <a href="{% url 'barnameh_edit' barnameh.id %}" class="btn btn-warning btn-sm rounded-pill shadow-sm ms-1">
                 <i class="fas fa-edit me-1"></i>
                 ویرایش
             </a>
-            <a href="{% url 'barnameh_delete' barnameh.id %}" class="btn btn-danger btn-sm">
+            <a href="{% url 'barnameh_delete' barnameh.id %}" class="btn btn-danger btn-sm rounded-pill shadow-sm ms-1">
                 <i class="fas fa-trash me-1"></i>
                 حذف
             </a>
             {% if barnameh.status == 'BARNAMEH_COMPLETE' %}
             <form method="post" action="{% url 'send_to_bki' barnameh.id %}" class="d-inline">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-primary btn-sm">
+                <button type="submit" class="btn btn-primary btn-sm rounded-pill shadow-sm ms-1">
                     <i class="fas fa-paper-plane me-1"></i>
                     نشاندن در بازارگاه
                 </button>
@@ -36,52 +36,55 @@
             {% endif %}
         </div>
     </div>
-    <div class="card-body">
-        <div class="row">
+    <div class="card-body p-4">
+        <div class="row g-4">
             <div class="col-md-6 mb-3">
-                <div class="card h-100">
-                    <div class="card-header">
-                        <h6 class="mb-0">اطلاعات بارنامه</h6>
+                <div class="card h-100 shadow-sm border-0 rounded-lg">
+                    <div class="card-header bg-light py-3">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="fas fa-file-invoice me-2"></i>
+                            اطلاعات بارنامه
+                        </h6>
                     </div>
                     <div class="card-body">
                         <table class="table table-striped">
                             <tr>
-                                <th style="width: 40%">شماره بارنامه:</th>
+                                <th style="width: 40%" class="bg-light">شماره بارنامه:</th>
                                 <td>{{ barnameh.number|default:"-" }}</td>
                             </tr>
                             <tr>
-                                <th>سریال بارنامه:</th>
+                                <th class="bg-light">سریال بارنامه:</th>
                                 <td>{{ barnameh.serial|default:"-" }}</td>
                             </tr>
                             <tr>
-                                <th>تاریخ بارنامه:</th>
+                                <th class="bg-light">تاریخ بارنامه:</th>
                                 <td>{{ barnameh.barnameh_date|default:"-" }}</td>
                             </tr>
                             <tr>
-                                <th>وزن (تن):</th>
+                                <th class="bg-light">وزن (کیلوگرم):</th>
                                 <td>{{ barnameh.tonnage|default:"-" }}</td>
                             </tr>
                             <tr>
-                                <th>وضعیت:</th>
+                                <th class="bg-light">وضعیت:</th>
                                 <td>
                                     {% if barnameh.status == 'BARNAMEH_INCOMPLETE' %}
-                                    <span class="badge bg-warning">بارنامه ناقص</span>
+                                    <span class="badge rounded-pill bg-warning text-dark">بارنامه ناقص</span>
                                     {% elif barnameh.status == 'BARNAMEH_COMPLETE' %}
-                                    <span class="badge bg-success">بارنامه کامل</span>
+                                    <span class="badge rounded-pill bg-success">بارنامه کامل</span>
                                     {% elif barnameh.status == 'PURCHASE_CLOSED' %}
-                                    <span class="badge bg-primary">ارسال شده به بازارگاه</span>
+                                    <span class="badge rounded-pill bg-primary">ارسال شده به بازارگاه</span>
                                     {% endif %}
                                 </td>
                             </tr>
                             <tr>
-                                <th>ارسال به بازارگاه:</th>
+                                <th class="bg-light">ارسال به بازارگاه:</th>
                                 <td>
                                     {% if barnameh.is_sent_to_bki %}
-                                    <span class="badge bg-success">ارسال شده</span>
+                                    <span class="badge rounded-pill bg-success">ارسال شده</span>
                                     <br>
                                     <small class="text-muted">{{ barnameh.is_sent_to_bki_at }}</small>
                                     {% else %}
-                                    <span class="badge bg-danger">ارسال نشده</span>
+                                    <span class="badge rounded-pill bg-danger">ارسال نشده</span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -91,36 +94,39 @@
             </div>
             
             <div class="col-md-6 mb-3">
-                <div class="card h-100">
-                    <div class="card-header">
-                        <h6 class="mb-0">اطلاعات خرید و تخصیص</h6>
+                <div class="card h-100 shadow-sm border-0 rounded-lg">
+                    <div class="card-header bg-light py-3">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="fas fa-shopping-cart me-2"></i>
+                            اطلاعات خرید و تخصیص
+                        </h6>
                     </div>
                     <div class="card-body">
                         <table class="table table-striped">
                             <tr>
-                                <th style="width: 40%">شناسه خرید:</th>
+                                <th style="width: 40%" class="bg-light">شناسه خرید:</th>
                                 <td>{{ barnameh.purchase_number|default:"-" }}</td>
                             </tr>
                             <tr>
-                                <th>شناسه تخصیص:</th>
+                                <th class="bg-light">شناسه تخصیص:</th>
                                 <td>{{ barnameh.shenase_takhsis_code|default:"-" }}</td>
                             </tr>
                             <tr>
-                                <th>ایجاد شده توسط اکسل:</th>
+                                <th class="bg-light">ایجاد شده توسط اکسل:</th>
                                 <td>
                                     {% if barnameh.is_created_by_excel %}
-                                    <span class="badge bg-info">بله</span>
+                                    <span class="badge rounded-pill bg-info">بله</span>
                                     {% else %}
-                                    <span class="badge bg-secondary">خیر</span>
+                                    <span class="badge rounded-pill bg-secondary">خیر</span>
                                     {% endif %}
                                 </td>
                             </tr>
                             <tr>
-                                <th>تاریخ ایجاد:</th>
+                                <th class="bg-light">تاریخ ایجاد:</th>
                                 <td>{{ barnameh.barnameh_created_at }}</td>
                             </tr>
                             <tr>
-                                <th>تاریخ آخرین بروزرسانی:</th>
+                                <th class="bg-light">تاریخ آخرین بروزرسانی:</th>
                                 <td>{{ barnameh.barnameh_updated_at }}</td>
                             </tr>
                         </table>
@@ -129,30 +135,33 @@
             </div>
             
             <div class="col-md-6 mb-3">
-                <div class="card h-100">
-                    <div class="card-header">
-                        <h6 class="mb-0">اطلاعات حمل و نقل</h6>
+                <div class="card h-100 shadow-sm border-0 rounded-lg">
+                    <div class="card-header bg-light py-3">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="fas fa-truck me-2"></i>
+                            اطلاعات حمل و نقل
+                        </h6>
                     </div>
                     <div class="card-body">
                         <table class="table table-striped">
                             <tr>
-                                <th style="width: 40%">نام راننده:</th>
+                                <th style="width: 40%" class="bg-light">نام راننده:</th>
                                 <td>{{ barnameh.driver_name|default:"-" }}</td>
                             </tr>
                             <tr>
-                                <th>شماره تلفن راننده:</th>
+                                <th class="bg-light">شماره تلفن راننده:</th>
                                 <td>{{ barnameh.driver_phone|default:"-" }}</td>
                             </tr>
                             <tr>
-                                <th>پلاک خودرو:</th>
+                                <th class="bg-light">پلاک خودرو:</th>
                                 <td>{{ barnameh.vehicle_plate|default:"-" }}</td>
                             </tr>
                             <tr>
-                                <th>نام گیرنده:</th>
+                                <th class="bg-light">نام گیرنده:</th>
                                 <td>{{ barnameh.receiver_name|default:"-" }}</td>
                             </tr>
                             <tr>
-                                <th>مقصد:</th>
+                                <th class="bg-light">مقصد:</th>
                                 <td>{{ barnameh.destination|default:"-" }}</td>
                             </tr>
                         </table>
@@ -161,15 +170,18 @@
             </div>
             
             {% if barnameh.api_logs.exists %}
-            <div class="col-md-12 mt-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h6 class="mb-0">تاریخچه درخواست‌های API</h6>
+            <div class="col-md-12 mt-2">
+                <div class="card shadow-sm border-0 rounded-lg">
+                    <div class="card-header bg-light py-3">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="fas fa-history me-2"></i>
+                            تاریخچه درخواست‌های API
+                        </h6>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table class="table table-striped table-hover">
-                                <thead>
+                            <table class="table table-striped table-hover align-middle">
+                                <thead class="table-light">
                                     <tr>
                                         <th>تاریخ</th>
                                         <th>نوع درخواست</th>
@@ -184,9 +196,9 @@
                                         <td>{{ log.request_type }}</td>
                                         <td>
                                             {% if log.is_successful %}
-                                            <span class="badge bg-success">موفق</span>
+                                            <span class="badge rounded-pill bg-success">موفق</span>
                                             {% else %}
-                                            <span class="badge bg-danger">ناموفق</span>
+                                            <span class="badge rounded-pill bg-danger">ناموفق</span>
                                             {% endif %}
                                         </td>
                                         <td>{{ log.error_message|default:"-" }}</td>
@@ -199,6 +211,39 @@
                 </div>
             </div>
             {% endif %}
+        </div>
+    </div>
+    <div class="card-footer bg-light py-3">
+        <div class="d-flex justify-content-between">
+            <div>
+                <a href="{% url 'barnameh_list' %}" class="btn btn-secondary rounded-pill shadow-sm">
+                    <i class="fas fa-arrow-left me-1"></i>
+                    بازگشت به لیست
+                </a>
+            </div>
+            <div>
+                {% if barnameh.is_sent_to_bki %}
+                <a href="{% url 'edit_barnameh_in_bki' barnameh.id %}" class="btn btn-warning rounded-pill shadow-sm">
+                    <i class="fas fa-edit me-1"></i>
+                    ویرایش در بازارگاه
+                </a>
+                {% else %}
+                <a href="{% url 'barnameh_edit' barnameh.id %}" class="btn btn-warning rounded-pill shadow-sm">
+                    <i class="fas fa-edit me-1"></i>
+                    ویرایش
+                </a>
+                <a href="{% url 'barnameh_delete' barnameh.id %}" class="btn btn-danger rounded-pill shadow-sm ms-2">
+                    <i class="fas fa-trash me-1"></i>
+                    حذف
+                </a>
+                {% if barnameh.status == 'BARNAMEH_COMPLETE' %}
+                <a href="{% url 'send_to_bki' barnameh.id %}" class="btn btn-primary rounded-pill shadow-sm ms-2">
+                    <i class="fas fa-paper-plane me-1"></i>
+                    ارسال به بازارگاه
+                </a>
+                {% endif %}
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>

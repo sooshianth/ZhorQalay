@@ -475,8 +475,8 @@ class DebugSmsQueue:
 
 @admin.register(Barnameh)
 class BarnamehAdmin(admin.ModelAdmin):
-    list_display = ('purchase__purchase_number', 'number', 'serial', 'barnameh_date', 'is_sent_to_bki', 'is_sent_to_bki_at')
+    list_display = ('number', 'purchase_number', 'shenase_takhsis_code', 'serial', 'barnameh_date', 'is_sent_to_bki', 'is_sent_to_bki_at')
     list_filter = ('is_sent_to_bki', 'purchase__customer')
-    search_fields = ('purchase__purchase_number', 'number', 'serial')
+    search_fields = ('number', 'purchase_number', 'shenase_takhsis_code', 'serial')
     ordering = ('-barnameh_date',)
 

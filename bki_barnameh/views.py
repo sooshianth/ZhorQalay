@@ -6,13 +6,15 @@ from .models.BarnamehModel import Barnameh
 from .models.ExcelFileModel import ExcelFile
 from .models.ApiLogModel import BKIApiLog
 from core.decorators.decorators import role_required
-from .excel_management.upload_excel import handle_uploaded_file, process_excel_file
 from .API.insertBarnameh import send_barnameh_to_bki, send_multiple_barnameh_to_bki
-from .API.EditBarnameh import update_barnameh, delete_barnameh
+from .API.EditBarnameh import update_barnameh, delete_barnameh, edit_barnameh_api
 import json
 import os
 from django.conf import settings
 import pandas as pd
+
+# توابع اکسل به فولدر excel_management منتقل شده‌اند
+from .excel_management.views import upload_excel_view, download_excel_template, export_excel_view
 
 @role_required('logistics_manager', 'admin', 'financial_manager')
 def barnameh_list(request):
@@ -123,30 +125,16 @@ def barnameh_delete(request, barnameh_id):
 @role_required('logistics_manager', 'admin')
 def upload_excel(request):
     """
-    آپلود فایل اکسل بارنامه
+    آپلود فایل اکسل بارنامه - ریدایرکت به ویو جدید
     """
-    if request.method == 'POST' and request.FILES.get('excel_file'):
-        excel_file = request.FILES['excel_file']
-        
-        # Check if file is Excel
-        if not excel_file.name.endswith(('.xls', '.xlsx')):
-            messages.error(request, 'فایل باید با فرمت اکسل (.xls یا .xlsx) باشد.')
-            return redirect('upload_excel')
-        
-        # Handle file upload
-        excel_file_obj = handle_uploaded_file(excel_file, excel_file.name)
-        
-        # Process Excel file
-        result = process_excel_file(excel_file_obj.id)
-        
-        if result['success']:
-            messages.success(request, result['message'])
-        else:
-            messages.error(request, result['message'])
-        
-        return redirect('barnameh_list')
-    
-    return render(request, 'bki_barnameh/upload_excel.html')
+    return upload_excel_view(request)
+
+@role_required('logistics_manager', 'admin', 'financial_manager')
+def export_excel(request):
+    """
+    خروجی اکسل از بارنامه‌ها
+    """
+    return export_excel_view(request)
 
 @role_required('logistics_manager', 'admin')
 def send_to_bki(request, barnameh_id):
@@ -287,18 +275,72 @@ def barnameh_api(request):
     return JsonResponse({'success': False, 'message': 'درخواست نامعتبر است.'})
 
 @role_required('logistics_manager', 'admin')
-def download_excel_template(request):
+def edit_barnameh_in_bki(request, barnameh_id):
     """
-    دانلود قالب اکسل بارنامه
+    ویرایش بارنامه در بازارگاه
     """
-    template_path = os.path.join(settings.BASE_DIR, 'bki_barnameh/excel_management/example/barnameh_excel_example.xlsx')
+    if request.method == 'POST':
+        result = edit_barnameh_api(barnameh_id)
+        
+        if result['success']:
+            messages.success(request, result['message'])
+        else:
+            messages.error(request, result['message'])
+        
+        return redirect('barnameh_detail', barnameh_id=barnameh_id)
     
-    if os.path.exists(template_path):
-        with open(template_path, 'rb') as template_file:
-            response = HttpResponse(template_file.read(), content_type='application/vnd.ms-excel')
-            response['Content-Disposition'] = 'attachment; filename="barnameh_template.xlsx"'
-            return response
-    else:
-        messages.error(request, 'فایل قالب یافت نشد.')
-        return redirect('barnameh_list')
+    barnameh = get_object_or_404(Barnameh, id=barnameh_id)
+    return render(request, 'bki_barnameh/edit_barnameh_in_bki.html', {'barnameh': barnameh})
+
+@role_required('logistics_manager', 'admin')
+def bulk_edit(request):
+    """
+    ویرایش گروهی بارنامه‌ها
+    """
+    if request.method == 'POST':
+        barnameh_ids = request.POST.getlist('barnameh_ids')
+        
+        if not barnameh_ids:
+            messages.error(request, 'هیچ بارنامه‌ای انتخاب نشده است.')
+            return redirect('barnameh_list')
+        
+        # دریافت بارنامه‌های انتخاب شده
+        barnamehs = Barnameh.objects.filter(id__in=barnameh_ids)
+        
+        # اگر فرم ویرایش ارسال شده باشد
+        if 'save_changes' in request.POST:
+            field_to_update = request.POST.get('field_to_update')
+            new_value = request.POST.get('new_value')
+            
+            if not field_to_update or not new_value:
+                messages.error(request, 'لطفاً فیلد و مقدار جدید را وارد کنید.')
+                return render(request, 'bki_barnameh/bulk_edit.html', {'barnamehs': barnamehs})
+            
+            # بررسی معتبر بودن فیلد
+            valid_fields = ['tonnage', 'driver_name', 'driver_phone', 'vehicle_plate', 
+                           'receiver_name', 'destination', 'barnameh_date']
+            
+            if field_to_update not in valid_fields:
+                messages.error(request, 'فیلد انتخاب شده معتبر نیست.')
+                return render(request, 'bki_barnameh/bulk_edit.html', {'barnamehs': barnamehs})
+            
+            # اعمال تغییرات برای همه بارنامه‌های انتخاب شده
+            success_count = 0
+            for barnameh in barnamehs:
+                # اگر بارنامه به بازارگاه ارسال نشده باشد
+                if not barnameh.is_sent_to_bki:
+                    try:
+                        # بروزرسانی فیلد مورد نظر
+                        setattr(barnameh, field_to_update, new_value)
+                        barnameh.save()
+                        success_count += 1
+                    except Exception as e:
+                        continue
+            
+            messages.success(request, f'{success_count} بارنامه با موفقیت بروزرسانی شد.')
+            return redirect('barnameh_list')
+        
+        return render(request, 'bki_barnameh/bulk_edit.html', {'barnamehs': barnamehs})
+    
+    return redirect('barnameh_list')
 

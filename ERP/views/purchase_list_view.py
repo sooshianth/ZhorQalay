@@ -17,7 +17,10 @@ def determine_user_role(user):
     به جای بررسی مستقیم role که وجود ندارد، روابط بررسی می‌شود
     نقش لجستیک بر فروش ارجحیت دارد
     """
-    if hasattr(user, 'financial_manager') and user.financial_manager is not None:
+    if user.is_superuser:
+        # مدیر ارشد دسترسی کامل دارد
+        return 'admin'
+    elif hasattr(user, 'financial_manager') and user.financial_manager is not None:
         return 'financial_manager'
     elif hasattr(user, 'logistics_manager') and user.logistics_manager is not None:
         return 'logistics_manager'
@@ -25,9 +28,6 @@ def determine_user_role(user):
         return 'sales_agent'
     elif hasattr(user, 'support_agent') and user.support_agent is not None:
         return 'support_agent'
-    elif user.is_superuser:
-        # مدیر ارشد دسترسی کامل دارد
-        return 'admin'
     return None
 
 @login_required
