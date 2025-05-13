@@ -95,6 +95,7 @@ def barnameh_edit(request, barnameh_id):
         }
         
         result = update_barnameh(barnameh_id, data)
+        barnameh.log_barnameh_edit(request)
         
         if result['success']:
             messages.success(request, result['message'])
@@ -334,6 +335,7 @@ def bulk_edit(request):
                         setattr(barnameh, field_to_update, new_value)
                         barnameh.save()
                         success_count += 1
+                        barnameh.log_barnameh_edit(request)
                     except Exception as e:
                         continue
             

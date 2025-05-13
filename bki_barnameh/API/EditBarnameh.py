@@ -81,6 +81,7 @@ def update_barnameh(barnameh_id, data):
         
         barnameh.save()
         
+        
         return {
             'success': True,
             'message': 'بارنامه با موفقیت بروزرسانی شد.',
