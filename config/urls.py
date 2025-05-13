@@ -17,7 +17,7 @@ urlpatterns = [
     path('sms/dashborad', sms_dashboard, name='sms-dashboard'),
     path('', home_view.home_view, name='home_view'),
     path('login/', home_view.unified_login_view, name='unified_login'),
-    
+    path('cargos/', include('bki_cargos.urls')),
     # هدایت مسیرهای قدیمی به صفحه ورود جدید
     path('sales_agent_login/', RedirectView.as_view(pattern_name='unified_login', permanent=True)),
     path('financial_manager_login/', RedirectView.as_view(pattern_name='unified_login', permanent=True)),
