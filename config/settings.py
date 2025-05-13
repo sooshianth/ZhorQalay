@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'HR.apps.HRConfig',
     'bki_api.apps.BkiApiConfig',
     'bki_barnameh.apps.BkiBarnamehConfig',
+    'bki_cargos.apps.BkiCargosConfig',
 ]
 
 MIDDLEWARE = [

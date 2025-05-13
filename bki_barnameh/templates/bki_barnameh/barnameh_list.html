@@ -147,120 +147,80 @@
 
 {% block extra_js %}
 <script>
-    $(document).ready(function() {
+    document.addEventListener('DOMContentLoaded', function() {
         // تابع بروزرسانی وضعیت دکمه عملیات گروهی
         function updateBulkActionButton() {
-            var checkedCount = $('.barnameh-checkbox:checked').length;
-            console.log('تعداد موارد انتخاب شده:', checkedCount);
+            var checkedCount = document.querySelectorAll('.barnameh-checkbox:checked').length;
+            var bulkActionBtn = document.getElementById('bulk-action-btn');
             
             if (checkedCount > 0) {
-                $('#bulk-action-btn').prop('disabled', false);
-                $('#bulk-action-btn').removeClass('disabled');
-                $('#bulk-action-btn').css('opacity', '1');
-                $('#bulk-action-btn').css('pointer-events', 'auto');
-                console.log('فعال کردن دکمه - تعداد انتخاب شده:', checkedCount);
+                bulkActionBtn.disabled = false;
             } else {
-                $('#bulk-action-btn').prop('disabled', true);
-                $('#bulk-action-btn').addClass('disabled');
-                $('#bulk-action-btn').css('opacity', '0.65');
-                $('#bulk-action-btn').css('pointer-events', 'none');
-                console.log('غیرفعال کردن دکمه - هیچ موردی انتخاب نشده');
+                bulkActionBtn.disabled = true;
             }
         }
 
         // مدیریت چک‌باکس انتخاب همه
-        $(document).on('change', '#select-all', function() {
-            var isChecked = $(this).prop('checked');
-            $('.barnameh-checkbox').prop('checked', isChecked);
+        document.getElementById('select-all').addEventListener('change', function() {
+            var isChecked = this.checked;
+            document.querySelectorAll('.barnameh-checkbox').forEach(function(checkbox) {
+                checkbox.checked = isChecked;
+            });
             updateBulkActionButton();
-            console.log('انتخاب همه:', isChecked);
         });
         
         // مدیریت چک‌باکس‌های انفرادی
-        $(document).on('change', '.barnameh-checkbox', function() {
-            updateBulkActionButton();
-            
-            // بررسی وضعیت چک‌باکس انتخاب همه
-            if ($('.barnameh-checkbox:checked').length === $('.barnameh-checkbox').length && $('.barnameh-checkbox').length > 0) {
-                $('#select-all').prop('checked', true);
-            } else {
-                $('#select-all').prop('checked', false);
-            }
-            console.log('تغییر وضعیت چک‌باکس انفرادی');
+        document.querySelectorAll('.barnameh-checkbox').forEach(function(checkbox) {
+            checkbox.addEventListener('change', function() {
+                updateBulkActionButton();
+                
+                // بررسی وضعیت چک‌باکس انتخاب همه
+                var totalCheckboxes = document.querySelectorAll('.barnameh-checkbox').length;
+                var checkedCheckboxes = document.querySelectorAll('.barnameh-checkbox:checked').length;
+                
+                document.getElementById('select-all').checked = (totalCheckboxes === checkedCheckboxes);
+            });
         });
         
         // مدیریت دکمه ارسال گروهی
-        $(document).on('click', '#bulk-send-btn', function(e) {
+        document.getElementById('bulk-send-btn').addEventListener('click', function(e) {
             e.preventDefault();
             if (confirm('آیا از ارسال بارنامه‌های انتخاب شده به بازارگاه اطمینان دارید؟')) {
-                $('#bulk-action-type').val('send');
-                $('#bulk-action-form').attr('action', '{% url "bulk_send_to_bki" %}');
-                $('#bulk-action-form').submit();
-                console.log('ارسال فرم برای ارسال گروهی');
+                document.getElementById('bulk-action-type').value = 'send';
+                document.getElementById('bulk-action-form').action = '{% url "bulk_send_to_bki" %}';
+                document.getElementById('bulk-action-form').submit();
             }
         });
         
         // مدیریت دکمه خروجی اکسل گروهی
-        $(document).on('click', '#bulk-export-btn', function(e) {
+        document.getElementById('bulk-export-btn').addEventListener('click', function(e) {
             e.preventDefault();
-            $('#bulk-action-type').val('export');
-            $('#bulk-action-form').attr('action', '{% url "export_excel" %}');
-            $('#bulk-action-form').submit();
-            console.log('ارسال فرم برای خروجی اکسل');
+            document.getElementById('bulk-action-type').value = 'export';
+            document.getElementById('bulk-action-form').action = '{% url "export_excel" %}';
+            document.getElementById('bulk-action-form').submit();
         });
         
         // مدیریت دکمه ویرایش گروهی
-        $(document).on('click', '#bulk-edit-btn', function(e) {
+        document.getElementById('bulk-edit-btn').addEventListener('click', function(e) {
             e.preventDefault();
-            $('#bulk-action-type').val('edit');
-            $('#bulk-action-form').attr('action', '{% url "bulk_edit" %}');
-            $('#bulk-action-form').submit();
-            console.log('ارسال فرم برای ویرایش گروهی');
+            document.getElementById('bulk-action-type').value = 'edit';
+            document.getElementById('bulk-action-form').action = '{% url "bulk_edit" %}';
+            document.getElementById('bulk-action-form').submit();
+        });
+        
+        // اضافه کردن رویداد کلیک به ردیف‌های جدول
+        document.querySelectorAll('tr.align-middle').forEach(function(row) {
+            row.addEventListener('click', function(e) {
+                if (e.target.tagName === 'TD') {
+                    var checkbox = this.querySelector('.barnameh-checkbox');
+                    checkbox.checked = !checkbox.checked;
+                    updateBulkActionButton();
+                }
+            });
         });
         
         // فعال‌سازی اولیه دکمه عملیات گروهی
         updateBulkActionButton();
-        console.log('اجرای فعال‌سازی اولیه دکمه');
-        
-        // اجرای تابع بروزرسانی دکمه عملیات گروهی در زمان بارگذاری صفحه
-        $(window).on('load', function() {
-            updateBulkActionButton();
-            console.log('بارگذاری کامل صفحه - بررسی وضعیت دکمه');
-        });
-        
-        // بررسی مجدد وضعیت چک‌باکس‌ها پس از بارگذاری کامل صفحه
-        setTimeout(function() {
-            updateBulkActionButton();
-            console.log('بررسی مجدد پس از 500 میلی‌ثانیه');
-        }, 500);
-        
-        // بررسی‌های اضافی
-        setTimeout(function() {
-            updateBulkActionButton();
-            console.log('بررسی مجدد پس از 1000 میلی‌ثانیه');
-        }, 1000);
-        
-        setTimeout(function() {
-            updateBulkActionButton();
-            console.log('بررسی مجدد پس از 2000 میلی‌ثانیه');
-        }, 2000);
-        
-        // راه‌حل اضافی برای رفع مشکل دکمه غیرفعال
-        $('.barnameh-checkbox').each(function() {
-            $(this).on('click', function(e) {
-                e.stopPropagation();
-                updateBulkActionButton();
-            });
-        });
-        
-        // اضافه کردن رویداد کلیک به ردیف‌های جدول
-        $('tr.align-middle').on('click', function(e) {
-            if ($(e.target).is('td')) {
-                var checkbox = $(this).find('.barnameh-checkbox');
-                checkbox.prop('checked', !checkbox.prop('checked'));
-                updateBulkActionButton();
-            }
-        });
     });
 </script>
 {% endblock %} 

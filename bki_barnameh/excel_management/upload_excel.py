@@ -83,11 +83,17 @@ def process_excel_file(excel_file_id):
                 )
 
                 from core.PurchaseModel import Purchase
-                if purchase_number and barnameh:
-                    purchase=Purchase.objects.get(purchase_number=purchase_number)
-                    purchase.barnameh=barnameh_number
-                    purchase.barnameh_object=barnameh
-                    purchase.save()
+                # Only try to associate with purchase if purchase_number is not empty or just whitespace
+                if purchase_number and purchase_number.strip() and barnameh:
+                    try:
+                        purchase_number=str(round(float(purchase_number)))
+                        purchase = Purchase.objects.get(purchase_number=purchase_number)
+                        purchase.barnameh = barnameh_number
+                        purchase.barnameh_object = barnameh
+                        purchase.save()
+                    except Purchase.DoesNotExist:
+                        print(f"Purchase with number {purchase_number} not found")
+                        # Continue processing without failing
 
                 processed_rows += 1
                 

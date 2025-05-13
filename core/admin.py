@@ -480,3 +480,10 @@ class BarnamehAdmin(admin.ModelAdmin):
     search_fields = ('number', 'purchase_number', 'shenase_takhsis_code', 'serial')
     ordering = ('-barnameh_date',)
 
+
+from bki_barnameh.models.BarnamehModel import BarnamehLog
+@admin.register(BarnamehLog)
+class BarnamehLogAdmin(admin.ModelAdmin):
+    list_display = ('barnameh', 'log_date', 'log_message')
+    ordering = ('-log_date',)
+
