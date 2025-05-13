@@ -8,80 +8,301 @@
     <h1 class="page-title">ایجاد پیامک جدید</h1>
     
     <div class="form-container">
-        <form method="post" class="sms-form">
-            {% csrf_token %}
+        {% if messages %}
+        <div class="messages-container">
+            {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Hidden templates data -->
+        <script type="application/json" id="templates-data">{{ default_templates|safe }}</script>
+
+        <!-- حالت‌های مختلف ارسال پیامک -->
+        <div class="sms-modes">
+            <h3>انتخاب حالت ارسال پیامک</h3>
+            <div class="mode-buttons">
+                <button type="button" id="customer-search-btn" class="mode-btn selected" onclick="showCustomerSearch()">
+                    <i class="fas fa-user"></i> جستجوی مشتری
+                </button>
+                <button type="button" id="direct-number-btn" class="mode-btn" onclick="showDirectMarketing()">
+                    <i class="fas fa-bullhorn"></i> ارسال تبلیغاتی
+                </button>
+            </div>
+        </div>
+
+        <!-- فرم جستجوی مشتری -->
+        <div class="mode-section" id="customer-search-section">
+            <div class="search-section">
+                <h3>جستجو و انتخاب مشتری</h3>
+                <form method="get" class="search-form">
+                    <div class="form-group">
+                        <label for="search">جستجوی مشتری</label>
+                        <div class="search-input-group">
+                            <input type="text" id="search" name="search" class="form-control" 
+                                placeholder="نام مشتری یا شماره تلفن" value="{{ search_query }}">
+                            <button type="submit" class="search-button">
+                                <i class="fas fa-search"></i> جستجو
+                            </button>
+                        </div>
+                    </div>
+                </form>
+        
+                {% if search_query %}
+                    {% if customers %}
+                        <div class="customer-list">
+                            <h4>نتایج جستجو</h4>
+                            {% for customer in customers %}
+                                <div class="customer-item {% if selected_customer_id == customer.id|stringformat:'s' %}selected{% endif %}">
+                                    <a href="?search={{ search_query|urlencode }}&customer_id={{ customer.id }}">
+                                        {{ customer.name }} - {{ customer.get_primary_phone }}
+                                    </a>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">مشتری یافت نشد</div>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            <!-- فرم ارسال پیامک به مشتری -->
+            {% if selected_customer_id %}
+            <div class="sms-section">
+                <h3>ارسال پیامک به مشتری</h3>
+                <form method="post" class="sms-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="customer_id" value="{{ selected_customer_id }}">
+                    <input type="hidden" name="sms_type" value="customer">
+                    
+                    <!-- انتخاب نوع پیام -->
+                    <div class="message-type-selector">
+                        <label>نوع پیام:</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="message_type" value="purchase" checked onclick="toggleMessageFields('purchase')"> پیام مرتبط با خرید
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="message_type" value="cottage" onclick="toggleMessageFields('cottage')"> پیام اطلاع‌رسانی کوتاژ و محصولات
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="purchase-fields">
+                        <div class="form-group">
+                            <label>خریدهای مشتری</label>
+                            <select name="purchase_id" class="form-control">
+                                <option value="">-- انتخاب خرید --</option>
+                                {% for purchase in purchases %}
+                                    <option value="{{ purchase.id }}">
+                                        خرید {{ purchase.invoice_id }} - {{ purchase.created_at|date:"Y/m/d" }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="cottage-fields" style="display: none;">
+                        <div class="form-group">
+                            <label for="cottage_number">شماره کوتاژ</label>
+                            <input type="text" id="cottage_number" name="cottage_number" class="form-control" placeholder="شماره کوتاژ را وارد کنید">
+                        </div>
+                        <div class="form-group">
+                            <label for="product_type">نوع محصول</label>
+                            <input type="text" id="product_type" name="product_type" class="form-control" placeholder="نوع محصول را وارد کنید">
+                        </div>
+                        <div class="form-group">
+                            <label for="product_country">کشور مبدا</label>
+                            <input type="text" id="product_country" name="product_country" class="form-control" placeholder="کشور مبدا را وارد کنید">
+                        </div>
+                    </div>
             
-            {% if messages %}
-            <div class="messages-container">
-                {% for message in messages %}
-                <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %}">
-                    {{ message }}
-                </div>
-                {% endfor %}
+                    <div class="form-group">
+                        <label for="notification_type">نوع اطلاع رسانی</label>
+                        <select id="notification_type" name="notification_type" class="form-control" required>
+                            {% for key, value in notification_types.items %}
+                            <option value="{{ key }}">{{ value }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="message">متن پیام</label>
+                        <textarea id="message" name="message" class="form-control" rows="5" 
+                                placeholder="متن پیام خود را وارد کنید..." required maxlength="255"></textarea>
+                        <div class="character-counter">
+                            <span id="char-count">0</span>/255
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="scheduled_for">زمان ارسال</label>
+                        <input type="datetime-local" id="scheduled_for" name="scheduled_for" class="form-control">
+                        <small class="form-text text-muted">اگر خالی باشد، بلافاصله ارسال می‌شود</small>
+                    </div>
+                    
+                    <!-- <div class="template-buttons">
+                        <h4>قالب‌های پیش‌فرض</h4>
+                        <div class="template-container">
+                            <button type="button" class="template-btn teal" data-template="INITIATED">سفارش جدید</button>
+                            <button type="button" class="template-btn light-teal" data-template="PAYMENT_VERIFIED">تایید پرداخت</button>
+                            <button type="button" class="template-btn dark-teal" data-template="DELIVERED">تحویل سفارش</button>
+                            <button type="button" class="template-btn cyan" data-template="BARNAMEH_ISSUED">اطلاع رسانی ارسال</button>
+                            <button type="button" class="template-btn teal" data-template="SMS_SENT">خوش‌آمدگویی</button>
+                        </div>
+                    </div> -->
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="action-button teal">
+                            <i class="fas fa-paper-plane"></i>
+                            ارسال پیامک
+                        </button>
+                        <a href="{% url 'sms_api:sms_dashboard' %}" class="action-button light-teal">
+                            <i class="fas fa-arrow-right"></i>
+                            بازگشت به داشبورد
+                        </a>
+                    </div>
+                </form>
+            </div>
+            {% else %}
+            <div class="alert alert-info mt-4">
+                لطفاً یک مشتری را جستجو و انتخاب کنید.
             </div>
             {% endif %}
-            
-            <div class="form-group">
-                <label for="recipient_number">شماره گیرنده</label>
-                <input type="text" id="recipient_number" name="recipient_number" class="form-control" 
-                       placeholder="مثال: 09123456789" required maxlength="11">
-                <small class="form-text text-muted">شماره باید با ۰۹ شروع شده و ۱۱ رقم باشد</small>
+        </div>
+
+        <!-- فرم ارسال پیامک تبلیغاتی -->
+        <div class="mode-section" id="direct-number-section" style="display: none;">
+            <div class="sms-section">
+                <h3>ارسال پیامک تبلیغاتی</h3>
+                <form method="post" class="sms-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="sms_type" value="marketing">
+                    
+                    <div class="form-group">
+                        <label for="recipient_number">شماره گیرنده</label>
+                        <input type="text" id="recipient_number" name="recipient_number" class="form-control" 
+                               placeholder="شماره تلفن را وارد کنید (مثال: 09123456789)" required 
+                               pattern="^(0|0098|\+98)?9\d{9}$">
+                        <small class="form-text text-muted">شماره تلفن را با فرمت صحیح وارد کنید.</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="marketing_message">متن پیام تبلیغاتی</label>
+                        <textarea id="marketing_message" name="message" class="form-control" rows="5" 
+                                placeholder="متن پیام تبلیغاتی خود را وارد کنید..." required maxlength="255"></textarea>
+                        <div class="character-counter">
+                            <span id="marketing-char-count">0</span>/255
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="marketing_scheduled_for">زمان ارسال</label>
+                        <input type="datetime-local" id="marketing_scheduled_for" name="scheduled_for" class="form-control">
+                        <small class="form-text text-muted">اگر خالی باشد، بلافاصله ارسال می‌شود</small>
+                    </div>
+                    
+                    <div class="template-buttons">
+                        <h4>قالب‌های تبلیغاتی</h4>
+                        <div class="template-container">
+                            <button type="button" class="marketing-template-btn cyan" onclick="useMarketingTemplate('promo_1')">معرفی شرکت</button>
+                            <button type="button" class="marketing-template-btn teal" onclick="useMarketingTemplate('promo_2')">اطلاع محصولات جدید</button>
+                            <button type="button" class="marketing-template-btn light-teal" onclick="useMarketingTemplate('promo_3')">تخفیف ویژه</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="action-button teal">
+                            <i class="fas fa-paper-plane"></i>
+                            ارسال پیامک
+                        </button>
+                        <a href="{% url 'sms_api:sms_dashboard' %}" class="action-button light-teal">
+                            <i class="fas fa-arrow-right"></i>
+                            بازگشت به داشبورد
+                        </a>
+                    </div>
+                </form>
             </div>
-            
-            <div class="form-group">
-                <label for="notification_type">نوع اطلاع رسانی</label>
-                <select id="notification_type" name="notification_type" class="form-control" required>
-                    {% for key, value in notification_types.items %}
-                    <option value="{{ key }}">{{ value }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="message">متن پیام</label>
-                <textarea id="message" name="message" class="form-control" rows="5" 
-                          placeholder="متن پیام خود را وارد کنید..." required maxlength="255"></textarea>
-                <div class="character-counter">
-                    <span id="char-count">0</span>/255
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label for="scheduled_for">زمان ارسال</label>
-                <input type="datetime-local" id="scheduled_for" name="scheduled_for" class="form-control">
-                <small class="form-text text-muted">اگر خالی باشد، بلافاصله ارسال می‌شود</small>
-            </div>
-            
-            <div class="form-group">
-                <label for="purchase_id">شناسه خرید (اختیاری)</label>
-                <input type="number" id="purchase_id" name="purchase_id" class="form-control" 
-                       placeholder="اگر این پیامک مربوط به خرید خاصی است، شناسه آن را وارد کنید">
-            </div>
-            
-            <div class="template-buttons">
-                <h4>قالب‌های پیش‌فرض</h4>
-                <div class="template-container">
-                    <button type="button" class="template-btn teal" data-template="purchase_created">سفارش جدید</button>
-                    <button type="button" class="template-btn light-teal" data-template="payment_confirmed">تایید پرداخت</button>
-                    <button type="button" class="template-btn dark-teal" data-template="order_delivered">تحویل سفارش</button>
-                    <button type="button" class="template-btn cyan" data-template="shipping_notification">اطلاع رسانی ارسال</button>
-                    <button type="button" class="template-btn teal" data-template="welcome">خوش‌آمدگویی</button>
-                </div>
-            </div>
-            
-            <div class="form-actions">
-                <button type="submit" class="action-button teal">
-                    <i class="fas fa-paper-plane"></i>
-                    ارسال پیامک
-                </button>
-                <a href="{% url 'sms_api:sms_dashboard' %}" class="action-button light-teal">
-                    <i class="fas fa-arrow-right"></i>
-                    بازگشت به داشبورد
-                </a>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
+
+<!-- Inline JavaScript for immediate functionality -->
+<script>
+    // Marketing templates
+    const marketingTemplates = {
+        'promo_1': 'شرکت خدمات بازرگانی جهان تجارت همیشه در کنار شماست. برای مشاوره رایگان در زمینه واردات با ما تماس بگیرید.',
+        'promo_2': 'مشتری گرامی، محصولات جدید وارداتی به انبار ما رسیده است. برای اطلاع از قیمت‌ها با ما تماس بگیرید.',
+        'promo_3': 'تخفیف ویژه برای مشتریان وفادار! با هر سفارش بیش از 20 تن، 5٪ تخفیف دریافت کنید.'
+    };
+
+    // Show customer search section
+    function showCustomerSearch() {
+        document.getElementById('customer-search-btn').classList.add('selected');
+        document.getElementById('direct-number-btn').classList.remove('selected');
+        document.getElementById('customer-search-section').style.display = 'block';
+        document.getElementById('direct-number-section').style.display = 'none';
+    }
+
+    // Show direct marketing section
+    function showDirectMarketing() {
+        document.getElementById('direct-number-btn').classList.add('selected');
+        document.getElementById('customer-search-btn').classList.remove('selected');
+        document.getElementById('customer-search-section').style.display = 'none';
+        document.getElementById('direct-number-section').style.display = 'block';
+    }
+
+    // Toggle message fields based on message type
+    function toggleMessageFields(value) {
+        if (value === 'purchase') {
+            document.getElementById('purchase-fields').style.display = 'block';
+            document.getElementById('cottage-fields').style.display = 'none';
+        } else if (value === 'cottage') {
+            document.getElementById('purchase-fields').style.display = 'none';
+            document.getElementById('cottage-fields').style.display = 'block';
+        }
+    }
+
+    // Apply marketing template
+    function useMarketingTemplate(templateKey) {
+        const textarea = document.getElementById('marketing_message');
+        const counter = document.getElementById('marketing-char-count');
+        if (textarea && marketingTemplates[templateKey]) {
+            textarea.value = marketingTemplates[templateKey];
+            if (counter) {
+                counter.textContent = textarea.value.length;
+            }
+        }
+    }
+
+    // Initialize character counters
+    document.addEventListener('DOMContentLoaded', function() {
+        // Setup standard message counter
+        const messageTextarea = document.getElementById('message');
+        const charCount = document.getElementById('char-count');
+        
+        if (messageTextarea && charCount) {
+            charCount.textContent = messageTextarea.value.length;
+            messageTextarea.addEventListener('input', function() {
+                charCount.textContent = this.value.length;
+            });
+        }
+        
+        // Setup marketing message counter
+        const marketingTextarea = document.getElementById('marketing_message');
+        const marketingCharCount = document.getElementById('marketing-char-count');
+        
+        if (marketingTextarea && marketingCharCount) {
+            marketingCharCount.textContent = marketingTextarea.value.length;
+            marketingTextarea.addEventListener('input', function() {
+                marketingCharCount.textContent = this.value.length;
+            });
+        }
+    });
+</script>
 {% endblock %}
 
 {% block extra_css %}
@@ -116,6 +337,73 @@
         border-radius: 8px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         padding: 2rem;
+    }
+
+    .search-section, .sms-section {
+        margin-bottom: 2rem;
+        padding-bottom: 2rem;
+        border-bottom: 1px solid #eee;
+    }
+
+    .search-section h3, .sms-section h3 {
+        color: var(--teal-dark);
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+    }
+
+    .search-form {
+        margin-bottom: 1.5rem;
+    }
+
+    .search-input-group {
+        display: flex;
+    }
+
+    .search-input-group input {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+
+    .search-button {
+        background-color: var(--teal-primary);
+        color: white;
+        border: none;
+        border-top-right-radius: 4px;
+        border-bottom-right-radius: 4px;
+        padding: 0 1rem;
+        cursor: pointer;
+    }
+
+    .customer-list {
+        margin-bottom: 2rem;
+    }
+
+    .customer-list h4 {
+        color: var(--teal-dark);
+        margin-bottom: 1rem;
+    }
+
+    .customer-item {
+        padding: 0.5rem 1rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-bottom: 0.5rem;
+        transition: all 0.2s;
+    }
+
+    .customer-item:hover {
+        background-color: #f5f5f5;
+    }
+
+    .customer-item.selected {
+        background-color: var(--teal-light);
+        border-color: var(--teal-primary);
+    }
+
+    .customer-item a {
+        color: #333;
+        text-decoration: none;
+        display: block;
     }
 
     .form-group {
@@ -197,7 +485,7 @@
         margin-bottom: 1rem;
     }
 
-    .template-btn {
+    .template-btn, .marketing-template-btn {
         padding: 0.5rem 1rem;
         border: none;
         border-radius: 4px;
@@ -207,24 +495,24 @@
         transition: all 0.3s;
     }
 
-    .template-btn:hover {
+    .template-btn:hover, .marketing-template-btn:hover {
         transform: translateY(-2px);
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     }
 
-    .template-btn.teal {
+    .template-btn.teal, .marketing-template-btn.teal {
         background-color: var(--teal-primary);
     }
 
-    .template-btn.light-teal {
+    .template-btn.light-teal, .marketing-template-btn.light-teal {
         background-color: var(--teal-secondary);
     }
 
-    .template-btn.dark-teal {
+    .template-btn.dark-teal, .marketing-template-btn.dark-teal {
         background-color: var(--teal-dark);
     }
 
-    .template-btn.cyan {
+    .template-btn.cyan, .marketing-template-btn.cyan {
         background-color: var(--cyan);
     }
 
@@ -264,6 +552,73 @@
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
 
+    /* دکمه های حالت */
+    .sms-modes {
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #eee;
+    }
+
+    .sms-modes h3 {
+        color: var(--teal-dark);
+        margin-bottom: 1rem;
+    }
+
+    .mode-buttons {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .mode-btn {
+        padding: 0.8rem 1.5rem;
+        border: 2px solid var(--teal-primary);
+        background-color: white;
+        color: var(--teal-primary);
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+    }
+
+    .mode-btn i {
+        margin-left: 0.5rem;
+    }
+
+    .mode-btn:hover {
+        background-color: var(--teal-light);
+    }
+
+    .mode-btn.selected {
+        background-color: var(--teal-primary);
+        color: white;
+    }
+
+    /* رادیو باتن ها */
+    .message-type-selector {
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background-color: #f9f9f9;
+        border-radius: 4px;
+    }
+
+    .radio-group {
+        display: flex;
+        gap: 2rem;
+        margin-top: 0.5rem;
+    }
+
+    .radio-label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+    }
+
+    .radio-label input[type="radio"] {
+        margin-left: 0.5rem;
+    }
+
     /* پاسخگویی موبایل */
     @media (max-width: 768px) {
         .create-sms-container {
@@ -281,54 +636,23 @@
         .action-button {
             width: 100%;
         }
+
+        .mode-buttons {
+            flex-direction: column;
+        }
+
+        .radio-group {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    }
+
+    .mt-4 {
+        margin-top: 1.5rem;
     }
 </style>
 {% endblock %}
 
 {% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // شمارنده کاراکتر
-        const messageTextarea = document.getElementById('message');
-        const charCount = document.getElementById('char-count');
-        
-        messageTextarea.addEventListener('input', function() {
-            const count = this.value.length;
-            charCount.textContent = count;
-            
-            if(count > 230) {
-                charCount.style.color = count > 255 ? 'red' : 'orange';
-            } else {
-                charCount.style.color = '';
-            }
-        });
-        
-        // قالب‌های پیش‌فرض
-        const templates = {{ default_templates|safe }};
-        const templateButtons = document.querySelectorAll('.template-btn');
-        
-        templateButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const templateKey = this.dataset.template;
-                if(templates[templateKey]) {
-                    messageTextarea.value = templates[templateKey];
-                    // به‌روزرسانی شمارنده کاراکتر
-                    charCount.textContent = messageTextarea.value.length;
-                }
-            });
-        });
-        
-        // انتخاب نوع اطلاع‌رسانی
-        const notificationTypeSelect = document.getElementById('notification_type');
-        
-        notificationTypeSelect.addEventListener('change', function() {
-            const selectedType = this.value;
-            // اگر نوع اطلاع‌رسانی با یکی از قالب‌ها مطابقت داشت
-            if(templates[selectedType]) {
-                messageTextarea.value = templates[selectedType];
-                charCount.textContent = messageTextarea.value.length;
-            }
-        });
-    });
-</script>
+<script src="{% static 'js/sms_form.js' %}"></script>
 {% endblock %}
