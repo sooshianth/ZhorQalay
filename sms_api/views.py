@@ -17,6 +17,7 @@ from django.contrib.auth.decorators import login_required
 from .apis import queue_sms, process_sms_queue, check_missing_templates, create_default_templates
 from core.PurchaseModel import Purchase
 from core.decorators.decorators import role_required
+from core.CustomerModel import Customer
 import re
 from django.db import connection
 logger = logging.getLogger(__name__)
@@ -79,7 +80,7 @@ def sms_queue(request):
     
     # تعداد پیامک‌ها با وضعیت‌های مختلف
     pending_count = SmsQueue.objects.filter(status='pending').count()
-    sent_count = SmsQueue.objects.filter(status='sent').count() 
+    sent_count = SmsQueue.objects.filter(status='sent').count()
     failed_count = SmsQueue.objects.filter(status='failed').count()
     suspended_count = SmsQueue.objects.filter(status='suspended').count()
     
@@ -187,74 +188,45 @@ def get_default_templates():
         'SMS_SENT': 'مشتری گرامی، کوتاژ {cottage}، {product_type} {product_country} با قیمت {customer_price} ریال و به وزن {order_weight} کیلوگرم برای شما ثبت شد.',
     }
 
-@role_required('admin')
+@role_required('admin', 'support_agent')
 @login_required
 def create_sms(request):
-    """
-    ایجاد و ارسال پیامک جدید با مدیریت خطای بهبود یافته
-    """
-    # دریافت انواع نوتیفیکیشن برای استفاده در فرم
     notification_types = dict(SmsQueue.NOTIFICATION_TYPES)
     default_templates = json.dumps(get_default_templates())
     
+    # Handle customer search
+    search_query = request.GET.get('search', '')
+    selected_customer_id = request.GET.get('customer_id', '')
+    
+    customers = []
+    purchases = []
+    
+    # If search was performed or customer was selected
+    if search_query:
+        customers = Customer.objects.filter(
+            Q(name__icontains=search_query) | 
+            Q(phone_numbers__number__icontains=search_query)
+        ).distinct()[:10]  # محدود به 10 نتیجه
+        
+    if selected_customer_id:
+        try:
+            selected_customer = Customer.objects.get(pk=selected_customer_id)
+            purchases = Purchase.objects.filter(customer=selected_customer).order_by('-created_at')[:10]
+        except Customer.DoesNotExist:
+            messages.error(request, 'مشتری انتخاب شده یافت نشد.')
+    
+    # Handle form submission
     if request.method == 'POST':
         try:
-            # دریافت و اعتبارسنجی فیلدهای فرم
-            recipient_number = request.POST.get('recipient_number')
+            sms_type = request.POST.get('sms_type')
             message = request.POST.get('message')
-            notification_type = request.POST.get('notification_type')
+            notification_type = request.POST.get('notification_type', 'custom')
             scheduled_for_str = request.POST.get('scheduled_for')
-            purchase_id = request.POST.get('purchase_id')
-            customer_id = request.POST.get('customer_id')  # اضافه کردن فیلد شناسه مشتری
             
-            # بررسی آیا شناسه مشتری فراهم شده است
-            customer = None
-            phone_numbers = []
-            
-            if customer_id:
-                try:
-                    from core.CustomerModel import Customer
-                    customer_id = int(customer_id)
-                    customer = Customer.objects.get(id=customer_id)
-                    phone_numbers = customer.get_all_phone_numbers()
-                    if not phone_numbers:
-                        messages.warning(request, f'هیچ شماره تلفنی برای مشتری {customer.name} یافت نشد.')
-                except (ValueError, Customer.DoesNotExist):
-                    messages.warning(request, 'شناسه مشتری نامعتبر است یا مشتری با این شناسه یافت نشد.')
-            
-            # اگر مشتری فراهم نشده یا هیچ شماره تلفنی ندارد، از شماره وارد شده استفاده کنیم
-            if not phone_numbers:
-                # بررسی فیلدهای ضروری
-                errors = []
-                if not recipient_number:
-                    errors.append('شماره گیرنده باید وارد شود.')
-                elif not (recipient_number.startswith('09') and len(recipient_number) == 11):
-                    errors.append('فرمت شماره تلفن صحیح نیست. مثال صحیح: 09123456789')
-                    
-                if errors:
-                    for error in errors:
-                        messages.error(request, error)
-                    return render(request, 'sms_api/create_sms.html', {
-                        'notification_types': notification_types,
-                        'default_templates': default_templates
-                    })
-                    
-                # تنها شماره وارد شده را استفاده کنیم
-                phone_numbers = [recipient_number]
-            
-            # بررسی سایر فیلدهای ضروری
+            # اعتبارسنجی پیام
             if not message:
                 messages.error(request, 'متن پیام نمی‌تواند خالی باشد.')
-                return render(request, 'sms_api/create_sms.html', {
-                    'notification_types': notification_types,
-                    'default_templates': default_templates
-                })
-            elif len(message) > 255:
-                messages.error(request, f'متن پیام باید کمتر از 255 کاراکتر باشد. طول فعلی: {len(message)}')
-                return render(request, 'sms_api/create_sms.html', {
-                    'notification_types': notification_types,
-                    'default_templates': default_templates
-                })
+                return redirect('sms_api:create_sms')
             
             # پردازش زمان ارسال
             scheduled_for = None
@@ -263,72 +235,141 @@ def create_sms(request):
                     scheduled_for = timezone.make_aware(timezone.datetime.strptime(scheduled_for_str, '%Y-%m-%dT%H:%M').replace(tzinfo=None))
                 except ValueError:
                     messages.error(request, 'فرمت زمان ارسال نامعتبر است.')
-                    return render(request, 'sms_api/create_sms.html', {
-                        'notification_types': notification_types,
-                        'default_templates': default_templates
-                    })
+                    return redirect('sms_api:create_sms')
             
-            # پردازش شناسه خرید اگر وارد شده باشد
-            purchase = None
-            if purchase_id:
+            # براساس نوع پیام، پردازش متفاوتی انجام می‌دهیم
+            if sms_type == 'customer':
+                # ارسال پیام به مشتری
+                customer_id = request.POST.get('customer_id')
+                message_type = request.POST.get('message_type')
+                
+                if not customer_id:
+                    messages.error(request, 'لطفاً مشتری را انتخاب کنید.')
+                    return redirect('sms_api:create_sms')
+                
                 try:
-                    purchase_id = int(purchase_id)
-                    try:
-                        purchase = Purchase.objects.get(id=purchase_id)
-                    except Purchase.DoesNotExist:
-                        messages.warning(request, f'خرید با شناسه {purchase_id} یافت نشد. پیامک بدون اتصال به خرید ایجاد می‌شود.')
-                except ValueError:
-                    messages.warning(request, 'شناسه خرید باید یک عدد صحیح باشد. پیامک بدون اتصال به خرید ایجاد می‌شود.')
-            
-            # افزودن به صف ارسال پیامک برای همه شماره ها
-            success_count = 0
-            for phone in phone_numbers:
+                    customer = Customer.objects.get(pk=customer_id)
+                except Customer.DoesNotExist:
+                    messages.error(request, 'مشتری انتخاب شده یافت نشد.')
+                    return redirect('sms_api:create_sms')
+                
+                if message_type == 'purchase':
+                    # پیام مرتبط با خرید
+                    purchase_id = request.POST.get('purchase_id')
+                    purchase = None
+                    
+                    if purchase_id:
+                        try:
+                            purchase = Purchase.objects.get(pk=purchase_id, customer=customer)
+                        except Purchase.DoesNotExist:
+                            messages.warning(request, 'خرید انتخاب شده یافت نشد یا متعلق به این مشتری نیست.')
+                            
+                    # ارسال پیامک به همه شماره‌های مشتری
+                    success_count = 0
+                    for phone in customer.get_all_phone_numbers():
+                        try:
+                            sms = queue_sms(
+                                number=phone,
+                                message=message,
+                                notification_type=notification_type,
+                                scheduled_for=scheduled_for,
+                                purchase=purchase
+                            )
+                            success_count += 1
+                        except Exception as e:
+                            logger.error(f"خطا در ایجاد پیامک برای شماره {phone}: {str(e)}")
+                            messages.error(request, f'خطا در ایجاد پیامک برای شماره {phone}: {str(e)}')
+                    
+                    if success_count > 0:
+                        messages.success(request, f'پیامک با موفقیت به صف ارسال برای {success_count} شماره اضافه شد.')
+                        return redirect('sms_api:sms_dashboard')
+                    else:
+                        messages.error(request, 'هیچ پیامکی با موفقیت به صف ارسال اضافه نشد.')
+                        
+                elif message_type == 'cottage':
+                    # پیام اطلاع‌رسانی کوتاژ و محصولات
+                    cottage_number = request.POST.get('cottage_number')
+                    product_type = request.POST.get('product_type')
+                    product_country = request.POST.get('product_country')
+                    
+                    # اگر این فیلدها در پیام استفاده شده‌اند، جایگزین می‌کنیم
+                    if cottage_number:
+                        message = message.replace('{{cottage}}', cottage_number)
+                        
+                    if product_type:
+                        message = message.replace('{{product_type}}', product_type)
+                        
+                    if product_country:
+                        message = message.replace('{{product_country}}', product_country)
+                    
+                    # ارسال پیامک به همه شماره‌های مشتری
+                    success_count = 0
+                    for phone in customer.get_all_phone_numbers():
+                        try:
+                            sms = queue_sms(
+                                number=phone,
+                                message=message,
+                                notification_type='SMS_SENT',  # نوع اطلاع‌رسانی پیش‌فرض برای کوتاژ
+                                scheduled_for=scheduled_for
+                            )
+                            success_count += 1
+                        except Exception as e:
+                            logger.error(f"خطا در ایجاد پیامک برای شماره {phone}: {str(e)}")
+                            messages.error(request, f'خطا در ایجاد پیامک برای شماره {phone}: {str(e)}')
+                    
+                    if success_count > 0:
+                        messages.success(request, f'پیامک اطلاع‌رسانی کوتاژ با موفقیت به صف ارسال برای {success_count} شماره اضافه شد.')
+                        return redirect('sms_api:sms_dashboard')
+                    else:
+                        messages.error(request, 'هیچ پیامکی با موفقیت به صف ارسال اضافه نشد.')
+                        
+            elif sms_type == 'marketing':
+                # ارسال پیام تبلیغاتی به شماره دلخواه
+                recipient_number = request.POST.get('recipient_number')
+                
+                if not recipient_number:
+                    messages.error(request, 'لطفاً شماره گیرنده را وارد کنید.')
+                    return redirect('sms_api:create_sms')
+                
+                # اعتبارسنجی شماره تلفن
+                phone_regex = r'^(0|0098|\+98)?9\d{9}$'
+                if not re.match(phone_regex, recipient_number):
+                    messages.error(request, 'فرمت شماره تلفن نامعتبر است.')
+                    return redirect('sms_api:create_sms')
+                
+                # استاندارد کردن فرمت شماره تلفن
+                if recipient_number.startswith('+98'):
+                    recipient_number = '0' + recipient_number[3:]
+                elif recipient_number.startswith('0098'):
+                    recipient_number = '0' + recipient_number[4:]
+                
                 try:
                     sms = queue_sms(
-                        number=phone,
+                        number=recipient_number,
                         message=message,
-                        notification_type=notification_type,
-                        scheduled_for=scheduled_for,
-                        purchase=purchase
+                        notification_type='MARKETING',  # نوع اطلاع‌رسانی پیش‌فرض برای تبلیغات
+                        scheduled_for=scheduled_for
                     )
-                    success_count += 1
+                    messages.success(request, f'پیامک تبلیغاتی با موفقیت به صف ارسال برای شماره {recipient_number} اضافه شد.')
+                    return redirect('sms_api:sms_dashboard')
                 except Exception as e:
-                    logger.error(f"خطا در ایجاد پیامک برای شماره {phone}: {str(e)}")
-                    messages.error(request, f'خطا در ایجاد پیامک برای شماره {phone}: {str(e)}')
-            
-            if success_count > 0:
-                messages.success(request, f'پیامک با موفقیت به صف ارسال برای {success_count} شماره اضافه شد.')
-                return redirect('sms_api:sms_dashboard')
-            else:
-                messages.error(request, 'هیچ پیامکی با موفقیت به صف ارسال اضافه نشد.')
-        
+                    logger.error(f"خطا در ایجاد پیامک تبلیغاتی برای شماره {recipient_number}: {str(e)}")
+                    messages.error(request, f'خطا در ایجاد پیامک تبلیغاتی: {str(e)}')
+                    
         except Exception as e:
             logger.error(f"خطای غیرمنتظره در ایجاد پیامک: {str(e)}")
             messages.error(request, 'خطای غیرمنتظره رخ داد. لطفا دوباره تلاش کنید.')
     
-    # رندر فرم خالی
-    return render(request, 'sms_api/create_sms.html', {
-        'notification_types': notification_types,
-        'default_templates': default_templates
-    })
-
-
-@role_required('admin')
-@login_required
-def sms_detail(request, sms_id):
-    """مشاهده جزئیات پیامک"""
-    sms = get_object_or_404(SmsQueue, id=sms_id)
-    
-    # لاگ‌های مربوط به این پیامک (در یک سیستم واقعی)
-    # در اینجا به صورت ساختگی نمایش داده می‌شود
-    logs = []
-    
     context = {
-        'sms': sms,
-        'logs': logs,
+        'notification_types': notification_types,
+        'default_templates': default_templates,
+        'search_query': search_query,
+        'customers': customers,
+        'purchases': purchases,
+        'selected_customer_id': selected_customer_id,
     }
     
-    return render(request, 'sms_api/sms_detail.html', context)
+    return render(request, 'sms_api/create_sms.html', context)
 
 
 @role_required('admin')
