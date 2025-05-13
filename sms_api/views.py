@@ -18,6 +18,7 @@ from .apis import queue_sms, process_sms_queue, check_missing_templates, create_
 from core.PurchaseModel import Purchase
 from core.decorators.decorators import role_required
 from core.CustomerModel import Customer
+from core._models import CargoProduct
 import re
 from django.db import connection
 logger = logging.getLogger(__name__)
@@ -179,13 +180,20 @@ def get_default_templates():
     تولید قالب‌های پیش‌فرض برای وضعیت‌های مختلف خرید
     """
     return {
-        'INITIATED': 'مشتری گرامی، خرید جدید شما با موفقیت ثبت شد. کد پیگیری: {purchase_number}',
-        'PAYMENT_VERIFIED': 'مشتری گرامی، پرداخت شما برای سفارش {purchase_number} به مبلغ {amount_paid} ریال تایید شد.',
-        'ADDRESS_SENT': 'مشتری گرامی، آدرس ارسال برای سفارش {purchase_number} به واردکننده ارسال شد.',
-        'BARNAMEH_ISSUED': 'مشتری گرامی، بارنامه برای سفارش {purchase_number} صادر شد. شماره بارنامه: {barnameh}',
-        'DELIVERED': 'مشتری گرامی، سفارش {purchase_number} شما تحویل داده شد. از خرید شما متشکریم.',
-        'DIFFERENCE_APPROVED': 'مشتری گرامی، سفارش {purchase_number} با اختلاف وزن ({extelaf_type}) به میزان {extelaf_weight} کیلوگرم تحویل شده است. مبلغ قابل پرداخت: {extelaf_amount} ریال',
-        'SMS_SENT': 'مشتری گرامی، کوتاژ {cottage}، {product_type} {product_country} با قیمت {customer_price} ریال و به وزن {order_weight} کیلوگرم برای شما ثبت شد.',
+        'INITIATED': 'مشتری گرامی {{customer_name}}، \nخرید جدید شما با شماره {{purchase_number}} با موفقیت ثبت شد. \nنوع کالا: {{product_type}} {{product_country}}\nوزن: {{order_weight}} کیلوگرم\nقیمت: {{customer_price}} ریال',
+        'SMS_SENT': 'مشتری گرامی {{customer_name}}، \nکالای {{product_type}} {{product_country}} به وزن {{order_weight}} کیلوگرم و قیمت {{customer_price}} ریال برای شما ثبت شد. کوتاژ: {{cottage}}',
+        'PAYMENT_VERIFIED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} در بازارگاه تایید شد. نوع کالا: {{product_type}} {{product_country}}',
+        'ALLOCATION_APPROVED': 'مشتری گرامی {{customer_name}}، \nشناسه تخصیص برای خرید شما با شماره {{purchase_number}} تایید شد.',
+        'ADDRESS_SENT': 'مشتری گرامی {{customer_name}}، \nآدرس ارسال برای خرید شما با شماره {{purchase_number}} به واردکننده ارسال شد.',
+        'WAITING_FOR_BARNAMEH': 'مشتری گرامی {{customer_name}}، \nسفارش شما با شماره {{purchase_number}} در انتظار صدور بارنامه می‌باشد.',
+        'BARNAMEH_INCOMPLETE': 'مشتری گرامی {{customer_name}}، \nبارنامه برای خرید شما با شماره {{purchase_number}} ناقص است. در حال پیگیری هستیم.',
+        'BARNAMEH_ISSUED': 'مشتری گرامی {{customer_name}}، \nبارنامه برای خرید شما با شماره {{purchase_number}} صادر شد. شماره بارنامه: {{barnameh}}',
+        'PURCHASE_CLOSED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} در بازارگاه بسته شد. از خرید شما متشکریم.',
+        'DIFFERENCE_APPROVED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} با اختلاف وزن ({{extelaf_type}}) به میزان {{extelaf_weight}} کیلوگرم تحویل شده است. مبلغ قابل پرداخت: {{extelaf_amount}} ریال',
+        'FULLY_SETTLED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} به صورت کامل تسویه شد.',
+        'INVOICE_ISSUED': 'مشتری گرامی {{customer_name}}، \nفاکتور خرید شما با شماره {{purchase_number}} صادر شد.',
+        'CANCELED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} لغو شده است. لطفا با کارشناس فروش تماس بگیرید.',
+        'ARCHIVED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} آرشیو شده است.',
     }
 
 @role_required('admin', 'support_agent')
@@ -193,6 +201,12 @@ def get_default_templates():
 def create_sms(request):
     notification_types = dict(SmsQueue.NOTIFICATION_TYPES)
     default_templates = json.dumps(get_default_templates())
+    
+    # Create a dictionary of status display names
+    purchase_statuses = {}
+    for status_code, status_name in Purchase.STATUS_CHOICES:
+        purchase_statuses[status_code] = status_name
+    purchase_statuses_json = json.dumps(purchase_statuses)
     
     # Handle customer search
     search_query = request.GET.get('search', '')
@@ -323,6 +337,29 @@ def create_sms(request):
                     else:
                         messages.error(request, 'هیچ پیامکی با موفقیت به صف ارسال اضافه نشد.')
                         
+                elif message_type == 'marketing':
+                    # ارسال پیام تبلیغاتی به مشتری انتخاب شده
+                    # ارسال پیامک به همه شماره‌های مشتری
+                    success_count = 0
+                    for phone in customer.get_all_phone_numbers():
+                        try:
+                            sms = queue_sms(
+                                number=phone,
+                                message=message,
+                                notification_type='MARKETING',  # نوع اطلاع‌رسانی پیش‌فرض برای تبلیغات
+                                scheduled_for=scheduled_for
+                            )
+                            success_count += 1
+                        except Exception as e:
+                            logger.error(f"خطا در ایجاد پیامک برای شماره {phone}: {str(e)}")
+                            messages.error(request, f'خطا در ایجاد پیامک برای شماره {phone}: {str(e)}')
+                    
+                    if success_count > 0:
+                        messages.success(request, f'پیامک تبلیغاتی با موفقیت به صف ارسال برای {success_count} شماره اضافه شد.')
+                        return redirect('sms_api:sms_dashboard')
+                    else:
+                        messages.error(request, 'هیچ پیامکی با موفقیت به صف ارسال اضافه نشد.')
+                        
             elif sms_type == 'marketing':
                 # ارسال پیام تبلیغاتی به شماره دلخواه
                 recipient_number = request.POST.get('recipient_number')
@@ -363,10 +400,12 @@ def create_sms(request):
     context = {
         'notification_types': notification_types,
         'default_templates': default_templates,
+        'purchase_statuses': purchase_statuses_json,
         'search_query': search_query,
         'customers': customers,
         'purchases': purchases,
         'selected_customer_id': selected_customer_id,
+        'cargo_products': CargoProduct.get_active_products(),
     }
     
     return render(request, 'sms_api/create_sms.html', context)

@@ -20,6 +20,9 @@
 
         <!-- Hidden templates data -->
         <script type="application/json" id="templates-data">{{ default_templates|safe }}</script>
+        
+        <!-- Hidden purchase statuses -->
+        <script type="application/json" id="purchase-statuses">{{ purchase_statuses|safe }}</script>
 
         <!-- حالت‌های مختلف ارسال پیامک -->
         <div class="sms-modes">
@@ -92,16 +95,88 @@
                     </div>
                     
                     <div id="purchase-fields">
-                        <div class="form-group">
-                            <label>خریدهای مشتری</label>
-                            <select name="purchase_id" class="form-control">
-                                <option value="">-- انتخاب خرید --</option>
-                                {% for purchase in purchases %}
-                                    <option value="{{ purchase.id }}">
-                                        خرید {{ purchase.invoice_id }} - {{ purchase.created_at|date:"Y/m/d" }}
-                                    </option>
-                                {% endfor %}
-                            </select>
+                        <div class="purchase-selector-container">
+                            <div class="form-group">
+                                <label for="purchase-selector">انتخاب خرید مشتری</label>
+                                <select name="purchase_id" id="purchase-selector" class="form-control" onchange="loadPurchaseTemplate()">
+                                    <option value="">-- انتخاب خرید --</option>
+                                    {% for purchase in purchases %}
+                                        <option value="{{ purchase.id }}" data-status="{{ purchase.state }}">
+                                            خرید {{ purchase.invoice_id }} - {{ purchase.created_at|date:"Y/m/d" }} ({{ purchase.get_state_display }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="purchase-info-card" id="purchase-info-card" style="display: none;">
+                            <div class="purchase-info-header">
+                                <div class="purchase-status-badge" id="purchase-status-badge">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span id="purchase-status-display">وضعیت خرید</span>
+                                </div>
+                                <div class="purchase-template-actions">
+                                    <button type="button" class="refresh-template-btn" onclick="loadPurchaseTemplate(true)" title="بازنشانی قالب">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="purchase-info-body">
+                                <div class="purchase-template-preview" id="purchase-template-preview">
+                                    <p>پس از انتخاب خرید، قالب پیام متناسب با وضعیت خرید نمایش داده می‌شود.</p>
+                                </div>
+                            </div>
+                            <div class="purchase-info-footer">
+                                <div class="template-variables">
+                                    <span class="variable-tag" title="نام مشتری">{{customer_name}}</span>
+                                    <span class="variable-tag" title="شماره خرید">{{purchase_number}}</span>
+                                    <span class="variable-tag" title="نوع محصول">{{product_type}}</span>
+                                    <span class="variable-tag" title="کشور مبدا">{{product_country}}</span>
+                                    <span class="variable-tag" title="وزن سفارش">{{order_weight}}</span>
+                                    <span class="variable-tag" title="قیمت مشتری">{{customer_price}}</span>
+                                    <span class="variable-tag" title="کوتاژ">{{cottage}}</span>
+                                    <button type="button" class="more-variables-btn" onclick="toggleMoreVariables()">
+                                        <i class="fas fa-ellipsis-h"></i>
+                                    </button>
+                                </div>
+                                <div class="more-variables" id="more-variables" style="display: none;">
+                                    <span class="variable-tag">{{barnameh}}</span>
+                                    <span class="variable-tag">{{extelaf_weight}}</span>
+                                    <span class="variable-tag">{{extelaf_amount}}</span>
+                                    <span class="variable-tag">{{sales_agent_name}}</span>
+                                    <span class="variable-tag">{{sales_agent_phone}}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="template-selector" id="template-selector" style="display: none;">
+                            <div class="template-selector-header">
+                                <h4>قالب‌های پیام اطلاع‌رسانی</h4>
+                                <div class="template-selector-controls">
+                                    <button type="button" class="template-control-btn" id="template-collapse-btn" onclick="toggleTemplateSelector()" title="بستن/بازکردن">
+                                        <i class="fas fa-chevron-up"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="template-selector-body" id="template-selector-body">
+                                <div class="template-filter">
+                                    <div class="template-view-options">
+                                        <button type="button" class="view-option-btn active" id="grid-view-btn" onclick="changeTemplateView('grid')" title="نمایش کارتی">
+                                            <i class="fas fa-th-large"></i>
+                                        </button>
+                                        <button type="button" class="view-option-btn" id="list-view-btn" onclick="changeTemplateView('list')" title="نمایش لیستی">
+                                            <i class="fas fa-list"></i>
+                                        </button>
+                                    </div>
+                                    <div class="template-search">
+                                        <input type="text" id="template-search" class="form-control" placeholder="جستجو در قالب‌ها..." onkeyup="filterTemplateCards()">
+                                        <i class="fas fa-search"></i>
+                                    </div>
+                                </div>
+                                <div class="template-cards grid-view" id="template-status-cards">
+                                    <!-- Template cards will be generated dynamically by JS -->
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
@@ -110,13 +185,90 @@
                             <label for="cottage_number">شماره کوتاژ</label>
                             <input type="text" id="cottage_number" name="cottage_number" class="form-control" placeholder="شماره کوتاژ را وارد کنید">
                         </div>
+                        
+                        <!-- دکمه انتخاب محصولات -->
                         <div class="form-group">
-                            <label for="product_type">نوع محصول</label>
-                            <input type="text" id="product_type" name="product_type" class="form-control" placeholder="نوع محصول را وارد کنید">
+                            <button type="button" class="action-button cyan" onclick="openProductSelector()">
+                                <i class="fas fa-box"></i>
+                                انتخاب محصولات
+                            </button>
+                            <small class="form-text text-muted">از اینجا می‌توانید محصولات را انتخاب کنید تا اطلاعات آنها در پیام گنجانده شود.</small>
                         </div>
-                        <div class="form-group">
-                            <label for="product_country">کشور مبدا</label>
-                            <input type="text" id="product_country" name="product_country" class="form-control" placeholder="کشور مبدا را وارد کنید">
+                        
+                        <!-- نمایش محصولات انتخاب شده -->
+                        <div id="selected-products-container" class="selected-products" style="display: none;">
+                            <h4>محصولات انتخاب شده</h4>
+                            <div id="selected-products-list" class="selected-products-list"></div>
+                        </div>
+                        
+                        <!-- فیلدهای مخفی برای نگهداری اطلاعات محصولات -->
+                        <input type="hidden" id="product_type" name="product_type">
+                        <input type="hidden" id="product_country" name="product_country">
+                        <input type="hidden" id="selected_products_data" name="selected_products_data">
+                    </div>
+                    
+                    <!-- Modal انتخاب محصول -->
+                    <div id="product-selector-modal" class="product-modal">
+                        <div class="product-modal-content">
+                            <div class="product-modal-header">
+                                <h3>انتخاب محصولات</h3>
+                                <span class="close-modal" onclick="closeProductSelector()">&times;</span>
+                            </div>
+                            <div class="product-modal-body">
+                                <div class="product-search-container">
+                                    <input type="text" id="product-search" class="form-control" placeholder="جستجوی محصول...">
+                                </div>
+                                
+                                <div class="select-all-container">
+                                    <button type="button" class="action-button light-teal" onclick="selectAllProducts()">
+                                        <i class="fas fa-check-double"></i>
+                                        انتخاب همه
+                                    </button>
+                                    <button type="button" class="action-button" onclick="deselectAllProducts()">
+                                        <i class="fas fa-times"></i>
+                                        حذف همه
+                                    </button>
+                                </div>
+                                
+                                <div class="product-list">
+                                    {% if cargo_products %}
+                                        {% for product in cargo_products %}
+                                            <div class="product-item" data-product-id="{{ product.id }}" data-product-name="{{ product.get_product_type_display }} {{ product.get_country_display }}" data-cottage="{{ product.cottage }}" data-product-type="{{ product.get_product_type_display }}" data-product-country="{{ product.get_country_display }}" data-port="{{ product.port }}" data-weight="{{ product.weight }}">
+                                                <label class="product-checkbox-label">
+                                                    <input type="checkbox" class="product-checkbox" onchange="toggleProductSelection(this)">
+                                                    <div class="product-info">
+                                                        <span class="product-name">{{ product.get_product_type_display }} {{ product.get_country_display }}</span>
+                                                        <span class="product-details">کوتاژ: {{ product.cottage }} | وزن: {{ product.weight }} کیلوگرم | محل بارگیری: {{ product.port }}</span>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="no-products">محصول فعالی یافت نشد.</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="product-modal-footer">
+                                <button type="button" class="action-button teal" onclick="confirmProductSelection()">
+                                    <i class="fas fa-check"></i>
+                                    تایید انتخاب
+                                </button>
+                                <button type="button" class="action-button light-teal" onclick="closeProductSelector()">
+                                    <i class="fas fa-times"></i>
+                                    انصراف
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="marketing-fields" style="display: none;">
+                        <div class="template-buttons">
+                            <h4>قالب‌های تبلیغاتی</h4>
+                            <div class="template-container">
+                                <button type="button" class="marketing-template-btn cyan" onclick="useMarketingTemplate('promo_1')">معرفی شرکت</button>
+                                <button type="button" class="marketing-template-btn teal" onclick="useMarketingTemplate('promo_2')">اطلاع محصولات جدید</button>
+                                <button type="button" class="marketing-template-btn light-teal" onclick="useMarketingTemplate('promo_3')">تخفیف ویژه</button>
+                            </div>
                         </div>
                     </div>
             
@@ -143,17 +295,6 @@
                         <input type="datetime-local" id="scheduled_for" name="scheduled_for" class="form-control">
                         <small class="form-text text-muted">اگر خالی باشد، بلافاصله ارسال می‌شود</small>
                     </div>
-                    
-                    <!-- <div class="template-buttons">
-                        <h4>قالب‌های پیش‌فرض</h4>
-                        <div class="template-container">
-                            <button type="button" class="template-btn teal" data-template="INITIATED">سفارش جدید</button>
-                            <button type="button" class="template-btn light-teal" data-template="PAYMENT_VERIFIED">تایید پرداخت</button>
-                            <button type="button" class="template-btn dark-teal" data-template="DELIVERED">تحویل سفارش</button>
-                            <button type="button" class="template-btn cyan" data-template="BARNAMEH_ISSUED">اطلاع رسانی ارسال</button>
-                            <button type="button" class="template-btn teal" data-template="SMS_SENT">خوش‌آمدگویی</button>
-                        </div>
-                    </div> -->
                     
                     <div class="form-actions">
                         <button type="submit" class="action-button teal">
@@ -239,6 +380,10 @@
         'promo_3': 'تخفیف ویژه برای مشتریان وفادار! با هر سفارش بیش از 20 تن، 5٪ تخفیف دریافت کنید.'
     };
 
+    // پارس کردن داده‌های قالب‌ها از JSON
+    const templateData = JSON.parse(document.getElementById('templates-data')?.textContent || '{}');
+    const purchaseStatuses = JSON.parse(document.getElementById('purchase-statuses')?.textContent || '{}');
+    
     // Show customer search section
     function showCustomerSearch() {
         document.getElementById('customer-search-btn').classList.add('selected');
@@ -257,25 +402,258 @@
 
     // Toggle message fields based on message type
     function toggleMessageFields(value) {
+        document.getElementById('purchase-fields').style.display = 'none';
+        document.getElementById('cottage-fields').style.display = 'none';
+        document.getElementById('marketing-fields').style.display = 'none';
+        
         if (value === 'purchase') {
             document.getElementById('purchase-fields').style.display = 'block';
-            document.getElementById('cottage-fields').style.display = 'none';
         } else if (value === 'cottage') {
-            document.getElementById('purchase-fields').style.display = 'none';
             document.getElementById('cottage-fields').style.display = 'block';
+        } else if (value === 'marketing') {
+            document.getElementById('marketing-fields').style.display = 'block';
         }
     }
 
     // Apply marketing template
     function useMarketingTemplate(templateKey) {
-        const textarea = document.getElementById('marketing_message');
-        const counter = document.getElementById('marketing-char-count');
+        const textarea = document.getElementById('marketing_message') || document.getElementById('message');
+        const counter = document.getElementById('marketing-char-count') || document.getElementById('char-count');
         if (textarea && marketingTemplates[templateKey]) {
             textarea.value = marketingTemplates[templateKey];
             if (counter) {
                 counter.textContent = textarea.value.length;
             }
         }
+    }
+    
+    // Load template based on purchase status
+    function loadPurchaseTemplate(refresh = false) {
+        const purchaseSelector = document.getElementById('purchase-selector');
+        const messageField = document.getElementById('message');
+        const charCount = document.getElementById('char-count');
+        const infoCard = document.getElementById('purchase-info-card');
+        const statusDisplay = document.getElementById('purchase-status-display');
+        const templatePreview = document.getElementById('purchase-template-preview');
+        const templateSelector = document.getElementById('template-selector');
+        const statusCards = document.getElementById('template-status-cards');
+        
+        if (!purchaseSelector || !messageField) return;
+        
+        // Reset form if no purchase is selected
+        if (!purchaseSelector.value) {
+            messageField.value = '';
+            charCount.textContent = '0';
+            infoCard.style.display = 'none';
+            templateSelector.style.display = 'none';
+            return;
+        }
+        
+        // Get selected option
+        const selectedOption = purchaseSelector.options[purchaseSelector.selectedIndex];
+        const status = selectedOption.getAttribute('data-status');
+        
+        // Display the info card
+        infoCard.style.display = 'block';
+        
+        // Display the current status
+        if (statusDisplay && purchaseStatuses[status]) {
+            statusDisplay.textContent = purchaseStatuses[status];
+            
+            // Update status badge color based on status
+            const statusBadge = document.getElementById('purchase-status-badge');
+            if (statusBadge) {
+                // Remove previous status classes
+                statusBadge.className = 'purchase-status-badge';
+                
+                // Add appropriate class based on status
+                if (['CANCELED', 'ARCHIVED'].includes(status)) {
+                    statusBadge.classList.add('status-danger');
+                } else if (['FULLY_SETTLED', 'PURCHASE_CLOSED', 'INVOICE_ISSUED'].includes(status)) {
+                    statusBadge.classList.add('status-success');
+                } else if (['WAITING_FOR_BARNAMEH', 'BARNAMEH_INCOMPLETE'].includes(status)) {
+                    statusBadge.classList.add('status-warning');
+                } else {
+                    statusBadge.classList.add('status-info');
+                }
+            }
+        }
+        
+        // Get template for this status
+        if (templateData[status]) {
+            // Only update the message field if it's empty or refresh is requested
+            if (messageField.value === '' || refresh) {
+                messageField.value = templateData[status];
+                charCount.textContent = messageField.value.length;
+            }
+            
+            // Update template preview
+            if (templatePreview) {
+                templatePreview.textContent = messageField.value || templateData[status];
+            }
+            
+            // Generate status template cards
+            generateTemplateCards(status);
+            templateSelector.style.display = 'block';
+        } else {
+            // Default empty message if no template exists
+            if (messageField.value === '' || refresh) {
+                messageField.value = '';
+                charCount.textContent = '0';
+            }
+            
+            if (templatePreview) {
+                templatePreview.innerHTML = '<p class="no-template-message">قالب پیامی برای این وضعیت تعریف نشده است.</p>';
+            }
+            
+            // Hide template selector
+            templateSelector.style.display = 'none';
+        }
+    }
+    
+    // Generate template cards for other status templates
+    function generateTemplateCards(currentStatus) {
+        const container = document.getElementById('template-status-cards');
+        if (!container) return;
+        
+        // Clear current cards
+        container.innerHTML = '';
+        
+        // Create a card for current status
+        if (templateData[currentStatus]) {
+            const currentCard = createTemplateCard(
+                currentStatus, 
+                purchaseStatuses[currentStatus] || currentStatus,
+                templateData[currentStatus],
+                true
+            );
+            container.appendChild(currentCard);
+        }
+        
+        // Add cards for other statuses
+        for (const [status, template] of Object.entries(templateData)) {
+            // Skip current status since we already added it
+            if (status === currentStatus) continue;
+            
+            const card = createTemplateCard(
+                status,
+                purchaseStatuses[status] || status,
+                template,
+                false
+            );
+            container.appendChild(card);
+        }
+    }
+    
+    // Create a template card element
+    function createTemplateCard(status, statusName, templateContent, isSelected) {
+        const card = document.createElement('div');
+        card.className = 'template-card';
+        if (isSelected) card.classList.add('selected');
+        
+        card.setAttribute('data-status', status);
+        card.setAttribute('data-template', templateContent);
+        card.onclick = function() { selectTemplateCard(this); };
+        
+        // Check the current view mode
+        const container = document.getElementById('template-status-cards');
+        const isListView = container.classList.contains('list-view');
+        
+        // Create card content
+        let badge = '';
+        if (isSelected) {
+            badge = '<div class="template-card-badge">فعلی</div>';
+        }
+        
+        let actionButtons = '';
+        if (isListView) {
+            actionButtons = `
+                <div class="template-card-actions">
+                    <button type="button" class="template-card-btn" title="استفاده از قالب" onclick="selectTemplateCard(this.closest('.template-card'))">
+                        <i class="fas fa-check"></i>
+                    </button>
+                    <button type="button" class="template-card-btn" title="پیش‌نمایش" onclick="previewTemplate(event, this.closest('.template-card'))">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            `;
+        }
+        
+        card.innerHTML = `
+            ${badge}
+            <div class="template-card-header">
+                <i class="fas fa-file-alt"></i>
+                ${statusName}
+            </div>
+            <div class="template-card-body">
+                ${templateContent.substring(0, 120)}${templateContent.length > 120 ? '...' : ''}
+            </div>
+            ${actionButtons}
+        `;
+        
+        return card;
+    }
+    
+    // Handle template card selection
+    function selectTemplateCard(card) {
+        // Get all cards and remove selected class
+        const allCards = document.querySelectorAll('.template-card');
+        allCards.forEach(c => c.classList.remove('selected'));
+        
+        // Add selected class to clicked card
+        card.classList.add('selected');
+        
+        // Get template content and update message field
+        const templateContent = card.getAttribute('data-template');
+        const messageField = document.getElementById('message');
+        const charCount = document.getElementById('char-count');
+        const templatePreview = document.getElementById('purchase-template-preview');
+        
+        if (messageField && templateContent) {
+            messageField.value = templateContent;
+            charCount.textContent = templateContent.length;
+            
+            if (templatePreview) {
+                templatePreview.textContent = templateContent;
+            }
+        }
+    }
+    
+    // Toggle more variables
+    function toggleMoreVariables() {
+        const moreVars = document.getElementById('more-variables');
+        if (moreVars) {
+            if (moreVars.style.display === 'none') {
+                moreVars.style.display = 'flex';
+            } else {
+                moreVars.style.display = 'none';
+            }
+        }
+    }
+    
+    // Insert template variable into message
+    function insertVariable(variable) {
+        const messageField = document.getElementById('message');
+        const cursorPos = messageField.selectionStart;
+        
+        const textBefore = messageField.value.substring(0, cursorPos);
+        const textAfter = messageField.value.substring(cursorPos);
+        
+        messageField.value = textBefore + variable + textAfter;
+        
+        // Update character count
+        const charCount = document.getElementById('char-count');
+        charCount.textContent = messageField.value.length;
+        
+        // Update preview
+        const templatePreview = document.getElementById('purchase-template-preview');
+        if (templatePreview) {
+            templatePreview.textContent = messageField.value;
+        }
+        
+        // Set cursor position after inserted variable
+        messageField.focus();
+        messageField.setSelectionRange(cursorPos + variable.length, cursorPos + variable.length);
     }
 
     // Initialize character counters
@@ -301,7 +679,343 @@
                 marketingCharCount.textContent = this.value.length;
             });
         }
+        
+        // Add click handler to variable tags
+        const variableTags = document.querySelectorAll('.variable-tag');
+        variableTags.forEach(tag => {
+            tag.addEventListener('click', function() {
+                insertVariable(this.textContent);
+            });
+        });
     });
+    
+    // --------- توابع مربوط به انتخاب محصول ---------
+    
+    // آرایه‌ای برای نگهداری محصولات انتخاب شده
+    let selectedProducts = [];
+    
+    // باز کردن مودال انتخاب محصول
+    function openProductSelector() {
+        document.getElementById('product-selector-modal').style.display = 'block';
+        // فیلتر کردن محصولات براساس جستجو
+        document.getElementById('product-search').addEventListener('input', filterProducts);
+    }
+    
+    // بستن مودال انتخاب محصول
+    function closeProductSelector() {
+        document.getElementById('product-selector-modal').style.display = 'none';
+    }
+    
+    // فیلتر کردن محصولات براساس متن جستجو
+    function filterProducts() {
+        const searchText = document.getElementById('product-search').value.toLowerCase();
+        const productItems = document.querySelectorAll('.product-item');
+        
+        productItems.forEach(item => {
+            const productName = item.getAttribute('data-product-name').toLowerCase();
+            const cottage = item.getAttribute('data-cottage').toLowerCase();
+            
+            if (productName.includes(searchText) || cottage.includes(searchText)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+    
+    // انتخاب/لغو انتخاب یک محصول
+    function toggleProductSelection(checkbox) {
+        const productItem = checkbox.closest('.product-item');
+        const productId = productItem.getAttribute('data-product-id');
+        const productName = productItem.getAttribute('data-product-name');
+        const cottage = productItem.getAttribute('data-cottage');
+        const productType = productItem.getAttribute('data-product-type');
+        const productCountry = productItem.getAttribute('data-product-country');
+        const port = productItem.getAttribute('data-port');
+        const weight = productItem.getAttribute('data-weight');
+        
+        if (checkbox.checked) {
+            // اضافه کردن به محصولات انتخاب شده
+            selectedProducts.push({
+                id: productId,
+                name: productName,
+                cottage: cottage,
+                productType: productType,
+                productCountry: productCountry,
+                port: port,
+                weight: weight
+            });
+        } else {
+            // حذف از محصولات انتخاب شده
+            selectedProducts = selectedProducts.filter(product => product.id !== productId);
+        }
+    }
+    
+    // انتخاب همه محصولات
+    function selectAllProducts() {
+        const checkboxes = document.querySelectorAll('.product-checkbox');
+        selectedProducts = [];
+        
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = true;
+            const productItem = checkbox.closest('.product-item');
+            const productId = productItem.getAttribute('data-product-id');
+            const productName = productItem.getAttribute('data-product-name');
+            const cottage = productItem.getAttribute('data-cottage');
+            const productType = productItem.getAttribute('data-product-type');
+            const productCountry = productItem.getAttribute('data-product-country');
+            const port = productItem.getAttribute('data-port');
+            const weight = productItem.getAttribute('data-weight');
+            
+            selectedProducts.push({
+                id: productId,
+                name: productName,
+                cottage: cottage,
+                productType: productType,
+                productCountry: productCountry,
+                port: port,
+                weight: weight
+            });
+        });
+    }
+    
+    // لغو انتخاب همه محصولات
+    function deselectAllProducts() {
+        const checkboxes = document.querySelectorAll('.product-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        selectedProducts = [];
+    }
+    
+    // تایید انتخاب محصولات
+    function confirmProductSelection() {
+        // ذخیره اطلاعات محصولات انتخاب شده در فیلد مخفی
+        document.getElementById('selected_products_data').value = JSON.stringify(selectedProducts);
+        
+        // نمایش محصولات انتخاب شده
+        displaySelectedProducts();
+        
+        // بستن مودال
+        closeProductSelector();
+        
+        // اگر محصولی انتخاب شده، متن پیام را پر کنیم
+        if (selectedProducts.length > 0) {
+            generateCottageMessage();
+        }
+    }
+    
+    // نمایش محصولات انتخاب شده
+    function displaySelectedProducts() {
+        const container = document.getElementById('selected-products-container');
+        const list = document.getElementById('selected-products-list');
+        
+        if (selectedProducts.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+        
+        // نمایش container
+        container.style.display = 'block';
+        
+        // خالی کردن لیست قبلی
+        list.innerHTML = '';
+        
+        // اضافه کردن محصولات انتخاب شده به لیست
+        selectedProducts.forEach(product => {
+            const productElement = document.createElement('div');
+            productElement.className = 'selected-product-item';
+            productElement.innerHTML = `
+                <div class="product-info">
+                    <span class="product-name">${product.name}</span>
+                    <span class="product-details">کوتاژ: ${product.cottage} | وزن: ${product.weight} کیلوگرم</span>
+                </div>
+                <button type="button" class="remove-product" onclick="removeSelectedProduct(${product.id})">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            list.appendChild(productElement);
+        });
+        
+        // پر کردن فیلدهای مخفی برای نوع و کشور محصول (برای پشتیبانی از کد قبلی)
+        if (selectedProducts.length > 0) {
+            document.getElementById('product_type').value = selectedProducts[0].productType;
+            document.getElementById('product_country').value = selectedProducts[0].productCountry;
+            document.getElementById('cottage_number').value = selectedProducts[0].cottage;
+        }
+    }
+    
+    // حذف یک محصول از لیست انتخاب شده‌ها
+    function removeSelectedProduct(productId) {
+        productId = productId.toString();
+        selectedProducts = selectedProducts.filter(product => product.id !== productId);
+        
+        // به‌روزرسانی نمایش محصولات
+        displaySelectedProducts();
+        
+        // به‌روزرسانی متن پیام
+        generateCottageMessage();
+    }
+    
+    // تولید متن پیام برای محصولات انتخاب شده
+    function generateCottageMessage() {
+        const messageField = document.getElementById('message');
+        const charCount = document.getElementById('char-count');
+        
+        if (selectedProducts.length === 0) {
+            messageField.value = '';
+            charCount.textContent = '0';
+            return;
+        }
+        
+        // تولید متن پیام
+        let message = 'مشتری گرامی،\n';
+        
+        if (selectedProducts.length === 1) {
+            // اگر فقط یک محصول انتخاب شده باشد
+            const product = selectedProducts[0];
+            message += `اطلاعات محصول به شرح زیر است:\n`;
+            message += `نوع محصول: ${product.productType} ${product.productCountry}\n`;
+            message += `کوتاژ: ${product.cottage}\n`;
+            message += `محل بارگیری: ${product.port}\n`;
+            message += `وزن: ${product.weight} کیلوگرم`;
+        } else {
+            // اگر چند محصول انتخاب شده باشد
+            message += `${selectedProducts.length} محصول به شرح زیر موجود می‌باشد:\n`;
+            
+            selectedProducts.forEach((product, index) => {
+                message += `${index + 1}. ${product.productType} ${product.productCountry} (کوتاژ: ${product.cottage}) - ${product.weight} کیلوگرم\n`;
+            });
+            
+            message = message.trim(); // حذف خط خالی آخر
+        }
+        
+        // به‌روزرسانی متن پیام و شمارنده کاراکترها
+        messageField.value = message;
+        charCount.textContent = message.length;
+    }
+
+    // Toggle template selector collapse/expand
+    function toggleTemplateSelector() {
+        const body = document.getElementById('template-selector-body');
+        const button = document.getElementById('template-collapse-btn');
+        
+        if (body.classList.contains('collapsed')) {
+            // Expand
+            body.classList.remove('collapsed');
+            button.innerHTML = '<i class="fas fa-chevron-up"></i>';
+        } else {
+            // Collapse
+            body.classList.add('collapsed');
+            button.innerHTML = '<i class="fas fa-chevron-down"></i>';
+        }
+    }
+    
+    // Change template view (grid or list)
+    function changeTemplateView(viewType) {
+        const container = document.getElementById('template-status-cards');
+        const gridBtn = document.getElementById('grid-view-btn');
+        const listBtn = document.getElementById('list-view-btn');
+        
+        if (viewType === 'grid') {
+            container.classList.remove('list-view');
+            container.classList.add('grid-view');
+            gridBtn.classList.add('active');
+            listBtn.classList.remove('active');
+        } else {
+            container.classList.remove('grid-view');
+            container.classList.add('list-view');
+            listBtn.classList.add('active');
+            gridBtn.classList.remove('active');
+        }
+        
+        // Recreate the template cards to apply the proper layout
+        const currentStatus = getCurrentSelectedStatus();
+        if (currentStatus) {
+            generateTemplateCards(currentStatus);
+        }
+    }
+    
+    // Get current selected status
+    function getCurrentSelectedStatus() {
+        const purchaseSelector = document.getElementById('purchase-selector');
+        if (!purchaseSelector || !purchaseSelector.value) return null;
+        
+        const selectedOption = purchaseSelector.options[purchaseSelector.selectedIndex];
+        return selectedOption.getAttribute('data-status');
+    }
+    
+    // Filter template cards based on search input
+    function filterTemplateCards() {
+        const searchText = document.getElementById('template-search').value.toLowerCase();
+        const cards = document.querySelectorAll('.template-card');
+        
+        cards.forEach(card => {
+            const header = card.querySelector('.template-card-header').textContent.toLowerCase();
+            const body = card.querySelector('.template-card-body').textContent.toLowerCase();
+            
+            if (header.includes(searchText) || body.includes(searchText)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    // Preview template in a tooltip
+    function previewTemplate(event, card) {
+        event.stopPropagation(); // Prevent card click
+        
+        // Get template content
+        const templateContent = card.getAttribute('data-template');
+        const statusName = card.querySelector('.template-card-header').textContent.trim();
+        
+        // Create tooltip
+        let tooltip = document.getElementById('template-preview-tooltip');
+        if (!tooltip) {
+            tooltip = document.createElement('div');
+            tooltip.id = 'template-preview-tooltip';
+            tooltip.className = 'template-preview-tooltip';
+            document.body.appendChild(tooltip);
+        }
+        
+        // Set tooltip content
+        tooltip.innerHTML = `
+            <div class="tooltip-header">
+                ${statusName}
+                <button class="tooltip-close" onclick="closeTooltip()">×</button>
+            </div>
+            <div class="tooltip-body">
+                ${templateContent}
+            </div>
+        `;
+        
+        // Position tooltip
+        const rect = card.getBoundingClientRect();
+        tooltip.style.top = `${rect.top + window.scrollY}px`;
+        tooltip.style.left = `${rect.left + rect.width + 10 + window.scrollX}px`;
+        tooltip.style.display = 'block';
+        
+        // Close when clicking outside
+        document.addEventListener('click', closeTooltipOnClickOutside);
+    }
+    
+    // Close tooltip on click outside
+    function closeTooltipOnClickOutside(event) {
+        const tooltip = document.getElementById('template-preview-tooltip');
+        if (tooltip && !tooltip.contains(event.target)) {
+            closeTooltip();
+        }
+    }
+    
+    // Close tooltip
+    function closeTooltip() {
+        const tooltip = document.getElementById('template-preview-tooltip');
+        if (tooltip) {
+            tooltip.style.display = 'none';
+            document.removeEventListener('click', closeTooltipOnClickOutside);
+        }
+    }
 </script>
 {% endblock %}
 
@@ -619,6 +1333,14 @@
         margin-left: 0.5rem;
     }
 
+    /* Template status info */
+    .template-status-info {
+        margin-top: 0.5rem;
+        margin-bottom: 1rem;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+    }
+
     /* پاسخگویی موبایل */
     @media (max-width: 768px) {
         .create-sms-container {
@@ -649,6 +1371,696 @@
 
     .mt-4 {
         margin-top: 1.5rem;
+    }
+
+    /* استایل‌های مربوط به انتخاب محصول */
+    .product-modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    .product-modal-content {
+        background-color: #fefefe;
+        margin: 5% auto;
+        padding: 0;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        width: 80%;
+        max-width: 800px;
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .product-modal-header {
+        padding: 1rem;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: var(--teal-primary);
+        color: white;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+    }
+
+    .product-modal-header h3 {
+        margin: 0;
+        color: white;
+    }
+
+    .close-modal {
+        color: white;
+        font-size: 24px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .product-modal-body {
+        padding: 1rem;
+        overflow-y: auto;
+        max-height: calc(80vh - 130px);
+    }
+
+    .product-modal-footer {
+        padding: 1rem;
+        border-top: 1px solid #eee;
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+    }
+
+    .product-search-container {
+        margin-bottom: 1rem;
+    }
+
+    .select-all-container {
+        margin-bottom: 1rem;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .product-list {
+        margin-top: 1rem;
+    }
+
+    .product-item {
+        padding: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-bottom: 0.5rem;
+        transition: all 0.2s;
+    }
+
+    .product-item:hover {
+        background-color: #f9f9f9;
+    }
+
+    .product-checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        cursor: pointer;
+        width: 100%;
+    }
+
+    .product-checkbox {
+        height: 18px;
+        width: 18px;
+    }
+
+    .product-info {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+    }
+
+    .product-name {
+        font-weight: 600;
+        color: var(--teal-dark);
+    }
+
+    .product-details {
+        font-size: 0.9rem;
+        color: #666;
+        margin-top: 0.3rem;
+    }
+
+    .no-products {
+        padding: 2rem;
+        text-align: center;
+        color: #666;
+        border: 1px dashed #ddd;
+        border-radius: 4px;
+    }
+
+    .selected-products {
+        margin-top: 1rem;
+        padding: 1rem;
+        background-color: #f9f9f9;
+        border-radius: 4px;
+        border: 1px solid #eee;
+    }
+
+    .selected-products h4 {
+        color: var(--teal-dark);
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+    }
+
+    .selected-products-list {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .selected-product-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.7rem;
+        border-bottom: 1px solid #eee;
+    }
+
+    .selected-product-item:last-child {
+        border-bottom: none;
+    }
+
+    .remove-product {
+        background-color: transparent;
+        border: none;
+        color: var(--teal-primary);
+        cursor: pointer;
+        font-size: 1rem;
+    }
+
+    .remove-product:hover {
+        color: #e74c3c;
+    }
+
+    @media (max-width: 768px) {
+        .product-modal-content {
+            width: 95%;
+            margin: 10% auto;
+        }
+        
+        .product-checkbox-label {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .product-checkbox {
+            margin-bottom: 0.5rem;
+        }
+    }
+
+    /* استایل‌های مربوط به قالب‌های پیام خرید */
+    .purchase-selector-container {
+        margin-bottom: 1.5rem;
+    }
+
+    .purchase-info-card {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+        border: 1px solid #e9e9e9;
+        transition: all 0.3s ease;
+    }
+
+    .purchase-info-card:hover {
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    .purchase-info-header {
+        background-color: var(--teal-light);
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .purchase-status-badge {
+        display: flex;
+        align-items: center;
+        font-weight: 600;
+        color: var(--teal-dark);
+    }
+
+    .purchase-status-badge i {
+        margin-left: 0.5rem;
+        font-size: 1.1rem;
+    }
+
+    .purchase-status-badge.status-success {
+        color: #2E7D32;
+    }
+    
+    .purchase-status-badge.status-danger {
+        color: #D32F2F;
+    }
+    
+    .purchase-status-badge.status-warning {
+        color: #F57C00;
+    }
+    
+    .purchase-status-badge.status-info {
+        color: #1565C0;
+    }
+    
+    .purchase-template-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .refresh-template-btn {
+        background-color: transparent;
+        border: none;
+        color: var(--teal-dark);
+        cursor: pointer;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+
+    .refresh-template-btn:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+        transform: rotate(180deg);
+    }
+
+    .purchase-info-body {
+        padding: 1rem;
+        min-height: 100px;
+    }
+
+    .purchase-template-preview {
+        white-space: pre-line;
+        line-height: 1.7;
+        color: #333;
+    }
+
+    .purchase-info-footer {
+        padding: 1rem;
+        background-color: #f9f9f9;
+        border-top: 1px solid #eee;
+    }
+
+    .template-variables {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .more-variables {
+        margin-top: 0.7rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding-top: 0.7rem;
+        border-top: 1px dashed #ddd;
+    }
+
+    .variable-tag {
+        background-color: var(--teal-light);
+        color: var(--teal-dark);
+        font-size: 0.8rem;
+        padding: 0.3rem 0.5rem;
+        border-radius: 4px;
+        font-family: monospace;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        direction: ltr;
+        display: inline-block;
+    }
+
+    .variable-tag:hover {
+        background-color: var(--teal-primary);
+        color: white;
+    }
+
+    .more-variables-btn {
+        background-color: transparent;
+        border: none;
+        color: var(--teal-dark);
+        cursor: pointer;
+        padding: 0.3rem 0.5rem;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+
+    .more-variables-btn:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .template-selector {
+        margin-top: 1.5rem;
+        background-color: white;
+        border-radius: 8px;
+        border: 1px solid #eee;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .template-selector-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background-color: var(--teal-light);
+        cursor: pointer;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .template-selector-header h4 {
+        margin: 0;
+        color: var(--teal-dark);
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .template-selector-header h4::before {
+        content: "\f15c";
+        font-family: "Font Awesome 5 Free";
+        font-weight: 900;
+    }
+
+    .template-selector-controls {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .template-control-btn {
+        background-color: transparent;
+        border: none;
+        color: var(--teal-dark);
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .template-control-btn:hover {
+        background-color: rgba(0, 150, 136, 0.1);
+    }
+
+    .template-selector-body {
+        max-height: 500px;
+        overflow-y: auto;
+        transition: max-height 0.3s ease;
+    }
+
+    .template-selector-body.collapsed {
+        max-height: 0;
+        overflow: hidden;
+    }
+
+    .template-filter {
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #f0f0f0;
+        background-color: #fbfbfb;
+    }
+
+    .template-view-options {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .view-option-btn {
+        background-color: transparent;
+        border: none;
+        color: #777;
+        padding: 0.5rem;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .view-option-btn:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .view-option-btn.active {
+        color: var(--teal-primary);
+        background-color: rgba(0, 150, 136, 0.1);
+    }
+
+    .template-search {
+        position: relative;
+        width: 200px;
+    }
+
+    .template-search input {
+        padding-left: 2rem;
+        font-size: 0.9rem;
+        border-radius: 20px;
+        border: 1px solid #ddd;
+    }
+
+    .template-search i {
+        position: absolute;
+        left: 0.7rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #999;
+        pointer-events: none;
+    }
+
+    .template-cards {
+        padding: 1rem;
+    }
+
+    .template-cards.grid-view {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    .template-cards.list-view {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .template-card {
+        background-color: white;
+        border-radius: 8px;
+        border: 1px solid #eee;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .grid-view .template-card {
+        padding: 1rem;
+        cursor: pointer;
+    }
+
+    .list-view .template-card {
+        padding: 0.7rem 1rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .template-card:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .template-card.selected {
+        border-color: var(--teal-primary);
+        box-shadow: 0 0 0 2px rgba(0, 150, 136, 0.2);
+    }
+
+    .template-card-header {
+        font-weight: 600;
+        color: var(--teal-dark);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .grid-view .template-card-header {
+        margin-bottom: 0.7rem;
+    }
+    
+    .list-view .template-card-header {
+        margin-bottom: 0;
+    }
+    
+    .template-card-body {
+        font-size: 0.9rem;
+        color: #666;
+        line-height: 1.5;
+    }
+    
+    .grid-view .template-card-body {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .list-view .template-card-body {
+        display: none;
+    }
+    
+    .template-card-badge {
+        position: absolute;
+        top: 0;
+        left: 0;
+        background-color: var(--teal-primary);
+        color: white;
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+        border-bottom-right-radius: 8px;
+    }
+    
+    .list-view .template-card-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .grid-view .template-card-actions {
+        display: none;
+    }
+    
+    .template-card-btn {
+        background-color: transparent;
+        border: none;
+        color: var(--teal-primary);
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .template-card-btn:hover {
+        background-color: rgba(0, 150, 136, 0.1);
+    }
+    
+    .no-templates-message {
+        padding: 2rem;
+        text-align: center;
+        color: #777;
+        font-style: italic;
+    }
+
+    @media (max-width: 768px) {
+        .template-cards.grid-view {
+            grid-template-columns: 1fr;
+        }
+        
+        .template-filter {
+            flex-direction: column-reverse;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .template-search {
+            width: 100%;
+        }
+        
+        .purchase-info-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .purchase-template-actions {
+            align-self: flex-end;
+        }
+    }
+
+    /* Tooltip for template preview */
+    .template-preview-tooltip {
+        position: absolute;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        width: 300px;
+        max-width: 90vw;
+        z-index: 1000;
+        display: none;
+        overflow: hidden;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    .tooltip-header {
+        background-color: var(--teal-primary);
+        color: white;
+        padding: 0.7rem 1rem;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .tooltip-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .tooltip-body {
+        padding: 1rem;
+        max-height: 200px;
+        overflow-y: auto;
+        white-space: pre-line;
+        line-height: 1.6;
+    }
+
+    @media (max-width: 768px) {
+        .template-cards.grid-view {
+            grid-template-columns: 1fr;
+        }
+        
+        .template-filter {
+            flex-direction: column-reverse;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .template-search {
+            width: 100%;
+        }
+        
+        .purchase-info-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .purchase-template-actions {
+            align-self: flex-end;
+        }
+        
+        .template-preview-tooltip {
+            position: fixed;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%);
+            width: 90vw;
+            max-height: 80vh;
+        }
+        
+        .tooltip-body {
+            max-height: 50vh;
+        }
     }
 </style>
 {% endblock %}
