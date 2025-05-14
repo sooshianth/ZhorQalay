@@ -200,7 +200,41 @@ def get_default_templates():
 @login_required
 def create_sms(request):
     notification_types = dict(SmsQueue.NOTIFICATION_TYPES)
-    default_templates = json.dumps(get_default_templates())
+    
+    # Get templates from SmsTemplate model only
+    templates_dict = {}
+    
+    # Get all templates for each status from the database
+    status_templates = {}
+    all_templates = SmsTemplate.objects.all()
+    
+    # Group templates by status
+    for template in all_templates:
+        if template.status not in status_templates:
+            status_templates[template.status] = []
+        status_templates[template.status].append(template)
+    
+    # For each status, use the active template if available
+    for status, templates in status_templates.items():
+        # Try to find an active template first
+        active_templates = [t for t in templates if t.is_active]
+        if active_templates:
+            templates_dict[status] = active_templates[0].content
+        # Otherwise use the most recently updated template
+        elif templates:
+            # Sort by updated_at descending
+            templates.sort(key=lambda x: x.updated_at, reverse=True)
+            templates_dict[status] = templates[0].content
+    
+    # Check if we're missing templates for any statuses and add placeholders
+    # This will encourage users to create templates for missing statuses
+    for status_code, _ in Purchase.STATUS_CHOICES:
+        if status_code not in templates_dict:
+            # Add a placeholder to indicate a template should be created
+            templates_dict[status_code] = ""
+    
+    # Convert templates to JSON for JavaScript
+    templates_json = json.dumps(templates_dict)
     
     # Create a dictionary of status display names
     purchase_statuses = {}
@@ -299,7 +333,6 @@ def create_sms(request):
                         return redirect('sms_api:sms_dashboard')
                     else:
                         messages.error(request, 'هیچ پیامکی با موفقیت به صف ارسال اضافه نشد.')
-                        
                 elif message_type == 'cottage':
                     # پیام اطلاع‌رسانی کوتاژ و محصولات
                     cottage_number = request.POST.get('cottage_number')
@@ -336,7 +369,6 @@ def create_sms(request):
                         return redirect('sms_api:sms_dashboard')
                     else:
                         messages.error(request, 'هیچ پیامکی با موفقیت به صف ارسال اضافه نشد.')
-                        
                 elif message_type == 'marketing':
                     # ارسال پیام تبلیغاتی به مشتری انتخاب شده
                     # ارسال پیامک به همه شماره‌های مشتری
@@ -359,7 +391,6 @@ def create_sms(request):
                         return redirect('sms_api:sms_dashboard')
                     else:
                         messages.error(request, 'هیچ پیامکی با موفقیت به صف ارسال اضافه نشد.')
-                        
             elif sms_type == 'marketing':
                 # ارسال پیام تبلیغاتی به شماره دلخواه
                 recipient_number = request.POST.get('recipient_number')
@@ -392,14 +423,13 @@ def create_sms(request):
                 except Exception as e:
                     logger.error(f"خطا در ایجاد پیامک تبلیغاتی برای شماره {recipient_number}: {str(e)}")
                     messages.error(request, f'خطا در ایجاد پیامک تبلیغاتی: {str(e)}')
-                    
         except Exception as e:
             logger.error(f"خطای غیرمنتظره در ایجاد پیامک: {str(e)}")
             messages.error(request, 'خطای غیرمنتظره رخ داد. لطفا دوباره تلاش کنید.')
     
     context = {
         'notification_types': notification_types,
-        'default_templates': default_templates,
+        'default_templates': templates_json,
         'purchase_statuses': purchase_statuses_json,
         'search_query': search_query,
         'customers': customers,
@@ -888,6 +918,17 @@ def template_list(request):
 @login_required
 def template_create(request):
     """ایجاد قالب پیامک جدید"""
+    # دریافت متن‌های پیش‌فرض برای قالب‌های مختلف
+    default_templates_dict = get_default_templates()
+    
+    # دریافت مقدار پیش‌فرض برای وضعیت انتخاب شده
+    preselected_status = request.GET.get('status', '')
+    default_content = ''
+    
+    # اگر وضعیتی در پارامترهای URL ارسال شده، محتوای پیش‌فرض آن را دریافت می‌کنیم
+    if preselected_status and preselected_status in default_templates_dict:
+        default_content = default_templates_dict[preselected_status]
+    
     if request.method == 'POST':
         name = request.POST.get('name')
         status = request.POST.get('status')
@@ -907,6 +948,11 @@ def template_create(request):
                 description=description,
                 is_active=is_active
             )
+            
+            # اگر این قالب به عنوان پیش‌فرض تنظیم شده، قالب‌های پیش‌فرض دیگر را برای این وضعیت غیرفعال می‌کنیم
+            if is_active:
+                SmsTemplate.objects.filter(status=status, is_active=True).exclude(id=template.id).update(is_active=False)
+                
             messages.success(request, f'قالب "{template.name}" با موفقیت ایجاد شد.')
             return redirect('sms_api:template_list')
         except Exception as e:
@@ -914,7 +960,10 @@ def template_create(request):
             
     context = {
         'status_choices': SmsTemplate.STATUS_CHOICES,
-        'placeholders': SmsTemplate.get_available_placeholders()
+        'placeholders': SmsTemplate.get_available_placeholders(),
+        'default_templates': json.dumps(default_templates_dict),
+        'preselected_status': preselected_status,
+        'default_content': default_content
     }
     
     return render(request, 'sms_api/template_create.html', context)
@@ -924,6 +973,7 @@ def template_create(request):
 def template_edit(request, template_id):
     """ویرایش قالب پیامک"""
     template = get_object_or_404(SmsTemplate, id=template_id)
+    default_templates_dict = get_default_templates()
     
     if request.method == 'POST':
         name = request.POST.get('name')
@@ -937,6 +987,10 @@ def template_edit(request, template_id):
             return redirect('sms_api:template_edit', template_id=template_id)
         
         try:
+            # بررسی تغییر وضعیت
+            status_changed = template.status != status
+            
+            # ذخیره مقادیر جدید
             template.name = name
             template.status = status
             template.content = content
@@ -944,15 +998,24 @@ def template_edit(request, template_id):
             template.is_active = is_active
             template.save()
             
+            # اگر این قالب به عنوان پیش‌فرض تنظیم شده، قالب‌های پیش‌فرض دیگر را برای این وضعیت غیرفعال می‌کنیم
+            if is_active:
+                SmsTemplate.objects.filter(status=status, is_active=True).exclude(id=template.id).update(is_active=False)
+            
             messages.success(request, f'قالب "{template.name}" با موفقیت بروزرسانی شد.')
             return redirect('sms_api:template_list')
         except Exception as e:
             messages.error(request, f'خطا در بروزرسانی قالب: {str(e)}')
     
+    # پیدا کردن متن پیش‌فرض برای این وضعیت (اگر موجود باشد)
+    default_content = default_templates_dict.get(template.status, '')
+    
     context = {
         'template': template,
         'status_choices': SmsTemplate.STATUS_CHOICES,
-        'placeholders': SmsTemplate.get_available_placeholders()
+        'placeholders': SmsTemplate.get_available_placeholders(),
+        'default_templates': json.dumps(default_templates_dict),
+        'default_content': default_content,
     }
     
     return render(request, 'sms_api/template_edit.html', context)

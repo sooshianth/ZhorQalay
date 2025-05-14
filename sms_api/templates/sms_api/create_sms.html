@@ -76,6 +76,11 @@
             {% if selected_customer_id %}
             <div class="sms-section">
                 <h3>ارسال پیامک به مشتری</h3>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> 
+                    قالب‌های پیامک فقط از بخش <a href="{% url 'sms_api:template_list' %}" target="_blank" class="alert-link">مدیریت قالب‌های پیامک</a> قابل ایجاد و ویرایش هستند.
+                    اگر برای وضعیت خرید قالبی تعریف نشده باشد، نیاز است ابتدا آن را ایجاد کنید.
+                </div>
                 <form method="post" class="sms-form">
                     {% csrf_token %}
                     <input type="hidden" name="customer_id" value="{{ selected_customer_id }}">
@@ -96,16 +101,16 @@
                     
                     <div id="purchase-fields">
                         <div class="purchase-selector-container">
-                            <div class="form-group">
+                        <div class="form-group">
                                 <label for="purchase-selector">انتخاب خرید مشتری</label>
-                                <select name="purchase_id" id="purchase-selector" class="form-control" onchange="loadPurchaseTemplate()">
-                                    <option value="">-- انتخاب خرید --</option>
-                                    {% for purchase in purchases %}
-                                        <option value="{{ purchase.id }}" data-status="{{ purchase.state }}">
-                                            خرید {{ purchase.invoice_id }} - {{ purchase.created_at|date:"Y/m/d" }} ({{ purchase.get_state_display }})
-                                        </option>
-                                    {% endfor %}
-                                </select>
+                            <select name="purchase_id" id="purchase-selector" class="form-control" onchange="loadPurchaseTemplate()">
+                                <option value="">-- انتخاب خرید --</option>
+                                {% for purchase in purchases %}
+                                    <option value="{{ purchase.id }}" data-status="{{ purchase.state }}">
+                                        خرید {{ purchase.invoice_id }} - {{ purchase.created_at|date:"Y/m/d" }} ({{ purchase.get_state_display }})
+                                    </option>
+                                {% endfor %}
+                            </select>
                             </div>
                         </div>
                         
@@ -123,7 +128,11 @@
                             </div>
                             <div class="purchase-info-body">
                                 <div class="purchase-template-preview" id="purchase-template-preview">
-                                    <p>پس از انتخاب خرید، قالب پیام متناسب با وضعیت خرید نمایش داده می‌شود.</p>
+                                    <div class="empty-template-placeholder">
+                                        <i class="fas fa-clipboard-list template-icon"></i>
+                                        <p>پس از انتخاب خرید، قالب پیام متناسب با وضعیت خرید نمایش داده می‌شود.</p>
+                                        <p class="small text-muted">اگر قالبی یافت نشد، می‌توانید از بخش مدیریت قالب‌ها، قالب جدیدی ایجاد کنید.</p>
+                                    </div>
                                 </div>
                             </div>
                             <div class="purchase-info-footer">
@@ -479,8 +488,9 @@
             }
         }
         
-        // Get template for this status
-        if (templateData[status]) {
+        // Check if template exists for this status
+        if (templateData[status] && templateData[status].trim() !== '') {
+            // Template exists
             // Only update the message field if it's empty or refresh is requested
             if (messageField.value === '' || refresh) {
                 messageField.value = templateData[status];
@@ -496,17 +506,28 @@
             generateTemplateCards(status);
             templateSelector.style.display = 'block';
         } else {
-            // Default empty message if no template exists
-            if (messageField.value === '' || refresh) {
+            // No template exists for this status
+            // Clear message field if refresh is requested
+            if (refresh) {
                 messageField.value = '';
                 charCount.textContent = '0';
             }
             
             if (templatePreview) {
                 templatePreview.innerHTML = '<p class="no-template-message">قالب پیامی برای این وضعیت تعریف نشده است.</p>';
+                
+                // Add a button to create new template
+                templatePreview.innerHTML += `
+                    <div class="mt-3">
+                        <a href="{% url 'sms_api:template_create' %}?status=${status}" class="btn btn-primary" target="_blank">
+                            <i class="fas fa-plus"></i> ایجاد قالب جدید
+                        </a>
+                        <p class="mt-2 small text-muted">برای این وضعیت خرید نیاز به ایجاد قالب پیامک دارید.</p>
+                    </div>
+                `;
             }
             
-            // Hide template selector
+            // Hide template selector since there are no templates
             templateSelector.style.display = 'none';
         }
     }
@@ -520,7 +541,7 @@
         container.innerHTML = '';
         
         // Create a card for current status
-        if (templateData[currentStatus]) {
+        if (templateData[currentStatus] && templateData[currentStatus].trim() !== '') {
             const currentCard = createTemplateCard(
                 currentStatus, 
                 purchaseStatuses[currentStatus] || currentStatus,
@@ -530,10 +551,14 @@
             container.appendChild(currentCard);
         }
         
+        // Count how many other templates we have
+        let otherTemplatesCount = 0;
+        
         // Add cards for other statuses
         for (const [status, template] of Object.entries(templateData)) {
             // Skip current status since we already added it
-            if (status === currentStatus) continue;
+            // Skip empty templates
+            if (status === currentStatus || !template || template.trim() === '') continue;
             
             const card = createTemplateCard(
                 status,
@@ -542,6 +567,15 @@
                 false
             );
             container.appendChild(card);
+            otherTemplatesCount++;
+        }
+        
+        // If no other templates, show a message
+        if (otherTemplatesCount === 0 && templateData[currentStatus] && templateData[currentStatus].trim() !== '') {
+            const noOtherTemplatesMsg = document.createElement('div');
+            noOtherTemplatesMsg.className = 'no-templates-message';
+            noOtherTemplatesMsg.innerHTML = 'قالب دیگری برای وضعیت‌های دیگر تعریف نشده است.';
+            container.appendChild(noOtherTemplatesMsg);
         }
     }
     
@@ -2061,6 +2095,42 @@
         .tooltip-body {
             max-height: 50vh;
         }
+    }
+
+    /* Template placeholder */
+    .no-template-message {
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        background-color: #f5f5f5;
+        border-left: 4px solid var(--teal-primary);
+        color: #555;
+        text-align: center;
+        font-weight: 500;
+    }
+
+    /* No templates */
+    .no-templates-message {
+        padding: 2rem;
+        text-align: center;
+        color: #777;
+        font-style: italic;
+    }
+
+    /* Empty template placeholder */
+    .empty-template-placeholder {
+        text-align: center;
+        padding: 1.5rem;
+        color: #777;
+    }
+    
+    .empty-template-placeholder .template-icon {
+        font-size: 2.5rem;
+        color: var(--teal-light);
+        margin-bottom: 1rem;
+    }
+    
+    .empty-template-placeholder p {
+        margin-bottom: 0.5rem;
     }
 </style>
 {% endblock %}
