@@ -26,6 +26,11 @@ class Barnameh(models.Model):
     destination = models.CharField(max_length=255, verbose_name='مقصد', null=True, blank=True)
     status = models.CharField(max_length=255, verbose_name='وضعیت', choices=STATUS_CHOICES, default='BARNAMEH_INCOMPLETE')
     
+    # فیلد جدید برای ذخیره اطلاعات دریافتی از API بازارگاه
+    bki_response_data = models.JSONField(verbose_name='اطلاعات دریافتی از بازارگاه', null=True, blank=True)
+    # فیلد برای ذخیره شناسه حمل دریافتی از بازارگاه
+    haml_id = models.CharField(max_length=255, verbose_name='شناسه حمل بازارگاه', null=True, blank=True)
+    
     barnameh_date = jmodels.jDateField(verbose_name='تاریخ برنامه', null=True, blank=True)
     barnameh_updated_at = jmodels.jDateTimeField(auto_now=True, verbose_name='تاریخ بروزرسانی')
     barnameh_created_at = jmodels.jDateTimeField(default=timezone.now, verbose_name='تاریخ ایجاد')

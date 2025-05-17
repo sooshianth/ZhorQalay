@@ -114,12 +114,22 @@
                                     <a href="{% url 'barnameh_edit' barnameh.id %}" class="btn btn-warning btn-sm rounded-circle ms-1" data-bs-toggle="tooltip" title="ویرایش">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <a href="{% url 'barnameh_delete' barnameh.id %}" class="btn btn-danger btn-sm rounded-circle ms-1" data-bs-toggle="tooltip" title="حذف">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
-                                    {% if barnameh.status == 'BARNAMEH_COMPLETE' %}
-                                    <a href="{% url 'send_to_bki' barnameh.id %}" class="btn btn-primary btn-sm rounded-circle ms-1" data-bs-toggle="tooltip" title="ارسال به بازارگاه">
-                                        <i class="fas fa-paper-plane"></i>
+                                    <form action="{% url 'barnameh_delete' barnameh.id %}" method="post" class="d-inline" onsubmit="return confirm('آیا از حذف این بارنامه اطمینان دارید؟');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm rounded-circle ms-1" data-bs-toggle="tooltip" title="حذف">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% if barnameh.status == 'BARNAMEH_COMPLETE' and not barnameh.is_sent_to_bki %}
+                                    <form action="{% url 'send_to_bki' barnameh.id %}" method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary btn-sm rounded-circle ms-1" data-bs-toggle="tooltip" title="ارسال به بازارگاه">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    </form>
+                                    {% elif barnameh.is_sent_to_bki %}
+                                    <a href="{% url 'edit_barnameh_in_bki' barnameh.id %}" class="btn btn-warning btn-sm rounded-circle ms-1" data-bs-toggle="tooltip" title="ویرایش در بازارگاه">
+                                        <i class="fas fa-pencil-alt"></i>
                                     </a>
                                     {% endif %}
                                     {% else %}

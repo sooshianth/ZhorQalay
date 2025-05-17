@@ -10,6 +10,7 @@ class BKIApiLog(models.Model):
     response_data = models.TextField(verbose_name='داده‌های پاسخ', null=True, blank=True)
     is_successful = models.BooleanField(default=False, verbose_name='موفقیت‌آمیز')
     error_message = models.TextField(verbose_name='پیام خطا', null=True, blank=True)
+    debug_info = models.TextField(verbose_name='اطلاعات دیباگ', null=True, blank=True)
     created_at = jmodels.jDateTimeField(default=timezone.now, verbose_name='تاریخ ایجاد')
     
     class Meta:
