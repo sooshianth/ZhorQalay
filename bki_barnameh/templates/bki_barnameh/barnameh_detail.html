@@ -237,10 +237,13 @@
                     حذف
                 </a>
                 {% if barnameh.status == 'BARNAMEH_COMPLETE' %}
-                <a href="{% url 'send_to_bki' barnameh.id %}" class="btn btn-primary rounded-pill shadow-sm ms-2">
-                    <i class="fas fa-paper-plane me-1"></i>
-                    ارسال به بازارگاه
-                </a>
+                <form action="{% url 'send_to_bki' barnameh.id %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary rounded-pill shadow-sm ms-2">
+                        <i class="fas fa-paper-plane me-1"></i>
+                        ارسال به بازارگاه
+                    </button>
+                </form>
                 {% endif %}
                 {% endif %}
             </div>

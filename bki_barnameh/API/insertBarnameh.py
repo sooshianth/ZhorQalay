@@ -60,8 +60,8 @@ def send_barnameh_to_bki(barnameh_id):
       <BarSerial>{barnameh.serial}</BarSerial>
       <ISSUDATE>{issue_date}</ISSUDATE>
       <MerchantDeclaredWeight>{barnameh.tonnage}</MerchantDeclaredWeight>
-      <KharidId>{barnameh.purchase_number}</KharidId>
-      <takhsisId>{barnameh.shenase_takhsis_code}</takhsisId>
+      <KharidId>{int(barnameh.purchase_number)}</KharidId>
+      <takhsisId>{int(barnameh.shenase_takhsis_code)}</takhsisId>
     </insertBarname>
   </soap:Body>
 </soap:Envelope>"""
@@ -98,6 +98,7 @@ def send_barnameh_to_bki(barnameh_id):
             
             # Parse XML response
             try:
+                print(response.text)
                 response_dict = xmltodict.parse(response.text)
                 soap_body = response_dict['soap:Envelope']['soap:Body']
                 result = soap_body['insertBarnameResponse']['insertBarnameResult']
