@@ -40,6 +40,9 @@
         border-radius: 10px;
         font-size: 12px;
     }
+    .btn-load-default {
+        margin-bottom: 10px;
+    }
 </style>
 {% endblock %}
 
@@ -77,7 +80,7 @@
                             <select class="form-control" id="status" name="status" required>
                                 <option value="">-- انتخاب کنید --</option>
                                 {% for key, label in status_choices %}
-                                <option value="{{ key }}">{{ label }}</option>
+                                <option value="{{ key }}" {% if key == preselected_status %}selected{% endif %}>{{ label }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -103,6 +106,10 @@
                         متغیرها را با کلیک روی دکمه‌های زیر به متن قالب اضافه کنید. هر متغیر با فرمت &#123;&#123; متغیر &#125;&#125; در متن قرار می‌گیرد.
                     </div>
                     
+                    <button type="button" id="btnLoadDefault" class="btn btn-sm btn-info btn-load-default">
+                        <i class="fas fa-sync-alt"></i> بارگذاری متن پیش‌فرض برای وضعیت انتخاب شده
+                    </button>
+                    
                     <div class="placeholders-toolbar">
                         <div class="d-flex flex-wrap">
                             {% for key, label in placeholders.items %}
@@ -114,7 +121,7 @@
                     </div>
                     
                     <div class="template-editor">
-                        <textarea class="form-control content-textarea" id="content" name="content" required></textarea>
+                        <textarea class="form-control content-textarea" id="content" name="content" required>{{ default_content }}</textarea>
                         <div class="character-counter">
                             <span id="charCount">0</span> / <span id="smsCount">1</span> پیامک
                         </div>
@@ -143,7 +150,6 @@
 {% endblock %}
 
 {% block extra_scripts %}
-{% verbatim %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const contentTextarea = document.getElementById('content');
@@ -151,6 +157,11 @@
         const charCount = document.getElementById('charCount');
         const smsCount = document.getElementById('smsCount');
         const placeholderButtons = document.querySelectorAll('.btn-placeholder');
+        const statusSelect = document.getElementById('status');
+        const btnLoadDefault = document.getElementById('btnLoadDefault');
+        
+        // قالب‌های پیش‌فرض
+        const defaultTemplates = JSON.parse('{{ default_templates|escapejs }}');
         
         // تعریف مسیرهای دسترسی کامل به فیلدها و مقادیر نمونه برای پیش‌نمایش
         const placeholderPaths = {
@@ -189,6 +200,33 @@
             'customer.sales_agent.name': 'کارشناس فروش نمونه',
             'purchase.shenase_takhsis': 'ABC123456789'
         };
+        
+        // بارگذاری قالب پیش‌فرض با کلیک روی دکمه
+        btnLoadDefault.addEventListener('click', function() {
+            const selectedStatus = statusSelect.value;
+            if (selectedStatus && defaultTemplates[selectedStatus]) {
+                if (contentTextarea.value && contentTextarea.value !== defaultTemplates[selectedStatus]) {
+                    if (confirm('آیا مطمئن هستید که می‌خواهید متن فعلی را با متن پیش‌فرض جایگزین کنید؟')) {
+                        contentTextarea.value = defaultTemplates[selectedStatus];
+                        updatePreview();
+                    }
+                } else {
+                    contentTextarea.value = defaultTemplates[selectedStatus];
+                    updatePreview();
+                }
+            } else {
+                alert('برای وضعیت انتخاب شده قالب پیش‌فرضی تعریف نشده است.');
+            }
+        });
+        
+        // تغییر وضعیت قالب و پیشنهاد بارگذاری قالب پیش‌فرض
+        statusSelect.addEventListener('change', function() {
+            const selectedStatus = this.value;
+            if (selectedStatus && defaultTemplates[selectedStatus] && (!contentTextarea.value || confirm('آیا می‌خواهید متن پیش‌فرض وضعیت جدید را بارگذاری کنید؟'))) {
+                contentTextarea.value = defaultTemplates[selectedStatus];
+                updatePreview();
+            }
+        });
         
         // افزودن متغیر به متن قالب با کلیک روی دکمه
         placeholderButtons.forEach(function(button) {
@@ -257,5 +295,4 @@
         updatePreview();
     });
 </script>
-{% endverbatim %}
 {% endblock %} 
