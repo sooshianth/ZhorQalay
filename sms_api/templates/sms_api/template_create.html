@@ -43,6 +43,18 @@
     .btn-load-default {
         margin-bottom: 10px;
     }
+    .is-active-container {
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    .is-active-title {
+        font-weight: bold;
+        color: #007bff;
+        margin-bottom: 10px;
+    }
 </style>
 {% endblock %}
 
@@ -92,12 +104,21 @@
                     <textarea class="form-control" id="description" name="description" rows="2"></textarea>
                 </div>
                 
-                <div class="form-check mb-4">
-                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active">
-                    <label class="form-check-label" for="is_active">
-                        استفاده به عنوان قالب پیش‌فرض
-                    </label>
-                    <small class="form-text text-muted d-block">اگر این گزینه را انتخاب کنید، این قالب به عنوان پیش‌فرض برای وضعیت خرید انتخاب شده تنظیم می‌شود.</small>
+                <div class="is-active-container">
+                    <div class="is-active-title">
+                        <i class="fas fa-star"></i> تنظیم به عنوان قالب پیش‌فرض
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="is_active" name="is_active">
+                        <label class="form-check-label" for="is_active">
+                            استفاده به عنوان قالب پیش‌فرض برای وضعیت انتخاب شده
+                        </label>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 
+                        اگر این گزینه را انتخاب کنید، این قالب به عنوان پیش‌فرض برای وضعیت خرید انتخاب شده تنظیم می‌شود و 
+                        سایر قالب‌های پیش‌فرض برای این وضعیت غیرفعال می‌شوند. همواره فقط یک قالب پیش‌فرض برای هر وضعیت می‌تواند وجود داشته باشد.
+                    </div>
                 </div>
                 
                 <div class="form-group mb-3">

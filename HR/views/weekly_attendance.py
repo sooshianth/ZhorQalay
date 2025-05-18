@@ -1,13 +1,15 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Count
 from ..EmployeeAttendanceModel import WeeklyAttendance, MonthlyAttendance
 from ..forms.forms import DailyAttendanceForm
 import csv
 from django.http import HttpResponse
 from datetime import timedelta
 import datetime
+import jdatetime
+from django.contrib.auth.models import User
 
 @login_required
 def daily_attendance_view(request):
@@ -15,28 +17,46 @@ def daily_attendance_view(request):
         form = DailyAttendanceForm(request.POST, user=request.user)
         if form.is_valid():
             try:
-                date = form.cleaned_data['date']
+                # تاریخ جلالی از فرم
+                jalali_date = form.cleaned_data['date']
                 hours = form.cleaned_data['hours']
                 description = form.cleaned_data['description']
                 approved_by_user1 = form.cleaned_data['approved_by_user1']
                 approved_by_user2 = form.cleaned_data['approved_by_user2']
+                approved_by_user3 = form.cleaned_data['approved_by_user3']
 
-                # تبدیل تاریخ گرگوری به فرمت ساده
-                weekday_names = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
-                day_of_week = weekday_names[date.weekday()]
+                # محاسبه روز هفته
+                jalali_weekday = jalali_date.weekday()
+                
+                # نگاشت بین روز هفته jdatetime و نام روز در مدل
+                jalali_weekday_to_name = {
+                    1: 'Monday',    # دوشنبه
+                    2: 'Tuesday',   # سه شنبه
+                    3: 'Wednesday', # چهارشنبه
+                    4: 'Thursday',  # پنج شنبه
+                    5: 'Friday',    # جمعه
+                    6: 'Saturday',  # شنبه
+                    0: 'Sunday'     # یکشنبه
+                }
+                day_of_week = jalali_weekday_to_name[jalali_weekday]
 
-                # محاسبه تاریخ شروع هفته (شنبه همان هفته)
-                week_start_date = date - timedelta(days=(date.weekday() + 2) % 7)
-
+                # دیگر شنبه هفته را محاسبه نمی‌کنیم!
+                # دقیقاً از همان تاریخی که کاربر انتخاب کرده استفاده می‌کنیم
+                selected_date = jalali_date
+                
+                print(f"Debug - Selected date: {selected_date}, Day: {day_of_week}")
+                
                 # ایجاد یا به‌روزرسانی رکورد حضور
                 attendance, created = WeeklyAttendance.objects.update_or_create(
                     employee=request.user,
-                    week_start_date=week_start_date,
+                    week_start_date=selected_date,  # استفاده از همان تاریخ انتخابی
                     defaults={
                         'approved_by_user1': approved_by_user1,
                         'approved_by_user2': approved_by_user2,
+                        'approved_by_user3': approved_by_user3,
                         'user1_approved': False,
                         'user2_approved': False,
+                        'user3_approved': False,
                         'approved_by_admin': False,
                         'description': description,
                         'day': day_of_week
@@ -44,64 +64,133 @@ def daily_attendance_view(request):
                 )
                 
                 # تنظیم ساعات کاری برای روز مربوطه
-                weekday_map = {
-                    0: 'saturday_hours',
-                    1: 'sunday_hours',
-                    2: 'monday_hours',
-                    3: 'tuesday_hours',
-                    4: 'wednesday_hours',
-                    5: 'thursday_hours',
-                    6: 'friday_hours'
+                # نگاشت روز جلالی به فیلد مربوطه در مدل
+                jalali_weekday_to_field = {
+                    1: 'monday_hours',    # دوشنبه
+                    2: 'tuesday_hours',   # سه شنبه
+                    3: 'wednesday_hours', # چهارشنبه
+                    4: 'thursday_hours',  # پنج شنبه
+                    5: 'friday_hours',    # جمعه
+                    6: 'saturday_hours',  # شنبه
+                    0: 'sunday_hours'     # یکشنبه
                 }
+                
                 # تنظیم مقدار ساعات برای روز مربوطه
-                setattr(attendance, weekday_map[date.weekday()], hours)
+                day_field = jalali_weekday_to_field[jalali_weekday]
+                setattr(attendance, day_field, hours)
+                
                 # اطمینان از اینکه سایر فیلدها مقدار پیش‌فرض 0 دارند
-                for day in weekday_map.values():
-                    if getattr(attendance, day) is None:
-                        setattr(attendance, day, 0)
+                for field in jalali_weekday_to_field.values():
+                    if getattr(attendance, field) is None:
+                        setattr(attendance, field, 0)
+                
                 # محاسبه مجموع ساعات
                 attendance.calculate_total_hours()
                 attendance.save()
 
-                messages.success(request, f'ساعات کاری برای {day_of_week} با موفقیت ثبت شد!')
+                # ترجمه روز هفته به فارسی برای پیام
+                day_translation = {
+                    'Saturday': 'شنبه',
+                    'Sunday': 'یکشنبه',
+                    'Monday': 'دوشنبه',
+                    'Tuesday': 'سه‌شنبه',
+                    'Wednesday': 'چهارشنبه',
+                    'Thursday': 'پنج‌شنبه',
+                    'Friday': 'جمعه'
+                }
+                persian_day = day_translation.get(day_of_week)
+                
+                messages.success(request, f'ساعات کاری برای {persian_day} با موفقیت ثبت شد!')
                 return redirect('weekly_attendance_view')
                 
             except Exception as e:
                 messages.error(request, f'خطا در ثبت اطلاعات: {str(e)}')
         else:
-            messages.error(request, 'لطفاً فرم را به‌درستی پر کنید.')
+            # نمایش خطاهای خاص فرم
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'خطا در فیلد {form.fields[field].label}: {error}')
     else:
         form = DailyAttendanceForm(user=request.user)
 
     attendances = WeeklyAttendance.objects.filter(employee=request.user).order_by('-week_start_date')
     status = request.GET.get('status')
     if status == 'approved':
-        attendances = attendances.filter(user1_approved=True, user2_approved=True, approved_by_admin=True)
+        attendances = attendances.filter(approved_by_admin=True)
     elif status == 'pending':
-        attendances = attendances.exclude(user1_approved=True, user2_approved=True, approved_by_admin=True)
+        attendances = attendances.exclude(approved_by_admin=True)
 
     q = request.GET.get('q')
     if q:
         attendances = attendances.filter(Q(description__icontains=q) | Q(day__icontains=q))
+    
+    # دریافت و استفاده مستقیم از تاریخ‌های جلالی برای فیلتر
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
+    
     if start_date:
-        attendances = attendances.filter(week_start_date__gte=start_date)
+        try:
+            # تبدیل رشته به تاریخ جلالی و فیلتر مستقیم
+            start_date = start_date.replace('-', '/').replace('.', '/')
+            if '/' in start_date:
+                year, month, day = map(int, start_date.split('/'))
+                jalali_date = jdatetime.date(year, month, day)
+                attendances = attendances.filter(week_start_date__gte=jalali_date)
+        except:
+            pass
+            
     if end_date:
-        attendances = attendances.filter(week_start_date__lte=end_date)
+        try:
+            # تبدیل رشته به تاریخ جلالی و فیلتر مستقیم
+            end_date = end_date.replace('-', '/').replace('.', '/')
+            if '/' in end_date:
+                year, month, day = map(int, end_date.split('/'))
+                jalali_date = jdatetime.date(year, month, day)
+                attendances = attendances.filter(week_start_date__lte=jalali_date)
+        except:
+            pass
 
-    # تبدیل تاریخ‌ها به فرمت ساده گرگوری
+    # تاریخ‌های جلالی مستقیماً از دیتابیس خوانده می‌شوند
     formatted_attendances = []
     for attendance in attendances:
-        formatted_date = attendance.week_start_date.strftime('%Y-%m-%d')
+        # نیازی به تبدیل نیست چون فیلد از نوع jDateField است
+        # فقط فرمت‌دهی مستقیم انجام می‌دهیم
+        formatted_date = attendance.week_start_date.strftime('%Y/%m/%d')
+        print(f"Debug - Attendance ID: {attendance.id}, Jalali date direct: {attendance.week_start_date}, Formatted: {formatted_date}")
+        
+        # مترجم روزهای هفته به فارسی
+        day_translation = {
+            'Saturday': 'شنبه',
+            'Sunday': 'یکشنبه',
+            'Monday': 'دوشنبه',
+            'Tuesday': 'سه‌شنبه',
+            'Wednesday': 'چهارشنبه',
+            'Thursday': 'پنج‌شنبه',
+            'Friday': 'جمعه'
+        }
+        
+        # برگرداندن روز هفته به فارسی
+        persian_day = day_translation.get(attendance.day, attendance.day)
+        
+        # شمارش تعداد تاییدهای انجام شده
+        approval_count = sum([
+            1 if attendance.user1_approved else 0,
+            1 if attendance.user2_approved else 0,
+            1 if attendance.user3_approved else 0
+        ])
+        
         formatted_attendances.append({
+            'id': attendance.id,
             'week_start_date': formatted_date,
-            'day': attendance.day,
+            'day': persian_day,
             'total_hours': attendance.total_hours,
             'description': attendance.description,
             'approved_by_admin': attendance.approved_by_admin,
             'user1_approved': attendance.user1_approved,
             'user2_approved': attendance.user2_approved,
+            'user3_approved': attendance.user3_approved,
+            'approval_count': approval_count,
+            'enough_approvals': attendance.is_enough_user_approvals,
             'is_fully_approved': attendance.is_fully_approved,
         })
 
@@ -119,15 +208,28 @@ def download_attendance_report(request):
     response['Content-Disposition'] = 'attachment; filename="attendance_report.csv"'
 
     writer = csv.writer(response)
-    writer.writerow(['تاریخ شروع هفته', 'مجموع ساعات', 'توضیحات', 'تأیید ادمین', 'تأیید کاربر ۱', 'تأیید کاربر ۲'])
+    writer.writerow(['تاریخ شروع هفته', 'مجموع ساعات', 'توضیحات', 'تأیید ادمین', 'تعداد تأییدها', 'وضعیت کلی'])
     for attendance in attendances:
+        # استفاده مستقیم از تاریخ جلالی
+        formatted_date = attendance.week_start_date.strftime('%Y/%m/%d')
+        
+        # محاسبه تعداد تاییدها
+        approval_count = sum([
+            1 if attendance.user1_approved else 0,
+            1 if attendance.user2_approved else 0,
+            1 if attendance.user3_approved else 0
+        ])
+        
+        # وضعیت کلی
+        status = "تایید نهایی" if attendance.is_fully_approved else "در انتظار تایید"
+        
         writer.writerow([
-            attendance.week_start_date.strftime('%Y-%m-%d'),
+            formatted_date,
             attendance.total_hours,
             attendance.description,
             '✅' if attendance.approved_by_admin else '❌',
-            '✅' if attendance.user1_approved else '❌',
-            '✅' if attendance.user2_approved else '❌',
+            f'{approval_count}/3',
+            status
         ])
 
     return response
@@ -135,16 +237,48 @@ def download_attendance_report(request):
 @login_required
 def pending_approvals_view(request):
     if request.user.is_superuser:
+        # برای ادمین، نمایش رکوردهایی که حداقل 2 تایید دارند ولی تایید ادمین ندارند
         pending_attendances = WeeklyAttendance.objects.filter(
-            approved_by_admin=False
+            Q(user1_approved=True) & Q(user2_approved=True) & Q(approved_by_admin=False) |
+            Q(user1_approved=True) & Q(user3_approved=True) & Q(approved_by_admin=False) |
+            Q(user2_approved=True) & Q(user3_approved=True) & Q(approved_by_admin=False)
         ).order_by('-week_start_date')
     else:
+        # برای کاربران عادی، نمایش رکوردهایی که در انتظار تایید آنها هستند
         pending_attendances = WeeklyAttendance.objects.filter(
             (
                 Q(approved_by_user1=request.user, user1_approved=False) |
-                Q(approved_by_user2=request.user, user2_approved=False)
+                Q(approved_by_user2=request.user, user2_approved=False) |
+                Q(approved_by_user3=request.user, user3_approved=False)
             )
         ).order_by('-week_start_date')
+        
+    # فرمت‌دهی تاریخ‌ها و اطلاعات دیگر
+    for attendance in pending_attendances:
+        # استفاده مستقیم از تاریخ جلالی ذخیره شده
+        attendance.jalali_date = attendance.week_start_date.strftime('%Y/%m/%d')
+        
+        # مترجم روزهای هفته به فارسی
+        day_translation = {
+            'Saturday': 'شنبه',
+            'Sunday': 'یکشنبه',
+            'Monday': 'دوشنبه',
+            'Tuesday': 'سه‌شنبه',
+            'Wednesday': 'چهارشنبه',
+            'Thursday': 'پنج‌شنبه',
+            'Friday': 'جمعه'
+        }
+        attendance.persian_day = day_translation.get(attendance.day, attendance.day)
+        
+        # محاسبه تعداد تاییدها
+        attendance.approval_count = sum([
+            1 if attendance.user1_approved else 0,
+            1 if attendance.user2_approved else 0,
+            1 if attendance.user3_approved else 0
+        ])
+        
+        # وضعیت تاییدها
+        attendance.enough_approvals = attendance.is_enough_user_approvals
 
     return render(request, 'pending_approvals.html', {
         'pending_attendances': pending_attendances
@@ -162,12 +296,19 @@ def approve_attendance(request, attendance_id):
         attendance.user2_approved = True
         attendance.save()
         messages.success(request, "تأیید شما ثبت شد!")
-    elif request.user.is_superuser:
+    elif attendance.approved_by_user3 == request.user:
+        attendance.user3_approved = True
+        attendance.save()
+        messages.success(request, "تأیید شما ثبت شد!")
+    elif request.user.is_superuser and attendance.is_enough_user_approvals:
         attendance.approved_by_admin = True
         attendance.save()
         messages.success(request, "تأیید ادمین ثبت شد!")
     else:
-        messages.error(request, "شما مجاز به تأیید این رکورد نیستید.")
+        if request.user.is_superuser and not attendance.is_enough_user_approvals:
+            messages.error(request, "حداقل دو تایید از تاییدکنندگان لازم است، سپس می‌توانید تایید ادمین را انجام دهید.")
+        else:
+            messages.error(request, "شما مجاز به تأیید این رکورد نیستید.")
         return redirect('pending_approvals')
 
     if attendance.is_fully_approved:
@@ -177,17 +318,100 @@ def approve_attendance(request, attendance_id):
 
 @login_required
 def attendance_summary_view(request):
+    # فقط ادمین مجاز به دیدن این صفحه است
+    if not request.user.is_superuser:
+        messages.error(request, "شما دسترسی لازم برای مشاهده این صفحه را ندارید.")
+        return redirect('weekly_attendance_view')
+
     week = request.GET.get('week')
     month = request.GET.get('month')
-    weekly_qs = WeeklyAttendance.objects.filter(employee=request.user)
-    monthly_qs = MonthlyAttendance.objects.filter(employee=request.user)
+    employee_id = request.GET.get('employee_id')
+    
+    # دریافت همه کارمندان برای نمایش در dropdown
+    employees = User.objects.filter(is_staff=True).order_by('username')
+    
+    # اگر کارمند انتخاب شده، داده‌های آن کارمند را نمایش می‌دهیم
+    if employee_id:
+        try:
+            selected_employee = User.objects.get(id=employee_id)
+            weekly_qs = WeeklyAttendance.objects.filter(employee=selected_employee)
+            monthly_qs = MonthlyAttendance.objects.filter(employee=selected_employee)
+        except User.DoesNotExist:
+            messages.error(request, "کارمند مورد نظر یافت نشد.")
+            weekly_qs = WeeklyAttendance.objects.none()
+            monthly_qs = MonthlyAttendance.objects.none()
+            selected_employee = None
+    else:
+        # نمای کلی - داده‌های همه کارمندان
+        weekly_qs = WeeklyAttendance.objects.all()
+        monthly_qs = MonthlyAttendance.objects.all()
+        selected_employee = None
 
+    # فیلتر بر اساس تاریخ جلالی هفته
     if week:
-        weekly_qs = weekly_qs.filter(week_start_date=week)
+        try:
+            # تبدیل رشته به تاریخ جلالی و فیلتر مستقیم
+            week = week.replace('-', '/').replace('.', '/')
+            if '/' in week:
+                year, month_val, day = map(int, week.split('/'))
+                jalali_date = jdatetime.date(year, month_val, day)
+                weekly_qs = weekly_qs.filter(week_start_date=jalali_date)
+        except:
+            pass
+    
+    # فیلتر بر اساس ماه جلالی
     if month:
-        monthly_qs = monthly_qs.filter(month=month)
+        try:
+            # فرض می‌کنیم فرمت به صورت YYYY/MM یا YYYY-MM باشد
+            month = month.replace('-', '/').replace('.', '/')
+            if '/' in month:
+                month_parts = month.split('/')
+                if len(month_parts) == 2:
+                    year, month_val = map(int, month_parts)
+                    # برای فیلتر کردن بر اساس ماه در فیلد jDateField
+                    # باید محدوده ابتدا و انتهای ماه را محاسبه کنیم
+                    start_of_month = jdatetime.date(year, month_val, 1)
+                    if month_val == 12:
+                        end_of_month = jdatetime.date(year + 1, 1, 1) - jdatetime.timedelta(days=1)
+                    else:
+                        end_of_month = jdatetime.date(year, month_val + 1, 1) - jdatetime.timedelta(days=1)
+                    
+                    weekly_qs = weekly_qs.filter(
+                        week_start_date__gte=start_of_month,
+                        week_start_date__lte=end_of_month
+                    )
+                    
+                    # برای ماهانه هنوز از رشته استفاده می‌کنیم
+                    monthly_qs = monthly_qs.filter(month=f"{year}-{month_val:02d}")
+        except:
+            pass
 
-    weekly_summary = weekly_qs.values('week_start_date').annotate(total_hours=Sum('total_hours')).order_by('-week_start_date')
+    # محاسبه آمار کلی و تفکیک‌شده بر اساس کارمندان
+    employee_stats = []
+    if not employee_id:
+        # گروه‌بندی بر اساس کارمند برای نمای کلی
+        employee_data = weekly_qs.values('employee__username').annotate(
+            total_hours=Sum('total_hours'),
+            attendance_count=Count('id')
+        ).order_by('-total_hours')
+        
+        for data in employee_data:
+            try:
+                employee = User.objects.get(username=data['employee__username'])
+                employee_stats.append({
+                    'id': employee.id,
+                    'username': employee.username,
+                    'full_name': f"{employee.first_name} {employee.last_name}",
+                    'total_hours': data['total_hours'],
+                    'attendance_count': data['attendance_count']
+                })
+            except User.DoesNotExist:
+                continue
+
+    weekly_summary = weekly_qs.values('week_start_date', 'employee__username').annotate(
+        total_hours=Sum('total_hours')
+    ).order_by('-week_start_date')
+    
     monthly_summary = monthly_qs.order_by('-month')
 
     # محاسبه جمع و میانگین به صورت دستی
@@ -195,21 +419,44 @@ def attendance_summary_view(request):
     total_monthly_hours = sum(item.total_hours for item in monthly_summary) if monthly_summary else 0
     avg_weekly_hours = total_weekly_hours / len(weekly_summary) if weekly_summary else 0
 
-    # تبدیل تاریخ‌ها به فرمت ساده گرگوری
+    # فرمت‌سازی داده‌های هفتگی - تاریخ جلالی مستقیماً از دیتابیس
     formatted_weekly_summary = []
     for summary in weekly_summary:
-        formatted_date = summary['week_start_date'].strftime('%Y-%m-%d')
+        # تاریخ جلالی را مستقیماً فرمت می‌کنیم
+        jalali_date = summary['week_start_date']  # already a jdatetime.date instance
+        formatted_date = jalali_date.strftime('%Y/%m/%d')
+        
+        # اضافه کردن نام کاربری کارمند
+        username = summary['employee__username']
+        
         formatted_weekly_summary.append({
             'week_start_date': formatted_date,
-            'total_hours': summary['total_hours']
+            'total_hours': summary['total_hours'],
+            'employee': username
+        })
+        
+    # تبدیل تاریخ‌های ماهانه به فرمت جلالی
+    formatted_monthly_summary = []
+    for summary in monthly_summary:
+        year, month = summary.month.split('-')
+        # نمایش به فرمت جلالی استاندارد
+        jalali_month = f"{year}/{month}"
+        
+        formatted_monthly_summary.append({
+            'month': jalali_month,
+            'total_hours': summary.total_hours,
+            'employee': summary.employee.username
         })
 
     return render(request, 'attendance_summary.html', {
         'weekly_summary': formatted_weekly_summary,
-        'monthly_summary': monthly_summary,
+        'monthly_summary': formatted_monthly_summary,
         'selected_week': week,
         'selected_month': month,
         'total_weekly_hours': total_weekly_hours,
         'total_monthly_hours': total_monthly_hours,
         'avg_weekly_hours': round(avg_weekly_hours, 2),
+        'employees': employees,
+        'selected_employee': selected_employee,
+        'employee_stats': employee_stats,
     })

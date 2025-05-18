@@ -3,90 +3,208 @@
 {% block title %}خلاصه و تحلیل ساعات{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <h1 class="text-center mb-4 text-primary">خلاصه و تحلیل ساعات کاری</h1>
+<div class="container-fluid py-4">
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="page-title-box d-flex align-items-center justify-content-between">
+                <h1 class="fw-bold text-primary mb-0">
+                    <i class="fas fa-chart-line me-2"></i>خلاصه و تحلیل ساعات کاری
+                </h1>
+                <div class="page-actions">
+                    <a href="{% url 'weekly_attendance_view' %}" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-arrow-right me-1"></i> بازگشت به صفحه مدیریت ساعات
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <!-- بخش فیلترها -->
-    <div class="card mb-4 shadow-sm">
+    <!-- بخش فیلترها و انتخاب کارمند -->
+    <div class="card shadow border-0 mb-4">
+        <div class="card-header bg-gradient-primary text-white py-3">
+            <h4 class="card-title m-0 fw-bold"><i class="fas fa-filter me-2"></i>فیلتر اطلاعات</h4>
+        </div>
         <div class="card-body">
             <form method="get" class="row g-3 align-items-end">
                 <div class="col-md-3">
-                    <label class="form-label">تاریخ شروع هفته:</label>
-                    <input type="date" name="week" class="form-control" value="{{ selected_week|default:'' }}">
+                    <label class="form-label fw-bold">کارمند:</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                        <select name="employee_id" class="form-select">
+                            <option value="">-- همه کارمندان --</option>
+                            {% for employee in employees %}
+                            <option value="{{ employee.id }}" {% if selected_employee.id == employee.id %}selected{% endif %}>
+                                {{ employee.get_full_name|default:employee.username }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">ماه:</label>
-                    <input type="month" name="month" class="form-control" value="{{ selected_month|default:'' }}">
+                    <label class="form-label fw-bold">تاریخ شروع هفته:</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-calendar-week"></i></span>
+                        <input type="text" name="week" class="form-control persian-datepicker" placeholder="تاریخ شروع هفته" value="{{ selected_week|default:'' }}">
+                    </div>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label"> </label>
-                    <button type="submit" class="btn btn-primary w-100">فیلتر</button>
+                    <label class="form-label fw-bold">ماه:</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                        <input type="text" name="month" class="form-control persian-month-picker" placeholder="انتخاب ماه" value="{{ selected_month|default:'' }}">
+                    </div>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label"> </label>
-                    <a href="{% url 'attendance_summary' %}" class="btn btn-secondary w-100">پاک کردن فیلتر</a>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter me-1"></i> اعمال فیلتر
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <a href="{% url 'attendance_summary' %}" class="btn btn-secondary w-100">
+                        <i class="fas fa-eraser me-1"></i> پاک کردن فیلتر
+                    </a>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- بخش آمار کلی -->
+    <!-- بخش آمار کلی - کارت‌های اطلاعات آماری -->
     <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card bg-success text-white shadow-sm">
+        <div class="col-md-4 mb-3">
+            <div class="card shadow border-0 h-100">
                 <div class="card-body text-center">
-                    <h5 class="card-title">مجموع ساعات هفتگی</h5>
-                    <h2 class="display-4">{{ total_weekly_hours }}</h2>
+                    <div class="icon-circle bg-success mb-3">
+                        <i class="fas fa-calendar-week fa-2x text-white"></i>
+                    </div>
+                    <h5 class="card-title text-dark fw-bold">مجموع ساعات هفتگی</h5>
+                    <h2 class="display-4 fw-bold text-success">{{ total_weekly_hours }}</h2>
+                    <p class="text-muted small">ساعت‌های کاری ثبت شده در هفته</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card bg-info text-white shadow-sm">
+        <div class="col-md-4 mb-3">
+            <div class="card shadow border-0 h-100">
                 <div class="card-body text-center">
-                    <h5 class="card-title">مجموع ساعات ماهانه</h5>
-                    <h2 class="display-4">{{ total_monthly_hours }}</h2>
+                    <div class="icon-circle bg-info mb-3">
+                        <i class="fas fa-calendar-alt fa-2x text-white"></i>
+                    </div>
+                    <h5 class="card-title text-dark fw-bold">مجموع ساعات ماهانه</h5>
+                    <h2 class="display-4 fw-bold text-info">{{ total_monthly_hours }}</h2>
+                    <p class="text-muted small">ساعت‌های کاری ثبت شده در ماه</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card bg-warning text-dark shadow-sm">
+        <div class="col-md-4 mb-3">
+            <div class="card shadow border-0 h-100">
                 <div class="card-body text-center">
-                    <h5 class="card-title">میانگین ساعات هفتگی</h5>
-                    <h2 class="display-4">{{ avg_weekly_hours }}</h2>
+                    <div class="icon-circle bg-warning mb-3">
+                        <i class="fas fa-calculator fa-2x text-white"></i>
+                    </div>
+                    <h5 class="card-title text-dark fw-bold">میانگین ساعات هفتگی</h5>
+                    <h2 class="display-4 fw-bold text-warning">{{ avg_weekly_hours }}</h2>
+                    <p class="text-muted small">میانگین ساعات کاری در هفته</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- نمودار هفتگی -->
-    <div class="card mb-4 shadow-sm">
+    <!-- نمای کلی کارمندان - فقط در حالت نمایش همه کارمندان -->
+    {% if not selected_employee %}
+    <div class="card shadow border-0 mb-4">
+        <div class="card-header bg-gradient-primary text-white py-3">
+            <h4 class="card-title m-0 fw-bold"><i class="fas fa-users me-2"></i>خلاصه عملکرد کارمندان</h4>
+        </div>
         <div class="card-body">
-            <h4 class="card-title">نمودار ساعات هفتگی</h4>
-            <canvas id="weeklyChart" width="400" height="200"></canvas>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover text-center">
+                    <thead class="table-dark">
+                        <tr>
+                            <th><i class="fas fa-user me-1"></i> نام کاربری</th>
+                            <th><i class="fas fa-address-card me-1"></i> نام و نام خانوادگی</th>
+                            <th><i class="fas fa-clock me-1"></i> مجموع ساعات</th>
+                            <th><i class="fas fa-calendar-check me-1"></i> تعداد حضور</th>
+                            <th><i class="fas fa-cogs me-1"></i> عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in employee_stats %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center justify-content-center">
+                                    <div class="avatar-circle bg-gradient-primary text-white me-2">
+                                        {{ stat.username|first|upper }}
+                                    </div>
+                                    <span class="fw-bold">{{ stat.username }}</span>
+                                </div>
+                            </td>
+                            <td>{{ stat.full_name|default:"-" }}</td>
+                            <td class="fw-bold text-primary">{{ stat.total_hours }}</td>
+                            <td>
+                                <span class="badge bg-info">{{ stat.attendance_count }}</span>
+                            </td>
+                            <td>
+                                <a href="{% url 'attendance_summary' %}?employee_id={{ stat.id }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-search me-1"></i> مشاهده جزئیات
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-5">
+                                <i class="fas fa-info-circle fa-2x mb-3 d-block"></i>
+                                <p>هیچ اطلاعاتی برای نمایش وجود ندارد.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
+    {% endif %}
 
     <!-- جدول خلاصه هفتگی -->
-    <div class="card mb-4 shadow-sm">
+    <div class="card shadow border-0 mb-4">
+        <div class="card-header bg-gradient-secondary text-white py-3">
+            <h4 class="card-title m-0 fw-bold">
+                <i class="fas fa-calendar-week me-2"></i>خلاصه هفتگی 
+                {% if selected_employee %}
+                <span class="badge bg-white text-primary ms-2">{{ selected_employee.get_full_name|default:selected_employee.username }}</span>
+                {% endif %}
+            </h4>
+        </div>
         <div class="card-body">
-            <h4 class="card-title">خلاصه هفتگی</h4>
             <div class="table-responsive">
                 <table class="table table-striped table-hover">
                     <thead class="table-dark">
                         <tr>
-                            <th>تاریخ شروع هفته</th>
-                            <th>مجموع ساعات</th>
+                            {% if not selected_employee %}<th><i class="fas fa-user me-1"></i> کارمند</th>{% endif %}
+                            <th><i class="fas fa-calendar-alt me-1"></i> تاریخ شروع هفته</th>
+                            <th><i class="fas fa-clock me-1"></i> مجموع ساعات</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for summary in weekly_summary %}
                         <tr>
+                            {% if not selected_employee %}
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle bg-gradient-primary text-white me-2">
+                                        {{ summary.employee|first|upper }}
+                                    </div>
+                                    <span>{{ summary.employee }}</span>
+                                </div>
+                            </td>
+                            {% endif %}
                             <td>{{ summary.week_start_date }}</td>
-                            <td>{{ summary.total_hours }}</td>
+                            <td class="fw-bold text-success">{{ summary.total_hours }}</td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="2" class="text-center text-muted">هیچ اطلاعاتی ثبت نشده است.</td>
+                            <td colspan="{% if selected_employee %}2{% else %}3{% endif %}" class="text-center text-muted py-5">
+                                <i class="fas fa-calendar-times fa-2x mb-3 d-block"></i>
+                                <p>هیچ اطلاعاتی ثبت نشده است.</p>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -95,39 +213,77 @@
         </div>
     </div>
 
-    <!-- نمودار ماهانه -->
-    <div class="card mb-4 shadow-sm">
-        <div class="card-body">
-            <h4 class="card-title">نمودار ساعات ماهانه</h4>
-            <canvas id="monthlyChart" width="400" height="200"></canvas>
-        </div>
-    </div>
-
     <!-- جدول خلاصه ماهانه -->
-    <div class="card shadow-sm">
+    <div class="card shadow border-0">
+        <div class="card-header bg-gradient-info text-white py-3">
+            <h4 class="card-title m-0 fw-bold">
+                <i class="fas fa-calendar-alt me-2"></i>خلاصه ماهانه
+                {% if selected_employee %}
+                <span class="badge bg-white text-info ms-2">{{ selected_employee.get_full_name|default:selected_employee.username }}</span>
+                {% endif %}
+            </h4>
+        </div>
         <div class="card-body">
-            <h4 class="card-title">خلاصه ماهانه</h4>
             <div class="table-responsive">
                 <table class="table table-striped table-hover">
                     <thead class="table-dark">
                         <tr>
-                            <th>ماه</th>
-                            <th>مجموع ساعات</th>
+                            {% if not selected_employee %}<th><i class="fas fa-user me-1"></i> کارمند</th>{% endif %}
+                            <th><i class="fas fa-calendar-alt me-1"></i> ماه</th>
+                            <th><i class="fas fa-clock me-1"></i> مجموع ساعات</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for summary in monthly_summary %}
                         <tr>
+                            {% if not selected_employee %}
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle bg-gradient-primary text-white me-2">
+                                        {{ summary.employee|first|upper }}
+                                    </div>
+                                    <span>{{ summary.employee }}</span>
+                                </div>
+                            </td>
+                            {% endif %}
                             <td>{{ summary.month }}</td>
-                            <td>{{ summary.total_hours|default:'0' }}</td>
+                            <td class="fw-bold text-info">{{ summary.total_hours|default:'0' }}</td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="2" class="text-center text-muted">هیچ اطلاعاتی ثبت نشده است.</td>
+                            <td colspan="{% if selected_employee %}2{% else %}3{% endif %}" class="text-center text-muted py-5">
+                                <i class="fas fa-calendar-times fa-2x mb-3 d-block"></i>
+                                <p>هیچ اطلاعاتی ثبت نشده است.</p>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- دکمه بازگشت به صفحه اصلی -->
+    <div class="mt-4">
+        <a href="{% url 'weekly_attendance_view' %}" class="btn btn-primary">
+            <i class="fas fa-arrow-right me-1"></i> بازگشت به صفحه اصلی
+        </a>
+    </div>
+</div>
+
+<!-- مودال نمایش توضیحات کامل -->
+<div class="modal fade" id="descriptionModal" tabindex="-1" aria-labelledby="descriptionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-primary text-white">
+                <h5 class="modal-title" id="descriptionModalLabel"><i class="fas fa-info-circle me-2"></i>توضیحات کامل</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="fullDescription" class="mb-0 p-3 bg-light rounded"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">بستن</button>
             </div>
         </div>
     </div>
@@ -135,68 +291,215 @@
 
 <!-- کتابخانه‌های مورد نیاز -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<!-- کتابخانه‌های تقویم جلالی -->
+<link rel="stylesheet" href="https://unpkg.com/persian-datepicker@latest/dist/css/persian-datepicker.min.css">
+<script src="https://unpkg.com/persian-date@latest/dist/persian-date.min.js"></script>
+<script src="https://unpkg.com/persian-datepicker@latest/dist/js/persian-datepicker.min.js"></script>
 
 <script>
 $(document).ready(function() {
-    // نمودار هفتگی
-    const ctxWeekly = document.getElementById('weeklyChart').getContext('2d');
-    new Chart(ctxWeekly, {
-        type: 'bar',
-        data: {
-            labels: weeklyLabels,
-            datasets: [{
-                label: 'ساعات کاری',
-                data: weeklyData,
-                backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: { beginAtZero: true, title: { display: true, text: 'ساعات' } }
-            },
-            plugins: { legend: { position: 'top' }, title: { display: true, text: 'تحلیل ساعات هفتگی' } }
-        }
+    // تنظیم تقویم جلالی برای فیلدهای تاریخ
+    $('.persian-datepicker').persianDatepicker({
+        format: 'YYYY/MM/DD',
+        initialValueType: 'persian',
+        autoClose: true,
+        persianDigit: false
+    });
+    
+    // تنظیم انتخابگر ماه جلالی
+    $('.persian-month-picker').persianDatepicker({
+        format: 'YYYY/MM',
+        viewMode: 'year',
+        initialValueType: 'persian',
+        autoClose: true,
+        persianDigit: false,
+        onlyMonthPicker: true
     });
 
-    // داده‌ها برای نمودار ماهانه
-    const monthlyLabels = [{% for summary in monthly_summary %}'{{ summary.month }}'{% if not forloop.last %},{% endif %}{% endfor %}];
-    const monthlyData = [{% for summary in monthly_summary %}{{ summary.total_hours|default:0 }}{% if not forloop.last %},{% endif %}{% endfor %}];
-
-    // نمودار ماهانه
-    const ctxMonthly = document.getElementById('monthlyChart').getContext('2d');
-    new Chart(ctxMonthly, {
-        type: 'line',
-        data: {
-            labels: monthlyLabels,
-            datasets: [{
-                label: 'ساعات کاری',
-                data: monthlyData,
-                fill: false,
-                borderColor: 'rgb(75, 192, 192)',
-                tension: 0.1
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: { beginAtZero: true, title: { display: true, text: 'ساعات' } }
-            },
-            plugins: { legend: { position: 'top' }, title: { display: true, text: 'تحلیل ساعات ماهانه' } }
-        }
+    // مدیریت نمایش توضیحات در مودال
+    $('.show-description').on('click', function() {
+        const description = $(this).data('description');
+        $('#fullDescription').text(description);
     });
 });
 </script>
 
-{% block extra_scripts %}
 <style>
-    .card { transition: all 0.3s; }
-    .card:hover { transform: scale(1.02); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
-    .table-responsive { max-height: 400px; overflow-y: auto; }
+    /* متغیرهای رنگ و سایز */
+    :root {
+        --primary-color: #065F46;  /* سبز زمردی تیره */
+        --secondary-color: #6c757d;
+        --success-color: #1cc88a;
+        --info-color: #36b9cc;
+        --warning-color: #f6c23e;
+        --danger-color: #e74a3b;
+        --light-color: #f8f9fc;
+        --dark-color: #5a5c69;
+        --border-radius: 0.5rem;
+        --shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    /* استایل‌های عمومی */
+    body {
+        background-color: #f8f9fc;
+    }
+    
+    .card {
+        border-radius: var(--border-radius);
+        transition: all 0.3s;
+        overflow: hidden;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow);
+    }
+    
+    .card-header {
+        font-weight: bold;
+        border-bottom: 0;
+    }
+    
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+    }
+    
+    .bg-gradient-secondary {
+        background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    }
+    
+    .bg-gradient-info {
+        background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
+    }
+    
+    /* استایل آیکون دایره‌ای */
+    .icon-circle {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+    }
+    
+    /* استایل آواتار دایره‌ای */
+    .avatar-circle {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    /* استایل جدول */
+    .table {
+        vertical-align: middle;
+    }
+    
+    .table th {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 1px;
+    }
+    
+    .table-responsive {
+        border-radius: 0.5rem;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    /* استایل دکمه‌ها */
+    .btn {
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+    
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .btn-primary:hover {
+        background-color: #4262c5;
+        border-color: #4262c5;
+    }
+    
+    /* استایل بج‌ها */
+    .badge {
+        padding: 0.5rem 0.75rem;
+        border-radius: 10rem;
+        font-weight: 600;
+    }
+
+    /* تیتر صفحه */
+    .page-title-box {
+        background-color: rgba(6, 95, 70, 0.08);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border-right: 4px solid var(--primary-color);
+        margin-bottom: 1.5rem;
+    }
+
+    /* استایل توضیحات */
+    .description-preview {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .show-description {
+        padding: 0.25rem 0.5rem;
+        border-radius: 50%;
+        transition: all 0.3s;
+    }
+    
+    .show-description:hover {
+        background-color: rgba(6, 95, 70, 0.1);
+        color: var(--primary-color);
+    }
+    
+    /* استایل مودال */
+    .modal-content {
+        border-radius: 0.75rem;
+        border: none;
+        box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.2);
+    }
+    
+    .modal-header {
+        border-top-left-radius: 0.75rem;
+        border-top-right-radius: 0.75rem;
+    }
+    
+    #fullDescription {
+        line-height: 1.8;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    /* انیمیشن‌ها */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .card {
+        animation: fadeIn 0.5s ease-out forwards;
+    }
+    
+    /* تنظیم تاخیر در انیمیشن‌ها */
+    .card:nth-child(1) { animation-delay: 0.1s; }
+    .card:nth-child(2) { animation-delay: 0.2s; }
+    .card:nth-child(3) { animation-delay: 0.3s; }
 </style>
-{% endblock %}
 {% endblock %}

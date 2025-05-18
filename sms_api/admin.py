@@ -80,3 +80,10 @@ class SmsLogAdmin(admin.ModelAdmin):
         return "-"
     get_purchase_info.short_description = "خرید مرتبط"
 
+@admin.register(SmsTemplate)
+class SmsTemplateAdmin(admin.ModelAdmin):
+    list_display = ('name', 'status', 'created_at', 'updated_at')
+    list_filter = ('status', 'created_at', 'updated_at')
+    search_fields = ('name', 'content')
+
+

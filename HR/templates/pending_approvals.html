@@ -1,58 +1,317 @@
 {% extends 'base.html' %}
+{% load hr_filters %}
 {% block title %}تایید ساعات{% endblock %}
 {% block content %}
-<div class="container mt-5">
-    <h2>در انتظار تایید شما</h2>
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-        {% endfor %}
-    {% endif %}
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>کارمند</th>
-                <th>تاریخ شروع هفته</th>
-                <th>توضیحات</th>
-                <th>عملیات</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for attendance in pending_attendances %}
-            <tr>
-                <td>{{ attendance.employee.username }}</td>
-                <td>{{ attendance.week_start_date }}</td>
-                <td>{{ attendance.description }}</td>
-                <td>
-                    <td>
-                        {% if attendance.approved_by_user1 == user and not attendance.user1_approved %}
-                            <a href="{% url 'approve_attendance' attendance.id %}" class="btn btn-success btn-sm">تایید توسط شما (کاربر ۱)</a>
-                        {% elif attendance.approved_by_user2 == user and not attendance.user2_approved %}
-                            <a href="{% url 'approve_attendance' attendance.id %}" class="btn btn-success btn-sm">تایید توسط شما (کاربر ۲)</a>
-                        {% elif user.is_superuser and not attendance.approved_by_admin %}
-                            <a href="{% url 'approve_attendance' attendance.id %}" class="btn btn-warning btn-sm">تایید ادمین</a>
-                        {% else %}
-                            <span class="text-muted">در انتظار تایید دیگران</span>
-                        {% endif %}
-                        <hr>
-                        <span class="badge {% if attendance.user1_approved %}bg-success{% else %}bg-warning{% endif %}">
-                            کاربر ۱: {% if attendance.user1_approved %}تایید شده{% else %}در انتظار{% endif %}
-                        </span><br>
-                        <span class="badge {% if attendance.user2_approved %}bg-success{% else %}bg-warning{% endif %}">
-                            کاربر ۲: {% if attendance.user2_approved %}تایید شده{% else %}در انتظار{% endif %}
-                        </span><br>
-                        <span class="badge {% if attendance.approved_by_admin %}bg-success{% else %}bg-warning{% endif %}">
-                            ادمین: {% if attendance.approved_by_admin %}تایید شده{% else %}در انتظار{% endif %}
-                        </span>
-                    </td>
-                </td>
-            </tr>
-        {% empty %}
-            <tr>
-                <td colspan="4">رکوردی برای تایید وجود ندارد.</td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="text-center mb-4 fw-bold text-primary">
+                <i class="fas fa-user-check me-2"></i>لیست ساعات در انتظار تایید شما
+            </h1>
+            
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                        <i class="fas fa-info-circle me-2"></i>{{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow border-0">
+                <div class="card-header bg-gradient-primary text-white py-3">
+                    <h4 class="card-title m-0 fw-bold">
+                        <i class="fas fa-list-ul me-2"></i>ساعات در انتظار تایید
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th><i class="fas fa-user me-1"></i> کارمند</th>
+                                    <th><i class="fas fa-calendar-alt me-1"></i> تاریخ شروع هفته</th>
+                                    <th><i class="fas fa-calendar-day me-1"></i> روز</th>
+                                    <th><i class="fas fa-clock me-1"></i> ساعات</th>
+                                    <th><i class="fas fa-align-left me-1"></i> توضیحات</th>
+                                    <th><i class="fas fa-check-double me-1"></i> تاییدها</th>
+                                    <th><i class="fas fa-cogs me-1"></i> عملیات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for attendance in pending_attendances %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-circle bg-gradient-primary text-white me-2">
+                                                {{ attendance.employee.username|first|upper }}
+                                            </div>
+                                            <span class="fw-bold">{{ attendance.employee.username }}</span>
+                                        </div>
+                                    </td>
+                                    <td>{{ attendance.jalali_date }}</td>
+                                    <td>{{ attendance.persian_day }}</td>
+                                    <td class="fw-bold">{{ attendance.total_hours }}</td>
+                                    <td>
+                                        {% if attendance.description %}
+                                            <div class="description-preview">
+                                                <span class="text-truncate d-inline-block" style="max-width: 120px;">{{ attendance.description }}</span>
+                                                <button class="btn btn-sm btn-link text-primary show-description" data-bs-toggle="modal" data-bs-target="#descriptionModal" data-description="{{ attendance.description }}">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted fst-italic">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="progress mb-2" style="height: 20px;">
+                                            <div class="progress-bar {% if attendance.approval_count == 3 %}bg-success{% elif attendance.approval_count > 0 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                role="progressbar" 
+                                                style="width: {{ attendance.approval_count|mul:33.33 }}%" 
+                                                aria-valuenow="{{ attendance.approval_count }}" 
+                                                aria-valuemin="0" 
+                                                aria-valuemax="3">
+                                                {{ attendance.approval_count }}/3
+                                            </div>
+                                        </div>
+                                        <div class="d-flex flex-column gap-1">
+                                            <span class="badge {% if attendance.user1_approved %}bg-success{% else %}bg-warning text-dark{% endif %} mb-1">
+                                                <i class="fas {% if attendance.user1_approved %}fa-check-circle{% else %}fa-hourglass-half{% endif %} me-1"></i>
+                                                کاربر ۱: {% if attendance.user1_approved %}تایید شده{% else %}در انتظار{% endif %}
+                                            </span>
+                                            <span class="badge {% if attendance.user2_approved %}bg-success{% else %}bg-warning text-dark{% endif %} mb-1">
+                                                <i class="fas {% if attendance.user2_approved %}fa-check-circle{% else %}fa-hourglass-half{% endif %} me-1"></i>
+                                                کاربر ۲: {% if attendance.user2_approved %}تایید شده{% else %}در انتظار{% endif %}
+                                            </span>
+                                            <span class="badge {% if attendance.user3_approved %}bg-success{% else %}bg-warning text-dark{% endif %} mb-1">
+                                                <i class="fas {% if attendance.user3_approved %}fa-check-circle{% else %}fa-hourglass-half{% endif %} me-1"></i>
+                                                کاربر ۳: {% if attendance.user3_approved %}تایید شده{% else %}در انتظار{% endif %}
+                                            </span>
+                                            <span class="badge {% if attendance.approved_by_admin %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                                                <i class="fas {% if attendance.approved_by_admin %}fa-check-circle{% else %}fa-hourglass-half{% endif %} me-1"></i>
+                                                ادمین: {% if attendance.approved_by_admin %}تایید شده{% else %}در انتظار{% endif %}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if attendance.approved_by_user1 == user and not attendance.user1_approved %}
+                                            <a href="{% url 'approve_attendance' attendance.id %}" class="btn btn-success btn-sm">
+                                                <i class="fas fa-check me-1"></i> تایید توسط شما (کاربر ۱)
+                                            </a>
+                                        {% elif attendance.approved_by_user2 == user and not attendance.user2_approved %}
+                                            <a href="{% url 'approve_attendance' attendance.id %}" class="btn btn-success btn-sm">
+                                                <i class="fas fa-check me-1"></i> تایید توسط شما (کاربر ۲)
+                                            </a>
+                                        {% elif attendance.approved_by_user3 == user and not attendance.user3_approved %}
+                                            <a href="{% url 'approve_attendance' attendance.id %}" class="btn btn-success btn-sm">
+                                                <i class="fas fa-check me-1"></i> تایید توسط شما (کاربر ۳)
+                                            </a>
+                                        {% elif user.is_superuser and attendance.enough_approvals and not attendance.approved_by_admin %}
+                                            <a href="{% url 'approve_attendance' attendance.id %}" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-check-double me-1"></i> تایید نهایی توسط ادمین
+                                            </a>
+                                        {% elif user.is_superuser and not attendance.enough_approvals %}
+                                            <button class="btn btn-outline-secondary btn-sm" disabled>
+                                                <i class="fas fa-exclamation-triangle me-1"></i> نیاز به حداقل دو تایید
+                                            </button>
+                                        {% else %}
+                                            <span class="text-muted">
+                                                <i class="fas fa-hourglass-half me-1"></i> در انتظار تایید دیگران
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-5">
+                                        <i class="fas fa-check-circle fa-2x mb-3 d-block"></i>
+                                        <p>رکوردی برای تایید وجود ندارد.</p>
+                                        <small>تمام ساعات کاری تایید شده‌اند.</small>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <a href="{% url 'weekly_attendance_view' %}" class="btn btn-primary">
+                        <i class="fas fa-arrow-right me-1"></i> بازگشت به مدیریت ساعات کاری
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- کتابخانه‌ها -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+    /* متغیرهای رنگ و سایز */
+    :root {
+        --primary-color: #065F46;  /* سبز زمردی تیره */
+        --secondary-color: #6c757d;
+        --success-color: #1cc88a;
+        --info-color: #36b9cc;
+        --warning-color: #f6c23e;
+        --danger-color: #e74a3b;
+        --light-color: #f8f9fc;
+        --dark-color: #5a5c69;
+        --border-radius: 0.5rem;
+        --shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    /* استایل‌های عمومی */
+    body {
+        background-color: #f8f9fc;
+    }
+    
+    .card {
+        border-radius: var(--border-radius);
+        transition: all 0.3s;
+        overflow: hidden;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow);
+    }
+    
+    .card-header {
+        font-weight: bold;
+        border-bottom: 0;
+    }
+    
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+    }
+    
+    /* استایل آواتار دایره‌ای */
+    .avatar-circle {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    /* استایل جدول */
+    .table {
+        vertical-align: middle;
+    }
+    
+    .table th {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 1px;
+    }
+    
+    .table-responsive {
+        border-radius: 0.5rem;
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    /* استایل دکمه‌ها */
+    .btn {
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+    
+    /* استایل نوار پیشرفت */
+    .progress {
+        height: 1rem;
+        border-radius: 1rem;
+        background-color: #eaecf4;
+    }
+    
+    .progress-bar {
+        border-radius: 1rem;
+        font-weight: bold;
+    }
+    
+    /* استایل بج‌ها */
+    .badge {
+        padding: 0.5rem 0.75rem;
+        border-radius: 10rem;
+        font-weight: 600;
+    }
+    
+    /* استایل توضیحات */
+    .description-preview {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .show-description {
+        padding: 0.25rem 0.5rem;
+        border-radius: 50%;
+        transition: all 0.3s;
+    }
+    
+    .show-description:hover {
+        background-color: rgba(6, 95, 70, 0.1);
+        color: var(--primary-color);
+    }
+    
+    /* استایل مودال */
+    .modal-content {
+        border-radius: 0.75rem;
+        border: none;
+        box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.2);
+    }
+    
+    .modal-header {
+        border-top-left-radius: 0.75rem;
+        border-top-right-radius: 0.75rem;
+    }
+    
+    #fullDescription {
+        line-height: 1.8;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+</style>
+
+<!-- مودال نمایش توضیحات کامل -->
+<div class="modal fade" id="descriptionModal" tabindex="-1" aria-labelledby="descriptionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-primary text-white">
+                <h5 class="modal-title" id="descriptionModalLabel"><i class="fas fa-info-circle me-2"></i>توضیحات کامل</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="fullDescription" class="mb-0 p-3 bg-light rounded"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">بستن</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // مدیریت نمایش توضیحات در مودال
+    $('.show-description').on('click', function() {
+        const description = $(this).data('description');
+        $('#fullDescription').text(description);
+    });
+</script>
+
 {% endblock %}

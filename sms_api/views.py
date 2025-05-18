@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from .models import SmsQueue, SmsLog, SmsTemplate
@@ -1198,3 +1198,35 @@ def template_check(request):
     }
     
     return render(request, 'sms_api/template_check.html', context)
+
+@role_required('admin', 'support_agent')
+@login_required
+def get_templates_for_status(request):
+    """Returns all templates for a specific status as JSON"""
+    status = request.GET.get('status', '')
+    
+    if not status:
+        return JsonResponse({'error': 'Status parameter is required'}, status=400)
+    
+    # Get all templates for the specified status
+    templates = SmsTemplate.objects.filter(status=status).order_by('-is_active', '-updated_at')
+    
+    # Convert templates to a list of dicts for JSON serialization
+    templates_list = []
+    for template in templates:
+        templates_list.append({
+            'id': template.id,
+            'name': template.name,
+            'content': template.content,
+            'description': template.description or '',
+            'is_active': template.is_active,
+            'created_at': template.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'updated_at': template.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+        })
+    
+    return JsonResponse({
+        'status': status,
+        'status_display': dict(Purchase.STATUS_CHOICES).get(status, status),
+        'templates': templates_list,
+        'count': len(templates_list)
+    })

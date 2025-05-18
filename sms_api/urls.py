@@ -36,4 +36,7 @@ urlpatterns = [
     path('templates/<int:template_id>/preview/', views.template_preview, name='template_preview'),
     path('templates/<int:template_id>/test/', views.template_test, name='template_test'),
     path('templates/check/', views.template_check, name='template_check'),
+    
+    # API endpoints
+    path('api/templates/status/', views.get_templates_for_status, name='get_templates_for_status'),
 ] 
