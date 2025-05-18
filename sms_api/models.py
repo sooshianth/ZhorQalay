@@ -82,6 +82,7 @@ class SmsTemplate(models.Model):
     STATUS_CHOICES = Purchase.STATUS_CHOICES
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='custom', verbose_name="بعد از چه وضعیتی ارسال شود؟")
     name = models.CharField(max_length=100, verbose_name="نام قالب")
+    template_type = models.CharField(max_length=30, default='custom', verbose_name="نوع قالب")
     content = models.TextField(verbose_name="متن قالب")
     description = models.TextField(blank=True, null=True, verbose_name="توضیحات")
     is_active = models.BooleanField(default=True, verbose_name="فعال")
@@ -123,3 +124,8 @@ class SmsTemplate(models.Model):
             'cargo_type': 'نوع کوتاژ',
             'cargo_country': 'کشور کوتاژ',    
         }
+
+    def save(self, *args, **kwargs):
+        # Make sure template_type matches status for backward compatibility
+        self.template_type = self.status
+        super().save(*args, **kwargs)

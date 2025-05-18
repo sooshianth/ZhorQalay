@@ -3,6 +3,10 @@
 
 {% block title %}ایجاد پیامک جدید{% endblock %}
 
+{% block styles %}
+<link rel="stylesheet" href="{% static 'css/template_selector.css' %}">
+{% endblock %}
+
 {% block content %}
 <div class="create-sms-container">
     <h1 class="page-title">ایجاد پیامک جدید</h1>
@@ -445,7 +449,6 @@
         const statusDisplay = document.getElementById('purchase-status-display');
         const templatePreview = document.getElementById('purchase-template-preview');
         const templateSelector = document.getElementById('template-selector');
-        const statusCards = document.getElementById('template-status-cards');
         
         if (!purchaseSelector || !messageField) return;
         
@@ -502,8 +505,8 @@
                 templatePreview.textContent = messageField.value || templateData[status];
             }
             
-            // Generate status template cards
-            generateTemplateCards(status);
+            // Fetch all templates for this status and show them
+            fetchTemplatesForStatus(status);
             templateSelector.style.display = 'block';
         } else {
             // No template exists for this status
@@ -531,128 +534,7 @@
             templateSelector.style.display = 'none';
         }
     }
-    
-    // Generate template cards for other status templates
-    function generateTemplateCards(currentStatus) {
-        const container = document.getElementById('template-status-cards');
-        if (!container) return;
-        
-        // Clear current cards
-        container.innerHTML = '';
-        
-        // Create a card for current status
-        if (templateData[currentStatus] && templateData[currentStatus].trim() !== '') {
-            const currentCard = createTemplateCard(
-                currentStatus, 
-                purchaseStatuses[currentStatus] || currentStatus,
-                templateData[currentStatus],
-                true
-            );
-            container.appendChild(currentCard);
-        }
-        
-        // Count how many other templates we have
-        let otherTemplatesCount = 0;
-        
-        // Add cards for other statuses
-        for (const [status, template] of Object.entries(templateData)) {
-            // Skip current status since we already added it
-            // Skip empty templates
-            if (status === currentStatus || !template || template.trim() === '') continue;
-            
-            const card = createTemplateCard(
-                status,
-                purchaseStatuses[status] || status,
-                template,
-                false
-            );
-            container.appendChild(card);
-            otherTemplatesCount++;
-        }
-        
-        // If no other templates, show a message
-        if (otherTemplatesCount === 0 && templateData[currentStatus] && templateData[currentStatus].trim() !== '') {
-            const noOtherTemplatesMsg = document.createElement('div');
-            noOtherTemplatesMsg.className = 'no-templates-message';
-            noOtherTemplatesMsg.innerHTML = 'قالب دیگری برای وضعیت‌های دیگر تعریف نشده است.';
-            container.appendChild(noOtherTemplatesMsg);
-        }
-    }
-    
-    // Create a template card element
-    function createTemplateCard(status, statusName, templateContent, isSelected) {
-        const card = document.createElement('div');
-        card.className = 'template-card';
-        if (isSelected) card.classList.add('selected');
-        
-        card.setAttribute('data-status', status);
-        card.setAttribute('data-template', templateContent);
-        card.onclick = function() { selectTemplateCard(this); };
-        
-        // Check the current view mode
-        const container = document.getElementById('template-status-cards');
-        const isListView = container.classList.contains('list-view');
-        
-        // Create card content
-        let badge = '';
-        if (isSelected) {
-            badge = '<div class="template-card-badge">فعلی</div>';
-        }
-        
-        let actionButtons = '';
-        if (isListView) {
-            actionButtons = `
-                <div class="template-card-actions">
-                    <button type="button" class="template-card-btn" title="استفاده از قالب" onclick="selectTemplateCard(this.closest('.template-card'))">
-                        <i class="fas fa-check"></i>
-                    </button>
-                    <button type="button" class="template-card-btn" title="پیش‌نمایش" onclick="previewTemplate(event, this.closest('.template-card'))">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                </div>
-            `;
-        }
-        
-        card.innerHTML = `
-            ${badge}
-            <div class="template-card-header">
-                <i class="fas fa-file-alt"></i>
-                ${statusName}
-            </div>
-            <div class="template-card-body">
-                ${templateContent.substring(0, 120)}${templateContent.length > 120 ? '...' : ''}
-            </div>
-            ${actionButtons}
-        `;
-        
-        return card;
-    }
-    
-    // Handle template card selection
-    function selectTemplateCard(card) {
-        // Get all cards and remove selected class
-        const allCards = document.querySelectorAll('.template-card');
-        allCards.forEach(c => c.classList.remove('selected'));
-        
-        // Add selected class to clicked card
-        card.classList.add('selected');
-        
-        // Get template content and update message field
-        const templateContent = card.getAttribute('data-template');
-        const messageField = document.getElementById('message');
-        const charCount = document.getElementById('char-count');
-        const templatePreview = document.getElementById('purchase-template-preview');
-        
-        if (messageField && templateContent) {
-            messageField.value = templateContent;
-            charCount.textContent = templateContent.length;
-            
-            if (templatePreview) {
-                templatePreview.textContent = templateContent;
-            }
-        }
-    }
-    
+
     // Toggle more variables
     function toggleMoreVariables() {
         const moreVars = document.getElementById('more-variables');
@@ -723,6 +605,57 @@
         });
     });
     
+    // Change template view (grid or list)
+    function changeTemplateView(viewType) {
+        const container = document.getElementById('template-status-cards');
+        const gridBtn = document.getElementById('grid-view-btn');
+        const listBtn = document.getElementById('list-view-btn');
+        
+        if (viewType === 'grid') {
+            container.classList.remove('list-view');
+            container.classList.add('grid-view');
+            gridBtn.classList.add('active');
+            listBtn.classList.remove('active');
+        } else {
+            container.classList.remove('grid-view');
+            container.classList.add('list-view');
+            listBtn.classList.add('active');
+            gridBtn.classList.remove('active');
+        }
+        
+        // Recreate the template cards to apply the proper layout
+        const currentStatus = getCurrentSelectedStatus();
+        if (currentStatus) {
+            generateTemplateCards(currentStatus, templateData, purchaseStatuses);
+        }
+    }
+    
+    // Get current selected status
+    function getCurrentSelectedStatus() {
+        const purchaseSelector = document.getElementById('purchase-selector');
+        if (!purchaseSelector || !purchaseSelector.value) return null;
+        
+        const selectedOption = purchaseSelector.options[purchaseSelector.selectedIndex];
+        return selectedOption.getAttribute('data-status');
+    }
+    
+    // Filter template cards based on search input
+    function filterTemplateCards() {
+        const searchText = document.getElementById('template-search').value.toLowerCase();
+        const cards = document.querySelectorAll('.template-card');
+        
+        cards.forEach(card => {
+            const header = card.querySelector('.template-card-header').textContent.toLowerCase();
+            const body = card.querySelector('.template-card-body').textContent.toLowerCase();
+            
+            if (header.includes(searchText) || body.includes(searchText)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
     // --------- توابع مربوط به انتخاب محصول ---------
     
     // آرایه‌ای برای نگهداری محصولات انتخاب شده
@@ -1048,6 +981,126 @@
         if (tooltip) {
             tooltip.style.display = 'none';
             document.removeEventListener('click', closeTooltipOnClickOutside);
+        }
+    }
+    
+    // Fetch all templates for a specific status
+    function fetchTemplatesForStatus(status) {
+        // API URL
+        const apiUrl = `/sms/api/templates/status/?status=${status}`;
+        
+        // Clear existing templates
+        const templateCards = document.getElementById('template-status-cards');
+        if (templateCards) {
+            templateCards.innerHTML = '<div class="loading-spinner">در حال بارگذاری...</div>';
+        }
+        
+        // Fetch templates from API
+        fetch(apiUrl)
+            .then(response => response.json())
+            .then(data => {
+                if (data.templates && data.templates.length > 0) {
+                    // Display templates
+                    displayTemplateCards(data.templates, data.status_display);
+                } else {
+                    // No templates found
+                    if (templateCards) {
+                        templateCards.innerHTML = '<p class="no-templates-message">قالبی برای این وضعیت یافت نشد.</p>';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching templates:', error);
+                if (templateCards) {
+                    templateCards.innerHTML = '<p class="error-message">خطا در بارگذاری قالب‌ها.</p>';
+                }
+            });
+    }
+    
+    // Display template cards based on fetched data
+    function displayTemplateCards(templates, statusDisplay) {
+        const container = document.getElementById('template-status-cards');
+        if (!container) return;
+        
+        // Clear existing cards
+        container.innerHTML = '';
+        
+        // Update title in template selector
+        const selectorHeader = document.querySelector('.template-selector-header h4');
+        if (selectorHeader) {
+            selectorHeader.textContent = `قالب‌های پیام برای "${statusDisplay}" (${templates.length})`;
+        }
+        
+        // Create a card for each template
+        templates.forEach(template => {
+            // Create card
+            const card = document.createElement('div');
+            card.className = 'template-card';
+            card.setAttribute('data-id', template.id);
+            card.setAttribute('data-template', template.content);
+            card.onclick = function() { selectTemplateCard(this); };
+            
+            // Check if this is the default template
+            const isDefault = template.is_active;
+            if (isDefault) {
+                card.classList.add('selected');
+            }
+            
+            // Create badge for default template
+            let badge = '';
+            if (isDefault) {
+                badge = '<div class="template-card-badge">پیش‌فرض</div>';
+            }
+            
+            // Create card content
+            card.innerHTML = `
+                ${badge}
+                <div class="template-card-header">
+                    <i class="fas fa-file-alt"></i>
+                    ${template.name}
+                </div>
+                <div class="template-card-body">
+                    ${template.content.substring(0, 120)}${template.content.length > 120 ? '...' : ''}
+                </div>
+                <div class="template-card-actions">
+                    <button type="button" class="template-card-btn" title="استفاده از قالب" onclick="selectTemplateCard(this.closest('.template-card'))">
+                        <i class="fas fa-check"></i>
+                    </button>
+                    <button type="button" class="template-card-btn" title="پیش‌نمایش" onclick="previewTemplate(event, this.closest('.template-card'))">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            `;
+            
+            // Add card to container
+            container.appendChild(card);
+        });
+    }
+    
+    // Select a template card and update the message field
+    function selectTemplateCard(card) {
+        // Get all cards and remove selected class
+        const allCards = document.querySelectorAll('.template-card');
+        allCards.forEach(c => c.classList.remove('selected'));
+        
+        // Add selected class to clicked card
+        card.classList.add('selected');
+        
+        // Get template content
+        const templateContent = card.getAttribute('data-template');
+        
+        // Update message field
+        const messageField = document.getElementById('message');
+        const charCount = document.getElementById('char-count');
+        const templatePreview = document.getElementById('purchase-template-preview');
+        
+        if (messageField && templateContent) {
+            messageField.value = templateContent;
+            charCount.textContent = templateContent.length;
+            
+            if (templatePreview) {
+                templatePreview.textContent = templateContent;
+            }
         }
     }
 </script>
@@ -1953,6 +2006,12 @@
         font-size: 0.7rem;
         padding: 0.2rem 0.5rem;
         border-bottom-right-radius: 8px;
+        z-index: 5;
+    }
+    
+    .template-card.selected {
+        border: 2px solid var(--teal-primary);
+        box-shadow: 0 0 10px rgba(0, 150, 136, 0.2);
     }
     
     .list-view .template-card-actions {
@@ -2115,6 +2174,36 @@
         color: #777;
         font-style: italic;
     }
+    
+    /* Loading spinner */
+    .loading-spinner {
+        text-align: center;
+        padding: 2rem;
+        color: var(--teal-primary);
+    }
+    
+    .loading-spinner:after {
+        content: "";
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        margin-right: 10px;
+        border: 3px solid var(--teal-light);
+        border-radius: 50%;
+        border-top-color: var(--teal-primary);
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    .error-message {
+        padding: 1rem;
+        text-align: center;
+        color: #d9534f;
+        font-style: italic;
+    }
 
     /* Empty template placeholder */
     .empty-template-placeholder {
@@ -2137,4 +2226,5 @@
 
 {% block extra_js %}
 <script src="{% static 'js/sms_form.js' %}"></script>
+<script src="{% static 'js/template_management.js' %}"></script>
 {% endblock %}
