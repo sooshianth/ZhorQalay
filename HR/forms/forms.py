@@ -5,6 +5,34 @@ from django.utils.translation import gettext_lazy as _
 import jdatetime
 from datetime import datetime, timedelta
 
+# ویجت سفارشی برای آپلود چندین فایل
+class MultipleFileInput(forms.FileInput):
+    def __init__(self, attrs=None):
+        default_attrs = {'multiple': 'multiple'}
+        if attrs:
+            default_attrs.update(attrs)
+        super().__init__(default_attrs)
+
+    def value_from_datadict(self, data, files, name):
+        if hasattr(files, 'getlist'):
+            return files.getlist(name)
+        return files.get(name)
+
+class MultipleFileField(forms.FileField):
+    widget = MultipleFileInput
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", MultipleFileInput)
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        single_file_clean = super().clean
+        if isinstance(data, (list, tuple)):
+            result = [single_file_clean(d, initial) for d in data]
+        else:
+            result = single_file_clean(data, initial)
+        return result
+
 class WeeklyAttendanceForm(forms.ModelForm):
     approved_by_user1 = forms.ModelChoiceField(
         queryset=User.objects.all(),
@@ -67,6 +95,14 @@ class DailyAttendanceForm(forms.Form):
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         required=False,
         label=_("توضیحات")
+    )
+    documents = forms.FileField(
+        widget=forms.ClearableFileInput(attrs={
+            'class': 'form-control',
+            'accept': 'image/*,.pdf,.doc,.docx,.xls,.xlsx'
+        }),
+        required=False,
+        label=_("مستندات")
     )
     approved_by_user1 = forms.ModelChoiceField(
         queryset=User.objects.all(),

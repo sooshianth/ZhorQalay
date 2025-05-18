@@ -69,7 +69,7 @@
                             <li><a href="{% url 'sales_agent_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
                             <li><a href="{% url 'customer_list' %}"><i class="fas fa-users icon-customers"></i> لیست مشتریان</a></li>
                             <li><a href="{% url 'general_customer_CRUD' %}"><i class="fas fa-tasks icon-management"></i> مدیریت مشتریان</a></li>
-                            <li><a href="{% url 'task_dashboard' %}"><i class="fas fa-tasks"></i> داشبورد تسک‌ها</a></li>                  
+                            <li><a href="{% url 'todo_dashboard' %}"><i class="fas fa-tasks"></i> لیست انجام کارها</a></li>                  
                             {% endif %}
                             {% if request.user.logistics_manager %}
                             <li><a href="{% url 'logistics_manager_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>

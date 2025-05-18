@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}ویرایش تسک{% endblock %}
+
+{% block content %}
+<div class="todo-container">
+    <a href="{% url 'todo_dashboard' %}" class="back-link">
+        <i class="fas fa-arrow-right"></i> بازگشت به داشبورد
+    </a>
+    
+    <h1 class="todo-title">
+        <i class="fas fa-edit"></i> ویرایش تسک
+    </h1>
+    
+    <div class="todo-form">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="title">عنوان:</label>
+                <input type="text" id="title" name="title" value="{{ task.title }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">توضیحات:</label>
+                <textarea id="description" name="description">{{ task.description }}</textarea>
+            </div>
+            
+            <div class="form-row">
+                <!-- <div class="form-group">
+                    <label for="due_date">تاریخ سررسید:</label>
+                    <input type="text" id="due_date" name="due_date" class="persian-datepicker" value="{{ task.due_date_jalali }}">
+                </div> -->
+                
+                <div class="form-group">
+                    <label for="priority">اولویت:</label>
+                    <select id="priority" name="priority">
+                        <option value="low" {% if task.priority == 'low' %}selected{% endif %}>کم</option>
+                        <option value="medium" {% if task.priority == 'medium' %}selected{% endif %}>متوسط</option>
+                        <option value="high" {% if task.priority == 'high' %}selected{% endif %}>زیاد</option>
+                        <option value="urgent" {% if task.priority == 'urgent' %}selected{% endif %}>فوری</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="status">وضعیت:</label>
+                    <select id="status" name="status">
+                        <option value="pending" {% if task.status == 'pending' %}selected{% endif %}>در انتظار</option>
+                        <option value="in_progress" {% if task.status == 'in_progress' %}selected{% endif %}>در حال انجام</option>
+                        <option value="completed" {% if task.status == 'completed' %}selected{% endif %}>تکمیل شده</option>
+                        <option value="deferred" {% if task.status == 'deferred' %}selected{% endif %}>به تعویق افتاده</option>
+                        <option value="canceled" {% if task.status == 'canceled' %}selected{% endif %}>لغو شده</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="category">دسته‌بندی:</label>
+                    <select id="category" name="category">
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" {% if task.category.id == category.id %}selected{% endif %}>{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="tags">برچسب‌ها (با کاما جدا کنید):</label>
+                <input type="text" id="tags" name="tags" value="{{ task_tags }}">
+            </div>
+            
+            <button type="submit">ذخیره تغییرات</button>
+        </form>
+    </div>
+</div>
+
+<!-- کتابخانه‌های تقویم جلالی -->
+<link rel="stylesheet" href="https://unpkg.com/persian-datepicker@latest/dist/css/persian-datepicker.min.css">
+<script src="https://unpkg.com/persian-date@latest/dist/persian-date.min.js"></script>
+<script src="https://unpkg.com/persian-datepicker@latest/dist/js/persian-datepicker.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // تنظیم تقویم جلالی برای فیلد تاریخ
+    $('.persian-datepicker').persianDatepicker({
+        format: 'YYYY/MM/DD',
+        initialValueType: 'persian',
+        autoClose: true,
+        persianDigit: false
+    });
+});
+</script>
+
+{% include 'todo_styles.html' %}
+{% endblock %} 

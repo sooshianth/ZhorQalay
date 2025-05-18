@@ -11,7 +11,7 @@ from django.views.decorators.http import require_POST
 from core._models import ToDoItem, TaskCategory, TaskReminder
 
 @login_required
-def task_dashboard_view(request):
+def todo_dashboard_view(request):
     # Get pending tasks for today's focus
     pending_tasks = ToDoItem.objects.filter(
         user=request.user, 
@@ -65,10 +65,10 @@ def task_dashboard_view(request):
         'total_pending': pending_tasks.count(),
         'total_completed': recently_completed.count(),
     }
-    return render(request, 'task_dashboard.html', context)
+    return render(request, 'todo_dashboard.html', context)
 
 @login_required
-def task_list_view(request):
+def todo_list_view(request):
     # Get filter parameters
     category_id = request.GET.get('category')
     status = request.GET.get('status', 'active')  # Default to active tasks
@@ -81,9 +81,9 @@ def task_list_view(request):
     
     # Apply filters
     if status == 'active':
-        tasks = tasks.filter(status__in=['pending', 'in_progress'])
+        tasks = tasks.filter(is_completed=False)
     elif status == 'completed':
-        tasks = tasks.filter(status='completed')
+        tasks = tasks.filter(is_completed=True)
     elif status == 'deferred':
         tasks = tasks.filter(status='deferred')
     elif status == 'canceled':
@@ -146,10 +146,10 @@ def task_list_view(request):
         'search_query': search,
         'order_by': order_by,
     }
-    return render(request, 'task_list.html', context)
+    return render(request, 'todo_list.html', context)
 
 @login_required
-def task_detail_view(request, task_id):
+def todo_detail_view(request, task_id):
     task = get_object_or_404(ToDoItem, id=task_id, user=request.user)
     
     if request.method == 'POST':
@@ -169,7 +169,7 @@ def task_detail_view(request, task_id):
                 task.save()
                 messages.success(request, 'اولویت تسک با موفقیت بروزرسانی شد.')
                 
-        return redirect('task_detail', task_id=task.id)
+        return redirect('todo_detail', task_id=task.id)
     
     context = {
         'task': task,
@@ -177,10 +177,10 @@ def task_detail_view(request, task_id):
         'status_choices': ToDoItem.STATUS_CHOICES,
         'priority_choices': ToDoItem.PRIORITY_CHOICES,
     }
-    return render(request, 'task_detail.html', context)
+    return render(request, 'todo_detail.html', context)
 
 @login_required
-def create_task_view(request):
+def create_todo_view(request):
     categories = TaskCategory.objects.all().order_by('name')
     
     if request.method == 'POST':
@@ -198,7 +198,7 @@ def create_task_view(request):
         
         if not title:
             messages.error(request, 'عنوان تسک الزامی است.')
-            return render(request, 'create_task.html', {'categories': categories})
+            return render(request, 'todo_create.html', {'categories': categories})
         
         task = ToDoItem.objects.create(
             user=request.user,
@@ -228,12 +228,12 @@ def create_task_view(request):
             )
         
         messages.success(request, 'تسک با موفقیت ایجاد شد.')
-        return redirect('task_dashboard')
+        return redirect('todo_dashboard')
     
-    return render(request, 'create_task.html', {'categories': categories})
+    return render(request, 'todo_create.html', {'categories': categories})
 
 @login_required
-def edit_task_view(request, task_id):
+def edit_todo_view(request, task_id):
     task = get_object_or_404(ToDoItem, id=task_id, user=request.user)
     categories = TaskCategory.objects.all().order_by('name')
     
@@ -252,7 +252,7 @@ def edit_task_view(request, task_id):
         
         if not title:
             messages.error(request, 'عنوان تسک الزامی است.')
-            return render(request, 'edit_task.html', {'task': task, 'categories': categories})
+            return render(request, 'todo_edit.html', {'task': task, 'categories': categories})
         
         task.title = title
         task.description = description
@@ -281,40 +281,53 @@ def edit_task_view(request, task_id):
             )
         
         messages.success(request, 'تسک با موفقیت بروزرسانی شد.')
-        return redirect('task_detail', task_id=task.id)
+        return redirect('todo_detail', task_id=task.id)
     
     context = {
         'task': task,
         'categories': categories,
         'tags': ','.join(task.get_tags_list()),
     }
-    return render(request, 'edit_task.html', context)
+    return render(request, 'todo_edit.html', context)
 
-@require_POST
 @login_required
-def change_task_status(request, task_id):
+def change_todo_status(request, task_id):
     task = get_object_or_404(ToDoItem, id=task_id, user=request.user)
-    new_status = request.POST.get('status')
     
-    if new_status in dict(ToDoItem.STATUS_CHOICES):
-        task.status = new_status
+    # برای درخواست‌های POST از فیلد status استفاده می‌کنیم
+    if request.method == 'POST':
+        new_status = request.POST.get('status')
+        if new_status in dict(ToDoItem.STATUS_CHOICES):
+            task.status = new_status
+            task.save()
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True, 
+                    'status': task.status,
+                    'status_display': dict(ToDoItem.STATUS_CHOICES)[task.status],
+                    'is_completed': task.is_completed
+                })
+    # برای درخواست‌های GET، وضعیت تسک را برعکس می‌کنیم
+    else:
+        if task.is_completed:
+            task.status = 'pending'
+            task.is_completed = False
+            task.completed_at = None
+        else:
+            task.status = 'completed'
+            task.is_completed = True
+            task.completed_at = timezone.now()
         task.save()
-        
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({
-                'success': True, 
-                'status': task.status,
-                'status_display': dict(ToDoItem.STATUS_CHOICES)[task.status],
-                'is_completed': task.is_completed
-            })
     
-    redirect_url = request.POST.get('redirect_url') or reverse('task_dashboard')
+    # بازگشت به صفحه قبلی یا صفحه اصلی
+    redirect_url = request.GET.get('redirect_url') or request.POST.get('redirect_url') or reverse('todo_dashboard')
     return HttpResponseRedirect(redirect_url)
 
 @login_required
-def completed_tasks_view(request):
+def completed_todos_view(request):
     tasks = ToDoItem.objects.filter(user=request.user, status='completed').order_by('-completed_at')
-    return render(request, 'completed_tasks.html', {'tasks': tasks})
+    return render(request, 'todo_completed.html', {'tasks': tasks})
 
 @login_required
 def manage_categories_view(request):
@@ -357,10 +370,10 @@ def manage_categories_view(request):
         
         return redirect('manage_categories')
     
-    return render(request, 'manage_categories.html', {'categories': categories})
+    return render(request, 'todo_manage_categories.html', {'categories': categories})
 
 @login_required
-def task_analytics_view(request):
+def todo_analytics_view(request):
     # Tasks by status
     all_tasks = ToDoItem.objects.filter(user=request.user)
     status_counts = {
@@ -415,11 +428,11 @@ def task_analytics_view(request):
         'overdue_tasks': sum(1 for task in all_tasks.filter(status__in=['pending', 'in_progress']) if task.is_overdue()),
     }
     
-    return render(request, 'task_analytics.html', context)
+    return render(request, 'todo_analytics.html', context)
 
 @require_POST
 @login_required
-def toggle_task_status(request):
+def toggle_todo_status(request):
     if request.headers.get('X-Requested-With') != 'XMLHttpRequest':
         return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
     
@@ -435,8 +448,12 @@ def toggle_task_status(request):
     # Toggle between completed and pending
     if task.status == 'completed':
         task.status = 'pending'
+        task.is_completed = False
+        task.completed_at = None
     else:
         task.status = 'completed'
+        task.is_completed = True
+        task.completed_at = timezone.now()
     
     task.save()
     
@@ -448,7 +465,7 @@ def toggle_task_status(request):
     })
 
 @login_required
-def search_tasks(request):
+def search_todos(request):
     query = request.GET.get('q', '')
     
     if len(query) < 3:
@@ -468,7 +485,7 @@ def search_tasks(request):
         'status': task.status,
         'due_date': task.due_date.strftime('%Y-%m-%d') if task.due_date else '',
         'is_completed': task.is_completed,
-        'url': reverse('task_detail', args=[task.id])
+        'url': reverse('todo_detail', args=[task.id])
     } for task in tasks]
     
     return JsonResponse({'results': results})

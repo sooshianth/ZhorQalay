@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Sum, Count
-from ..EmployeeAttendanceModel import WeeklyAttendance, MonthlyAttendance
+from ..EmployeeAttendanceModel import WeeklyAttendance, MonthlyAttendance, AttendanceDocument
 from ..forms.forms import DailyAttendanceForm
 import csv
 from django.http import HttpResponse
@@ -14,13 +14,14 @@ from django.contrib.auth.models import User
 @login_required
 def daily_attendance_view(request):
     if request.method == 'POST':
-        form = DailyAttendanceForm(request.POST, user=request.user)
+        form = DailyAttendanceForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             try:
                 # تاریخ جلالی از فرم
                 jalali_date = form.cleaned_data['date']
                 hours = form.cleaned_data['hours']
                 description = form.cleaned_data['description']
+                documents = request.FILES.getlist('documents')  # دریافت همه‌ی فایل‌های آپلود شده
                 approved_by_user1 = form.cleaned_data['approved_by_user1']
                 approved_by_user2 = form.cleaned_data['approved_by_user2']
                 approved_by_user3 = form.cleaned_data['approved_by_user3']
@@ -62,6 +63,14 @@ def daily_attendance_view(request):
                         'day': day_of_week
                     }
                 )
+                
+                # ذخیره مستندات آپلود شده
+                if documents:
+                    for document in documents:
+                        AttendanceDocument.objects.create(
+                            attendance=attendance,
+                            file=document
+                        )
                 
                 # تنظیم ساعات کاری برای روز مربوطه
                 # نگاشت روز جلالی به فیلد مربوطه در مدل
@@ -185,6 +194,7 @@ def daily_attendance_view(request):
             'day': persian_day,
             'total_hours': attendance.total_hours,
             'description': attendance.description,
+            'documents': attendance.documents,  # این یک رابطه related_name است و documents.all در تمپلیت استفاده می‌شود
             'approved_by_admin': attendance.approved_by_admin,
             'user1_approved': attendance.user1_approved,
             'user2_approved': attendance.user2_approved,
@@ -254,9 +264,10 @@ def pending_approvals_view(request):
         ).order_by('-week_start_date')
         
     # فرمت‌دهی تاریخ‌ها و اطلاعات دیگر
+    pending_data = []
     for attendance in pending_attendances:
         # استفاده مستقیم از تاریخ جلالی ذخیره شده
-        attendance.jalali_date = attendance.week_start_date.strftime('%Y/%m/%d')
+        formatted_date = attendance.week_start_date.strftime('%Y/%m/%d')
         
         # مترجم روزهای هفته به فارسی
         day_translation = {
@@ -268,10 +279,10 @@ def pending_approvals_view(request):
             'Thursday': 'پنج‌شنبه',
             'Friday': 'جمعه'
         }
-        attendance.persian_day = day_translation.get(attendance.day, attendance.day)
+        persian_day = day_translation.get(attendance.day, attendance.day)
         
         # محاسبه تعداد تاییدها
-        attendance.approval_count = sum([
+        approval_count = sum([
             1 if attendance.user1_approved else 0,
             1 if attendance.user2_approved else 0,
             1 if attendance.user3_approved else 0
@@ -279,9 +290,28 @@ def pending_approvals_view(request):
         
         # وضعیت تاییدها
         attendance.enough_approvals = attendance.is_enough_user_approvals
+        
+        pending_data.append({
+            'id': attendance.id,
+            'employee': attendance.employee,
+            'jalali_date': formatted_date,
+            'persian_day': persian_day,
+            'total_hours': attendance.total_hours,
+            'description': attendance.description,
+            'documents': attendance.documents,  # این یک رابطه related_name است و documents.all در تمپلیت استفاده می‌شود
+            'approved_by_user1': attendance.approved_by_user1,
+            'approved_by_user2': attendance.approved_by_user2,
+            'approved_by_user3': attendance.approved_by_user3,
+            'user1_approved': attendance.user1_approved,
+            'user2_approved': attendance.user2_approved,
+            'user3_approved': attendance.user3_approved,
+            'approved_by_admin': attendance.approved_by_admin,
+            'approval_count': approval_count,
+            'enough_approvals': attendance.is_enough_user_approvals
+        })
 
     return render(request, 'pending_approvals.html', {
-        'pending_attendances': pending_attendances
+        'pending_attendances': pending_data
     })
 
 @login_required

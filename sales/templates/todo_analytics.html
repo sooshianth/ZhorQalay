@@ -1,0 +1,329 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}آمار و تحلیل تسک‌ها{% endblock %}
+
+{% block extra_css %}
+{% include 'todo_styles.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h3 class="sidebar-title"><i class="fas fa-tasks"></i> تسک‌های من</h3>
+        
+        <nav class="sidebar-nav">
+            <a href="{% url 'todo_dashboard' %}" class="nav-link">
+                <i class="fas fa-home"></i> داشبورد
+            </a>
+            <a href="{% url 'create_todo' %}" class="nav-link">
+                <i class="fas fa-plus"></i> تسک جدید
+            </a>
+            <a href="{% url 'todo_list' %}" class="nav-link">
+                <i class="fas fa-list"></i> همه تسک‌ها
+            </a>
+            <a href="{% url 'completed_todos' %}" class="nav-link">
+                <i class="fas fa-check-double"></i> تکمیل شده
+            </a>
+            <a href="{% url 'todo_analytics' %}" class="nav-link active">
+                <i class="fas fa-chart-bar"></i> آمار و تحلیل
+            </a>
+            <a href="{% url 'manage_categories' %}" class="nav-link">
+                <i class="fas fa-folder"></i> مدیریت دسته‌بندی‌ها
+            </a>
+        </nav>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Overview Stats -->
+        <div class="section">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-tachometer-alt"></i> نمای کلی
+                </h3>
+            </div>
+            
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-title">کل تسک‌ها</div>
+                    <div class="stat-value">{{ total_tasks }}</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-title">تکمیل شده</div>
+                    <div class="stat-value">{{ completed_tasks }}</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-title">در انتظار</div>
+                    <div class="stat-value">{{ status_counts.pending|default:"0" }}</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-title">در حال انجام</div>
+                    <div class="stat-value">{{ status_counts.in_progress|default:"0" }}</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-title">گذشته از موعد</div>
+                    <div class="stat-value">{{ overdue_tasks }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Status Distribution -->
+        <div class="section">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-pie-chart"></i> توزیع وضعیت تسک‌ها
+                </h3>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="statusChart"></canvas>
+            </div>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color status-pending"></div>
+                    <span>در انتظار ({{ status_counts.pending|default:"0" }})</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color status-in_progress"></div>
+                    <span>در حال انجام ({{ status_counts.in_progress|default:"0" }})</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color status-completed"></div>
+                    <span>تکمیل شده ({{ status_counts.completed|default:"0" }})</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color status-deferred"></div>
+                    <span>به تعویق افتاده ({{ status_counts.deferred|default:"0" }})</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color status-canceled"></div>
+                    <span>لغو شده ({{ status_counts.canceled|default:"0" }})</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Priority Distribution -->
+        <div class="section">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-exclamation-triangle"></i> توزیع اولویت تسک‌ها
+                </h3>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="priorityChart"></canvas>
+            </div>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color priority-urgent"></div>
+                    <span>فوری ({{ priority_counts.urgent|default:"0" }})</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color priority-high"></div>
+                    <span>زیاد ({{ priority_counts.high|default:"0" }})</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color priority-medium"></div>
+                    <span>متوسط ({{ priority_counts.medium|default:"0" }})</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color priority-low"></div>
+                    <span>کم ({{ priority_counts.low|default:"0" }})</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Category Distribution -->
+        {% if category_counts %}
+        <div class="section">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-folder"></i> توزیع دسته‌بندی تسک‌ها
+                </h3>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="categoryChart"></canvas>
+            </div>
+            
+            <div class="legend">
+                {% for category in category_counts %}
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: {{ category.color }};"></div>
+                    <span>{{ category.name }} ({{ category.count }})</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Monthly Stats -->
+        <div class="section">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-calendar-alt"></i> آمار ماهانه
+                </h3>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="monthlyChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Status Distribution Chart
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    const statusChart = new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['در انتظار', 'در حال انجام', 'تکمیل شده', 'به تعویق افتاده', 'لغو شده'],
+            datasets: [{
+                data: [
+                    {{ status_counts.pending|default:"0" }},
+                    {{ status_counts.in_progress|default:"0" }},
+                    {{ status_counts.completed|default:"0" }},
+                    {{ status_counts.deferred|default:"0" }},
+                    {{ status_counts.canceled|default:"0" }}
+                ],
+                backgroundColor: [
+                    '#f39c12', // warning
+                    '#065F46', // primary
+                    '#22C55E', // success
+                    '#95a5a6', // gray
+                    '#e74c3c'  // danger
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+    
+    // Priority Distribution Chart
+    const priorityCtx = document.getElementById('priorityChart').getContext('2d');
+    const priorityChart = new Chart(priorityCtx, {
+        type: 'bar',
+        data: {
+            labels: ['فوری', 'زیاد', 'متوسط', 'کم'],
+            datasets: [{
+                data: [
+                    {{ priority_counts.urgent|default:"0" }},
+                    {{ priority_counts.high|default:"0" }},
+                    {{ priority_counts.medium|default:"0" }},
+                    {{ priority_counts.low|default:"0" }}
+                ],
+                backgroundColor: [
+                    '#e74c3c', // danger
+                    '#f39c12', // warning
+                    '#065F46', // primary
+                    '#95a5a6'  // gray
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                }
+            }
+        }
+    });
+    
+    // Category Distribution Chart
+    {% if category_counts %}
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    const categoryChart = new Chart(categoryCtx, {
+        type: 'pie',
+        data: {
+            labels: [{% for category in category_counts %}'{{ category.name }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+            datasets: [{
+                data: [{% for category in category_counts %}{{ category.count }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                backgroundColor: [{% for category in category_counts %}'{{ category.color }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+    {% endif %}
+    
+    // Monthly Stats Chart
+    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+    const monthlyChart = new Chart(monthlyCtx, {
+        type: 'line',
+        data: {
+            labels: [{% for month in monthly_stats %}'{{ month.month_name }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+            datasets: [
+                {
+                    label: 'ایجاد شده',
+                    data: [{% for month in monthly_stats %}{{ month.created }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    borderColor: '#065F46',
+                    backgroundColor: 'rgba(6, 95, 70, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: 'تکمیل شده',
+                    data: [{% for month in monthly_stats %}{{ month.completed }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    borderColor: '#22C55E',
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %} 

@@ -34,7 +34,7 @@
                     <h4 class="card-title m-0 fw-bold"><i class="fas fa-clock me-2"></i>ثبت ساعات روزانه</h4>
                 </div>
                 <div class="card-body">
-                    <form id="daily-attendance-form" method="post" class="row">
+                    <form id="daily-attendance-form" method="post" class="row" enctype="multipart/form-data">
                         {% csrf_token %}
                         
                         <div class="col-md-3 mb-3">
@@ -75,6 +75,30 @@
                                 <span class="input-group-text"><i class="fas fa-align-left"></i></span>
                                 {{ form.description }}
                             </div>
+                        </div>
+                        
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">{{ form.documents.label }}</label>
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <div id="document-upload-area" class="mb-3">
+                                        <div class="dropzone-container p-4 border border-dashed rounded text-center">
+                                            <i class="fas fa-file-upload fa-2x mb-2 text-primary"></i>
+                                            <p class="mb-2">فایل‌های خود را اینجا رها کنید یا کلیک کنید</p>
+                                            <small class="text-muted">پشتیبانی از تصاویر، PDF، Word و Excel</small>
+                                            <input type="file" id="document-input" style="display: none;" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">
+                                            <button type="button" id="upload-button" class="btn btn-outline-primary mt-2">
+                                                <i class="fas fa-plus-circle me-1"></i> انتخاب فایل‌ها
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="uploaded-files-container" class="row g-2">
+                                        <!-- فایل‌های آپلود شده اینجا نمایش داده می‌شوند -->
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- فیلد مخفی برای نگهداری نام فایل‌ها -->
+                            <div style="display: none;">{{ form.documents }}</div>
                         </div>
                         
                         <div class="col-md-6 mb-3">
@@ -231,6 +255,7 @@
                                     <th><i class="fas fa-calendar-day me-1"></i> روز</th>
                                     <th><i class="fas fa-clock me-1"></i> ساعات کاری</th>
                                     <th><i class="fas fa-align-left me-1"></i> توضیحات</th>
+                                    <th><i class="fas fa-file-alt me-1"></i> مستندات</th>
                                     <th><i class="fas fa-user-check me-1"></i> تاییدها</th>
                                     <th><i class="fas fa-user-shield me-1"></i> تأیید ادمین</th>
                                     <th><i class="fas fa-info-circle me-1"></i> وضعیت کلی</th>
@@ -256,6 +281,19 @@
                                                 <button class="btn btn-sm btn-link text-primary show-description" data-bs-toggle="modal" data-bs-target="#descriptionModal" data-description="{{ attendance.description }}">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted fst-italic">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if attendance.documents.all %}
+                                            <div class="d-flex flex-column gap-1">
+                                                {% for document in attendance.documents.all %}
+                                                <a href="{{ document.file.url }}" class="btn btn-sm btn-outline-primary mb-1" target="_blank">
+                                                    <i class="fas fa-file-download me-1"></i>فایل {{ forloop.counter }}
+                                                </a>
+                                                {% endfor %}
                                             </div>
                                         {% else %}
                                             <span class="text-muted fst-italic">-</span>
@@ -481,6 +519,162 @@ $(document).ready(function() {
             $(this).removeClass('card-hover-effect');
         }
     );
+
+    // مدیریت آپلود فایل‌ها
+    let uploadedFiles = [];
+    
+    // کلیک روی دکمه آپلود
+    $('#upload-button').on('click', function() {
+        $('#document-input').click();
+    });
+    
+    // کلیک روی ناحیه رها کردن فایل
+    $('.dropzone-container').on('click', function(e) {
+        if (e.target === this || $(e.target).hasClass('dropzone-container') || $(e.target).is('p') || $(e.target).is('i')) {
+            $('#document-input').click();
+        }
+    });
+    
+    // رویداد تغییر انتخاب فایل
+    $('#document-input').on('change', function(e) {
+        handleFiles(e.target.files);
+        // پاک کردن انتخاب برای امکان انتخاب مجدد همان فایل
+        $(this).val('');
+    });
+    
+    // رویدادهای کشیدن و رها کردن (Drag & Drop)
+    $('.dropzone-container').on('dragover', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $(this).addClass('border-primary');
+    });
+    
+    $('.dropzone-container').on('dragleave', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $(this).removeClass('border-primary');
+    });
+    
+    $('.dropzone-container').on('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $(this).removeClass('border-primary');
+        
+        if (e.originalEvent.dataTransfer && e.originalEvent.dataTransfer.files.length) {
+            handleFiles(e.originalEvent.dataTransfer.files);
+        }
+    });
+    
+    // تابع مدیریت فایل‌های آپلود شده
+    function handleFiles(files) {
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            uploadedFiles.push(file);
+            addFileToContainer(file, uploadedFiles.length - 1);
+        }
+    }
+    
+    // اضافه کردن فایل به کانتینر نمایش
+    function addFileToContainer(file, index) {
+        const fileSize = formatFileSize(file.size);
+        const fileIcon = getFileIcon(file.name);
+        
+        const fileElement = `
+            <div class="col-md-4">
+                <div class="card mb-2">
+                    <div class="card-body p-2">
+                        <div class="d-flex align-items-center">
+                            <div class="file-icon me-2">${fileIcon}</div>
+                            <div class="file-info flex-grow-1">
+                                <div class="file-name text-truncate" title="${file.name}">${file.name}</div>
+                                <small class="text-muted">${fileSize}</small>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-file" data-index="${index}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        $('#uploaded-files-container').append(fileElement);
+    }
+    
+    // رویداد حذف فایل
+    $(document).on('click', '.remove-file', function() {
+        const index = $(this).data('index');
+        // حذف فایل از آرایه
+        uploadedFiles[index] = null;
+        // حذف المان از نمایش
+        $(this).closest('.col-md-4').remove();
+    });
+    
+    // تبدیل سایز فایل به فرمت خوانا
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // تعیین آیکون فایل بر اساس پسوند
+    function getFileIcon(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        
+        if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'].includes(ext)) {
+            return '<i class="fas fa-file-image text-primary fa-2x"></i>';
+        } else if (['pdf'].includes(ext)) {
+            return '<i class="fas fa-file-pdf text-danger fa-2x"></i>';
+        } else if (['doc', 'docx'].includes(ext)) {
+            return '<i class="fas fa-file-word text-primary fa-2x"></i>';
+        } else if (['xls', 'xlsx'].includes(ext)) {
+            return '<i class="fas fa-file-excel text-success fa-2x"></i>';
+        } else {
+            return '<i class="fas fa-file text-secondary fa-2x"></i>';
+        }
+    }
+    
+    // اضافه کردن فایل‌ها به فرم قبل از ارسال
+    $('#daily-attendance-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        // حذف null ها از آرایه فایل‌ها
+        const filesToUpload = uploadedFiles.filter(file => file !== null);
+        
+        if (filesToUpload.length > 0) {
+            // ایجاد FormData برای ارسال فایل‌ها
+            const formData = new FormData(this);
+            
+            // حذف فیلد اصلی documents
+            formData.delete('documents');
+            
+            // اضافه کردن فایل‌ها به formData
+            for (let i = 0; i < filesToUpload.length; i++) {
+                formData.append('documents', filesToUpload[i]);
+            }
+            
+            // ارسال فرم با Ajax
+            $.ajax({
+                url: $(this).attr('action') || window.location.href,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    // بازیابی صفحه بعد از موفقیت
+                    window.location.reload();
+                },
+                error: function(xhr, status, error) {
+                    alert('خطا در ارسال فرم: ' + error);
+                }
+            });
+        } else {
+            // اگر فایلی وجود نداشت، فرم را به صورت عادی ارسال کن
+            this.submit();
+        }
+    });
 });
 </script>
 
@@ -694,6 +888,27 @@ $(document).ready(function() {
         background-color: rgba(6, 95, 70, 0.05);
         border-color: rgba(6, 95, 70, 0.1);
         color: var(--primary-color);
+    }
+    
+    /* استایل‌های آپلود فایل */
+    .dropzone-container {
+        transition: all 0.3s;
+        cursor: pointer;
+        border: 2px dashed #ddd;
+    }
+    
+    .dropzone-container:hover {
+        border-color: var(--primary-color);
+        background-color: rgba(6, 95, 70, 0.03);
+    }
+    
+    .border-dashed {
+        border-style: dashed !important;
+    }
+    
+    .file-name {
+        font-size: 0.9rem;
+        font-weight: 500;
     }
     
     /* انیمیشن‌ها */

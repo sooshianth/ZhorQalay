@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}ایجاد تسک جدید{% endblock %}
+
+{% block extra_css %}
+{% include 'todo_styles.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="todo-container">
+    <a href="{% url 'todo_dashboard' %}" class="back-link">
+        <i class="fas fa-arrow-right"></i> بازگشت به داشبورد
+    </a>
+    
+    <h1 class="todo-title">
+        <i class="fas fa-plus-circle"></i> ایجاد تسک جدید
+    </h1>
+    
+    <form method="post" class="todo-form">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="title">عنوان تسک *</label>
+            <input type="text" name="title" id="title" required placeholder="عنوان تسک را وارد کنید...">
+        </div>
+        
+        <div class="form-group">
+            <label for="description">توضیحات تسک</label>
+            <textarea name="description" id="description" rows="4" placeholder="توضیحات تسک را وارد کنید..."></textarea>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="category">دسته‌بندی</label>
+                <select name="category" id="category">
+                    <option value="">-- بدون دسته‌بندی --</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}">{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="status">وضعیت</label>
+                <select name="status" id="status">
+                    <option value="pending" selected>در انتظار</option>
+                    <option value="in_progress">در حال انجام</option>
+                    <option value="deferred">به تعویق افتاده</option>
+                    <option value="completed">تکمیل شده</option>
+                    <option value="canceled">لغو شده</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="priority">اولویت</label>
+                <select name="priority" id="priority">
+                    <option value="low">کم</option>
+                    <option value="medium" selected>متوسط</option>
+                    <option value="high">زیاد</option>
+                    <option value="urgent">فوری</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="color">رنگ</label>
+                <input type="color" name="color" id="color" value="#ffffff">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="due_date">تاریخ سررسید</label>
+                <input type="date" name="due_date" id="due_date">
+            </div>
+            
+            <div class="form-group">
+                <label for="due_time">زمان سررسید</label>
+                <input type="time" name="due_time" id="due_time">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="tags">برچسب‌ها</label>
+            <input type="text" name="tags" id="tags" placeholder="برچسب‌ها را با کاما جدا کنید...">
+        </div>
+        
+        <div class="form-group">
+            <label for="notes">یادداشت‌ها</label>
+            <textarea name="notes" id="notes" rows="3" placeholder="یادداشت‌های اضافی..."></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="remind_before">یادآوری قبل از سررسید (دقیقه)</label>
+            <input type="number" name="remind_before" id="remind_before" value="0" min="0">
+        </div>
+        
+        <button type="submit">ایجاد تسک</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ایجاد انتخابگر تاریخ جلالی اگر کتابخانه وجود داشته باشد
+    if (typeof $ !== 'undefined' && $.fn.persianDatepicker) {
+        $('#due_date').persianDatepicker({
+            format: 'YYYY/MM/DD',
+            autoClose: true,
+            initialValueType: 'persian',
+            persianDigit: false
+        });
+    }
+});
+</script>
+{% endblock %}
