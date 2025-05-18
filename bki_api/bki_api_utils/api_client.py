@@ -11,7 +11,7 @@ import xmltodict
 import urllib3
 from django.conf import settings
 from ..models import BKILog
-from .data_processing import process_purchase_data
+from .data_processing import process_purchase_data, group_purchase_data_by_id, process_grouped_purchase_data
 
 # Disable SSL warnings for compatibility with the API
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -311,41 +311,104 @@ def test_api_connection():
 
 def get_all_bazaargah_purchases():
     """
-    Get all purchases from the BKI marketplace and save them to the database.
-    
-    This function uses the BKI API to get all purchases, updates existing ones,
-    and creates new ones.
-    
+    دریافت همه خریدهای بازارگاه با استفاده از API
+
     Returns:
         tuple: (total_count, success_count, created_count, updated_count, failed_count, errors)
-            - total_count: The total number of purchases found
-            - success_count: The number of purchases successfully processed
-            - created_count: The number of new purchases created
-            - updated_count: The number of existing purchases updated
-            - failed_count: The number of purchases that could not be processed
-            - errors: A list of error messages
+            - total_count: تعداد کل خریدها
+            - success_count: تعداد خریدهایی که با موفقیت پردازش شدند
+            - created_count: تعداد خریدهایی که جدید ایجاد شدند
+            - updated_count: تعداد خریدهایی که به‌روزرسانی شدند
+            - failed_count: تعداد خریدهایی که با خطا مواجه شدند
+            - errors: لیست خطاها
     """
-    # Get BKI API credentials
-    username, password = get_bki_credentials()
-    if not username or not password:
-        return 0, 0, 0, 0, 0, ["اطلاعات کاربری API بازارگاه در تنظیمات وجود ندارد"]
-    
-    # Test the connection to the API server
-    is_connected, connection_message = test_api_connection()
-    if not is_connected:
-        return 0, 0, 0, 0, 0, [f"خطا در اتصال به API بازارگاه: {connection_message}"]
-    
-    print("تست اتصال به API بازارگاه موفقیت‌آمیز بود. درحال دریافت خریدها...")
-    
-    # To get all purchases, we use a sample purchase ID
-    sample_kharid_id = "1"  # A sample purchase ID
-    
-    # Send a SOAP request using the send_soap_request function
-    purchases_data, log_entry, error = send_soap_request(sample_kharid_id)
-    
+    # Get API credentials
+    username, password, error = get_bki_credentials()
     if error:
-        print(f"خطا در ارسال درخواست SOAP: {error}")
-        return 0, 0, 0, 0, 0, [f"خطا در ارسال درخواست SOAP: {error}"]
+        return 0, 0, 0, 0, 0, [error]
+    
+    try:
+        # Build the API request
+        url = "https://spsws.bki.ir/spsws.asmx"
+        soap_request = f"""<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <GetKharidList xmlns="http://tempuri.org/">
+      <userName>{username}</userName>
+      <pass>{password}</pass>
+    </GetKharidList>
+  </soap:Body>
+</soap:Envelope>"""
+        
+        # Set request headers
+        headers = {
+            'Content-Type': 'text/xml; charset=utf-8',
+            'SOAPAction': 'http://tempuri.org/GetKharidList',
+            'Host': 'spsws.bki.ir'
+        }
+        
+        # Create log entry
+        from bki_api.models import BKILog
+        log_entry = BKILog(
+            request_type='GetKharidList',
+            request_data=soap_request
+        )
+        
+        # Send the request
+        response = requests.post(url, data=soap_request, headers=headers, verify=False)
+        log_entry.response_data = response.text
+        
+        if response.status_code != 200:
+            error_message = f"خطای HTTP: {response.status_code}"
+            log_entry.is_successful = False
+            log_entry.error_message = error_message
+            log_entry.save()
+            return 0, 0, 0, 0, 0, [error_message]
+        
+        # Parse the XML response
+        try:
+            # Analyze the API response to ensure it's valid
+            analysis = analyze_api_response(response.text)
+            if not analysis['is_valid']:
+                log_entry.is_successful = False
+                log_entry.error_message = f"خطا در تحلیل پاسخ: {analysis['error']}"
+                log_entry.save()
+                return 0, 0, 0, 0, 0, [f"خطا در تحلیل پاسخ: {analysis['error']}"]
+            
+            # Parse the XML response
+            import xmltodict
+            response_dict = xmltodict.parse(response.text)
+            
+            # Extract the purchase data from the response
+            soap_body = response_dict['soap:Envelope']['soap:Body']
+            purchases_data = []
+            
+            if 'GetKharidListResponse' in soap_body:
+                result = soap_body['GetKharidListResponse']['GetKharidListResult']
+                if 'diffgr:diffgram' in result:
+                    diffgram = result['diffgr:diffgram']
+                    if 'NewDataSet' in diffgram and diffgram['NewDataSet']:
+                        if 'Table1' in diffgram['NewDataSet']:
+                            table1 = diffgram['NewDataSet']['Table1']
+                            if isinstance(table1, list):
+                                purchases_data = table1
+                            else:
+                                purchases_data = [table1]
+            
+            log_entry.is_successful = True
+            log_entry.error_message = ''
+            log_entry.save()
+            
+        except Exception as e:
+            error_message = f"خطا در تجزیه پاسخ: {str(e)}"
+            log_entry.is_successful = False
+            log_entry.error_message = error_message
+            log_entry.save()
+            return 0, 0, 0, 0, 0, [error_message]
+    
+    except Exception as e:
+        error_message = f"خطا در ارسال درخواست: {str(e)}"
+        return 0, 0, 0, 0, 0, [error_message]
     
     # Check if no purchase data was found
     if not purchases_data:
@@ -355,22 +418,27 @@ def get_all_bazaargah_purchases():
     # Print the number of purchases found for debugging
     print(f"تعداد خریدهای یافت شده: {len(purchases_data)}")
     
-    # Process purchase data using the process_purchase_data function
-    total_count = len(purchases_data)
+    # Group purchases by purchase ID
+    from .data_processing import group_purchase_data_by_id, process_grouped_purchase_data
+    
+    grouped_data = group_purchase_data_by_id(purchases_data)
+    print(f"خریدها به {len(grouped_data)} گروه تقسیم شدند")
+    
+    # Process grouped purchase data
+    total_count = len(grouped_data)
     success_count = 0
     created_count = 0
     updated_count = 0
     failed_count = 0
     errors = []
     
-    for purchase_data in purchases_data:
+    # Process each group
+    for purchase_id, entries in grouped_data.items():
         try:
-            # Print the purchase ID for debugging
-            purchase_id = purchase_data.get('kharididentity', purchase_data.get('idkharid', 'نامشخص'))
-            print(f"پردازش خرید با شناسه: {purchase_id}")
+            print(f"پردازش گروه خرید با شناسه: {purchase_id} (تعداد رکورد: {len(entries)})")
             
-            # Use the process_purchase_data function to process each purchase
-            purchase, created, error = process_purchase_data(purchase_data, create_if_not_exists=True)
+            # Process the group
+            purchase, created, error = process_grouped_purchase_data(entries, create_if_not_exists=True)
             if purchase:
                 success_count += 1
                 if created:
@@ -386,7 +454,6 @@ def get_all_bazaargah_purchases():
                     print(f"خطا در پردازش خرید {purchase_id}: {error}")
         except Exception as e:
             failed_count += 1
-            purchase_id = purchase_data.get('kharididentity', purchase_data.get('idkharid', 'نامشخص'))
             errors.append(f"خطا در پردازش خرید {purchase_id}: {str(e)}")
             print(f"خطا در پردازش خرید {purchase_id}: {str(e)}")
     

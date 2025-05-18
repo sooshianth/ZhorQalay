@@ -8,6 +8,7 @@ from .models.ApiLogModel import BKIApiLog
 from core.decorators.decorators import role_required
 from .API.insertBarnameh import send_barnameh_to_bki, send_multiple_barnameh_to_bki
 from .API.EditBarnameh import edit_barnameh_api
+from .API.EstelameBarnameh import estelame_barnameh
 import json
 import os
 from django.conf import settings
@@ -478,4 +479,31 @@ def bulk_edit(request):
         return render(request, 'bki_barnameh/bulk_edit.html', {'barnamehs': barnamehs})
     
     return redirect('barnameh_list')
+
+@role_required('logistics_manager', 'admin')
+def estelame_barnameh_view(request, barnameh_id):
+    """
+    استعلام بارنامه از بازارگاه
+    """
+    if request.method == 'POST':
+        # Get date parameters from request
+        from_date = request.POST.get('from_date', None)
+        to_date = request.POST.get('to_date', None)
+        
+        # Call API function
+        result = estelame_barnameh(barnameh_id, from_date, to_date)
+        
+        if result['success']:
+            messages.success(request, 'استعلام بارنامه با موفقیت انجام شد.')
+            # Pass data to template
+            barnameh = get_object_or_404(Barnameh, id=barnameh_id)
+            return render(request, 'bki_barnameh/barnameh_estelam.html', {
+                'barnameh': barnameh,
+                'estelam_data': result['data']
+            })
+        else:
+            messages.error(request, result['message'])
+            return redirect('barnameh_detail', barnameh_id=barnameh_id)
+    else:
+        return redirect('barnameh_detail', barnameh_id=barnameh_id)
 

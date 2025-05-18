@@ -65,20 +65,14 @@ class Barnameh(models.Model):
         except Exception as e:
             print(f"Error setting the purchase number and shenase takhsis code: {e}")
 
-    def set_the_barnameh_for_purchase(self):
-        try:
-            if self.purchase and self.number:
-                self.purchase.barnameh_object=self
-                self.purchase.barnameh=self.number
-                self.purchase.save()
-        except Exception as e:
-            print(f"Error setting the barnameh for purchase: {e}")
 
     def log_barnameh_edit(self, request):
         BarnamehLog.objects.create(barnameh=self, log_message=f"بارنامه توسط {request.user.username} ویرایش شد", log_date=timezone.now())
     
     def fill_the_purchase_number_if_we_got_shenase_takhsis(self):
         try:
+            if self.shenase_takhsis:
+                self.shenase_takhsis_code=self.shenase_takhsis.code
             if self.shenase_takhsis_code:
                 self.shenase_takhsis_code=str(round(int(self.shenase_takhsis_code)))
                 purchase=ShenaseTakhsis.objects.get(code=self.shenase_takhsis_code).purchase
@@ -93,11 +87,8 @@ class Barnameh(models.Model):
             self.set_the_purchase_and_shenase_takhsis()
         if not self.purchase_number or not self.shenase_takhsis_code:
             self.set_the_purchase_number_and_shenase_takhsis_code()
-        if not self.purchase_number:
+        if (not self.purchase_number) and self.shenase_takhsis:
             self.fill_the_purchase_number_if_we_got_shenase_takhsis()
-        if not is_new:
-            if not self.purchase.barnameh or not self.purchase.barnameh_object:
-                self.set_the_barnameh_for_purchase()
         super().save(*args, **kwargs)
 
 

@@ -18,6 +18,29 @@ def handle_uploaded_file(file, file_name):
     excel_file.save()
     return excel_file
 
+def clean_numeric_value(value):
+    """
+    تبدیل اعداد اعشاری به صحیح (بدون اعشار) و تبدیل به رشته
+    """
+    if pd.isna(value) or value == '':
+        return ''
+        
+    try:
+        # اگر عدد اعشاری باشد، اعشار آن را حذف می‌کنیم
+        if isinstance(value, (int, float)):
+            return str(int(value))
+        # اگر رشته باشد که حاوی عدد اعشاری است، آن را تبدیل می‌کنیم
+        elif isinstance(value, str) and '.' in value and value.replace('.', '', 1).isdigit():
+            try:
+                return str(int(float(value)))
+            except:
+                return value
+        # در غیر این صورت، همان مقدار را برمی‌گردانیم
+        return str(value)
+    except:
+        # در صورت بروز خطا، همان مقدار را به صورت رشته برمی‌گردانیم
+        return str(value) if value is not None else ''
+
 def process_excel_file(excel_file_id):
     """
     Process the uploaded Excel file and create Barnameh objects
@@ -37,18 +60,30 @@ def process_excel_file(excel_file_id):
         processed_rows = 0
         for index, row in df.iterrows():
             try:
-                # Extract data from Excel row
-                barnameh_number = str(row.get('شماره بارنامه', ''))
+                # Extract data from Excel row and clean numeric values
+                barnameh_number = clean_numeric_value(row.get('شماره بارنامه', ''))
                 barnameh_serial = str(row.get('سریال بارنامه', ''))
-                tonnage = float(row.get('وزن', 0))
+                
+                # تبدیل وزن به عدد با حفظ دقت اعشار (اگر لازم باشد)
+                tonnage_raw = row.get('وزن', 0)
+                if pd.isna(tonnage_raw):
+                    tonnage = 0
+                else:
+                    try:
+                        tonnage = float(tonnage_raw)
+                    except:
+                        tonnage = 0
+                
                 driver_phone = str(row.get('شماره تلفن راننده', ''))
                 driver_name = str(row.get('نام راننده', ''))
                 vehicle_plate = str(row.get('پلاک خودرو', ''))
                 receiver_name = str(row.get('نام گیرنده', ''))
                 destination = str(row.get('مقصد', ''))
                 barnameh_date_str = row.get('تاریخ بارنامه', '')
-                purchase_number = str(row.get('شناسه خرید', ''))
-                shenase_takhsis_code = str(row.get('شناسه تخصیص', ''))
+                
+                # پاکسازی شناسه خرید و شناسه تخصیص
+                purchase_number = clean_numeric_value(row.get('شناسه خرید', ''))
+                shenase_takhsis_code = clean_numeric_value(row.get('شناسه تخصیص', ''))
                 
                 # Convert date string to JDate
                 barnameh_date = None
@@ -86,7 +121,7 @@ def process_excel_file(excel_file_id):
                 # Only try to associate with purchase if purchase_number is not empty or just whitespace
                 if purchase_number and purchase_number.strip() and barnameh:
                     try:
-                        purchase_number=str(round(float(purchase_number)))
+                        # استفاده از شناسه خرید تمیز شده
                         purchase = Purchase.objects.get(purchase_number=purchase_number)
                         purchase.barnameh = barnameh_number
                         purchase.barnameh_object = barnameh

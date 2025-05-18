@@ -27,42 +27,30 @@
     </div>
     <div class="card-body p-4">
         {% if barnamehs %}
-        <div class="mb-4 d-flex justify-content-between">
-            <div class="dropdown">
-                <button type="button" id="bulk-action-btn" class="btn btn-primary btn-sm rounded-pill shadow-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" disabled>
-                    <i class="fas fa-cog me-1"></i>
-                    عملیات گروهی
-                </button>
-                <ul class="dropdown-menu shadow-sm border-0">
-                    <li>
-                        <a href="#" id="bulk-send-btn" class="dropdown-item">
-                            <i class="fas fa-paper-plane me-2 text-primary"></i>
-                            ارسال به بازارگاه
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" id="bulk-export-btn" class="dropdown-item">
-                            <i class="fas fa-file-export me-2 text-success"></i>
-                            خروجی اکسل
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" id="bulk-edit-btn" class="dropdown-item">
-                            <i class="fas fa-edit me-2 text-warning"></i>
-                            ویرایش گروهی
-                        </a>
-                    </li>
-                </ul>
-            </div>
-            <a href="{% url 'export_excel' %}" class="btn btn-success btn-sm rounded-pill shadow-sm">
-                <i class="fas fa-file-export me-1"></i>
-                خروجی اکسل (همه)
-            </a>
-        </div>
-        
-        <form id="bulk-action-form" method="post">
+        <!-- شروع فرم عملیات گروهی - بازنویسی شده به صورت کاملاً ساده -->
+        <form id="bulk-action-form" method="post" action="">
             {% csrf_token %}
-            <input type="hidden" name="action" id="bulk-action-type" value="">
+            
+            <div class="mb-4 d-flex justify-content-between">
+                <div>
+                    <button type="submit" id="bulk-send-btn" class="btn btn-primary btn-sm rounded-pill shadow-sm me-2" name="action" value="send" formaction="{% url 'bulk_send_to_bki' %}">
+                        <i class="fas fa-paper-plane me-1"></i>
+                        ارسال به بازارگاه
+                    </button>
+                    <button type="submit" id="bulk-export-btn" class="btn btn-success btn-sm rounded-pill shadow-sm me-2" name="action" value="export" formaction="{% url 'export_excel' %}">
+                        <i class="fas fa-file-export me-1"></i>
+                        خروجی اکسل
+                    </button>
+                    <button type="submit" id="bulk-edit-btn" class="btn btn-warning btn-sm rounded-pill shadow-sm" name="action" value="edit" formaction="{% url 'bulk_edit' %}">
+                        <i class="fas fa-edit me-1"></i>
+                        ویرایش گروهی
+                    </button>
+                </div>
+                <a href="{% url 'export_excel' %}" class="btn btn-success btn-sm rounded-pill shadow-sm">
+                    <i class="fas fa-file-export me-1"></i>
+                    خروجی اکسل (همه)
+                </a>
+            </div>
             
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
@@ -157,80 +145,51 @@
 
 {% block extra_js %}
 <script>
+    // کد ساده‌تر جاوااسکریپت - فقط برای عملکرد انتخاب همه
     document.addEventListener('DOMContentLoaded', function() {
-        // تابع بروزرسانی وضعیت دکمه عملیات گروهی
-        function updateBulkActionButton() {
-            var checkedCount = document.querySelectorAll('.barnameh-checkbox:checked').length;
-            var bulkActionBtn = document.getElementById('bulk-action-btn');
-            
-            if (checkedCount > 0) {
-                bulkActionBtn.disabled = false;
-            } else {
-                bulkActionBtn.disabled = true;
-            }
+        // انتخاب همه گزینه‌ها
+        var selectAllCheckbox = document.getElementById('select-all');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                var checkboxes = document.querySelectorAll('.barnameh-checkbox');
+                checkboxes.forEach(function(checkbox) {
+                    checkbox.checked = selectAllCheckbox.checked;
+                });
+            });
         }
-
-        // مدیریت چک‌باکس انتخاب همه
-        document.getElementById('select-all').addEventListener('change', function() {
-            var isChecked = this.checked;
-            document.querySelectorAll('.barnameh-checkbox').forEach(function(checkbox) {
-                checkbox.checked = isChecked;
-            });
-            updateBulkActionButton();
-        });
         
-        // مدیریت چک‌باکس‌های انفرادی
-        document.querySelectorAll('.barnameh-checkbox').forEach(function(checkbox) {
-            checkbox.addEventListener('change', function() {
-                updateBulkActionButton();
-                
-                // بررسی وضعیت چک‌باکس انتخاب همه
-                var totalCheckboxes = document.querySelectorAll('.barnameh-checkbox').length;
-                var checkedCheckboxes = document.querySelectorAll('.barnameh-checkbox:checked').length;
-                
-                document.getElementById('select-all').checked = (totalCheckboxes === checkedCheckboxes);
-            });
-        });
-        
-        // مدیریت دکمه ارسال گروهی
-        document.getElementById('bulk-send-btn').addEventListener('click', function(e) {
-            e.preventDefault();
-            if (confirm('آیا از ارسال بارنامه‌های انتخاب شده به بازارگاه اطمینان دارید؟')) {
-                document.getElementById('bulk-action-type').value = 'send';
-                document.getElementById('bulk-action-form').action = '{% url "bulk_send_to_bki" %}';
-                document.getElementById('bulk-action-form').submit();
-            }
-        });
-        
-        // مدیریت دکمه خروجی اکسل گروهی
-        document.getElementById('bulk-export-btn').addEventListener('click', function(e) {
-            e.preventDefault();
-            document.getElementById('bulk-action-type').value = 'export';
-            document.getElementById('bulk-action-form').action = '{% url "export_excel" %}';
-            document.getElementById('bulk-action-form').submit();
-        });
-        
-        // مدیریت دکمه ویرایش گروهی
-        document.getElementById('bulk-edit-btn').addEventListener('click', function(e) {
-            e.preventDefault();
-            document.getElementById('bulk-action-type').value = 'edit';
-            document.getElementById('bulk-action-form').action = '{% url "bulk_edit" %}';
-            document.getElementById('bulk-action-form').submit();
-        });
-        
-        // اضافه کردن رویداد کلیک به ردیف‌های جدول
-        document.querySelectorAll('tr.align-middle').forEach(function(row) {
+        // زمانی که روی هر سطر کلیک می‌شود، چک‌باکس آن تغییر وضعیت دهد
+        var rows = document.querySelectorAll('tr.align-middle');
+        rows.forEach(function(row) {
             row.addEventListener('click', function(e) {
+                // فقط اگر روی سلول کلیک شده باشد (نه روی دکمه‌ها یا چک‌باکس‌ها)
                 if (e.target.tagName === 'TD') {
                     var checkbox = this.querySelector('.barnameh-checkbox');
-                    checkbox.checked = !checkbox.checked;
-                    updateBulkActionButton();
+                    if (checkbox) {
+                        checkbox.checked = !checkbox.checked;
+                    }
                 }
             });
         });
         
-        // فعال‌سازی اولیه دکمه عملیات گروهی
-        updateBulkActionButton();
+        // اعتبارسنجی فرم قبل از ارسال
+        var actionButtons = document.querySelectorAll('#bulk-send-btn, #bulk-export-btn, #bulk-edit-btn');
+        actionButtons.forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                var checkedBoxes = document.querySelectorAll('.barnameh-checkbox:checked');
+                if (checkedBoxes.length === 0) {
+                    e.preventDefault();
+                    alert('لطفاً حداقل یک بارنامه را انتخاب کنید.');
+                }
+                
+                // اضافه کردن تایید برای ارسال به بازارگاه
+                if (this.id === 'bulk-send-btn' && checkedBoxes.length > 0) {
+                    if (!confirm('آیا از ارسال بارنامه‌های انتخاب شده به بازارگاه اطمینان دارید؟')) {
+                        e.preventDefault();
+                    }
+                }
+            });
+        });
     });
 </script>
 {% endblock %} 

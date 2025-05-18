@@ -16,6 +16,7 @@ from django.db import transaction
 from django.utils import timezone
 import datetime
 import json
+import traceback  # For detailed error logging
 
 def update_env_file(key, value):
     """به‌روزرسانی یک کلید مشخص در فایل .env"""
@@ -324,13 +325,11 @@ def get_all_bazaargah_purchases_view(request):
         return render(request, 'bki_api/get_all_purchases_results.html', context)
         
     except Exception as e:
-        import traceback
         error_details = traceback.format_exc()
         error_message = f"خطا در اجرای تابع دریافت خریدها: {str(e)}"
         messages.error(request, error_message)
         
         # ثبت خطا در لاگ
-        from .models import BKILog
         log_entry = BKILog(
             request_type='getAllKharidInfo',
             is_successful=False,
@@ -345,6 +344,12 @@ def get_all_bazaargah_purchases_view(request):
 def merge_purchases_view(request):
     """
     ادغام خرید ایجاد شده توسط کارشناس فروش با خرید ایجاد شده توسط API بازارگاه
+    
+    این تابع خرید ایجاد شده به صورت دستی توسط کارشناس فروش را با خرید ایجاد شده توسط API بازارگاه ادغام می‌کند.
+    از خرید دستی، فقط شناسه invoice_id، مشتری و کارشناسان فروش منتقل می‌شوند و بقیه اطلاعات از خرید API استفاده می‌شود.
+    
+    ملاک تشخیص خرید دستی، نداشتن شماره خرید (purchase_number) است.
+    ملاک تشخیص خرید API، داشتن شماره خرید (purchase_number) است.
     """
     if request.method != 'POST':
         return JsonResponse({
@@ -352,19 +357,25 @@ def merge_purchases_view(request):
             'error': 'درخواست باید با متد POST ارسال شود'
         }, status=400)
     
+    # دریافت شناسه خریدها از درخواست
     try:
-        data = json.loads(request.body)
+        # بررسی نوع درخواست: JSON یا Form Data
+        if request.body and 'application/json' in request.headers.get('Content-Type', ''):
+            data = json.loads(request.body)
+            agent_purchase_id = data.get('manual_purchase_id') or data.get('agent_purchase_id')
+            api_purchase_id = data.get('bazaargah_purchase_id') or data.get('api_purchase_id')
+        else:
+            # اگر درخواست به صورت Form Data است
+            agent_purchase_id = request.POST.get('agent_purchase_id') or request.POST.get('manual_purchase_id')
+            api_purchase_id = request.POST.get('api_purchase_id') or request.POST.get('bazaargah_purchase_id')
     except json.JSONDecodeError:
         return JsonResponse({
             'success': False,
             'error': 'داده‌های JSON نامعتبر'
         }, status=400)
     
-    # دریافت شناسه خریدها
-    manual_purchase_id = data.get('manual_purchase_id')
-    bazaargah_purchase_id = data.get('bazaargah_purchase_id')
-    
-    if not manual_purchase_id or not bazaargah_purchase_id:
+    # بررسی وجود شناسه‌های خرید
+    if not agent_purchase_id or not api_purchase_id:
         return JsonResponse({
             'success': False,
             'error': 'شناسه خرید دستی و شناسه خرید بازارگاه الزامی هستند'
@@ -373,66 +384,96 @@ def merge_purchases_view(request):
     try:
         # یافتن خریدها
         try:
-            manual_purchase = Purchase.objects.get(id=manual_purchase_id)
+            agent_purchase = Purchase.objects.get(id=agent_purchase_id)
         except Purchase.DoesNotExist:
             return JsonResponse({
                 'success': False,
-                'error': f'خرید دستی با شناسه {manual_purchase_id} یافت نشد'
+                'error': f'خرید دستی با شناسه {agent_purchase_id} یافت نشد'
             }, status=404)
         
         try:
-            bazaargah_purchase = Purchase.objects.get(id=bazaargah_purchase_id)
+            api_purchase = Purchase.objects.get(id=api_purchase_id)
         except Purchase.DoesNotExist:
             return JsonResponse({
                 'success': False,
-                'error': f'خرید بازارگاه با شناسه {bazaargah_purchase_id} یافت نشد'
+                'error': f'خرید بازارگاه با شناسه {api_purchase_id} یافت نشد'
             }, status=404)
         
-        # بررسی نوع خریدها
-        if manual_purchase.type != 'non_bazaargah':
+        # بررسی داشتن/نداشتن شماره خرید
+        if agent_purchase.purchase_number:
             return JsonResponse({
                 'success': False,
-                'error': f'خرید {manual_purchase_id} یک خرید خارج از بازارگاه نیست'
+                'error': f'خرید {agent_purchase_id} دارای شماره خرید بازارگاه است و نمی‌تواند به عنوان خرید دستی ادغام شود'
             }, status=400)
         
-        if bazaargah_purchase.type != 'bazaargah':
+        if not api_purchase.purchase_number:
             return JsonResponse({
                 'success': False,
-                'error': f'خرید {bazaargah_purchase_id} یک خرید بازارگاه نیست'
+                'error': f'خرید {api_purchase_id} فاقد شماره خرید بازارگاه است و نمی‌تواند به عنوان خرید API ادغام شود'
             }, status=400)
         
-        # ادغام خریدها
+        # بررسی محدودیت زمانی 24 ساعت
+        time_threshold = timezone.now() - datetime.timedelta(hours=24)
+        if api_purchase.created_at < time_threshold:
+            return JsonResponse({
+                'success': False,
+                'error': 'امکان ادغام خرید‌های بازارگاه با عمر بیشتر از 24 ساعت وجود ندارد'
+            }, status=400)
+        
+        # ادغام خریدها با استفاده از تراکنش برای اطمینان از یکپارچگی داده‌ها
         with transaction.atomic():
-            # حفظ مشتری و شناسه فاکتور از خرید دستی
-            customer = manual_purchase.customer
-            invoice_id = manual_purchase.invoice_id
+            # ذخیره اطلاعات مشتری، invoice_id و کارشناسان فروش از خرید دستی
+            customer = agent_purchase.customer
+            invoice_id = agent_purchase.invoice_id
+            sales_agents = list(agent_purchase.purchase_sales_agents.all())
             
-            # به‌روزرسانی خرید بازارگاه
-            bazaargah_purchase.customer = customer
-            bazaargah_purchase.invoice_id = invoice_id
+            # تنظیم مشتری و شناسه فاکتور در خرید API
+            api_purchase.customer = customer
             
-            # به‌روزرسانی کارشناسان فروش
-            for relation in manual_purchase.purchase_sales_agents.all():
-                if not bazaargah_purchase.purchase_sales_agents.filter(sales_agent=relation.sales_agent).exists():
-                    from core.PurchaseModel import PuchaseSalesAgent
-                    PuchaseSalesAgent.objects.create(
-                        purchase=bazaargah_purchase,
-                        sales_agent=relation.sales_agent
-                    )
+            # برای جلوگیری از مشکل UNIQUE constraint در invoice_id:
+            # ابتدا invoice_id خرید API را به یک مقدار موقت تغییر می‌دهیم
+            temp_invoice_id = api_purchase.invoice_id
+            api_purchase.invoice_id = None
+            api_purchase.save()
             
-            # ذخیره تغییرات
-            bazaargah_purchase.save()
+            # در مرحله بعد، حذف خرید دستی
+            agent_purchase.delete()
             
-            # حذف خرید دستی
-            manual_purchase.delete()
+            # پس از حذف خرید دستی، invoice_id آن را به خرید API اختصاص می‌دهیم
+            api_purchase.invoice_id = invoice_id
+            api_purchase.save()
+            
+            # انتقال روابط کارشناسان فروش
+            from core.PurchaseModel import PuchaseSalesAgent
+            
+            # ابتدا تمام روابط کارشناسان فروش موجود را پاک می‌کنیم
+            api_purchase.purchase_sales_agents.all().delete()
+            
+            # سپس کارشناسان فروش از خرید دستی را اضافه می‌کنیم
+            for relation in sales_agents:
+                PuchaseSalesAgent.objects.create(
+                    purchase=api_purchase,
+                    sales_agent=relation.sales_agent
+                )
+            
+            # ثبت تغییرات در تاریخچه خرید
+            from core.PurchaseModel import PurchaseHistory
+            PurchaseHistory.objects.create(
+                purchase=api_purchase,
+                user=request.user,
+                changes=f"ادغام با خرید دستی شماره {agent_purchase_id} - مشتری: {customer.name if customer else 'نامعلوم'}"
+            )
             
             return JsonResponse({
                 'success': True,
-                'message': f'خرید دستی {manual_purchase_id} با خرید بازارگاه {bazaargah_purchase_id} با موفقیت ادغام شد',
-                'merged_purchase_id': bazaargah_purchase_id
+                'message': f'خرید دستی {agent_purchase_id} با خرید بازارگاه {api_purchase_id} با موفقیت ادغام شد',
+                'merged_purchase_id': api_purchase_id
             })
             
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"خطا در ادغام خریدها: {str(e)}\n{error_details}")
         return JsonResponse({
             'success': False,
             'error': f'خطا در ادغام خریدها: {str(e)}'

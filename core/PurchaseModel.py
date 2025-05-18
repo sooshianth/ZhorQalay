@@ -74,11 +74,11 @@ class Purchase(models.Model):
     bazaargah_phone_number = models.CharField("شماره تلفن بازارگاه", max_length=11, blank=True, null=True)
     buyer_name = models.CharField("نام خریدار", max_length=255, blank=True, null=True)
     tahvil_phone_number = models.CharField("شماره تلفن تحویل", max_length=11, blank=True, null=True)
-    barnameh = models.CharField("شماره بارنامه", max_length=255, blank=True, null=True)
     
     send_cottage_sms = models.BooleanField('ارسال پیامک کوتاژ', default=True)
+    total_weight = models.PositiveIntegerField("وزن کل (کیلوگرم)", default=0, null=True, blank=True)
     order_weight = models.PositiveIntegerField("وزن سفارش (کیلوگرم)", default=0)
-    delivered_weight = models.PositiveIntegerField("وزن تحویلی (کیلوگرم)", default=0)
+    delivered_weight = models.PositiveIntegerField("وزن بارنامه شده (کیلوگرم)", default=0)
     cargo = models.ForeignKey(CargoProduct,on_delete=models.SET_NULL, verbose_name="کوتاژ", null=True, blank=True, related_name='purchases')
     type = models.CharField("نوع خرید", max_length=25, default='bazaargah', choices=[('bazaargah', 'بازارگاه'), ('non_bazaargah', 'خارج از بازارگاه')])
     amount_paid = models.PositiveBigIntegerField("مبلغ پرداختی(ریال)", blank=True, null=True)
@@ -97,8 +97,6 @@ class Purchase(models.Model):
 
     is_fully_tasvied = models.BooleanField("تسویه کامل", default=False)
     is_factored = models.BooleanField("ثبت فاکتور", default=False)
-
-    barnameh_object = models.ForeignKey('bki_barnameh.Barnameh', verbose_name='بارنامه', on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_from_barnameh')
 
     PRIORITY_CHOICES = [
         ('low', 'عادی'),
@@ -675,6 +673,7 @@ class PurchaseHistory(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     changes = models.TextField("تغییرات")
     timestamp = jmodels.jDateTimeField(auto_now_add=True)
+    
 
     class Meta:
         verbose_name = "تاریخچه خرید"
@@ -702,9 +701,9 @@ class PurchaseStateChange(models.Model):
 class ShenaseTakhsis(models.Model):
     purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='shenase_takhsis_set', verbose_name="خرید مرتبط")
     code = models.CharField("شناسه تخصیص", max_length=255, unique=True)
-    weight = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="وزن", null=True, blank=True)
+    weight = models.PositiveIntegerField(verbose_name="وزن تخصیص", null=True, blank=True)
     created_at = jmodels.jDateTimeField("تاریخ ثبت", auto_now_add=True)
-    
+
     class Meta:
         verbose_name = "شناسه تخصیص"
         verbose_name_plural = "شناسه‌های تخصیص"

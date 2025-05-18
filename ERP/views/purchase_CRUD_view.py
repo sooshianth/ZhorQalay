@@ -960,6 +960,11 @@ def upload_purchase_document(request, purchase_id):
 def link_bazaargah_purchase(request, purchase_id):
     """
     ارتباط دادن خرید موجود با خرید بازارگاه از طریق شماره خرید
+    
+    این تابع به کارشناس فروش اجازه می‌دهد تا خرید دستی را که ایجاد کرده،
+    با خرید بازارگاه که توسط API ایجاد شده است ادغام کند.
+    مشتری، شناسه فاکتور و کارشناس فروش از خرید دستی حفظ می‌شود،
+    اما سایر اطلاعات از خرید API می‌آید.
     """
     purchase = get_object_or_404(Purchase, id=purchase_id)
     user_role = determine_user_role(request.user)
@@ -969,12 +974,8 @@ def link_bazaargah_purchase(request, purchase_id):
         messages.error(request, 'شما اجازه انجام این عملیات را ندارید')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
     
-    # بررسی دسترسی کارشناس فروش به خرید
-    # if user_role == 'sales_agent':
-    #     sales_agent = SalesAgent.objects.get(user=request.user)
-    #     if not purchase.sales_agent.filter(id=sales_agent.id).exists():
-    #         messages.error(request, 'شما اجازه دسترسی به این خرید را ندارید')
-    #         return redirect('purchase_CRUD', purchase_id=purchase_id)
+    # بررسی دسترسی کارشناس فروش به خرید - برداشته شد برای رفع مشکل محدودیت دسترسی
+    # اجازه ادغام به همه کارشناسان فروش و مدیران داده می‌شود
     
     # بررسی نوع درخواست
     if request.method != 'POST':
@@ -987,13 +988,22 @@ def link_bazaargah_purchase(request, purchase_id):
         messages.error(request, 'شماره خرید بازارگاه الزامی است')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
     
+    # اطمینان از اینکه شماره خرید 7 رقمی است
+    if not purchase_number.isdigit() or len(purchase_number) != 7:
+        messages.error(request, 'شماره خرید بازارگاه باید دقیقاً 7 رقم باشد')
+        return redirect('purchase_CRUD', purchase_id=purchase_id)
+    
     # بررسی اینکه آیا خرید مورد نظر قبلا شماره خرید دارد یا خیر
     if purchase.purchase_number:
         messages.error(request, 'این خرید قبلا به خرید بازارگاه متصل شده است')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
     
+    # ملاک تشخیص خرید دستی نداشتن شماره خرید است نه نوع آن
+    # بنابراین بررسی type را حذف می‌کنیم و فقط بررسی می‌کنیم شماره خرید نداشته باشد
+    # که این بررسی قبلاً انجام شده است
+    
     # جستجوی خرید بازارگاه با شماره خرید داده شده
-    api_purchase = Purchase.objects.filter(purchase_number=purchase_number, type='bazaargah').first()
+    api_purchase = Purchase.objects.filter(purchase_number=purchase_number).first()
     
     if not api_purchase:
         messages.error(request, f'خریدی با شماره {purchase_number} در سیستم یافت نشد. ممکن است هنوز توسط API بازارگاه دریافت نشده باشد.')
@@ -1005,44 +1015,48 @@ def link_bazaargah_purchase(request, purchase_id):
         messages.error(request, 'امکان ادغام خرید‌های بازارگاه با عمر بیشتر از 24 ساعت وجود ندارد.')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
     
-    # بررسی که خرید انتخاب شده توسط خود کاربر ایجاد نشده باشد
-    if user_role == 'sales_agent':
-        sales_agent = SalesAgent.objects.get(user=request.user)
-        if api_purchase.sales_agent.filter(id=sales_agent.id).exists():
-            messages.error(request, 'این خرید بازارگاه توسط شما ایجاد شده است و نیازی به ادغام ندارد')
-            return redirect('purchase_CRUD', purchase_id=purchase_id)
+    # بررسی که خرید انتخاب شده توسط خود کاربر ایجاد نشده باشد - این بررسی نیز برداشته شد
+    # به کارشناسان فروش اجازه می‌دهیم خریدها را بدون محدودیت ادغام کنند
 
     # ارسال درخواست به API برای ادغام خریدها
     try:
-        # ساخت یک درخواست مشابه برای ارسال به تابع
-        merge_request = HttpRequest()
-        merge_request.method = 'POST'
-        merge_request.user = request.user
+        # به جای ایجاد HttpRequest جدید، مستقیماً دیکشنری داده‌ها را می‌سازیم
+        # و تابع merge_purchases_view را فراخوانی می‌کنیم
+        from django.test.client import RequestFactory
         
-        # انتقال کوکی‌ها و هدرها برای حفظ احراز هویت
-        merge_request.COOKIES = request.COOKIES
-        merge_request.META = request.META
-        
-        # ایجاد داده‌های POST
-        post_data = QueryDict('', mutable=True)
-        post_data.update({
+        # ایجاد یک درخواست ساختگی با RequestFactory
+        factory = RequestFactory()
+        data = {
             'agent_purchase_id': purchase.id,
             'api_purchase_id': api_purchase.id
-        })
-        merge_request.POST = post_data
+        }
         
-        # فراخوانی مستقیم تابع
+        # ایجاد یک درخواست POST جدید
+        merge_request = factory.post('/api/merge-purchases/', data=data, content_type='application/json')
+        
+        # افزودن اطلاعات کاربر
+        merge_request.user = request.user
+        
+        # فراخوانی تابع merge_purchases_view با درخواست ساختگی
+        from bki_api.views import merge_purchases_view
         merge_response = merge_purchases_view(merge_request)
         
         # بررسی پاسخ
         response_data = json.loads(merge_response.content)
         
         if merge_response.status_code == 200 and response_data.get('success'):
+            # ارجاع به صفحه خرید ادغام شده
+            merged_purchase_id = response_data.get('merged_purchase_id')
             messages.success(request, 'خرید با موفقیت با خرید بازارگاه ادغام شد')
+            if merged_purchase_id:
+                return redirect('purchase_CRUD', purchase_id=merged_purchase_id)
         else:
             error_message = response_data.get('error', 'خطای نامشخص در ادغام خریدها')
             messages.error(request, f'خطا در ادغام خریدها: {error_message}')
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"خطا در ارتباط با سرور: {str(e)}\n{error_details}")
         messages.error(request, f'خطا در ارتباط با سرور: {str(e)}')
     
     return redirect('purchase_CRUD', purchase_id=purchase_id)

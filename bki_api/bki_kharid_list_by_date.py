@@ -12,7 +12,7 @@ from .models import BKILog
 import json
 import xml.etree.ElementTree as ET
 from datetime import timedelta
-from .bki_api_utils.data_processing import process_purchase_data
+from .bki_api_utils.data_processing import process_purchase_data, group_purchase_data_by_id, process_grouped_purchase_data
 
 def send_kharid_list_by_date_request(from_date="1403/11/05", to_date="1403/11/05"):
     """
@@ -168,8 +168,12 @@ def get_all_purchases_by_date_range(start_date, end_date):
     # چاپ تعداد خریدهای یافت شده
     print(f"تعداد خریدهای یافت شده: {len(purchases_data)}")
     
-    # پردازش خریدها
-    total_count = len(purchases_data)
+    # گروه‌بندی داده‌ها بر اساس شناسه خرید
+    grouped_data = group_purchase_data_by_id(purchases_data)
+    print(f"خریدها به {len(grouped_data)} گروه تقسیم شدند")
+    
+    # پردازش گروه‌های خرید
+    total_count = len(grouped_data)
     success_count = 0
     created_count = 0
     updated_count = 0
@@ -177,44 +181,27 @@ def get_all_purchases_by_date_range(start_date, end_date):
     errors = []
     
     # چاپ اطلاعات خریدها
-    print("\nاطلاعات خریدها:")
+    print("\nاطلاعات خریدها (اولین ردیف از هر گروه):")
     print("-" * 100)
-    print(f"{'شناسه خرید':<15} {'نام مشتری':<25} {'نوع محصول':<15} {'شماره کوتاژ':<15} {'کوتاژ جدید':<15} {'وزن سفارش':<15} {'وزن تحویلی':<15} {'اختلاف':<10}")
+    print(f"{'شناسه خرید':<15} {'نام مشتری':<25} {'نوع محصول':<15} {'تعداد تخصیص':<15} {'کوتاژ':<15} {'مجموع وزن سفارش':<20} {'مجموع وزن تحویلی':<20}")
     print("-" * 100)
     
-    for purchase_data in purchases_data:
-        # استخراج شناسه خرید
-        purchase_id = purchase_data.get('idkharid', purchase_data.get('kharididentity', 'نامشخص'))
+    for purchase_id, entries in grouped_data.items():
+        # استخراج اطلاعات از اولین ردیف هر گروه
+        first_entry = entries[0]
+        customer_name = first_entry.get('buyername', first_entry.get('byername', 'نامشخص'))
+        product_type = first_entry.get('goodtitle', first_entry.get('productname', 'نامشخص'))
+        goodtag = first_entry.get('goodtag', 'نامشخص')
         
-        # استخراج نام مشتری
-        customer_name = purchase_data.get('buyername', purchase_data.get('byername', 'نامشخص'))
+        # محاسبه مجموع وزن‌ها
+        total_order_weight = sum(int(entry.get('qty', 0) or 0) for entry in entries)
+        total_delivered_weight = sum(int(entry.get('wbarnameshode', 0) or 0) for entry in entries)
         
-        # استخراج نوع محصول
-        product_type = purchase_data.get('goodtitle', purchase_data.get('productname', 'نامشخص'))
-        
-        # استخراج شماره کوتاژ (قدیمی)
-        cottage_number = purchase_data.get('kutajnumber', purchase_data.get('goodno', 'نامشخص'))
-        
-        # استخراج کوتاژ جدید
-        goodtag = purchase_data.get('goodtag', 'نامشخص')
-        
-        # استخراج وزن سفارش - اصلاح فیلد برای استفاده از qty بجای totalweight
-        order_weight = int(purchase_data.get('qty', purchase_data.get('weighttakhsis', purchase_data.get('orderedweight', 0))) or 0)
-        
-        # استخراج وزن تحویلی
-        delivered_weight = int(purchase_data.get('wbarnameshode', purchase_data.get('faktorshode', purchase_data.get('weight', 0))) or 0)
-        
-        # محاسبه اختلاف وزن
-        weight_diff = delivered_weight - order_weight
-        diff_type = 'سرک' if weight_diff > 0 else 'کسری' if weight_diff < 0 else '-'
-        diff_display = f"{diff_type} {abs(weight_diff)}" if weight_diff != 0 else "-"
-        
-        # چاپ اطلاعات خرید
-        print(f"{purchase_id:<15} {customer_name[:23]:<25} {product_type[:13]:<15} {cottage_number:<15} {goodtag:<15} {order_weight:<15} {delivered_weight:<15} {diff_display:<10}")
+        print(f"{purchase_id:<15} {customer_name[:23]:<25} {product_type[:13]:<15} {len(entries):<15} {goodtag:<15} {total_order_weight:<20} {total_delivered_weight:<20}")
         
         try:
-            # پردازش داده‌های خرید
-            purchase, created, error = process_purchase_data(purchase_data)
+            # پردازش گروه داده‌های خرید
+            purchase, created, error = process_grouped_purchase_data(entries)
             
             if error:
                 print(f"خطا در پردازش خرید {purchase_id}: {error}")

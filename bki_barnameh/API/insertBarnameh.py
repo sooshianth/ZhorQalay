@@ -248,7 +248,10 @@ def send_barnameh_to_bki(barnameh_id):
                             if 'ErrorMsg' in table:
                                 error_text = str(table['ErrorMsg'])
                                 
-                        if error_text and ('قبلا ثبت شده' in error_text or 'قبلاً ثبت شده' in error_text or 'بارنامه ثبت شده است' in error_text):
+                        # بررسی خطاهای مربوط به ثبت قبلی بارنامه
+                        if error_text and ('قبلا ثبت شده' in error_text or 'قبلاً ثبت شده' in error_text or 
+                                          'بارنامه ثبت شده است' in error_text or 
+                                          'امكان ثبت مجدد وجود ندارد' in error_text):
                             already_registered = True
                             is_success = True  # Treat as success for our purposes
                             log_entry.debug_info += "\nBARNAMEH ALREADY REGISTERED - TREATING AS SUCCESS"
@@ -319,32 +322,70 @@ def send_barnameh_to_bki(barnameh_id):
                             'message': 'بارنامه با موفقیت در بازارگاه ثبت شد.'
                         }
                 else:
-                    # Extract error message from the response
-                    try:
-                        # Try to extract the specific error message from various possible response structures
-                        if isinstance(result, dict):
-                            if 'errormsg' in result and result['errormsg']:
-                                error_message = f"{error_message}: {result.get('errorcode', '')} - {result['errormsg']}"
-                            elif 'diffgr:diffgram' in result:
-                                table = result['diffgr:diffgram']['NewDataSet'].get('Table1', {})
-                                if 'ErrorMsg' in table:
-                                    error_message = f"{error_message}: {table.get('ErrorCode', '')} - {table['ErrorMsg']}"
-                            elif 'NewDataSet' in result and 'Table1' in result['NewDataSet']:
-                                table = result['NewDataSet']['Table1']
-                                if 'ErrorMsg' in table:
-                                    error_message = f"{error_message}: {table.get('ErrorCode', '')} - {table['ErrorMsg']}"
-                    except Exception as e:
-                        error_message = f"{error_message}: {str(result)}"
-                        log_entry.debug_info += f"\nError parsing error message: {str(e)}"
-                    
                     log_entry.is_successful = False
-                    log_entry.error_message = error_message
-                    log_entry.save()
                     
-                    return {
-                        'success': False,
-                        'message': error_message
-                    }
+                    # بررسی خطای مربوط به بارنامه‌ای که قبلاً ثبت شده است
+                    error_text = ""
+                    if isinstance(result, dict):
+                        if 'errormsg' in result:
+                            error_text = str(result['errormsg'])
+                        elif 'ErrorMsg' in result:
+                            error_text = str(result['ErrorMsg'])
+                        elif 'diffgr:diffgram' in result and 'NewDataSet' in result['diffgr:diffgram']:
+                            table = result['diffgr:diffgram']['NewDataSet'].get('Table1', {})
+                            if 'ErrorMsg' in table:
+                                error_text = str(table['ErrorMsg'])
+                    elif isinstance(result, str):
+                        error_text = result
+                    
+                    log_entry.debug_info += f"\nError text extracted: {error_text}"
+                    
+                    # اگر خطای مربوط به ثبت قبلی باشد، وضعیت را به PURCHASE_CLOSED تغییر می‌دهیم
+                    if (error_text and 
+                        ('این بارنامه در تاریخ' in error_text and 'ثبت گردیده است' in error_text and 'امكان ثبت مجدد وجود ندارد' in error_text)):
+                        log_entry.debug_info += "\nDETECTED SPECIFIC ERROR: BARNAMEH ALREADY REGISTERED IN BAZARGAH"
+                        log_entry.is_successful = True  # تغییر وضعیت به موفق
+                        error_message = "این بارنامه قبلاً در بازارگاه ثبت شده است. سیستم وضعیت را به روز کرد."
+                        
+                        # تغییر وضعیت بارنامه در سیستم
+                        barnameh.is_sent_to_bki = True
+                        barnameh.is_sent_to_bki_at = jdatetime.datetime.now()
+                        barnameh.status = 'PURCHASE_CLOSED'
+                        barnameh.save()
+                        
+                        log_entry.error_message = error_message
+                        log_entry.save()
+                        
+                        return {
+                            'success': True,
+                            'message': error_message
+                        }
+                    else:
+                        # Extract error message from the response
+                        try:
+                            # Try to extract the specific error message from various possible response structures
+                            if isinstance(result, dict):
+                                if 'errormsg' in result and result['errormsg']:
+                                    error_message = f"{error_message}: {result.get('errorcode', '')} - {result['errormsg']}"
+                                elif 'diffgr:diffgram' in result:
+                                    table = result['diffgr:diffgram']['NewDataSet'].get('Table1', {})
+                                    if 'ErrorMsg' in table:
+                                        error_message = f"{error_message}: {table.get('ErrorCode', '')} - {table['ErrorMsg']}"
+                                elif 'NewDataSet' in result and 'Table1' in result['NewDataSet']:
+                                    table = result['NewDataSet']['Table1']
+                                    if 'ErrorMsg' in table:
+                                        error_message = f"{error_message}: {table.get('ErrorCode', '')} - {table['ErrorMsg']}"
+                        except Exception as e:
+                            error_message = f"{error_message}: {str(result)}"
+                            log_entry.debug_info += f"\nError parsing error message: {str(e)}"
+                        
+                        log_entry.error_message = error_message
+                        log_entry.save()
+                        
+                        return {
+                            'success': False,
+                            'message': error_message
+                        }
                 
             except Exception as e:
                 log_entry.is_successful = False

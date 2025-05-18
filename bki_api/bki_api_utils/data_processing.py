@@ -200,7 +200,7 @@ def update_purchase(purchase, purchase_data):
     """
     try:
         # Extract key fields
-        qty = int(purchase_data.get('qty', 0) or 0)  # order weight
+        qty = int(purchase_data.get('qty', 0) or 0)  # allocation weight (takhsisweight)
         wbarnameshode = int(purchase_data.get('wbarnameshode', 0) or 0)  # delivered weight
         takhsisid = purchase_data.get('allocationid')  # allocation ID
         buyer_name = purchase_data.get('buyername')
@@ -213,29 +213,10 @@ def update_purchase(purchase, purchase_data):
         trace_code = purchase_data.get('tracecode')  # شماره پیگیری
         receiver_id = purchase_data.get('receiverid')  # کد ملی تحویل
         purchase_date = purchase_data.get('date')  # تاریخ خرید به فرمت جلالی (مثلا 1404/02/22)
+        total_weight = int(purchase_data.get('totalweight', 0) or 0)  # وزن کل
         
-        # Calculate weight difference
-        weight_diff = 0
-        extelaf_type = None
-        extelaf_weight = 0
-        
-        if wbarnameshode > 0 and qty > 0:
-            weight_diff = wbarnameshode - qty
-            
-            if abs(weight_diff) < 5000:  # Difference less than 5000 kg
-                if weight_diff > 0:
-                    extelaf_type = "سرک"
-                elif weight_diff < 0:
-                    extelaf_type = "کسری"
-                extelaf_weight = abs(weight_diff)
-        
-        # Determine purchase state
-        purchase_state = determine_purchase_state(purchase_data)
-        
-        # Update purchase fields
+        # Update purchase fields - بدون به‌روزرسانی وزن‌ها
         purchase.buyer_name = buyer_name
-        purchase.order_weight = qty
-        purchase.delivered_weight = wbarnameshode
         purchase.address = buyer_address
         purchase.bazaargah_phone_number = buyer_phone
         purchase.payment_method = payment_type
@@ -244,6 +225,9 @@ def update_purchase(purchase, purchase_data):
         purchase.tahvil_phone_number = receiver_phone
         purchase.tracking_number = trace_code
         purchase.code_melli_tahvil = receiver_id
+        
+        # Don't overwrite order_weight and delivered_weight here
+        # They will be calculated from the sum of all entries in process_grouped_purchase_data
         
         # تبدیل تاریخ جلالی به فرمت مناسب
         if purchase_date:
@@ -266,18 +250,6 @@ def update_purchase(purchase, purchase_data):
             except Exception as e:
                 print(f"خطا در تبدیل تاریخ: {str(e)}")
         
-        # Update difference fields
-        if extelaf_type:
-            purchase.extelaf_type = extelaf_type
-            purchase.extelaf_weight = extelaf_weight
-            if fee > 0:
-                purchase.extelaf_amount = extelaf_weight * fee
-        
-        # Update purchase state
-        if purchase_state != purchase.state:
-            # Only update if the state is new
-            purchase.state = purchase_state
-        
         # Save changes
         purchase.save()
         
@@ -285,11 +257,11 @@ def update_purchase(purchase, purchase_data):
         if takhsisid and takhsisid != '0':
             # Check if the allocation ID already exists
             if not ShenaseTakhsis.objects.filter(purchase=purchase, code=takhsisid).exists():
-                # Create a new allocation ID
+                # Create a new allocation ID with the correct weight
                 ShenaseTakhsis.objects.create(
                     purchase=purchase,
                     code=takhsisid,
-                    weight=qty
+                    weight=qty  # Use the allocation weight (takhsisweight)
                 )
         
         return purchase, None
@@ -317,7 +289,7 @@ def create_purchase(purchase_data):
             return None, "شناسه خرید در داده‌ها یافت نشد"
         
         # Extract key fields
-        qty = int(purchase_data.get('qty', 0) or 0)  # order weight
+        qty = int(purchase_data.get('qty', 0) or 0)  # allocation weight (takhsisweight)
         wbarnameshode = int(purchase_data.get('wbarnameshode', 0) or 0)  # delivered weight
         takhsisid = purchase_data.get('allocationid')  # allocation ID
         goodtag = purchase_data.get('goodtag')  # cottage code
@@ -335,6 +307,7 @@ def create_purchase(purchase_data):
         trace_code = purchase_data.get('tracecode')  # شماره پیگیری
         receiver_id = purchase_data.get('receiverid')  # کد ملی تحویل
         purchase_date = purchase_data.get('date')  # تاریخ خرید به فرمت جلالی (مثلا 1404/02/22)
+        total_weight = int(purchase_data.get('totalweight', 0) or 0)  # وزن کل
         
         # Calculate weight difference
         weight_diff = 0
@@ -375,7 +348,7 @@ def create_purchase(purchase_data):
         if error:
             return None, error
         
-        # تنظیم پارامترهای پایه برای ایجاد خرید
+        # تنظیم پارامترهای پایه برای ایجاد خرید - بدون تنظیم وزن‌ها
         purchase_params = {
             'purchase_number': purchase_number,
             'customer': customer,
@@ -383,15 +356,15 @@ def create_purchase(purchase_data):
             'buyer_name': buyer_name,
             'bazaargah_phone_number': buyer_phone,
             'address': buyer_address,
-            'order_weight': qty,
-            'delivered_weight': wbarnameshode,
+            'order_weight': 0,  # Will be updated in process_grouped_purchase_data
+            'delivered_weight': 0,  # Will be updated in process_grouped_purchase_data
             'customer_price': fee,
             'payment_method': payment_type,
             'type': 'bazaargah',
             'state': purchase_state,
-            'extelaf_type': extelaf_type,
-            'extelaf_weight': extelaf_weight,
-            'extelaf_amount': extelaf_weight * fee if extelaf_weight and fee else 0,
+            'extelaf_type': None,  # Will be calculated later
+            'extelaf_weight': 0,
+            'extelaf_amount': 0,
             'amount_paid': total_value,
             'tahvil_phone_number': receiver_phone,
             'tracking_number': trace_code,
@@ -427,7 +400,7 @@ def create_purchase(purchase_data):
             ShenaseTakhsis.objects.create(
                 purchase=purchase,
                 code=takhsisid,
-                weight=qty
+                weight=qty  # Use the allocation weight (takhsisweight)
             )
         
         return purchase, None
@@ -447,10 +420,11 @@ def determine_purchase_state(purchase_data):
         str: The determined purchase state
     """
     # Extract key fields
-    qty = int(purchase_data.get('qty', 0) or 0)  # order weight
+    qty = int(purchase_data.get('qty', 0) or 0)  # order weight (takhsisweight)
     wbarnameshode = int(purchase_data.get('wbarnameshode', 0) or 0)  # delivered weight
     wbarnamenashode = int(purchase_data.get('wbarnamenashode', 0) or 0)  # remaining weight
     takhsisid = purchase_data.get('allocationid')  # allocation ID
+    totalweight = int(purchase_data.get('totalweight', 0) or 0)  # total weight
     
     # Calculate weight difference
     weight_diff = 0
@@ -460,13 +434,20 @@ def determine_purchase_state(purchase_data):
     # Default state
     purchase_state = 'PAYMENT_VERIFIED'
     
-    if wbarnameshode > 0:
-        if abs(weight_diff) < 5000:
-            purchase_state = 'BARNAMEH_ISSUED'
-        else:
-            purchase_state = 'BARNAMEH_INCOMPLETE'
-    elif takhsisid and takhsisid != '0':
+    # Check if allocation ID exists
+    if takhsisid and takhsisid != '0':
         purchase_state = 'ALLOCATION_APPROVED'
+        
+        # Check if barnameh has been issued
+        if wbarnameshode > 0:
+            if abs(weight_diff) < 5000:
+                purchase_state = 'BARNAMEH_ISSUED'
+            else:
+                purchase_state = 'BARNAMEH_INCOMPLETE'
+                
+            # Check if purchase is closed (totalweight equals delivered_weight)
+            if totalweight > 0 and totalweight == wbarnameshode:
+                purchase_state = 'PURCHASE_CLOSED'
     
     return purchase_state
 
@@ -485,19 +466,123 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
             - created: True if a new purchase was created, False otherwise
             - error_message: An error message if the operation failed, None otherwise
     """
+    # If purchase_data is a list, process it as a group
+    if isinstance(purchase_data, list):
+        return process_grouped_purchase_data(purchase_data, create_if_not_exists)
+    
     # Extract purchase ID
     purchase_number = purchase_data.get('idkharid')
     if not purchase_number:
         return None, False, "شناسه خرید در داده‌ها یافت نشد"
     
+    # Process as a single entry by passing a list with one item to process_grouped_purchase_data
+    return process_grouped_purchase_data([purchase_data], create_if_not_exists)
+
+
+def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True):
+    """
+    Process multiple purchase data entries for the same purchase ID (idkharid).
+    This handles purchases that have multiple allocation IDs.
+    
+    Args:
+        purchase_data_list (list): List of purchase data dictionaries from the API with the same idkharid
+        create_if_not_exists (bool): Whether to create a new purchase if it doesn't exist
+        
+    Returns:
+        tuple: (purchase, created, error_message)
+            - purchase: The Purchase object created or updated
+            - created: True if a new purchase was created, False otherwise
+            - error_message: An error message if the operation failed, None otherwise
+    """
+    if not purchase_data_list or len(purchase_data_list) == 0:
+        return None, False, "لیست داده‌های خرید خالی است"
+    
+    # Extract purchase ID from the first entry (all entries should have the same ID)
+    first_entry = purchase_data_list[0]
+    purchase_number = first_entry.get('idkharid')
+    if not purchase_number:
+        return None, False, "شناسه خرید در داده‌ها یافت نشد"
+    
+    # Calculate total order weight (sum of 'qty' for all allocation entries)
+    # 'qty' is the allocation weight (takhsisweight)
+    total_order_weight = sum(int(entry.get('qty', 0) or 0) for entry in purchase_data_list)
+    
+    # Calculate total delivered weight (sum of 'wbarnameshode' for all entries)
+    total_delivered_weight = sum(int(entry.get('wbarnameshode', 0) or 0) for entry in purchase_data_list)
+    
+    # Print debug information
+    print(f"Debug - Purchase {purchase_number}: {len(purchase_data_list)} allocation records")
+    print(f"Debug - Total order weight (sum of qty): {total_order_weight}")
+    print(f"Debug - Total delivered weight (sum of wbarnameshode): {total_delivered_weight}")
+    
+    for i, entry in enumerate(purchase_data_list):
+        takhsisid = entry.get('allocationid')
+        qty = int(entry.get('qty', 0) or 0)
+        wbarnameshode = int(entry.get('wbarnameshode', 0) or 0)
+        print(f"Debug - Entry {i+1}: allocationid={takhsisid}, qty={qty}, wbarnameshode={wbarnameshode}")
+    
     try:
         # Search for existing purchase
         purchase = Purchase.objects.get(purchase_number=purchase_number)
         
-        # Update existing purchase
-        purchase, error = update_purchase(purchase, purchase_data)
+        # Update the purchase with data from the first entry
+        purchase, error = update_purchase(purchase, first_entry)
         if error:
             return None, False, error
+        
+        # Update with group-level calculated values
+        purchase.order_weight = total_order_weight
+        purchase.delivered_weight = total_delivered_weight
+        
+        # Recalculate weight difference
+        weight_diff = total_delivered_weight - total_order_weight
+        if abs(weight_diff) < 5000 and weight_diff != 0:
+            purchase.extelaf_type = "سرک" if weight_diff > 0 else "کسری"
+            purchase.extelaf_weight = abs(weight_diff)
+            if purchase.customer_price > 0:
+                purchase.extelaf_amount = purchase.extelaf_weight * purchase.customer_price
+        
+        # Update purchase state based on aggregated data
+        # If any entry has totalweight == wbarnameshode, consider the purchase closed
+        for entry in purchase_data_list:
+            totalweight = int(entry.get('totalweight', 0) or 0)
+            wbarnameshode = int(entry.get('wbarnameshode', 0) or 0)
+            if totalweight > 0 and totalweight == wbarnameshode:
+                purchase.state = 'PURCHASE_CLOSED'
+                break
+        else:
+            # Check if all entries have allocation IDs
+            all_have_allocation = all(
+                entry.get('allocationid') and entry.get('allocationid') != '0' 
+                for entry in purchase_data_list
+            )
+            
+            if all_have_allocation:
+                if total_delivered_weight > 0:
+                    if abs(weight_diff) < 5000:
+                        purchase.state = 'BARNAMEH_ISSUED'
+                    else:
+                        purchase.state = 'BARNAMEH_INCOMPLETE'
+                else:
+                    purchase.state = 'ALLOCATION_APPROVED'
+        
+        # Save changes
+        purchase.save()
+        
+        # Process allocation IDs for all entries
+        for entry in purchase_data_list:
+            takhsisid = entry.get('allocationid')
+            takhsis_weight = int(entry.get('qty', 0) or 0)
+            
+            if takhsisid and takhsisid != '0':
+                # Check if the allocation ID already exists
+                if not ShenaseTakhsis.objects.filter(purchase=purchase, code=takhsisid).exists():
+                    # Create a new allocation ID
+                    ShenaseTakhsis.objects.create(
+                        purchase=purchase,
+                        code=takhsisid,
+                        weight=takhsis_weight
+                    )
         
         return purchase, False, None
         
@@ -505,9 +590,99 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
         if not create_if_not_exists:
             return None, False, f"خرید با شماره {purchase_number} یافت نشد"
         
-        # Create a new purchase
-        purchase, error = create_purchase(purchase_data)
+        # Create a new purchase using the data from the first entry
+        purchase, error = create_purchase(first_entry)
         if error:
             return None, False, error
         
-        return purchase, True, None 
+        # Update with group-level calculated values
+        purchase.order_weight = total_order_weight
+        purchase.delivered_weight = total_delivered_weight
+        purchase.save()
+        
+        # Process additional allocation IDs (the first one was already processed in create_purchase)
+        for entry in purchase_data_list[1:]:
+            takhsisid = entry.get('allocationid')
+            takhsis_weight = int(entry.get('qty', 0) or 0)
+            
+            if takhsisid and takhsisid != '0':
+                # Check if the allocation ID already exists
+                if not ShenaseTakhsis.objects.filter(purchase=purchase, code=takhsisid).exists():
+                    # Create a new allocation ID
+                    ShenaseTakhsis.objects.create(
+                        purchase=purchase,
+                        code=takhsisid,
+                        weight=takhsis_weight
+                    )
+        
+        return purchase, True, None
+    
+    except Exception as e:
+        return None, False, f"خطا در پردازش خرید: {str(e)}"
+
+
+def group_purchase_data_by_id(purchase_data_list):
+    """
+    Group purchase data from the BKI API by purchase ID (idkharid).
+    
+    Args:
+        purchase_data_list (list): List of purchase data dictionaries from the API
+        
+    Returns:
+        dict: Dictionary with purchase IDs as keys and lists of purchase data entries as values
+    """
+    grouped_data = {}
+    
+    for entry in purchase_data_list:
+        purchase_id = entry.get('idkharid')
+        if not purchase_id:
+            continue
+            
+        if purchase_id not in grouped_data:
+            grouped_data[purchase_id] = []
+            
+        grouped_data[purchase_id].append(entry)
+    
+    return grouped_data
+
+
+def process_purchase_data_batch(purchase_data_list, create_if_not_exists=True):
+    """
+    Process a batch of purchase data from the BKI API.
+    
+    Args:
+        purchase_data_list (list): List of purchase data dictionaries from the API
+        create_if_not_exists (bool): Whether to create new purchases if they don't exist
+        
+    Returns:
+        tuple: (processed_count, created_count, error_count, errors)
+            - processed_count: Number of purchases processed
+            - created_count: Number of new purchases created
+            - error_count: Number of purchases that failed to process
+            - errors: Dictionary of error messages with purchase IDs as keys
+    """
+    processed_count = 0
+    created_count = 0
+    error_count = 0
+    errors = {}
+    
+    # Group purchase data by purchase ID
+    grouped_data = group_purchase_data_by_id(purchase_data_list)
+    
+    # Process each group
+    for purchase_id, entries in grouped_data.items():
+        try:
+            purchase, created, error = process_purchase_data(entries, create_if_not_exists)
+            
+            if error:
+                error_count += 1
+                errors[purchase_id] = error
+            else:
+                processed_count += 1
+                if created:
+                    created_count += 1
+        except Exception as e:
+            error_count += 1
+            errors[purchase_id] = str(e)
+    
+    return processed_count, created_count, error_count, errors 

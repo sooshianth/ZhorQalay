@@ -1,0 +1,159 @@
+{% extends 'bki_barnameh/base_bki.html' %}
+{% load static %}
+
+{% block title %}نتیجه استعلام بارنامه{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0 rounded-lg">
+    <div class="card-header bg-gradient-info text-white d-flex justify-content-between align-items-center py-3">
+        <h5 class="mb-0 fw-bold">
+            <i class="fas fa-search me-2"></i>
+            نتیجه استعلام بارنامه
+        </h5>
+        <div>
+            <a href="{% url 'barnameh_detail' barnameh.id %}" class="btn btn-light btn-sm rounded-pill shadow-sm">
+                <i class="fas fa-arrow-right me-1"></i>
+                بازگشت به جزئیات بارنامه
+            </a>
+        </div>
+    </div>
+    <div class="card-body p-4">
+        <div class="row g-4">
+            <div class="col-md-12 mb-3">
+                <div class="card shadow-sm border-0 rounded-lg">
+                    <div class="card-header bg-light py-3">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="fas fa-info-circle me-2"></i>
+                            اطلاعات بارنامه در بازارگاه
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            اطلاعات زیر از بازارگاه دریافت شده است.
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>شناسه حمل</th>
+                                        <th>شماره بارنامه</th>
+                                        <th>سریال بارنامه</th>
+                                        <th>تاریخ</th>
+                                        <th>وزن</th>
+                                        <th>وضعیت</th>
+                                        <th>توضیحات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if estelam_data %}
+                                        {% for item in estelam_data %}
+                                        <tr>
+                                            <td>{{ item.HamlId|default:"-" }}</td>
+                                            <td>{{ item.BarNumber|default:"-" }}</td>
+                                            <td>{{ item.BarSerial|default:"-" }}</td>
+                                            <td>{{ item.ISSUDATE|default:"-" }}</td>
+                                            <td>{{ item.MerchantDeclaredWeight|default:"-" }}</td>
+                                            <td>
+                                                {% if item.StatusDescription %}
+                                                    <span class="badge rounded-pill bg-info">{{ item.StatusDescription }}</span>
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ item.Description|default:"-" }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="7" class="text-center">اطلاعاتی یافت نشد</td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- اطلاعات بارنامه در سیستم -->
+            <div class="col-md-12 mb-3">
+                <div class="card shadow-sm border-0 rounded-lg">
+                    <div class="card-header bg-light py-3">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="fas fa-file-invoice me-2"></i>
+                            اطلاعات بارنامه در سیستم
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <table class="table table-striped">
+                                    <tr>
+                                        <th style="width: 40%" class="bg-light">شماره بارنامه:</th>
+                                        <td>{{ barnameh.number|default:"-" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="bg-light">سریال بارنامه:</th>
+                                        <td>{{ barnameh.serial|default:"-" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="bg-light">تاریخ بارنامه:</th>
+                                        <td>{{ barnameh.barnameh_date|default:"-" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="bg-light">وزن (کیلوگرم):</th>
+                                        <td>{{ barnameh.tonnage|default:"-" }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <table class="table table-striped">
+                                    <tr>
+                                        <th style="width: 40%" class="bg-light">شناسه خرید:</th>
+                                        <td>{{ barnameh.purchase_number|default:"-" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="bg-light">شناسه تخصیص:</th>
+                                        <td>{{ barnameh.shenase_takhsis_code|default:"-" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="bg-light">ارسال به بازارگاه:</th>
+                                        <td>
+                                            {% if barnameh.is_sent_to_bki %}
+                                            <span class="badge rounded-pill bg-success">ارسال شده</span>
+                                            {% else %}
+                                            <span class="badge rounded-pill bg-danger">ارسال نشده</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer bg-light py-3">
+        <div class="d-flex justify-content-between">
+            <div>
+                <a href="{% url 'barnameh_detail' barnameh.id %}" class="btn btn-secondary rounded-pill shadow-sm">
+                    <i class="fas fa-arrow-left me-1"></i>
+                    بازگشت به جزئیات بارنامه
+                </a>
+            </div>
+            <div>
+                <form action="{% url 'estelame_barnameh' barnameh.id %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-info rounded-pill shadow-sm">
+                        <i class="fas fa-redo me-1"></i>
+                        استعلام مجدد
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
