@@ -132,9 +132,9 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         
         # 1. فیلدهای پایه از بعد تأیید پرداخت غیرقابل ویرایش می‌شوند
         payment_verified_states = ['PAYMENT_VERIFIED', 'ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 
-                                   'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 
-                                   'BARNAMEH_INCOMPLETE', 'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
-                                   'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
+                                   'VENDOR_SETTLED', 'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 
+                                   'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DELIVERED', 'DIFFERENCE_APPROVED', 
+                                   'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
                                    'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']
         
         if self.instance.state in payment_verified_states:
@@ -146,14 +146,16 @@ class RoleBasedPurchaseForm(forms.ModelForm):
                     self.fields[field_name].widget.attrs['disabled'] = True
         
         # 2. فیلدهای مربوط به تحویل از بعد تحویل غیرقابل ویرایش می‌شوند
-        delivery_completed_states = ['DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
+        delivery_completed_states = ['PURCHASE_CLOSED', 'BARNAMEH_INCOMPLETE', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 
+                                    'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
                                     'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
                                     'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']
         
         if self.instance.state in delivery_completed_states:
             read_only_fields_after_delivery = ['delivered_weight', 'barnameh', 'code_melli_tahvil', 
                                              'bazaargah_phone_number', 'tahvil_phone_number', 'address',
-                                             'allocation_ids']
+                                             'allocation_ids', 'customer_price', 'company_price',
+                                             'order_weight', 'payment_method']
             for field_name in read_only_fields_after_delivery:
                 if field_name in self.fields:
                     self.fields[field_name].widget.attrs['readonly'] = True
@@ -227,9 +229,9 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         if self.instance.pk:
             instance = self.Meta.model.objects.get(pk=self.instance.pk)
             payment_verified_states = ['PAYMENT_VERIFIED', 'ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 
-                                     'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 
-                                     'BARNAMEH_INCOMPLETE', 'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
-                                     'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
+                                     'VENDOR_SETTLED', 'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 
+                                     'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DELIVERED', 'DIFFERENCE_APPROVED', 
+                                     'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
                                      'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']
             
             if instance.state in payment_verified_states:
@@ -239,14 +241,16 @@ class RoleBasedPurchaseForm(forms.ModelForm):
                     if field_name in cleaned_data:
                         cleaned_data[field_name] = getattr(instance, field_name)
             
-            delivery_completed_states = ['DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
-                                         'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
-                                         'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']
+            delivery_completed_states = ['PURCHASE_CLOSED', 'BARNAMEH_INCOMPLETE', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 
+                                        'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
+                                        'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
+                                        'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']
             
             if instance.state in delivery_completed_states:
                 read_only_fields_after_delivery = ['delivered_weight', 'barnameh', 'code_melli_tahvil', 
                                                 'bazaargah_phone_number', 'tahvil_phone_number', 'address',
-                                                'allocation_ids']
+                                                'allocation_ids', 'customer_price', 'company_price',
+                                                'order_weight', 'payment_method']
                 for field_name in read_only_fields_after_delivery:
                     if field_name in cleaned_data:
                         if field_name == 'allocation_ids':
@@ -301,6 +305,123 @@ def purchase_CRUD_view(request, purchase_id):
     state_changes = PurchaseStateChange.objects.filter(purchase=purchase).order_by('-changed_at')
     user_role = determine_user_role(request.user)
     
+    # دریافت شناسه‌های تخصیص مرتبط با خرید
+    shenase_takhsis_list = ShenaseTakhsis.objects.filter(purchase=purchase)
+    
+    # دریافت بارنامه‌های مرتبط با شناسه‌های تخصیص
+    barnamehs = []
+    
+    # واردکردن ماژول بارنامه
+    from bki_barnameh.models.BarnamehModel import Barnameh
+    
+    # بررسی کنیم آیا شناسه تخصیص‌ها وجود دارند
+    if shenase_takhsis_list.exists():
+        # برای هر شناسه تخصیص، بارنامه‌های مرتبط را پیدا کنیم
+        for shenase in shenase_takhsis_list:
+            # جستجو با حالت‌های مختلف احتمالی شناسه تخصیص
+            # حالت اصلی
+            related_barnamehs = Barnameh.objects.filter(shenase_takhsis_code=shenase.code)
+            # حالت با اعشار .0
+            if not related_barnamehs.exists() and shenase.code.isdigit():
+                related_barnamehs = Barnameh.objects.filter(shenase_takhsis_code=f"{shenase.code}.0")
+            # حالت بدون اعشار اگر در بارنامه با اعشار ذخیره شده باشد
+            if not related_barnamehs.exists() and '.' in shenase.code:
+                integer_code = shenase.code.split('.')[0]
+                related_barnamehs = Barnameh.objects.filter(shenase_takhsis_code=integer_code)
+            # انتساب شناسه تخصیص به بارنامه‌های مرتبط
+            for barnameh in related_barnamehs:
+                if barnameh not in barnamehs:
+                    # اضافه کردن شناسه تخصیص به آبجکت بارنامه برای استفاده‌های بعدی
+                    barnameh.shenase_takhsis_id = shenase.id
+                    barnamehs.append(barnameh)
+    
+    # جستجوی بارنامه‌های مرتبط با شماره خرید نیز
+    if purchase.purchase_number:
+        purchase_number_barnamehs = Barnameh.objects.filter(purchase_number=purchase.purchase_number)
+        for barnameh in purchase_number_barnamehs:
+            if barnameh not in barnamehs:
+                # تلاش برای یافتن شناسه تخصیص برای بارنامه‌هایی که با شماره خرید پیدا شده‌اند
+                if hasattr(barnameh, 'shenase_takhsis_code') and barnameh.shenase_takhsis_code:
+                    # جستجوی شناسه تخصیص متناظر
+                    for shenase in shenase_takhsis_list:
+                        # مقایسه با حالت‌های مختلف احتمالی
+                        if (shenase.code == barnameh.shenase_takhsis_code or
+                            (shenase.code + '.0') == barnameh.shenase_takhsis_code or
+                            (barnameh.shenase_takhsis_code and '.' in barnameh.shenase_takhsis_code and 
+                             shenase.code == barnameh.shenase_takhsis_code.split('.')[0])):
+                            barnameh.shenase_takhsis_id = shenase.id
+                            break
+                barnamehs.append(barnameh)
+    
+    # جستجو بر اساس شناسه تخصیص قدیمی
+    if purchase.shenase_takhsis:
+        # چندین حالت ممکن برای شناسه تخصیص
+        takhsis_variants = [
+            purchase.shenase_takhsis,                    # حالت اصلی
+            f"{purchase.shenase_takhsis}.0",             # با اعشار .0
+        ]
+        # اگر شناسه تخصیص اعشاری است، حالت بدون اعشار را هم اضافه کنیم
+        if '.' in purchase.shenase_takhsis:
+            takhsis_variants.append(purchase.shenase_takhsis.split('.')[0])
+        
+        # جستجو برای همه حالت‌های ممکن
+        for variant in takhsis_variants:
+            old_takhsis_barnamehs = Barnameh.objects.filter(shenase_takhsis_code=variant)
+            for barnameh in old_takhsis_barnamehs:
+                if barnameh not in barnamehs:
+                    # تلاش برای یافتن شناسه تخصیص مرتبط
+                    for shenase in shenase_takhsis_list:
+                        if (variant == shenase.code or 
+                            (variant + '.0') == shenase.code or
+                            ('.' in variant and variant.split('.')[0] == shenase.code)):
+                            barnameh.shenase_takhsis_id = shenase.id
+                            break
+                    barnamehs.append(barnameh)
+                
+    # بارنامه‌های فیلتر شده را از طریق رابطه مستقیم با خرید نیز بررسی کنیم
+    if hasattr(purchase, 'barnamehs'):
+        direct_barnamehs = purchase.barnamehs.all()
+        for barnameh in direct_barnamehs:
+            if barnameh not in barnamehs:
+                # تلاش برای یافتن شناسه تخصیص
+                if hasattr(barnameh, 'shenase_takhsis_code') and barnameh.shenase_takhsis_code:
+                    for shenase in shenase_takhsis_list:
+                        # مقایسه با حالت‌های مختلف احتمالی
+                        if (shenase.code == barnameh.shenase_takhsis_code or
+                            (shenase.code + '.0') == barnameh.shenase_takhsis_code or
+                            (barnameh.shenase_takhsis_code and '.' in barnameh.shenase_takhsis_code and 
+                             shenase.code == barnameh.shenase_takhsis_code.split('.')[0])):
+                            barnameh.shenase_takhsis_id = shenase.id
+                            break
+                barnamehs.append(barnameh)
+                
+    # اطمینان از نمایش فیلدهای بارنامه به صورت مناسب
+    for barnameh in barnamehs:
+        # تنظیم فیلدهای نمایشی
+        if not hasattr(barnameh, 'barnameh_number') and hasattr(barnameh, 'number'):
+            barnameh.barnameh_number = barnameh.number
+        if not hasattr(barnameh, 'serial_number') and hasattr(barnameh, 'serial'):
+            barnameh.serial_number = barnameh.serial
+        if not hasattr(barnameh, 'weight') and hasattr(barnameh, 'tonnage'):
+            barnameh.weight = barnameh.tonnage
+        if not hasattr(barnameh, 'vehicle_plate_number') and hasattr(barnameh, 'vehicle_plate'):
+            barnameh.vehicle_plate_number = barnameh.vehicle_plate
+        if not hasattr(barnameh, 'receiver') and hasattr(barnameh, 'receiver_name'):
+            barnameh.receiver = barnameh.receiver_name
+        if not hasattr(barnameh, 'issue_date') and hasattr(barnameh, 'barnameh_date'):
+            barnameh.issue_date = barnameh.barnameh_date
+        
+        # تنظیم فیلد shenase_takhsis_id اگر وجود ندارد
+        if not hasattr(barnameh, 'shenase_takhsis_id') and hasattr(barnameh, 'shenase_takhsis_code'):
+            # تلاش برای پیدا کردن شناسه تخصیص مرتبط
+            for shenase in shenase_takhsis_list:
+                if (shenase.code == barnameh.shenase_takhsis_code or
+                    (shenase.code + '.0') == barnameh.shenase_takhsis_code or
+                    (barnameh.shenase_takhsis_code and '.' in barnameh.shenase_takhsis_code and 
+                     shenase.code == barnameh.shenase_takhsis_code.split('.')[0])):
+                    barnameh.shenase_takhsis_id = shenase.id
+                    break
+    
     # ساخت مراحل پیشرفت بر اساس state (وضعیت فعلی)
     progress_steps = [
         {'name': 'شروع شده', 'status': True},  # همیشه شروع شده
@@ -349,8 +470,8 @@ def purchase_CRUD_view(request, purchase_id):
         
         # اینجا می توانیم فیلدهای غیرقابل ویرایش را بر اساس وضعیت خرید به مقادیر اصلی برگردانیم
         if purchase.state in ['PAYMENT_VERIFIED', 'ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 
-                            'VENDOR_SETTLED', 'ADDRESS_SENT', 'SENT_TO_SHIPPING', 'BARNAMEH_ISSUED', 
-                            'BARNAMEH_INCOMPLETE', 'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
+                            'VENDOR_SETTLED', 'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 
+                            'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
                             'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
                             'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']:
             # فیلدهای پایه بعد از تایید پرداخت غیرقابل ویرایش هستند
@@ -360,13 +481,15 @@ def purchase_CRUD_view(request, purchase_id):
                 if field in post_data and hasattr(purchase, field):
                     post_data[field] = getattr(purchase, field)
         
-        if purchase.state in ['DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
+        if purchase.state in ['PURCHASE_CLOSED', 'BARNAMEH_INCOMPLETE', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED',
+                            'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
                             'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
                             'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']:
             # فیلدهای مربوط به تحویل بعد از تحویل غیرقابل ویرایش هستند
             readonly_fields_after_delivery = ['delivered_weight', 'barnameh', 'code_melli_tahvil', 
                                            'bazaargah_phone_number', 'tahvil_phone_number', 'address',
-                                           'allocation_ids']
+                                           'allocation_ids', 'customer_price', 'company_price',
+                                           'order_weight', 'payment_method']
             for field in readonly_fields_after_delivery:
                 if field in post_data and hasattr(purchase, field):
                     post_data[field] = getattr(purchase, field)
@@ -378,6 +501,10 @@ def purchase_CRUD_view(request, purchase_id):
             for field in readonly_fields_after_receipt:
                 if field in post_data and hasattr(purchase, field):
                     post_data[field] = getattr(purchase, field)
+                    
+        # همیشه اجازه ویرایش توضیحات را بده
+        if 'description' in post_data and request.POST.get('description'):
+            post_data['description'] = request.POST.get('description')
         
         form = RoleBasedPurchaseForm(post_data, instance=purchase, user_role=user_role)
         if form.is_valid():
@@ -526,7 +653,9 @@ def purchase_CRUD_view(request, purchase_id):
         'history_logs': history_logs,
         'state_changes': state_changes,
         'user_role': user_role,
-        'notifications' : notifications,
+        'notifications': notifications,
+        'barnamehs': barnamehs,
+        'shenase_takhsis_list': shenase_takhsis_list,
     }
     return render(request, 'purchase_CRUD_view.html', context)
 

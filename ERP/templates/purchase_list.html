@@ -319,47 +319,39 @@ th, td {
             
             {% if 'status' in selected_columns %}
             <td>
-                {# Only show the latest status #}
+                {# Show the purchase status based on state field #}
                 {% if purchase.state == 'CANCELED' or purchase.is_canceled %}
                     <span class="table-status-badge bg-danger text-white">لغو شده</span>
                 {% elif purchase.is_urgent %}
                     <span class="table-status-badge bg-danger text-white">فوری</span>
-                {% elif purchase.state == 'DELIVERED' %}
-                    <span class="table-status-badge bg-primary text-white">تحویل داده شده</span>
-                {% elif purchase.state == 'BARNAMEH_INCOMPLETE' %}
-                    <span class="table-status-badge bg-warning text-dark">بارنامه ناقص</span>
-                {% elif purchase.state == 'BARNAMEH_ISSUED' %}
-                    <span class="table-status-badge bg-info text-white">بارنامه صادر شده</span>
-                {% elif purchase.state == 'SENT_TO_SHIPPING' %}
-                    <span class="table-status-badge bg-info text-white">ارسال به باربری</span>
-                {% elif purchase.state == 'ADDRESS_SENT' %}
-                    <span class="table-status-badge bg-info text-white">آدرس ارسال شد</span>
-                {% elif purchase.state == 'VENDOR_SETTLED' %}
-                    <span class="table-status-badge bg-info text-white">تسویه با واردکننده</span>
-                {% elif purchase.state == 'ALLOCATION_APPROVED' %}
-                    <span class="table-status-badge bg-warning text-dark">تایید تخصیص</span>
-                {% elif purchase.state == 'PAYMENT_VERIFIED' %}
-                    <span class="table-status-badge bg-success text-white">پرداخت شده</span>
-                {% elif purchase.state == 'DIFFERENCE_APPROVED' %}
-                    <span class="table-status-badge bg-warning text-dark">تایید اختلاف</span>
-                {% elif purchase.state == 'DIFFERENCE_DEPOSITED' %}
-                    <span class="table-status-badge bg-success text-white">واریز اختلاف</span>
-                {% elif purchase.state == 'RECEIPT_SUBMITTED' %}
-                    <span class="table-status-badge bg-info text-white">ثبت رسید</span>
-                {% elif purchase.state == 'INVOICE_ISSUED' %}
-                    <span class="table-status-badge bg-info text-white">صدور فاکتور</span>
-                {% elif purchase.state == 'SALES_APPROVED' %}
-                    <span class="table-status-badge bg-success text-white">تایید واحد فروش</span>
-                {% elif purchase.state == 'LOGISTICS_APPROVED' %}
-                    <span class="table-status-badge bg-success text-white">تایید واحد لجستیک</span>
-                {% elif purchase.state == 'FINANCIAL_APPROVED' %}
-                    <span class="table-status-badge bg-success text-white">تایید واحد مالی</span>
-                {% elif purchase.state == 'COMPLETED' %}
-                    <span class="table-status-badge bg-success text-white">تکمیل شده</span>
+                {% elif purchase.state == 'INITIATED' %}
+                    <span class="table-status-badge bg-light text-dark">شروع شده</span>
                 {% elif purchase.state == 'SMS_SENT' %}
                     <span class="table-status-badge bg-light text-dark">پیامک ارسال شده</span>
+                {% elif purchase.state == 'PAYMENT_VERIFIED' %}
+                    <span class="table-status-badge bg-success text-white">ثبت خرید در بازارگاه</span>
+                {% elif purchase.state == 'ALLOCATION_APPROVED' %}
+                    <span class="table-status-badge bg-warning text-dark">ثبت تخصیص در بازارگاه</span>
+                {% elif purchase.state == 'ADDRESS_SENT' %}
+                    <span class="table-status-badge bg-info text-white">ارسال آدرس به واردکننده</span>
+                {% elif purchase.state == 'WAITING_FOR_BARNAMEH' %}
+                    <span class="table-status-badge bg-warning text-dark">در انتظار بارنامه</span>
+                {% elif purchase.state == 'BARNAMEH_INCOMPLETE' %}
+                    <span class="table-status-badge bg-warning text-dark">صدور بارنامه (ناقص)</span>
+                {% elif purchase.state == 'BARNAMEH_ISSUED' %}
+                    <span class="table-status-badge bg-info text-white">صدور بارنامه</span>
+                {% elif purchase.state == 'PURCHASE_CLOSED' %}
+                    <span class="table-status-badge bg-info text-white">بستن خرید در بازارگاه</span>
+                {% elif purchase.state == 'DIFFERENCE_APPROVED' %}
+                    <span class="table-status-badge bg-warning text-dark">پرداخت کسری / دریافت سرک</span>
+                {% elif purchase.state == 'FULLY_SETTLED' %}
+                    <span class="table-status-badge bg-success text-white">تسویه کامل</span>
+                {% elif purchase.state == 'INVOICE_ISSUED' %}
+                    <span class="table-status-badge bg-info text-white">صدور فاکتور</span>
+                {% elif purchase.state == 'ARCHIVED' or purchase.is_archived %}
+                    <span class="table-status-badge bg-secondary text-white">آرشیو شده</span>
                 {% else %}
-                    <span class="table-status-badge bg-light text-dark">در انتظار</span>
+                    <span class="table-status-badge bg-light text-dark">{{ purchase.get_state_display }}</span>
                 {% endif %}
             </td>
             {% endif %}
@@ -438,7 +430,13 @@ th, td {
             {% endif %}
             
             {% if 'status' in selected_columns %}
-            <td><span class="table-status-badge bg-secondary text-white">آرشیو شده</span></td>
+            <td>
+                {% if purchase.state == 'ARCHIVED' or purchase.is_archived %}
+                    <span class="table-status-badge bg-secondary text-white">آرشیو شده</span>
+                {% else %}
+                    <span class="table-status-badge bg-secondary text-white">{{ purchase.get_state_display }}</span>
+                {% endif %}
+            </td>
             {% endif %}
             
             {% if 'actions' in selected_columns %}
@@ -1002,22 +1000,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const statuses = {
             'INITIATED': 'شروع شده',
             'SMS_SENT': 'پیامک ارسال شده',
-            'PAYMENT_VERIFIED': 'تایید نشستن در بازارگاه',
-            'ALLOCATION_APPROVED': 'تایید تخصیص',
-            'VENDOR_SETTLED': 'تسویه با واردکننده',
+            'PAYMENT_VERIFIED': 'ثبت خرید در بازارگاه',
+            'ALLOCATION_APPROVED': 'ثبت تخصیص در بازارگاه',
             'ADDRESS_SENT': 'ارسال آدرس به واردکننده',
-            'SENT_TO_SHIPPING': 'ارسال به باربری',
-            'BARNAMEH_ISSUED': 'بارنامه صادر شده',
-            'BARNAMEH_INCOMPLETE': 'بارنامه ناقص',
-            'DIFFERENCE_APPROVED': 'تایید مقدار و مبلغ اختلاف',
-            'DIFFERENCE_DEPOSITED': 'ثبت واریز اختلاف',
-            'RECEIPT_SUBMITTED': 'ثبت رسید واریزی اختلاف',
+            'WAITING_FOR_BARNAMEH': 'در انتظار بارنامه',
+            'BARNAMEH_INCOMPLETE': 'صدور بارنامه (ناقص)',
+            'BARNAMEH_ISSUED': 'صدور بارنامه',
+            'PURCHASE_CLOSED': 'بستن خرید در بازارگاه',
+            'DIFFERENCE_APPROVED': 'پرداخت کسری / دریافت سرک',
+            'FULLY_SETTLED': 'تسویه کامل',
             'INVOICE_ISSUED': 'صدور فاکتور',
-            'SALES_APPROVED': 'تایید واحد فروش',
-            'LOGISTICS_APPROVED': 'تایید واحد لجستیک',
-            'FINANCIAL_APPROVED': 'تایید واحد مالی',
-            'COMPLETED': 'تکمیل شده',
-            'URGENT': 'پیگیری فوری',
             'CANCELED': 'لغو شده',
             'ARCHIVED': 'آرشیو شده'
         };
@@ -1044,20 +1036,14 @@ document.addEventListener('DOMContentLoaded', function() {
             'SMS_SENT': 'bg-light text-dark',
             'PAYMENT_VERIFIED': 'bg-success text-white',
             'ALLOCATION_APPROVED': 'bg-warning text-dark',
-            'VENDOR_SETTLED': 'bg-info text-white',
             'ADDRESS_SENT': 'bg-info text-white',
-            'SENT_TO_SHIPPING': 'bg-info text-white',
-            'BARNAMEH_ISSUED': 'bg-info text-white',
+            'WAITING_FOR_BARNAMEH': 'bg-warning text-dark',
             'BARNAMEH_INCOMPLETE': 'bg-warning text-dark',
+            'BARNAMEH_ISSUED': 'bg-info text-white',
+            'PURCHASE_CLOSED': 'bg-info text-white',
             'DIFFERENCE_APPROVED': 'bg-warning text-dark',
-            'DIFFERENCE_DEPOSITED': 'bg-success text-white',
-            'RECEIPT_SUBMITTED': 'bg-info text-white',
+            'FULLY_SETTLED': 'bg-success text-white',
             'INVOICE_ISSUED': 'bg-info text-white',
-            'SALES_APPROVED': 'bg-success text-white',
-            'LOGISTICS_APPROVED': 'bg-success text-white',
-            'FINANCIAL_APPROVED': 'bg-success text-white',
-            'COMPLETED': 'bg-success text-white',
-            'URGENT': 'bg-danger text-white',
             'CANCELED': 'bg-danger text-white',
             'ARCHIVED': 'bg-secondary text-white'
         };
@@ -1098,21 +1084,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     <option value="">تعیین نشده</option>
                     <option value="INITIATED" ${originalText === 'INITIATED' ? 'selected' : ''}>شروع شده</option>
                     <option value="SMS_SENT" ${originalText === 'SMS_SENT' ? 'selected' : ''}>پیامک ارسال شده</option>
-                    <option value="PAYMENT_VERIFIED" ${originalText === 'PAYMENT_VERIFIED' ? 'selected' : ''}>تایید نشستن در بازارگاه</option>
-                    <option value="ALLOCATION_APPROVED" ${originalText === 'ALLOCATION_APPROVED' ? 'selected' : ''}>تایید تخصیص</option>
-                    <option value="VENDOR_SETTLED" ${originalText === 'VENDOR_SETTLED' ? 'selected' : ''}>تسویه با واردکننده</option>
+                    <option value="PAYMENT_VERIFIED" ${originalText === 'PAYMENT_VERIFIED' ? 'selected' : ''}>ثبت خرید در بازارگاه</option>
+                    <option value="ALLOCATION_APPROVED" ${originalText === 'ALLOCATION_APPROVED' ? 'selected' : ''}>ثبت تخصیص در بازارگاه</option>
                     <option value="ADDRESS_SENT" ${originalText === 'ADDRESS_SENT' ? 'selected' : ''}>ارسال آدرس به واردکننده</option>
-                    <option value="SENT_TO_SHIPPING" ${originalText === 'SENT_TO_SHIPPING' ? 'selected' : ''}>ارسال به باربری</option>
-                    <option value="BARNAMEH_ISSUED" ${originalText === 'BARNAMEH_ISSUED' ? 'selected' : ''}>بارنامه صادر شده</option>
-                    <option value="BARNAMEH_INCOMPLETE" ${originalText === 'BARNAMEH_INCOMPLETE' ? 'selected' : ''}>بارنامه ناقص</option>
-                    <option value="DIFFERENCE_APPROVED" ${originalText === 'DIFFERENCE_APPROVED' ? 'selected' : ''}>تایید مقدار و مبلغ اختلاف</option>
-                    <option value="DIFFERENCE_DEPOSITED" ${originalText === 'DIFFERENCE_DEPOSITED' ? 'selected' : ''}>ثبت واریز اختلاف</option>
-                    <option value="RECEIPT_SUBMITTED" ${originalText === 'RECEIPT_SUBMITTED' ? 'selected' : ''}>ثبت رسید واریزی اختلاف</option>
+                    <option value="WAITING_FOR_BARNAMEH" ${originalText === 'WAITING_FOR_BARNAMEH' ? 'selected' : ''}>در انتظار بارنامه</option>
+                    <option value="BARNAMEH_INCOMPLETE" ${originalText === 'BARNAMEH_INCOMPLETE' ? 'selected' : ''}>صدور بارنامه (ناقص)</option>
+                    <option value="BARNAMEH_ISSUED" ${originalText === 'BARNAMEH_ISSUED' ? 'selected' : ''}>صدور بارنامه</option>
+                    <option value="PURCHASE_CLOSED" ${originalText === 'PURCHASE_CLOSED' ? 'selected' : ''}>بستن خرید در بازارگاه</option>
+                    <option value="DIFFERENCE_APPROVED" ${originalText === 'DIFFERENCE_APPROVED' ? 'selected' : ''}>پرداخت کسری / دریافت سرک</option>
+                    <option value="FULLY_SETTLED" ${originalText === 'FULLY_SETTLED' ? 'selected' : ''}>تسویه کامل</option>
                     <option value="INVOICE_ISSUED" ${originalText === 'INVOICE_ISSUED' ? 'selected' : ''}>صدور فاکتور</option>
-                    <option value="SALES_APPROVED" ${originalText === 'SALES_APPROVED' ? 'selected' : ''}>تایید واحد فروش</option>
-                    <option value="LOGISTICS_APPROVED" ${originalText === 'LOGISTICS_APPROVED' ? 'selected' : ''}>تایید واحد لجستیک</option>
-                    <option value="FINANCIAL_APPROVED" ${originalText === 'FINANCIAL_APPROVED' ? 'selected' : ''}>تایید واحد مالی</option>
-                    <option value="COMPLETED" ${originalText === 'COMPLETED' ? 'selected' : ''}>تکمیل شده</option>
+                    <option value="CANCELED" ${originalText === 'CANCELED' ? 'selected' : ''}>لغو شده</option>
+                    <option value="ARCHIVED" ${originalText === 'ARCHIVED' ? 'selected' : ''}>آرشیو شده</option>
                 </select>`;
             } else {
                 // برای سایر فیلدها از input معمولی استفاده می‌کنیم
