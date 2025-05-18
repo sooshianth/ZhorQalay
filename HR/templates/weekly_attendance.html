@@ -1,183 +1,423 @@
 {% extends 'base.html' %}
+{% load hr_filters %}
 
 {% block title %}ثبت ساعات هفتگی{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <h1 class="text-center mb-4 text-primary">مدیریت ساعات کاری</h1>
-
-    <!-- بخش فرم ثبت -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <h4 class="card-title">ثبت ساعات روزانه</h4>
-            <form id="daily-attendance-form" method="post">
-                {% csrf_token %}
-                {{ form.as_p }}
-                <div class="form-group">
-                    <label for="day-of-week" class="form-label">روز هفته:</label>
-                    <input type="text" id="day-of-week" name="day" class="form-control" readonly>
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="page-title-box d-flex align-items-center justify-content-between">
+                <h1 class="fw-bold text-primary mb-0">
+                    <i class="fas fa-business-time me-2"></i>مدیریت ساعات کاری
+                </h1>
+                <div class="page-actions">
+                    <a href="{% url 'download_attendance_report' %}" class="btn btn-success btn-sm">
+                        <i class="fas fa-download me-1"></i> دانلود گزارش
+                    </a>
+                    <a href="{% url 'pending_approvals' %}" class="btn btn-info btn-sm text-white">
+                        <i class="fas fa-check-circle me-1"></i> تأیید ساعات
+                    </a>
+                    <a href="{% url 'attendance_summary' %}" class="btn btn-warning btn-sm">
+                        <i class="fas fa-chart-bar me-1"></i> خلاصه ساعات
+                    </a>
                 </div>
-                
-                <!-- بخش بازه‌های زمانی -->
-                <div class="form-group">
-                    <label class="form-label">بازه‌های زمانی:</label>
-                    <div id="time-ranges-container">
-                        <div class="time-range-item mb-2">
-                            <div class="row">
-                                <div class="col-md-5">
-                                    <input type="time" class="form-control start-time" placeholder="شروع">
-                                </div>
-                                <div class="col-md-5">
-                                    <input type="time" class="form-control end-time" placeholder="پایان">
-                                </div>
-                                <div class="col-md-2">
-                                    <button type="button" class="btn btn-danger remove-range">حذف</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <button type="button" id="add-time-range" class="btn btn-secondary mt-2">افزودن بازه زمانی</button>
-                </div>
-                
-                <div class="alert alert-info mt-3">
-                    مجموع ساعات: <span id="total-hours-display">0</span> ساعت
-                </div>
-                
-                <button type="submit" class="btn btn-primary mt-3">ثبت</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- دکمه دانلود گزارش -->
-    <a href="{% url 'download_attendance_report' %}" class="btn btn-success mb-4">دانلود گزارش <i class="fas fa-download"></i></a>
-
-    <!-- بخش فیلترها -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <form method="get" class="row g-3 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label">جستجو:</label>
-                    <input type="text" name="q" class="form-control" placeholder="جستجو..." value="{{ request.GET.q }}">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">تاریخ شروع:</label>
-                    <input type="date" name="start_date" class="form-control" value="{{ request.GET.start_date }}">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">تاریخ پایان:</label>
-                    <input type="date" name="end_date" class="form-control" value="{{ request.GET.end_date }}">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">وضعیت:</label>
-                    <select name="status" class="form-control">
-                        <option value="">همه وضعیت‌ها</option>
-                        <option value="approved" {% if request.GET.status == "approved" %}selected{% endif %}>تأیید نهایی</option>
-                        <option value="pending" {% if request.GET.status == "pending" %}selected{% endif %}>در انتظار تأیید</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label"> </label>
-                    <button type="submit" class="btn btn-secondary w-100">فیلتر</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- جدول نمایش رکوردها -->
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <h4 class="card-title">لیست ساعات ثبت‌شده</h4>
-            <div class="table-responsive">
-                <table class="table table-striped table-hover text-center align-middle">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>تاریخ شروع هفته</th>
-                            <th>روز</th>
-                            <th>ساعات کاری</th>
-                            <th>توضیحات</th>
-                            <th>تأیید ادمین</th>
-                            <th>تأیید کاربر ۱</th>
-                            <th>تأیید کاربر ۲</th>
-                            <th>وضعیت کلی</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for attendance in attendances %}
-                        <tr>
-                            <td>{{ attendance.week_start_date }}</td>
-                            <td>{{ attendance.day }}</td>
-                            <td>
-                                {% if attendance.is_fully_approved %}
-                                    <span class="fw-bold text-success">{{ attendance.total_hours }}</span>
-                                {% else %}
-                                    <span class="text-muted">در انتظار تأیید</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ attendance.description|default:"-" }}</td>
-                            <td>
-                                <span class="badge {% if attendance.approved_by_admin %}bg-success{% else %}bg-warning text-dark{% endif %}">
-                                    {% if attendance.approved_by_admin %}<i class="fas fa-check"></i> تأیید شده{% else %}<i class="fas fa-hourglass-half"></i> در انتظار{% endif %}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge {% if attendance.user1_approved %}bg-success{% else %}bg-warning text-dark{% endif %}">
-                                    {% if attendance.user1_approved %}<i class="fas fa-check"></i> تأیید شده{% else %}<i class="fas fa-hourglass-half"></i> در انتظار{% endif %}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge {% if attendance.user2_approved %}bg-success{% else %}bg-warning text-dark{% endif %}">
-                                    {% if attendance.user2_approved %}<i class="fas fa-check"></i> تأیید شده{% else %}<i class="fas fa-hourglass-half"></i> در انتظار{% endif %}
-                                </span>
-                            </td>
-                            <td>
-                                {% if attendance.is_fully_approved %}
-                                    <span class="badge bg-success"><i class="fas fa-check-circle"></i> تأیید نهایی</span>
-                                {% else %}
-                                    <span class="badge bg-warning text-dark"><i class="fas fa-hourglass-half"></i> در انتظار تأیید</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="8" class="text-center text-muted"><i class="fas fa-info-circle"></i> هیچ اطلاعاتی ثبت نشده است.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
             </div>
         </div>
     </div>
 
-    <!-- دکمه‌های ناوبری -->
-    <div class="mt-4 d-flex gap-2">
-        <a href="{% url 'pending_approvals' %}" class="btn btn-outline-primary">
-            <i class="fas fa-check-circle"></i> تأیید ساعات
-        </a>
-        <a href="{% url 'attendance_summary' %}" class="btn btn-outline-info">
-            <i class="fas fa-chart-bar"></i> خلاصه ساعات
-        </a>
+    <div class="row">
+        <!-- بخش سمت راست - فرم ثبت -->
+        <div class="col-lg-4 mb-4">
+            <!-- بخش فرم ثبت -->
+            <div class="card shadow border-0 h-100 card-form">
+                <div class="card-header bg-gradient-primary text-white py-3">
+                    <h4 class="card-title m-0 fw-bold"><i class="fas fa-clock me-2"></i>ثبت ساعات روزانه</h4>
+                </div>
+                <div class="card-body">
+                    <form id="daily-attendance-form" method="post">
+                        {% csrf_token %}
+                        <div class="form-group mb-3">
+                            {{ form.date.label_tag }}
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                {{ form.date }}
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            {{ form.day_of_week.label_tag }}
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-calendar-day"></i></span>
+                                {{ form.day_of_week }}
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            {{ form.hours.label_tag }}
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-hourglass-half"></i></span>
+                                {{ form.hours }}
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            {{ form.description.label_tag }}
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-align-left"></i></span>
+                                {{ form.description }}
+                            </div>
+                        </div>
+                        
+                        <div class="card bg-light mb-3">
+                            <div class="card-header">
+                                <h5 class="fw-bold"><i class="fas fa-user-check me-2"></i>تأییدکنندگان</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group mb-2">
+                                    {{ form.approved_by_user1.label_tag }}
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-user-check"></i></span>
+                                        {{ form.approved_by_user1 }}
+                                    </div>
+                                    {% if form.approved_by_user1.help_text %}<small class="form-text text-muted">{{ form.approved_by_user1.help_text }}</small>{% endif %}
+                                </div>
+                                
+                                <div class="form-group mb-2">
+                                    {{ form.approved_by_user2.label_tag }}
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-user-check"></i></span>
+                                        {{ form.approved_by_user2 }}
+                                    </div>
+                                    {% if form.approved_by_user2.help_text %}<small class="form-text text-muted">{{ form.approved_by_user2.help_text }}</small>{% endif %}
+                                </div>
+                                
+                                <div class="form-group mb-2">
+                                    {{ form.approved_by_user3.label_tag }}
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-user-check"></i></span>
+                                        {{ form.approved_by_user3 }}
+                                    </div>
+                                    {% if form.approved_by_user3.help_text %}<small class="form-text text-muted">{{ form.approved_by_user3.help_text }}</small>{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- بخش بازه‌های زمانی -->
+                        <div class="card bg-light mb-3">
+                            <div class="card-header">
+                                <h5 class="fw-bold"><i class="fas fa-stopwatch me-2"></i>بازه‌های زمانی</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="time-ranges-container">
+                                    <div class="time-range-item mb-2">
+                                        <div class="row g-2">
+                                            <div class="col-md-5">
+                                                <div class="input-group">
+                                                    <span class="input-group-text"><i class="fas fa-hourglass-start"></i></span>
+                                                    <input type="time" class="form-control start-time" placeholder="شروع">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-5">
+                                                <div class="input-group">
+                                                    <span class="input-group-text"><i class="fas fa-hourglass-end"></i></span>
+                                                    <input type="time" class="form-control end-time" placeholder="پایان">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <button type="button" class="btn btn-outline-danger remove-range w-100"><i class="fas fa-trash-alt"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="button" id="add-time-range" class="btn btn-secondary mt-2 w-100">
+                                    <i class="fas fa-plus-circle me-1"></i> افزودن بازه زمانی
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info mt-3 d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-calculator me-2"></i>مجموع ساعات:</span>
+                            <span class="fs-5 fw-bold" id="total-hours-display">0</span>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100 mt-3">
+                            <i class="fas fa-save me-1"></i> ثبت
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- بخش سمت چپ - جدول و فیلتر -->
+        <div class="col-lg-8">
+            <!-- بخش فیلترها -->
+            <div class="card shadow border-0 mb-4">
+                <div class="card-header bg-gradient-secondary text-white py-3">
+                    <h4 class="card-title m-0 fw-bold"><i class="fas fa-filter me-2"></i>فیلتر و جستجو</h4>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">جستجو:</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" name="q" class="form-control" placeholder="جستجو..." value="{{ request.GET.q }}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">تاریخ شروع:</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                                <input type="text" name="start_date" class="form-control persian-datepicker" placeholder="از تاریخ" value="{{ request.GET.start_date }}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">تاریخ پایان:</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                                <input type="text" name="end_date" class="form-control persian-datepicker" placeholder="تا تاریخ" value="{{ request.GET.end_date }}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">وضعیت:</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-tasks"></i></span>
+                                <select name="status" class="form-select">
+                                    <option value="">همه وضعیت‌ها</option>
+                                    <option value="approved" {% if request.GET.status == "approved" %}selected{% endif %}>تأیید نهایی</option>
+                                    <option value="pending" {% if request.GET.status == "pending" %}selected{% endif %}>در انتظار تأیید</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-secondary w-100">
+                                <i class="fas fa-filter me-1"></i> اعمال فیلتر
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- جدول نمایش رکوردها -->
+            <div class="card shadow border-0">
+                <div class="card-header bg-gradient-primary text-white py-3">
+                    <h4 class="card-title m-0 fw-bold"><i class="fas fa-list-alt me-2"></i>لیست ساعات ثبت‌شده</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover text-center align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th><i class="fas fa-calendar-alt me-1"></i> تاریخ</th>
+                                    <th><i class="fas fa-calendar-day me-1"></i> روز</th>
+                                    <th><i class="fas fa-clock me-1"></i> ساعات کاری</th>
+                                    <th><i class="fas fa-align-left me-1"></i> توضیحات</th>
+                                    <th><i class="fas fa-user-check me-1"></i> تاییدها</th>
+                                    <th><i class="fas fa-user-shield me-1"></i> تأیید ادمین</th>
+                                    <th><i class="fas fa-info-circle me-1"></i> وضعیت کلی</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for attendance in attendances %}
+                                <tr class="{% if attendance.is_fully_approved %}table-success bg-opacity-25{% endif %}">
+                                    <td>{{ attendance.week_start_date }}</td>
+                                    <td>{{ attendance.day }}</td>
+                                    <td>
+                                        {% if attendance.is_fully_approved %}
+                                            <span class="fw-bold text-success">{{ attendance.total_hours }}</span>
+                                        {% else %}
+                                            <span class="fw-bold">{{ attendance.total_hours }}</span>
+                                            <small class="d-block text-muted">در انتظار تأیید</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if attendance.description %}
+                                            <div class="description-preview">
+                                                <span class="text-truncate d-inline-block" style="max-width: 120px;">{{ attendance.description }}</span>
+                                                <button class="btn btn-sm btn-link text-primary show-description" data-bs-toggle="modal" data-bs-target="#descriptionModal" data-description="{{ attendance.description }}">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted fst-italic">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-column gap-1">
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar {% if attendance.approval_count == 3 %}bg-success{% elif attendance.approval_count > 0 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                     role="progressbar" 
+                                                     style="width: {{ attendance.approval_count|mul:33.33 }}%;" 
+                                                     aria-valuenow="{{ attendance.approval_count }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="3">
+                                                    {{ attendance.approval_count }}/3
+                                                </div>
+                                            </div>
+                                            <small>
+                                                {% if attendance.enough_approvals %}
+                                                    <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> تاییدها کافی است</span>
+                                                {% else %}
+                                                    <span class="badge bg-warning text-dark"><i class="fas fa-exclamation-circle me-1"></i> نیاز به تایید بیشتر</span>
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if attendance.approved_by_admin %}bg-success{% else %}bg-warning text-dark{% endif %} p-2">
+                                            {% if attendance.approved_by_admin %}<i class="fas fa-check me-1"></i> تأیید شده{% else %}<i class="fas fa-hourglass-half me-1"></i> در انتظار{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if attendance.is_fully_approved %}
+                                            <span class="badge bg-success p-2"><i class="fas fa-check-circle me-1"></i> تأیید نهایی</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark p-2"><i class="fas fa-hourglass-half me-1"></i> در انتظار تأیید</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-5">
+                                        <i class="fas fa-info-circle fa-2x mb-3 d-block"></i>
+                                        <p>هیچ اطلاعاتی ثبت نشده است.</p>
+                                        <small>برای ثبت ساعات کاری از فرم سمت راست استفاده کنید.</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- مودال نمایش توضیحات کامل -->
+<div class="modal fade" id="descriptionModal" tabindex="-1" aria-labelledby="descriptionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="descriptionModalLabel"><i class="fas fa-info-circle me-2"></i>توضیحات کامل</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="fullDescription" class="mb-0 p-3 bg-light rounded"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">بستن</button>
+            </div>
+        </div>
     </div>
 </div>
 
 <!-- کتابخانه‌های مورد نیاز -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<!-- کتابخانه‌های تقویم جلالی -->
+<link rel="stylesheet" href="https://unpkg.com/persian-datepicker@latest/dist/css/persian-datepicker.min.css">
+<script src="https://unpkg.com/persian-date@latest/dist/persian-date.min.js"></script>
+<script src="https://unpkg.com/persian-datepicker@latest/dist/js/persian-datepicker.min.js"></script>
 
 <script>
 $(document).ready(function() {
-    // تنظیم تقویم ساده برای فیلدهای تاریخ
-    $('input[type="date"]').on('change', function() {
-        const date = new Date($(this).val());
-        const weekdays = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-        const dayOfWeek = weekdays[date.getDay()];
-        $('#day-of-week').val(dayOfWeek);
+    // تنظیم تقویم جلالی برای فیلدهای تاریخ
+    $('.persian-datepicker').persianDatepicker({
+        format: 'YYYY/MM/DD',
+        initialValueType: 'persian',
+        autoClose: true,
+        persianDigit: false,
+        initialValue: false,
+        onlyShowOnFocus: true,
+        timePicker: {
+            enabled: false
+        },
+        onSelect: function(unix) {
+            const pDate = new persianDate(unix);
+            
+            const weekdays = {
+                1: 'دوشنبه',
+                2: 'سه‌شنبه',
+                3: 'چهارشنبه',
+                4: 'پنج‌شنبه',
+                5: 'جمعه',
+                6: 'شنبه',
+                0: 'یکشنبه'
+            };
+            
+            const dayOfWeek = pDate.day();
+            console.log('Selected date:', pDate.format('YYYY/MM/DD'), 'Day of week index:', dayOfWeek, 'Day name:', weekdays[dayOfWeek]);
+            $('#day-of-week').val(weekdays[dayOfWeek]);
+            
+            $(this.inputElement).trigger('change');
+        }
+    });
+
+    // اضافه کردن event listener برای تغییر دستی فیلد تاریخ
+    $('#attendance-date').on('change', function() {
+        const dateStr = $(this).val();
+        if (!dateStr) {
+            $('#day-of-week').val('');
+            return;
+        }
+        
+        try {
+            const dateParts = dateStr.replace(/[-\.]/g, '/').split('/');
+            if (dateParts.length === 3) {
+                const year = parseInt(dateParts[0]);
+                const month = parseInt(dateParts[1]);
+                const day = parseInt(dateParts[2]);
+                
+                const pDate = new persianDate([year, month, day]);
+                const weekdays = {
+                    1: 'دوشنبه',
+                    2: 'سه‌شنبه',
+                    3: 'چهارشنبه',
+                    4: 'پنج‌شنبه',
+                    5: 'جمعه',
+                    6: 'شنبه',
+                    0: 'یکشنبه'
+                };
+                
+                const dayOfWeek = pDate.day();
+                console.log('Manual date:', pDate.format('YYYY/MM/DD'), 'Day of week index:', dayOfWeek, 'Day name:', weekdays[dayOfWeek]);
+                $('#day-of-week').val(weekdays[dayOfWeek]);
+            }
+        } catch (e) {
+            console.error("خطا در تبدیل تاریخ:", e);
+            $('#day-of-week').val('');
+        }
     });
 
     // مدیریت بازه‌های زمانی
     $('#add-time-range').on('click', function() {
         const container = $('#time-ranges-container');
-        const newItem = $('<div class="time-range-item mb-2"><div class="row"><div class="col-md-5"><input type="time" class="form-control start-time" placeholder="شروع"></div><div class="col-md-5"><input type="time" class="form-control end-time" placeholder="پایان"></div><div class="col-md-2"><button type="button" class="btn btn-danger remove-range">حذف</button></div></div></div>');
+        const newItem = $(`
+            <div class="time-range-item mb-2">
+                <div class="row g-2">
+                    <div class="col-md-5">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-hourglass-start"></i></span>
+                            <input type="time" class="form-control start-time" placeholder="شروع">
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-hourglass-end"></i></span>
+                            <input type="time" class="form-control end-time" placeholder="پایان">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-outline-danger remove-range w-100"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+                </div>
+            </div>
+        `);
         container.append(newItem);
     });
 
@@ -207,15 +447,251 @@ $(document).ready(function() {
         $('#total-hours-display').text(totalHours);
         $('#id_hours').val(totalHours);
     }
+    
+    // مدیریت نمایش توضیحات در مودال
+    $('.show-description').on('click', function() {
+        const description = $(this).data('description');
+        $('#fullDescription').text(description);
+    });
+    
+    // افکت‌های ظاهری و انیمیشن
+    $('.card-form').hover(
+        function() {
+            $(this).addClass('card-hover-effect');
+        },
+        function() {
+            $(this).removeClass('card-hover-effect');
+        }
+    );
 });
 </script>
 
 {% block extra_styles %}
 <style>
-    .card { transition: all 0.3s; }
-    .card:hover { transform: scale(1.02); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
-    .table-responsive { max-height: 400px; overflow-y: auto; }
-    .alert-info { font-weight: bold; }
+    /* متغیرهای رنگ و سایز */
+    :root {
+        --primary-color: #065F46;  /* سبز زمردی تیره */
+        --secondary-color: #4e73df;
+        --success-color: #1cc88a;
+        --info-color: #36b9cc;
+        --warning-color: #f6c23e;
+        --danger-color: #e74a3b;
+        --light-color: #f8f9fc;
+        --dark-color: #5a5c69;
+        --border-radius: 0.5rem;
+        --shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    /* استایل‌های عمومی */
+    body {
+        background-color: #f8f9fc;
+        font-family: 'Vazir', 'Tahoma', sans-serif;
+    }
+    
+    /* تیتر صفحه */
+    .page-title-box {
+        background-color: rgba(6, 95, 70, 0.08);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border-right: 4px solid var(--primary-color);
+        margin-bottom: 1.5rem;
+    }
+    
+    .card {
+        border-radius: var(--border-radius);
+        transition: all 0.3s;
+        overflow: hidden;
+        border: none;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow);
+    }
+    
+    .card-hover-effect {
+        transform: translateY(-8px) !important;
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
+        border-color: var(--primary-color) !important;
+    }
+    
+    .card-header {
+        font-weight: bold;
+        border-bottom: 0;
+    }
+    
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #065F46 0%, #047857 100%);
+    }
+    
+    .bg-gradient-secondary {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+    }
+    
+    .table-responsive {
+        border-radius: 0.5rem;
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    .badge {
+        padding: 0.5rem 0.75rem;
+        border-radius: 10rem;
+        font-weight: 600;
+    }
+    
+    /* استایل فیلدهای فرم */
+    .form-control, .form-select {
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        border: 1px solid #ddd;
+        transition: all 0.2s;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.25rem rgba(6, 95, 70, 0.25);
+    }
+    
+    .input-group-text {
+        background-color: #f8f9fc;
+        border-color: #ddd;
+        height: 50px;
+    }
+    
+    /* استایل دکمه‌ها */
+    .btn {
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+    
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .btn-primary:hover {
+        background-color: #047857;
+        border-color: #047857;
+    }
+    
+    .btn-success {
+        background-color: var(--success-color);
+        border-color: var(--success-color);
+    }
+    
+    .btn-success:hover {
+        background-color: #17a673;
+        border-color: #17a673;
+    }
+    
+    .btn-info {
+        background-color: var(--info-color);
+        border-color: var(--info-color);
+    }
+    
+    .btn-info:hover {
+        background-color: #2ca0b9;
+        border-color: #2ca0b9;
+    }
+    
+    .btn-warning {
+        background-color: var(--warning-color);
+        border-color: var(--warning-color);
+    }
+    
+    .btn-warning:hover {
+        background-color: #dda20a;
+        border-color: #dda20a;
+    }
+    
+    /* استایل جدول */
+    .table {
+        vertical-align: middle;
+    }
+    
+    .table th {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 1px;
+    }
+    
+    /* استایل پیشرفت */
+    .progress {
+        height: 1rem;
+        border-radius: 1rem;
+        background-color: #eaecf4;
+    }
+    
+    .progress-bar {
+        border-radius: 1rem;
+        font-weight: bold;
+    }
+    
+    /* استایل توضیحات */
+    .description-preview {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .show-description {
+        padding: 0.25rem 0.5rem;
+        border-radius: 50%;
+        transition: all 0.3s;
+    }
+    
+    .show-description:hover {
+        background-color: rgba(6, 95, 70, 0.1);
+        color: var(--primary-color);
+    }
+    
+    /* استایل مودال */
+    .modal-content {
+        border-radius: 0.75rem;
+        border: none;
+        box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.2);
+    }
+    
+    .modal-header {
+        background-color: var(--primary-color);
+        color: white;
+        border-top-left-radius: 0.75rem;
+        border-top-right-radius: 0.75rem;
+    }
+    
+    #fullDescription {
+        line-height: 1.8;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    /* استایل برای کارت‌های روشن */
+    .alert-info, .card-light {
+        background-color: rgba(6, 95, 70, 0.05);
+        border-color: rgba(6, 95, 70, 0.1);
+        color: var(--primary-color);
+    }
+    
+    /* انیمیشن‌ها */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .card {
+        animation: fadeIn 0.5s ease-out forwards;
+    }
+    
+    /* تنظیم تاخیر در انیمیشن‌ها */
+    .card:nth-child(1) { animation-delay: 0.1s; }
+    .card:nth-child(2) { animation-delay: 0.2s; }
+    .card:nth-child(3) { animation-delay: 0.3s; }
 </style>
 {% endblock %}
 {% endblock %}

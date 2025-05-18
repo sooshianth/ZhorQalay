@@ -2,10 +2,11 @@ from django.db import models
 from django.contrib.auth.models import User
 from django_jalali.db import models as jmodels
 from django.db.models import Sum
+import jdatetime
 
 class WeeklyAttendance(models.Model):
     employee = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کارمند")
-    week_start_date = jmodels.jDateField(verbose_name="تاریخ شروع هفته")  # تاریخ شروع هفته (شنبه)
+    week_start_date = jmodels.jDateField(verbose_name="تاریخ حضور")  # تاریخی که کاربر انتخاب کرده و ساعت را ثبت می‌کند
     day = models.CharField(max_length=10, verbose_name="روز", null=True, blank=True)  # روز خاص
     saturday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات شنبه", default=0)
     sunday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات یکشنبه", default=0)
@@ -18,9 +19,11 @@ class WeeklyAttendance(models.Model):
     description = models.TextField(verbose_name='توضیحات', null=True, blank=True)
     approved_by_user1 = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="approver1", null=True, blank=True, verbose_name="تایید توسط کاربر 1")
     approved_by_user2 = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="approver2", null=True, blank=True, verbose_name="تایید توسط کاربر 2")
+    approved_by_user3 = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="approver3", null=True, blank=True, verbose_name="تایید توسط کاربر 3")
     approved_by_admin = models.BooleanField(default=False, verbose_name='تایید توسط ادمین')
     user1_approved = models.BooleanField(default=False, verbose_name="تایید توسط کاربر 1 انجام شده")
     user2_approved = models.BooleanField(default=False, verbose_name="تایید توسط کاربر 2 انجام شده")
+    user3_approved = models.BooleanField(default=False, verbose_name="تایید توسط کاربر 3 انجام شده")
 
     def calculate_total_hours(self):
         # جمع ساعات روزانه، با اطمینان از اینکه مقادیر None به 0 تبدیل شوند
@@ -36,8 +39,19 @@ class WeeklyAttendance(models.Model):
         self.total_hours = sum(float(hour) for hour in hours)
 
     @property
+    def is_enough_user_approvals(self):
+        # حداقل دو کاربر از سه کاربر تایید کرده باشند
+        approved_count = sum([
+            1 if self.user1_approved else 0,
+            1 if self.user2_approved else 0,
+            1 if self.user3_approved else 0
+        ])
+        return approved_count >= 2
+
+    @property
     def is_fully_approved(self):
-        return self.user1_approved and self.user2_approved and self.approved_by_admin
+        # حداقل دو کاربر تایید کرده باشند و ادمین هم تایید کرده باشد
+        return self.is_enough_user_approvals and self.approved_by_admin
     
     def save(self, *args, **kwargs):
         if self.day and not self.day.endswith('شنبه'):
@@ -72,14 +86,45 @@ class MonthlyAttendance(models.Model):
 
     @classmethod
     def update_monthly_hours(cls, employee, week_start_date):
-        month = week_start_date.strftime('%Y-%m')
-        total = WeeklyAttendance.objects.filter(
-            employee=employee,
-            week_start_date__startswith=month[:7]
-        ).aggregate(Sum('total_hours'))['total_hours__sum'] or 0
-        obj, created = cls.objects.get_or_create(employee=employee, month=month)
-        obj.total_hours = total
-        obj.save()
+        # week_start_date حالا یک تاریخ جلالی است (jdatetime.date)
+        # استخراج سال و ماه به فرمت YYYY-MM
+        try:
+            print(f"Debug - update_monthly_hours: Processing date: {week_start_date}, Type: {type(week_start_date)}")
+            year = week_start_date.year
+            month = week_start_date.month
+            month_str = f"{year}-{month:02d}"
+            print(f"Debug - update_monthly_hours: Extracted month: {month_str}")
+            
+            # جمع ساعات در این ماه
+            # فیلتر کردن با تاریخ جلالی نیاز به روش متفاوتی دارد
+            # محاسبه اول و آخر ماه در تقویم جلالی
+            start_of_month = jdatetime.date(year, month, 1)
+            if month == 12:
+                end_of_month = jdatetime.date(year + 1, 1, 1) - jdatetime.timedelta(days=1)
+            else:
+                end_of_month = jdatetime.date(year, month + 1, 1) - jdatetime.timedelta(days=1)
+                
+            print(f"Debug - update_monthly_hours: Month range: {start_of_month} to {end_of_month}")
+                
+            total = WeeklyAttendance.objects.filter(
+                employee=employee,
+                week_start_date__gte=start_of_month,
+                week_start_date__lte=end_of_month
+            ).aggregate(Sum('total_hours'))['total_hours__sum'] or 0
+            
+            print(f"Debug - update_monthly_hours: Total hours: {total}")
+            
+            obj, created = cls.objects.get_or_create(employee=employee, month=month_str)
+            obj.total_hours = total
+            obj.save()
+        except Exception as e:
+            print(f"Error in update_monthly_hours: {str(e)}")
+            # در صورت خطا، از ماه رشته‌ای که در jdatetime وجود دارد استفاده می‌کنیم
+            month_str = week_start_date.strftime('%Y-%m')
+            total = 0  # در صورت خطا، ساعت را 0 در نظر می‌گیریم
+            obj, created = cls.objects.get_or_create(employee=employee, month=month_str)
+            obj.total_hours = total
+            obj.save()
 
     class Meta:
         verbose_name = "حضور ماهانه"
