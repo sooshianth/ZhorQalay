@@ -18,12 +18,12 @@
         width: 600px;
     }
     .btn-primary {
-        background-color: #1e40af;
+        background-color: #065F46;
         color: white;
         transition: background-color 0.3s ease;
     }
     .btn-primary:hover {
-        background-color: #1e3a8a;
+        background-color: #064e3b;
     }
     .btn-secondary {
         background-color: #64748b;
@@ -35,6 +35,7 @@
     }
     .table-hover tbody tr:hover {
         background-color: #f1f5f9;
+        cursor: pointer;
     }
     .shadow-custom {
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -45,6 +46,17 @@
     }
     .filter-section.collapsed {
         max-height: 0;
+    }
+    .selected-row {
+        background-color: #e6f3ef;
+    }
+    .preview-box {
+        max-height: 150px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        padding: 10px;
+        background-color: #f9f9f9;
+        border-radius: 5px;
     }
 </style>
 {% endblock %}
@@ -79,9 +91,9 @@
     </div>
     
     <!-- اطلاعات سهمیه پیامک -->
-    <div class="bg-blue-50 border border-blue-200 text-blue-700 p-4 mb-4 rounded-lg shadow-custom flex items-center">
-        <i class="fas fa-info-circle text-blue-500 text-xl mr-3"></i>
-        <p>سهمیه پیامک شما: <span class="font-bold text-blue-900">{{ sms_quota }}</span></p>
+    <div class="bg-green-50 border border-green-200 text-green-700 p-4 mb-4 rounded-lg shadow-custom flex items-center">
+        <i class="fas fa-info-circle text-green-500 text-xl mr-3"></i>
+        <p>سهمیه پیامک شما: <span class="font-bold text-green-900">{{ sms_quota }}</span></p>
     </div>
     
     <!-- دکمه‌های مدیریت مشتریان -->
@@ -230,7 +242,7 @@
         </div>
         <div class="flex items-center space-x-2">
             <label for="sort" class="text-gray-700 text-sm">مرتب‌سازی:</label>
-            <select id="sort" class="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+            <select id="sort" class="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm">
                 <option value="name_asc" {% if sort_key == 'name_asc' %}selected{% endif %}>نام (صعودی)</option>
                 <option value="name_desc" {% if sort_key == 'name_desc' %}selected{% endif %}>نام (نزولی)</option>
                 <option value="city_asc" {% if sort_key == 'city_asc' %}selected{% endif %}>شهر (صعودی)</option>
@@ -302,7 +314,7 @@
     <div id="sms-panel" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden modal-overlay z-50">
         <div class="bg-white rounded-lg shadow-xl p-6 modal-content animate-fade-in-down">
             <div class="flex justify-between items-center mb-4 border-b pb-3">
-                <h3 class="text-xl font-bold text-indigo-800">ارسال پیامک به <span id="selected-count">0</span> مشتری</h3>
+                <h3 class="text-xl font-bold text-green-800">ارسال پیامک به <span id="selected-count">0</span> مشتری</h3>
                 <button id="close-sms-panel" class="text-gray-500 hover:text-gray-700 text-xl">
                     <i class="fas fa-times"></i>
                 </button>
@@ -311,7 +323,7 @@
                 {% csrf_token %}
                 <div>
                     <label for="template-selector" class="block text-sm font-medium text-gray-700 mb-2">انتخاب قالب پیامک:</label>
-                    <select id="template-selector" name="template_id" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                    <select id="template-selector" name="template_id" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" required>
                         <option value="">-- انتخاب قالب --</option>
                         <!-- گزینه‌ها با JavaScript پر می‌شوند -->
                     </select>
@@ -324,7 +336,7 @@
                 
                 <div>
                     <label for="product-info" class="block text-sm font-medium text-gray-700 mb-2">اطلاعات محصول (اختیاری):</label>
-                    <input type="text" id="product-info" name="product_info" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                    <input type="text" id="product-info" name="product_info" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" 
                         placeholder="مثال: cottage:12345678 یا ذرت برزیل 500 تن">
                     <small class="text-gray-500 text-xs">برای استفاده خودکار از اطلاعات محصول، از فرمت cottage:شماره_کوتاژ استفاده کنید. در غیر این صورت، اطلاعات وارد شده در متغیر {{product_info}} قرار می‌گیرد.</small>
                 </div>
@@ -339,6 +351,11 @@
                             </ul>
                         </div>
                     </div>
+                </div>
+                
+                <div id="message-preview" class="hidden bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">پیش‌نمایش پیام ارسالی:</label>
+                    <div id="message-content" class="preview-box text-gray-800"></div>
                 </div>
                 
                 <div id="selected-customers-container" class="hidden"></div>
@@ -365,7 +382,7 @@
                 {% endif %}
 
                 <li>
-                    <span class="px-3 py-1 bg-blue-600 text-white rounded">صفحه {{ customers.number }} از {{ customers.paginator.num_pages }}</span>
+                    <span class="px-3 py-1 bg-green-600 text-white rounded">صفحه {{ customers.number }} از {{ customers.paginator.num_pages }}</span>
                 </li>
 
                 {% if customers.has_next %}
@@ -398,6 +415,7 @@
         var checkboxes = document.querySelectorAll('.customer-checkbox');
         checkboxes.forEach(function(checkbox) {
             checkbox.checked = true;
+            checkbox.closest('tr').classList.add('selected-row');
         });
         updateSelectionCount();
     });
@@ -407,6 +425,7 @@
         var checkboxes = document.querySelectorAll('.customer-checkbox');
         checkboxes.forEach(function(checkbox) {
             checkbox.checked = false;
+            checkbox.closest('tr').classList.remove('selected-row');
         });
         updateSelectionCount();
     });
@@ -416,6 +435,11 @@
         var checkboxes = document.querySelectorAll('.customer-checkbox');
         checkboxes.forEach(function(checkbox) {
             checkbox.checked = this.checked;
+            if (this.checked) {
+                checkbox.closest('tr').classList.add('selected-row');
+            } else {
+                checkbox.closest('tr').classList.remove('selected-row');
+            }
         });
         updateSelectionCount();
     });
@@ -432,7 +456,34 @@
 
     // اضافه کردن event listener به تمام چک‌باکس‌ها
     document.querySelectorAll('.customer-checkbox').forEach(function(checkbox) {
-        checkbox.addEventListener('change', updateSelectionCount);
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                this.closest('tr').classList.add('selected-row');
+            } else {
+                this.closest('tr').classList.remove('selected-row');
+            }
+            updateSelectionCount();
+        });
+    });
+
+    // اضافه کردن قابلیت کلیک روی سطرها برای انتخاب
+    document.querySelectorAll('.table-hover tbody tr').forEach(function(row) {
+        row.addEventListener('click', function(e) {
+            // اگر روی لینک یا آیکون علاقه‌مندی کلیک شده، کاری انجام نده
+            if (e.target.tagName === 'A' || e.target.closest('.favorite-icon')) {
+                return;
+            }
+            var checkbox = this.querySelector('.customer-checkbox');
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                if (checkbox.checked) {
+                    this.classList.add('selected-row');
+                } else {
+                    this.classList.remove('selected-row');
+                }
+                updateSelectionCount();
+            }
+        });
     });
 
     // نمایش پنل ارسال پیامک
@@ -536,17 +587,24 @@
     var templateSelector = document.getElementById('template-selector');
     var templatePreview = document.getElementById('template-preview');
     var templateContent = document.getElementById('template-content');
+    var messagePreview = document.getElementById('message-preview');
+    var messageContent = document.getElementById('message-content');
+    var productInfo = document.getElementById('product-info');
     var templates = [];
 
     // دریافت قالب‌های پیامک از سرور
     function loadSmsTemplates() {
         fetch('{% url "get_sms_templates" %}')
             .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
                 return response.json();
             })
             .then(function(data) {
                 if (data.templates && data.templates.length > 0) {
                     templates = data.templates;
+                    templateSelector.innerHTML = '<option value="">-- انتخاب قالب --</option>';
                     
                     // پر کردن سلکت باکس قالب‌ها
                     for (var i = 0; i < templates.length; i++) {
@@ -562,6 +620,7 @@
                         var selectedId = this.value;
                         if (!selectedId) {
                             templatePreview.classList.add('hidden');
+                            messagePreview.classList.add('hidden');
                             return;
                         }
 
@@ -574,13 +633,63 @@
                             // نمایش پیش‌نمایش قالب
                             templateContent.textContent = selectedTemplate.content;
                             templatePreview.classList.remove('hidden');
+                            
+                            // نمایش پیش‌نمایش پیام ارسالی
+                            updateMessagePreview(selectedTemplate.content);
+                            messagePreview.classList.remove('hidden');
                         }
                     });
+                    
+                    // اضافه کردن رویداد تغییر برای اطلاعات محصول
+                    productInfo.addEventListener('input', function() {
+                        var selectedId = templateSelector.value;
+                        if (selectedId) {
+                            var selectedTemplate = templates.find(function(tmpl) {
+                                return tmpl.id.toString() === selectedId;
+                            });
+                            if (selectedTemplate) {
+                                updateMessagePreview(selectedTemplate.content);
+                                messagePreview.classList.remove('hidden');
+                            }
+                        }
+                    });
+                } else {
+                    console.log('No templates found');
+                    templateSelector.innerHTML = '<option value="">قالبی یافت نشد</option>';
                 }
             })
             .catch(function(error) {
                 console.error('خطا در دریافت قالب‌های پیامک:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطا',
+                    text: 'خطا در بارگذاری قالب‌های پیامک. لطفاً دوباره تلاش کنید.',
+                });
             });
+    }
+    
+    // تابع برای به‌روزرسانی پیش‌نمایش پیام
+    function updateMessagePreview(templateContent) {
+        var productInfoValue = productInfo.value;
+        var message = templateContent;
+        
+        // جایگزینی متغیرها با مقادیر نمونه
+        message = message.replace('{{customer_name}}', 'مشتری نمونه');
+        message = message.replace('{{sales_agent_name}}', 'کارشناس نمونه');
+        message = message.replace('{{sales_agent_phone}}', '09123456789');
+        message = message.replace('{{product_info}}', productInfoValue || 'اطلاعات محصول');
+        
+        // اگر اطلاعات محصول به فرمت cottage:NUMBER باشد، اطلاعات نمونه اضافه کن
+        if (productInfoValue && productInfoValue.toLowerCase().startsWith('cottage:')) {
+            message = message.replace('{{cargo_type}}', 'ذرت نمونه');
+            message = message.replace('{{cargo_country}}', 'برزیل');
+            message = message.replace('{{customer_price}}', '10900');
+            message = message.replace('{{cottage}}', productInfoValue.split(':')[1] || '12345678');
+            message = message.replace('{{port}}', 'بندر نمونه');
+            message = message.replace('{{loading_time}}', 'زمان بارگیری نمونه');
+        }
+        
+        messageContent.textContent = message;
     }
 
     // آیا بخش ارسال پیامک وجود دارد؟
@@ -659,10 +768,12 @@
                 document.getElementById('template-selector').value = '';
                 document.getElementById('product-info').value = '';
                 templatePreview.classList.add('hidden');
+                messagePreview.classList.add('hidden');
                 
                 var checkboxes = document.querySelectorAll('.customer-checkbox');
                 checkboxes.forEach(function(checkbox) {
                     checkbox.checked = false;
+                    checkbox.closest('tr').classList.remove('selected-row');
                 });
                 
                 var selectAllCheckbox = document.getElementById('select-all-checkbox');
@@ -721,6 +832,18 @@
                             li.addEventListener('click', function() {
                                 document.getElementById('product-info').value = 'cottage:' + product.cottage;
                                 productsContainer.classList.add('hidden');
+                                
+                                // به‌روزرسانی پیش‌نمایش پیام با اطلاعات محصول
+                                var selectedId = templateSelector.value;
+                                if (selectedId) {
+                                    var selectedTemplate = templates.find(function(tmpl) {
+                                        return tmpl.id.toString() === selectedId;
+                                    });
+                                    if (selectedTemplate) {
+                                        updateMessagePreview(selectedTemplate.content);
+                                        messagePreview.classList.remove('hidden');
+                                    }
+                                }
                             });
                             
                             productsList.appendChild(li);

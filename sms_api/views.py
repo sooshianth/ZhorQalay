@@ -1230,3 +1230,16 @@ def get_templates_for_status(request):
         'templates': templates_list,
         'count': len(templates_list)
     })
+
+@role_required('admin', 'support_agent')
+@login_required
+def sms_detail(request, sms_id):
+    """نمایش جزئیات پیامک"""
+    sms = get_object_or_404(SmsQueue, id=sms_id)
+    logs = SmsLog.objects.filter(recipient_number=sms.recipient_number).order_by('-timestamp')
+    
+    context = {
+        'sms': sms,
+        'logs': logs
+    }
+    return render(request, 'sms_api/sms_detail.html', context)

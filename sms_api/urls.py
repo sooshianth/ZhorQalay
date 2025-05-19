@@ -11,7 +11,7 @@ urlpatterns = [
     
     # افزودن و مدیریت پیامک
     path('create/', views.create_sms, name='create_sms'),
-    # path('detail/<int:sms_id>/', views.sms_detail, name='sms_detail'),
+    path('detail/<int:sms_id>/', views.sms_detail, name='sms_detail'),
     path('edit/<int:sms_id>/', views.edit_sms, name='edit_sms'),
     
     # عملیات روی پیامک‌ها
