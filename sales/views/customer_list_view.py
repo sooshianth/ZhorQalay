@@ -13,6 +13,7 @@ from django.conf import settings
 from sms_api.apis import queue_sms, render_template
 from sms_api.models import SmsTemplate
 import json
+import re
 
 @role_required('sales_agent', 'admin')
 @login_required
@@ -286,8 +287,30 @@ def send_sms_to_selected(request):
             'product_info': product_info,
         }
         
-        # رندر کردن قالب با داده‌های مشتری
-        message = render_template('custom', context)
+        # اگر اطلاعات محصول وارد شده، سعی کنیم اطلاعات کارگو متناظر را پیدا کنیم
+        if product_info and ':' in product_info:
+            try:
+                # اگر فرمت product_info مثل "cottage:12345678" باشد
+                cottage_match = re.match(r'cottage:(\d+)', product_info.lower())
+                if cottage_match:
+                    cottage = cottage_match.group(1)
+                    from core.CargoProductModel import CargoProduct
+                    cargo = CargoProduct.objects.filter(cottage=cottage, status=True).first()
+                    if cargo:
+                        context.update({
+                            'cargo': cargo,
+                            'cottage': cargo.cottage,
+                            'cargo_type': cargo.get_product_type_display(),
+                            'cargo_country': cargo.get_country_display(),
+                            'customer_price': cargo.customer_price,
+                            'port': cargo.port,
+                            'loading_time': cargo.loading_time,
+                        })
+            except Exception as e:
+                print(f"خطا در یافتن اطلاعات محصول: {e}")
+        
+        # رندر کردن قالب با داده‌های مشتری و استفاده از شناسه قالب
+        message = render_template(template.status, context)
         
         # اگر رندر کردن قالب موفق نبود، از متن قالب استفاده کنیم
         if not message:
@@ -315,4 +338,36 @@ def send_sms_to_selected(request):
         'success_count': success_count,
         'failed_count': failed_count,
         'message': f'پیامک با موفقیت به صف ارسال برای {success_count} شماره اضافه شد. {failed_count} مورد ناموفق.'
+    })
+
+@role_required('sales_agent', 'admin')
+@login_required
+def get_active_products(request):
+    """API endpoint for retrieving active cargo products"""
+    from core.CargoProductModel import CargoProduct
+    
+    # Get all active products
+    products = CargoProduct.get_active_products()
+    
+    # Convert to serializable format
+    products_list = []
+    for product in products:
+        products_list.append({
+            'id': product.id,
+            'cottage': product.cottage,
+            'product_type': product.product_type,
+            'product_type_display': product.get_product_type_display(),
+            'country': product.country,
+            'country_display': product.get_country_display(),
+            'customer_price': product.customer_price,
+            'company_price': product.company_price,
+            'weight': product.weight,
+            'port': product.port,
+            'loading_time': product.loading_time,
+            'description': product.description,
+        })
+    
+    return JsonResponse({
+        'products': products_list,
+        'count': len(products_list)
     }) 

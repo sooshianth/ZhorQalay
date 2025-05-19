@@ -19,7 +19,7 @@ from core.CustomerModel import Customer
 from core.SalesAgentModel import SalesAgent
 from core.decorators.decorators import role_required
 
-@role_required('admin')
+@role_required('admin',)
 @login_required
 def bulk_purchase_edit(request):
     """

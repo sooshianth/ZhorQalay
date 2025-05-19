@@ -9,8 +9,9 @@ import json
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
+from core.decorators.decorators import role_required
 
-
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @api_view(['GET'])
 @login_required
 def user_list(request):
@@ -22,6 +23,7 @@ def user_list(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @api_view(['GET'])
 @login_required
 def get_username(request, user_id):
@@ -35,6 +37,7 @@ def get_username(request, user_id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @api_view(['GET'])
 @login_required
 def chat_history(request, user_id):
@@ -67,6 +70,7 @@ def chat_history(request, user_id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @api_view(['GET'])
 @login_required
 def global_chat_history(request):
@@ -100,6 +104,7 @@ def global_chat_history(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @api_view(['POST'])
 @login_required
 def upload_file(request):
@@ -167,6 +172,7 @@ def upload_file(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @api_view(['GET'])
 @login_required
 def online_users(request):
@@ -178,6 +184,7 @@ def online_users(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @api_view(['GET'])
 @login_required
 def unread_messages_count(request):
@@ -205,6 +212,7 @@ def unread_messages_count(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @api_view(['GET'])
 @login_required
 def unread_global_messages_count(request):
@@ -222,6 +230,7 @@ def unread_global_messages_count(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @api_view(['POST'])
 @login_required
 def mark_messages_as_read(request):
@@ -253,6 +262,7 @@ def mark_messages_as_read(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @api_view(['POST'])
 @login_required
 def send_message(request):
@@ -305,6 +315,7 @@ def send_message(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
     
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @api_view(['POST'])
 @login_required
 @csrf_exempt
@@ -319,6 +330,7 @@ def pin_message(request, message_id):
     except Message.DoesNotExist:
         return JsonResponse({'error': 'Message not found'}, status=404)
     
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @api_view(['POST'])
 @login_required
 @csrf_exempt

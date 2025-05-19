@@ -10,6 +10,7 @@ from django.utils import timezone
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from core.CargoProductModel import CargoProduct
 from django.core.exceptions import ValidationError
+from core.decorators.decorators import role_required
 
 def determine_user_role(user):
     """
@@ -30,6 +31,7 @@ def determine_user_role(user):
         return 'support_agent'
     return None
 
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
 def purchase_list(request):
     # دریافت پارامتر جستجوی سریع
@@ -135,7 +137,7 @@ def purchase_list(request):
     
     return render(request, 'purchase_list.html', context)
 
-
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @require_POST
 @login_required
 def update_columns(request):
@@ -150,6 +152,7 @@ def update_columns(request):
     response.set_cookie('selected_columns', ','.join(selected_columns), max_age=30*24*60*60)
     return response
 
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
 def export_to_excel(request):
     purchase_ids = request.GET.get('ids', '').split(',')
@@ -264,6 +267,7 @@ def export_to_excel(request):
 
 @require_POST
 @login_required
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 def update_purchase_field(request):
     """
     API برای به‌روزرسانی فیلدهای قابل ویرایش خرید
@@ -335,6 +339,7 @@ def update_purchase_field(request):
 
 @require_POST
 @login_required
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 def revert_purchase_edit(request):
     """
     API برای بازگرداندن تغییرات یک فیلد به حالت قبلی
@@ -396,6 +401,7 @@ def revert_purchase_edit(request):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 @login_required
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 def get_purchase_edit_logs(request, purchase_id):
     """
     دریافت تاریخچه تغییرات یک خرید
@@ -424,6 +430,7 @@ def get_purchase_edit_logs(request, purchase_id):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 @login_required
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 def cargo_products_list(request):
     """
     API برای دریافت لیست کوتاژها
@@ -470,6 +477,7 @@ def cargo_products_list(request):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 @login_required
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 def cargo_product_details(request):
     """
     API برای دریافت جزئیات یک کوتاژ بر اساس شماره کوتاژ
@@ -507,6 +515,7 @@ def cargo_product_details(request):
 
 @require_POST
 @login_required
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 def bulk_edit_cargo(request):
     """
     API برای ویرایش گروهی کوتاژ

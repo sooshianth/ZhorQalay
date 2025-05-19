@@ -4,294 +4,233 @@
 {% block title %}لیست پیشرفته مشتریان{% endblock %}
 
 {% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 <style>
-    .filters-container {
-        background-color: #f8f9fa;
-        border-radius: 0.5rem;
-        padding: 1rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    .modal {
+        transition: opacity 0.3s ease-in-out;
     }
-    
-    .filter-section {
-        margin-bottom: 1rem;
+    .modal-overlay {
+        background-color: rgba(0, 0, 0, 0.5);
     }
-    
-    .filter-section-title {
-        font-weight: bold;
-        margin-bottom: 0.5rem;
+    .modal-content {
+        max-width: 90%;
+        width: 600px;
     }
-    
-    .customer-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    
-    .customer-table th, .customer-table td {
-        padding: 0.75rem;
-        text-align: right;
-        border-bottom: 1px solid #e2e8f0;
-    }
-    
-    .customer-table th {
-        background-color: #edf2f7;
-        font-weight: bold;
-    }
-    
-    .customer-table tr:hover {
-        background-color: #f7fafc;
-    }
-    
-    .favorite-icon {
-        color: #d69e2e;
-        cursor: pointer;
-    }
-    
-    .pagination {
-        display: flex;
-        justify-content: center;
-        margin-top: 1.5rem;
-    }
-    
-    .pagination-link {
-        padding: 0.5rem 1rem;
-        margin: 0 0.25rem;
-        border-radius: 0.25rem;
-        border: 1px solid #e2e8f0;
-        color: #4a5568;
-        text-decoration: none;
-    }
-    
-    .pagination-link:hover {
-        background-color: #edf2f7;
-    }
-    
-    .pagination .current {
-        background-color: #4299e1;
-        color: white;
-        padding: 0.5rem 1rem;
-        margin: 0 0.25rem;
-        border-radius: 0.25rem;
-    }
-    
     .btn-primary {
-        background-color: #4299e1;
+        background-color: #1e40af;
         color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 0.25rem;
-        border: none;
-        cursor: pointer;
+        transition: background-color 0.3s ease;
     }
-    
     .btn-primary:hover {
-        background-color: #3182ce;
+        background-color: #1e3a8a;
     }
-    
     .btn-secondary {
-        background-color: #cbd5e0;
-        color: #4a5568;
-        padding: 0.5rem 1rem;
-        border-radius: 0.25rem;
-        border: none;
-        cursor: pointer;
+        background-color: #64748b;
+        color: white;
+        transition: background-color 0.3s ease;
     }
-    
     .btn-secondary:hover {
-        background-color: #a0aec0;
+        background-color: #475569;
     }
-    
-    .btn-sm {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.875rem;
+    .table-hover tbody tr:hover {
+        background-color: #f1f5f9;
     }
-    
-    .sms-panel {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background-color: white;
-        padding: 1rem;
-        box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
-        z-index: 1000;
-        display: none;
-        border-top: 3px solid #4299e1;
+    .shadow-custom {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    .filter-section {
+        transition: max-height 0.5s ease-in-out;
+        overflow: hidden;
+    }
+    .filter-section.collapsed {
+        max-height: 0;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-6">
-    <div id="js-status" class="hidden bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
+<div class="container mx-auto px-4 py-6 bg-gray-50 min-h-screen">
+    <div id="js-status" class="hidden bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded-md">
         JavaScript has been successfully initialized. If you're still experiencing issues, please try refreshing the page.
     </div>
 
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">لیست پیشرفته مشتریان</h1>
-        <div>
-            <button id="toggle-filters-btn" class="btn-secondary ml-2">
-                فیلترهای پیشرفته
+        <h1 class="text-3xl font-bold text-indigo-800">لیست پیشرفته مشتریان</h1>
+        <div class="flex space-x-2">
+            <button id="toggle-filters-btn" class="btn-secondary px-4 py-2 rounded-lg shadow-md">
+                <i class="fas fa-filter mr-2"></i>فیلترهای پیشرفته
             </button>
-            <a href="{% url 'sales_agent_profile' %}" class="btn-secondary">
-                بازگشت به پروفایل
+            <a href="{% url 'sales_agent_profile' %}" class="btn-secondary px-4 py-2 rounded-lg shadow-md">
+                <i class="fas fa-user mr-2"></i>بازگشت به پروفایل
             </a>
         </div>
     </div>
     
     <!-- فیلتر سریع جستجو -->
-    <div class="mb-4">
-        <form method="get" action="" class="flex">
+    <div class="mb-6 bg-white p-4 rounded-lg shadow-custom">
+        <form method="get" action="" class="flex space-x-2">
             <input type="text" name="search" id="quick-search" placeholder="جستجو بر اساس نام یا شماره تلفن" value="{{ search_query }}" 
-                class="p-2 border rounded-md ml-2 flex-grow">
-            <button type="submit" class="btn-primary">جستجو</button>
+                class="p-3 border border-gray-300 rounded-lg flex-grow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            <button type="submit" class="btn-primary px-6 py-3 rounded-lg shadow-md">
+                <i class="fas fa-search mr-2"></i>جستجو
+            </button>
         </form>
     </div>
     
     <!-- اطلاعات سهمیه پیامک -->
-    <div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4">
-        <p>سهمیه پیامک شما: <span class="font-bold">{{ sms_quota }}</span></p>
+    <div class="bg-blue-50 border border-blue-200 text-blue-700 p-4 mb-4 rounded-lg shadow-custom flex items-center">
+        <i class="fas fa-info-circle text-blue-500 text-xl mr-3"></i>
+        <p>سهمیه پیامک شما: <span class="font-bold text-blue-900">{{ sms_quota }}</span></p>
     </div>
     
     <!-- دکمه‌های مدیریت مشتریان -->
-    <div class="flex justify-between mb-4">
-        <div>
-            <button type="button" id="select-all-btn" class="btn-secondary btn-sm">انتخاب همه</button>
-            <button type="button" id="deselect-all-btn" class="btn-secondary btn-sm ml-2">لغو انتخاب همه</button>
+    <div class="flex justify-between mb-6 bg-white p-3 rounded-lg shadow-custom items-center">
+        <div class="flex space-x-2">
+            <button type="button" id="select-all-btn" class="btn-secondary px-4 py-2 rounded-lg shadow-md text-sm">
+                <i class="fas fa-check-square mr-2"></i>انتخاب همه
+            </button>
+            <button type="button" id="deselect-all-btn" class="btn-secondary px-4 py-2 rounded-lg shadow-md text-sm">
+                <i class="fas fa-square mr-2"></i>لغو انتخاب همه
+            </button>
         </div>
         <div>
-            <button type="button" id="send-sms-btn" class="btn-primary btn-sm" disabled>ارسال پیامک به انتخاب شده‌ها</button>
+            <button type="button" id="send-sms-btn" class="btn-primary px-4 py-2 rounded-lg shadow-md text-sm" disabled>
+                <i class="fas fa-paper-plane mr-2"></i>ارسال پیامک به انتخاب شده‌ها
+            </button>
         </div>
     </div>
     
     <!-- فیلترهای پیشرفته -->
-    <div id="filters-container" class="filters-container {% if not search_query and not city_filter and not activity_filter and not favorites_only %}hidden{% endif %}">
-        <form method="get" id="filter-form">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- فیلتر جستجو -->
-                <div class="filter-section">
-                    <label for="search" class="filter-section-title">جستجو</label>
-                    <input type="text" name="search" id="search" value="{{ search_query }}" 
-                           class="w-full p-2 border rounded-md">
-                    <small class="text-gray-500">جستجو در نام و شماره تلفن</small>
-                </div>
-                
-                <!-- فیلتر مورد علاقه -->
-                <div class="filter-section">
-                    <label class="filter-section-title">فقط مورد علاقه</label>
-                    <div class="flex items-center">
-                        <input type="checkbox" name="favorites_only" id="favorites_only" value="true" 
-                               {% if favorites_only %}checked{% endif %} class="mr-2">
-                        <label for="favorites_only">نمایش فقط مشتریان مورد علاقه</label>
-                    </div>
-                </div>
-                
-                <!-- فیلتر شهر -->
-                <div class="filter-section">
-                    <label for="city" class="filter-section-title">شهر</label>
-                    <select name="city" id="city" multiple class="w-full p-2 border rounded-md" size="4">
-                        {% for city in all_cities %}
-                            <option value="{{ city }}" {% if city in city_filter %}selected{% endif %}>{{ city }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <!-- فیلتر حوزه فعالیت -->
-                <div class="filter-section">
-                    <label for="activity" class="filter-section-title">حوزه فعالیت</label>
-                    <select name="activity" id="activity" multiple class="w-full p-2 border rounded-md" size="4">
-                        {% for activity in all_activities %}
-                            <option value="{{ activity.code }}" {% if activity.code in activity_filter %}selected{% endif %}>
-                                {{ activity }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <!-- فیلتر ترجیحات پرداخت -->
-                <div class="filter-section">
-                    <label for="payment" class="filter-section-title">ترجیحات پرداخت</label>
-                    <select name="payment" id="payment" multiple class="w-full p-2 border rounded-md" size="4">
-                        {% for payment in all_payment_preferences %}
-                            <option value="{{ payment.code }}" {% if payment.code in payment_filter %}selected{% endif %}>
-                                {{ payment }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <!-- فیلتر ترجیحات محصول -->
-                <div class="filter-section">
-                    <label for="product" class="filter-section-title">ترجیحات محصول</label>
-                    <select name="product" id="product" multiple class="w-full p-2 border rounded-md" size="4">
-                        {% for product in all_product_preferences %}
-                            <option value="{{ product.code }}" {% if product.code in product_filter %}selected{% endif %}>
-                                {{ product }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <!-- فیلتر وضعیت فعال/غیرفعال -->
-                <div class="filter-section">
-                    <label for="status" class="filter-section-title">وضعیت</label>
-                    <select name="status" id="status" class="w-full p-2 border rounded-md">
-                        <option value="" {% if not status_filter %}selected{% endif %}>همه</option>
-                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>فعال</option>
-                        <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>غیرفعال</option>
-                        <option value="blocked" {% if status_filter == 'blocked' %}selected{% endif %}>مسدود</option>
-                    </select>
-                </div>
-                
-                <!-- فیلتر حداقل تعداد خریدها -->
-                <div class="filter-section">
-                    <label for="min_purchases" class="filter-section-title">حداقل تعداد خرید</label>
-                    <input type="number" name="min_purchases" id="min_purchases" value="{{ min_purchases }}" 
-                           class="w-full p-2 border rounded-md" min="0">
-                </div>
-                
-                <!-- فیلتر آخرین خرید در X روز گذشته -->
-                <div class="filter-section">
-                    <label for="last_purchase_days" class="filter-section-title">آخرین خرید در X روز گذشته</label>
-                    <input type="number" name="last_purchase_days" id="last_purchase_days" value="{{ last_purchase_days }}" 
-                           class="w-full p-2 border rounded-md" min="0">
-                </div>
-                
-                <!-- فیلتر ترجیح پیامک -->
-                <div class="filter-section">
-                    <label for="sms_preference" class="filter-section-title">ترجیح پیامک</label>
-                    <select name="sms_preference" id="sms_preference" class="w-full p-2 border rounded-md">
-                        <option value="" {% if not sms_preference %}selected{% endif %}>همه</option>
-                        <option value="yes" {% if sms_preference == 'yes' %}selected{% endif %}>دارد</option>
-                        <option value="no" {% if sms_preference == 'no' %}selected{% endif %}>ندارد</option>
-                    </select>
-                </div>
-                
-                <!-- فیلتر ترجیح واتساپ -->
-                <div class="filter-section">
-                    <label for="whatsapp_preference" class="filter-section-title">ترجیح واتساپ</label>
-                    <select name="whatsapp_preference" id="whatsapp_preference" class="w-full p-2 border rounded-md">
-                        <option value="" {% if not whatsapp_preference %}selected{% endif %}>همه</option>
-                        <option value="yes" {% if whatsapp_preference == 'yes' %}selected{% endif %}>دارد</option>
-                        <option value="no" {% if whatsapp_preference == 'no' %}selected{% endif %}>ندارد</option>
-                    </select>
+    <div id="filters-container" class="bg-white p-6 rounded-lg mb-6 shadow-custom {% if not search_query and not city_filter and not activity_filter and not favorites_only %}hidden{% endif %}">
+        <form method="get" id="filter-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- فیلتر جستجو -->
+            <div class="filter-section col-span-1 md:col-span-2 lg:col-span-3">
+                <label for="search" class="block text-sm font-medium text-gray-700 mb-2">جستجو</label>
+                <input type="text" name="search" id="search" value="{{ search_query }}" 
+                       class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <p class="text-xs text-gray-500 mt-1">جستجو در نام و شماره تلفن</p>
+            </div>
+            
+            <!-- فیلتر مورد علاقه -->
+            <div class="filter-section">
+                <label class="block text-sm font-medium text-gray-700 mb-2">فقط مورد علاقه</label>
+                <div class="flex items-center">
+                    <input type="checkbox" name="favorites_only" id="favorites_only" value="true" 
+                           {% if favorites_only %}checked{% endif %} class="mr-2 h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    <label for="favorites_only" class="text-sm text-gray-700">نمایش فقط مشتریان مورد علاقه</label>
                 </div>
             </div>
             
-            <div class="flex justify-end mt-4">
-                <button type="button" id="reset-filters" class="btn-secondary ml-2">حذف فیلترها</button>
-                <button type="submit" class="btn-primary">اعمال فیلترها</button>
+            <!-- فیلتر شهر -->
+            <div class="filter-section">
+                <label for="city" class="block text-sm font-medium text-gray-700 mb-2">شهر</label>
+                <select name="city" id="city" multiple class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-24">
+                    {% for city in all_cities %}
+                        <option value="{{ city }}" {% if city in city_filter %}selected{% endif %}>{{ city }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- فیلتر حوزه فعالیت -->
+            <div class="filter-section">
+                <label for="activity" class="block text-sm font-medium text-gray-700 mb-2">حوزه فعالیت</label>
+                <select name="activity" id="activity" multiple class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-24">
+                    {% for activity in all_activities %}
+                        <option value="{{ activity.code }}" {% if activity.code in activity_filter %}selected{% endif %}>
+                            {{ activity }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- فیلتر ترجیحات پرداخت -->
+            <div class="filter-section">
+                <label for="payment" class="block text-sm font-medium text-gray-700 mb-2">ترجیحات پرداخت</label>
+                <select name="payment" id="payment" multiple class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-24">
+                    {% for payment in all_payment_preferences %}
+                        <option value="{{ payment.code }}" {% if payment.code in payment_filter %}selected{% endif %}>
+                            {{ payment }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- فیلتر ترجیحات محصول -->
+            <div class="filter-section">
+                <label for="product" class="block text-sm font-medium text-gray-700 mb-2">ترجیحات محصول</label>
+                <select name="product" id="product" multiple class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-24">
+                    {% for product in all_product_preferences %}
+                        <option value="{{ product.code }}" {% if product.code in product_filter %}selected{% endif %}>
+                            {{ product }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- فیلتر وضعیت فعال/غیرفعال -->
+            <div class="filter-section">
+                <label for="status" class="block text-sm font-medium text-gray-700 mb-2">وضعیت</label>
+                <select name="status" id="status" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="" {% if not status_filter %}selected{% endif %}>همه</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>فعال</option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>غیرفعال</option>
+                    <option value="blocked" {% if status_filter == 'blocked' %}selected{% endif %}>مسدود</option>
+                </select>
+            </div>
+            
+            <!-- فیلتر حداقل تعداد خریدها -->
+            <div class="filter-section">
+                <label for="min_purchases" class="block text-sm font-medium text-gray-700 mb-2">حداقل تعداد خرید</label>
+                <input type="number" name="min_purchases" id="min_purchases" value="{{ min_purchases }}" 
+                       class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" min="0">
+            </div>
+            
+            <!-- فیلتر آخرین خرید در X روز گذشته -->
+            <div class="filter-section">
+                <label for="last_purchase_days" class="block text-sm font-medium text-gray-700 mb-2">آخرین خرید در X روز گذشته</label>
+                <input type="number" name="last_purchase_days" id="last_purchase_days" value="{{ last_purchase_days }}" 
+                       class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" min="0">
+            </div>
+            
+            <!-- فیلتر ترجیح پیامک -->
+            <div class="filter-section">
+                <label for="sms_preference" class="block text-sm font-medium text-gray-700 mb-2">ترجیح پیامک</label>
+                <select name="sms_preference" id="sms_preference" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="" {% if not sms_preference %}selected{% endif %}>همه</option>
+                    <option value="yes" {% if sms_preference == 'yes' %}selected{% endif %}>دارد</option>
+                    <option value="no" {% if sms_preference == 'no' %}selected{% endif %}>ندارد</option>
+                </select>
+            </div>
+            
+            <!-- فیلتر ترجیح واتساپ -->
+            <div class="filter-section">
+                <label for="whatsapp_preference" class="block text-sm font-medium text-gray-700 mb-2">ترجیح واتساپ</label>
+                <select name="whatsapp_preference" id="whatsapp_preference" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="" {% if not whatsapp_preference %}selected{% endif %}>همه</option>
+                    <option value="yes" {% if whatsapp_preference == 'yes' %}selected{% endif %}>دارد</option>
+                    <option value="no" {% if whatsapp_preference == 'no' %}selected{% endif %}>ندارد</option>
+                </select>
             </div>
         </form>
+        <div class="flex justify-end mt-6 col-span-3">
+            <button type="button" id="reset-filters" class="btn-secondary px-4 py-2 rounded-lg shadow-md mr-2">
+                <i class="fas fa-times mr-2"></i>حذف فیلترها
+            </button>
+            <button type="submit" form="filter-form" class="btn-primary px-4 py-2 rounded-lg shadow-md">
+                <i class="fas fa-check mr-2"></i>اعمال فیلترها
+            </button>
+        </div>
     </div>
     
     <!-- نمایش تعداد نتایج و گزینه‌های مرتب‌سازی -->
-    <div class="flex justify-between items-center mb-4">
-        <div>
-            <span>تعداد نتایج: {{ customers.paginator.count }}</span>
+    <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-custom">
+        <div class="text-gray-700">
+            <span>تعداد نتایج: <span class="font-bold">{{ customers.paginator.count }}</span></span>
         </div>
-        <div>
-            <label for="sort" class="ml-2">مرتب‌سازی:</label>
-            <select id="sort" class="p-2 border rounded-md">
+        <div class="flex items-center space-x-2">
+            <label for="sort" class="text-gray-700 text-sm">مرتب‌سازی:</label>
+            <select id="sort" class="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
                 <option value="name_asc" {% if sort_key == 'name_asc' %}selected{% endif %}>نام (صعودی)</option>
                 <option value="name_desc" {% if sort_key == 'name_desc' %}selected{% endif %}>نام (نزولی)</option>
                 <option value="city_asc" {% if sort_key == 'city_asc' %}selected{% endif %}>شهر (صعودی)</option>
@@ -307,117 +246,144 @@
     </div>
     
     <!-- جدول مشتریان با امکان انتخاب چندگانه -->
-    <form id="sms-selection-form">
+    <form id="sms-selection-form" class="bg-white p-4 rounded-lg shadow-custom mb-6">
         {% csrf_token %}
-        <table class="customer-table">
-            <thead>
-                <tr>
-                    <th width="40px"><input type="checkbox" id="select-all-checkbox"></th>
-                    <th width="40px">علاقه</th>
-                    <th>نام</th>
-                    <th>شماره موبایل</th>
-                    <th>شهر</th>
-                    <th>حوزه فعالیت</th>
-                    <th>تعداد خرید</th>
-                    <th>حجم خرید کل (کیلوگرم)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for customer in customers %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 table-hover">
+                <thead class="bg-gray-100">
                     <tr>
-                        <td><input type="checkbox" name="customer_ids" value="{{ customer.id }}" class="customer-checkbox"></td>
-                        <td>
-                            <span class="favorite-icon" data-customer-id="{{ customer.id }}" data-is-favorite="{{ customer.is_favorite|lower }}">
-                                {% if customer.is_favorite %}
-                                    <i class="fas fa-star"></i>
+                        <th width="40px" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"><input type="checkbox" id="select-all-checkbox" class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"></th>
+                        <th width="40px" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">علاقه</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">نام</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">شماره موبایل</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">شهر</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">حوزه فعالیت</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">تعداد خرید</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">حجم خرید کل (کیلوگرم)</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for customer in customers %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-right"><input type="checkbox" name="customer_ids" value="{{ customer.id }}" class="customer-checkbox h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                <span class="favorite-icon text-yellow-500 cursor-pointer" data-customer-id="{{ customer.id }}" data-is-favorite="{{ customer.is_favorite|lower }}">
+                                    {% if customer.is_favorite %}
+                                        <i class="fas fa-star"></i>
+                                    {% else %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right"><a href="{% url 'general_customer_CRUD' %}?customer_id={{ customer.id }}" class="text-blue-600 hover:text-blue-900">{{ customer.name }}</a></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right">{{ customer.get_primary_phone }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right">{{ customer.city }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right">{{ customer.get_field_of_activity_display }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                {% if customer.purchases_made.count %}
+                                    {{ customer.purchases_made.count }}
                                 {% else %}
-                                    <i class="far fa-star"></i>
+                                    0
                                 {% endif %}
-                            </span>
-                        </td>
-                        <td><a href="{% url 'general_customer_CRUD' %}?customer_id={{ customer.id }}">{{ customer.name }}</a></td>
-                        <td>{{ customer.get_primary_phone }}</td>
-                        <td>{{ customer.city }}</td>
-                        <td>{{ customer.get_field_of_activity_display }}</td>
-                        <td>
-                            {% if customer.purchases_made.count %}
-                                {{ customer.purchases_made.count }}
-                            {% else %}
-                                0
-                            {% endif %}
-                        </td>
-                        <td>{{ customer.total_purchase_weight|floatformat:0|default:"0"|intcomma }}</td>
-                    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="8" class="text-center py-4">مشتری‌ای یافت نشد</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right">{{ customer.total_purchase_weight|floatformat:0|default:"0"|intcomma }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-6 text-gray-500">مشتری‌ای یافت نشد</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </form>
     
     <!-- پنل ارسال پیامک -->
-    <div id="sms-panel" class="sms-panel">
-        <div class="container mx-auto px-4">
-            <div class="flex justify-between items-center mb-2">
-                <h3 class="text-lg font-bold">ارسال پیامک به <span id="selected-count">0</span> مشتری</h3>
-                <button id="close-sms-panel" class="text-gray-500 hover:text-gray-700">
+    <div id="sms-panel" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden modal-overlay z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 modal-content animate-fade-in-down">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <h3 class="text-xl font-bold text-indigo-800">ارسال پیامک به <span id="selected-count">0</span> مشتری</h3>
+                <button id="close-sms-panel" class="text-gray-500 hover:text-gray-700 text-xl">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <form id="sms-form" method="post" action="{% url 'send_sms_to_selected' %}">
+            <form id="sms-form" method="post" action="{% url 'send_sms_to_selected' %}" class="space-y-4">
                 {% csrf_token %}
-                <div class="mb-4">
-                    <label for="template-selector" class="block mb-1">انتخاب قالب پیامک:</label>
-                    <select id="template-selector" name="template_id" class="w-full p-2 border rounded-md" required>
+                <div>
+                    <label for="template-selector" class="block text-sm font-medium text-gray-700 mb-2">انتخاب قالب پیامک:</label>
+                    <select id="template-selector" name="template_id" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
                         <option value="">-- انتخاب قالب --</option>
                         <!-- گزینه‌ها با JavaScript پر می‌شوند -->
                     </select>
                 </div>
                 
-                <div id="template-preview" class="mb-4 bg-gray-100 p-3 rounded-md hidden">
-                    <label class="block mb-1">پیش‌نمایش قالب:</label>
-                    <div id="template-content" class="p-2"></div>
+                <div id="template-preview" class="hidden bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">پیش‌نمایش قالب:</label>
+                    <div id="template-content" class="p-2 text-gray-800 bg-gray-100 rounded-md border border-gray-300"></div>
+                </div>
+                
+                <div>
+                    <label for="product-info" class="block text-sm font-medium text-gray-700 mb-2">اطلاعات محصول (اختیاری):</label>
+                    <input type="text" id="product-info" name="product_info" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                        placeholder="مثال: cottage:12345678 یا ذرت برزیل 500 تن">
+                    <small class="text-gray-500 text-xs">برای استفاده خودکار از اطلاعات محصول، از فرمت cottage:شماره_کوتاژ استفاده کنید. در غیر این صورت، اطلاعات وارد شده در متغیر {{product_info}} قرار می‌گیرد.</small>
                 </div>
                 
                 <div class="mb-4">
-                    <label for="product-info" class="block mb-1">اطلاعات محصول (اختیاری):</label>
-                    <input type="text" id="product-info" name="product_info" class="w-full p-2 border rounded-md" 
-                        placeholder="مثال: گندم هندی 500 تن">
-                    <small class="text-gray-500">این اطلاعات در متغیر {{product_info}} قرار می‌گیرد</small>
+                    <button type="button" id="fetch-products-btn" class="btn-secondary px-4 py-2 rounded-lg shadow-md text-sm">انتخاب از محصولات موجود</button>
+                    <div id="products-container" class="mt-2 hidden">
+                        <div class="bg-white border border-gray-300 rounded-lg shadow-lg p-2 max-h-40 overflow-y-auto z-10 relative">
+                            <ul id="products-list" class="divide-y divide-gray-200">
+                                <!-- Products will be populated here -->
+                                <li class="text-center py-2 text-gray-500">در حال بارگذاری...</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
                 
-                <div id="selected-customers-container">
-                    <!-- این بخش با JavaScript پر خواهد شد -->
-                </div>
-                <div class="flex justify-end">
-                    <button type="button" id="send-sms-submit" class="btn-primary">ارسال پیامک</button>
+                <div id="selected-customers-container" class="hidden"></div>
+                <div class="flex justify-end pt-3 border-t border-gray-200">
+                    <button type="button" id="send-sms-submit" class="btn-primary px-6 py-3 rounded-lg shadow-md">
+                        <i class="fas fa-paper-plane mr-2"></i>ارسال پیامک
+                    </button>
                 </div>
             </form>
         </div>
     </div>
     
     <!-- Pagination links -->
-    <div class="pagination">
-        {% if customers.has_previous %}
-            <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="pagination-link">&laquo; اول</a>
-            <a href="?page={{ customers.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="pagination-link">قبلی</a>
-        {% endif %}
+    <div class="flex justify-center mt-6">
+        <nav aria-label="Page navigation" class="bg-white p-3 rounded-lg shadow-custom">
+            <ul class="flex list-none space-x-2">
+                {% if customers.has_previous %}
+                    <li>
+                        <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-gray-700">&laquo; اول</a>
+                    </li>
+                    <li>
+                        <a href="?page={{ customers.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-gray-700">قبلی</a>
+                    </li>
+                {% endif %}
 
-        <span class="current">
-            صفحه {{ customers.number }} از {{ customers.paginator.num_pages }}
-        </span>
+                <li>
+                    <span class="px-3 py-1 bg-blue-600 text-white rounded">صفحه {{ customers.number }} از {{ customers.paginator.num_pages }}</span>
+                </li>
 
-        {% if customers.has_next %}
-            <a href="?page={{ customers.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="pagination-link">بعدی</a>
-            <a href="?page={{ customers.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="pagination-link">آخر &raquo;</a>
-        {% endif %}
+                {% if customers.has_next %}
+                    <li>
+                        <a href="?page={{ customers.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-gray-700">بعدی</a>
+                    </li>
+                    <li>
+                        <a href="?page={{ customers.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-gray-700">آخر &raquo;</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8/dist/sweetalert2.all.min.js"></script>
 <script>
     // تابع ساده برای نشان دادن/مخفی کردن فیلترها
     document.getElementById('toggle-filters-btn').addEventListener('click', function() {
@@ -473,7 +439,7 @@
     document.getElementById('send-sms-btn').addEventListener('click', function() {
         var smsPanel = document.getElementById('sms-panel');
         if (smsPanel) {
-            smsPanel.style.display = 'block';
+            smsPanel.classList.remove('hidden');
         }
     });
 
@@ -481,7 +447,7 @@
     document.getElementById('close-sms-panel').addEventListener('click', function() {
         var smsPanel = document.getElementById('sms-panel');
         if (smsPanel) {
-            smsPanel.style.display = 'none';
+            smsPanel.classList.add('hidden');
         }
     });
 
@@ -532,12 +498,28 @@
                     iconElement.innerHTML = '<i class="far fa-star"></i>';
                     iconElement.setAttribute('data-is-favorite', 'false');
                 }
+                Swal.fire({
+                    icon: 'success',
+                    title: 'موفق',
+                    text: data.message,
+                    showConfirmButton: false,
+                    timer: 1500
+                });
             } else {
-                alert(data.error || 'خطایی رخ داد');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطا',
+                    text: data.error || 'خطایی رخ داد',
+                });
             }
         })
         .catch(function(error) {
             console.error('خطا در ارسال درخواست:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'خطا',
+                text: 'خطایی در ارتباط با سرور رخ داد',
+            });
         });
     }
 
@@ -611,13 +593,21 @@
     document.getElementById('send-sms-submit').addEventListener('click', function() {
         var templateId = document.getElementById('template-selector').value;
         if (!templateId) {
-            alert('لطفا یک قالب پیامک انتخاب کنید.');
+            Swal.fire({
+                icon: 'error',
+                title: 'خطا',
+                text: 'لطفا یک قالب پیامک انتخاب کنید.',
+            });
             return;
         }
         
         var checkedBoxes = document.querySelectorAll('.customer-checkbox:checked');
         if (checkedBoxes.length === 0) {
-            alert('لطفا حداقل یک مشتری را انتخاب کنید.');
+            Swal.fire({
+                icon: 'error',
+                title: 'خطا',
+                text: 'لطفا حداقل یک مشتری را انتخاب کنید.',
+            });
             return;
         }
         
@@ -654,10 +644,16 @@
         })
         .then(function(data) {
             if (data.success) {
-                alert(data.message);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'موفق',
+                    text: data.message,
+                    showConfirmButton: false,
+                    timer: 2000
+                });
                 
                 var smsPanel = document.getElementById('sms-panel');
-                if (smsPanel) smsPanel.style.display = 'none';
+                if (smsPanel) smsPanel.classList.add('hidden');
                 
                 // پاک کردن فیلدها
                 document.getElementById('template-selector').value = '';
@@ -674,13 +670,72 @@
                 
                 updateSelectionCount();
             } else {
-                alert(data.error || 'خطایی رخ داد');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطا',
+                    text: data.error || 'خطایی رخ داد',
+                });
             }
         })
         .catch(function(error) {
             console.error('خطا در ارسال پیامک:', error);
-            alert('خطایی در ارسال پیامک رخ داد. لطفا دوباره تلاش کنید.');
+            Swal.fire({
+                icon: 'error',
+                title: 'خطا',
+                text: 'خطایی در ارسال پیامک رخ داد. لطفا دوباره تلاش کنید.',
+            });
         });
+    });
+    
+    // انتخاب محصول از لیست محصولات موجود
+    document.getElementById('fetch-products-btn').addEventListener('click', function() {
+        var productsContainer = document.getElementById('products-container');
+        var productsList = document.getElementById('products-list');
+        
+        // نمایش یا مخفی کردن لیست محصولات
+        if (productsContainer.classList.contains('hidden')) {
+            productsContainer.classList.remove('hidden');
+            
+            // دریافت محصولات از سرور
+            fetch('/sales/api/active-products/')
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    productsList.innerHTML = '';
+                    
+                    if (data.products && data.products.length > 0) {
+                        data.products.forEach(function(product) {
+                            var li = document.createElement('li');
+                            li.className = 'py-2 px-1 hover:bg-gray-100 cursor-pointer';
+                            li.dataset.cottage = product.cottage;
+                            li.dataset.productType = product.product_type_display;
+                            li.dataset.country = product.country_display;
+                            li.dataset.price = product.customer_price;
+                            
+                            li.innerHTML = `
+                                <strong>${product.product_type_display} ${product.country_display}</strong><br>
+                                <small>کوتاژ: ${product.cottage} - قیمت: ${product.customer_price} ریال</small>
+                            `;
+                            
+                            li.addEventListener('click', function() {
+                                document.getElementById('product-info').value = 'cottage:' + product.cottage;
+                                productsContainer.classList.add('hidden');
+                            });
+                            
+                            productsList.appendChild(li);
+                        });
+                    } else {
+                        productsList.innerHTML = '<li class="text-center py-2">هیچ محصولی یافت نشد</li>';
+                    }
+                })
+                .catch(function(error) {
+                    productsList.innerHTML = '<li class="text-center py-2">خطا در دریافت اطلاعات محصولات</li>';
+                    console.error('خطا در دریافت محصولات:', error);
+                });
+        } else {
+            productsContainer.classList.add('hidden');
+        }
     });
 </script>
 {% endblock %} 

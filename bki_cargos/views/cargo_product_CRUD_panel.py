@@ -126,6 +126,7 @@ def bulk_edit_cargo_products(request):
     # اگر درخواست GET باشد، به صفحه لیست برگرد
     return redirect('cargo_product_list')
 
+@role_required('admin', 'logistics_manager')
 @login_required
 def bulk_edit_purchase_cargo(request):
     """
@@ -270,6 +271,7 @@ def get_cargo_product_details(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
 def list_cargo_products(request):
     """

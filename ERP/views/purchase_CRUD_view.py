@@ -37,6 +37,7 @@ import datetime
 from bki_api.views import merge_purchases_view
 from django.http import HttpRequest, QueryDict
 import json
+from core.decorators.decorators import role_required
 
 try:
     import arabic_reshaper
@@ -298,6 +299,7 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         
         return cleaned_data
 
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
 def purchase_CRUD_view(request, purchase_id):
     purchase = get_object_or_404(Purchase, id=purchase_id)
@@ -660,6 +662,7 @@ def purchase_CRUD_view(request, purchase_id):
     return render(request, 'purchase_CRUD_view.html', context)
 
 @login_required
+@role_required('admin', 'logistics_manager', 'sales_agent')
 def delete_purchase_view(request, purchase_id):
     purchase = get_object_or_404(Purchase, id=purchase_id)
     if request.method == 'POST':
@@ -673,6 +676,7 @@ def delete_purchase_view(request, purchase_id):
     return render(request, 'confirm_delete.html', context)
 
 @login_required
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 def generate_purchase_pdf(request, purchase_id):
     user_role = determine_user_role(request.user)
     if user_role == 'support_agent':
@@ -992,7 +996,9 @@ def generate_purchase_pdf(request, purchase_id):
     
     return response
 
+
 @login_required
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent')
 def upload_purchase_document(request, purchase_id):
     """
     View for handling document uploads for purchases
@@ -1086,6 +1092,7 @@ def upload_purchase_document(request, purchase_id):
     return redirect('purchase_CRUD', purchase_id=purchase_id)
 
 @login_required
+@role_required('admin', 'sales_agent')
 def link_bazaargah_purchase(request, purchase_id):
     """
     ارتباط دادن خرید موجود با خرید بازارگاه از طریق شماره خرید
