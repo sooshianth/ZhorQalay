@@ -170,3 +170,16 @@ class Salary(models.Model):
 
     def __str__(self):
         return f"{self.employee.username} - {self.month}"
+
+# مدل جدید برای مستندات ساعات کاری
+class AttendanceDocument(models.Model):
+    attendance = models.ForeignKey(WeeklyAttendance, on_delete=models.CASCADE, related_name='documents', verbose_name='ساعت کاری')
+    file = models.FileField(upload_to='attendance_documents/%Y/%m/', verbose_name='فایل')
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ آپلود')
+    
+    class Meta:
+        verbose_name = "مستند ساعت کاری"
+        verbose_name_plural = "مستندات ساعت کاری"
+        
+    def __str__(self):
+        return f"مستند برای {self.attendance.employee.username} - {self.attendance.week_start_date}"

@@ -38,6 +38,7 @@
                                     <th><i class="fas fa-calendar-day me-1"></i> روز</th>
                                     <th><i class="fas fa-clock me-1"></i> ساعات</th>
                                     <th><i class="fas fa-align-left me-1"></i> توضیحات</th>
+                                    <th><i class="fas fa-file-alt me-1"></i> مستندات</th>
                                     <th><i class="fas fa-check-double me-1"></i> تاییدها</th>
                                     <th><i class="fas fa-cogs me-1"></i> عملیات</th>
                                 </tr>
@@ -63,6 +64,19 @@
                                                 <button class="btn btn-sm btn-link text-primary show-description" data-bs-toggle="modal" data-bs-target="#descriptionModal" data-description="{{ attendance.description }}">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted fst-italic">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if attendance.documents.all %}
+                                            <div class="d-flex flex-column gap-1">
+                                                {% for document in attendance.documents.all %}
+                                                <a href="{{ document.file.url }}" class="btn btn-sm btn-outline-primary mb-1" target="_blank">
+                                                    <i class="fas fa-file-download me-1"></i>فایل {{ forloop.counter }}
+                                                </a>
+                                                {% endfor %}
                                             </div>
                                         {% else %}
                                             <span class="text-muted fst-italic">-</span>
