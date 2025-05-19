@@ -31,6 +31,7 @@ urlpatterns = [
     path('customers/enhanced/', customer_list_view.enhanced_customer_list_view, name='enhanced_customer_list'),
     path('customers/toggle-favorite/', customer_list_view.toggle_favorite, name='toggle_favorite'),
     path('customers/send-sms/', customer_list_view.send_sms_to_selected, name='send_sms_to_selected'),
+    path('customers/get-sms-templates/', customer_list_view.get_sms_templates, name='get_sms_templates'),
     path('delete-unpaid-purchase/<int:purchase_id>/', sales_agent_profile_view.delete_unpaid_purchase, name='delete_unpaid_purchase'),
 
     path('notifications/delete/<int:notification_id>/', mark_notification_read.mark_notification_read, name='delete_notification'),

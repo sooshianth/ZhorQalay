@@ -369,10 +369,25 @@
             <form id="sms-form" method="post" action="{% url 'send_sms_to_selected' %}">
                 {% csrf_token %}
                 <div class="mb-4">
-                    <label for="sms-message" class="block mb-1">متن پیام:</label>
-                    <textarea id="sms-message" name="message" rows="3" maxlength="255" class="w-full p-2 border rounded-md"></textarea>
-                    <small class="text-gray-500"><span id="char-count">0</span>/255 کاراکتر</small>
+                    <label for="template-selector" class="block mb-1">انتخاب قالب پیامک:</label>
+                    <select id="template-selector" name="template_id" class="w-full p-2 border rounded-md" required>
+                        <option value="">-- انتخاب قالب --</option>
+                        <!-- گزینه‌ها با JavaScript پر می‌شوند -->
+                    </select>
                 </div>
+                
+                <div id="template-preview" class="mb-4 bg-gray-100 p-3 rounded-md hidden">
+                    <label class="block mb-1">پیش‌نمایش قالب:</label>
+                    <div id="template-content" class="p-2"></div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="product-info" class="block mb-1">اطلاعات محصول (اختیاری):</label>
+                    <input type="text" id="product-info" name="product_info" class="w-full p-2 border rounded-md" 
+                        placeholder="مثال: گندم هندی 500 تن">
+                    <small class="text-gray-500">این اطلاعات در متغیر {{product_info}} قرار می‌گیرد</small>
+                </div>
+                
                 <div id="selected-customers-container">
                     <!-- این بخش با JavaScript پر خواهد شد -->
                 </div>
@@ -470,17 +485,6 @@
         }
     });
 
-    // شمارش کاراکترهای پیام
-    var smsMessage = document.getElementById('sms-message');
-    if (smsMessage) {
-        smsMessage.addEventListener('input', function() {
-            var charCount = document.getElementById('char-count');
-            if (charCount) {
-                charCount.textContent = this.value.length;
-            }
-        });
-    }
-
     // مرتب‌سازی
     document.getElementById('sort').addEventListener('change', function() {
         var url = new URL(window.location.href);
@@ -537,19 +541,77 @@
         });
     }
 
-    // ارسال پیامک
+    // نمایش وضعیت جاوااسکریپت
+    var jsStatus = document.getElementById('js-status');
+    if (jsStatus) {
+        jsStatus.classList.remove('hidden');
+        setTimeout(function() {
+            jsStatus.classList.add('hidden');
+        }, 3000);
+    }
+
+    // بارگذاری قالب‌های پیامک
+    var templateSelector = document.getElementById('template-selector');
+    var templatePreview = document.getElementById('template-preview');
+    var templateContent = document.getElementById('template-content');
+    var templates = [];
+
+    // دریافت قالب‌های پیامک از سرور
+    function loadSmsTemplates() {
+        fetch('{% url "get_sms_templates" %}')
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.templates && data.templates.length > 0) {
+                    templates = data.templates;
+                    
+                    // پر کردن سلکت باکس قالب‌ها
+                    for (var i = 0; i < templates.length; i++) {
+                        var template = templates[i];
+                        var option = document.createElement('option');
+                        option.value = template.id;
+                        option.textContent = template.name;
+                        templateSelector.appendChild(option);
+                    }
+
+                    // اضافه کردن رویداد تغییر برای نمایش پیش‌نمایش قالب
+                    templateSelector.addEventListener('change', function() {
+                        var selectedId = this.value;
+                        if (!selectedId) {
+                            templatePreview.classList.add('hidden');
+                            return;
+                        }
+
+                        // پیدا کردن قالب انتخاب شده
+                        var selectedTemplate = templates.find(function(tmpl) {
+                            return tmpl.id.toString() === selectedId;
+                        });
+
+                        if (selectedTemplate) {
+                            // نمایش پیش‌نمایش قالب
+                            templateContent.textContent = selectedTemplate.content;
+                            templatePreview.classList.remove('hidden');
+                        }
+                    });
+                }
+            })
+            .catch(function(error) {
+                console.error('خطا در دریافت قالب‌های پیامک:', error);
+            });
+    }
+
+    // آیا بخش ارسال پیامک وجود دارد؟
+    if (document.getElementById('sms-panel')) {
+        // بارگذاری قالب‌های پیامک
+        loadSmsTemplates();
+    }
+
+    // به‌روزرسانی کد ارسال پیامک
     document.getElementById('send-sms-submit').addEventListener('click', function() {
-        var smsMessage = document.getElementById('sms-message');
-        if (!smsMessage) return;
-        
-        var message = smsMessage.value.trim();
-        if (!message) {
-            alert('لطفا متن پیام را وارد کنید.');
-            return;
-        }
-        
-        if (message.length > 255) {
-            alert('طول پیام نمیتواند بیشتر از 255 کاراکتر باشد.');
+        var templateId = document.getElementById('template-selector').value;
+        if (!templateId) {
+            alert('لطفا یک قالب پیامک انتخاب کنید.');
             return;
         }
         
@@ -597,10 +659,10 @@
                 var smsPanel = document.getElementById('sms-panel');
                 if (smsPanel) smsPanel.style.display = 'none';
                 
-                if (smsMessage) smsMessage.value = '';
-                
-                var charCount = document.getElementById('char-count');
-                if (charCount) charCount.textContent = '0';
+                // پاک کردن فیلدها
+                document.getElementById('template-selector').value = '';
+                document.getElementById('product-info').value = '';
+                templatePreview.classList.add('hidden');
                 
                 var checkboxes = document.querySelectorAll('.customer-checkbox');
                 checkboxes.forEach(function(checkbox) {
@@ -620,14 +682,5 @@
             alert('خطایی در ارسال پیامک رخ داد. لطفا دوباره تلاش کنید.');
         });
     });
-
-    // نمایش وضعیت جاوااسکریپت
-    var jsStatus = document.getElementById('js-status');
-    if (jsStatus) {
-        jsStatus.classList.remove('hidden');
-        setTimeout(function() {
-            jsStatus.classList.add('hidden');
-        }, 3000);
-    }
 </script>
 {% endblock %} 

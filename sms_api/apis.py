@@ -223,7 +223,6 @@ def send_instant_sms(number:str, message:str, sms_account=sms_account):
             return None
 
 def queue_sms(number:str, message:str, notification_type='custom', purchase=None, suspended=False, scheduled_for=None):
-    return None
     """
     Add SMS to the queue for batch processing
     """

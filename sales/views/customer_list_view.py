@@ -10,7 +10,9 @@ from core.decorators.decorators import role_required
 from core.CustomerModel import Customer, ActivityField, PaymentPreference, ProductPreference
 from django.utils.timezone import timedelta
 from django.conf import settings
-from sms_api.apis import queue_sms
+from sms_api.apis import queue_sms, render_template
+from sms_api.models import SmsTemplate
+import json
 
 @role_required('sales_agent', 'admin')
 @login_required
@@ -199,6 +201,29 @@ def toggle_favorite(request):
 
 @role_required('sales_agent', 'admin')
 @login_required
+def get_sms_templates(request):
+    """دریافت قالب‌های پیامک برای استفاده در صفحه لیست مشتریان"""
+    # فقط قالب‌های custom را برمی‌گردانیم
+    templates = SmsTemplate.objects.filter(is_active=True).order_by('-updated_at')
+    
+    # تبدیل قالب‌ها به فرمت مناسب برای JSON
+    templates_list = []
+    for template in templates:
+        templates_list.append({
+            'id': template.id,
+            'name': template.name,
+            'content': template.content,
+            'status': template.status,
+            'status_display': template.get_status_display(),
+        })
+    
+    return JsonResponse({
+        'templates': templates_list,
+        'count': len(templates_list)
+    })
+
+@role_required('sales_agent', 'admin')
+@login_required
 @require_POST
 def send_sms_to_selected(request):
     """ارسال پیامک به مشتریان انتخاب شده"""
@@ -213,16 +238,20 @@ def send_sms_to_selected(request):
         except:
             pass
     
-    message = request.POST.get('message', '').strip()
+    template_id = request.POST.get('template_id')
+    product_info = request.POST.get('product_info', '')
     
     if not customer_ids:
         return JsonResponse({'success': False, 'error': 'هیچ مشتری انتخاب نشده است'}, status=400)
     
-    if not message:
-        return JsonResponse({'success': False, 'error': 'متن پیام نمی‌تواند خالی باشد'}, status=400)
+    if not template_id:
+        return JsonResponse({'success': False, 'error': 'لطفا یک قالب پیامک انتخاب کنید'}, status=400)
     
-    if len(message) > 255:
-        return JsonResponse({'success': False, 'error': f'متن پیام باید کمتر از 255 کاراکتر باشد (طول فعلی: {len(message)})'}, status=400)
+    try:
+        # دریافت قالب پیامک
+        template = SmsTemplate.objects.get(id=template_id)
+    except SmsTemplate.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'قالب پیامک یافت نشد'}, status=404)
     
     sales_agent = request.user.sales_agent
     sms_quota = getattr(settings, 'SALES_AGENT_SMS_QOUTA', 0)
@@ -248,6 +277,30 @@ def send_sms_to_selected(request):
     for customer in selected_customers:
         if not customer.sms_preference:
             continue  # رد شدن از مشتریانی که تمایل به دریافت پیامک ندارند
+        
+        # آماده‌سازی داده‌های جایگزین برای قالب
+        context = {
+            'customer_name': customer.name,
+            'sales_agent_name': sales_agent.name,
+            'sales_agent_phone': sales_agent.phone_number,
+            'product_info': product_info,
+        }
+        
+        # رندر کردن قالب با داده‌های مشتری
+        message = render_template('custom', context)
+        
+        # اگر رندر کردن قالب موفق نبود، از متن قالب استفاده کنیم
+        if not message:
+            message = template.content
+            # جایگزینی ساده متغیرها
+            message = message.replace('{{customer_name}}', customer.name)
+            message = message.replace('{{sales_agent_name}}', sales_agent.name)
+            message = message.replace('{{sales_agent_phone}}', sales_agent.phone_number)
+            message = message.replace('{{product_info}}', product_info)
+        
+        # کوتاه کردن متن پیام به 255 کاراکتر
+        if len(message) > 255:
+            message = message[:252] + '...'
         
         phone_numbers = customer.get_all_phone_numbers()
         for phone in phone_numbers:
