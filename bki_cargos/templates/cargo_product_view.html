@@ -5,197 +5,451 @@
 {% block content %}
 
 <style>
-    .deactive-products-dropdown {
-        margin: 20px 0;
-        border-radius: 8px;
+    /* CSS Variables */
+    :root {
+        --primary: #065F46;
+        --primary-hover: #064e3b;
+        --secondary: #3b82f6;
+        --secondary-hover: #2563eb;
+        --neutral: #64748b;
+        --neutral-hover: #475569;
+        --light-bg: #f8fafc;
+        --border: #e2e8f0;
+        --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    /* Base styles */
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1.5rem;
+    }
+    
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Cards */
+    .card {
+        background-color: white;
+        border-radius: 0.75rem;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+    
+    .card-header {
+        background-color: #f8fafc;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+    }
+    
+    /* Buttons */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        text-decoration: none;
+        border: none;
+    }
+    
+    .btn-primary {
+        background-color: var(--primary);
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: var(--primary-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--card-shadow);
+    }
+    
+    .btn-secondary {
+        background-color: var(--secondary);
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background-color: var(--secondary-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--card-shadow);
+    }
+    
+    .btn-icon {
+        margin-right: 0.5rem;
+    }
+    
+    /* Action area */
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Badges */
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .badge-success {
+        background-color: #dcfce7;
+        color: #166534;
+    }
+    
+    .badge-danger {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+    
+    /* Table styles */
+    table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 0.5rem;
         overflow: hidden;
     }
     
-    .deactive-products-dropdown summary {
-        background-color: #f0f0f0;
-        padding: 12px 15px;
+    thead {
+        background-color: #f8fafc;
+    }
+    
+    th {
+        padding: 1rem;
+        text-align: right;
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+    }
+    
+    tr:last-child td {
+        border-bottom: none;
+    }
+    
+    tr.selected {
+        background-color: rgba(59, 130, 246, 0.1);
+    }
+    
+    /* Checkbox */
+    input[type="checkbox"] {
+        width: 1.25rem;
+        height: 1.25rem;
+        border-radius: 0.25rem;
+        border: 1px solid #cbd5e1;
         cursor: pointer;
-        font-weight: bold;
-        color: #333;
-        border-radius: 6px;
+    }
+    
+    /* Dropdown container for inactive products */
+    .dropdown-container {
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+    
+    .dropdown-header {
+        background-color: #f1f5f9;
+        padding: 1rem 1.5rem;
+        cursor: pointer;
+        font-weight: 600;
+        color: #334155;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         transition: all 0.3s ease;
-        border: 1px solid #ddd;
-        position: relative;
+        border: 1px solid var(--border);
     }
     
-    .deactive-products-dropdown summary:hover {
-        background-color: #e0e0e0;
+    .dropdown-header:hover {
+        background-color: #e2e8f0;
     }
     
-    .deactive-products-dropdown summary::after {
-        content: "▼";
-        position: absolute;
-        left: 15px;
+    .dropdown-icon {
         transition: transform 0.3s ease;
     }
     
-    .deactive-products-dropdown[open] summary::after {
+    details[open] .dropdown-icon {
         transform: rotate(180deg);
     }
     
-    .deactive-products-dropdown[open] summary {
-        border-radius: 6px 6px 0 0;
-        background-color: #e0e0e0;
-    }
-    
-    .deactive-products-dropdown table {
-        margin-top: 0;
+    .dropdown-content {
+        border: 1px solid var(--border);
         border-top: none;
     }
-    .action-buttons {
-        margin: 20px 0;
-    }
-    .action-buttons a, .action-buttons button {
-        background-color: #4CAF50;
-        color: white;
-        padding: 10px 15px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
+    
+    /* Links */
+    .edit-link {
+        color: var(--secondary);
         text-decoration: none;
-        font-size: 14px;
-        margin-right: 10px;
-        transition: background-color 0.3s ease;
+        font-weight: 500;
+        transition: color 0.3s ease;
     }
-    .action-buttons a:hover, .action-buttons button:hover {
-        background-color: #45a049;
+    
+    .edit-link:hover {
+        color: var(--secondary-hover);
+        text-decoration: underline;
     }
-    .cargo-product-list table {
-        width: 100%;
-        border-collapse: collapse;
+    
+    /* Animations */
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-in-out;
     }
-    .cargo-product-list th, .cargo-product-list td {
-        border: 1px solid #ddd;
-        padding: 8px;
-        text-align: center;
+    
+    .animate-slide-up {
+        animation: slideUp 0.3s ease-out;
     }
-    .cargo-product-list th {
-        background-color: #f2f2f2;
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
     }
-    .cargo-product-list tr:hover {
-        background-color: #f5f5f5;
-        cursor: pointer;
-    }
-    .cargo-product-list input[type='checkbox'] {
-        width: auto;
-    }
-    .cargo-product-list tr.selected {
-        background-color: rgba(52, 152, 219, 0.15);
-    }
-    .cargo-product-list tr.selected:hover {
-        background-color: rgba(52, 152, 219, 0.25);
+    
+    @keyframes slideUp {
+        from { transform: translateY(10px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
     }
 </style>
 
-
-    <div class="cargo-product-list">
-        <h2>لیست محصولات و کوتاژها</h2>
-        <div class="action-buttons">
-            <a href="{% url 'cargo_product_crud_panel' %}">ایجاد محصول جدید</a>
-            <button onclick="bulkEdit()">ویرایش گروهی</button>
-        </div>
-        <form id="bulkEditForm" action="{% url 'bulk_edit_cargo_products' %}" method="post" style="display: none;">
-            {% csrf_token %}
-            <input type="hidden" name="product_ids" id="product_ids">
-        </form>
-        <table>
-            <thead>
-                <tr>
-                    <th>انتخاب</th>
-                    <th>کوتاژ</th>
-                    <th>نوع محصول</th>
-                    <th>کشور</th>
-                    <th>قیمت فروش</th>
-                    <th>محل بارگیری</th>
-                    <th>زمان بارگیری</th>
-                    <th>توضیحات</th>
-                    <th>وضعیت</th>
-                    <th>ویرایش</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for product in cargo_products %}
-                    <tr onclick="toggleSelection(this, {{ product.id }});">
-                        <td><input type="checkbox" name="product_id" value="{{ product.id }}" onclick="event.stopPropagation();"></td>
-                        <td>{{ product.cottage }}</td>
-                        <td>{{ product.get_product_type_display }}</td>
-                        <td>{{ product.get_country_display }}</td>
-                        <td>{{ product.customer_price }}</td>
-                        <td>{{ product.port }}</td>
-                        <td>{{ product.loading_time }}</td>
-                        <td>{{ product.description }}</td>
-                        <td>{{ product.status|yesno:"فعال,غیرفعال" }}</td>
-                        <td><a href="{% url 'cargo_product_crud_panel' product.id %}" onclick="event.stopPropagation();">ویرایش</a></td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        
-        <details class="deactive-products-dropdown">
-            <summary>لیست محصولات و کوتاژهای غیرفعال</summary>
-            <table>
-                <thead>
-                    <tr>
-                        <th>انتخاب</th>
-                        <th>کوتاژ</th>
-                        <th>نوع محصول</th>
-                        <th>کشور</th>
-                        <th>قیمت فروش</th>
-                        <th>محل بارگیری</th>
-                        <th>زمان بارگیری</th>
-                        <th>توضیحات</th>
-                        <th>وضعیت</th>
-                        <th>ویرایش</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for product in deactive_cargo_products %}
-                        <tr onclick="toggleSelection(this, {{ product.id }});">
-                            <td><input type="checkbox" name="product_id" value="{{ product.id }}" onclick="event.stopPropagation();"></td>
-                            <td>{{ product.cottage }}</td>
-                            <td>{{ product.get_product_type_display }}</td>
-                            <td>{{ product.get_country_display }}</td>
-                            <td>{{ product.customer_price }}</td>
-                            <td>{{ product.port }}</td>
-                            <td>{{ product.loading_time }}</td>
-                            <td>{{ product.description }}</td>
-                            <td>{{ product.status|yesno:"فعال,غیرفعال" }}</td>
-                            <td><a href="{% url 'cargo_product_crud_panel' product.id %}" onclick="event.stopPropagation();">ویرایش</a></td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </details>
+<div class="container">
+    <h1 class="page-title animate-fade-in">لیست محصولات و کوتاژها</h1>
+    
+    <div class="action-buttons animate-slide-up">
+        <a href="{% url 'cargo_product_crud_panel' %}" class="btn btn-primary">
+            <span class="btn-icon"><i class="fas fa-plus"></i></span>
+            ایجاد محصول جدید
+        </a>
+        <button onclick="bulkEdit()" class="btn btn-secondary">
+            <span class="btn-icon"><i class="fas fa-edit"></i></span>
+            ویرایش گروهی
+        </button>
     </div>
     
-    <script>
-        function bulkEdit() {
-            var checkedProducts = document.querySelectorAll('input[name="product_id"]:checked');
-            if (checkedProducts.length > 0) {
-                var productIds = Array.from(checkedProducts).map(function(checkbox) { return checkbox.value; });
-                document.getElementById('product_ids').value = productIds.join(',');
-                console.log("محصولات انتخاب شده:", document.getElementById('product_ids').value);
-                document.getElementById('bulkEditForm').submit();
-            } else {
-                alert('لطفاً حداقل یک محصول را انتخاب کنید.');
-            }
-        }
+    <form id="bulkEditForm" action="{% url 'bulk_edit_cargo_products' %}" method="post" style="display: none;">
+        {% csrf_token %}
+        <input type="hidden" name="product_ids" id="product_ids">
+    </form>
+    
+    <div class="card animate-slide-up" style="animation-delay: 0.1s;">
+        <div class="card-header">
+            <h2 class="text-lg font-semibold">محصولات و کوتاژهای فعال</h2>
+            <span class="badge badge-success">{{ cargo_products|length }} محصول</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="overflow-x-auto">
+                <table class="table-hover">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="select-all" onclick="toggleAllActive()"></th>
+                            <th>کوتاژ</th>
+                            <th>نوع محصول</th>
+                            <th>کشور</th>
+                            <th>قیمت فروش</th>
+                            <th>محل بارگیری</th>
+                            <th>زمان بارگیری</th>
+                            <th>توضیحات</th>
+                            <th>وضعیت</th>
+                            <th>ویرایش</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in cargo_products %}
+                            <tr onclick="toggleSelection(this, {{ product.id }});" class="animate-fade-in" style="animation-delay: {{ forloop.counter0|add:1|divisibleby:10 }}0ms">
+                                <td>
+                                    <input type="checkbox" name="product_id" value="{{ product.id }}" onclick="event.stopPropagation();">
+                                </td>
+                                <td><strong>{{ product.cottage }}</strong></td>
+                                <td>{{ product.get_product_type_display }}</td>
+                                <td>{{ product.get_country_display }}</td>
+                                <td>{{ product.customer_price }}</td>
+                                <td>{{ product.port }}</td>
+                                <td>{{ product.loading_time }}</td>
+                                <td>{{ product.description }}</td>
+                                <td>
+                                    <span class="badge badge-success">
+                                        <i class="fas fa-check-circle mr-1"></i>
+                                        فعال
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'cargo_product_crud_panel' product.id %}" class="edit-link" onclick="event.stopPropagation();">
+                                        <i class="fas fa-edit mr-1"></i>
+                                        ویرایش
+                                    </a>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="10" class="text-center py-6">
+                                    <div class="flex flex-col items-center">
+                                        <i class="fas fa-box-open text-4xl mb-3 text-gray-300"></i>
+                                        <p class="text-gray-500">هیچ محصول فعالی یافت نشد</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <details class="dropdown-container animate-slide-up" style="animation-delay: 0.2s;">
+        <summary class="dropdown-header">
+            <div class="flex items-center">
+                <i class="fas fa-archive mr-2"></i>
+                لیست محصولات و کوتاژهای غیرفعال
+                <span class="badge badge-danger ml-2">{{ deactive_cargo_products|length }}</span>
+            </div>
+            <i class="fas fa-chevron-down dropdown-icon"></i>
+        </summary>
+        <div class="dropdown-content">
+            <div class="overflow-x-auto">
+                <table class="table-hover">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="select-all-inactive" onclick="toggleAllInactive()"></th>
+                            <th>کوتاژ</th>
+                            <th>نوع محصول</th>
+                            <th>کشور</th>
+                            <th>قیمت فروش</th>
+                            <th>محل بارگیری</th>
+                            <th>زمان بارگیری</th>
+                            <th>توضیحات</th>
+                            <th>وضعیت</th>
+                            <th>ویرایش</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in deactive_cargo_products %}
+                            <tr onclick="toggleSelection(this, {{ product.id }});">
+                                <td>
+                                    <input type="checkbox" name="product_id" value="{{ product.id }}" onclick="event.stopPropagation();">
+                                </td>
+                                <td><strong>{{ product.cottage }}</strong></td>
+                                <td>{{ product.get_product_type_display }}</td>
+                                <td>{{ product.get_country_display }}</td>
+                                <td>{{ product.customer_price }}</td>
+                                <td>{{ product.port }}</td>
+                                <td>{{ product.loading_time }}</td>
+                                <td>{{ product.description }}</td>
+                                <td>
+                                    <span class="badge badge-danger">
+                                        <i class="fas fa-times-circle mr-1"></i>
+                                        غیرفعال
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'cargo_product_crud_panel' product.id %}" class="edit-link" onclick="event.stopPropagation();">
+                                        <i class="fas fa-edit mr-1"></i>
+                                        ویرایش
+                                    </a>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="10" class="text-center py-6">
+                                    <p class="text-gray-500">هیچ محصول غیرفعالی یافت نشد</p>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </details>
+</div>
+
+<script>
+    function toggleSelection(row, productId) {
+        var checkbox = row.querySelector('input[type="checkbox"]');
+        checkbox.checked = !checkbox.checked;
         
-        function toggleSelection(row, productId) {
-            var checkbox = row.querySelector('input[type="checkbox"]');
-            checkbox.checked = !checkbox.checked;
-            
-            // اضافه کردن یا حذف کلاس selected برای نمایش انتخاب
-            if (checkbox.checked) {
+        // اضافه کردن یا حذف کلاس selected برای نمایش انتخاب
+        if (checkbox.checked) {
+            row.classList.add('selected');
+        } else {
+            row.classList.remove('selected');
+        }
+    }
+    
+    function toggleAllActive() {
+        var mainCheckbox = document.getElementById('select-all');
+        var checkboxes = document.querySelectorAll('table:not(.dropdown-content table) input[name="product_id"]');
+        var isChecked = mainCheckbox.checked;
+        
+        checkboxes.forEach(function(checkbox) {
+            checkbox.checked = isChecked;
+            var row = checkbox.closest('tr');
+            if (isChecked) {
                 row.classList.add('selected');
             } else {
                 row.classList.remove('selected');
             }
+        });
+    }
+    
+    function toggleAllInactive() {
+        var mainCheckbox = document.getElementById('select-all-inactive');
+        var checkboxes = document.querySelectorAll('.dropdown-content table input[name="product_id"]');
+        var isChecked = mainCheckbox.checked;
+        
+        checkboxes.forEach(function(checkbox) {
+            checkbox.checked = isChecked;
+            var row = checkbox.closest('tr');
+            if (isChecked) {
+                row.classList.add('selected');
+            } else {
+                row.classList.remove('selected');
+            }
+        });
+    }
+    
+    function bulkEdit() {
+        var checkedProducts = document.querySelectorAll('input[name="product_id"]:checked');
+        if (checkedProducts.length > 0) {
+            var productIds = Array.from(checkedProducts).map(function(checkbox) { return checkbox.value; });
+            document.getElementById('product_ids').value = productIds.join(',');
+            document.getElementById('bulkEditForm').submit();
+        } else {
+            alert('لطفاً حداقل یک محصول را انتخاب کنید.');
         }
-    </script>
+    }
+    
+    // اضافه کردن آیکون‌های Font Awesome
+    document.addEventListener('DOMContentLoaded', function() {
+        // اگر لینک Font Awesome قبلاً اضافه نشده باشد، آن را اضافه کن
+        if (!document.querySelector('link[href*="font-awesome"]')) {
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css';
+            document.head.appendChild(link);
+        }
+    });
+</script>
 {% endblock %}

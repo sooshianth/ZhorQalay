@@ -5,197 +5,494 @@
 
 {% block extra_css %}
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 <style>
+    :root {
+        --primary-color: #065F46;
+        --primary-hover: #2563EB;
+        --success-color: #10B981;
+        --success-hover: #059669;
+        --danger-color: #EF4444;
+        --danger-hover: #DC2626;
+        --warning-color: #F59E0B;
+        --warning-hover: #D97706;
+        --info-color: #4F46E5;
+        --info-hover: #4338CA;
+        --light-bg: #F9FAFB;
+        --card-bg: #FFFFFF;
+        --text-primary: #1F2937;
+        --text-secondary: #4B5563;
+        --text-muted: #6B7280;
+        --border-color: #E5E7EB;
+    }
+    
+    /* Modern Card Styling */
+    .modern-card {
+        background: var(--card-bg);
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 15px rgba(0, 0, 0, 0.03);
+        transition: all 0.3s ease;
+        border: 1px solid rgba(229, 231, 235, 0.5);
+        overflow: hidden;
+    }
+    
+    .modern-card:hover {
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Dashboard Header */
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .dashboard-title {
+        color: var(--text-primary);
+        font-size: 1.875rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .dashboard-title i {
+        color: var(--primary-color);
+    }
+    
+    /* Notification System */
     .notification-popup {
         position: fixed;
         bottom: 20px;
         right: 20px;
-        width: 320px;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        width: 360px;
+        background: var(--card-bg);
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
         z-index: 10000;
         opacity: 0;
         transform: translateY(20px);
         transition: opacity 0.3s ease, transform 0.3s ease;
+        border: 1px solid rgba(229, 231, 235, 0.5);
+        overflow: hidden;
     }
+    
     .notification-popup.show {
         opacity: 1;
         transform: translateY(0);
     }
+    
     .popup-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 12px 16px;
-        background: #10B981;
+        padding: 16px;
+        background: var(--success-color);
         color: white;
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
     }
+    
     .popup-title {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
         font-weight: 600;
+        font-size: 1rem;
     }
+    
     .popup-close {
         background: none;
         border: none;
         color: white;
         cursor: pointer;
         font-size: 16px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: background 0.2s;
     }
+    
+    .popup-close:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+    
     .popup-content {
         padding: 16px;
-        font-size: 14px;
-        color: #1F2937;
+        font-size: 0.95rem;
+        color: var(--text-primary);
+        line-height: 1.5;
     }
+    
     .progress-container {
-        height: 4px;
-        background: #E5E7EB;
-        border-bottom-left-radius: 8px;
-        border-bottom-right-radius: 8px;
+        height: 3px;
+        background: var(--border-color);
         overflow: hidden;
     }
+    
     .progress-bar {
         height: 100%;
         width: 0;
-        background: #10B981;
+        background: var(--success-color);
         transition: width 5s linear;
     }
+    
     .notification-popup.show .progress-bar {
         width: 100%;
     }
+    
     .notification-center {
         position: relative;
+        margin-right: 1rem;
     }
+    
     .notification-bell {
         cursor: pointer;
-    }
-    .notification-dropdown {
-        position: absolute;
-        top: 40px;
-        right: 0;
-        width: 300px;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        display: none;
-        z-index: 999;
-    }
-    .notification-header {
-        padding: 12px;
-        border-bottom: 1px solid #E5E7EB;
-    }
-    .notification-item {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--light-bg);
         display: flex;
         align-items: center;
-        padding: 12px;
-        border-bottom: 1px solid #E5E7EB;
+        justify-content: center;
+        font-size: 1.25rem;
+        color: var(--text-secondary);
+        position: relative;
+        transition: all 0.2s;
+    }
+    
+    .notification-bell:hover {
+        background: var(--border-color);
+        color: var(--text-primary);
+    }
+    
+    .notification-dropdown {
+        position: absolute;
+        top: 50px;
+        right: 0;
+        width: 360px;
+        background: var(--card-bg);
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        display: none;
+        z-index: 999;
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+    }
+    
+    .notification-header {
+        padding: 16px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .notification-header h4 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+    }
+    
+    .notification-list {
+        max-height: 360px;
+        overflow-y: auto;
+    }
+    
+    .notification-item {
+        display: flex;
+        align-items: flex-start;
+        padding: 16px;
+        border-bottom: 1px solid var(--border-color);
         transition: background 0.2s;
     }
+    
     .notification-item:hover {
-        background: #F9FAFB;
+        background: var(--light-bg);
     }
+    
     .notification-item.read {
         opacity: 0.7;
     }
+    
     .notification-icon {
-        margin-right: 12px;
-        color: #4F46E5;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: rgba(79, 70, 229, 0.1);
+        color: var(--info-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: 12px;
+        flex-shrink: 0;
     }
+    
     .notification-content {
         flex: 1;
     }
+    
+    .notification-content p {
+        margin: 0 0 5px 0;
+        font-size: 0.95rem;
+        color: var(--text-primary);
+    }
+    
     .notification-content small {
-        color: #6B7280;
+        color: var(--text-muted);
+        font-size: 0.8rem;
     }
-    .notification-close {
-        background: none;
-        border: none;
-        color: #EF4444;
-        cursor: pointer;
-        font-size: 16px;
-    }
+    
     .badge {
         position: absolute;
-        top: -8px;
-        right: -8px;
-        background: #EF4444;
+        top: -5px;
+        right: -5px;
+        background: var(--danger-color);
         color: white;
         border-radius: 50%;
-        padding: 2px 6px;
-        font-size: 12px;
+        width: 20px;
+        height: 20px;
+        font-size: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
+    
+    /* Profile Container */
     .profile-container {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
         gap: 24px;
     }
-    .tasks-section, .purchases-section {
-        background: white;
-        padding: 24px;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    
+    @media (min-width: 1024px) {
+        .profile-container {
+            grid-template-columns: 1fr 1fr;
+        }
     }
+    
+    .tasks-section, .purchases-section {
+        background: var(--card-bg);
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .section-title i {
+        color: var(--primary-color);
+    }
+    
+    /* Task & Purchase Items */
     .task-list, .purchase-list {
         list-style: none;
         padding: 0;
         margin: 0;
     }
+    
     .task-item, .purchase-item {
-        border: 1px solid #E5E7EB;
-        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
         padding: 16px;
         margin-bottom: 16px;
         transition: all 0.3s ease;
+        background: var(--light-bg);
+        opacity: 0;
+        transform: translateY(10px);
     }
+    
+    .task-item:hover, .purchase-item:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        border-color: rgba(59, 130, 246, 0.3);
+    }
+    
     .task-item.fade-in, .purchase-item.slide-in {
         opacity: 1;
         transform: translateY(0);
     }
+    
+    .task-content, .purchase-content {
+        margin-bottom: 15px;
+    }
+    
+    .task-status {
+        display: inline-flex;
+        align-items: center;
+        background: rgba(229, 231, 235, 0.5);
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        margin-top: 5px;
+        margin-bottom: 10px;
+    }
+    
+    .task-status .icon-pending {
+        color: var(--danger-color);
+        margin-left: 5px;
+    }
+    
+    .task-status .icon-done {
+        color: var(--success-color);
+        margin-left: 5px;
+    }
+    
+    .status-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    /* Buttons */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        gap: 8px;
+        border: none;
+    }
+    
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: var(--primary-hover);
+    }
+    
+    .btn-success {
+        background: var(--success-color);
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background: var(--success-hover);
+    }
+    
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+    }
+    
+    .btn-danger:hover {
+        background: var(--danger-hover);
+    }
+    
+    .btn-warning {
+        background: var(--warning-color);
+        color: white;
+    }
+    
+    .btn-warning:hover {
+        background: var(--warning-hover);
+    }
+    
+    .btn-info {
+        background: var(--info-color);
+        color: white;
+    }
+    
+    .btn-info:hover {
+        background: var(--info-hover);
+    }
+    
+    .btn-outline {
+        background: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+    }
+    
+    .btn-outline:hover {
+        background: var(--light-bg);
+    }
+    
+    /* Pagination */
     .pagination {
         margin-top: 16px;
         text-align: center;
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
     }
+    
     .pagination-link {
         padding: 8px 12px;
-        margin: 0 4px;
-        background: #E5E7EB;
-        border-radius: 4px;
+        background: var(--light-bg);
+        border-radius: 8px;
         text-decoration: none;
-        color: #1F2937;
+        color: var(--text-primary);
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
+    
     .pagination-link:hover {
-        background: #D1D5DB;
+        background: var(--border-color);
     }
+    
     .current {
         padding: 8px 12px;
-        background: #3B82F6;
+        background: var(--primary-color);
         color: white;
-        border-radius: 4px;
+        border-radius: 8px;
+        font-weight: 500;
     }
-    .button {
-        display: inline-block;
-        padding: 8px 16px;
-        background: #3B82F6;
-        color: white;
-        border-radius: 4px;
-        text-decoration: none;
-        transition: background 0.2s;
+    
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
-    .button:hover {
-        background: #2563EB;
+    
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateX(10px); }
+        to { opacity: 1; transform: translateX(0); }
     }
+    
     @keyframes fadeOut {
         to { opacity: 0; height: 0; padding: 0; margin: 0; }
     }
+    
     @keyframes pulse {
         0% { transform: scale(1); }
         50% { transform: scale(1.2); }
         100% { transform: scale(1); }
     }
+    
     @keyframes tada {
         0% { transform: scale(1); }
         10%, 20% { transform: scale(0.9) rotate(-3deg); }
@@ -203,48 +500,122 @@
         40%, 60%, 80% { transform: scale(1.1) rotate(-3deg); }
         100% { transform: scale(1) rotate(0); }
     }
+
+    /* Filter Section */
+    .filter-container {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--border-color);
+    }
+    
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    
+    .filter-label {
+        color: var(--text-primary);
+        font-weight: 500;
+        white-space: nowrap;
+    }
+    
+    .filter-select, .filter-input {
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        outline: none;
+        transition: all 0.2s;
+        min-width: 160px;
+    }
+    
+    .filter-select:focus, .filter-input:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+    
+    /* Profile Info Card */
+    .profile-info-card {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        align-items: center;
+        padding: 24px;
+        border-radius: 12px;
+        background-color: var(--card-bg);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        margin-bottom: 24px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .profile-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background-color: var(--info-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 600;
+    }
+    
+    .profile-details {
+        flex: 1;
+    }
+    
+    .profile-name {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0 0 5px 0;
+        color: var(--text-primary);
+    }
+    
+    .profile-contact {
+        font-size: 1rem;
+        color: var(--text-secondary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .profile-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 16px;
+    }
+    
+    /* Responsive Styles */
+    @media (max-width: 768px) {
+        .profile-container {
+            grid-template-columns: 1fr;
+        }
+        
+        .notification-dropdown {
+            width: 320px;
+        }
+        
+        .filter-group {
+            flex-direction: column;
+            align-items: stretch;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<h1 class="text-3xl font-bold text-gray-800 mb-6">پروفایل کارشناس فروش</h1>
-
-<!-- پاپ‌آپ نوتیفیکیشن -->
-<div id="notification-popup" class="notification-popup">
-    <div class="popup-header">
-        <div class="popup-title">
-            <i class="fas fa-bell"></i>
-            <span>اعلان جدید</span>
-        </div>
-        <button class="popup-close" onclick="closeNotification()">
-            <i class="fas fa-times"></i>
-        </button>
-    </div>
-    <div class="popup-content">
-        <p id="notification-message">پیام نمونه برای تست نمایش</p>
-    </div>
-    <div class="progress-container">
-        <div id="progress-bar" class="progress-bar"></div>
-    </div>
-</div>
-
-
-<!-- اطلاعات پروفایل -->
-<div class="bg-white p-6 rounded-lg shadow-md mb-6">
-    <p class="text-lg"><strong>نام:</strong> {{ sales_agent.name }}</p>
-    <p class="text-lg"><strong>شماره تلفن:</strong> {{ sales_agent.phone_number }}</p>
-    <div class="mt-4 flex gap-3">
-        <a href="{% url 'sales_phone_assignment_list' %}" class="button bg-blue-600 hover:bg-blue-700">
-            <i class="fas fa-phone-alt me-2"></i> شماره‌های ویزیت
-        </a>
-        <a href="{% url 'enhanced_customer_list' %}" class="button bg-green-600 hover:bg-green-700">
-            <i class="fas fa-users me-2"></i> لیست پیشرفته مشتریان
-        </a>
-        {% comment %} <a href="{% url 'sales_dashboard' %}" class="button">
-            مشاهده داشبورد فروش
-        </a> {% endcomment %}
-    </div>
-</div>
+<div class="dashboard-header">
+    <h1 class="dashboard-title">
+        <i class="fas fa-user-tie"></i>
+        پروفایل کارشناس فروش
+    </h1>
 
 <div class="notification-center">
     <div class="notification-bell" id="notificationBell">
@@ -278,32 +649,86 @@
                 </form>
             </div>
             {% endfor %}
+            </div>
         </div>
     </div>
 </div>
 
-<div class="mb-6 flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-lg shadow-md">
-    <label for="taskFilter" class="text-gray-700 font-semibold text-sm sm:text-base whitespace-nowrap">فیلتر تسک‌ها:</label>
-    <select id="taskFilter" name="task_filter" style="height: 30px; border-color: green; border-radius: 8px;">
+<!-- پاپ‌آپ نوتیفیکیشن -->
+<div id="notification-popup" class="notification-popup">
+    <div class="popup-header">
+        <div class="popup-title">
+            <i class="fas fa-bell"></i>
+            <span>اعلان جدید</span>
+        </div>
+        <button class="popup-close" onclick="closeNotification()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="popup-content">
+        <p id="notification-message">پیام نمونه برای تست نمایش</p>
+    </div>
+    <div class="progress-container">
+        <div id="progress-bar" class="progress-bar"></div>
+    </div>
+</div>
+
+<!-- اطلاعات پروفایل -->
+<div class="profile-info-card">
+    <div class="profile-avatar">
+        {{ sales_agent.name|slice:":1" }}
+    </div>
+    <div class="profile-details">
+        <h2 class="profile-name">{{ sales_agent.name }}</h2>
+        <p class="profile-contact">
+            <i class="fas fa-phone-alt"></i>
+            {{ sales_agent.phone_number }}
+        </p>
+        <div class="profile-actions">
+            <a href="{% url 'sales_phone_assignment_list' %}" class="btn btn-primary">
+                <i class="fas fa-phone-alt"></i> شماره‌های ویزیت
+            </a>
+            <a href="{% url 'enhanced_customer_list' %}" class="btn btn-success">
+                <i class="fas fa-users"></i> لیست پیشرفته مشتریان
+            </a>
+            {% comment %} <a href="{% url 'sales_dashboard' %}" class="btn btn-info">
+                <i class="fas fa-chart-line"></i> مشاهده داشبورد فروش
+            </a> {% endcomment %}
+        </div>
+    </div>
+</div>
+
+<!-- فیلتر تسک‌ها -->
+<div class="filter-container">
+    <div class="filter-group">
+        <label for="taskFilter" class="filter-label">فیلتر تسک‌ها:</label>
+        <select id="taskFilter" name="task_filter" class="filter-select">
         <option value="all" {% if request.GET.task_filter == 'all' %}selected{% endif %}>همه</option>
         <option value="today" {% if request.GET.task_filter == 'today' %}selected{% endif %}>امروز</option>
         <option value="overdue" {% if request.GET.task_filter == 'overdue' %}selected{% endif %}>سررسیده</option>
     </select>
     <input type="text" id="taskSearch" name="task_search" value="{{ request.GET.task_search }}" 
-           style="height: 30px; border-color: green; border-radius: 8px;"
+               class="filter-input"
            placeholder="جستجو در تسک‌ها (توضیحات، تاریخ، ...)">
-    <button type="button" onclick="applyTaskFilters()" class="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-        اعمال فیلتر
+        <button type="button" onclick="applyTaskFilters()" class="btn btn-primary">
+            <i class="fas fa-filter"></i> اعمال فیلتر
     </button>
+    </div>
 </div>
 
 <div class="profile-container">
     <!-- ستون تسک‌ها -->
-    <div class="tasks-section">
-        <h2>همه تسک‌ها</h2>
+    <div class="tasks-section modern-card">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-tasks"></i>
+                همه تسک‌ها
+            </h2>
+        </div>
+        
         <ul class="task-list">
             {% for task in tasks %}
-                <li class="task-item task-pending fade-in" 
+                <li class="task-item task-pending" 
                     draggable="true"
                     data-task-id="{{ task.id }}"
                     ondragstart="dragStart(event)"
@@ -311,24 +736,53 @@
                     ondrop="drop(event)">
                     <div class="task-content">
                         {% if task.customer %}
-                        <strong>مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ task.customer.id }}">{{ task.customer }}</a><br>
+                        <div class="mb-2">
+                            <strong><i class="fas fa-user text-blue-500 mr-1"></i> مشتری:</strong> 
+                            <a href="{% url 'general_customer_CRUD' %}?customer_id={{ task.customer.id }}" class="text-blue-600 hover:underline">
+                                {{ task.customer }}
+                            </a>
+                        </div>
                         {% endif %}
-                        <strong>توضیحات:</strong> {{ task.description }}<br>
-                        <strong>تاریخ:</strong> {{ task.due_date|date:"Y/m/d H:i" }}<br>
-                        <strong>وضعیت:</strong> 
+                        
+                        <div class="mb-2">
+                            <strong><i class="fas fa-align-left text-blue-500 mr-1"></i> توضیحات:</strong> 
+                            <span>{{ task.description }}</span>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <strong><i class="fas fa-calendar-alt text-blue-500 mr-1"></i> تاریخ:</strong> 
+                            <span>{{ task.due_date|date:"Y/m/d H:i" }}</span>
+                        </div>
+                        
+                        <div>
+                            <strong><i class="fas fa-info-circle text-blue-500 mr-1"></i> وضعیت:</strong> 
                         <span class="task-status">
                             <i class="fas fa-times-circle icon-pending"></i> انجام نشده
                         </span>
+                        </div>
+                    </div>
+                    
+                    <div class="status-actions">
                         <form method="post" action="{% url 'change_task_status' task.id %}" class="mt-2">
                             {% csrf_token %}
-                            <button type="submit" name="change_status" style="background-color: {% if task.status %}red{% else %}green{% endif %}; color: white; padding: 8px 16px; border-radius: 4px;">
-                                {% if task.status %}لغو انجام{% else %}انجام شد{% endif %}
+                            <button type="submit" name="change_status" 
+                                class="btn {% if task.status %}btn-danger{% else %}btn-success{% endif %}">
+                                {% if task.status %}
+                                    <i class="fas fa-times"></i> لغو انجام
+                                {% else %}
+                                    <i class="fas fa-check"></i> انجام شد
+                                {% endif %}
                             </button>
                         </form>
                     </div>
                 </li>
             {% empty %}
-                <li class="task-item empty-task fade-in">هیچ تسکی یافت نشد</li>
+                <li class="task-item empty-task">
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-clipboard-list text-4xl mb-2"></i>
+                        <p>هیچ تسکی یافت نشد</p>
+                    </div>
+                </li>
             {% endfor %}
         </ul>
 
@@ -350,34 +804,72 @@
         </div>
 
         <!-- دکمه نمایش تسک‌های انجام شده -->
-        <a id="show-completed-tasks" class="button">نمایش تسک‌های انجام شده</a>
+        <button id="show-completed-tasks" class="btn btn-outline mt-4 w-full">
+            <i class="fas fa-chevron-down mr-2"></i>
+            نمایش تسک‌های انجام شده
+        </button>
 
         <!-- بخش تسک‌های انجام شده (مخفی شده) -->
-        <div id="completed-tasks-section" style="display: none;">
-            <h3>تسک‌های انجام شده</h3>
+        <div id="completed-tasks-section" style="display: none;" class="mt-6">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-check-circle text-green-500"></i>
+                    تسک‌های انجام شده
+                </h3>
+            </div>
+            
             <ul class="task-list">
                 {% for task in completed_tasks_page %}
-                    <li class="task-item task-done fade-in">
+                    <li class="task-item task-done">
                         <div class="task-content">
                             {% if task.customer %}
-                            <strong>مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ task.customer.id }}">{{ task.customer }} ({{ task.customer.get_primary_phone }})</a><br>
+                            <div class="mb-2">
+                                <strong><i class="fas fa-user text-green-500 mr-1"></i> مشتری:</strong> 
+                                <a href="{% url 'general_customer_CRUD' %}?customer_id={{ task.customer.id }}" class="text-blue-600 hover:underline">
+                                    {{ task.customer }} ({{ task.customer.get_primary_phone }})
+                                </a>
+                            </div>
                             {% endif %}
-                            <strong>توضیحات:</strong> {{ task.description }}<br>
-                            <strong>تاریخ:</strong> {{ task.due_date|date:"Y/m/d H:i" }}<br>
-                            <strong>وضعیت:</strong> 
-                            <span class="task-status">
+                            
+                            <div class="mb-2">
+                                <strong><i class="fas fa-align-left text-green-500 mr-1"></i> توضیحات:</strong> 
+                                <span>{{ task.description }}</span>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <strong><i class="fas fa-calendar-alt text-green-500 mr-1"></i> تاریخ:</strong> 
+                                <span>{{ task.due_date|date:"Y/m/d H:i" }}</span>
+                            </div>
+                            
+                            <div>
+                                <strong><i class="fas fa-info-circle text-green-500 mr-1"></i> وضعیت:</strong> 
+                                <span class="task-status" style="background: rgba(16, 185, 129, 0.1);">
                                 <i class="fas fa-check-circle icon-done"></i> انجام شده
                             </span>
+                            </div>
+                        </div>
+                        
+                        <div class="status-actions">
                             <form method="post" action="{% url 'change_task_status' task.id %}" class="mt-2">
                                 {% csrf_token %}
-                                <button type="submit" name="change_status" style="background-color: {% if task.status %}red{% else %}green{% endif %}; color: white; padding: 8px 16px; border-radius: 4px;">
-                                    {% if task.status %}لغو انجام{% else %}انجام شد{% endif %}
+                                <button type="submit" name="change_status" 
+                                    class="btn {% if task.status %}btn-danger{% else %}btn-success{% endif %}">
+                                    {% if task.status %}
+                                        <i class="fas fa-times"></i> لغو انجام
+                                    {% else %}
+                                        <i class="fas fa-check"></i> انجام شد
+                                    {% endif %}
                                 </button>
                             </form>
                         </div>
                     </li>
                 {% empty %}
-                    <li class="task-item empty-task fade-in">هیچ تسک انجام شده‌ای یافت نشد</li>
+                    <li class="task-item empty-task">
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-clipboard-check text-4xl mb-2"></i>
+                            <p>هیچ تسک انجام شده‌ای یافت نشد</p>
+                        </div>
+                    </li>
                 {% endfor %}
             </ul>
 
@@ -400,29 +892,73 @@
         </div>
     </div>
 
-    <div class="purchases-section">
-        <h2>خریدها</h2>
+    <div class="purchases-section modern-card">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-shopping-cart"></i>
+                خریدها
+            </h2>
+        </div>
         
-        <h3>پرداخت نشده (Unpaid)</h3>
+        <div class="mb-6">
+            <div class="section-header">
+                <h3 class="section-title text-lg">
+                    <i class="fas fa-exclamation-circle text-red-500"></i>
+                    پرداخت نشده (Unpaid)
+                </h3>
+            </div>
+            
         <ul class="purchase-list">
             {% for purchase in unpaid %}
-                <li class="purchase-item unpaid slide-in">
+                    <li class="purchase-item unpaid">
                     <div class="purchase-content">
-                        <strong><i class="fas fa-user icon-customer"></i> مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ purchase.customer.id }}">{{ purchase.customer }} ({{ purchase.customer.get_primary_phone }})</a><br>
-                        <strong><i class="fas fa-box icon-cargo"></i> محصول:</strong> {{ purchase.cargo }}<br>
-                        <strong><i class="fas fa-weight icon-weight"></i> وزن:</strong> {{ purchase.weight|add_commas }} کیلوگرم<br>
-                        <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
+                            <div class="mb-2">
+                                <strong><i class="fas fa-user text-blue-500 mr-1"></i> مشتری:</strong> 
+                                <a href="{% url 'general_customer_CRUD' %}?customer_id={{ purchase.customer.id }}" class="text-blue-600 hover:underline">
+                                    {{ purchase.customer }} ({{ purchase.customer.get_primary_phone }})
+                                </a>
                     </div>
-                    <a href="{% url 'purchase_CRUD' purchase.id %}" class="button">مشاهده جزئیات</a>
+                            
+                            <div class="mb-2">
+                                <strong><i class="fas fa-box text-blue-500 mr-1"></i> محصول:</strong> 
+                                <span>{{ purchase.cargo }}</span>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <strong><i class="fas fa-weight text-blue-500 mr-1"></i> وزن:</strong> 
+                                <span>{{ purchase.weight|add_commas }} کیلوگرم</span>
+                            </div>
+                            
+                            <div>
+                                <strong><i class="fas fa-calendar-alt text-blue-500 mr-1"></i> تاریخ:</strong> 
+                                <span>{{ purchase.created_at|date:"Y-m-d H:i" }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex flex-wrap gap-2 mt-4">
+                            <a href="{% url 'purchase_CRUD' purchase.id %}" class="btn btn-primary">
+                                <i class="fas fa-eye"></i>
+                                مشاهده جزئیات
+                            </a>
                     <form method="post" action="{% url 'delete_unpaid_purchase' purchase.id %}" style="display:inline;" onsubmit="return confirm('آیا از حذف این خرید مطمئن هستید؟');">
                         {% csrf_token %}
-                        <button type="submit" class="button" style="background:#ef4444;margin-right:8px;">حذف</button>
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="fas fa-trash-alt"></i>
+                                    حذف
+                                </button>
                     </form>
+                        </div>
                 </li>
             {% empty %}
-                <li class="purchase-item empty-purchase slide-in">هیچ خرید پرداخت نشده‌ای یافت نشد</li>
+                    <li class="purchase-item empty-purchase">
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-shopping-cart text-4xl mb-2"></i>
+                            <p>هیچ خرید پرداخت نشده‌ای یافت نشد</p>
+                        </div>
+                    </li>
             {% endfor %}
         </ul>
+            
         <!-- Pagination for unpaid purchases -->
         <div class="pagination">
             <span class="step-links">
@@ -438,24 +974,61 @@
                     <a href="?unpaid_page={{ unpaid.paginator.num_pages }}" class="pagination-link">آخر »</a>
                 {% endif %}
             </span>
+            </div>
         </div>
         
-        <h3>فعال (Active)</h3>
+        <div class="mb-6">
+            <div class="section-header">
+                <h3 class="section-title text-lg">
+                    <i class="fas fa-check-circle text-green-500"></i>
+                    فعال (Active)
+                </h3>
+            </div>
+            
         <ul class="purchase-list">
             {% for purchase in active %}
-                <li class="purchase-item active slide-in">
+                    <li class="purchase-item active">
                     <div class="purchase-content">
-                        <strong><i class="fas fa-user icon-customer"></i> مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ purchase.customer.id }}">{{ purchase.customer }} ({{ purchase.customer.get_primary_phone }})</a><br>
-                        <strong><i class="fas fa-box icon-cargo"></i> محصول:</strong> {{ purchase.cargo }}<br>
-                        <strong><i class="fas fa-weight icon-weight"></i> وزن:</strong> {{ purchase.weight|add_commas }} کیلوگرم<br>
-                        <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
+                            <div class="mb-2">
+                                <strong><i class="fas fa-user text-green-500 mr-1"></i> مشتری:</strong> 
+                                <a href="{% url 'general_customer_CRUD' %}?customer_id={{ purchase.customer.id }}" class="text-blue-600 hover:underline">
+                                    {{ purchase.customer }} ({{ purchase.customer.get_primary_phone }})
+                                </a>
                     </div>
-                    <a href="{% url 'purchase_CRUD' purchase.id %}" class="button">مشاهده جزئیات</a>
+                            
+                            <div class="mb-2">
+                                <strong><i class="fas fa-box text-green-500 mr-1"></i> محصول:</strong> 
+                                <span>{{ purchase.cargo }}</span>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <strong><i class="fas fa-weight text-green-500 mr-1"></i> وزن:</strong> 
+                                <span>{{ purchase.weight|add_commas }} کیلوگرم</span>
+                            </div>
+                            
+                            <div>
+                                <strong><i class="fas fa-calendar-alt text-green-500 mr-1"></i> تاریخ:</strong> 
+                                <span>{{ purchase.created_at|date:"Y-m-d H:i" }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <a href="{% url 'purchase_CRUD' purchase.id %}" class="btn btn-primary">
+                                <i class="fas fa-eye"></i>
+                                مشاهده جزئیات
+                            </a>
+                        </div>
                 </li>
             {% empty %}
-                <li class="purchase-item empty-purchase slide-in">هیچ خرید فعالی یافت نشد</li>
+                    <li class="purchase-item empty-purchase">
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-shopping-cart text-4xl mb-2"></i>
+                            <p>هیچ خرید فعالی یافت نشد</p>
+                        </div>
+                    </li>
             {% endfor %}
         </ul>
+            
         <!-- Pagination for active purchases -->
         <div class="pagination">
             <span class="step-links">
@@ -471,24 +1044,61 @@
                     <a href="?active_page={{ active.paginator.num_pages }}" class="pagination-link">آخر »</a>
                 {% endif %}
             </span>
+            </div>
         </div>
         
-        <h3>آرشیو شده (Archived)</h3>
+        <div>
+            <div class="section-header">
+                <h3 class="section-title text-lg">
+                    <i class="fas fa-archive text-gray-500"></i>
+                    آرشیو شده (Archived)
+                </h3>
+            </div>
+            
         <ul class="purchase-list">
             {% for purchase in archived %}
-            <li class="purchase-item archived slide-in">
+                    <li class="purchase-item archived">
                 <div class="purchase-content">
-                    <strong><i class="fas fa-user icon-customer"></i> مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ purchase.customer.id }}">{{ purchase.customer }} ({{ purchase.customer.get_primary_phone }})</a><br>
-                    <strong><i class="fas fa-box icon-cargo"></i> محصول:</strong> {{ purchase.cargo }}<br>
-                    <strong><i class="fas fa-weight icon-weight"></i> وزن:</strong> {{ purchase.weight|add_commas }} کیلوگرم<br>
-                    <strong><i class="fas fa-calendar-alt icon-date"></i> تاریخ:</strong> {{ purchase.created_at|date:"Y-m-d H:i" }}
+                            <div class="mb-2">
+                                <strong><i class="fas fa-user text-gray-500 mr-1"></i> مشتری:</strong> 
+                                <a href="{% url 'general_customer_CRUD' %}?customer_id={{ purchase.customer.id }}" class="text-blue-600 hover:underline">
+                                    {{ purchase.customer }} ({{ purchase.customer.get_primary_phone }})
+                                </a>
                 </div>
-                <a href="{% url 'purchase_CRUD' purchase.id %}" class="button">مشاهده جزئیات</a>
+                            
+                            <div class="mb-2">
+                                <strong><i class="fas fa-box text-gray-500 mr-1"></i> محصول:</strong> 
+                                <span>{{ purchase.cargo }}</span>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <strong><i class="fas fa-weight text-gray-500 mr-1"></i> وزن:</strong> 
+                                <span>{{ purchase.weight|add_commas }} کیلوگرم</span>
+                            </div>
+                            
+                            <div>
+                                <strong><i class="fas fa-calendar-alt text-gray-500 mr-1"></i> تاریخ:</strong> 
+                                <span>{{ purchase.created_at|date:"Y-m-d H:i" }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <a href="{% url 'purchase_CRUD' purchase.id %}" class="btn btn-primary">
+                                <i class="fas fa-eye"></i>
+                                مشاهده جزئیات
+                            </a>
+                        </div>
             </li>
             {% empty %}
-            <li class="purchase-item empty-purchase slide-in">هیچ خرید آرشیو شده‌ای یافت نشد</li>
+                    <li class="purchase-item empty-purchase">
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-archive text-4xl mb-2"></i>
+                            <p>هیچ خرید آرشیو شده‌ای یافت نشد</p>
+                        </div>
+                    </li>
             {% endfor %}
         </ul>
+            
         <!-- Pagination for archived purchases -->
         <div class="pagination">
             <span class="step-links">
@@ -507,11 +1117,13 @@
         </div>
     </div>
 </div>
-<br>
-{% comment %} <p>مجموع فروش‌های این ماه به تن: {{ all_sales }}</p> {% endcomment %}
-<br>
-<div class="flex gap-3">
-    <a href="{% url 'customer_list' %}" class="button" aria-label="مشاهده لیست مشتریان">مشاهده لیست مشتریان</a>
+</div>
+
+<div class="mt-6 text-center">
+    <a href="{% url 'customer_list' %}" class="btn btn-primary" aria-label="مشاهده لیست مشتریان">
+        <i class="fas fa-list-ul"></i>
+        مشاهده لیست مشتریان
+    </a>
 </div>
 
 <script>
@@ -522,40 +1134,122 @@ document.addEventListener('DOMContentLoaded', function() {
     const taskItems = document.querySelectorAll('.task-item');
     const purchaseItems = document.querySelectorAll('.purchase-item');
 
-    taskItems.forEach((item, index) => {
+    // تابع برای اضافه کردن کلاس به آیتم‌ها با تاخیر برای انیمیشن
+    function animateItems(items, animationClass, delayFactor = 100) {
+        items.forEach((item, index) => {
         setTimeout(() => {
-            item.classList.add('fade-in');
-        }, index * 100);
-    });
+                item.style.opacity = '0';
+                item.style.transform = 'translateY(10px)';
 
-    purchaseItems.forEach((item, index) => {
+                // تنظیم transition برای آیتم
+                item.style.transition = 'all 0.3s ease';
+                
+                // اعمال انیمیشن بعد از تاخیر کوتاه
         setTimeout(() => {
-            item.classList.add('slide-in');
-        }, index * 100);
-    });
+                    item.style.opacity = '1';
+                    item.style.transform = 'translateY(0)';
+                }, 50);
+            }, index * delayFactor);
+        });
+    }
+
+    // اعمال انیمیشن برای آیتم‌های تسک و خرید
+    animateItems(taskItems, 'fade-in');
+    animateItems(purchaseItems, 'slide-in');
 
     // نمایش/پنهان کردن تسک‌های انجام شده
     const showCompletedTasksButton = document.getElementById('show-completed-tasks');
     const completedTasksSection = document.getElementById('completed-tasks-section');
 
+    if (showCompletedTasksButton && completedTasksSection) {
     showCompletedTasksButton.addEventListener('click', function() {
         if (completedTasksSection.style.display === 'none') {
             completedTasksSection.style.display = 'block';
-            completedTasksSection.classList.add('fade-in');
-            this.textContent = 'پنهان کردن تسک‌های انجام شده';
+                showCompletedTasksButton.innerHTML = '<i class="fas fa-chevron-up mr-2"></i> پنهان کردن تسک‌های انجام شده';
+                
+                // اضافه کردن انیمیشن به تسک‌های انجام شده
+                const completedTasks = completedTasksSection.querySelectorAll('.task-item');
+                animateItems(completedTasks, 'fade-in');
         } else {
             completedTasksSection.style.display = 'none';
-            this.textContent = 'نمایش تسک‌های انجام شده';
-        }
+                showCompletedTasksButton.innerHTML = '<i class="fas fa-chevron-down mr-2"></i> نمایش تسک‌های انجام شده';
+            }
+        });
+    }
+
+    // فعال‌سازی دکمه‌های تغییر وضعیت تسک
+    const taskStatusForms = document.querySelectorAll('form[action*="change_task_status"]');
+    
+    taskStatusForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const taskItem = this.closest('.task-item');
+            const formData = new FormData(this);
+            const submitButton = this.querySelector('button[type="submit"]');
+            
+            // نمایش حالت درحال بارگذاری
+            submitButton.disabled = true;
+            const originalButtonText = submitButton.innerHTML;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> درحال پردازش...';
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('خطا در سرور');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    // اعمال تغییرات در UI
+                    if (data.task_status) {
+                        // تسک انجام شد
+                        submitButton.innerHTML = '<i class="fas fa-times"></i> لغو انجام';
+                        submitButton.className = submitButton.className.replace('btn-success', 'btn-danger');
+                        taskItem.querySelector('.task-status').innerHTML = '<i class="fas fa-check-circle icon-done"></i> انجام شده';
+                        taskItem.querySelector('.task-status').style.background = 'rgba(16, 185, 129, 0.1)';
+                        
+                        // نمایش پیام موفقیت
+                        showNotification('تسک با موفقیت انجام شد', 'success');
+                    } else {
+                        // تسک لغو شد
+                        submitButton.innerHTML = '<i class="fas fa-check"></i> انجام شد';
+                        submitButton.className = submitButton.className.replace('btn-danger', 'btn-success');
+                        taskItem.querySelector('.task-status').innerHTML = '<i class="fas fa-times-circle icon-pending"></i> انجام نشده';
+                        taskItem.querySelector('.task-status').style.background = 'rgba(229, 231, 235, 0.5)';
+                        
+                        // نمایش پیام موفقیت
+                        showNotification('وضعیت تسک با موفقیت تغییر کرد', 'success');
+                    }
+                } else {
+                    // نمایش پیام خطا
+                    showNotification('خطا در تغییر وضعیت تسک: ' + data.message, 'error');
+                    submitButton.innerHTML = originalButtonText;
+                }
+            })
+            .catch(error => {
+                console.error('خطا در تغییر وضعیت تسک:', error);
+                showNotification('خطا در تغییر وضعیت تسک', 'error');
+                submitButton.innerHTML = originalButtonText;
+            })
+            .finally(() => {
+                submitButton.disabled = false;
+            });
+        });
     });
 
     // بررسی پیام‌های جدید و نمایش پاپ‌آپ
     const messageElements = document.querySelectorAll('.notification-message');
     messageElements.forEach(element => {
         const messageText = element.getAttribute('data-message');
-        console.log('پیام شناسایی شد:', messageText);
-        if (messageText.includes('اعلان جدید')) {
-            console.log('پیام اعلان جدید پیدا شد:', messageText);
+        if (messageText && messageText.includes('اعلان جدید')) {
             showNotification(messageText, 'info');
         }
     });
@@ -566,32 +1260,89 @@ function applyTaskFilters() {
     const filter = document.getElementById('taskFilter').value;
     const search = document.getElementById('taskSearch').value;
     const url = new URL(window.location);
+    
+    // تنظیم پارامترهای فیلتر
     url.searchParams.set('task_filter', filter);
+    
+    if (search) {
     url.searchParams.set('task_search', search);
-    url.searchParams.set('task_page', 1);
+    } else {
+        url.searchParams.delete('task_search');
+    }
+    
+    url.searchParams.set('task_page', 1); // بازگشت به صفحه اول نتایج
+    
+    // ذخیره سایر پارامترهای صفحه‌بندی
+    const preserveParams = ['completed_task_page', 'unpaid_page', 'active_page', 'archived_page'];
+    preserveParams.forEach(param => {
+        if (url.searchParams.has(param)) {
+            url.searchParams.set(param, url.searchParams.get(param));
+        }
+    });
+    
+    // نمایش حالت درحال بارگذاری
+    const filterButton = document.querySelector('button[onclick="applyTaskFilters()"]');
+    const originalButtonText = filterButton.innerHTML;
+    filterButton.disabled = true;
+    filterButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> درحال اعمال فیلتر...';
+    
+    // انتقال به URL جدید
     window.location = url;
 }
 
 // مدیریت نمایش نوتیفیکیشن پاپ‌آپ
 function showNotification(message, type = 'info') {
-    console.log('نمایش پاپ‌آپ با پیام:', message);
     const popup = document.getElementById('notification-popup');
     const messageElement = document.getElementById('notification-message');
     const progressBar = document.getElementById('progress-bar');
+    const popupHeader = document.querySelector('.popup-header');
 
-    if (!popup || !messageElement || !progressBar) {
+    if (!popup || !messageElement || !progressBar || !popupHeader) {
         console.error('عناصر پاپ‌آپ یافت نشدند!');
         return;
     }
 
+    // تنظیم رنگ هدر بر اساس نوع نوتیفیکیشن
+    const headerColors = {
+        'success': '#10B981', // سبز
+        'error': '#EF4444',   // قرمز
+        'warning': '#F59E0B', // نارنجی
+        'info': '#4F46E5'     // آبی
+    };
+    
+    // تنظیم آیکون بر اساس نوع نوتیفیکیشن
+    const icons = {
+        'success': 'check-circle',
+        'error': 'exclamation-circle',
+        'warning': 'exclamation-triangle',
+        'info': 'bell'
+    };
+    
+    // تنظیم عنوان بر اساس نوع نوتیفیکیشن
+    const titles = {
+        'success': 'موفقیت',
+        'error': 'خطا',
+        'warning': 'هشدار',
+        'info': 'اعلان جدید'
+    };
+    
+    // اعمال تنظیمات
+    popupHeader.style.background = headerColors[type] || headerColors.info;
+    progressBar.style.background = headerColors[type] || headerColors.info;
+    popup.querySelector('.popup-title i').className = `fas fa-${icons[type] || icons.info}`;
+    popup.querySelector('.popup-title span').textContent = titles[type] || titles.info;
     messageElement.textContent = message;
+    
+    // نمایش پاپ‌آپ
     popup.classList.add('show');
 
+    // شروع پیشرفت نوار
     progressBar.style.width = '0%';
     setTimeout(() => {
         progressBar.style.width = '100%';
     }, 10);
 
+    // بستن خودکار پاپ‌آپ بعد از 5 ثانیه
     setTimeout(() => {
         popup.classList.remove('show');
         progressBar.style.width = '0%';
@@ -599,57 +1350,86 @@ function showNotification(message, type = 'info') {
 }
 
 function closeNotification() {
-    console.log('بستن پاپ‌آپ');
     const popup = document.getElementById('notification-popup');
     popup.classList.remove('show');
     document.getElementById('progress-bar').style.width = '0%';
 }
 
 // تابع تست برای نمایش پاپ‌آپ
-function testNotification() {
-    console.log('تست پاپ‌آپ فعال شد');
-    showNotification('این یک نوتیفیکیشن آزمایشی است!', 'info');
+function testNotification(type = 'info') {
+    const messages = {
+        'success': 'عملیات با موفقیت انجام شد!',
+        'error': 'خطا در انجام عملیات!',
+        'warning': 'لطفا به این هشدار توجه کنید!',
+        'info': 'این یک نوتیفیکیشن آزمایشی است!'
+    };
+    
+    showNotification(messages[type], type);
 }
 
 // بررسی نوتیفیکیشن‌های جدید
 function checkNewNotifications() {
-    console.log('بررسی نوتیفیکیشن‌های جدید');
+    try {
     fetch('{% url "get_unread_notifications" %}')
         .then(response => {
-            console.log('پاسخ fetch دریافت شد:', response.status);
             if (!response.ok) {
                 throw new Error('پاسخ شبکه مشکلی دارد: ' + response.status);
             }
             return response.json();
         })
         .then(data => {
-            console.log('داده‌های نوتیفیکیشن:', data);
             if (data.unread_count > 0) {
+                    if (data.notifications && data.notifications.length > 0) {
                 const latestNotification = data.notifications[0];
-                console.log('نوتیفیکیشن جدید پیدا شد:', latestNotification);
                 showNotification(latestNotification.message, latestNotification.type || 'info');
-                addNewNotification(latestNotification);
-                updateBadge();
-            } else {
-                console.log('هیچ نوتیفیکیشن جدیدی یافت نشد');
+                        
+                        // بارگذاری مجدد لیست نوتیفیکیشن‌ها
+                        const notificationList = document.getElementById('notificationList');
+                        if (notificationList) {
+                            // پاک کردن لیست فعلی
+                            notificationList.innerHTML = '';
+                            
+                            // افزودن نوتیفیکیشن‌های جدید
+                            data.notifications.forEach(notification => {
+                                addNewNotification(notification);
+                            });
+                        }
+                        
+                        updateBadge(data.unread_count);
+                    }
             }
         })
         .catch(error => {
-            console.error('خطا در بررسی نوتیفیکیشن‌ها:', error);
+                console.log('خطا در بررسی نوتیفیکیشن‌ها:', error);
+                // از ریلود صفحه خودداری می‌کنیم
         });
+    } catch (error) {
+        console.log('خطای پردازش در بررسی نوتیفیکیشن‌ها:', error);
+    }
 }
 
 // WebSocket برای نوتیفیکیشن‌های بلادرنگ
-const notificationSocket = new WebSocket(
-    `wss://${window.location.host}/ws/notifications/{{ request.user.id }}/`
-);
+let notificationSocket;
+let isWebSocketSupported = false;
+
+// بررسی پشتیبانی از WebSocket
+try {
+    // بررسی پشتیبانی مرورگر از WebSocket
+    if (window.WebSocket) {
+        isWebSocketSupported = true;
+        
+        // تلاش برای اتصال به WebSocket (در صورت پیکربندی سرور)
+        try {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            const wsUrl = `${wsProtocol}://${window.location.host}/ws/notifications/{{ request.user.id }}/`;
+            
+            notificationSocket = new WebSocket(wsUrl);
 
 notificationSocket.onopen = function(e) {
     console.log('WebSocket متصل شد');
 };
 
 notificationSocket.onmessage = function(e) {
-    console.log('پیام WebSocket دریافت شد:', e.data);
     const data = JSON.parse(e.data);
     showNotification(data.message, data.type || 'info');
     addNewNotification(data);
@@ -657,65 +1437,164 @@ notificationSocket.onmessage = function(e) {
 };
 
 notificationSocket.onclose = function(e) {
-    console.error('WebSocket بسته شد:', e);
+                console.log('WebSocket بسته شد - استفاده از روش بررسی دوره‌ای');
+                // در صورت بسته شدن اتصال، به روش معمولی برمی‌گردیم
+                isWebSocketSupported = false;
 };
 
 notificationSocket.onerror = function(e) {
-    console.error('خطای WebSocket:', e);
-};
+                console.log('خطای WebSocket - استفاده از روش بررسی دوره‌ای');
+                isWebSocketSupported = false;
+            };
+        } catch (error) {
+            console.log('خطا در اتصال به WebSocket:', error);
+            isWebSocketSupported = false;
+        }
+    }
+} catch (error) {
+    console.log('خطا در بررسی پشتیبانی WebSocket:', error);
+    isWebSocketSupported = false;
+}
 
 function addNewNotification(data) {
-    console.log('افزودن نوتیفیکیشن جدید:', data);
+    if (!data || !data.message) {
+        console.log('داده نوتیفیکیشن نامعتبر:', data);
+        return;
+    }
+    
     const notificationList = document.getElementById('notificationList');
+    if (!notificationList) return;
+    
     const notification = document.createElement('div');
     notification.className = 'notification-item';
-    notification.dataset.notificationId = data.id;
+    notification.dataset.notificationId = data.id || Math.random().toString(36).substring(7);
+    
+    // تنظیم آیکون نوتیفیکیشن بر اساس نوع
+    let iconClass = 'info-circle';
+    let type = data.type || 'info';
+    
+    if (type === 'success') iconClass = 'check-circle';
+    else if (type === 'error') iconClass = 'exclamation-circle';
+    else if (type === 'warning') iconClass = 'exclamation-triangle';
+    
+    // استفاده از آیکون داده شده یا آیکون پیش‌فرض بر اساس نوع
+    const icon = data.icon || iconClass;
+    
+    try {
     notification.innerHTML = `
         <div class="notification-icon">
-            <i class="fas fa-${data.icon || 'info-circle'}"></i>
+                <i class="fas fa-${icon}"></i>
         </div>
         <div class="notification-content">
             <p>${data.message}</p>
-            <small>همین الان</small>
+                <small>${data.created_at || 'همین الان'}</small>
         </div>
-        <form method="post" action="/notifications/delete/${data.id}/" class="mt-2">
-            <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-            <button type="submit" class="text-blue-500 hover:underline text-sm">خواندم</button>
+            ${data.id ? `
+            <form method="post" action="{% url 'delete_notification' 0 %}".replace('0', data.id) class="mt-2">
+                {% csrf_token %}
+                <button type="submit" class="text-blue-500 hover:underline text-sm" onclick="event.stopPropagation();">
+                    خواندم
+                </button>
         </form>
-    `;
+            ` : ''}
+        `;
+        
+        // انیمیشن ورود نوتیفیکیشن
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateY(-10px)';
+        
+        // اگر از قبل در لیست وجود داشت، آن را حذف کن
+        const existingNotification = notificationList.querySelector(`[data-notification-id="${notification.dataset.notificationId}"]`);
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+        
     notificationList.insertBefore(notification, notificationList.firstChild);
+        
+        setTimeout(() => {
+            notification.style.transition = 'all 0.3s ease';
+            notification.style.opacity = '1';
+            notification.style.transform = 'translateY(0)';
+        }, 10);
+    } catch (error) {
+        console.log('خطا در افزودن نوتیفیکیشن:', error);
+    }
 }
 
-function updateBadge() {
-    console.log('به‌روزرسانی badge');
+function updateBadge(count) {
     const badge = document.getElementById('notificationCount');
+    if (!badge) return;
+    
+    if (count !== undefined) {
+        badge.textContent = count;
+    } else {
     badge.textContent = parseInt(badge.textContent) + 1;
+    }
+    
+    // اعمال انیمیشن پالس روی نشانگر
     badge.style.animation = 'pulse 0.5s 2';
+    setTimeout(() => {
+        badge.style.animation = '';
+    }, 1000);
 }
 
 // مدیریت نمایش/پنهان کردن دراپ‌داون نوتیفیکیشن‌ها
-document.getElementById('notificationBell').addEventListener('click', function(e) {
-    console.log('کلیک روی زنگوله نوتیفیکیشن');
+document.addEventListener('DOMContentLoaded', function() {
+    const notificationBell = document.getElementById('notificationBell');
+    const notificationDropdown = document.getElementById('notificationDropdown');
+    
+    if (notificationBell && notificationDropdown) {
+        notificationBell.addEventListener('click', function(e) {
     e.stopPropagation();
-    const dropdown = document.getElementById('notificationDropdown');
-    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-});
-
+            
+            // تغییر وضعیت نمایش دراپ‌داون
+            if (notificationDropdown.style.display === 'block') {
+                notificationDropdown.style.opacity = '0';
+                notificationDropdown.style.transform = 'translateY(-10px)';
+                
+                setTimeout(() => {
+                    notificationDropdown.style.display = 'none';
+                }, 300);
+            } else {
+                notificationDropdown.style.display = 'block';
+                notificationDropdown.style.opacity = '0';
+                notificationDropdown.style.transform = 'translateY(-10px)';
+                
+                setTimeout(() => {
+                    notificationDropdown.style.transition = 'all 0.3s ease';
+                    notificationDropdown.style.opacity = '1';
+                    notificationDropdown.style.transform = 'translateY(0)';
+                }, 10);
+            }
+        });
+        
+        // بستن دراپ‌داون با کلیک خارج از آن
 document.addEventListener('click', function(e) {
-    if (!e.target.closest('.notification-center')) {
-        console.log('کلیک خارج از notification-center');
-        document.getElementById('notificationDropdown').style.display = 'none';
+            if (notificationDropdown.style.display === 'block' && 
+                !e.target.closest('.notification-center')) {
+                
+                notificationDropdown.style.opacity = '0';
+                notificationDropdown.style.transform = 'translateY(-10px)';
+                
+                setTimeout(() => {
+                    notificationDropdown.style.display = 'none';
+                }, 300);
+            }
+        });
     }
 });
 
 // مدیریت حذف نوتیفیکیشن
 document.addEventListener('click', function(e) {
-    if (e.target.closest('form') && e.target.closest('.notification-item')) {
+    if (e.target.closest('button') && e.target.closest('form') && 
+        e.target.closest('.notification-item')) {
+        
         e.preventDefault();
         const notificationItem = e.target.closest('.notification-item');
         const notificationId = notificationItem.dataset.notificationId;
         const form = e.target.closest('form');
 
+        // انیمیشن محو شدن آیتم
         notificationItem.style.animation = 'fadeOut 0.3s forwards';
         
         fetch(form.action, {
@@ -735,21 +1614,25 @@ document.addEventListener('click', function(e) {
                 }, 300);
             } else {
                 notificationItem.style.animation = '';
-                alert('خطا در حذف نوتیفیکیشن');
+                showNotification('خطا در حذف نوتیفیکیشن', 'error');
             }
         })
         .catch(error => {
             console.error('خطا در حذف نوتیفیکیشن:', error);
             notificationItem.style.animation = '';
+            showNotification('خطا در حذف نوتیفیکیشن', 'error');
         });
     }
 });
 
 function updateBadgeCount() {
-    console.log('به‌روزرسانی تعداد نوتیفیکیشن‌ها');
     const badge = document.getElementById('notificationCount');
+    if (!badge) return;
+    
     const count = document.querySelectorAll('.notification-item:not(.read)').length;
     badge.textContent = count;
+    
+    // اعمال انیمیشن تادا در صورت خواندن همه نوتیفیکیشن‌ها
     if (count === 0) {
         badge.style.animation = 'tada 0.5s';
         setTimeout(() => badge.style.animation = '', 500);
@@ -758,28 +1641,118 @@ function updateBadgeCount() {
 
 // بررسی اولیه نوتیفیکیشن‌ها و بررسی دوره‌ای
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('بررسی اولیه نوتیفیکیشن‌ها');
+    // بررسی اولیه نوتیفیکیشن‌ها
     checkNewNotifications();
+    
+    // فقط اگر WebSocket فعال نباشد، از بررسی دوره‌ای استفاده می‌کنیم
+    if (!isWebSocketSupported) {
+        console.log('استفاده از بررسی دوره‌ای برای نوتیفیکیشن‌ها');
+        // بررسی نوتیفیکیشن‌های جدید هر 30 ثانیه
+        setInterval(checkNewNotifications, 30000);
+    }
+    
+    // سایر کارهای اولیه
+    // ...
 });
-setInterval(checkNewNotifications, 10000); // کاهش زمان به ۱۰ ثانیه
 
 // مدیریت درگ و دراپ تسک‌ها
 function dragStart(event) {
-    event.dataTransfer.setData('text/plain', event.target.dataset.taskId);
+    if (!event.target.closest('.task-item')) return;
+    
+    event.dataTransfer.setData('text/plain', event.target.closest('.task-item').dataset.taskId);
+    event.target.closest('.task-item').style.opacity = '0.6';
 }
 
 function dragOver(event) {
     event.preventDefault();
+    
+    // هایلایت کردن محل دراپ
+    const dropTarget = event.target.closest('.task-item');
+    if (dropTarget) {
+        dropTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.5)';
+    }
+}
+
+function dragLeave(event) {
+    const dropTarget = event.target.closest('.task-item');
+    if (dropTarget) {
+        dropTarget.style.boxShadow = '';
+    }
 }
 
 function drop(event) {
     event.preventDefault();
+    
     const taskId = event.dataTransfer.getData('text');
     const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
     const dropTarget = event.target.closest('.task-item');
-    if (dropTarget && taskElement !== dropTarget) {
-        dropTarget.before(taskElement);
+    
+    // حذف استایل‌های اضافی
+    document.querySelectorAll('.task-item').forEach(item => {
+        item.style.boxShadow = '';
+        item.style.opacity = '1';
+    });
+    
+    // جابجایی تسک
+    if (dropTarget && taskElement && taskElement !== dropTarget) {
+        dropTarget.parentNode.insertBefore(taskElement, dropTarget);
+        
+        // نمایش پیام موفقیت
+        showNotification('ترتیب تسک‌ها تغییر کرد', 'success');
+        
+        // ارسال اطلاعات جابجایی به سرور
+        updateTaskOrder(taskId, dropTarget.dataset.taskId);
     }
 }
+
+// ارسال تغییرات ترتیب تسک‌ها به سرور
+function updateTaskOrder(movedTaskId, targetTaskId) {
+    const data = {
+        moved_task_id: movedTaskId,
+        target_task_id: targetTaskId
+    };
+    
+    try {
+        const updateUrl = "{% url 'update_task_order' %}";
+        
+        fetch(updateUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('خطا در بروزرسانی ترتیب تسک‌ها');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status !== 'success') {
+                console.error('خطا در بروزرسانی ترتیب تسک‌ها:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('خطا در بروزرسانی ترتیب تسک‌ها:', error);
+        });
+    } catch (error) {
+        // یوآرال مورد نظر پیدا نشد یا مشکلی در فرآیند بروزرسانی به وجود آمد
+        console.warn('بروزرسانی ترتیب تسک‌ها به صورت موقت غیرفعال است:', error);
+    }
+}
+
+// اضافه کردن رویدادهای دراگ و دراپ
+document.addEventListener('DOMContentLoaded', function() {
+    const taskItems = document.querySelectorAll('.task-item');
+    
+    taskItems.forEach(item => {
+        item.addEventListener('dragstart', dragStart);
+        item.addEventListener('dragover', dragOver);
+        item.addEventListener('dragleave', dragLeave);
+        item.addEventListener('drop', drop);
+    });
+});
 </script>
 {% endblock %}

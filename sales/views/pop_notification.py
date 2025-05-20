@@ -15,8 +15,9 @@ def get_unread_notifications(request):
             {
                 'id': n.id,
                 'message': n.message,
-                'type': n.notification_type,
-                'created_at': n.created_at.strftime('%Y-%m-%d %H:%M')
+                'type': 'info',
+                'created_at': n.created_at.strftime('%Y-%m-%d %H:%M'),
+                'icon': 'bell'
             } for n in notifications
         ]
     })

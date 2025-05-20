@@ -7,111 +7,245 @@
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 <style>
+    :root {
+        --primary-color: #065F46;
+        --primary-hover: #064e3b;
+        --secondary-color: #3b82f6;
+        --secondary-hover: #2563eb;
+        --neutral-color: #64748b;
+        --neutral-hover: #475569;
+        --light-bg: #f8fafc;
+        --border-color: #e2e8f0;
+        --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --transition-speed: 0.3s;
+    }
+    
+    body {
+        background-color: var(--light-bg);
+    }
+    
     .modal {
-        transition: opacity 0.3s ease-in-out;
+        transition: opacity var(--transition-speed) ease-in-out;
     }
+    
     .modal-overlay {
-        background-color: rgba(0, 0, 0, 0.5);
+        background-color: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(2px);
     }
+    
     .modal-content {
         max-width: 90%;
         width: 600px;
+        border-radius: 0.75rem;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
     }
+    
     .btn-primary {
-        background-color: #065F46;
+        background-color: var(--primary-color);
         color: white;
-        transition: background-color 0.3s ease;
+        transition: all var(--transition-speed) ease;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
+    
     .btn-primary:hover {
-        background-color: #064e3b;
-    }
-    .btn-secondary {
-        background-color: #64748b;
-        color: white;
-        transition: background-color 0.3s ease;
-    }
-    .btn-secondary:hover {
-        background-color: #475569;
-    }
-    .table-hover tbody tr:hover {
-        background-color: #f1f5f9;
-        cursor: pointer;
-    }
-    .shadow-custom {
+        background-color: var(--primary-hover);
+        transform: translateY(-1px);
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
+    
+    .btn-secondary {
+        background-color: var(--neutral-color);
+        color: white;
+        transition: all var(--transition-speed) ease;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn-secondary:hover {
+        background-color: var(--neutral-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: #f0f9ff;
+        transition: background-color 0.2s ease;
+        cursor: pointer;
+    }
+    
+    .shadow-custom {
+        box-shadow: var(--card-shadow);
+    }
+    
     .filter-section {
-        transition: max-height 0.5s ease-in-out;
+        transition: max-height 0.5s ease-in-out, opacity 0.3s ease-in-out;
         overflow: hidden;
     }
+    
     .filter-section.collapsed {
         max-height: 0;
+        opacity: 0;
     }
+    
     .selected-row {
-        background-color: #e6f3ef;
+        background-color: #e0f2fe;
+        border-left: 3px solid var(--secondary-color);
     }
+    
+    .favorite-icon {
+        transition: transform 0.3s ease;
+    }
+    
+    .favorite-icon:hover {
+        transform: scale(1.2);
+    }
+    
     .preview-box {
         max-height: 150px;
         overflow-y: auto;
-        border: 1px solid #ddd;
+        border: 1px solid var(--border-color);
         padding: 10px;
-        background-color: #f9f9f9;
-        border-radius: 5px;
+        background-color: #f9fafb;
+        border-radius: 0.5rem;
+    }
+    
+    .card {
+        background-color: white;
+        border-radius: 0.75rem;
+        box-shadow: var(--card-shadow);
+        transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    
+    .form-input {
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+    
+    .form-input:focus {
+        outline: none;
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+    
+    .tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.3rem 0.6rem;
+        background-color: #e0f2fe;
+        color: #0369a1;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        line-height: 1;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Animation classes */
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+    }
+    
+    .animate-slide-up {
+        animation: slideUp 0.3s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes slideUp {
+        from { transform: translateY(10px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    
+    /* Table styles */
+    table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+    
+    thead {
+        background-color: #f8fafc;
+    }
+    
+    th {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        padding: 1rem;
+        text-align: right;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: middle;
+    }
+    
+    tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    /* Pagination styles */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        list-style: none;
+        padding: 0;
+    }
+    
+    .pagination-item {
+        margin: 0 0.25rem;
+    }
+    
+    .pagination-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 0.5rem;
+        background-color: white;
+        transition: all 0.3s ease;
+        box-shadow: var(--card-shadow);
+    }
+    
+    .pagination-link:hover {
+        background-color: #f0f9ff;
+        transform: translateY(-1px);
+    }
+    
+    .pagination-link.active {
+        background-color: var(--primary-color);
+        color: white;
     }
 </style>
 {% endblock %}
 
-{% block content %}
-<div class="container mx-auto px-4 py-6 bg-gray-50 min-h-screen">
-    <div id="js-status" class="hidden bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded-md">
-        JavaScript has been successfully initialized. If you're still experiencing issues, please try refreshing the page.
-    </div>
-
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-indigo-800">لیست پیشرفته مشتریان</h1>
-        <div class="flex space-x-2">
-            <button id="toggle-filters-btn" class="btn-secondary px-4 py-2 rounded-lg shadow-md">
-                <i class="fas fa-filter mr-2"></i>فیلترهای پیشرفته
-            </button>
-            <a href="{% url 'sales_agent_profile' %}" class="btn-secondary px-4 py-2 rounded-lg shadow-md">
-                <i class="fas fa-user mr-2"></i>بازگشت به پروفایل
-            </a>
-        </div>
-    </div>
+{% block content %}<div class="container mx-auto px-4 py-6 min-h-screen">    <div id="js-status" class="hidden bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded-md animate-fade-in">        JavaScript has been successfully initialized. If you're still experiencing issues, please try refreshing the page.    </div>    <div class="flex flex-col md:flex-row justify-between items-center mb-6 card p-4 animate-slide-up">        <h1 class="text-3xl font-bold text-indigo-800 mb-3 md:mb-0">لیست پیشرفته مشتریان</h1>        <div class="flex gap-3">            <button id="toggle-filters-btn" class="btn-secondary px-4 py-2 shadow-md flex items-center">                <i class="fas fa-filter mr-2"></i>فیلترهای پیشرفته            </button>            <a href="{% url 'sales_agent_profile' %}" class="btn-secondary px-4 py-2 shadow-md flex items-center">                <i class="fas fa-user mr-2"></i>بازگشت به پروفایل            </a>        </div>    </div>        <!-- فیلتر سریع جستجو -->    <div class="mb-6 card p-5 animate-slide-up" style="animation-delay: 0.1s;">        <form method="get" action="" class="flex flex-col md:flex-row gap-3">            <input type="text" name="search" id="quick-search" placeholder="جستجو بر اساس نام یا شماره تلفن" value="{{ search_query }}"                 class="form-input md:flex-grow">            <button type="submit" class="btn-primary px-6 py-3 shadow-md flex items-center justify-center">                <i class="fas fa-search mr-2"></i>جستجو            </button>        </form>    </div>        <!-- اطلاعات سهمیه پیامک -->    <div class="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-400 rounded-lg shadow-custom p-4 flex items-center animate-slide-up" style="animation-delay: 0.2s;">        <i class="fas fa-info-circle text-green-500 text-xl mr-3"></i>        <p>سهمیه پیامک شما: <span class="font-bold text-green-900">{{ sms_quota }}</span></p>    </div>
     
-    <!-- فیلتر سریع جستجو -->
-    <div class="mb-6 bg-white p-4 rounded-lg shadow-custom">
-        <form method="get" action="" class="flex space-x-2">
-            <input type="text" name="search" id="quick-search" placeholder="جستجو بر اساس نام یا شماره تلفن" value="{{ search_query }}" 
-                class="p-3 border border-gray-300 rounded-lg flex-grow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            <button type="submit" class="btn-primary px-6 py-3 rounded-lg shadow-md">
-                <i class="fas fa-search mr-2"></i>جستجو
-            </button>
-        </form>
-    </div>
-    
-    <!-- اطلاعات سهمیه پیامک -->
-    <div class="bg-green-50 border border-green-200 text-green-700 p-4 mb-4 rounded-lg shadow-custom flex items-center">
-        <i class="fas fa-info-circle text-green-500 text-xl mr-3"></i>
-        <p>سهمیه پیامک شما: <span class="font-bold text-green-900">{{ sms_quota }}</span></p>
-    </div>
-    
-    <!-- دکمه‌های مدیریت مشتریان -->
-    <div class="flex justify-between mb-6 bg-white p-3 rounded-lg shadow-custom items-center">
-        <div class="flex space-x-2">
-            <button type="button" id="select-all-btn" class="btn-secondary px-4 py-2 rounded-lg shadow-md text-sm">
-                <i class="fas fa-check-square mr-2"></i>انتخاب همه
-            </button>
-            <button type="button" id="deselect-all-btn" class="btn-secondary px-4 py-2 rounded-lg shadow-md text-sm">
-                <i class="fas fa-square mr-2"></i>لغو انتخاب همه
-            </button>
-        </div>
-        <div>
-            <button type="button" id="send-sms-btn" class="btn-primary px-4 py-2 rounded-lg shadow-md text-sm" disabled>
-                <i class="fas fa-paper-plane mr-2"></i>ارسال پیامک به انتخاب شده‌ها
-            </button>
-        </div>
-    </div>
+    <!-- دکمه‌های مدیریت مشتریان -->    <div class="flex flex-col md:flex-row justify-between mb-6 card p-4 items-center gap-3 animate-slide-up" style="animation-delay: 0.3s;">        <div class="flex gap-3 w-full md:w-auto">            <button type="button" id="select-all-btn" class="btn-secondary px-4 py-2 shadow-md text-sm flex items-center">                <i class="fas fa-check-square mr-2"></i>انتخاب همه            </button>            <button type="button" id="deselect-all-btn" class="btn-secondary px-4 py-2 shadow-md text-sm flex items-center">                <i class="fas fa-square mr-2"></i>لغو انتخاب همه            </button>        </div>        <div class="w-full md:w-auto">            <button type="button" id="send-sms-btn" class="btn-primary px-4 py-2 shadow-md text-sm w-full md:w-auto flex items-center justify-center" disabled>                <i class="fas fa-paper-plane mr-2"></i>ارسال پیامک به انتخاب شده‌ها            </button>        </div>    </div>
     
     <!-- فیلترهای پیشرفته -->
     <div id="filters-container" class="bg-white p-6 rounded-lg mb-6 shadow-custom {% if not search_query and not city_filter and not activity_filter and not favorites_only %}hidden{% endif %}">
@@ -235,80 +369,7 @@
         </div>
     </div>
     
-    <!-- نمایش تعداد نتایج و گزینه‌های مرتب‌سازی -->
-    <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-custom">
-        <div class="text-gray-700">
-            <span>تعداد نتایج: <span class="font-bold">{{ customers.paginator.count }}</span></span>
-        </div>
-        <div class="flex items-center space-x-2">
-            <label for="sort" class="text-gray-700 text-sm">مرتب‌سازی:</label>
-            <select id="sort" class="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm">
-                <option value="name_asc" {% if sort_key == 'name_asc' %}selected{% endif %}>نام (صعودی)</option>
-                <option value="name_desc" {% if sort_key == 'name_desc' %}selected{% endif %}>نام (نزولی)</option>
-                <option value="city_asc" {% if sort_key == 'city_asc' %}selected{% endif %}>شهر (صعودی)</option>
-                <option value="city_desc" {% if sort_key == 'city_desc' %}selected{% endif %}>شهر (نزولی)</option>
-                <option value="purchase_asc" {% if sort_key == 'purchase_asc' %}selected{% endif %}>تعداد خرید (صعودی)</option>
-                <option value="purchase_desc" {% if sort_key == 'purchase_desc' %}selected{% endif %}>تعداد خرید (نزولی)</option>
-                <option value="amount_asc" {% if sort_key == 'amount_asc' %}selected{% endif %}>حجم خرید (صعودی)</option>
-                <option value="amount_desc" {% if sort_key == 'amount_desc' %}selected{% endif %}>حجم خرید (نزولی)</option>
-                <option value="updated_asc" {% if sort_key == 'updated_asc' %}selected{% endif %}>تاریخ بروزرسانی (صعودی)</option>
-                <option value="updated_desc" {% if sort_key == 'updated_desc' %}selected{% endif %}>تاریخ بروزرسانی (نزولی)</option>
-            </select>
-        </div>
-    </div>
-    
-    <!-- جدول مشتریان با امکان انتخاب چندگانه -->
-    <form id="sms-selection-form" class="bg-white p-4 rounded-lg shadow-custom mb-6">
-        {% csrf_token %}
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 table-hover">
-                <thead class="bg-gray-100">
-                    <tr>
-                        <th width="40px" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"><input type="checkbox" id="select-all-checkbox" class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"></th>
-                        <th width="40px" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">علاقه</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">نام</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">شماره موبایل</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">شهر</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">حوزه فعالیت</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">تعداد خرید</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">حجم خرید کل (کیلوگرم)</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for customer in customers %}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-right"><input type="checkbox" name="customer_ids" value="{{ customer.id }}" class="customer-checkbox h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"></td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <span class="favorite-icon text-yellow-500 cursor-pointer" data-customer-id="{{ customer.id }}" data-is-favorite="{{ customer.is_favorite|lower }}">
-                                    {% if customer.is_favorite %}
-                                        <i class="fas fa-star"></i>
-                                    {% else %}
-                                        <i class="far fa-star"></i>
-                                    {% endif %}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right"><a href="{% url 'general_customer_CRUD' %}?customer_id={{ customer.id }}" class="text-blue-600 hover:text-blue-900">{{ customer.name }}</a></td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right">{{ customer.get_primary_phone }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right">{{ customer.city }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right">{{ customer.get_field_of_activity_display }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right">
-                                {% if customer.purchases_made.count %}
-                                    {{ customer.purchases_made.count }}
-                                {% else %}
-                                    0
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right">{{ customer.total_purchase_weight|floatformat:0|default:"0"|intcomma }}</td>
-                        </tr>
-                    {% empty %}
-                        <tr>
-                            <td colspan="8" class="text-center py-6 text-gray-500">مشتری‌ای یافت نشد</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </form>
+    <!-- نمایش تعداد نتایج و گزینه‌های مرتب‌سازی -->    <div class="flex flex-col md:flex-row justify-between items-center mb-4 card p-4 animate-slide-up" style="animation-delay: 0.4s;">        <div class="text-gray-700 mb-3 md:mb-0">            <span class="tag bg-indigo-100 text-indigo-800 text-sm py-2 px-3">                <i class="fas fa-users mr-2"></i>تعداد نتایج: <span class="font-bold">{{ customers.paginator.count }}</span>            </span>        </div>        <div class="flex items-center gap-2">            <label for="sort" class="text-gray-700 text-sm">مرتب‌سازی:</label>            <select id="sort" class="form-input py-2 text-sm">                <option value="name_asc" {% if sort_key == 'name_asc' %}selected{% endif %}>نام (صعودی)</option>                <option value="name_desc" {% if sort_key == 'name_desc' %}selected{% endif %}>نام (نزولی)</option>                <option value="city_asc" {% if sort_key == 'city_asc' %}selected{% endif %}>شهر (صعودی)</option>                <option value="city_desc" {% if sort_key == 'city_desc' %}selected{% endif %}>شهر (نزولی)</option>                <option value="purchase_asc" {% if sort_key == 'purchase_asc' %}selected{% endif %}>تعداد خرید (صعودی)</option>                <option value="purchase_desc" {% if sort_key == 'purchase_desc' %}selected{% endif %}>تعداد خرید (نزولی)</option>                <option value="amount_asc" {% if sort_key == 'amount_asc' %}selected{% endif %}>حجم خرید (صعودی)</option>                <option value="amount_desc" {% if sort_key == 'amount_desc' %}selected{% endif %}>حجم خرید (نزولی)</option>                <option value="updated_asc" {% if sort_key == 'updated_asc' %}selected{% endif %}>تاریخ بروزرسانی (صعودی)</option>                <option value="updated_desc" {% if sort_key == 'updated_desc' %}selected{% endif %}>تاریخ بروزرسانی (نزولی)</option>            </select>        </div>    </div>        <!-- جدول مشتریان با امکان انتخاب چندگانه -->    <form id="sms-selection-form" class="card p-0 mb-6 animate-slide-up" style="animation-delay: 0.5s;">        {% csrf_token %}        <div class="overflow-x-auto">            <table class="min-w-full table-hover">                <thead>                    <tr>                        <th width="40px" class="px-6 py-3 text-right">                            <input type="checkbox" id="select-all-checkbox" class="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">                        </th>                        <th width="40px" class="px-6 py-3 text-right">علاقه</th>                        <th class="px-6 py-3 text-right">نام</th>                        <th class="px-6 py-3 text-right">شماره موبایل</th>                        <th class="px-6 py-3 text-right">شهر</th>                        <th class="px-6 py-3 text-right">حوزه فعالیت</th>                        <th class="px-6 py-3 text-right">تعداد خرید</th>                        <th class="px-6 py-3 text-right">حجم خرید کل (کیلوگرم)</th>                    </tr>                </thead>                <tbody>                    {% for customer in customers %}                        <tr>                            <td class="px-6 py-4 text-right">                                <input type="checkbox" name="customer_ids" value="{{ customer.id }}" class="customer-checkbox h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">                            </td>                            <td class="px-6 py-4 text-right">                                <span class="favorite-icon text-yellow-500 cursor-pointer hover:scale-125 transition-transform" data-customer-id="{{ customer.id }}" data-is-favorite="{{ customer.is_favorite|lower }}">                                    {% if customer.is_favorite %}                                        <i class="fas fa-star"></i>                                    {% else %}                                        <i class="far fa-star"></i>                                    {% endif %}                                </span>                            </td>                            <td class="px-6 py-4 text-right">                                <a href="{% url 'general_customer_CRUD' %}?customer_id={{ customer.id }}" class="text-blue-600 hover:text-blue-900 font-medium">                                    {{ customer.name }}                                </a>                            </td>                            <td class="px-6 py-4 text-right font-mono">{{ customer.get_primary_phone }}</td>                            <td class="px-6 py-4 text-right">                                <span class="tag">{{ customer.city }}</span>                            </td>                            <td class="px-6 py-4 text-right">{{ customer.get_field_of_activity_display }}</td>                            <td class="px-6 py-4 text-right">                                <span class="bg-blue-100 text-blue-800 py-1 px-2 rounded-full text-xs font-medium">                                {% if customer.purchases_made.count %}                                    {{ customer.purchases_made.count }}                                {% else %}                                    0                                {% endif %}                                </span>                            </td>                            <td class="px-6 py-4 text-right font-medium">                                <span class="bg-green-100 text-green-800 py-1 px-2 rounded-full text-xs">                                    {{ customer.total_purchase_weight|floatformat:0|default:"0"|intcomma }}                                </span>                            </td>                        </tr>                    {% empty %}                        <tr>                            <td colspan="8" class="text-center py-10 text-gray-500">                                <div class="flex flex-col items-center">                                    <i class="fas fa-search text-4xl mb-3 text-gray-300"></i>                                    <p>مشتری‌ای یافت نشد</p>                                </div>                            </td>                        </tr>                    {% endfor %}                </tbody>            </table>        </div>    </form>
     
     <!-- پنل ارسال پیامک -->
     <div id="sms-panel" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden modal-overlay z-50">
@@ -368,36 +429,7 @@
         </div>
     </div>
     
-    <!-- Pagination links -->
-    <div class="flex justify-center mt-6">
-        <nav aria-label="Page navigation" class="bg-white p-3 rounded-lg shadow-custom">
-            <ul class="flex list-none space-x-2">
-                {% if customers.has_previous %}
-                    <li>
-                        <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-gray-700">&laquo; اول</a>
-                    </li>
-                    <li>
-                        <a href="?page={{ customers.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-gray-700">قبلی</a>
-                    </li>
-                {% endif %}
-
-                <li>
-                    <span class="px-3 py-1 bg-green-600 text-white rounded">صفحه {{ customers.number }} از {{ customers.paginator.num_pages }}</span>
-                </li>
-
-                {% if customers.has_next %}
-                    <li>
-                        <a href="?page={{ customers.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-gray-700">بعدی</a>
-                    </li>
-                    <li>
-                        <a href="?page={{ customers.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-gray-700">آخر &raquo;</a>
-                    </li>
-                {% endif %}
-            </ul>
-        </nav>
-    </div>
-</div>
-{% endblock %}
+    <!-- Pagination links -->    <div class="flex justify-center mt-8 mb-6 animate-slide-up" style="animation-delay: 0.6s;">        <nav aria-label="Page navigation" class="card p-3">            <ul class="pagination flex gap-2 flex-wrap justify-center">                {% if customers.has_previous %}                    <li class="pagination-item">                        <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"                            class="pagination-link" title="صفحه اول">                            <i class="fas fa-angle-double-right"></i>                        </a>                    </li>                    <li class="pagination-item">                        <a href="?page={{ customers.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"                            class="pagination-link" title="صفحه قبلی">                            <i class="fas fa-angle-right"></i>                        </a>                    </li>                {% endif %}                <li class="pagination-item">                    <span class="pagination-link active">{{ customers.number }}</span>                </li>                                {% if customers.paginator.num_pages > 1 %}                    <li class="pagination-item">                        <span class="text-gray-600 py-2">از</span>                    </li>                    <li class="pagination-item">                        <span class="pagination-link bg-gray-100">{{ customers.paginator.num_pages }}</span>                    </li>                {% endif %}                {% if customers.has_next %}                    <li class="pagination-item">                        <a href="?page={{ customers.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"                            class="pagination-link" title="صفحه بعدی">                            <i class="fas fa-angle-left"></i>                        </a>                    </li>                    <li class="pagination-item">                        <a href="?page={{ customers.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"                            class="pagination-link" title="صفحه آخر">                            <i class="fas fa-angle-double-left"></i>                        </a>                    </li>                {% endif %}            </ul>        </nav>    </div></div>{% endblock %}
 
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8/dist/sweetalert2.all.min.js"></script>

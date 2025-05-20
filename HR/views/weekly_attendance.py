@@ -31,13 +31,13 @@ def daily_attendance_view(request):
                 
                 # نگاشت بین روز هفته jdatetime و نام روز در مدل
                 jalali_weekday_to_name = {
-                    1: 'Monday',    # دوشنبه
-                    2: 'Tuesday',   # سه شنبه
-                    3: 'Wednesday', # چهارشنبه
-                    4: 'Thursday',  # پنج شنبه
-                    5: 'Friday',    # جمعه
-                    6: 'Saturday',  # شنبه
-                    0: 'Sunday'     # یکشنبه
+                    2: 'Monday',    # دوشنبه
+                    3: 'Tuesday',   # سه شنبه
+                    4: 'Wednesday', # چهارشنبه
+                    5: 'Thursday',  # پنج شنبه
+                    6: 'Friday',    # جمعه
+                    0: 'Saturday',  # شنبه
+                    1: 'Sunday'     # یکشنبه
                 }
                 day_of_week = jalali_weekday_to_name[jalali_weekday]
 
@@ -75,13 +75,13 @@ def daily_attendance_view(request):
                 # تنظیم ساعات کاری برای روز مربوطه
                 # نگاشت روز جلالی به فیلد مربوطه در مدل
                 jalali_weekday_to_field = {
-                    1: 'monday_hours',    # دوشنبه
-                    2: 'tuesday_hours',   # سه شنبه
-                    3: 'wednesday_hours', # چهارشنبه
-                    4: 'thursday_hours',  # پنج شنبه
-                    5: 'friday_hours',    # جمعه
-                    6: 'saturday_hours',  # شنبه
-                    0: 'sunday_hours'     # یکشنبه
+                    2: 'monday_hours',    # دوشنبه
+                    3: 'tuesday_hours',   # سه شنبه
+                    4: 'wednesday_hours', # چهارشنبه
+                    5: 'thursday_hours',  # پنج شنبه
+                    6: 'friday_hours',    # جمعه
+                    0: 'saturday_hours',  # شنبه
+                    1: 'sunday_hours'     # یکشنبه
                 }
                 
                 # تنظیم مقدار ساعات برای روز مربوطه

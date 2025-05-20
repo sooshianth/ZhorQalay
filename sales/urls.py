@@ -16,7 +16,8 @@ from .views.general_customer_CRUD_page import (
     customer_search,
     change_task_status,
     get_related_products,
-    predict_next_purchase
+    predict_next_purchase,
+    update_task_order
 )
 
 # Phone assignment views
@@ -60,6 +61,7 @@ urlpatterns = [
     path('gccrudp/', general_customer_CRUD_view, name='general_customer_CRUD'),
     path('task/<int:pk>/change_status/', change_task_status, name='change_task_status_todo'),
     path('change_status/<int:pk>', change_task_status, name='change_task_status'),
+    path('task/update-order/', update_task_order, name='update_task_order'),
     path('predict-next-purchase/', predict_next_purchase, name='predict_next_purchase'),
     path('get-related-products/', get_related_products, name='get_related_products'),
     path('customer/get_related_products/', get_related_products, name='get_related_products'),
