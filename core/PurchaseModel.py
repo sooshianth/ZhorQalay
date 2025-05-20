@@ -313,11 +313,11 @@ class Purchase(models.Model):
         if self.state != 'WAITING_FOR_BARNAMEH':
             raise ValidationError('ابتدا باید وضعیت در انتظار بارنامه ثبت شود')
             
-        if not hasattr(self, 'barnameh') or not self.barnameh:
-            raise ValidationError('شماره بارنامه الزامی است')
-            
+        # حذف بررسی فیلد barnameh که وجود ندارد
+        # بارنامه‌ها در اپلیکیشن جداگانه مدیریت می‌شوند
+        
         notification_message = (
-            f"بارنامه خرید {self.invoice_id} به شماره {self.barnameh} "
+            f"بارنامه خرید {self.invoice_id} "
             f"برای مشتری {self.customer.name} صادر شد"
         )
         self.notify_relevant_users(

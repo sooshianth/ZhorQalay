@@ -93,19 +93,19 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         
         if user_role == 'sales_agent' or user_role == 'admin':
             allowed_fields = [
-                'order_weight', 'delivered_weight', 'description', 'tracking_number', 'purchase_date', 'purchase_number', 'barnameh', 
+                'order_weight', 'delivered_weight', 'description', 'tracking_number', 'purchase_date', 'purchase_number', 
                 'payment_method', 'customer_price','amount_paid', 'cargo', 'allocation_ids', 'code_melli_tahvil', 
                 'bazaargah_phone_number', 'tahvil_phone_number',
             ]
         elif user_role == 'logistics_manager':
             allowed_fields = [
-                'order_weight', 'delivered_weight', 'description', 'tracking_number', 'purchase_number', 'amount_paid', 'barnameh', 
+                'order_weight', 'delivered_weight', 'description', 'tracking_number', 'purchase_number', 'amount_paid', 
                 'customer_price', 'payment_method', 'cargo', 'allocation_ids', 'code_melli_tahvil', 
                 'bazaargah_phone_number', 'tahvil_phone_number', 'address',
             ]
         elif user_role == 'financial_manager':
             allowed_fields = [
-                'description', 'payment_method', 'company_price', 'customer_price', 'amount_paid', 'barnameh', 
+                'description', 'payment_method', 'company_price', 'customer_price', 'amount_paid', 
                 'cargo', 'purchase_date', 'purchase_number', 'tracking_number', 'order_weight', 'delivered_weight'
             ]
         else:
@@ -153,7 +153,7 @@ class RoleBasedPurchaseForm(forms.ModelForm):
                                     'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']
         
         if self.instance.state in delivery_completed_states:
-            read_only_fields_after_delivery = ['delivered_weight', 'barnameh', 'code_melli_tahvil', 
+            read_only_fields_after_delivery = ['delivered_weight', 'code_melli_tahvil', 
                                              'bazaargah_phone_number', 'tahvil_phone_number', 'address',
                                              'allocation_ids', 'customer_price', 'company_price',
                                              'order_weight', 'payment_method']
@@ -248,7 +248,7 @@ class RoleBasedPurchaseForm(forms.ModelForm):
                                         'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']
             
             if instance.state in delivery_completed_states:
-                read_only_fields_after_delivery = ['delivered_weight', 'barnameh', 'code_melli_tahvil', 
+                read_only_fields_after_delivery = ['delivered_weight', 'code_melli_tahvil', 
                                                 'bazaargah_phone_number', 'tahvil_phone_number', 'address',
                                                 'allocation_ids', 'customer_price', 'company_price',
                                                 'order_weight', 'payment_method']
@@ -488,7 +488,7 @@ def purchase_CRUD_view(request, purchase_id):
                             'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
                             'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']:
             # فیلدهای مربوط به تحویل بعد از تحویل غیرقابل ویرایش هستند
-            readonly_fields_after_delivery = ['delivered_weight', 'barnameh', 'code_melli_tahvil', 
+            readonly_fields_after_delivery = ['delivered_weight', 'code_melli_tahvil', 
                                            'bazaargah_phone_number', 'tahvil_phone_number', 'address',
                                            'allocation_ids', 'customer_price', 'company_price',
                                            'order_weight', 'payment_method']
