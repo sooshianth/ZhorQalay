@@ -42,7 +42,6 @@ def bulk_purchase_edit(request):
 
 @role_required('admin')
 @login_required
-@csrf_exempt
 def upload_excel(request):
     """
     آپلود فایل اکسل حاوی شماره خریدها
@@ -194,7 +193,6 @@ def upload_excel(request):
 
 @role_required('admin')
 @login_required
-@csrf_exempt
 def apply_bulk_edit(request):
     """
     اعمال تغییرات فله‌ای بر روی خریدهای انتخاب شده
