@@ -135,33 +135,6 @@ class Purchase(models.Model):
             notes=notes
         )
         
-        # اگر مشتری تنظیمات ارسال پیامک را فعال کرده باشد، پیامک ارسال می‌کنیم
-        try:
-            if self.customer and self.customer.sms_preference:
-                from sms_api.apis import send_purchase_status_notification
-                notification_sent = send_purchase_status_notification(self)
-                
-                if notification_sent:
-                    print(f"Notification sent for state change to {new_state} for purchase {self.invoice_id}")
-                    # Add a note to the purchase history
-                    PurchaseHistory.objects.create(
-                        purchase=self,
-                        user=user,
-                        changes=f"ارسال پیامک تغییر وضعیت به {self.get_state_display()}"
-                    )
-                else:
-                    print(f"Notification not sent for purchase {self.invoice_id}. Check SMS settings and templates.")
-        except Exception as e:
-            import traceback
-            print(f"Error sending notification for status change to {new_state} for purchase {self.invoice_id}: {e}")
-            print(traceback.format_exc())
-            # Log the error to the purchase history
-            PurchaseHistory.objects.create(
-                purchase=self,
-                user=user,
-                changes=f"خطا در ارسال پیامک: {str(e)}"
-            )
-        
         return True
 
     def confirm_bazaargah(self, user):
@@ -689,12 +662,14 @@ class PurchaseStateChange(models.Model):
     changed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="تغییر داده شده توسط")
     changed_at = jmodels.jDateTimeField("زمان تغییر", auto_now_add=True)
     notes = models.TextField("توضیحات", blank=True, null=True)
-
+    sms_sent = models.BooleanField("پیامک ارسال شد", default=False)
+    sms_sent_at = models.DateTimeField("زمان ارسال پیامک", null=True, blank=True)
+    
     class Meta:
         verbose_name = "تغییر وضعیت خرید"
         verbose_name_plural = "تغییرات وضعیت خرید"
         ordering = ['-changed_at']
-
+        
     def __str__(self):
         return f"تغییر از {self.get_previous_state_display()} به {self.get_new_state_display()} در {self.changed_at}"
 

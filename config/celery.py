@@ -29,9 +29,17 @@ app.conf.beat_schedule = {
 
     'process-sms-queue': {
         'task': 'sms_api.tasks.process_sms_queue_task',
-        'schedule': crontab(minute='*/1'),  # هر 5 دقیقه
+        'schedule': crontab(minute='*/1'),  # هر 1 دقیقه
         'args': (20,),  # اندازه هر دسته: 20 پیامک
     },
+    
+    # تسک جدید برای بررسی خریدهای بدون پیامک
+    'check-purchases-for-sms': {
+        'task': 'sms_api.tasks.check_and_send_purchase_sms_task',
+        'schedule': crontab(minute='*/15'),  # هر 15 دقیقه
+        'kwargs': {'hours_back': 4},  # بررسی خریدهای 4 ساعت اخیر
+    },
+    
     # 'retry-failed-sms': {
     #     'task': 'sms_api.tasks.retry_failed_sms_task',
     #     'schedule': crontab(hour='*/1'),  # هر 1 ساعت
