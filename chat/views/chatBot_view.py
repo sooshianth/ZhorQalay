@@ -318,7 +318,6 @@ def send_message(request):
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @api_view(['POST'])
 @login_required
-@csrf_exempt
 def pin_message(request, message_id):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'User not authenticated'}, status=401)
@@ -333,7 +332,6 @@ def pin_message(request, message_id):
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @api_view(['POST'])
 @login_required
-@csrf_exempt
 def unpin_message(request, message_id):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'User not authenticated'}, status=401)

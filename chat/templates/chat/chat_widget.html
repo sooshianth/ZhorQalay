@@ -47,7 +47,7 @@
             <div id="pinBox" class="pin-box" style="display:none;">
                 <i class="fas fa-thumbtack"></i>
                 <span id="pinnedMessageText">پیامی پین نشده است</span>
-                <button class="unpin-btn" onclick="unpinPinnedMessage()" title="برداشتن پین">
+                <button class="unpin-btn" onclick="unpinPinnedMessage('{{ csrf_token }}')" title="برداشتن پین">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -57,7 +57,7 @@
                 <button class="reply-btn" title="ریپلای" onclick="setReplyTo({message: 'این یک پیام تستی است'})">
                     <i class="fas fa-reply"></i>
                 </button>
-                <button class="pin-btn" title="پین کردن" onclick="pinMessage({message: 'این یک پیام تستی است'})">
+                <button class="pin-btn" title="پین کردن" onclick="pinMessage({message: 'این یک پیام تستی است'}, '{{ csrf_token }}')">
                     <i class="fas fa-thumbtack"></i>
                 </button>
             </div>
@@ -66,7 +66,7 @@
             <div id="pinBox" class="pin-box" style="display:none;">
                 <i class="fas fa-thumbtack"></i>
                 <span id="pinnedMessageText">پیامی پین نشده است</span>
-                <button class="unpin-btn" onclick="unpinPinnedMessage()" title="برداشتن پین">
+                <button class="unpin-btn" onclick="unpinPinnedMessage('{{ csrf_token }}')" title="برداشتن پین">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -76,7 +76,7 @@
                 <button class="reply-btn" title="ریپلای" onclick="setReplyTo({message: 'این یک پیام تستی است'})">
                     <i class="fas fa-reply"></i>
                 </button>
-                <button class="pin-btn" title="پین کردن" onclick="pinMessage({message: 'این یک پیام تستی است'})">
+                <button class="pin-btn" title="پین کردن" onclick="pinMessage({message: 'این یک پیام تستی است'}, '{{ csrf_token }}')">
                     <i class="fas fa-thumbtack"></i>
                 </button>
             </div>

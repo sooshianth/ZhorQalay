@@ -35,6 +35,7 @@
 /HR/migrations/__pycache__
 /HR/models/__pycache__
 /HR/forms/__pycache__
+/HR/templatetags/__pycache__
 
 /CRM/__pycache__
 /CRM/views/__pycache__
@@ -47,6 +48,7 @@
 /sms_api/__pycache__
 /sms_api/migrations/__pycache__
 /sms_api/management/__pycache__
+/sms_api/templatetags/__pycache__
 
 /excel_files
 

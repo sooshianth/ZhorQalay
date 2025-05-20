@@ -730,6 +730,57 @@
             tableBody.appendChild(row);
         });
     }
+
+    // ارسال تغییرات فله‌ای
+    function applyBulkEdit() {
+        const selectedPurchaseIds = Array.from(document.querySelectorAll('.purchase-checkbox:checked')).map(cb => cb.value);
+        const changes = {
+            state: document.getElementById('stateField').value,
+            cargo: document.getElementById('cargoField').value,
+            paymentMethod: document.getElementById('paymentMethodField').value,
+            salesAgent: document.getElementById('salesAgentField').value,
+            companyPrice: document.getElementById('companyPriceField').value,
+            customerPrice: document.getElementById('customerPriceField').value,
+            orderWeight: document.getElementById('orderWeightField').value,
+            deliveredWeight: document.getElementById('deliveredWeightField').value,
+            amountPaid: document.getElementById('amountPaidField').value,
+            extelafType: document.getElementById('extelafTypeField').value,
+            extelafWeight: document.getElementById('extelafWeightField').value,
+            extelafAmount: document.getElementById('extelafAmountField').value,
+            address: document.getElementById('addressField').value,
+            description: document.getElementById('descriptionField').value
+        };
+
+        fetch('/erp/bulk-purchase-edit/apply-bulk-edit/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({purchase_ids: selectedPurchaseIds, changes: changes})
+        })
+        .then(response => {
+            console.log('وضعیت پاسخ:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('پاسخ سرور:', data);
+            
+            if (data.success) {
+                // نمایش موفقیت
+                alert('تغییرات با موفقیت اعمال شد.');
+                
+                // بستن مدال تایید
+                $('#confirmModal').modal('hide');
+            } else {
+                alert(data.message || 'خطا در اعمال تغییرات');
+            }
+        })
+        .catch(error => {
+            console.error('خطا در ارتباط با سرور:', error);
+            alert('خطا در ارتباط با سرور: ' + error.message);
+        });
+    }
 </script>
 <script src="{% static 'js/bulk_purchase_edit.js' %}"></script>
 {% endblock %} 

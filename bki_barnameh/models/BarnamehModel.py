@@ -91,7 +91,9 @@ class Barnameh(models.Model):
             self.fill_the_purchase_number_if_we_got_shenase_takhsis()
         if is_new:
             self.fill_the_purchase_number_if_we_got_shenase_takhsis()
-            صص
+        if self.purchase:
+            if self.purchase.status in ['INITIATED', 'SMS_SENT', 'PAYMENT_VERIFIED', 'ALLOCATION_APPROVED', 'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH']:
+                self.status = 'BARNAMEH_INCOMPLETE'
         super().save(*args, **kwargs)
 
 
