@@ -372,13 +372,12 @@ class PurchaseAdmin(admin.ModelAdmin):
 #     search_fields = ('purchase__purchase_number', 'user__username')
 #     ordering = ('-timestamp',)
 
-# تنظیمات نمایش مدل ShenaseTakhsis در ادمین
-# @admin.register(ShenaseTakhsis)
-# class ShenaseTakhsisAdmin(admin.ModelAdmin):
-#     list_display = ('purchase', 'code', 'created_at')
-#     list_filter = ('created_at',)
-#     search_fields = ('purchase__purchase_number', 'code')
-#     ordering = ('-created_at',)
+@admin.register(ShenaseTakhsis)
+class ShenaseTakhsisAdmin(admin.ModelAdmin):
+    list_display = ('purchase', 'code', 'weight','created_at')
+    list_filter = ('created_at',)
+    search_fields = ('purchase__purchase_number', 'code')
+    ordering = ('-created_at',)
 
 
 # تنظیمات نمایش مدل Task در ادمین

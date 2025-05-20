@@ -58,10 +58,20 @@ def process_excel_file(excel_file_id):
         
         # Process each row
         processed_rows = 0
+        skipped_rows = 0  # Counter for skipped duplicate rows
+        duplicate_numbers = []  # List to store duplicate barnameh numbers
+        
         for index, row in df.iterrows():
             try:
                 # Extract data from Excel row and clean numeric values
                 barnameh_number = clean_numeric_value(row.get('شماره بارنامه', ''))
+                
+                # Skip if barnameh with this number already exists
+                if barnameh_number and Barnameh.objects.filter(number=barnameh_number).exists():
+                    skipped_rows += 1
+                    duplicate_numbers.append(barnameh_number)
+                    continue
+                    
                 barnameh_serial = str(row.get('سریال بارنامه', ''))
                 
                 # تبدیل وزن به عدد با حفظ دقت اعشار (اگر لازم باشد)
@@ -90,10 +100,16 @@ def process_excel_file(excel_file_id):
                 if barnameh_date_str:
                     try:
                         if isinstance(barnameh_date_str, str):
-                            # Assuming format is like '1402/01/01'
+                            # Assuming format is like '1402/01/01' or '02/01/01'
                             parts = barnameh_date_str.split('/')
                             if len(parts) == 3:
-                                year, month, day = int(parts[0]), int(parts[1]), int(parts[2])
+                                year = int(parts[0])
+                                # If year is less than 100, assume it's a short year format
+                                if year < 100:
+                                    # Convert to full year format (e.g., 04 -> 1404)
+                                    year = 1400 + year
+                                month = int(parts[1])
+                                day = int(parts[2])
                                 barnameh_date = jdatetime.date(year, month, day)
                     except Exception as e:
                         print(f"Error parsing date: {e}")
@@ -136,16 +152,19 @@ def process_excel_file(excel_file_id):
                 print(f"Error processing row {index}: {e}")
                 continue
         
-        # Update the processed rows count
+        # Update the processed rows count and add duplicate info
         excel_file.processed_rows = processed_rows
         excel_file.processed = True
+        excel_file.debug_info = f"تعداد ردیف‌های رد شده به دلیل تکراری بودن: {skipped_rows}\nشماره بارنامه‌های تکراری: {', '.join(duplicate_numbers)}"
         excel_file.save()
         
         return {
             'success': True,
-            'message': f'فایل با موفقیت پردازش شد. {processed_rows} از {excel_file.rows_count} ردیف پردازش شدند.',
+            'message': f'فایل با موفقیت پردازش شد. {processed_rows} از {excel_file.rows_count} ردیف پردازش شدند. {skipped_rows} ردیف به دلیل تکراری بودن رد شدند.',
             'processed_rows': processed_rows,
-            'total_rows': excel_file.rows_count
+            'skipped_rows': skipped_rows,
+            'total_rows': excel_file.rows_count,
+            'duplicate_numbers': duplicate_numbers
         }
         
     except ExcelFile.DoesNotExist:

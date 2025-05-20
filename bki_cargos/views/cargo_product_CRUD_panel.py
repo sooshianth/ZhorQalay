@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from core.decorators.decorators import role_required
 from django.http import JsonResponse
 from django.db.models import Q
+from django.db import connection
 
 @role_required('admin', 'logistics_manager')
 @login_required
@@ -86,12 +87,22 @@ def bulk_edit_cargo_products(request):
             # تغییر قیمت‌ها
             if 'enable_price' in request.POST:
                 if request.POST.get('company_price'):
+                    # استفاده از متد جدید برای به‌روزرسانی دقیق قیمت
                     company_price = int(request.POST.get('company_price'))
-                    products.update(company_price=company_price)
+                    for product in products:
+                        CargoProduct.update_exact_price(product.id, 'company_price', company_price)
                     
                 if request.POST.get('customer_price'):
+                    # استفاده از متد جدید برای به‌روزرسانی دقیق قیمت
                     customer_price = int(request.POST.get('customer_price'))
-                    products.update(customer_price=customer_price)
+                    for product in products:
+                        CargoProduct.update_exact_price(product.id, 'customer_price', customer_price)
+            
+            # تغییر کشور
+            if 'enable_country' in request.POST:
+                if request.POST.get('country'):
+                    country = request.POST.get('country')
+                    products.update(country=country)
             
             # تغییر اطلاعات بارگیری
             if 'enable_loading' in request.POST:
@@ -120,6 +131,7 @@ def bulk_edit_cargo_products(request):
         return render(request, 'bulk_edit_cargo_products.html', {
             'products': products,
             'ports': CargoProduct.PORTS,
+            'countries': CargoProduct.COUNTRIES,
             'products_ids_str': products_ids_str
         })
     

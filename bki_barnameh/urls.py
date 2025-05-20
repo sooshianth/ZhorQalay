@@ -11,6 +11,7 @@ urlpatterns = [
     path('send-to-bki/<int:barnameh_id>/', views.send_to_bki, name='send_to_bki'),
     path('bulk-send-to-bki/', views.bulk_send_to_bki, name='bulk_send_to_bki'),
     path('bulk-edit/', views.bulk_edit, name='bulk_edit'),
+    path('bulk-delete/', views.bulk_delete, name='bulk_delete'),
     path('api/', views.barnameh_api, name='barnameh_api'),
     path('download-excel-template/', views.download_excel_template, name='download_excel_template'),
     

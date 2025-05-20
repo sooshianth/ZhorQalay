@@ -9,6 +9,7 @@ class ExcelFile(models.Model):
     processed = models.BooleanField(default=False, verbose_name='پردازش شده')
     rows_count = models.IntegerField(default=0, verbose_name='تعداد ردیف‌ها')
     processed_rows = models.IntegerField(default=0, verbose_name='ردیف‌های پردازش شده')
+    debug_info = models.TextField(verbose_name='اطلاعات اضافی', null=True, blank=True)
     
     class Meta:
         verbose_name = 'فایل اکسل بارنامه'

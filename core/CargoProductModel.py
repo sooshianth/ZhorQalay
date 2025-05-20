@@ -66,12 +66,29 @@ class CargoProduct(models.Model):
         verbose_name = _('محصول')
         verbose_name_plural = _('محصولات')
 
-
+    # وقتی نیاز به ثبت قیمت دقیق داریم، از این تابع استفاده می‌کنیم
+    @classmethod
+    def update_exact_price(cls, product_id, field_name, value):
+        """
+        به‌روزرسانی مستقیم قیمت بدون اعمال هرگونه منطق بیزینسی یا اعتبارسنجی
+        """
+        from django.db import connection
+        with connection.cursor() as cursor:
+            table_name = cls._meta.db_table
+            cursor.execute(
+                f"UPDATE {table_name} SET {field_name} = %s WHERE id = %s",
+                [value, product_id]
+            )
+        return True
 
     def clean(self):
         if self.weight < 0:
             raise ValidationError('وزن باید حداقل 10000 کیلوگرم باشد.')
         self.weight = round(self.weight / 100) * 100
+        
+        # برای اطمینان از صحت قیمت‌ها، بدون تغییر و گرد کردن آنها
+        # اگر کد پنهانی برای گرد کردن وجود داشته، باید اینجا بررسی شود
+        
         if self.type == 'bazaargah' and not self.cottage.isdigit() and not len(str(self.cottage)) == 8:
             raise ValidationError('کوتاژ برای خرید بازارگاه باید ۸ رقم عددی باشد.')
         if self.type == 'non_bazaargah' and not self.cottage.isdigit() and not len(str(self.cottage)) == 3:

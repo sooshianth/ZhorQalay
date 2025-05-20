@@ -155,7 +155,8 @@ def barnameh_list(request):
     """
     نمایش لیست بارنامه ها
     """
-    barnamehs = Barnameh.objects.all().order_by('-barnameh_created_at')
+    # Sort by is_sent_to_bki (False first) and then by creation date
+    barnamehs = Barnameh.objects.all().order_by('is_sent_to_bki', '-barnameh_created_at')
     return render(request, 'bki_barnameh/barnameh_list.html', {'barnamehs': barnamehs})
 
 @role_required('logistics_manager', 'admin')
@@ -506,4 +507,41 @@ def estelame_barnameh_view(request, barnameh_id):
             return redirect('barnameh_detail', barnameh_id=barnameh_id)
     else:
         return redirect('barnameh_detail', barnameh_id=barnameh_id)
+
+@role_required('logistics_manager', 'admin')
+def bulk_delete(request):
+    """
+    حذف گروهی بارنامه‌ها
+    """
+    if request.method == 'POST':
+        barnameh_ids = request.POST.getlist('barnameh_ids')
+        
+        if not barnameh_ids:
+            messages.error(request, 'هیچ بارنامه‌ای انتخاب نشده است.')
+            return redirect('barnameh_list')
+        
+        success_count = 0
+        error_count = 0
+        
+        for barnameh_id in barnameh_ids:
+            try:
+                barnameh = Barnameh.objects.get(id=barnameh_id)
+                # فقط بارنامه‌هایی که به بازارگاه ارسال نشده‌اند را حذف می‌کنیم
+                if not barnameh.is_sent_to_bki:
+                    barnameh.delete()
+                    success_count += 1
+                else:
+                    error_count += 1
+            except Barnameh.DoesNotExist:
+                error_count += 1
+                continue
+        
+        if success_count > 0:
+            messages.success(request, f'{success_count} بارنامه با موفقیت حذف شد.')
+        if error_count > 0:
+            messages.error(request, f'{error_count} بارنامه به دلیل ارسال به بازارگاه یا خطای دیگر حذف نشد.')
+        
+        return redirect('barnameh_list')
+    
+    return redirect('barnameh_list')
 

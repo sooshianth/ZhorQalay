@@ -186,4 +186,42 @@ def add_customer_from_assignment(request, pk):
     request.session['phone_assignment_id'] = pk
     
     # هدایت به صفحه ایجاد مشتری با پر کردن شماره تلفن
-    return redirect(reverse('general_customer_CRUD') + f'?search_query={phone_assignment.phone_number}') 
+    return redirect(reverse('general_customer_CRUD') + f'?search_query={phone_assignment.phone_number}')
+
+@role_required('sales_agent', 'admin')
+@login_required
+def update_phone_notes(request, pk):
+    """به‌روزرسانی یادداشت‌های مربوط به شماره تلفن"""
+    phone_assignment = get_object_or_404(PhoneAssignment, id=pk)
+    
+    # بررسی دسترسی (فقط کارشناس مسئول یا ادمین)
+    if not (request.user.is_staff or request.user.is_superuser or 
+            hasattr(request.user, 'sales_agent') and request.user.sales_agent == phone_assignment.sales_agent):
+        messages.error(request, "شما اجازه ویرایش این شماره را ندارید.")
+        return redirect('home')
+    
+    # فقط درخواست‌های POST پذیرفته می‌شوند
+    if request.method == 'POST':
+        notes = request.POST.get('notes', '')
+        
+        # ذخیره یادداشت جدید
+        phone_assignment.notes = notes
+        phone_assignment.save(update_fields=['notes'])
+        
+        # پیام موفقیت
+        messages.success(request, "یادداشت با موفقیت ذخیره شد.")
+        
+        # بازگشت به صفحه قبل
+        referer = request.META.get('HTTP_REFERER')
+        if referer:
+            return redirect(referer)
+        
+        # اگر referer موجود نبود، بسته به نقش کاربر به صفحه مناسب هدایت می‌شود
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect('admin_phone_assignment_list')
+        else:
+            return redirect('sales_phone_assignment_list')
+    
+    # درخواست‌های غیر POST پذیرفته نمی‌شوند
+    messages.error(request, "درخواست نامعتبر.")
+    return redirect('home') 

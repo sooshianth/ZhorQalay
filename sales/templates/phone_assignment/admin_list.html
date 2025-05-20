@@ -3,24 +3,279 @@
 
 {% block title %}لیست شماره‌های تلفن تخصیص داده شده{% endblock %}
 
+{% block extra_css %}
+<style>
+    :root {
+        --main-color: #065F46;
+        --main-color-light: #10B981;
+        --main-color-dark: #064E3B;
+        --accent-color: #F59E0B;
+        --success-color: #10B981;
+        --danger-color: #EF4444;
+        --warning-color: #F59E0B;
+        --info-color: #3B82F6;
+        --light-bg: #F3F4F6;
+        --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --transition: all 0.3s ease;
+    }
+
+    .page-heading {
+        border-right: 4px solid var(--main-color);
+        padding-right: 15px;
+        margin-bottom: 20px;
+        color: var(--main-color);
+    }
+
+    .card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        transition: var(--transition);
+        margin-bottom: 25px;
+    }
+
+    .card:hover {
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .card-header {
+        background-color: var(--main-color);
+        color: white;
+        border-bottom: none;
+        padding: 15px 20px;
+    }
+
+    .card-header .card-title {
+        font-weight: 600;
+        margin-bottom: 0;
+    }
+    
+    .card-header .btn-light {
+        color: var(--main-color);
+        font-weight: 500;
+        background-color: white;
+        border: 1px solid rgba(6, 95, 70, 0.2);
+    }
+
+    .card-header .btn-light:hover {
+        background-color: #f8f9fa;
+        border-color: var(--main-color);
+    }
+
+    .card-body {
+        padding: 20px;
+        background-color: white;
+    }
+
+    .table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .table thead th {
+        background-color: var(--light-bg);
+        color: var(--main-color);
+        font-weight: 600;
+        padding: 12px 15px;
+        border: none;
+    }
+
+    .table tbody tr {
+        transition: var(--transition);
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(6, 95, 70, 0.05);
+    }
+
+    .table td, .table th {
+        padding: 12px 15px;
+        vertical-align: middle;
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .btn {
+        border-radius: 6px;
+        padding: 8px 16px;
+        font-weight: 500;
+        transition: var(--transition);
+    }
+
+    .btn-sm {
+        padding: 5px 10px;
+        font-size: 0.875rem;
+    }
+
+    .btn-primary {
+        background-color: var(--main-color);
+        border-color: var(--main-color);
+    }
+
+    .btn-primary:hover, .btn-primary:focus {
+        background-color: var(--main-color-dark);
+        border-color: var(--main-color-dark);
+    }
+
+    .btn-outline-primary {
+        color: var(--main-color);
+        border-color: var(--main-color);
+    }
+
+    .btn-outline-primary:hover {
+        background-color: var(--main-color);
+        border-color: var(--main-color);
+    }
+    
+    .filter-card {
+        background-color: rgba(6, 95, 70, 0.02);
+        border: 1px solid rgba(6, 95, 70, 0.1);
+    }
+    
+    .filter-card .card-header {
+        background-color: rgba(6, 95, 70, 0.05);
+        color: var(--main-color);
+    }
+    
+    .form-select:focus, .form-control:focus {
+        border-color: var(--main-color);
+        box-shadow: 0 0 0 0.25rem rgba(6, 95, 70, 0.25);
+    }
+    
+    .badge {
+        padding: 6px 10px;
+        font-weight: 500;
+        border-radius: 6px;
+    }
+    
+    .badge.bg-warning {
+        background-color: var(--warning-color) !important;
+        color: white !important;
+    }
+    
+    .badge.bg-danger {
+        background-color: var(--danger-color) !important;
+    }
+    
+    .badge.bg-success {
+        background-color: var(--success-color) !important;
+    }
+    
+    .pagination .page-link {
+        color: var(--main-color);
+        border: 1px solid rgba(6, 95, 70, 0.2);
+        margin: 0 3px;
+        border-radius: 4px;
+    }
+    
+    .pagination .page-item.active .page-link {
+        background-color: var(--main-color);
+        border-color: var(--main-color);
+    }
+    
+    .phone-number {
+        direction: ltr;
+        display: inline-block;
+        position: relative;
+        font-family: monospace;
+        font-weight: 500;
+        padding: 4px 8px;
+        background-color: rgba(6, 95, 70, 0.05);
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    
+    .phone-number:hover {
+        background-color: rgba(6, 95, 70, 0.1);
+    }
+    
+    .phone-number::after {
+        content: "کپی";
+        position: absolute;
+        top: -20px;
+        left: 50%;
+        transform: translateX(-50%) scale(0);
+        background-color: #333;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        opacity: 0;
+        transition: all 0.2s ease;
+    }
+    
+    .phone-number:hover::after {
+        opacity: 0.9;
+        transform: translateX(-50%) scale(1);
+    }
+    
+    .empty-row {
+        background-color: rgba(6, 95, 70, 0.02);
+        color: #777;
+        font-style: italic;
+    }
+    
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+    }
+    
+    .custom-toast {
+        width: 300px;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-bottom: 10px;
+        opacity: 0;
+        transform: translateY(-20px);
+        animation: slide-in 0.3s ease forwards;
+    }
+    
+    @keyframes slide-in {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .toast-header {
+        background-color: var(--main-color);
+        color: white;
+        padding: 10px 15px;
+        border-bottom: none;
+    }
+    
+    .toast-body {
+        padding: 15px;
+        background-color: white;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="row">
         <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">لیست شماره‌های تلفن تخصیص داده شده</h5>
-                    <a href="{% url 'admin_import_phone_numbers' %}" class="btn btn-light btn-sm">
-                        <i class="bi bi-plus-circle"></i> تخصیص شماره جدید
+            <h4 class="page-heading">مدیریت شماره‌های تخصیص داده شده</h4>
+            
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title">
+                        <i class="bi bi-telephone-fill me-2"></i>لیست شماره‌های تلفن
+                    </h5>
+                    <a href="{% url 'admin_import_phone_numbers' %}" class="btn btn-light">
+                        <i class="bi bi-plus-circle me-1"></i>تخصیص شماره جدید
                     </a>
                 </div>
                 <div class="card-body">
                     <!-- فیلترها -->
                     <div class="row mb-4">
                         <div class="col-md-12">
-                            <div class="card">
-                                <div class="card-header bg-light">
-                                    <h6 class="mb-0">فیلتر</h6>
+                            <div class="card filter-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="bi bi-funnel me-2"></i>فیلتر و جستجو</h6>
                                 </div>
                                 <div class="card-body">
                                     <form method="get" class="row g-3">
@@ -43,7 +298,9 @@
                                             </select>
                                         </div>
                                         <div class="col-md-2 d-flex align-items-end">
-                                            <button type="submit" class="btn btn-primary">اعمال فیلتر</button>
+                                            <button type="submit" class="btn btn-primary w-100">
+                                                <i class="bi bi-search me-1"></i> اعمال
+                                            </button>
                                         </div>
                                     </form>
                                 </div>
@@ -51,10 +308,47 @@
                         </div>
                     </div>
                     
+                    <!-- آمار خلاصه -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card border-0 bg-light">
+                                <div class="card-body text-center">
+                                    <div class="display-6 text-warning mb-2">
+                                        <i class="bi bi-telephone-plus"></i>
+                                    </div>
+                                    <h5>در انتظار تماس</h5>
+                                    <h3>{{ pending_count|default:"0" }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-0 bg-light">
+                                <div class="card-body text-center">
+                                    <div class="display-6 text-success mb-2">
+                                        <i class="bi bi-person-check"></i>
+                                    </div>
+                                    <h5>تبدیل به مشتری</h5>
+                                    <h3>{{ converted_count|default:"0" }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-0 bg-light">
+                                <div class="card-body text-center">
+                                    <div class="display-6 text-danger mb-2">
+                                        <i class="bi bi-trash"></i>
+                                    </div>
+                                    <h5>حذف شده</h5>
+                                    <h3>{{ deleted_count|default:"0" }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- لیست شماره‌ها -->
                     <div class="table-responsive">
-                        <table class="table table-striped table-hover align-middle">
-                            <thead class="table-light">
+                        <table class="table table-hover">
+                            <thead>
                                 <tr>
                                     <th scope="col">#</th>
                                     <th scope="col">شماره تلفن</th>
@@ -62,6 +356,7 @@
                                     <th scope="col">وضعیت</th>
                                     <th scope="col">تاریخ ایجاد</th>
                                     <th scope="col">آخرین بروزرسانی</th>
+                                    <th scope="col">یادداشت</th>
                                     <th scope="col">عملیات</th>
                                 </tr>
                             </thead>
@@ -69,11 +364,13 @@
                                 {% for phone in phone_assignments %}
                                 <tr>
                                     <th scope="row">{{ forloop.counter }}</th>
-                                    <td dir="ltr">{{ phone.phone_number }}</td>
-                                    <td>{{ phone.sales_agent.name }}</td>
+                                    <td class="phone-number" onclick="copyToClipboard('{{ phone.phone_number }}')">{{ phone.phone_number }}</td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">{{ phone.sales_agent.name }}</span>
+                                    </td>
                                     <td>
                                         {% if phone.status == 'pending' %}
-                                        <span class="badge bg-warning text-dark">در انتظار تماس</span>
+                                        <span class="badge bg-warning">در انتظار تماس</span>
                                         {% elif phone.status == 'deleted' %}
                                         <span class="badge bg-danger">حذف شده</span>
                                         {% elif phone.status == 'converted' %}
@@ -83,24 +380,38 @@
                                     <td>{{ phone.created_at|date:"Y/m/d H:i" }}</td>
                                     <td>{{ phone.updated_at|date:"Y/m/d H:i" }}</td>
                                     <td>
+                                        {% if phone.notes %}
+                                            <span class="text-truncate d-inline-block" style="max-width: 150px;" data-bs-toggle="tooltip" title="{{ phone.notes }}">
+                                                {{ phone.notes }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted fst-italic">---</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
                                         <div class="btn-group" role="group">
                                             {% if phone.status == 'pending' %}
                                             <a href="{% url 'delete_phone_assignment' phone.id %}" class="btn btn-sm btn-outline-danger" 
-                                               onclick="return confirm('آیا از حذف این شماره اطمینان دارید؟')">
-                                                <i class="bi bi-trash"></i> حذف
+                                               onclick="return confirm('آیا از حذف این شماره اطمینان دارید؟')" title="حذف">
+                                                <i class="bi bi-trash"></i>
                                             </a>
-                                            <a href="{% url 'add_customer_from_assignment' phone.id %}" class="btn btn-sm btn-outline-success">
-                                                <i class="bi bi-person-plus"></i> تبدیل به مشتری
+                                            <a href="{% url 'add_customer_from_assignment' phone.id %}" class="btn btn-sm btn-outline-success" title="تبدیل به مشتری">
+                                                <i class="bi bi-person-plus"></i>
                                             </a>
                                             {% else %}
-                                            <button class="btn btn-sm btn-outline-secondary" disabled>بدون عملیات</button>
+                                            <button class="btn btn-sm btn-outline-secondary" disabled title="بدون عملیات">
+                                                <i class="bi bi-dash-circle"></i>
+                                            </button>
                                             {% endif %}
                                         </div>
                                     </td>
                                 </tr>
                                 {% empty %}
-                                <tr>
-                                    <td colspan="7" class="text-center">هیچ شماره‌ای یافت نشد.</td>
+                                <tr class="empty-row">
+                                    <td colspan="8" class="text-center py-4">
+                                        <i class="bi bi-inbox fs-3 mb-2 d-block"></i>
+                                        هیچ شماره‌ای یافت نشد.
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -154,4 +465,60 @@
         </div>
     </div>
 </div>
+
+<!-- محل نمایش toast‌ها -->
+<div class="toast-container"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // فعال‌سازی تولتیپ‌ها
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+    
+    // کپی شماره تلفن
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(function() {
+            showToast('موفقیت', 'شماره تلفن کپی شد: ' + text, 'success');
+        }).catch(function(err) {
+            console.error('خطا در کپی کردن شماره:', err);
+            showToast('خطا', 'عدم موفقیت در کپی شماره', 'danger');
+        });
+    }
+    
+    // نمایش toast
+    function showToast(title, message, type) {
+        var bgColor = '#065F46'; // رنگ اصلی سایت
+        if (type === 'danger') bgColor = '#EF4444';
+        if (type === 'warning') bgColor = '#F59E0B';
+        
+        var toast = $('<div class="custom-toast">' +
+                      '<div class="toast-header" style="background-color: ' + bgColor + '">' +
+                      '<strong class="me-auto">' + title + '</strong>' +
+                      '<button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>' +
+                      '</div>' +
+                      '<div class="toast-body">' + message + '</div>' +
+                      '</div>');
+        
+        $('.toast-container').append(toast);
+        
+        // حذف toast پس از 3 ثانیه
+        setTimeout(function() {
+            toast.fadeOut(300, function() {
+                $(this).remove();
+            });
+        }, 3000);
+        
+        // بستن toast با کلیک روی دکمه بستن
+        toast.find('.btn-close').click(function() {
+            toast.fadeOut(300, function() {
+                $(this).remove();
+            });
+        });
+    }
+</script>
 {% endblock %} 

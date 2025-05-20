@@ -3,23 +3,285 @@
 
 {% block title %}شماره‌های تلفن برای تماس{% endblock %}
 
+{% block extra_css %}
+<style>
+    :root {
+        --main-color: #065F46;
+        --main-color-light: #10B981;
+        --main-color-dark: #064E3B;
+        --accent-color: #F59E0B;
+        --success-color: #10B981;
+        --danger-color: #EF4444;
+        --warning-color: #F59E0B;
+        --info-color: #3B82F6;
+        --light-bg: #F3F4F6;
+        --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --transition: all 0.3s ease;
+    }
+
+    .page-heading {
+        border-right: 4px solid var(--main-color);
+        padding-right: 15px;
+        margin-bottom: 20px;
+        color: var(--main-color);
+    }
+
+    .card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        transition: var(--transition);
+        margin-bottom: 25px;
+    }
+
+    .card:hover {
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .card-header {
+        background-color: var(--main-color);
+        color: white;
+        border-bottom: none;
+        padding: 15px 20px;
+    }
+
+    .card-header .card-title {
+        font-weight: 600;
+        margin-bottom: 0;
+    }
+
+    .card-body {
+        padding: 20px;
+        background-color: white;
+    }
+
+    .table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .table thead th {
+        background-color: var(--light-bg);
+        color: var(--main-color);
+        font-weight: 600;
+        padding: 12px 15px;
+        border: none;
+    }
+
+    .table tbody tr {
+        transition: var(--transition);
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(6, 95, 70, 0.05);
+    }
+
+    .table td, .table th {
+        padding: 12px 15px;
+        vertical-align: middle;
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .btn {
+        border-radius: 6px;
+        padding: 8px 16px;
+        font-weight: 500;
+        transition: var(--transition);
+    }
+
+    .btn-sm {
+        padding: 5px 10px;
+        font-size: 0.875rem;
+    }
+
+    .btn-primary {
+        background-color: var(--main-color);
+        border-color: var(--main-color);
+    }
+
+    .btn-primary:hover, .btn-primary:focus {
+        background-color: var(--main-color-dark);
+        border-color: var(--main-color-dark);
+    }
+
+    .btn-outline-primary {
+        color: var(--main-color);
+        border-color: var(--main-color);
+    }
+
+    .btn-outline-primary:hover {
+        background-color: var(--main-color);
+        border-color: var(--main-color);
+    }
+
+    .btn-outline-danger {
+        color: var(--danger-color);
+        border-color: var(--danger-color);
+    }
+
+    .btn-outline-danger:hover {
+        background-color: var(--danger-color);
+        color: white;
+    }
+
+    .btn-outline-success {
+        color: var(--success-color);
+        border-color: var(--success-color);
+    }
+
+    .btn-outline-success:hover {
+        background-color: var(--success-color);
+        color: white;
+    }
+    
+    .badge {
+        padding: 6px 10px;
+        font-weight: 500;
+        border-radius: 6px;
+    }
+    
+    .phone-number {
+        cursor: pointer;
+        transition: var(--transition);
+        position: relative;
+        border-bottom: 1px dashed #ddd;
+    }
+    
+    .phone-number:hover {
+        color: var(--main-color);
+    }
+    
+    .phone-number:hover::after {
+        content: "کلیک برای کپی";
+        position: absolute;
+        bottom: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #333;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        opacity: 0.9;
+    }
+    
+    .pagination .page-link {
+        color: var(--main-color);
+        border: 1px solid rgba(6, 95, 70, 0.2);
+        margin: 0 3px;
+        border-radius: 4px;
+    }
+    
+    .pagination .page-item.active .page-link {
+        background-color: var(--main-color);
+        border-color: var(--main-color);
+    }
+    
+    .alert {
+        border-radius: 8px;
+        border: none;
+    }
+    
+    .info-card {
+        background-color: rgba(6, 95, 70, 0.03);
+        border-right: 3px solid var(--main-color);
+    }
+    
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+    }
+    
+    .custom-toast {
+        width: 300px;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-bottom: 10px;
+        opacity: 0;
+        transform: translateY(-20px);
+        animation: slide-in 0.3s ease forwards;
+    }
+    
+    @keyframes slide-in {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .toast-header {
+        background-color: var(--main-color);
+        color: white;
+        padding: 10px 15px;
+        border-bottom: none;
+    }
+    
+    .toast-body {
+        padding: 15px;
+        background-color: white;
+    }
+    
+    .note-form {
+        display: none;
+        margin-top: 10px;
+    }
+    
+    .expand-note {
+        cursor: pointer;
+        color: var(--info-color);
+    }
+    
+    .note-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 150px;
+        display: inline-block;
+    }
+    
+    .notes-popover {
+        position: absolute;
+        display: none;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        padding: 15px;
+        min-width: 250px;
+        max-width: 350px;
+        z-index: 1000;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="row">
         <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0">شماره‌هایی که باید ویزیت شوند</h5>
+            <h4 class="page-heading">شماره‌های اختصاصی برای تماس</h4>
+            
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title">
+                        <i class="bi bi-telephone-plus me-2"></i>لیست تماس‌ها
+                    </h5>
+                    <span class="badge bg-light text-dark">
+                        تعداد: {{ phone_assignments.paginator.count }}
+                    </span>
                 </div>
                 <div class="card-body">
                     {% if phone_assignments %}
                     <div class="table-responsive">
-                        <table class="table table-striped table-hover align-middle">
-                            <thead class="table-light">
+                        <table class="table table-hover">
+                            <thead>
                                 <tr>
                                     <th scope="col">#</th>
                                     <th scope="col">شماره تلفن</th>
                                     <th scope="col">تاریخ تخصیص</th>
+                                    <th scope="col">یادداشت</th>
                                     <th scope="col">عملیات</th>
                                 </tr>
                             </thead>
@@ -30,16 +292,52 @@
                                     <td dir="ltr" class="phone-number">{{ phone.phone_number }}</td>
                                     <td>{{ phone.created_at|date:"Y/m/d" }}</td>
                                     <td>
+                                        {% if phone.notes %}
+                                            <span class="note-text">{{ phone.notes }}</span>
+                                            <i class="bi bi-three-dots expand-note" data-note-id="{{ phone.id }}"></i>
+                                        {% else %}
+                                            <button class="btn btn-sm btn-outline-secondary add-note-btn" data-note-id="{{ phone.id }}">
+                                                <i class="bi bi-pencil-square"></i> افزودن یادداشت
+                                            </button>
+                                        {% endif %}
+                                        
+                                        <div id="note-form-{{ phone.id }}" class="note-form">
+                                            <form method="post" action="{% url 'update_phone_notes' phone.id %}" class="mt-2">
+                                                {% csrf_token %}
+                                                <div class="form-group">
+                                                    <textarea name="notes" class="form-control" rows="2">{{ phone.notes }}</textarea>
+                                                </div>
+                                                <div class="mt-2">
+                                                    <button type="submit" class="btn btn-sm btn-primary">ذخیره</button>
+                                                    <button type="button" class="btn btn-sm btn-light cancel-note" data-note-id="{{ phone.id }}">انصراف</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                        
+                                        <div id="notes-popover-{{ phone.id }}" class="notes-popover">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <strong>یادداشت</strong>
+                                                <button type="button" class="btn-close btn-sm close-popover" data-note-id="{{ phone.id }}"></button>
+                                            </div>
+                                            <p>{{ phone.notes }}</p>
+                                            <div class="text-end">
+                                                <button class="btn btn-sm btn-outline-primary edit-note-btn" data-note-id="{{ phone.id }}">
+                                                    <i class="bi bi-pencil"></i> ویرایش
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
                                         <div class="btn-group" role="group">
+                                            <a href="tel:+98{{ phone.phone_number }}" class="btn btn-sm btn-outline-primary" title="تماس">
+                                                <i class="bi bi-telephone"></i>
+                                            </a>
+                                            <a href="{% url 'add_customer_from_assignment' phone.id %}" class="btn btn-sm btn-outline-success" title="تبدیل به مشتری">
+                                                <i class="bi bi-person-plus"></i>
+                                            </a>
                                             <a href="{% url 'delete_phone_assignment' phone.id %}" class="btn btn-sm btn-outline-danger" 
-                                               onclick="return confirm('آیا از حذف این شماره اطمینان دارید؟')">
-                                                <i class="bi bi-trash"></i> حذف
-                                            </a>
-                                            <a href="{% url 'add_customer_from_assignment' phone.id %}" class="btn btn-sm btn-outline-success">
-                                                <i class="bi bi-person-plus"></i> افزودن به عنوان مشتری
-                                            </a>
-                                            <a href="tel:+98{{ phone.phone_number }}" class="btn btn-sm btn-outline-primary call-button">
-                                                <i class="bi bi-telephone"></i> تماس
+                                               onclick="return confirm('آیا از حذف این شماره اطمینان دارید؟')" title="حذف">
+                                                <i class="bi bi-trash"></i>
                                             </a>
                                         </div>
                                     </td>
@@ -93,61 +391,159 @@
                     {% endif %}
                     
                     {% else %}
-                    <div class="alert alert-info">
-                        <h5 class="alert-heading">شماره‌ای برای تماس وجود ندارد!</h5>
-                        <p>در حال حاضر هیچ شماره تلفنی برای تماس به شما تخصیص داده نشده است. لطفاً بعداً مراجعه کنید یا با مدیر سیستم تماس بگیرید.</p>
+                    <div class="alert alert-info d-flex align-items-center">
+                        <i class="bi bi-info-circle-fill me-3 fs-4"></i>
+                        <div>
+                            <h5 class="alert-heading">شماره‌ای برای تماس وجود ندارد!</h5>
+                            <p class="mb-0">در حال حاضر هیچ شماره تلفنی برای تماس به شما تخصیص داده نشده است. لطفاً بعداً مراجعه کنید یا با مدیر سیستم تماس بگیرید.</p>
+                        </div>
                     </div>
                     {% endif %}
                 </div>
             </div>
             
             <!-- راهنمای استفاده -->
-            <div class="card mt-3 shadow-sm">
-                <div class="card-header bg-info text-white">
-                    <h5 class="card-title mb-0">راهنمای استفاده</h5>
-                </div>
+            <div class="card info-card">
                 <div class="card-body">
-                    <p>برای مدیریت شماره‌های تلفن، از گزینه‌های زیر استفاده کنید:</p>
-                    <ul>
-                        <li><strong>تماس:</strong> برقراری تماس مستقیم با شماره</li>
-                        <li><strong>افزودن به عنوان مشتری:</strong> ایجاد پروفایل مشتری جدید با این شماره</li>
-                        <li><strong>حذف:</strong> حذف شماره از لیست تماس‌ها</li>
-                    </ul>
-                    <p>تعداد کل شماره‌ها: <span class="badge bg-primary">{{ phone_assignments.paginator.count }}</span></p>
+                    <h5 class="text-main-color mb-3">
+                        <i class="bi bi-info-circle me-2"></i>راهنمای استفاده
+                    </h5>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="icon-box bg-primary text-white p-2 rounded me-2">
+                                    <i class="bi bi-telephone"></i>
+                                </div>
+                                <div>
+                                    <strong>تماس</strong>
+                                    <p class="mb-0 small">برقراری تماس مستقیم با شماره</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="icon-box bg-success text-white p-2 rounded me-2">
+                                    <i class="bi bi-person-plus"></i>
+                                </div>
+                                <div>
+                                    <strong>تبدیل به مشتری</strong>
+                                    <p class="mb-0 small">ایجاد پروفایل مشتری جدید</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="icon-box bg-danger text-white p-2 rounded me-2">
+                                    <i class="bi bi-trash"></i>
+                                </div>
+                                <div>
+                                    <strong>حذف</strong>
+                                    <p class="mb-0 small">حذف شماره از لیست تماس‌ها</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- محل نمایش toast‌ها -->
+<div class="toast-container"></div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    // کپی شماره تلفن با کلیک روی آن
     $(document).ready(function() {
+        // کپی شماره تلفن با کلیک روی آن
         $('.phone-number').click(function() {
             var number = $(this).text().trim();
             navigator.clipboard.writeText(number).then(function() {
-                // نمایش پیام موفقیت‌آمیز
-                var toast = $('<div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="2000">' +
-                              '<div class="toast-header bg-success text-white">' +
-                              '<strong class="me-auto">پیام سیستم</strong>' +
-                              '<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>' +
-                              '</div>' +
-                              '<div class="toast-body">شماره تلفن کپی شد: ' + number + '</div>' +
-                              '</div>');
-                
-                $('.toast-container').append(toast);
-                var bsToast = new bootstrap.Toast(toast);
-                bsToast.show();
-                
-                setTimeout(function() {
-                    toast.remove();
-                }, 2000);
+                // نمایش پیام موفقیت‌آمیز با طراحی جدید
+                showToast('موفقیت', 'شماره تلفن کپی شد: ' + number, 'success');
             }).catch(function(err) {
                 console.error('خطا در کپی کردن شماره:', err);
+                showToast('خطا', 'عدم موفقیت در کپی شماره', 'danger');
             });
         });
+        
+        // نمایش/مخفی‌سازی فرم یادداشت
+        $('.add-note-btn, .edit-note-btn').click(function() {
+            var noteId = $(this).data('note-id');
+            $('#note-form-' + noteId).slideDown();
+            return false;
+        });
+        
+        // لغو فرم یادداشت
+        $('.cancel-note').click(function() {
+            var noteId = $(this).data('note-id');
+            $('#note-form-' + noteId).slideUp();
+            return false;
+        });
+        
+        // نمایش/مخفی‌سازی popover یادداشت
+        $('.expand-note').click(function() {
+            var noteId = $(this).data('note-id');
+            var popover = $('#notes-popover-' + noteId);
+            
+            // موقعیت نمایش popover
+            var position = $(this).position();
+            popover.css({
+                top: position.top + 30,
+                left: position.left
+            });
+            
+            popover.fadeIn(200);
+        });
+        
+        // بستن popover
+        $('.close-popover').click(function() {
+            var noteId = $(this).data('note-id');
+            $('#notes-popover-' + noteId).fadeOut(200);
+        });
+        
+        // بستن popover با کلیک خارج از آن
+        $(document).on('click', function(e) {
+            if(!$(e.target).closest('.notes-popover').length && 
+               !$(e.target).hasClass('expand-note')) {
+                $('.notes-popover').fadeOut(200);
+            }
+        });
+        
+        // تابع نمایش toast
+        function showToast(title, message, type) {
+            var bgColor = 'var(--main-color)';
+            if (type === 'danger') bgColor = 'var(--danger-color)';
+            if (type === 'warning') bgColor = 'var(--warning-color)';
+            
+            var toast = $('<div class="custom-toast">' +
+                          '<div class="toast-header" style="background-color: ' + bgColor + '">' +
+                          '<strong class="me-auto">' + title + '</strong>' +
+                          '<button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>' +
+                          '</div>' +
+                          '<div class="toast-body">' + message + '</div>' +
+                          '</div>');
+            
+            $('.toast-container').append(toast);
+            
+            // حذف toast پس از 3 ثانیه
+            setTimeout(function() {
+                toast.fadeOut(300, function() {
+                    $(this).remove();
+                });
+            }, 3000);
+            
+            // بستن toast با کلیک روی دکمه بستن
+            toast.find('.btn-close').click(function() {
+                toast.fadeOut(300, function() {
+                    $(this).remove();
+                });
+            });
+        }
     });
 </script>
 {% endblock %} 

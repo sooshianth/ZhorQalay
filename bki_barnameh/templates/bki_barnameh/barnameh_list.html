@@ -41,9 +41,13 @@
                         <i class="fas fa-file-export me-1"></i>
                         خروجی اکسل
                     </button>
-                    <button type="submit" id="bulk-edit-btn" class="btn btn-warning btn-sm rounded-pill shadow-sm" name="action" value="edit" formaction="{% url 'bulk_edit' %}">
+                    <button type="submit" id="bulk-edit-btn" class="btn btn-warning btn-sm rounded-pill shadow-sm me-2" name="action" value="edit" formaction="{% url 'bulk_edit' %}">
                         <i class="fas fa-edit me-1"></i>
                         ویرایش گروهی
+                    </button>
+                    <button type="submit" id="bulk-delete-btn" class="btn btn-danger btn-sm rounded-pill shadow-sm" name="action" value="delete" formaction="{% url 'bulk_delete' %}" onclick="return confirm('آیا از حذف موارد انتخاب شده اطمینان دارید؟');">
+                        <i class="fas fa-trash me-1"></i>
+                        حذف گروهی
                     </button>
                 </div>
                 <a href="{% url 'export_excel' %}" class="btn btn-success btn-sm rounded-pill shadow-sm">
@@ -145,10 +149,11 @@
 
 {% block extra_js %}
 <script>
-    // کد ساده‌تر جاوااسکریپت - فقط برای عملکرد انتخاب همه
     document.addEventListener('DOMContentLoaded', function() {
         // انتخاب همه گزینه‌ها
         var selectAllCheckbox = document.getElementById('select-all');
+        var lastChecked = null;
+        
         if (selectAllCheckbox) {
             selectAllCheckbox.addEventListener('change', function() {
                 var checkboxes = document.querySelectorAll('.barnameh-checkbox');
@@ -158,22 +163,57 @@
             });
         }
         
+        // مدیریت انتخاب با شیفت
+        var checkboxes = document.querySelectorAll('.barnameh-checkbox');
+        checkboxes.forEach(function(checkbox) {
+            checkbox.addEventListener('click', function(e) {
+                if (!lastChecked) {
+                    lastChecked = checkbox;
+                    return;
+                }
+
+                if (e.shiftKey) {
+                    var start = Array.from(checkboxes).indexOf(checkbox);
+                    var end = Array.from(checkboxes).indexOf(lastChecked);
+                    
+                    checkboxes.forEach(function(item, index) {
+                        if (index >= Math.min(start, end) && index <= Math.max(start, end)) {
+                            item.checked = lastChecked.checked;
+                        }
+                    });
+                }
+                
+                lastChecked = checkbox;
+            });
+        });
+        
+        // بررسی وضعیت انتخاب همه بعد از هر تغییر
+        document.querySelectorAll('.barnameh-checkbox').forEach(function(checkbox) {
+            checkbox.addEventListener('change', function() {
+                var allCheckboxes = document.querySelectorAll('.barnameh-checkbox');
+                var allChecked = Array.from(allCheckboxes).every(function(cb) {
+                    return cb.checked;
+                });
+                selectAllCheckbox.checked = allChecked;
+            });
+        });
+        
         // زمانی که روی هر سطر کلیک می‌شود، چک‌باکس آن تغییر وضعیت دهد
         var rows = document.querySelectorAll('tr.align-middle');
         rows.forEach(function(row) {
             row.addEventListener('click', function(e) {
                 // فقط اگر روی سلول کلیک شده باشد (نه روی دکمه‌ها یا چک‌باکس‌ها)
-                if (e.target.tagName === 'TD') {
+                if (e.target.tagName === 'TD' && !e.target.querySelector('button, a, input')) {
                     var checkbox = this.querySelector('.barnameh-checkbox');
                     if (checkbox) {
-                        checkbox.checked = !checkbox.checked;
+                        checkbox.click(); // استفاده از click به جای checked برای فعال کردن رویداد
                     }
                 }
             });
         });
         
         // اعتبارسنجی فرم قبل از ارسال
-        var actionButtons = document.querySelectorAll('#bulk-send-btn, #bulk-export-btn, #bulk-edit-btn');
+        var actionButtons = document.querySelectorAll('#bulk-send-btn, #bulk-export-btn, #bulk-edit-btn, #bulk-delete-btn');
         actionButtons.forEach(function(button) {
             button.addEventListener('click', function(e) {
                 var checkedBoxes = document.querySelectorAll('.barnameh-checkbox:checked');
@@ -182,9 +222,12 @@
                     alert('لطفاً حداقل یک بارنامه را انتخاب کنید.');
                 }
                 
-                // اضافه کردن تایید برای ارسال به بازارگاه
-                if (this.id === 'bulk-send-btn' && checkedBoxes.length > 0) {
-                    if (!confirm('آیا از ارسال بارنامه‌های انتخاب شده به بازارگاه اطمینان دارید؟')) {
+                // اضافه کردن تایید برای ارسال به بازارگاه و حذف گروهی
+                if ((this.id === 'bulk-send-btn' || this.id === 'bulk-delete-btn') && checkedBoxes.length > 0) {
+                    var message = this.id === 'bulk-send-btn' ? 
+                        'آیا از ارسال بارنامه‌های انتخاب شده به بازارگاه اطمینان دارید؟' :
+                        'آیا از حذف بارنامه‌های انتخاب شده اطمینان دارید؟';
+                    if (!confirm(message)) {
                         e.preventDefault();
                     }
                 }

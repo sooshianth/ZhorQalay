@@ -26,7 +26,8 @@ from .views.phone_assignment_views import (
     admin_phone_assignment_list,
     sales_phone_assignment_list,
     delete_phone_assignment,
-    add_customer_from_assignment
+    add_customer_from_assignment,
+    update_phone_notes
 )
 
 # Customer list views
@@ -80,6 +81,7 @@ urlpatterns = [
     path('phone-assignment/list/', sales_phone_assignment_list, name='sales_phone_assignment_list'),
     path('phone-assignment/<int:pk>/delete/', delete_phone_assignment, name='delete_phone_assignment'),
     path('phone-assignment/<int:pk>/add-customer/', add_customer_from_assignment, name='add_customer_from_assignment'),
+    path('phone-assignment/<int:pk>/update-notes/', update_phone_notes, name='update_phone_notes'),
     
     # Todo list endpoints
     path('todos/', todo_list_view.todo_dashboard_view, name='todo_dashboard'),

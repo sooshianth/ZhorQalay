@@ -89,6 +89,9 @@ class Barnameh(models.Model):
             self.set_the_purchase_number_and_shenase_takhsis_code()
         if (not self.purchase_number) and self.shenase_takhsis:
             self.fill_the_purchase_number_if_we_got_shenase_takhsis()
+        if is_new:
+            self.fill_the_purchase_number_if_we_got_shenase_takhsis()
+            صص
         super().save(*args, **kwargs)
 
 

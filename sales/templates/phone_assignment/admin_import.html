@@ -3,13 +3,214 @@
 
 {% block title %}تخصیص شماره تلفن{% endblock %}
 
+{% block extra_css %}
+<style>
+    :root {
+        --main-color: #065F46;
+        --main-color-light: #10B981;
+        --main-color-dark: #064E3B;
+        --accent-color: #F59E0B;
+        --success-color: #10B981;
+        --danger-color: #EF4444;
+        --warning-color: #F59E0B;
+        --info-color: #3B82F6;
+        --light-bg: #F3F4F6;
+        --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --transition: all 0.3s ease;
+    }
+
+    .page-heading {
+        border-right: 4px solid var(--main-color);
+        padding-right: 15px;
+        margin-bottom: 20px;
+        color: var(--main-color);
+    }
+
+    .card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        transition: var(--transition);
+        margin-bottom: 25px;
+    }
+
+    .card:hover {
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .card-header {
+        background-color: var(--main-color);
+        color: white;
+        border-bottom: none;
+        padding: 15px 20px;
+    }
+
+    .card-header .card-title {
+        font-weight: 600;
+        margin-bottom: 0;
+    }
+    
+    .card-header.sub-header {
+        background-color: rgba(6, 95, 70, 0.8);
+    }
+
+    .card-body {
+        padding: 20px;
+        background-color: white;
+    }
+
+    .form-label {
+        font-weight: 500;
+        color: var(--main-color-dark);
+        margin-bottom: 8px;
+    }
+
+    .form-control, .form-select {
+        border-radius: 8px;
+        padding: 10px 15px;
+        border: 1px solid #ddd;
+        transition: var(--transition);
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--main-color);
+        box-shadow: 0 0 0 0.25rem rgba(6, 95, 70, 0.25);
+    }
+    
+    .form-text {
+        font-size: 0.85rem;
+        color: #6B7280;
+    }
+
+    .btn {
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-weight: 500;
+        transition: var(--transition);
+    }
+
+    .btn-primary {
+        background-color: var(--main-color);
+        border-color: var(--main-color);
+        color: white;
+    }
+
+    .btn-primary:hover, .btn-primary:focus {
+        background-color: var(--main-color-dark);
+        border-color: var(--main-color-dark);
+        color: white;
+    }
+
+    .btn-secondary {
+        background-color: #6B7280;
+        border-color: #6B7280;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background-color: #4B5563;
+        border-color: #4B5563;
+        color: white;
+    }
+    
+    .info-card {
+        background-color: rgba(6, 95, 70, 0.03);
+        border-right: 3px solid var(--main-color);
+    }
+    
+    .alert {
+        border-radius: 8px;
+        border: none;
+    }
+    
+    .feature-card {
+        position: relative;
+        padding: 20px 15px;
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+        transition: var(--transition);
+        border-top: 3px solid var(--main-color);
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .feature-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: rgba(6, 95, 70, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: var(--main-color);
+        margin-bottom: 15px;
+    }
+    
+    .tab-content {
+        padding: 20px;
+        background-color: white;
+        border-radius: 0 0 12px 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+    
+    .nav-tabs {
+        border-bottom: none;
+    }
+    
+    .nav-tabs .nav-link {
+        border: none;
+        border-radius: 12px 12px 0 0;
+        padding: 12px 20px;
+        font-weight: 500;
+        color: #4B5563;
+        background-color: rgba(6, 95, 70, 0.05);
+        margin-right: 5px;
+    }
+    
+    .nav-tabs .nav-link.active {
+        background-color: white;
+        color: var(--main-color);
+        box-shadow: 0 -3px 6px rgba(0, 0, 0, 0.05);
+        border-bottom: none;
+        position: relative;
+    }
+    
+    .nav-tabs .nav-link.active::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background-color: var(--main-color);
+    }
+    
+    .form-divider {
+        height: 1px;
+        background-color: #E5E7EB;
+        margin: 20px 0;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0">تخصیص شماره تلفن به کارشناسان فروش</h5>
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <h4 class="page-heading">تخصیص شماره تلفن به کارشناسان فروش</h4>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        <i class="bi bi-telephone-plus me-2"></i>فرم تخصیص شماره
+                    </h5>
                 </div>
                 <div class="card-body">
                     <form method="post" enctype="multipart/form-data">
@@ -17,82 +218,94 @@
                         
                         <!-- پیام‌های خطا -->
                         {% if form.non_field_errors %}
-                        <div class="alert alert-danger">
-                            {{ form.non_field_errors }}
+                        <div class="alert alert-danger d-flex align-items-center mb-4">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <div>{{ form.non_field_errors }}</div>
                         </div>
                         {% endif %}
                         
                         <!-- انتخاب کارشناس فروش -->
-                        <div class="form-group mb-3">
-                            <label for="{{ form.sales_agent.id_for_label }}" class="form-label">{{ form.sales_agent.label }}</label>
-                            {{ form.sales_agent }}
-                            {% if form.sales_agent.errors %}
-                            <div class="text-danger">
-                                {{ form.sales_agent.errors }}
-                            </div>
-                            {% endif %}
-                        </div>
-                        
-                        <!-- بخش آپلود اکسل -->
-                        <div class="card mb-3">
-                            <div class="card-header">
-                                <h6 class="mb-0">آپلود فایل اکسل</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="form-group">
-                                    <label for="{{ form.excel_file.id_for_label }}" class="form-label">{{ form.excel_file.label }}</label>
-                                    {{ form.excel_file }}
-                                    <small class="form-text text-muted">{{ form.excel_file.help_text }}</small>
-                                    {% if form.excel_file.errors %}
-                                    <div class="text-danger">
-                                        {{ form.excel_file.errors }}
+                        <div class="row mb-4">
+                            <div class="col-md-12">
+                                <div class="card border-0 bg-light">
+                                    <div class="card-body">
+                                        <div class="form-group">
+                                            <label for="{{ form.sales_agent.id_for_label }}" class="form-label">
+                                                <i class="bi bi-person-badge me-1"></i>{{ form.sales_agent.label }}
+                                            </label>
+                                            {{ form.sales_agent }}
+                                            {% if form.sales_agent.errors %}
+                                            <div class="text-danger mt-2">
+                                                {{ form.sales_agent.errors }}
+                                            </div>
+                                            {% endif %}
+                                        </div>
                                     </div>
-                                    {% endif %}
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- بخش کپی‌پیست شماره‌ها -->
-                        <div class="card mb-3">
-                            <div class="card-header">
-                                <h6 class="mb-0">یا وارد کردن مستقیم شماره‌ها</h6>
+                        <!-- آپلود فایل اکسل -->
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="bi bi-file-earmark-excel"></i>
                             </div>
-                            <div class="card-body">
-                                <div class="form-group">
-                                    <label for="{{ form.phone_numbers.id_for_label }}" class="form-label">{{ form.phone_numbers.label }}</label>
-                                    {{ form.phone_numbers }}
-                                    <small class="form-text text-muted">{{ form.phone_numbers.help_text }}</small>
-                                    {% if form.phone_numbers.errors %}
-                                    <div class="text-danger">
-                                        {{ form.phone_numbers.errors }}
-                                    </div>
-                                    {% endif %}
+                            <h5 class="mb-3">آپلود فایل اکسل</h5>
+                            
+                            <div class="form-group">
+                                <label for="{{ form.excel_file.id_for_label }}" class="form-label">
+                                    <i class="bi bi-upload me-1"></i>{{ form.excel_file.label }}
+                                </label>
+                                {{ form.excel_file }}
+                                <small class="form-text d-block mt-2">
+                                    <i class="bi bi-info-circle me-1"></i>فایل اکسل باید شامل ستون اول با شماره‌های تلفن باشد (فرمت‌های مجاز: xlsx, xls, csv)
+                                </small>
+                                {% if form.excel_file.errors %}
+                                <div class="text-danger mt-2">
+                                    {{ form.excel_file.errors }}
                                 </div>
+                                {% endif %}
                             </div>
                         </div>
                         
                         <!-- دکمه‌های اقدام -->
-                        <div class="form-group text-end">
-                            <button type="submit" class="btn btn-primary">تخصیص شماره‌ها</button>
-                            <a href="{% url 'admin_phone_assignment_list' %}" class="btn btn-secondary me-2">بازگشت به لیست</a>
+                        <div class="form-group text-end mt-4">
+                            <a href="{% url 'admin_phone_assignment_list' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-right me-1"></i>انصراف و بازگشت
+                            </a>
+                            <button type="submit" class="btn btn-primary ms-2">
+                                <i class="bi bi-check2-circle me-1"></i>تخصیص شماره‌ها
+                            </button>
                         </div>
                     </form>
                 </div>
             </div>
             
             <!-- راهنمای استفاده -->
-            <div class="card mt-3 shadow-sm">
-                <div class="card-header bg-info text-white">
-                    <h5 class="card-title mb-0">راهنمای استفاده</h5>
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        <i class="bi bi-info-circle me-2"></i>راهنمای استفاده
+                    </h5>
                 </div>
                 <div class="card-body">
-                    <p>برای تخصیص شماره‌های تلفن به کارشناسان فروش، می‌توانید از دو روش استفاده کنید:</p>
-                    <ol>
-                        <li>آپلود فایل اکسل حاوی شماره‌ها (شماره‌ها باید در ستون اول باشند)</li>
-                        <li>وارد کردن مستقیم شماره‌ها در کادر متنی، هر شماره در یک خط</li>
-                    </ol>
-                    <p>فرمت مجاز شماره‌ها: 09XXXXXXXXX یا 9XXXXXXXXX</p>
-                    <p class="text-danger">نکته: شماره‌هایی که قبلاً به عنوان مشتری ثبت شده‌اند یا قبلاً به کارشناسان تخصیص داده شده‌اند، مجدداً اضافه نخواهند شد.</p>
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading"><i class="bi bi-lightbulb me-2"></i>نحوه آماده‌سازی فایل اکسل:</h6>
+                        <ul class="mb-0">
+                            <li>فایل اکسل باید شامل ستون اول با شماره‌های تلفن باشد</li>
+                            <li>سایر ستون‌ها در نظر گرفته نمی‌شوند</li>
+                            <li>فرمت‌های مجاز: xlsx, xls, csv</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="alert alert-warning mt-3">
+                        <h6 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>نکات مهم:</h6>
+                        <ul class="mb-0">
+                            <li>شماره‌هایی که قبلاً به عنوان مشتری ثبت شده‌اند، مجدداً تخصیص داده نمی‌شوند</li>
+                            <li>شماره‌هایی که قبلاً به کارشناسان تخصیص داده شده‌اند، تکراری محسوب می‌شوند</li>
+                            <li>شماره‌هایی که فرمت نادرست دارند، نادیده گرفته می‌شوند</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
@@ -102,16 +315,18 @@
 
 {% block extra_js %}
 <script>
-    // استایل‌دهی به فیلدها
-    $(document).ready(function() {
-        // استایل‌دهی به سلکت‌باکس
-        $('#{{ form.sales_agent.id_for_label }}').addClass('form-select');
-        
-        // استایل‌دهی به فیلد فایل
-        $('#{{ form.excel_file.id_for_label }}').addClass('form-control');
-        
-        // استایل‌دهی به تکست‌اریا
-        $('#{{ form.phone_numbers.id_for_label }}').addClass('form-control');
-    });
+document.addEventListener('DOMContentLoaded', function() {
+    // استایل‌دهی به سلکت‌باکس و فیلدها
+    var salesAgentSelect = document.getElementById('{{ form.sales_agent.id_for_label }}');
+    var excelFileInput = document.getElementById('{{ form.excel_file.id_for_label }}');
+    
+    if (salesAgentSelect) {
+        salesAgentSelect.classList.add('form-select');
+    }
+    
+    if (excelFileInput) {
+        excelFileInput.classList.add('form-control');
+    }
+});
 </script>
 {% endblock %} 

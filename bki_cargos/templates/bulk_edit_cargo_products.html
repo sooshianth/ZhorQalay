@@ -389,6 +389,34 @@
 
             <div class="edit-section">
                 <div class="edit-section-header">
+                    <h3 class="edit-section-title">تغییر کشور مبدا</h3>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="checkbox-wrapper">
+                            <input type="checkbox" id="enable_country" name="enable_country">
+                            <span class="checkmark"></span>
+                            <span class="checkbox-label">تغییر کشور مبدا</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="country_options" style="display: none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="country">کشور مبدا:</label>
+                            <select id="country" name="country" class="form-control">
+                                <option value="">انتخاب کنید</option>
+                                {% for value, label in countries %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="edit-section">
+                <div class="edit-section-header">
                     <h3 class="edit-section-title">تغییر اطلاعات بارگیری</h3>
                 </div>
                 <div class="form-row">
@@ -463,6 +491,11 @@
         // تغییر قیمت
         document.getElementById('enable_price').addEventListener('change', function() {
             document.getElementById('price_options').style.display = this.checked ? 'block' : 'none';
+        });
+
+        // تغییر کشور
+        document.getElementById('enable_country').addEventListener('change', function() {
+            document.getElementById('country_options').style.display = this.checked ? 'block' : 'none';
         });
 
         // تغییر اطلاعات بارگیری
