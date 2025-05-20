@@ -180,7 +180,7 @@ def get_default_templates():
     تولید قالب‌های پیش‌فرض برای وضعیت‌های مختلف خرید
     """
     return {
-        'INITIATED': 'مشتری گرامی {{customer_name}}، \nخرید جدید شما با شماره {{purchase_number}} با موفقیت ثبت شد. \nنوع کالا: {{product_type}} {{product_country}}\nوزن: {{order_weight}} کیلوگرم\nقیمت: {{customer_price}} ریال',
+        'INITIATED': 'مشتری گرامی {{customer.name}}خرید شما به شماره {{purchase.number}} ،{{product.type}} به وزن {{order.weight}} در بازارگاه به صورت نقدی ثبت گردید.✅لطفاً هر چه سریع‌تر نسبت به ثبت آدرس خود جهت ارسال بار اقدام فرمایید.از خرید و اعتماد شما سپاسگزاریم و امیدواریم تجربه‌ای عالی برایتان رقم بزنیم 💚جهت پیگیری وضعیت سفارش خود، لطفاً با شماره ثابت دفتر (داخلی ۳) تماس بگیرید:۰۲۱-۶۶۵۶۲۲۱۶ ☎️شرکت تامین نهاده سیمرغ',
         'SMS_SENT': 'مشتری گرامی {{customer_name}}، \nکالای {{product_type}} {{product_country}} به وزن {{order_weight}} کیلوگرم و قیمت {{customer_price}} ریال برای شما ثبت شد. کوتاژ: {{cottage}}',
         'PAYMENT_VERIFIED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} در بازارگاه تایید شد. نوع کالا: {{product_type}} {{product_country}}',
         'ALLOCATION_APPROVED': 'مشتری گرامی {{customer_name}}، \nشناسه تخصیص برای خرید شما با شماره {{purchase_number}} تایید شد.',

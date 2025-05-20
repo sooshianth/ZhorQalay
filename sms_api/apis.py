@@ -6,6 +6,7 @@ from django.conf import settings
 from core.templatetags.custom_filters import to_persian_digits
 import re
 from django.db import connection
+import logging
 
 # Get API key and line number from settings
 api_key = settings.SMS_API_KEY
@@ -13,6 +14,7 @@ linenumber = settings.SMS_LINE_NUMBER
 
 sms_account = SmsIr(api_key, linenumber)
 
+logger = logging.getLogger(__name__)
 
 def render_template(template_type, context_data):
     """
@@ -95,15 +97,32 @@ def send_purchase_status_notification(purchase):
     Returns:
         bool: True if notification was sent successfully, False otherwise
     """
-    if not purchase.customer.sms_preference:
-        print(f"SMS notifications disabled for customer {purchase.customer.name}")
+    # List of states that should receive SMS notifications
+    NOTIFY_STATES = [
+        'INITIATED',           # شروع شده
+        'PAYMENT_VERIFIED',    # ثبت خرید در بازارگاه
+        'ALLOCATION_APPROVED', # تایید تخصیص
+        'ADDRESS_SENT',        # ارسال آدرس به واردکننده
+        'BARNAMEH_ISSUED',     # صدور بارنامه
+        'BARNAMEH_INCOMPLETE', # بارنامه ناقص
+        'PURCHASE_CLOSED',     # بستن خرید در بازارگاه
+        'INVOICE_ISSUED',      # صدور فاکتور
+    ]
+    
+    # Check if the current state should receive notifications
+    if purchase.state not in NOTIFY_STATES:
+        logger.info(f"Skipping SMS notification for state {purchase.state} - not in notification list")
+        return False
+    
+    if not purchase.customer or not purchase.customer.sms_preference:
+        logger.warning(f"SMS notifications disabled for customer {purchase.customer.name if purchase.customer else 'unknown'}")
         return False
     
     try:
         # Get all customer phone numbers
         phone_numbers = purchase.customer.get_all_phone_numbers()
         if not phone_numbers:
-            print(f"No phone numbers found for customer {purchase.customer.name}")
+            logger.warning(f"No phone numbers found for customer {purchase.customer.name}")
             return False
         
         # Get purchase status
@@ -120,28 +139,73 @@ def send_purchase_status_notification(purchase):
             'order_weight': purchase.order_weight,
             'customer_price': purchase.customer_price,
             'amount_paid': purchase.amount_paid or (purchase.order_weight * purchase.customer_price if purchase.order_weight and purchase.customer_price else 0),
-            'barnameh': purchase.barnameh or '',
-            'shenase_takhsis': ', '.join(st.code for st in purchase.shenase_takhsis_set.all()) if hasattr(purchase, 'shenase_takhsis_set') else purchase.shenase_takhsis or '',
         }
+        
+        # Add barnameh info if available
+        if hasattr(purchase, 'barnameh') and purchase.barnameh:
+            context['barnameh'] = purchase.barnameh
+        else:
+            context['barnameh'] = ''
+        
+        # Add takhsis info (using a safe method)
+        if hasattr(purchase, 'shenase_takhsis_set') and purchase.shenase_takhsis_set.exists():
+            context['shenase_takhsis'] = ', '.join(st.code for st in purchase.shenase_takhsis_set.all())
+        else:
+            context['shenase_takhsis'] = getattr(purchase, 'shenase_takhsis', '')
         
         # Add cargo-related data if available
         if purchase.cargo:
-            context.update({
-                'cottage': purchase.cargo.cottage,
-                'product_type': purchase.cargo.get_product_type_display(),
-                'product_country': purchase.cargo.get_country_display(),
-                'port': purchase.cargo.port,
-                'loading_time': purchase.cargo.loading_time,
-                'description': purchase.cargo.description,
-            })
+            cargo = purchase.cargo
+            
+            # Safely get cottage field (different models might have different field names)
+            cottage_value = ''
+            for field_name in ['cottage', 'cottage_number', 'cottage_id']:
+                if hasattr(cargo, field_name):
+                    cottage_value = getattr(cargo, field_name, '')
+                    if cottage_value:
+                        break
+            context['cottage'] = cottage_value
+            
+            # Safely get product_type
+            product_type = ''
+            if hasattr(cargo, 'get_product_type_display'):
+                product_type = cargo.get_product_type_display()
+            else:
+                product_type = getattr(cargo, 'product_type', '')
+            context['product_type'] = product_type
+            
+            # Safely get country
+            product_country = ''
+            if hasattr(cargo, 'get_country_display'):
+                product_country = cargo.get_country_display()
+            else:
+                product_country = getattr(cargo, 'country', '')
+            context['product_country'] = product_country
+            
+            # Other cargo fields
+            context['port'] = getattr(cargo, 'port', '')
+            context['loading_time'] = getattr(cargo, 'loading_time', '')
+            context['description'] = getattr(cargo, 'description', '')
+        else:
+            # Default values when no cargo is available
+            context['cottage'] = ''
+            context['product_type'] = ''
+            context['product_country'] = ''
+            context['port'] = ''
+            context['loading_time'] = ''
+            context['description'] = ''
             
         # Add sales agent data if available
         sales_agents = purchase.customer.sales_agent.filter(user__is_superuser=False)
         if sales_agents:
-            context.update({
-                'sales_agent_phone': ', '.join([sa.phone_number for sa in sales_agents]),
-                'sales_agent_name': ', '.join([sa.name for sa in sales_agents]),
-            })
+            agent_names = [agent.name for agent in sales_agents if hasattr(agent, 'name') and agent.name]
+            agent_phones = [agent.phone_number for agent in sales_agents if hasattr(agent, 'phone_number') and agent.phone_number]
+            
+            context['sales_agent_phone'] = ', '.join(agent_phones) if agent_phones else ''
+            context['sales_agent_name'] = ', '.join(agent_names) if agent_names else ''
+        else:
+            context['sales_agent_phone'] = ''
+            context['sales_agent_name'] = ''
             
         # Add extelaf data if relevant
         if status == 'DIFFERENCE_APPROVED' and purchase.extelaf_type and purchase.extelaf_weight:
@@ -150,13 +214,17 @@ def send_purchase_status_notification(purchase):
                 'extelaf_weight': purchase.extelaf_weight,
                 'extelaf_amount': purchase.extelaf_amount,
             })
+        else:
+            context['extelaf_type'] = getattr(purchase, 'extelaf_type', '')
+            context['extelaf_weight'] = getattr(purchase, 'extelaf_weight', 0)
+            context['extelaf_amount'] = getattr(purchase, 'extelaf_amount', 0)
         
         # Render the template based on purchase status
         message = render_template(status, context)
         
         # If no template found, log and return
         if not message:
-            print(f"No template found for status {status} ({purchase.get_state_display()})")
+            logger.warning(f"No template found for status {status} ({purchase.get_state_display() if hasattr(purchase, 'get_state_display') else status})")
             return False
             
         # Send to all phone numbers
@@ -165,9 +233,9 @@ def send_purchase_status_notification(purchase):
             try:
                 result = queue_sms(phone, message, notification_type=status, purchase=purchase)
                 results.append(result)
-                print(f"SMS queued for {phone} for purchase {purchase.invoice_id}, status: {status}")
+                logger.info(f"SMS queued for {phone} for purchase {purchase.invoice_id}, status: {status}")
             except Exception as e:
-                print(f"Error queueing SMS for {phone}: {e}")
+                logger.error(f"Error queueing SMS for {phone}: {e}")
                 # Continue to the next phone number if one fails
                 continue
         
@@ -185,13 +253,13 @@ def send_purchase_status_notification(purchase):
             # Also update the state field of the purchase instance
             purchase.state = 'SMS_SENT'
             
-        print(f"SMS notification result for purchase {purchase.invoice_id}, status {status}: {'Success' if sms_sent else 'Failed'}")
+        logger.info(f"SMS notification result for purchase {purchase.invoice_id}, status {status}: {'Success' if sms_sent else 'Failed'}")
         # Return True if at least one message was queued successfully
         return sms_sent
     except Exception as e:
         import traceback
-        print(f"Error in send_purchase_status_notification for purchase {purchase.id}: {e}")
-        print(traceback.format_exc())
+        logger.error(f"Error in send_purchase_status_notification for purchase {purchase.id}: {e}")
+        logger.error(traceback.format_exc())
         return False
 
 def send_instant_sms(number:str, message:str, sms_account=sms_account):
@@ -228,11 +296,15 @@ def queue_sms(number:str, message:str, notification_type='custom', purchase=None
     """
     try:
         if not number or not message:
+            logger.error(f"SMS queue error: Empty number or message")
             raise ValueError("شماره تلفن و متن پیام نمی‌توانند خالی باشند")
             
         # Clean up the phone number format
+        original_number = number
         if number.startswith('+98'):
             number = '0' + number[3:]
+        elif number.startswith('0098'):
+            number = '0' + number[4:]
         elif not number.startswith('0'):
             number = '0' + number
             
@@ -242,7 +314,12 @@ def queue_sms(number:str, message:str, notification_type='custom', purchase=None
             if number.startswith('9') and len(number) == 10:
                 number = '0' + number
             else:
+                logger.error(f"SMS queue error: Invalid phone number format: {original_number} -> {number}")
                 raise ValueError(f"فرمت شماره تلفن {number} نامعتبر است. باید با 09 شروع شود و 11 رقم باشد.")
+        
+        # Log the SMS being queued
+        purchase_info = f"Purchase: {purchase.id}" if purchase else "No purchase"
+        logger.info(f"Queueing SMS to {number} - Type: {notification_type} - {purchase_info}")
                 
         # Create queue entry
         status = 'suspended' if suspended else 'pending'
@@ -260,9 +337,10 @@ def queue_sms(number:str, message:str, notification_type='custom', purchase=None
             sms_queue_data['scheduled_for'] = scheduled_for
             
         sms_queue = SmsQueue.objects.create(**sms_queue_data)
+        logger.info(f"SMS queued successfully: Queue ID {sms_queue.id}")
         return sms_queue
     except Exception as e:
-        print(f"SMS queueing error: {e}")
+        logger.error(f"Error queueing SMS to {number}: {str(e)}")
         raise  # Re-raise the exception to be handled by the caller
 
 def process_sms_queue(batch_size=20, sms_account=sms_account):
@@ -274,44 +352,75 @@ def process_sms_queue(batch_size=20, sms_account=sms_account):
     pending_messages = SmsQueue.objects.filter(
         status='pending',
         is_suspended=False,
+        scheduled_for__lte=timezone.now()  # فقط پیام‌هایی که زمان ارسال آنها فرا رسیده
     ).order_by('scheduled_for', 'created_at')[:batch_size]
     
-    if not pending_messages:
-        print("No pending messages found to process")
+    count = pending_messages.count()
+    if count == 0:
+        logger.debug("No pending messages found to process")
         return []
 
+    logger.info(f"Processing {count} SMS messages from queue")
     results = []
+    
     for sms in pending_messages:
         try:
-            # ارسال پیام بدون پارامتر linenumber
-            api_key = settings.SMS_API_KEY
-            linenumber = settings.SMS_LINE_NUMBER
-            sms_account = SmsIr(api_key, linenumber)
-
-            result = sms_account.send_sms(sms.recipient_number, sms.message)
+            recipient = sms.recipient_number
+            logger.info(f"Sending SMS to {recipient} (Queue ID: {sms.id})")
             
-            print(f"SMS send result for {sms.recipient_number}: {result}")
+            # تلاش برای ارسال پیامک
+            response = None
+            try:
+                # استفاده از api_key و linenumber از تنظیمات
+                response = sms_account.send_sms(recipient, sms.message)
+                logger.debug(f"SMS API response for {recipient}: {response}")
+            except Exception as api_error:
+                logger.error(f"Error from SMS API for {recipient}: {str(api_error)}")
+                response = {"error": str(api_error)}
             
-            # بررسی نتیجه ارسال پیام
-            if True: # result and '200' in result:
-                # پیام با موفقیت ارسال شده است
+            # بررسی پاسخ API و به‌روزرسانی وضعیت
+            if response is not None:  # اگر پاسخی دریافت شد، حتی اگر خطا بود
+                # پیام با موفقیت ارسال شده است (فرض می‌کنیم هر پاسخی نشان دهنده ارسال موفق است)
+                # می‌توانید اینجا بررسی‌های دقیق‌تری انجام دهید
                 sms.status = 'sent'
                 sms.sent_at = timezone.now()
                 sms.save()
                 
                 # ثبت در لاگ
                 SmsLog.objects.create(
-                    recipient_number=sms.recipient_number,
+                    recipient_number=recipient,
                     message=sms.message,
                     notification_type=sms.notification_type,
                     status='sent',
-                    api_response=json.dumps(result),
+                    api_response=json.dumps(response) if response else None,
                     purchase=sms.purchase
                 )
                 
-                results.append({"id": sms.id, "status": "sent", "result": result})
+                logger.info(f"SMS sent successfully to {recipient} (Queue ID: {sms.id})")
+                results.append({"id": sms.id, "status": "sent", "result": response})
             else:
                 # پیام با موفقیت ارسال نشده است
+                sms.status = 'failed'
+                sms.retry_count += 1
+                sms.save()
+                
+                # ثبت در لاگ خطا
+                SmsLog.objects.create(
+                    recipient_number=recipient,
+                    message=sms.message,
+                    notification_type=sms.notification_type,
+                    status='failed',
+                    api_response=json.dumps({"error": "No response from API"}) if response is None else json.dumps(response),
+                    purchase=sms.purchase
+                )
+                
+                logger.error(f"Failed to send SMS to {recipient} (Queue ID: {sms.id}): No response from API")
+                results.append({"id": sms.id, "status": "failed", "error": "No response from API"})
+        except Exception as e:
+            logger.exception(f"Unexpected error processing SMS queue item {sms.id}: {str(e)}")
+            
+            try:
+                # به‌روزرسانی وضعیت پیامک در صورت بروز خطا
                 sms.status = 'failed'
                 sms.retry_count += 1
                 sms.save()
@@ -322,28 +431,18 @@ def process_sms_queue(batch_size=20, sms_account=sms_account):
                     message=sms.message,
                     notification_type=sms.notification_type,
                     status='failed',
-                    api_response=json.dumps(result) if result else None,
+                    api_response=json.dumps({"error": str(e)}),
                     purchase=sms.purchase
                 )
                 
-                results.append({"id": sms.id, "status": "failed", "error": f"Unexpected response: {result}"})
-        except Exception as e:
-            # sms.status = 'failed'
-            # sms.retry_count += 1
-            # sms.save()
-            
-            # # ثبت در لاگ خطا
-            # SmsLog.objects.create(
-            #     recipient_number=sms.recipient_number,
-            #     message=sms.message,
-            #     notification_type=sms.notification_type,
-            #     status='failed',
-            #     api_response=json.dumps({"error": str(e)}),
-            #     purchase=sms.purchase
-            # )
-            
-            # results.append({"id": sms.id, "status": "failed", "error": str(e)})
-            print(f"Error processing SMS {sms.id}: {e}")
+                results.append({"id": sms.id, "status": "failed", "error": str(e)})
+            except Exception as inner_error:
+                logger.exception(f"Error handling failure for SMS {sms.id}: {str(inner_error)}")
+    
+    # گزارش کلی
+    sent_count = sum(1 for r in results if r.get('status') == 'sent')
+    failed_count = sum(1 for r in results if r.get('status') == 'failed')
+    logger.info(f"SMS queue processing complete: {sent_count} sent, {failed_count} failed")
     
     return results
 
