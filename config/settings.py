@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'sms_api.apps.SmsApiConfig',
     'chat.apps.ChatConfig',
     'HR.apps.HRConfig',
+    'todo.apps.TodoConfig',
     'bki_api.apps.BkiApiConfig',
     'bki_barnameh.apps.BkiBarnamehConfig',
     'bki_cargos.apps.BkiCargosConfig',

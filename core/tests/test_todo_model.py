@@ -2,7 +2,7 @@ import pytest
 from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
-from core.ToDoModel import ToDoItem
+from todo.ToDoModel import ToDoItem
 
 
 @pytest.mark.unit

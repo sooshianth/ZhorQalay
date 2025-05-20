@@ -15,6 +15,7 @@ urlpatterns = [
     path('hr/', include('HR.urls')),
     path('sms/', include('sms_api.urls')),
     path('sms/dashborad', sms_dashboard, name='sms-dashboard'),
+    path('todo/', include('todo.urls')),
     path('', home_view.home_view, name='home_view'),
     path('login/', home_view.unified_login_view, name='unified_login'),
     path('cargos/', include('bki_cargos.urls')),
