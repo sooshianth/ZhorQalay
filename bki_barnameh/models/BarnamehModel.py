@@ -71,9 +71,9 @@ class Barnameh(models.Model):
     
     def fill_the_purchase_number_if_we_got_shenase_takhsis(self):
         try:
-            if self.shenase_takhsis:
+            if self.shenase_takhsis and not self.shenase_takhsis_code:
                 self.shenase_takhsis_code=self.shenase_takhsis.code
-            if self.shenase_takhsis_code:
+            if self.shenase_takhsis_code and (not self.purchase_number or not self.purchase):
                 self.shenase_takhsis_code=str(round(int(self.shenase_takhsis_code)))
                 purchase=ShenaseTakhsis.objects.get(code=self.shenase_takhsis_code).purchase
                 self.purchase_number=purchase.purchase_number
@@ -91,9 +91,10 @@ class Barnameh(models.Model):
             self.fill_the_purchase_number_if_we_got_shenase_takhsis()
         if is_new:
             self.fill_the_purchase_number_if_we_got_shenase_takhsis()
-        if self.purchase:
-            if self.purchase.status in ['INITIATED', 'SMS_SENT', 'PAYMENT_VERIFIED', 'ALLOCATION_APPROVED', 'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH']:
-                self.status = 'BARNAMEH_INCOMPLETE'
+        # if self.purchase:
+        #     if self.purchase.state in ['INITIATED', 'SMS_SENT', 'PAYMENT_VERIFIED', 'ALLOCATION_APPROVED', 'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH']:
+        #         self.purchase.state = 'BARNAMEH_INCOMPLETE'
+        #         self.purchase.save()
         super().save(*args, **kwargs)
 
 
