@@ -205,7 +205,7 @@ def toggle_favorite(request):
 def get_sms_templates(request):
     """دریافت قالب‌های پیامک برای استفاده در صفحه لیست مشتریان"""
     # فقط قالب‌های custom را برمی‌گردانیم
-    templates = SmsTemplate.objects.filter(is_active=True).order_by('-updated_at')
+    templates = SmsTemplate.objects.filter(is_for_salesmen=True).order_by('-updated_at')
     
     # تبدیل قالب‌ها به فرمت مناسب برای JSON
     templates_list = []
@@ -355,7 +355,7 @@ def get_active_products(request):
         products_list.append({
             'id': product.id,
             'cottage': product.cottage,
-            'product_type': product.product_type,
+            'product_type': product.type,
             'product_type_display': product.get_product_type_display(),
             'country': product.country,
             'country_display': product.get_country_display(),

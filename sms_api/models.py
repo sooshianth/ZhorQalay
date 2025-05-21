@@ -88,7 +88,8 @@ class SmsTemplate(models.Model):
     is_active = models.BooleanField(default=True, verbose_name="فعال")
     created_at = jmodels.jDateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
     updated_at = jmodels.jDateTimeField(auto_now=True, verbose_name="تاریخ بروزرسانی")
-    
+    is_for_salesmen = models.BooleanField(default=False, verbose_name="برای کارشناس فروش")
+
     def __str__(self):
         return f"{self.name} ({self.get_status_display()})"
         
