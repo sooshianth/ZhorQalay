@@ -157,7 +157,7 @@
                 <tbody>
                     {% for log in logs %}
                     <tr>
-                        <td>{{ log.timestamp|date:"Y/m/d H:i:s" }}</td>
+                        <td>{{ log.sent_at|date:"Y/m/d H:i:s" }}</td>
                         <td>{{ log.action }}</td>
                         <td>
                             <span class="log-status status-{{ log.status }}">{{ log.get_status_display }}</span>

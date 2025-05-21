@@ -1236,7 +1236,7 @@ def get_templates_for_status(request):
 def sms_detail(request, sms_id):
     """نمایش جزئیات پیامک"""
     sms = get_object_or_404(SmsQueue, id=sms_id)
-    logs = SmsLog.objects.filter(recipient_number=sms.recipient_number).order_by('-timestamp')
+    logs = SmsLog.objects.filter(recipient_number=sms.recipient_number).order_by('-sent_at')
     
     context = {
         'sms': sms,

@@ -21,6 +21,7 @@ def mark_notification_read(request, notification_id):
         return JsonResponse({'status': 'success'})
     
     return redirect('sales_agent_profile')
+
 @login_required
 @require_POST
 def mark_all_notifications_read(request):

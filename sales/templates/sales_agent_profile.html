@@ -58,10 +58,19 @@
         display: flex;
         align-items: center;
         gap: 0.75rem;
+        order: 1; /* تنظیم ترتیب عناصر */
     }
     
     .dashboard-title i {
         color: var(--primary-color);
+    }
+    
+    /* اضافه کردن کلاس جدید برای header-actions */
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        order: 2; /* تنظیم ترتیب عناصر */
     }
     
     /* Notification System */
@@ -149,6 +158,7 @@
     .notification-center {
         position: relative;
         margin-right: 1rem;
+        margin-left: 0;
     }
     
     .notification-bell {
@@ -174,7 +184,8 @@
     .notification-dropdown {
         position: absolute;
         top: 50px;
-        right: 0;
+        left: 0;  /* تغییر از راست به چپ */
+        right: auto; /* حذف راست */
         width: 360px;
         background: var(--card-bg);
         border-radius: 12px;
@@ -592,6 +603,49 @@
         margin-top: 16px;
     }
     
+    /* دکمه‌های پنل مدیریت و چت */
+    .admin-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 16px;
+        border-radius: 8px;
+        background-color: white;
+        color: green;
+        border: 1px solid green;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        gap: 8px;
+        font-weight: 500;
+    }
+    
+    .admin-btn:hover {
+        background-color: #f0fff0;
+        box-shadow: 0 2px 5px rgba(0, 128, 0, 0.2);
+    }
+    
+    .chat-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 16px;
+        border-radius: 8px;
+        background-color: var(--info-color);
+        color: white;
+        border: none;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        gap: 8px;
+        font-weight: 500;
+    }
+    
+    .chat-btn:hover {
+        background-color: var(--info-hover);
+        box-shadow: 0 2px 5px rgba(79, 70, 229, 0.3);
+    }
+    
     /* Responsive Styles */
     @media (max-width: 768px) {
         .profile-container {
@@ -617,38 +671,40 @@
         پروفایل کارشناس فروش
     </h1>
 
-<div class="notification-center">
-    <div class="notification-bell" id="notificationBell">
-        <span class="badge" id="notificationCount">{{ notifications.count }}</span>
-        <i class="fas fa-bell"></i>
-    </div>
-    <div class="notification-dropdown" id="notificationDropdown">
-        <div class="notification-header">
-            <h4>نوتیفیکیشن‌ها</h4>
-            <form method="post" action="{% url 'delete_all_notification' %}" class="mt-2">
-                {% csrf_token %}
-                <button type="submit" class="text-blue-500 hover:underline text-sm">خواندن همه</button>
-            </form>
-        </div>
-        <div class="notification-list" id="notificationList">
-            {% for notification in notifications %}
-            <div class="notification-item {% if notification.is_read %}read{% endif %}" 
-                 data-notification-id="{{ notification.id }}">
-                <div class="notification-icon">
-                    <i class="fas fa-{{ notification.icon|default:'info-circle' }}"></i>
-                </div>
-                <div class="notification-content">
-                    <p>{{ notification.message }}</p>
-                    <small>{{ notification.created_at|timesince }} پیش</small>
-                </div>
-                <form method="post" action="{% url 'delete_notification' notification.id %}" class="mt-2">
-                    {% csrf_token %}
-                    <button type="submit" class="text-blue-500 hover:underline text-sm" onclick="event.stopPropagation();">
-                        خواندم
-                    </button>
-                </form>
+    <div class="header-actions">
+        <div class="notification-center">
+            <div class="notification-bell" id="notificationBell">
+                <span class="badge" id="notificationCount">{{ notifications.count }}</span>
+                <i class="fas fa-bell"></i>
             </div>
-            {% endfor %}
+            <div class="notification-dropdown" id="notificationDropdown">
+                <div class="notification-header">
+                    <h4>نوتیفیکیشن‌ها</h4>
+                    <form method="post" action="{% url 'delete_all_notification' %}" class="mt-2">
+                        {% csrf_token %}
+                        <button type="submit" class="text-blue-500 hover:underline text-sm">خواندن همه</button>
+                    </form>
+                </div>
+                <div class="notification-list" id="notificationList">
+                    {% for notification in notifications %}
+                    <div class="notification-item {% if notification.is_read %}read{% endif %}" 
+                         data-notification-id="{{ notification.id }}">
+                        <div class="notification-icon">
+                            <i class="fas fa-{{ notification.icon|default:'info-circle' }}"></i>
+                        </div>
+                        <div class="notification-content">
+                            <p>{{ notification.message }}</p>
+                            <small>{{ notification.created_at|timesince }} پیش</small>
+                        </div>
+                        <form method="post" action="{% url 'delete_notification' notification.id %}" class="mt-2">
+                            {% csrf_token %}
+                            <button type="submit" class="text-blue-500 hover:underline text-sm" onclick="event.stopPropagation();">
+                                خواندم
+                            </button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
     </div>
@@ -691,9 +747,11 @@
             <a href="{% url 'enhanced_customer_list' %}" class="btn btn-success">
                 <i class="fas fa-users"></i> لیست پیشرفته مشتریان
             </a>
-            {% comment %} <a href="{% url 'sales_dashboard' %}" class="btn btn-info">
-                <i class="fas fa-chart-line"></i> مشاهده داشبورد فروش
-            </a> {% endcomment %}
+            {% if request.user.is_superuser or request.user.is_staff %}
+            <a href="{% url 'admin:index' %}" class="admin-btn">
+                <i class="fas fa-user-shield"></i> پنل مدیریت
+            </a>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -1753,6 +1811,39 @@ document.addEventListener('DOMContentLoaded', function() {
         item.addEventListener('dragleave', dragLeave);
         item.addEventListener('drop', drop);
     });
+});
+
+// کد برای کنترل دکمه چت
+document.addEventListener('DOMContentLoaded', function() {
+    const chatButton = document.getElementById('customChatButton');
+    if (chatButton) {
+        chatButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // اگر تابع از قبل تعریف شده باشد، از آن استفاده می‌کنیم
+            if (typeof window.toggleChatWindow === 'function') {
+                window.toggleChatWindow();
+            } else {
+                // در غیر این صورت، خودمان پنجره چت را نمایش می‌دهیم
+                const chatWindow = document.querySelector('.chat-window');
+                if (chatWindow) {
+                    // تغییر وضعیت نمایش
+                    const isVisible = chatWindow.style.display === 'flex';
+                    chatWindow.style.display = isVisible ? 'none' : 'flex';
+                    
+                    // اگر پنجره باز شده، کارهای اضافی انجام می‌دهیم
+                    if (!isVisible) {
+                        // بارگذاری لیست کاربران و... (اگر توابع مربوطه تعریف شده باشد)
+                        if (typeof window.loadUserList === 'function') {
+                            window.loadUserList();
+                        }
+                    }
+                } else {
+                    console.error('پنجره چت پیدا نشد. ممکن است مشکلی در بارگذاری وجود داشته باشد.');
+                }
+            }
+        });
+    }
 });
 </script>
 {% endblock %}

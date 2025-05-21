@@ -141,11 +141,19 @@ def sales_agent_profile_view(request):
 def delete_unpaid_purchase(request, purchase_id):
     if not hasattr(request.user, 'sales_agent'):
         return HttpResponse("Unauthorized", status=403)
+    
     sales_agent = request.user.sales_agent
-    # فقط خریدهای unpaid متعلق به همین کارشناس
-    purchase = sales_agent.get_all_unpaid_sales().filter(id=purchase_id).first()
-    if not purchase:
-        return HttpResponse("خرید یافت نشد یا قابل حذف نیست.", status=404)
-    purchase.delete()
-    messages.success(request, "خرید با موفقیت حذف شد.")
+    # Get the specific unpaid purchase that belongs to this sales agent
+    purchase = get_object_or_404(Purchase, 
+                               id=purchase_id,
+                               customer__sales_agent=sales_agent,
+                               state__in=['INITIATED', 'SMS_SENT'])
+    
+    try:
+        purchase.delete()
+        messages.success(request, "خرید با موفقیت حذف شد.")
+    except Exception as e:
+        logger.error(f"Error deleting purchase {purchase_id}: {str(e)}")
+        messages.error(request, "خطا در حذف خرید. لطفاً مجدداً تلاش کنید.")
+    
     return redirect('sales_agent_profile')
