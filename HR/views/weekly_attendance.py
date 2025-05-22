@@ -11,7 +11,9 @@ import datetime
 import jdatetime
 from django.contrib.auth.models import User
 from ..EmployeeModel import Employee
+from core.decorators.decorators import role_required
 
+@role_required('employee', 'admin')
 @login_required
 def daily_attendance_view(request):
     if request.method == 'POST':
@@ -212,6 +214,7 @@ def daily_attendance_view(request):
         'q': q
     })
 
+@role_required('employee', 'admin')
 @login_required
 def download_attendance_report(request):
     attendances = WeeklyAttendance.objects.filter(employee=request.user).order_by('-week_start_date')
@@ -245,6 +248,7 @@ def download_attendance_report(request):
 
     return response
 
+@role_required('employee', 'admin')
 @login_required
 def pending_approvals_view(request):
     if request.user.is_superuser:
@@ -321,6 +325,7 @@ def pending_approvals_view(request):
         'pending_attendances': pending_data
     })
 
+@role_required('employee', 'admin')
 @login_required
 def approve_attendance(request, attendance_id):
     attendance = get_object_or_404(WeeklyAttendance, id=attendance_id)
@@ -361,6 +366,7 @@ def approve_attendance(request, attendance_id):
 
     return redirect('pending_approvals')
 
+@role_required('admin')
 @login_required
 def attendance_summary_view(request):
     # فقط ادمین مجاز به دیدن این صفحه است
