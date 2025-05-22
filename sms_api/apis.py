@@ -99,7 +99,6 @@ def send_purchase_status_notification(purchase):
     """
     # List of states that should receive SMS notifications
     NOTIFY_STATES = [
-        'INITIATED',           # شروع شده
         'PAYMENT_VERIFIED',    # ثبت خرید در بازارگاه
         'ALLOCATION_APPROVED', # تایید تخصیص
         'ADDRESS_SENT',        # ارسال آدرس به واردکننده
@@ -116,6 +115,21 @@ def send_purchase_status_notification(purchase):
     
     if not purchase.customer or not purchase.customer.sms_preference:
         logger.warning(f"SMS notifications disabled for customer {purchase.customer.name if purchase.customer else 'unknown'}")
+        return False
+    
+    # پراپرتی status را از purchase.state پر میکنیم
+    status = purchase.state
+    
+    # بررسی اینکه آیا قبلا برای این وضعیت پیامک ارسال شده است یا خیر
+    from core.PurchaseModel import PurchaseStateChange
+    already_sent = PurchaseStateChange.objects.filter(
+        purchase=purchase, 
+        new_state=status,
+        sms_sent=True
+    ).exists()
+    
+    if already_sent:
+        logger.info(f"SMS already sent for purchase {purchase.id}, state {status}")
         return False
     
     try:

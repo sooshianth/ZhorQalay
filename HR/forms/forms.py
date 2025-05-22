@@ -1,6 +1,7 @@
 from django import forms
 from HR.EmployeeAttendanceModel import WeeklyAttendance
 from django.contrib.auth.models import User
+from HR.EmployeeModel import Employee
 from django.utils.translation import gettext_lazy as _
 import jdatetime
 from datetime import datetime, timedelta
@@ -35,21 +36,21 @@ class MultipleFileField(forms.FileField):
 
 class WeeklyAttendanceForm(forms.ModelForm):
     approved_by_user1 = forms.ModelChoiceField(
-        queryset=User.objects.all(),
+        queryset=Employee.objects.all(),
         required=False,
-        label="تایید توسط کاربر 1",
+        label="تایید توسط کارمند 1",
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     approved_by_user2 = forms.ModelChoiceField(
-        queryset=User.objects.all(),
+        queryset=Employee.objects.all(),
         required=False,
-        label="تایید توسط کاربر 2",
+        label="تایید توسط کارمند 2",
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     approved_by_user3 = forms.ModelChoiceField(
-        queryset=User.objects.all(),
+        queryset=Employee.objects.all(),
         required=False,
-        label="تایید توسط کاربر 3",
+        label="تایید توسط کارمند 3",
         widget=forms.Select(attrs={'class': 'form-control'})
     )
 
@@ -105,21 +106,21 @@ class DailyAttendanceForm(forms.Form):
         label=_("مستندات")
     )
     approved_by_user1 = forms.ModelChoiceField(
-        queryset=User.objects.all(),
+        queryset=Employee.objects.all(),
         required=True,
-        label=_("تأیید توسط کاربر ۱"),
+        label=_("تأیید توسط کارمند ۱"),
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     approved_by_user2 = forms.ModelChoiceField(
-        queryset=User.objects.all(),
+        queryset=Employee.objects.all(),
         required=True,
-        label=_("تأیید توسط کاربر ۲"),
+        label=_("تأیید توسط کارمند ۲"),
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     approved_by_user3 = forms.ModelChoiceField(
-        queryset=User.objects.all(),
+        queryset=Employee.objects.all(),
         required=True,
-        label=_("تأیید توسط کاربر ۳"),
+        label=_("تأیید توسط کارمند ۳"),
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     
@@ -137,8 +138,16 @@ class DailyAttendanceForm(forms.Form):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         if user:
-            # حذف کاربر فعلی و کاربران ادمین از لیست تاییدکنندگان
-            available_approvers = User.objects.exclude(is_superuser=True).exclude(id=user.id)
+            # حذف کارمند فعلی از لیست تاییدکنندگان
+            try:
+                # ابتدا سعی می‌کنیم کارمند متناظر با کاربر فعلی را پیدا کنیم
+                current_employee = Employee.objects.get(user=user)
+                # همه کارمندان را می‌گیریم به جز کارمند فعلی
+                available_approvers = Employee.objects.exclude(id=current_employee.id)
+            except Employee.DoesNotExist:
+                # اگر کاربر فعلی کارمند نیست، همه کارمندان را نمایش می‌دهیم
+                available_approvers = Employee.objects.all()
+                
             self.fields['approved_by_user1'].queryset = available_approvers
             self.fields['approved_by_user2'].queryset = available_approvers
             self.fields['approved_by_user3'].queryset = available_approvers
@@ -188,17 +197,17 @@ class DailyAttendanceForm(forms.Form):
             self.add_error('hours', "لطفاً ساعات کاری معتبری وارد کنید")
         
         # اطمینان از انتخاب تاییدکنندگان متفاوت
-        user1 = cleaned_data.get('approved_by_user1')
-        user2 = cleaned_data.get('approved_by_user2')
-        user3 = cleaned_data.get('approved_by_user3')
+        employee1 = cleaned_data.get('approved_by_user1')
+        employee2 = cleaned_data.get('approved_by_user2')
+        employee3 = cleaned_data.get('approved_by_user3')
         
-        if user1 and user2 and user1 == user2:
+        if employee1 and employee2 and employee1.id == employee2.id:
             self.add_error('approved_by_user2', "تاییدکنندگان باید افراد متفاوتی باشند")
         
-        if user1 and user3 and user1 == user3:
+        if employee1 and employee3 and employee1.id == employee3.id:
             self.add_error('approved_by_user3', "تاییدکنندگان باید افراد متفاوتی باشند")
         
-        if user2 and user3 and user2 == user3:
+        if employee2 and employee3 and employee2.id == employee3.id:
             self.add_error('approved_by_user3', "تاییدکنندگان باید افراد متفاوتی باشند")
             
         return cleaned_data

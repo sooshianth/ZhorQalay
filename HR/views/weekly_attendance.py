@@ -10,9 +10,8 @@ from datetime import timedelta
 import datetime
 import jdatetime
 from django.contrib.auth.models import User
-from core.decorators.decorators import role_required
+from ..EmployeeModel import Employee
 
-@role_required('employee', 'admin')
 @login_required
 def daily_attendance_view(request):
     if request.method == 'POST':
@@ -54,9 +53,9 @@ def daily_attendance_view(request):
                     employee=request.user,
                     week_start_date=selected_date,  # استفاده از همان تاریخ انتخابی
                     defaults={
-                        'approved_by_user1': approved_by_user1,
-                        'approved_by_user2': approved_by_user2,
-                        'approved_by_user3': approved_by_user3,
+                        'approved_by_user1': approved_by_user1,  # این فیلد حالا به Employee اشاره می‌کند
+                        'approved_by_user2': approved_by_user2,  # این فیلد حالا به Employee اشاره می‌کند
+                        'approved_by_user3': approved_by_user3,  # این فیلد حالا به Employee اشاره می‌کند
                         'user1_approved': False,
                         'user2_approved': False,
                         'user3_approved': False,
@@ -213,7 +212,6 @@ def daily_attendance_view(request):
         'q': q
     })
 
-@role_required('employee', 'admin')
 @login_required
 def download_attendance_report(request):
     attendances = WeeklyAttendance.objects.filter(employee=request.user).order_by('-week_start_date')
@@ -247,7 +245,6 @@ def download_attendance_report(request):
 
     return response
 
-@role_required('employee', 'admin')
 @login_required
 def pending_approvals_view(request):
     if request.user.is_superuser:
@@ -259,13 +256,19 @@ def pending_approvals_view(request):
         ).order_by('-week_start_date')
     else:
         # برای کاربران عادی، نمایش رکوردهایی که در انتظار تایید آنها هستند
-        pending_attendances = WeeklyAttendance.objects.filter(
-            (
-                Q(approved_by_user1=request.user, user1_approved=False) |
-                Q(approved_by_user2=request.user, user2_approved=False) |
-                Q(approved_by_user3=request.user, user3_approved=False)
-            )
-        ).order_by('-week_start_date')
+        try:
+            # ابتدا کارمند متناظر با کاربر فعلی را پیدا می‌کنیم
+            current_employee = Employee.objects.get(user=request.user)
+            pending_attendances = WeeklyAttendance.objects.filter(
+                (
+                    Q(approved_by_user1__user=current_employee.user, user1_approved=False) |
+                    Q(approved_by_user2__user=current_employee.user, user2_approved=False) |
+                    Q(approved_by_user3__user=current_employee.user, user3_approved=False)
+                )
+            ).order_by('-week_start_date')
+        except Employee.DoesNotExist:
+            # اگر کاربر فعلی کارمند نیست، لیست خالی نمایش دهیم
+            pending_attendances = WeeklyAttendance.objects.none()
         
     # فرمت‌دهی تاریخ‌ها و اطلاعات دیگر
     pending_data = []
@@ -318,24 +321,31 @@ def pending_approvals_view(request):
         'pending_attendances': pending_data
     })
 
-@role_required('employee', 'admin')
 @login_required
 def approve_attendance(request, attendance_id):
     attendance = get_object_or_404(WeeklyAttendance, id=attendance_id)
-
-    if attendance.approved_by_user1 == request.user:
-        attendance.user1_approved = True
-        attendance.save()
-        messages.success(request, "تأیید شما ثبت شد!")
-    elif attendance.approved_by_user2 == request.user:
-        attendance.user2_approved = True
-        attendance.save()
-        messages.success(request, "تأیید شما ثبت شد!")
-    elif attendance.approved_by_user3 == request.user:
-        attendance.user3_approved = True
-        attendance.save()
-        messages.success(request, "تأیید شما ثبت شد!")
-    elif request.user.is_superuser and attendance.is_enough_user_approvals:
+    
+    try:
+        # ابتدا کارمند متناظر با کاربر فعلی را پیدا می‌کنیم
+        current_employee = Employee.objects.get(user=request.user)
+        
+        if attendance.approved_by_user1 and attendance.approved_by_user1.user == request.user:
+            attendance.user1_approved = True
+            attendance.save()
+            messages.success(request, "تأیید شما ثبت شد!")
+        elif attendance.approved_by_user2 and attendance.approved_by_user2.user == request.user:
+            attendance.user2_approved = True
+            attendance.save()
+            messages.success(request, "تأیید شما ثبت شد!")
+        elif attendance.approved_by_user3 and attendance.approved_by_user3.user == request.user:
+            attendance.user3_approved = True
+            attendance.save()
+            messages.success(request, "تأیید شما ثبت شد!")
+    except Employee.DoesNotExist:
+        # اگر کاربر فعلی کارمند نیست، اجازه تایید ندارد مگر ادمین باشد
+        pass
+    
+    if request.user.is_superuser and attendance.is_enough_user_approvals:
         attendance.approved_by_admin = True
         attendance.save()
         messages.success(request, "تأیید ادمین ثبت شد!")
@@ -351,7 +361,6 @@ def approve_attendance(request, attendance_id):
 
     return redirect('pending_approvals')
 
-@role_required('employee', 'admin')
 @login_required
 def attendance_summary_view(request):
     # فقط ادمین مجاز به دیدن این صفحه است
@@ -364,15 +373,16 @@ def attendance_summary_view(request):
     employee_id = request.GET.get('employee_id')
     
     # دریافت همه کارمندان برای نمایش در dropdown
-    employees = User.objects.filter(is_staff=True).order_by('username')
+    employees = Employee.objects.all().order_by('last_name', 'first_name')
     
     # اگر کارمند انتخاب شده، داده‌های آن کارمند را نمایش می‌دهیم
     if employee_id:
         try:
-            selected_employee = User.objects.get(id=employee_id)
-            weekly_qs = WeeklyAttendance.objects.filter(employee=selected_employee)
-            monthly_qs = MonthlyAttendance.objects.filter(employee=selected_employee)
-        except User.DoesNotExist:
+            selected_employee = Employee.objects.get(id=employee_id)
+            # Employee is linked to User via OneToOneField, so we need to filter by the related user
+            weekly_qs = WeeklyAttendance.objects.filter(employee=selected_employee.user)
+            monthly_qs = MonthlyAttendance.objects.filter(employee=selected_employee.user)
+        except Employee.DoesNotExist:
             messages.error(request, "کارمند مورد نظر یافت نشد.")
             weekly_qs = WeeklyAttendance.objects.none()
             monthly_qs = MonthlyAttendance.objects.none()
@@ -433,14 +443,26 @@ def attendance_summary_view(request):
         
         for data in employee_data:
             try:
-                employee = User.objects.get(username=data['employee__username'])
-                employee_stats.append({
-                    'id': employee.id,
-                    'username': employee.username,
-                    'full_name': f"{employee.first_name} {employee.last_name}",
-                    'total_hours': data['total_hours'],
-                    'attendance_count': data['attendance_count']
-                })
+                user = User.objects.get(username=data['employee__username'])
+                # Try to get the associated Employee record
+                try:
+                    employee = Employee.objects.get(user=user)
+                    employee_stats.append({
+                        'id': employee.id,
+                        'username': user.username,
+                        'full_name': f"{employee.first_name} {employee.last_name}",
+                        'total_hours': round(data['total_hours'], 2),
+                        'attendance_count': data['attendance_count']
+                    })
+                except Employee.DoesNotExist:
+                    # Fallback if no employee record exists for this user
+                    employee_stats.append({
+                        'id': user.id,
+                        'username': user.username,
+                        'full_name': f"{user.first_name} {user.last_name}",
+                        'total_hours': round(data['total_hours'], 2),
+                        'attendance_count': data['attendance_count']
+                    })
             except User.DoesNotExist:
                 continue
 
@@ -454,6 +476,11 @@ def attendance_summary_view(request):
     total_weekly_hours = sum(item['total_hours'] for item in weekly_summary) if weekly_summary else 0
     total_monthly_hours = sum(item.total_hours for item in monthly_summary) if monthly_summary else 0
     avg_weekly_hours = total_weekly_hours / len(weekly_summary) if weekly_summary else 0
+    
+    # فرمت کردن مقادیر عددی با دو رقم اعشار
+    total_weekly_hours = round(total_weekly_hours, 2)
+    total_monthly_hours = round(total_monthly_hours, 2)
+    avg_weekly_hours = round(avg_weekly_hours, 2)
 
     # فرمت‌سازی داده‌های هفتگی - تاریخ جلالی مستقیماً از دیتابیس
     formatted_weekly_summary = []
@@ -467,7 +494,7 @@ def attendance_summary_view(request):
         
         formatted_weekly_summary.append({
             'week_start_date': formatted_date,
-            'total_hours': summary['total_hours'],
+            'total_hours': round(summary['total_hours'], 2),
             'employee': username
         })
         
@@ -480,7 +507,7 @@ def attendance_summary_view(request):
         
         formatted_monthly_summary.append({
             'month': jalali_month,
-            'total_hours': summary.total_hours,
+            'total_hours': round(summary.total_hours, 2),
             'employee': summary.employee.username
         })
 
