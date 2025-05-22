@@ -18,6 +18,8 @@ from sms_api.apis import queue_sms
 from django.urls import path
 from django.template.response import TemplateResponse
 from django.contrib.auth.models import User
+from django.contrib.auth import login
+from django.contrib.admin.sites import site
 from bki_barnameh.models.BarnamehModel import Barnameh
 # @admin.register(Notification)
 # class NotificationAdmin(admin.ModelAdmin):
@@ -32,6 +34,45 @@ class AttendanceAdminSite(AdminSite):
     site_header = "مدیریت حضور و حقوق"
     site_title = "پنل مدیریت حضور و حقوق"
     index_title = "خوش آمدید به بخش مدیریت حضور و حقوق"
+
+# Custom admin action to login as user
+def login_as_user(modeladmin, request, queryset):
+    # Only allow one user at a time
+    if request.user.is_superuser:    
+        if queryset.count() != 1:
+            modeladmin.message_user(request, "لطفا فقط یک کاربر را انتخاب کنید", level="error")
+            return
+        
+        # Get the selected user
+        target_user = queryset.first()
+        
+        # Save the original user ID in session to allow switching back
+        request.session['admin_user_id'] = request.user.id
+        
+        # Login as the selected user
+        login(request, target_user)
+        
+        # Redirect to home page
+        return HttpResponseRedirect('/')
+    else:
+        return HttpResponseRedirect('/')
+
+login_as_user.short_description = "ورود به عنوان کاربر انتخاب شده"
+
+# Register the User model with admin site
+# ابتدا User را از admin خارج می‌کنیم
+try:
+    admin.site.unregister(User)
+except admin.sites.NotRegistered:
+    pass  # اگر قبلا ثبت نشده باشد، خطا را نادیده می‌گیریم
+
+# سپس User را با تنظیمات خودمان ثبت می‌کنیم
+@admin.register(User)
+class UserAdmin(admin.ModelAdmin):
+    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'is_active')
+    search_fields = ('username', 'email', 'first_name', 'last_name')
+    list_filter = ('is_staff', 'is_superuser', 'is_active')
+    actions = [login_as_user]
 
 @admin.register(CargoProduct)
 class CargoProductAdmin(admin.ModelAdmin):

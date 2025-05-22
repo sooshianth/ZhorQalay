@@ -243,10 +243,55 @@
 </style>
 {% endblock %}
 
-{% block content %}<div class="container mx-auto px-4 py-6 min-h-screen">    <div id="js-status" class="hidden bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded-md animate-fade-in">        JavaScript has been successfully initialized. If you're still experiencing issues, please try refreshing the page.    </div>    <div class="flex flex-col md:flex-row justify-between items-center mb-6 card p-4 animate-slide-up">        <h1 class="text-3xl font-bold text-indigo-800 mb-3 md:mb-0">لیست پیشرفته مشتریان</h1>        <div class="flex gap-3">            <button id="toggle-filters-btn" class="btn-secondary px-4 py-2 shadow-md flex items-center">                <i class="fas fa-filter mr-2"></i>فیلترهای پیشرفته            </button>            <a href="{% url 'sales_agent_profile' %}" class="btn-secondary px-4 py-2 shadow-md flex items-center">                <i class="fas fa-user mr-2"></i>بازگشت به پروفایل            </a>        </div>    </div>        <!-- فیلتر سریع جستجو -->    <div class="mb-6 card p-5 animate-slide-up" style="animation-delay: 0.1s;">        <form method="get" action="" class="flex flex-col md:flex-row gap-3">            <input type="text" name="search" id="quick-search" placeholder="جستجو بر اساس نام یا شماره تلفن" value="{{ search_query }}"                 class="form-input md:flex-grow">            <button type="submit" class="btn-primary px-6 py-3 shadow-md flex items-center justify-center">                <i class="fas fa-search mr-2"></i>جستجو            </button>        </form>    </div>        <!-- اطلاعات سهمیه پیامک -->    <div class="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-400 rounded-lg shadow-custom p-4 flex items-center animate-slide-up" style="animation-delay: 0.2s;">        <i class="fas fa-info-circle text-green-500 text-xl mr-3"></i>        <p>سهمیه پیامک شما: <span class="font-bold text-green-900">{{ sms_quota }}</span></p>    </div>
-    
-    <!-- دکمه‌های مدیریت مشتریان -->    <div class="flex flex-col md:flex-row justify-between mb-6 card p-4 items-center gap-3 animate-slide-up" style="animation-delay: 0.3s;">        <div class="flex gap-3 w-full md:w-auto">            <button type="button" id="select-all-btn" class="btn-secondary px-4 py-2 shadow-md text-sm flex items-center">                <i class="fas fa-check-square mr-2"></i>انتخاب همه            </button>            <button type="button" id="deselect-all-btn" class="btn-secondary px-4 py-2 shadow-md text-sm flex items-center">                <i class="fas fa-square mr-2"></i>لغو انتخاب همه            </button>        </div>        <div class="w-full md:w-auto">            <button type="button" id="send-sms-btn" class="btn-primary px-4 py-2 shadow-md text-sm w-full md:w-auto flex items-center justify-center" disabled>                <i class="fas fa-paper-plane mr-2"></i>ارسال پیامک به انتخاب شده‌ها            </button>        </div>    </div>
-    
+{% block content %}
+<div class="container mx-auto px-4 py-6 min-h-screen">
+    <div id="js-status" class="hidden bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded-md animate-fade-in">
+        JavaScript has been successfully initialized. If you're still experiencing issues, please try refreshing the page.
+    </div>
+    <div class="flex flex-col md:flex-row justify-between items-center mb-6 card p-4 animate-slide-up">
+        <h1 class="text-3xl font-bold text-indigo-800 mb-3 md:mb-0">لیست پیشرفته مشتریان</h1>
+        <div class="flex gap-3">
+            <button id="toggle-filters-btn" class="btn-secondary px-4 py-2 shadow-md flex items-center">
+                <i class="fas fa-filter mr-2"></i>فیلترهای پیشرفته
+            </button>
+            <a href="{% url 'sales_agent_profile' %}" class="btn-secondary px-4 py-2 shadow-md flex items-center">
+                <i class="fas fa-user mr-2"></i>بازگشت به پروفایل
+            </a>
+        </div>
+    </div>
+    <!-- فیلتر سریع جستجو -->
+    <div class="mb-6 card p-5 animate-slide-up" style="animation-delay: 0.1s;">
+        <form method="get" action="" class="flex flex-col md:flex-row gap-3">
+            <input type="text" name="search" id="quick-search" placeholder="جستجو بر اساس نام یا شماره تلفن" value="{{ search_query }}"
+               class="form-input md:flex-grow">
+            <button type="submit" class="btn-primary px-6 py-3 shadow-md flex items-center justify-center">
+                <i class="fas fa-search mr-2"></i>جستجو
+            </button>
+        </form>
+    </div>
+    {% comment %} <!-- اطلاعات سهمیه پیامک -->
+    <div class="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-400 rounded-lg shadow-custom p-4 flex items-center animate-slide-up" style="animation-delay: 0.2s;">
+        <i class="fas fa-info-circle text-green-500 text-xl mr-3"></i>
+        <p>سهمیه پیامک شما: <span class="font-bold text-green-900">{{ sms_quota }}</span></p>
+    </div>
+
+    <!-- دکمه‌های مدیریت مشتریان -->
+    <div class="flex flex-col md:flex-row justify-between mb-6 card p-4 items-center gap-3 animate-slide-up" style="animation-delay: 0.3s;">
+        <div class="flex gap-3 w-full md:w-auto">
+            <button type="button" id="select-all-btn" class="btn-secondary px-4 py-2 shadow-md text-sm flex items-center">
+                <i class="fas fa-check-square mr-2"></i>انتخاب همه
+            </button>
+            <button type="button" id="deselect-all-btn" class="btn-secondary px-4 py-2 shadow-md text-sm flex items-center">
+                <i class="fas fa-square mr-2"></i>لغو انتخاب همه
+            </button>
+        </div>
+        <div class="w-full md:w-auto">
+            <button type="button" id="send-sms-btn" class="btn-primary px-4 py-2 shadow-md text-sm w-full md:w-auto flex items-center justify-center" disabled>
+                <i class="fas fa-paper-plane mr-2"></i>ارسال پیامک به انتخاب شده‌ها
+            </button>
+        </div>
+    </div> {% endcomment %}
+
     <!-- فیلترهای پیشرفته -->
     <div id="filters-container" class="bg-white p-6 rounded-lg mb-6 shadow-custom {% if not search_query and not city_filter and not activity_filter and not favorites_only %}hidden{% endif %}">
         <form method="get" id="filter-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
