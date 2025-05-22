@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}تایید به‌روزرسانی خریدهای یک هفته گذشته{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">تایید به‌روزرسانی خریدهای یک هفته گذشته</h4>
+                </div>
+                <div class="card-body">
+                    <p>این عملیات تمام خریدهای بازارگاه در یک هفته گذشته را دریافت کرده و در سیستم ثبت می‌کند. خریدهای جدید ایجاد شده و خریدهای موجود به‌روزرسانی می‌شوند.</p>
+                    
+                    <div class="alert alert-warning">
+                        <strong>هشدار:</strong> این عملیات ممکن است زمان‌بر باشد و بسته به تعداد خریدها، ممکن است چند دقیقه طول بکشد.
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary">تایید و شروع به‌روزرسانی</button>
+                            <a href="{% url 'bki_api:credentials' %}" class="btn btn-secondary">انصراف</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
