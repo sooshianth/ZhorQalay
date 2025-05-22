@@ -48,6 +48,14 @@ def is_support_agent(user):
             return False
     return False
 
+def is_employee(user):
+    if user.is_authenticated:
+        try:
+            return hasattr(user, 'employee')
+        except:
+            return False
+    return False
+
 def is_admin(user):
     """
     تشخیص اینکه کاربر یک ادمین یا سوپر یوزر است
@@ -151,6 +159,22 @@ def admin_required(function=None, redirect_url='/login/', message=None):
         return actual_decorator(function)
     return actual_decorator
 
+def employee_required(function=None, redirect_url='/login/', message=None):
+    """
+    دکوراتور برای دسترسی‌های مخصوص کارمزدگیران
+    """
+    def actual_decorator(view_func):
+        @wraps(view_func)
+        def _wrapped_view(request, *args, **kwargs):
+            if is_employee(request.user):
+                return view_func(request, *args, **kwargs)
+            else:
+                error_message = message or 'فقط کارمندان به این بخش دسترسی دارند'
+                messages.error(request, error_message)
+                return redirect(redirect_url)
+        return _wrapped_view
+
+
 # دکوراتور پیشرفته برای دسترسی چند نقشی
 def role_required(*roles, redirect_url='/', message='دسترسی محدود است'):
     """
@@ -178,7 +202,10 @@ def role_required(*roles, redirect_url='/', message='دسترسی محدود ا�
                 elif role == 'support_agent' and is_support_agent(request.user):
                     allowed = True
                     break
-            
+                elif role == 'employee' and is_employee(request.user):
+                    allowed = True
+                    break
+
             if allowed:
                 return view_func(request, *args, **kwargs)
             else:

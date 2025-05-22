@@ -4,6 +4,7 @@ from HR.EmployeeAttendanceModel import WeeklyAttendance
 from django.db.models import Sum
 from core.decorators.decorators import role_required
 
+@role_required('employee', 'admin')
 @login_required
 def employee_profile_view(request):
     """نمایش پروفایل کارمند"""
