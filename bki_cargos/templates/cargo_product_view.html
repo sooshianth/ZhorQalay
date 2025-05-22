@@ -239,6 +239,7 @@
 <div class="container">
     <h1 class="page-title animate-fade-in">لیست محصولات و کوتاژها</h1>
     
+    {% if user_role == 'admin' or user_role == 'logistics_manager' %}
     <div class="action-buttons animate-slide-up">
         <a href="{% url 'cargo_product_crud_panel' %}" class="btn btn-primary">
             <span class="btn-icon"><i class="fas fa-plus"></i></span>
@@ -249,7 +250,7 @@
             ویرایش گروهی
         </button>
     </div>
-    
+    {% endif %}
     <form id="bulkEditForm" action="{% url 'bulk_edit_cargo_products' %}" method="post" style="display: none;">
         {% csrf_token %}
         <input type="hidden" name="product_ids" id="product_ids">

@@ -38,6 +38,7 @@ from bki_api.views import merge_purchases_view
 from django.http import HttpRequest, QueryDict
 import json
 from core.decorators.decorators import role_required
+from core.decorators.det_user_role import determine_user_role
 
 try:
     import arabic_reshaper
@@ -45,25 +46,6 @@ try:
     BIDI_ENABLED = True
 except ImportError:
     BIDI_ENABLED = False
-
-def determine_user_role(user):
-    """
-    تشخیص نقش کاربر براساس روابط او
-    به جای بررسی مستقیم role که وجود ندارد، روابط بررسی می‌شود
-    نقش لجستیک بر فروش ارجحیت دارد
-    """
-    if hasattr(user, 'financial_manager') and user.financial_manager is not None:
-        return 'financial_manager'
-    elif hasattr(user, 'logistics_manager') and user.logistics_manager is not None:
-        return 'logistics_manager'
-    elif hasattr(user, 'sales_agent') and user.sales_agent is not None:
-        return 'sales_agent'
-    elif hasattr(user, 'support_agent') and user.support_agent is not None:
-        return 'support_agent'
-    elif user.is_superuser:
-        # مدیر ارشد دسترسی کامل دارد
-        return 'admin'
-    return None
 
 class RoleBasedPurchaseForm(forms.ModelForm):
     # اضافه کردن فیلد برای بایپس اعتبارسنجی هنگام تغییر وضعیت
