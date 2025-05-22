@@ -257,12 +257,25 @@
             button.addEventListener('click', function() {
                 // دریافت کلید از دکمه
                 const key = this.getAttribute('data-placeholder');
+                const label = this.textContent.trim();
                 
-                // دریافت مسیر کامل مدل
-                const modelPath = placeholderPaths[key] || key;
+                // ایجاد فرمت متغیر برای قالب - استفاده از کلید مستقیم
+                const placeholder = '{{' + key + '}}';
                 
-                // ایجاد فرمت متغیر برای قالب
-                const placeholder = '{{ ' + modelPath + ' }}';
+                // نمایش اطلاعات متغیر در یک پیام موقت
+                const toast = document.createElement('div');
+                toast.className = 'alert alert-info position-fixed';
+                toast.style.top = '20px';
+                toast.style.right = '20px';
+                toast.style.zIndex = '9999';
+                toast.style.maxWidth = '300px';
+                toast.innerHTML = 'متغیر <strong>' + label + '</strong> با کد <code>{{' + key + '}}</code> به متن اضافه شد';
+                document.body.appendChild(toast);
+                
+                // حذف پیام بعد از 3 ثانیه
+                setTimeout(() => {
+                    toast.remove();
+                }, 3000);
                 
                 // درج در موقعیت کرسر
                 insertAtCursor(contentTextarea, placeholder);
@@ -296,10 +309,18 @@
             // برای پیش‌نمایش، متغیرها را با مقادیر نمونه جایگزین می‌کنیم
             let previewText = contentTextarea.value;
             
-            // جایگزینی متغیرها با مقادیر نمونه با استفاده از روشی ایمن‌تر
+            // جایگزینی متغیرهای ساده با مقادیر نمونه
+            for (let key in placeholderPaths) {
+                const path = placeholderPaths[key];
+                const value = sampleData[path] || '';
+                // ایجاد یک regex که می‌تواند هر دو فرمت {{key}} و {{ key }} را تشخیص دهد
+                const searchPattern = new RegExp('\\{\\{\\s*' + key + '\\s*\\}\\}', 'g');
+                previewText = previewText.replace(searchPattern, value);
+            }
+            
+            // همچنین جایگزینی متغیرهای مدل (فرمت قدیمی) برای سازگاری با قالب‌های قدیمی
             for (let path in sampleData) {
                 const value = sampleData[path];
-                // ایجاد یک regex که می‌تواند تغییرات فاصله را مدیریت کند
                 const searchPattern = new RegExp('\\{\\{\\s*' + path.replace('.', '\\.') + '\\s*\\}\\}', 'g');
                 previewText = previewText.replace(searchPattern, value);
             }

@@ -190,6 +190,7 @@ th, td {
     </button>
     
     <!-- دکمه انتخاب همه سطرها -->
+    {% if user_role == 'admin' or user_role == 'financial_manager' or user_role == 'logistics_manager' %}
     <button id="selectAllRowsBtn" class="btn btn-primary">
         <i class="fas fa-check-square me-2"></i> انتخاب همه
     </button>
@@ -200,7 +201,6 @@ th, td {
     </button>
     
     <!-- دکمه خروجی اکسل (در ابتدا غیرفعال) -->
-    {% if 'user_role' == 'admin' or 'user_role' == 'financial_manager' or 'user_role' == 'logistics_manager' %}
     <button id="exportBtn" class="btn btn-success" disabled>
         <i class="fas fa-file-excel me-2"></i> خروجی اکسل
     </button>
@@ -701,8 +701,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // اضافه کردن چک‌باکس به هر ردیف جدول برای انتخاب
-        let selectedIds = [];
-    const exportBtn = document.getElementById('exportBtn');
+    let selectedIds = [];
+    let exportBtnElement = document.getElementById('exportBtn');
     
     // اضافه کردن چک‌باکس به ردیف‌های جداول
     function addCheckboxesToRows(tableBodyId) {
@@ -733,7 +733,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     // فعال/غیرفعال کردن دکمه خروجی اکسل
-                    exportBtn.disabled = selectedIds.length === 0;
+                    if (exportBtnElement) {
+                        exportBtnElement.disabled = selectedIds.length === 0;
+                    }
                 });
             }
         });
@@ -790,112 +792,128 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // ریست کردن ستون‌ها
-    document.getElementById('resetColumnsBtn').addEventListener('click', function() {
-        document.cookie = "selected_columns=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-        location.reload();
+    const resetColumnsBtn = document.getElementById('resetColumnsBtn');
+    if (resetColumnsBtn) {
+        resetColumnsBtn.addEventListener('click', function() {
+            document.cookie = "selected_columns=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            location.reload();
         });
+    }
         
-        // دکمه خروجی اکسل
-    document.getElementById('exportBtn').addEventListener('click', function() {
-        if (selectedIds.length === 0) {
-            alert('لطفاً حداقل یک خرید را انتخاب کنید');
-            return;
-        }
-        
-        // استفاده از ستون‌های نمایش داده شده در جدول
-        const displayedColumns = [];
-        const headers = document.querySelectorAll('table thead th');
-        
-        headers.forEach(function(header) {
-            if (window.getComputedStyle(header).display !== 'none') {
-                const columnClasses = Array.from(header.classList).filter(function(cls) {
-                    return cls.startsWith('column-');
-                });
-                
-                if (columnClasses.length > 0) {
-                    const columnName = columnClasses[0].replace('column-', '');
-                    if (columnName !== 'actions') { // ستون اکشن را اضافه نمی‌کنیم
-                        displayedColumns.push(columnName);
+    // دکمه خروجی اکسل
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+            if (selectedIds.length === 0) {
+                alert('لطفاً حداقل یک خرید را انتخاب کنید');
+                return;
+            }
+            
+            // استفاده از ستون‌های نمایش داده شده در جدول
+            const displayedColumns = [];
+            const headers = document.querySelectorAll('table thead th');
+            
+            headers.forEach(function(header) {
+                if (window.getComputedStyle(header).display !== 'none') {
+                    const columnClasses = Array.from(header.classList).filter(function(cls) {
+                        return cls.startsWith('column-');
+                    });
+                    
+                    if (columnClasses.length > 0) {
+                        const columnName = columnClasses[0].replace('column-', '');
+                        if (columnName !== 'actions') { // ستون اکشن را اضافه نمی‌کنیم
+                            displayedColumns.push(columnName);
+                        }
                     }
                 }
-            }
+            });
+            
+            // اگر ستونی پیدا نشد، از ستون‌های پیش‌فرض استفاده می‌کنیم
+            let columnsForExport = displayedColumns.length > 0 ? 
+                displayedColumns : 
+                ['date', 'customer', 'invoice_id', 'sales_agent', 'purchase_number', 'weight', 'cargo', 'status'];
+            
+            // ساخت ادرس URL خروجی
+            const exportUrl = "{% url 'export_purchases' %}?ids=" + selectedIds.join(',') + "&columns=" + columnsForExport.join(',');
+            
+            // انجام redirect به آدرس خروجی
+            console.log("Export URL:", exportUrl);
+            window.open(exportUrl, '_blank');
         });
-        
-        // اگر ستونی پیدا نشد، از ستون‌های پیش‌فرض استفاده می‌کنیم
-        let columnsForExport = displayedColumns.length > 0 ? 
-            displayedColumns : 
-            ['date', 'customer', 'invoice_id', 'sales_agent', 'purchase_number', 'weight', 'cargo', 'status'];
-        
-        // ساخت ادرس URL خروجی
-        const exportUrl = "{% url 'export_purchases' %}?ids=" + selectedIds.join(',') + "&columns=" + columnsForExport.join(',');
-        
-        // انجام redirect به آدرس خروجی
-        console.log("Export URL:", exportUrl);
-        window.open(exportUrl, '_blank');
-    });
-    
-    // دکمه انتخاب همه سطرها
-    document.getElementById('selectAllRowsBtn').addEventListener('click', function() {
-        // انتخاب همه سطرهای قابل مشاهده در جدول فعال
-        const visibleActiveRows = Array.from(document.querySelectorAll('#activePurchasesTable tr')).filter(row => {
-            return window.getComputedStyle(row).display !== 'none';
-        });
+    }
 
-        // انتخاب همه سطرهای قابل مشاهده در جدول آرشیو (اگر نمایش داده شده باشد)
-        const archivedContent = document.getElementById('archivedContent');
-        let visibleArchivedRows = [];
-        if (archivedContent && window.getComputedStyle(archivedContent).display !== 'none') {
-            visibleArchivedRows = Array.from(document.querySelectorAll('#archivedPurchasesTable tr')).filter(row => {
+    // دکمه انتخاب همه سطرها
+    const selectAllRowsBtn = document.getElementById('selectAllRowsBtn');
+    if (selectAllRowsBtn) {
+        selectAllRowsBtn.addEventListener('click', function() {
+            // انتخاب همه سطرهای قابل مشاهده در جدول فعال
+            const visibleActiveRows = Array.from(document.querySelectorAll('#activePurchasesTable tr')).filter(row => {
                 return window.getComputedStyle(row).display !== 'none';
             });
-        }
 
-        // تعداد کل سطرهای قابل مشاهده
-        const totalVisibleRows = visibleActiveRows.length + visibleArchivedRows.length;
-
-        // اگر هیچ سطری قابل مشاهده نیست، پیام نمایش دهیم
-        if (totalVisibleRows === 0) {
-            alert('هیچ خریدی برای انتخاب یافت نشد');
-            return;
-        }
-
-        // انتخاب همه سطرهای قابل مشاهده
-        [...visibleActiveRows, ...visibleArchivedRows].forEach(row => {
-            const checkbox = row.querySelector('.row-checkbox');
-            if (checkbox) {
-                checkbox.checked = true;
-                
-                // اطمینان از اضافه شدن به آرایه selectedIds
-                const purchaseId = checkbox.dataset.id;
-                if (!selectedIds.includes(purchaseId)) {
-                    selectedIds.push(purchaseId);
-                }
+            // انتخاب همه سطرهای قابل مشاهده در جدول آرشیو (اگر نمایش داده شده باشد)
+            const archivedContent = document.getElementById('archivedContent');
+            let visibleArchivedRows = [];
+            if (archivedContent && window.getComputedStyle(archivedContent).display !== 'none') {
+                visibleArchivedRows = Array.from(document.querySelectorAll('#archivedPurchasesTable tr')).filter(row => {
+                    return window.getComputedStyle(row).display !== 'none';
+                });
             }
-        });
 
-        // فعال کردن دکمه خروجی اکسل
-        document.getElementById('exportBtn').disabled = false;
-        
-        // نمایش پیام موفقیت
-        showSuccessToast(`${totalVisibleRows} خرید با موفقیت انتخاب شد`);
-    });
-    
-    // دکمه لغو انتخاب همه سطرها
-    document.getElementById('deselectAllRowsBtn').addEventListener('click', function() {
-        // لغو انتخاب از تمام چک‌باکس‌ها
-        document.querySelectorAll('.row-checkbox').forEach(checkbox => {
-            checkbox.checked = false;
+            // تعداد کل سطرهای قابل مشاهده
+            const totalVisibleRows = visibleActiveRows.length + visibleArchivedRows.length;
+
+            // اگر هیچ سطری قابل مشاهده نیست، پیام نمایش دهیم
+            if (totalVisibleRows === 0) {
+                alert('هیچ خریدی برای انتخاب یافت نشد');
+                return;
+            }
+
+            // انتخاب همه سطرهای قابل مشاهده
+            [...visibleActiveRows, ...visibleArchivedRows].forEach(row => {
+                const checkbox = row.querySelector('.row-checkbox');
+                if (checkbox) {
+                    checkbox.checked = true;
+                    
+                    // اطمینان از اضافه شدن به آرایه selectedIds
+                    const purchaseId = checkbox.dataset.id;
+                    if (!selectedIds.includes(purchaseId)) {
+                        selectedIds.push(purchaseId);
+                    }
+                }
+            });
+
+            // فعال کردن دکمه خروجی اکسل
+            if (exportBtn) {
+                exportBtn.disabled = false;
+            }
+            
+            // نمایش پیام موفقیت
+            showSuccessToast(`${totalVisibleRows} خرید با موفقیت انتخاب شد`);
         });
-        
-        // خالی کردن آرایه شناسه‌های انتخاب شده
-        selectedIds = [];
-        
-        // غیرفعال کردن دکمه خروجی اکسل
-        document.getElementById('exportBtn').disabled = true;
-        
-        // نمایش پیام
-        showSuccessToast('انتخاب تمام خریدها لغو شد');
-    });
+    }
+
+    // دکمه لغو انتخاب همه سطرها
+    const deselectAllRowsBtn = document.getElementById('deselectAllRowsBtn');
+    if (deselectAllRowsBtn) {
+        deselectAllRowsBtn.addEventListener('click', function() {
+            // لغو انتخاب از تمام چک‌باکس‌ها
+            document.querySelectorAll('.row-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // خالی کردن آرایه شناسه‌های انتخاب شده
+            selectedIds = [];
+            
+            // غیرفعال کردن دکمه خروجی اکسل
+            if (exportBtn) {
+                exportBtn.disabled = true;
+            }
+            
+            // نمایش پیام
+            showSuccessToast('انتخاب تمام خریدها لغو شد');
+        });
+    }
     
     // دریافت تاریخچه تغییرات یک خرید
     function getPurchaseEditLogs(purchaseId) {
@@ -1575,7 +1593,7 @@ document.addEventListener('DOMContentLoaded', function() {
         bulkEditCargoForm.classList.remove('d-none');
         
         // ارسال درخواست به سرور برای دریافت لیست کوتاژها
-        fetch('{% url 'cargo_products_list' %}')
+        fetch("{% url 'cargo_products_list' %}")
             .then(response => {
                 if (!response.ok) {
                     throw new Error('خطا در دریافت لیست کوتاژها');
@@ -1853,7 +1871,7 @@ document.addEventListener('DOMContentLoaded', function() {
         this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> در حال ذخیره...';
         
         // ارسال درخواست به سرور
-        fetch('{% url 'bulk_edit_cargo' %}', {
+        fetch("{% url 'bulk_edit_cargo' %}", {
             method: 'POST',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}'

@@ -151,110 +151,116 @@ def export_to_excel(request):
     if not purchase_ids:
         return JsonResponse({'status': 'error', 'message': 'هیچ خریدی انتخاب نشده است'}, status=400)
     
-    # برای عملکرد بهتر، اگر تعداد خریدهای انتخاب شده زیاد است، در تکه‌های کوچکتر پردازش کنیم
-    purchases = Purchase.objects.filter(id__in=purchase_ids).order_by('-created_at')
-    
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "لیست خریدها"
-    
-    # تنظیم گردش متن از راست به چپ برای کل صفحه
-    ws.sheet_view.rightToLeft = True
-    
-    # تعریف استایل‌ها
-    header_font = Font(name='B Nazanin', size=12, bold=True, color='FFFFFF')
-    header_fill = PatternFill(start_color='4CAF50', end_color='4CAF50', fill_type='solid')  # رنگ سبز
-    
-    # استایل برای ردیف‌های زوج
-    even_row_fill = PatternFill(start_color='E8F5E9', end_color='E8F5E9', fill_type='solid')  # سبز بسیار کمرنگ
-    
-    # تنظیم راست چین و وسط چین
-    alignment = Alignment(horizontal='right', vertical='center', wrap_text=True)
-    
-    # تعریف خطوط جدول
-    thin_border = Border(
-        left=Side(style='thin'),
-        right=Side(style='thin'),
-        top=Side(style='thin'),
-        bottom=Side(style='thin')
-    )
-    
-    # مپینگ ستون‌ها به فیلدهای مدل
-    column_mapping = {
-        'date': ('تاریخ', lambda p: p.created_at.strftime("%Y/%m/%d")),
-        'customer': ('مشتری', lambda p: p.customer.name),
-        'invoice_id': ('کد درون سازمانی', lambda p: p.invoice_id or "تعیین نشده"),
-        'sales_agent': ('نماینده فروش', lambda p: ", ".join([agent.name for agent in p.customer.sales_agent.all()])),
-        'purchase_number': ('شماره خرید', lambda p: p.purchase_number or "تعیین نشده"),
-        'weight': ('وزن (کیلوگرم)', lambda p: p.order_weight),
-        'cargo': ('کوتاژ', lambda p: p.cargo.cottage if p.cargo else "-"),
-        'status': ('وضعیت', lambda p: dict(Purchase.STATUS_CHOICES).get(p.state, p.state))
-    }
-    
-    # فقط ستون‌های انتخاب شده را اضافه می‌کنیم
-    headers = []
-    for col in selected_columns:
-        if col in column_mapping:
-            headers.append(column_mapping[col][0])
-    
-    # افزودن هدرها به اکسل
-    ws.append(headers)
-    
-    # تنظیم استایل برای سطر هدر
-    for i, cell in enumerate(ws[1], 1):
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = alignment
-        cell.border = thin_border
-    
-    # داده‌ها
-    batch_size = 1000  # پردازش خریدها در گروه‌های 1000 تایی برای کارایی بهتر
-    row_idx = 2
-    
-    for i in range(0, len(purchases), batch_size):
-        batch = purchases[i:i+batch_size]
-        for purchase in batch:
-            row = []
-            for col in selected_columns:
-                if col in column_mapping:
-                    try:
-                        value = column_mapping[col][1](purchase)
-                        row.append(value)
-                    except Exception as e:
-                        row.append("-")
-            ws.append(row)
-            
-            # تنظیم استایل برای سطرهای داده
-            for j, cell in enumerate(ws[row_idx], 1):
-                cell.alignment = alignment
-                cell.border = thin_border
+    try:
+        # برای عملکرد بهتر، اگر تعداد خریدهای انتخاب شده زیاد است، در تکه‌های کوچکتر پردازش کنیم
+        purchases = Purchase.objects.filter(id__in=purchase_ids).order_by('-created_at')
+        
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "لیست خریدها"
+        
+        # تنظیم گردش متن از راست به چپ برای کل صفحه
+        ws.sheet_view.rightToLeft = True
+        
+        # تعریف استایل‌ها
+        header_font = Font(name='B Nazanin', size=12, bold=True, color='FFFFFF')
+        header_fill = PatternFill(start_color='4CAF50', end_color='4CAF50', fill_type='solid')  # رنگ سبز
+        
+        # استایل برای ردیف‌های زوج
+        even_row_fill = PatternFill(start_color='E8F5E9', end_color='E8F5E9', fill_type='solid')  # سبز بسیار کمرنگ
+        
+        # تنظیم راست چین و وسط چین
+        alignment = Alignment(horizontal='right', vertical='center', wrap_text=True)
+        
+        # تعریف خطوط جدول
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        
+        # مپینگ ستون‌ها به فیلدهای مدل
+        column_mapping = {
+            'date': ('تاریخ', lambda p: p.created_at.strftime("%Y/%m/%d")),
+            'customer': ('مشتری', lambda p: p.customer.name),
+            'invoice_id': ('کد درون سازمانی', lambda p: p.invoice_id or "تعیین نشده"),
+            'sales_agent': ('نماینده فروش', lambda p: ", ".join([agent.name for agent in p.customer.sales_agent.all()])),
+            'purchase_number': ('شماره خرید', lambda p: p.purchase_number or "تعیین نشده"),
+            'weight': ('وزن (کیلوگرم)', lambda p: p.order_weight),
+            'cargo': ('کوتاژ', lambda p: p.cargo.cottage if p.cargo else "-"),
+            'status': ('وضعیت', lambda p: dict(Purchase.STATUS_CHOICES).get(p.state, p.state))
+        }
+        
+        # فقط ستون‌های انتخاب شده را اضافه می‌کنیم
+        headers = []
+        for col in selected_columns:
+            if col in column_mapping:
+                headers.append(column_mapping[col][0])
+        
+        # افزودن هدرها به اکسل
+        ws.append(headers)
+        
+        # تنظیم استایل برای سطر هدر
+        for i, cell in enumerate(ws[1], 1):
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = alignment
+            cell.border = thin_border
+        
+        # داده‌ها
+        batch_size = 1000  # پردازش خریدها در گروه‌های 1000 تایی برای کارایی بهتر
+        row_idx = 2
+        
+        for i in range(0, len(purchases), batch_size):
+            batch = purchases[i:i+batch_size]
+            for purchase in batch:
+                row = []
+                for col in selected_columns:
+                    if col in column_mapping:
+                        try:
+                            value = column_mapping[col][1](purchase)
+                            row.append(value)
+                        except Exception as e:
+                            row.append("-")
+                ws.append(row)
                 
-                # استایل متناوب برای سطرها
-                if row_idx % 2 == 0:
-                    cell.fill = even_row_fill
-            
-            row_idx += 1
-    
-    # تنظیم عرض ستون‌ها
-    for i, column in enumerate(ws.columns, 1):
-        max_length = 0
-        for cell in column:
-            try:
-                if len(str(cell.value)) > max_length:
-                    max_length = len(str(cell.value))
-            except:
-                pass
-        adjusted_width = (max_length + 2) * 1.2
-        ws.column_dimensions[ws.cell(row=1, column=i).column_letter].width = adjusted_width
-    
-    # اضافه کردن فریز به سطر هدر
-    ws.freeze_panes = "A2"
-    
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    filename = f"purchases_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    wb.save(response)
-    return response
+                # تنظیم استایل برای سطرهای داده
+                for j, cell in enumerate(ws[row_idx], 1):
+                    cell.alignment = alignment
+                    cell.border = thin_border
+                    
+                    # استایل متناوب برای سطرها
+                    if row_idx % 2 == 0:
+                        cell.fill = even_row_fill
+                
+                row_idx += 1
+        
+        # تنظیم عرض ستون‌ها
+        for i, column in enumerate(ws.columns, 1):
+            max_length = 0
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = (max_length + 2) * 1.2
+            ws.column_dimensions[ws.cell(row=1, column=i).column_letter].width = adjusted_width
+        
+        # اضافه کردن فریز به سطر هدر
+        ws.freeze_panes = "A2"
+        
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        filename = f"purchases_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        wb.save(response)
+        return response
+        
+    except Exception as e:
+        # لاگ خطا
+        print(f"Error in export_to_excel: {str(e)}")
+        return JsonResponse({'status': 'error', 'message': f'خطا در ایجاد فایل اکسل: {str(e)}'}, status=500)
 
 @require_POST
 @login_required

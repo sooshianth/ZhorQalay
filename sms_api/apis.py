@@ -53,6 +53,17 @@ def render_template(template_type, context_data):
                 str_value = to_persian_digits(value)
             # Replace the placeholder with the value
             content = re.sub(placeholder_pattern, str_value, content)
+            
+            # پردازش متغیرهای با مقدار پیش‌فرض
+            # الگوی {{key|default:"value"}}
+            default_pattern = r'{{\s*' + re.escape(key) + r'\s*\|\s*default:\s*"([^"]*)"\s*}}'
+            for match in re.finditer(default_pattern, content):
+                default_value = match.group(1)
+                placeholder = match.group(0)  # {{key|default:"value"}}
+                if not str_value:  # اگر مقدار اصلی خالی باشد، از مقدار پیش‌فرض استفاده می‌کنیم
+                    content = content.replace(placeholder, default_value)
+                else:
+                    content = content.replace(placeholder, str_value)
         
         # پردازش متغیرهای ساختاری (با نقطه)
         # برای مثال customer.name یا purchase.invoice_id
@@ -160,6 +171,11 @@ def send_purchase_status_notification(purchase):
             context['barnameh'] = purchase.barnameh
         else:
             context['barnameh'] = ''
+
+        # اضافه کردن اطلاعات راننده و بارنامه
+        context['barnameh_date'] = getattr(purchase, 'barnameh_date', '')
+        context['driver_name'] = getattr(purchase, 'driver_name', '')
+        context['driver_phone'] = getattr(purchase, 'driver_phone', '')
         
         # Add takhsis info (using a safe method)
         if hasattr(purchase, 'shenase_takhsis_set') and purchase.shenase_takhsis_set.exists():
@@ -217,9 +233,17 @@ def send_purchase_status_notification(purchase):
             
             context['sales_agent_phone'] = ', '.join(agent_phones) if agent_phones else ''
             context['sales_agent_name'] = ', '.join(agent_names) if agent_names else ''
+            
+            # دریافت شماره داخلی کارشناس فروش
+            first_agent = sales_agents.first()
+            if first_agent and hasattr(first_agent, 'dakheli_number') and first_agent.dakheli_number:
+                context['dakheli_number'] = first_agent.dakheli_number
+            else:
+                context['dakheli_number'] = '۳'
         else:
             context['sales_agent_phone'] = ''
             context['sales_agent_name'] = ''
+            context['dakheli_number'] = '۳'
             
         # Add extelaf data if relevant
         if status == 'DIFFERENCE_APPROVED' and purchase.extelaf_type and purchase.extelaf_weight:
@@ -756,22 +780,20 @@ def create_default_templates(replace_existing=False):
     
     # Default template messages for each status
     default_templates = {
-        'INITIATED': 'مشتری گرامی {{customer_name}}، \nخرید جدید شما با شماره {{purchase_number}} با موفقیت ثبت شد. \nنوع کالا: {{product_type}} {{product_country}}\nوزن: {{order_weight}} کیلوگرم\nقیمت: {{customer_price}} ریال',
-        'SMS_SENT': 'مشتری گرامی {{customer_name}}، \nکالای {{product_type}} {{product_country}} به وزن {{order_weight}} کیلوگرم و قیمت {{customer_price}} ریال برای شما ثبت شد. کوتاژ: {{cottage}}',
-        'BAZAARGAH_CONFIRMED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} در بازارگاه تایید شد. نوع کالا: {{product_type}} {{product_country}}',
-        'ALLOCATION_REGISTERED': 'مشتری گرامی {{customer_name}}، \nشناسه تخصیص برای خرید شما با شماره {{purchase_number}} ثبت گردید. منتظر تایید لجستیک باشید.',
-        'ALLOCATION_APPROVED': 'مشتری گرامی {{customer_name}}، \nشناسه تخصیص برای خرید شما با شماره {{purchase_number}} تایید شد.',
-        'PAYMENT_VERIFIED': 'مشتری گرامی {{customer_name}}، \nپرداخت شما برای خرید {{purchase_number}} به مبلغ {{amount_paid}} ریال تایید شد.\nشناسه‌های تخصیص: {{shenase_takhsis}}',
-        'VENDOR_SETTLED': 'مشتری گرامی {{customer_name}}، \nتسویه با واردکننده برای خرید شما با شماره {{purchase_number}} انجام شد.',
-        'ADDRESS_SENT': 'مشتری گرامی {{customer_name}}، \nآدرس ارسال برای خرید شما با شماره {{purchase_number}} به واردکننده ارسال شد. به زودی اطلاعات ارسال برای شما پیامک می‌شود.',
-        'SENT_TO_SHIPPING': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} به باربری ارسال شد.',
-        'BARNAMEH_ISSUED': 'مشتری گرامی {{customer_name}}، \nبارنامه برای خرید شما با شماره {{purchase_number}} صادر شد. شماره بارنامه: {{barnameh}}',
-        'DELIVERED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} به وزن {{order_weight}} کیلوگرم تحویل داده شد. از انتخاب شما متشکریم.',
-        'DIFFERENCE_APPROVED': 'مشتری گرامی {{customer_name}}، \nاختلاف {{extelaf_type}} برای خرید شما با شماره {{purchase_number}} به میزان {{extelaf_weight}} کیلوگرم و مبلغ {{extelaf_amount}} ریال تایید شد.',
-        'DIFFERENCE_DEPOSITED': 'مشتری گرامی {{customer_name}}، \nمبلغ اختلاف برای خرید شما با شماره {{purchase_number}} واریز شد.',
-        'RECEIPT_SUBMITTED': 'مشتری گرامی {{customer_name}}، \nرسید واریز برای خرید شما با شماره {{purchase_number}} ثبت شد.',
+        'INITIATED': 'مشتری گرامی {{customer_name}}\nخرید شما به شماره {{purchase_number}} ،{{product_type}} به وزن {{order_weight}} در بازارگاه به صورت نقدی ثبت گردید.✅\nلطفاً هر چه سریع‌تر نسبت به ثبت آدرس خود جهت ارسال بار اقدام فرمایید.\nاز خرید و اعتماد شما سپاسگزاریم و امیدواریم تجربه‌ای عالی برایتان رقم بزنیم 💚\nجهت پیگیری وضعیت سفارش خود، لطفاً با شماره ثابت دفتر (داخلی ۳) تماس بگیرید:\n۰۲۱-۶۶۵۶۲۲۱۶ ☎️\nشرکت تامین نهاده سیمرغ',
+        'SMS_SENT': 'مشتری گرامی {{customer_name}}\nخرید شما به شماره {{purchase_number}} ،{{product_type}} به وزن {{order_weight}} در بازارگاه به صورت نقدی ثبت گردید.✅\nلطفاً هر چه سریع‌تر نسبت به ثبت آدرس خود جهت ارسال بار اقدام فرمایید.\nاز خرید و اعتماد شما سپاسگزاریم و امیدواریم تجربه‌ای عالی برایتان رقم بزنیم 💚\nجهت پیگیری وضعیت سفارش خود، لطفاً با شماره ثابت دفتر (داخلی ۳) تماس بگیرید:\n۰۲۱-۶۶۵۶۲۲۱۶ ☎️\nشرکت تامین نهاده سیمرغ',
+        'PAYMENT_VERIFIED': 'مشتری گرامی {{customer_name}}\nخرید شما به شماره {{purchase_number}} ،{{product_type}} به وزن {{order_weight}} در بازارگاه به صورت نقدی ثبت گردید.✅\nلطفاً هر چه سریع‌تر نسبت به ثبت آدرس خود جهت ارسال بار اقدام فرمایید.\nاز خرید و اعتماد شما سپاسگزاریم و امیدواریم تجربه‌ای عالی برایتان رقم بزنیم 💚\nجهت پیگیری وضعیت سفارش خود، لطفاً با شماره ثابت دفتر (داخلی ۳) تماس بگیرید:\n۰۲۱-۶۶۵۶۲۲۱۶ ☎️\nشرکت تامین نهاده سیمرغ',
+        'ALLOCATION_APPROVED': 'تخصیص شما به شماره {{shenase_takhsis}} در سامانه بازارگاه ثبت گردید. ✅\nبزودی آدرس شما برای وارد کننده و سپس باربری ارسال خواهد شد.\nشرکت تامین نهاده سیمرغ',
+        'ADDRESS_SENT': '{{customer_name}}؛\nخرید شما با شماره خرید {{purchase_number}} جهت بارگیری به وارد کننده ارسال گردید. ✅\nما با تمام توان پیگیر ارسال بار شما هستیم تا هرچه سریع‌تر به شما تحویل گردد؛ با این وجود جهت پیگیری بار میتوانید با شماره ثابت دفتر (داخلی ۳) تماس بگیرید:\n۰۲۱-۶۶۵۶۲۲۱۶ ☎️\nشرکت تامین نهاده سیمرغ',
+        'WAITING_FOR_BARNAMEH': '{{customer_name}}؛\nخرید شما با شماره خرید {{purchase_number}} جهت بارگیری به وارد کننده ارسال گردید. ✅\nما با تمام توان پیگیر ارسال بار شما هستیم تا هرچه سریع‌تر به شما تحویل گردد؛ با این وجود جهت پیگیری بار میتوانید با شماره ثابت دفتر (داخلی ۳) تماس بگیرید:\n۰۲۱-۶۶۵۶۲۲۱۶ ☎️\nشرکت تامین نهاده سیمرغ',
+        'BARNAMEH_INCOMPLETE': '{{customer_name}} عزیز؛\nبارنامه خرید {{purchase_number}} ،{{product_type}} به وزن {{order_weight}} :\nشماره بارنامه: {{barnameh}}\nتاریخ بارنامه: نامشخص\nشماره راننده: نامشخص\nنام راننده: نامشخص\n۰۲۱-۶۶۵۶۲۲۱۶ ☎️\nشرکت تامین نهاده سیمرغ',
+        'BARNAMEH_ISSUED': '{{customer_name}} عزیز؛\nبارنامه خرید {{purchase_number}} ،{{product_type}} به وزن {{order_weight}} :\nشماره بارنامه: {{barnameh}}\nتاریخ بارنامه: {{barnameh_date|default:"نامشخص"}}\nشماره راننده: {{driver_phone|default:"نامشخص"}}\nنام راننده: {{driver_name|default:"نامشخص"}}\n۰۲۱-۶۶۵۶۲۲۱۶ ☎️\nشرکت تامین نهاده سیمرغ',
+        'PURCHASE_CLOSED': 'مشتری گرامی\nبارنامه خرید شما به شماره {{purchase_number}} ،{{product_type}} به وزن خرید {{order_weight}} در بازارگاه ثبت گردید.✅\nاز خرید و اعتماد شما صمیمانه سپاسگزاریم 💚\nامیدواریم در آینده نزدیک مجددا در خدمت شما باشیم 🙏\nکارشناس فروش شما: {{sales_agent_name}}\n{{sales_agent_phone}}\n۰۲۱-۶۶۵۶۲۲۱۶ داخلی {{dakheli_number|default:"۳"}}\nشرکت تامین نهاده سیمرغ',
+        'DIFFERENCE_APPROVED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} با اختلاف وزن ({{extelaf_type}}) به میزان {{extelaf_weight}} کیلوگرم تحویل شده است. مبلغ قابل پرداخت: {{extelaf_amount}} ریال',
+        'FULLY_SETTLED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} به صورت کامل تسویه شد.',
         'INVOICE_ISSUED': 'مشتری گرامی {{customer_name}}، \nفاکتور خرید شما با شماره {{purchase_number}} صادر شد.',
-        'COMPLETED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} با موفقیت به اتمام رسید. از انتخاب شما متشکریم.'
+        'CANCELED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} لغو شده است. لطفا با کارشناس فروش تماس بگیرید.',
+        'ARCHIVED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} آرشیو شده است.',
     }
     
     created_count = 0
