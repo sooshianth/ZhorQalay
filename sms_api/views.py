@@ -184,7 +184,7 @@ def get_default_templates():
         'SMS_SENT': 'مشتری گرامی {{customer_name}}، \nکالای {{product_type}} {{product_country}} به وزن {{order_weight}} کیلوگرم و قیمت {{customer_price}} ریال برای شما ثبت شد. کوتاژ: {{cottage}}',
         'PAYMENT_VERIFIED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} در بازارگاه تایید شد. نوع کالا: {{product_type}} {{product_country}}',
         'ALLOCATION_APPROVED': 'مشتری گرامی {{customer_name}}، \nشناسه تخصیص برای خرید شما با شماره {{purchase_number}} تایید شد.',
-        'ADDRESS_SENT': 'مشتری گرامی {{customer_name}}، \nآدرس ارسال برای خرید شما با شماره {{purchase_number}} به واردکننده ارسال شد.',
+        'ADDRESS_SENT': '{{ customer.name }}خرید شما با شماره خرید {{ purchase.number }} جهت بارگیری به وارد کننده ارسال گردید. ✅ما با تمام توان پیگیر ارسال بار شما هستیم تا هرچه سریع‌تر به شما تحویل گردد؛ با این وجود جهت پیگیری بار میتوانید با شماره ثابت دفتر (داخلی ۳) تماس بگیرید:۰۲۱-۶۶۵۶۲۲۱۶ ☎️شرکت تامین نهاده سیمرغ',
         'WAITING_FOR_BARNAMEH': 'مشتری گرامی {{customer_name}}، \nسفارش شما با شماره {{purchase_number}} در انتظار صدور بارنامه می‌باشد.',
         'BARNAMEH_INCOMPLETE': 'مشتری گرامی {{customer_name}}، \nبارنامه برای خرید شما با شماره {{purchase_number}} ناقص است. در حال پیگیری هستیم.',
         'BARNAMEH_ISSUED': 'مشتری گرامی {{customer_name}}، \nبارنامه برای خرید شما با شماره {{purchase_number}} صادر شد. شماره بارنامه: {{barnameh}}',

@@ -34,7 +34,7 @@
                             <option value="">-- همه کارمندان --</option>
                             {% for employee in employees %}
                             <option value="{{ employee.id }}" {% if selected_employee.id == employee.id %}selected{% endif %}>
-                                {{ employee.get_full_name|default:employee.username }}
+                                {{ employee.first_name }} {{ employee.last_name }}
                             </option>
                             {% endfor %}
                         </select>
@@ -77,7 +77,7 @@
                         <i class="fas fa-calendar-week fa-2x text-white"></i>
                     </div>
                     <h5 class="card-title text-dark fw-bold">مجموع ساعات هفتگی</h5>
-                    <h2 class="display-4 fw-bold text-success">{{ total_weekly_hours }}</h2>
+                    <h2 class="display-4 fw-bold text-success">{{ total_weekly_hours|floatformat:2 }}</h2>
                     <p class="text-muted small">ساعت‌های کاری ثبت شده در هفته</p>
                 </div>
             </div>
@@ -89,7 +89,7 @@
                         <i class="fas fa-calendar-alt fa-2x text-white"></i>
                     </div>
                     <h5 class="card-title text-dark fw-bold">مجموع ساعات ماهانه</h5>
-                    <h2 class="display-4 fw-bold text-info">{{ total_monthly_hours }}</h2>
+                    <h2 class="display-4 fw-bold text-info">{{ total_monthly_hours|floatformat:2 }}</h2>
                     <p class="text-muted small">ساعت‌های کاری ثبت شده در ماه</p>
                 </div>
             </div>
@@ -101,7 +101,7 @@
                         <i class="fas fa-calculator fa-2x text-white"></i>
                     </div>
                     <h5 class="card-title text-dark fw-bold">میانگین ساعات هفتگی</h5>
-                    <h2 class="display-4 fw-bold text-warning">{{ avg_weekly_hours }}</h2>
+                    <h2 class="display-4 fw-bold text-warning">{{ avg_weekly_hours|floatformat:2 }}</h2>
                     <p class="text-muted small">میانگین ساعات کاری در هفته</p>
                 </div>
             </div>
@@ -138,7 +138,7 @@
                                 </div>
                             </td>
                             <td>{{ stat.full_name|default:"-" }}</td>
-                            <td class="fw-bold text-primary">{{ stat.total_hours }}</td>
+                            <td class="fw-bold text-primary">{{ stat.total_hours|floatformat:2 }}</td>
                             <td>
                                 <span class="badge bg-info">{{ stat.attendance_count }}</span>
                             </td>
@@ -169,7 +169,7 @@
             <h4 class="card-title m-0 fw-bold">
                 <i class="fas fa-calendar-week me-2"></i>خلاصه هفتگی 
                 {% if selected_employee %}
-                <span class="badge bg-white text-primary ms-2">{{ selected_employee.get_full_name|default:selected_employee.username }}</span>
+                <span class="badge bg-white text-primary ms-2">{{ selected_employee.first_name }} {{ selected_employee.last_name }}</span>
                 {% endif %}
             </h4>
         </div>
@@ -197,7 +197,7 @@
                             </td>
                             {% endif %}
                             <td>{{ summary.week_start_date }}</td>
-                            <td class="fw-bold text-success">{{ summary.total_hours }}</td>
+                            <td class="fw-bold text-success">{{ summary.total_hours|floatformat:2 }}</td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -219,7 +219,7 @@
             <h4 class="card-title m-0 fw-bold">
                 <i class="fas fa-calendar-alt me-2"></i>خلاصه ماهانه
                 {% if selected_employee %}
-                <span class="badge bg-white text-info ms-2">{{ selected_employee.get_full_name|default:selected_employee.username }}</span>
+                <span class="badge bg-white text-info ms-2">{{ selected_employee.first_name }} {{ selected_employee.last_name }}</span>
                 {% endif %}
             </h4>
         </div>
@@ -247,7 +247,7 @@
                             </td>
                             {% endif %}
                             <td>{{ summary.month }}</td>
-                            <td class="fw-bold text-info">{{ summary.total_hours|default:'0' }}</td>
+                            <td class="fw-bold text-info">{{ summary.total_hours|default:'0'|floatformat:2 }}</td>
                         </tr>
                         {% empty %}
                         <tr>

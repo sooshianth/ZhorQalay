@@ -151,7 +151,8 @@ def export_to_excel(request):
     if not purchase_ids:
         return JsonResponse({'status': 'error', 'message': 'هیچ خریدی انتخاب نشده است'}, status=400)
     
-    purchases = Purchase.objects.filter(id__in=purchase_ids)
+    # برای عملکرد بهتر، اگر تعداد خریدهای انتخاب شده زیاد است، در تکه‌های کوچکتر پردازش کنیم
+    purchases = Purchase.objects.filter(id__in=purchase_ids).order_by('-created_at')
     
     wb = Workbook()
     ws = wb.active
@@ -207,25 +208,32 @@ def export_to_excel(request):
         cell.border = thin_border
     
     # داده‌ها
-    for idx, purchase in enumerate(purchases, 2):
-        row = []
-        for col in selected_columns:
-            if col in column_mapping:
-                try:
-                    value = column_mapping[col][1](purchase)
-                    row.append(value)
-                except Exception as e:
-                    row.append("-")
-        ws.append(row)
-        
-        # تنظیم استایل برای سطرهای داده
-        for i, cell in enumerate(ws[idx], 1):
-            cell.alignment = alignment
-            cell.border = thin_border
+    batch_size = 1000  # پردازش خریدها در گروه‌های 1000 تایی برای کارایی بهتر
+    row_idx = 2
+    
+    for i in range(0, len(purchases), batch_size):
+        batch = purchases[i:i+batch_size]
+        for purchase in batch:
+            row = []
+            for col in selected_columns:
+                if col in column_mapping:
+                    try:
+                        value = column_mapping[col][1](purchase)
+                        row.append(value)
+                    except Exception as e:
+                        row.append("-")
+            ws.append(row)
             
-            # استایل متناوب برای سطرها
-            if idx % 2 == 0:
-                cell.fill = even_row_fill
+            # تنظیم استایل برای سطرهای داده
+            for j, cell in enumerate(ws[row_idx], 1):
+                cell.alignment = alignment
+                cell.border = thin_border
+                
+                # استایل متناوب برای سطرها
+                if row_idx % 2 == 0:
+                    cell.fill = even_row_fill
+            
+            row_idx += 1
     
     # تنظیم عرض ستون‌ها
     for i, column in enumerate(ws.columns, 1):
@@ -243,7 +251,8 @@ def export_to_excel(request):
     ws.freeze_panes = "A2"
     
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename="purchases_export.xlsx"'
+    filename = f"purchases_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
     wb.save(response)
     return response
 

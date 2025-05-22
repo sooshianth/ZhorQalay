@@ -87,6 +87,9 @@ def check_and_send_purchase_sms_task(hours_back=24):
     بررسی خریدهایی که در بازه زمانی مشخص ایجاد یا به‌روزرسانی شده‌اند اما پیامک دریافت نکرده‌اند
     این تسک برای مواردی است که خریدها از طریق آپلود فایل یا API ایجاد می‌شوند
     
+    این تسک به‌گونه‌ای طراحی شده که از ارسال پیامک تکراری برای یک وضعیت خرید جلوگیری می‌کند.
+    فقط به خریدهایی پیامک ارسال می‌شود که قبلاً برای وضعیت فعلی آنها پیامکی ارسال نشده باشد.
+    
     Args:
         hours_back (int): بررسی خریدهای چند ساعت اخیر
     """
@@ -129,6 +132,7 @@ def check_and_send_purchase_sms_task(hours_back=24):
         
         if state_change:
             # پیامک قبلاً ارسال شده است
+            logger.debug(f"SMS already sent for purchase {purchase.id}, state {purchase.state} - skipping")
             continue
             
         # بررسی آیا قالب فعال برای این وضعیت وجود دارد

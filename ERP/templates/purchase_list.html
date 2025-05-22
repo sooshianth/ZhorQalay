@@ -189,6 +189,16 @@ th, td {
         <i class="fas fa-columns me-2"></i> مدیریت ستون‌ها
     </button>
     
+    <!-- دکمه انتخاب همه سطرها -->
+    <button id="selectAllRowsBtn" class="btn btn-primary">
+        <i class="fas fa-check-square me-2"></i> انتخاب همه
+    </button>
+    
+    <!-- دکمه لغو انتخاب همه سطرها -->
+    <button id="deselectAllRowsBtn" class="btn btn-outline-primary">
+        <i class="fas fa-square me-2"></i> لغو انتخاب همه
+    </button>
+    
     <!-- دکمه خروجی اکسل (در ابتدا غیرفعال) -->
     <button id="exportBtn" class="btn btn-success" disabled>
         <i class="fas fa-file-excel me-2"></i> خروجی اکسل
@@ -820,6 +830,69 @@ document.addEventListener('DOMContentLoaded', function() {
         // انجام redirect به آدرس خروجی
         console.log("Export URL:", exportUrl);
         window.open(exportUrl, '_blank');
+    });
+    
+    // دکمه انتخاب همه سطرها
+    document.getElementById('selectAllRowsBtn').addEventListener('click', function() {
+        // انتخاب همه سطرهای قابل مشاهده در جدول فعال
+        const visibleActiveRows = Array.from(document.querySelectorAll('#activePurchasesTable tr')).filter(row => {
+            return window.getComputedStyle(row).display !== 'none';
+        });
+
+        // انتخاب همه سطرهای قابل مشاهده در جدول آرشیو (اگر نمایش داده شده باشد)
+        const archivedContent = document.getElementById('archivedContent');
+        let visibleArchivedRows = [];
+        if (archivedContent && window.getComputedStyle(archivedContent).display !== 'none') {
+            visibleArchivedRows = Array.from(document.querySelectorAll('#archivedPurchasesTable tr')).filter(row => {
+                return window.getComputedStyle(row).display !== 'none';
+            });
+        }
+
+        // تعداد کل سطرهای قابل مشاهده
+        const totalVisibleRows = visibleActiveRows.length + visibleArchivedRows.length;
+
+        // اگر هیچ سطری قابل مشاهده نیست، پیام نمایش دهیم
+        if (totalVisibleRows === 0) {
+            alert('هیچ خریدی برای انتخاب یافت نشد');
+            return;
+        }
+
+        // انتخاب همه سطرهای قابل مشاهده
+        [...visibleActiveRows, ...visibleArchivedRows].forEach(row => {
+            const checkbox = row.querySelector('.row-checkbox');
+            if (checkbox) {
+                checkbox.checked = true;
+                
+                // اطمینان از اضافه شدن به آرایه selectedIds
+                const purchaseId = checkbox.dataset.id;
+                if (!selectedIds.includes(purchaseId)) {
+                    selectedIds.push(purchaseId);
+                }
+            }
+        });
+
+        // فعال کردن دکمه خروجی اکسل
+        document.getElementById('exportBtn').disabled = false;
+        
+        // نمایش پیام موفقیت
+        showSuccessToast(`${totalVisibleRows} خرید با موفقیت انتخاب شد`);
+    });
+    
+    // دکمه لغو انتخاب همه سطرها
+    document.getElementById('deselectAllRowsBtn').addEventListener('click', function() {
+        // لغو انتخاب از تمام چک‌باکس‌ها
+        document.querySelectorAll('.row-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        // خالی کردن آرایه شناسه‌های انتخاب شده
+        selectedIds = [];
+        
+        // غیرفعال کردن دکمه خروجی اکسل
+        document.getElementById('exportBtn').disabled = true;
+        
+        // نمایش پیام
+        showSuccessToast('انتخاب تمام خریدها لغو شد');
     });
     
     // دریافت تاریخچه تغییرات یک خرید

@@ -114,6 +114,11 @@ def send_sms_on_state_change(sender, instance, created, **kwargs):
     if not created:  # فقط برای رکوردهای جدید تغییر وضعیت
         return
     
+    # اگر پیامک قبلا ارسال شده، دیگر ارسال نکن
+    if instance.sms_sent:
+        logger.info(f"SMS already sent for state change to {instance.new_state} for purchase {instance.purchase.id}")
+        return
+    
     purchase = instance.purchase
     new_state = instance.new_state
     
