@@ -36,6 +36,13 @@
             cursor: pointer;
         }
 
+        .select-all-checkbox {
+            transform: scale(1.2);
+            cursor: pointer;
+            margin: 0 auto;
+            display: block;
+        }
+
         .modal-body {
             max-height: 60vh;
             overflow-y: auto;
@@ -265,6 +272,9 @@ th, td {
 <table class="table table-bordered table-striped align-middle text-center">
     <thead class="table-light sticky-header">
         <tr>
+            <th width="30px">
+                <input type="checkbox" id="selectAllActive" class="select-all-checkbox">
+            </th>
             {% for column in all_columns %}
                 {% if column.id in selected_columns %}
                 <th class="column-{{ column.id }}">
@@ -278,6 +288,9 @@ th, td {
     <tbody id="activePurchasesTable">
     {% for purchase in active_purchases %}
         <tr class="{% if purchase.is_urgent %}urgent-row{% elif purchase.state == 'CANCELED' or purchase.is_canceled %}canceled-row{% endif %}" data-id="{{ purchase.id }}">
+            <td>
+                <input type="checkbox" class="row-checkbox" data-id="{{ purchase.id }}">
+            </td>
             {% if 'date' in selected_columns %}
             <td>{{ purchase.created_at|date:"Y/m/d" }}</td>
             {% endif %}
@@ -386,6 +399,9 @@ th, td {
 <table class="table table-bordered table-striped align-middle text-center">
     <thead class="table-light sticky-header">
         <tr>
+            <th width="30px">
+                <input type="checkbox" id="selectAllArchived" class="select-all-checkbox">
+            </th>
             {% for column in all_columns %}
                 {% if column.id in selected_columns %}
                 <th class="column-{{ column.id }}">
@@ -399,6 +415,9 @@ th, td {
     <tbody id="archivedPurchasesTable">
     {% for purchase in archived_purchases %}
         <tr data-id="{{ purchase.id }}">
+            <td>
+                <input type="checkbox" class="row-checkbox" data-id="{{ purchase.id }}">
+            </td>
             {% if 'date' in selected_columns %}
             <td>{{ purchase.created_at|date:"Y/m/d" }}</td>
             {% endif %}
@@ -585,7 +604,103 @@ document.addEventListener('DOMContentLoaded', function() {
     const toggleButton = document.getElementById('toggleArchived');
     const archivedContent = document.getElementById('archivedContent');
     const archiveIcon = document.getElementById('archiveIcon');
-
+    
+    // انتخاب همه چک‌باکس‌ها در جدول فعال
+    const selectAllActiveCheckbox = document.getElementById('selectAllActive');
+    if (selectAllActiveCheckbox) {
+        selectAllActiveCheckbox.addEventListener('change', function() {
+            const isChecked = this.checked;
+            const checkboxes = document.querySelectorAll('#activePurchasesTable .row-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+                // تریگر کردن ایونت تغییر برای هر چک‌باکس تا لیست انتخاب‌ها آپدیت شود
+                const changeEvent = new Event('change', { bubbles: true });
+                checkbox.dispatchEvent(changeEvent);
+            });
+            // به‌روزرسانی وضعیت دکمه خروجی اکسل
+            exportBtn.disabled = document.querySelectorAll('.row-checkbox:checked').length === 0;
+        });
+    }
+    
+    // انتخاب همه چک‌باکس‌ها در جدول آرشیو
+    const selectAllArchivedCheckbox = document.getElementById('selectAllArchived');
+    if (selectAllArchivedCheckbox) {
+        selectAllArchivedCheckbox.addEventListener('change', function() {
+            const isChecked = this.checked;
+            const checkboxes = document.querySelectorAll('#archivedPurchasesTable .row-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+                // تریگر کردن ایونت تغییر برای هر چک‌باکس تا لیست انتخاب‌ها آپدیت شود
+                const changeEvent = new Event('change', { bubbles: true });
+                checkbox.dispatchEvent(changeEvent);
+            });
+            // به‌روزرسانی وضعیت دکمه خروجی اکسل
+            exportBtn.disabled = document.querySelectorAll('.row-checkbox:checked').length === 0;
+        });
+    }
+    
+    // آپدیت وضعیت چک‌باکس انتخاب همه وقتی همه/هیچ/برخی ردیف‌ها انتخاب شده‌اند
+    function updateSelectAllCheckbox(tableId, selectAllId) {
+        const checkboxes = document.querySelectorAll(`#${tableId} .row-checkbox`);
+        const selectAllCheckbox = document.getElementById(selectAllId);
+        
+        if (checkboxes.length === 0 || !selectAllCheckbox) return;
+        
+        const checkedCount = Array.from(checkboxes).filter(checkbox => checkbox.checked).length;
+        
+        if (checkedCount === 0) {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = false;
+        } else if (checkedCount === checkboxes.length) {
+            selectAllCheckbox.checked = true;
+            selectAllCheckbox.indeterminate = false;
+        } else {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = true;  // حالت نیمه انتخاب شده
+        }
+    }
+    
+    // اضافه کردن رویداد تغییر به چک‌باکس‌های ردیف
+    document.querySelectorAll('#activePurchasesTable .row-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateSelectAllCheckbox('activePurchasesTable', 'selectAllActive');
+            // به‌روزرسانی وضعیت دکمه خروجی اکسل
+            const exportBtn = document.getElementById('exportBtn');
+            if (exportBtn) {
+                exportBtn.disabled = document.querySelectorAll('.row-checkbox:checked').length === 0;
+            }
+            
+            // آپدیت لیست آیدی‌های انتخاب شده
+            if (this.checked) {
+                if (!selectedIds.includes(this.dataset.id)) {
+                    selectedIds.push(this.dataset.id);
+                }
+            } else {
+                selectedIds = selectedIds.filter(id => id !== this.dataset.id);
+            }
+        });
+    });
+    
+    document.querySelectorAll('#archivedPurchasesTable .row-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateSelectAllCheckbox('archivedPurchasesTable', 'selectAllArchived');
+            // به‌روزرسانی وضعیت دکمه خروجی اکسل
+            const exportBtn = document.getElementById('exportBtn');
+            if (exportBtn) {
+                exportBtn.disabled = document.querySelectorAll('.row-checkbox:checked').length === 0;
+            }
+            
+            // آپدیت لیست آیدی‌های انتخاب شده
+            if (this.checked) {
+                if (!selectedIds.includes(this.dataset.id)) {
+                    selectedIds.push(this.dataset.id);
+                }
+            } else {
+                selectedIds = selectedIds.filter(id => id !== this.dataset.id);
+            }
+        });
+    });
+    
     // مرتب‌سازی جدول بر اساس فوریت خریدها
     function sortTableByUrgency(tableId) {
         const table = document.getElementById(tableId);
@@ -670,6 +785,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 row.style.display = 'none';
             }
         });
+        
+        // به‌روزرسانی وضعیت چک‌باکس انتخاب همه پس از فیلتر
+        if (tableBody.id === 'activePurchasesTable') {
+            updateSelectAllCheckbox('activePurchasesTable', 'selectAllActive');
+        } else if (tableBody.id === 'archivedPurchasesTable') {
+            updateSelectAllCheckbox('archivedPurchasesTable', 'selectAllArchived');
+        }
     }
 
     // تابع فیلتر کردن ستون خاص در جدول
@@ -688,1372 +810,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
-    }
-
-    // اضافه کردن چک‌باکس به هر ردیف جدول برای انتخاب
-        let selectedIds = [];
-    const exportBtn = document.getElementById('exportBtn');
-    
-    // اضافه کردن چک‌باکس به ردیف‌های جداول
-    function addCheckboxesToRows(tableBodyId) {
-        const tableBody = document.getElementById(tableBodyId);
-        if (!tableBody) return;
         
-        const rows = tableBody.querySelectorAll('tr');
-            rows.forEach(row => {
-            const purchaseId = row.getAttribute('data-id');
-            if (!purchaseId) return;
-                
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.className = 'row-checkbox';
-            checkbox.dataset.id = purchaseId;
-                
-                const firstCell = row.querySelector('td');
-                if (firstCell) {
-                firstCell.insertBefore(checkbox, firstCell.firstChild);
-                
-                checkbox.addEventListener('change', function() {
-                    if (this.checked) {
-                        if (!selectedIds.includes(this.dataset.id)) {
-                        selectedIds.push(this.dataset.id);
-                        }
-                    } else {
-                        selectedIds = selectedIds.filter(id => id !== this.dataset.id);
-                    }
-                    
-                    // فعال/غیرفعال کردن دکمه خروجی اکسل
-                    exportBtn.disabled = selectedIds.length === 0;
-                });
-            }
-        });
-    }
-    
-    // اضافه کردن چک‌باکس به هر دو جدول
-    addCheckboxesToRows('activePurchasesTable');
-    addCheckboxesToRows('archivedPurchasesTable');
-    
-    // مدیریت ستون‌ها
-    document.getElementById('saveColumnsBtn').addEventListener('click', function() {
-        const form = document.getElementById('columnsForm');
-        const formData = new FormData(form);
-        
-        // اطمینان از اینکه حداقل یک ستون انتخاب شده است
-        if (form.querySelectorAll('input[type="checkbox"]:checked').length === 0) {
-            alert('لطفا حداقل یک ستون را انتخاب کنید.');
-            return;
-        }
-        
-        fetch("{% url 'update_columns' %}", {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: formData
-        }).then(response => response.json())
-          .then(data => {
-            if (data.status === 'success') {
-                location.reload();
-            }
-        }).catch(error => {
-            console.error('Error:', error);
-            alert('خطا در ذخیره تنظیمات ستون‌ها');
-        });
-    });
-    
-    // انتخاب همه ستون‌ها
-    document.getElementById('selectAllColumns').addEventListener('click', function(e) {
-        e.preventDefault();
-        document.querySelectorAll('#columnsForm input[type="checkbox"]').forEach(checkbox => {
-            checkbox.checked = true;
-        });
-    });
-    
-    // عدم انتخاب همه ستون‌ها
-    document.getElementById('deselectAllColumns').addEventListener('click', function(e) {
-        e.preventDefault();
-        document.querySelectorAll('#columnsForm input[type="checkbox"]').forEach(checkbox => {
-            if (checkbox.value !== 'actions') { // ستون اکشن همیشه انتخاب شده باقی بماند
-                checkbox.checked = false;
-            }
-        });
-    });
-    
-    // ریست کردن ستون‌ها
-    document.getElementById('resetColumnsBtn').addEventListener('click', function() {
-        document.cookie = "selected_columns=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-        location.reload();
-        });
-        
-        // دکمه خروجی اکسل
-    document.getElementById('exportBtn').addEventListener('click', function() {
-        if (selectedIds.length === 0) {
-            alert('لطفاً حداقل یک خرید را انتخاب کنید');
-            return;
-        }
-        
-        // استفاده از ستون‌های نمایش داده شده در جدول
-        const displayedColumns = [];
-        const headers = document.querySelectorAll('table thead th');
-        
-        headers.forEach(function(header) {
-            if (window.getComputedStyle(header).display !== 'none') {
-                const columnClasses = Array.from(header.classList).filter(function(cls) {
-                    return cls.startsWith('column-');
-                });
-                
-                if (columnClasses.length > 0) {
-                    const columnName = columnClasses[0].replace('column-', '');
-                    if (columnName !== 'actions') { // ستون اکشن را اضافه نمی‌کنیم
-                        displayedColumns.push(columnName);
-                    }
-                }
-            }
-        });
-        
-        // اگر ستونی پیدا نشد، از ستون‌های پیش‌فرض استفاده می‌کنیم
-        let columnsForExport = displayedColumns.length > 0 ? 
-            displayedColumns : 
-            ['date', 'customer', 'invoice_id', 'sales_agent', 'purchase_number', 'weight', 'cargo', 'status'];
-        
-        // ساخت ادرس URL خروجی
-        const exportUrl = "{% url 'export_purchases' %}?ids=" + selectedIds.join(',') + "&columns=" + columnsForExport.join(',');
-        
-        // انجام redirect به آدرس خروجی
-        console.log("Export URL:", exportUrl);
-        window.open(exportUrl, '_blank');
-    });
-    
-    // دریافت تاریخچه تغییرات یک خرید
-    function getPurchaseEditLogs(purchaseId) {
-        return fetch(`{% url 'purchase_edit_logs' purchase_id=0 %}`.replace('0', purchaseId))
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('خطا در دریافت تاریخچه تغییرات');
-                }
-                return response.json();
-            });
-    }
-    
-    // نمایش تاریخچه تغییرات
-    function showEditLogsModal(purchaseId) {
-        const tableBody = document.getElementById('editLogsTableBody');
-        tableBody.innerHTML = '<tr><td colspan="6" class="text-center">در حال بارگذاری...</td></tr>';
-        
-        const modal = new bootstrap.Modal(document.getElementById('editLogsModal'));
-        modal.show();
-        
-        getPurchaseEditLogs(purchaseId)
-            .then(data => {
-                if (data.status === 'success' && data.logs && data.logs.length > 0) {
-                    tableBody.innerHTML = '';
-                    
-                    data.logs.forEach(log => {
-                        const row = document.createElement('tr');
-                        row.className = log.is_revert ? 'table-warning' : '';
-                        
-                        const fieldDisplayName = getFieldDisplayName(log.field_name);
-                        const formattedOldValue = formatLogValue(log.field_name, log.old_value);
-                        const formattedNewValue = formatLogValue(log.field_name, log.new_value);
-                        
-                        row.innerHTML = `
-                            <td>${log.edit_time}</td>
-                            <td>${log.user}</td>
-                            <td>${fieldDisplayName}</td>
-                            <td>${formattedOldValue}</td>
-                            <td>${formattedNewValue}</td>
-                            <td>
-                                ${!log.is_revert ? `
-                                <button class="btn btn-sm btn-warning revert-btn" data-log-id="${log.id}">
-                                    <i class="fas fa-undo me-1"></i> بازگشت
-                                </button>` : ''}
-                            </td>
-                        `;
-                        
-                        tableBody.appendChild(row);
-                    });
-                    
-                    // اضافه کردن رویداد کلیک به دکمه‌های بازگشت
-                    document.querySelectorAll('.revert-btn').forEach(btn => {
-                        btn.addEventListener('click', function() {
-                            const logId = this.getAttribute('data-log-id');
-                            revertEdit(logId);
-                        });
-                    });
-                } else {
-                    tableBody.innerHTML = '<tr><td colspan="6" class="text-center">هیچ تغییری ثبت نشده است</td></tr>';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">خطا در دریافت تاریخچه</td></tr>';
-            });
-    }
-    
-    // بازگشت به نسخه قبلی
-    function revertEdit(logId) {
-        if (!confirm('آیا از بازگشت به نسخه قبلی اطمینان دارید؟')) {
-            return;
-        }
-        
-        const formData = new FormData();
-        formData.append('log_id', logId);
-        
-        fetch("{% url 'revert_purchase_edit' %}", {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                // نمایش پیام موفقیت
-                showSuccessToast('تغییرات با موفقیت بازگردانده شد');
-                
-                // یافتن و بروزرسانی سلول مربوطه در جدول
-                const purchaseRows = document.querySelectorAll(`tr[data-id="${data.purchase_id}"]`);
-                purchaseRows.forEach(row => {
-                    const cell = row.querySelector(`td[data-field="${data.field_name}"]`);
-                    if (cell) {
-                        if (data.field_name === 'state') {
-                            // برای فیلد وضعیت، از نمایش رنگی استفاده می‌کنیم
-                            const statusDisplayName = getStatusDisplayName(data.value);
-                            const statusClass = getStatusClass(data.value);
-                            cell.innerHTML = `<span class="table-status-badge ${statusClass}">${statusDisplayName}</span>`;
-                        } else {
-                            cell.textContent = data.value || 'تعیین نشده';
-                        }
-                        
-                        // اضافه کردن دوباره آیکون تاریخچه
-                        addHistoryIconToCell(cell, data.purchase_id);
-                    }
-                });
-                
-                // بستن مدال تاریخچه و نمایش مجدد بعد از مدت کوتاه
-                document.getElementById('editLogsModal').querySelector('.btn-close').click();
-                setTimeout(() => {
-                    showEditLogsModal(data.purchase_id);
-                }, 500);
-            } else {
-                alert(`خطا: ${data.message || 'خطای نامشخص'}`);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('خطا در ارتباط با سرور');
-        });
-    }
-    
-    // تابع کمکی برای اضافه کردن آیکون تاریخچه به سلول
-    function addHistoryIconToCell(cell, purchaseId) {
-        // حذف آیکون‌های قبلی
-        cell.querySelectorAll('.history-icon').forEach(icon => icon.remove());
-        
-        // افزودن آیکون تاریخچه جدید
-        const historyIcon = document.createElement('span');
-        historyIcon.className = 'history-icon';
-        historyIcon.innerHTML = '<i class="fas fa-history"></i>';
-        historyIcon.style.cssText = 'position: absolute; left: 5px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6c757d; opacity: 0.7';
-        historyIcon.style.display = 'none';
-        cell.appendChild(historyIcon);
-        
-        // تنظیم رویدادها
-        cell.addEventListener('mouseenter', function() {
-            historyIcon.style.display = 'block';
-        });
-        
-        cell.addEventListener('mouseleave', function() {
-            if (!cell.classList.contains('editable-active')) {
-                historyIcon.style.display = 'none';
-            }
-        });
-        
-        // رویداد کلیک
-        historyIcon.addEventListener('click', function(e) {
-            e.stopPropagation();
-            showEditLogsModal(purchaseId);
-        });
-    }
-    
-    // فرمت کردن مقادیر لاگ برای نمایش بهتر
-    function formatLogValue(fieldName, value) {
-        if (value === null || value === undefined || value === '') {
-            return '<span class="text-muted">تعیین نشده</span>';
-        }
-        
-        // فرمت‌های مختلف برای فیلدهای خاص
-        if (fieldName === 'order_weight') {
-            return `${Number(value).toLocaleString('fa-IR')} کیلوگرم`;
-        } else if (fieldName === 'state') {
-            return getStatusDisplayName(value);
-        }
-        
-        return value;
-    }
-    
-    // نام نمایشی وضعیت‌ها
-    function getStatusDisplayName(statusCode) {
-        const statuses = {
-            'INITIATED': 'شروع شده',
-            'SMS_SENT': 'پیامک ارسال شده',
-            'PAYMENT_VERIFIED': 'ثبت خرید در بازارگاه',
-            'ALLOCATION_APPROVED': 'ثبت تخصیص در بازارگاه',
-            'ADDRESS_SENT': 'ارسال آدرس به واردکننده',
-            'WAITING_FOR_BARNAMEH': 'در انتظار بارنامه',
-            'BARNAMEH_INCOMPLETE': 'صدور بارنامه (ناقص)',
-            'BARNAMEH_ISSUED': 'صدور بارنامه',
-            'PURCHASE_CLOSED': 'بستن خرید در بازارگاه',
-            'DIFFERENCE_APPROVED': 'پرداخت کسری / دریافت سرک',
-            'FULLY_SETTLED': 'تسویه کامل',
-            'INVOICE_ISSUED': 'صدور فاکتور',
-            'CANCELED': 'لغو شده',
-            'ARCHIVED': 'آرشیو شده'
-        };
-        
-        return statuses[statusCode] || statusCode;
-    }
-    
-    // نام نمایشی فیلدها
-    function getFieldDisplayName(fieldName) {
-        const fields = {
-            'invoice_id': 'کد درون سازمانی',
-            'purchase_number': 'شماره خرید',
-            'order_weight': 'وزن سفارش',
-            'state': 'وضعیت'
-        };
-        
-        return fields[fieldName] || fieldName;
-    }
-    
-    // کلاس CSS برای وضعیت‌ها
-    function getStatusClass(statusCode) {
-        const statusClasses = {
-            'INITIATED': 'bg-light text-dark',
-            'SMS_SENT': 'bg-light text-dark',
-            'PAYMENT_VERIFIED': 'bg-success text-white',
-            'ALLOCATION_APPROVED': 'bg-warning text-dark',
-            'ADDRESS_SENT': 'bg-info text-white',
-            'WAITING_FOR_BARNAMEH': 'bg-warning text-dark',
-            'BARNAMEH_INCOMPLETE': 'bg-warning text-dark',
-            'BARNAMEH_ISSUED': 'bg-info text-white',
-            'PURCHASE_CLOSED': 'bg-info text-white',
-            'DIFFERENCE_APPROVED': 'bg-warning text-dark',
-            'FULLY_SETTLED': 'bg-success text-white',
-            'INVOICE_ISSUED': 'bg-info text-white',
-            'CANCELED': 'bg-danger text-white',
-            'ARCHIVED': 'bg-secondary text-white'
-        };
-        
-        return statusClasses[statusCode] || 'bg-light text-dark';
-    }
-    
-    // ویرایش درجا (Inline Editing)
-    const editableCells = document.querySelectorAll('.editable');
-    
-    editableCells.forEach(cell => {
-        // افزودن دکمه تاریخچه تغییرات
-        addHistoryIconToCell(cell, cell.closest('tr').getAttribute('data-id'));
-        
-        cell.addEventListener('click', function(event) {
-            // اگر روی آیکون تاریخچه کلیک شده، ویرایش را فعال نکن
-            if (event.target.closest('.history-icon')) {
-                return;
-            }
-            
-            // اگر قبلا در حال ویرایش است، خارج شویم
-            if (cell.classList.contains('editable-active')) return;
-            
-            // ایجاد فیلد ورودی برای ویرایش
-            const cellText = cell.innerText.trim();
-            const originalText = cellText === 'تعیین نشده' ? '' : cellText;
-            const field = cell.getAttribute('data-field');
-            const purchaseId = cell.closest('tr').getAttribute('data-id');
-            
-            // فعال کردن حالت ویرایش
-            cell.classList.add('editable-active');
-            
-            // تنظیم نوع ورودی براساس فیلد
-            let inputHtml = '';
-            if (field === 'state') {
-                // برای وضعیت از select استفاده می‌کنیم
-                inputHtml = `<select class="editable-input" data-original="${originalText}">
-                    <option value="">تعیین نشده</option>
-                    <option value="INITIATED" ${originalText === 'INITIATED' ? 'selected' : ''}>شروع شده</option>
-                    <option value="SMS_SENT" ${originalText === 'SMS_SENT' ? 'selected' : ''}>پیامک ارسال شده</option>
-                    <option value="PAYMENT_VERIFIED" ${originalText === 'PAYMENT_VERIFIED' ? 'selected' : ''}>ثبت خرید در بازارگاه</option>
-                    <option value="ALLOCATION_APPROVED" ${originalText === 'ALLOCATION_APPROVED' ? 'selected' : ''}>ثبت تخصیص در بازارگاه</option>
-                    <option value="ADDRESS_SENT" ${originalText === 'ADDRESS_SENT' ? 'selected' : ''}>ارسال آدرس به واردکننده</option>
-                    <option value="WAITING_FOR_BARNAMEH" ${originalText === 'WAITING_FOR_BARNAMEH' ? 'selected' : ''}>در انتظار بارنامه</option>
-                    <option value="BARNAMEH_INCOMPLETE" ${originalText === 'BARNAMEH_INCOMPLETE' ? 'selected' : ''}>صدور بارنامه (ناقص)</option>
-                    <option value="BARNAMEH_ISSUED" ${originalText === 'BARNAMEH_ISSUED' ? 'selected' : ''}>صدور بارنامه</option>
-                    <option value="PURCHASE_CLOSED" ${originalText === 'PURCHASE_CLOSED' ? 'selected' : ''}>بستن خرید در بازارگاه</option>
-                    <option value="DIFFERENCE_APPROVED" ${originalText === 'DIFFERENCE_APPROVED' ? 'selected' : ''}>پرداخت کسری / دریافت سرک</option>
-                    <option value="FULLY_SETTLED" ${originalText === 'FULLY_SETTLED' ? 'selected' : ''}>تسویه کامل</option>
-                    <option value="INVOICE_ISSUED" ${originalText === 'INVOICE_ISSUED' ? 'selected' : ''}>صدور فاکتور</option>
-                    <option value="CANCELED" ${originalText === 'CANCELED' ? 'selected' : ''}>لغو شده</option>
-                    <option value="ARCHIVED" ${originalText === 'ARCHIVED' ? 'selected' : ''}>آرشیو شده</option>
-                </select>`;
-            } else {
-                // برای سایر فیلدها از input معمولی استفاده می‌کنیم
-                inputHtml = `<input type="text" class="editable-input" value="${originalText}" data-original="${originalText}">`;
-            }
-            
-            cell.innerHTML = `
-                ${inputHtml}
-                <div class="edit-controls">
-                    <button class="edit-control-btn edit-save" title="ذخیره"><i class="fas fa-check"></i></button>
-                    <button class="edit-control-btn edit-cancel" title="انصراف"><i class="fas fa-times"></i></button>
-                </div>
-                <span class="history-icon" style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); cursor: pointer;">
-                    <i class="fas fa-history"></i>
-                </span>
-            `;
-            
-            // فوکوس روی فیلد ورودی
-            const input = cell.querySelector('.editable-input');
-            input.focus();
-            
-            // نمایش آیکون تاریخچه همیشه در حالت ویرایش
-            cell.querySelector('.history-icon').style.display = 'block';
-            
-            // دکمه ذخیره تغییرات
-            cell.querySelector('.edit-save').addEventListener('click', function() {
-                const newValue = input.value.trim();
-                
-                // ارسال تغییرات به سرور
-                const formData = new FormData();
-                formData.append('id', purchaseId);
-                formData.append('field', field);
-                formData.append('value', newValue);
-                formData.append('old_value', input.getAttribute('data-original'));
-                
-                fetch("{% url 'update_purchase_field' %}", {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    body: formData
-                }).then(response => response.json())
-                  .then(data => {
-                    if (data.status === 'success') {
-                        // به‌روزرسانی سلول
-                        cell.classList.remove('editable-active');
-                        
-                        if (field === 'state') {
-                            // نمایش وضعیت به صورت رنگی
-                            const statusDisplayName = getStatusDisplayName(newValue);
-                            const statusClass = getStatusClass(newValue);
-                            cell.innerHTML = `<span class="table-status-badge ${statusClass}">${statusDisplayName}</span>`;
-                        } else {
-                            cell.textContent = newValue || 'تعیین نشده';
-                        }
-                        
-                        // افزودن دوباره آیکون تاریخچه
-                        addHistoryIconToCell(cell, purchaseId);
-                        
-                        // نمایش نوتیفیکیشن موفقیت آمیز
-                        showSuccessToast('تغییرات با موفقیت ذخیره شد');
-                    } else {
-                        alert('خطا در ذخیره‌سازی: ' + (data.message || 'خطای نامشخص'));
-                        resetEditCell();
-                    }
-                }).catch(error => {
-                    alert('خطا در ارتباط با سرور');
-                    resetEditCell();
-            });
-        });
-        
-            // دکمه لغو تغییرات
-            cell.querySelector('.edit-cancel').addEventListener('click', resetEditCell);
-            
-            // کلید اینتر برای ذخیره و ESC برای لغو
-            input.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    cell.querySelector('.edit-save').click();
-                } else if (e.key === 'Escape') {
-                    resetEditCell();
-                }
-            });
-            
-            // بازگرداندن سلول به حالت اولیه
-            function resetEditCell() {
-                cell.classList.remove('editable-active');
-                
-                if (field === 'state' && originalText) {
-                    // نمایش وضعیت به صورت رنگی
-                    const statusDisplayName = getStatusDisplayName(originalText);
-                    const statusClass = getStatusClass(originalText);
-                    cell.innerHTML = `<span class="table-status-badge ${statusClass}">${statusDisplayName}</span>`;
-                } else {
-                    cell.textContent = originalText || 'تعیین نشده';
-                }
-                
-                // افزودن دوباره آیکون تاریخچه
-                addHistoryIconToCell(cell, purchaseId);
-            }
-            
-            // کلیک خارج از سلول ویرایش برای لغو
-            function handleOutsideClick(e) {
-                if (!cell.contains(e.target)) {
-                    resetEditCell();
-                    document.removeEventListener('click', handleOutsideClick);
-                }
-            }
-            
-            // اضافه کردن با تأخیر برای جلوگیری از اجرای فوری
-            setTimeout(() => {
-                document.addEventListener('click', handleOutsideClick);
-            }, 10);
-        });
-    });
-    
-    // نمایش پیام موفقیت
-    function showSuccessToast(message) {
-        // ایجاد توست
-        const toastContainer = document.createElement('div');
-        toastContainer.className = 'position-fixed bottom-0 end-0 p-3';
-        toastContainer.style.zIndex = 11;
-        
-        toastContainer.innerHTML = `
-            <div class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="d-flex">
-                    <div class="toast-body">
-                        <i class="fas fa-check-circle me-2"></i> ${message}
-                    </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(toastContainer);
-        
-        const toastElement = toastContainer.querySelector('.toast');
-        const toast = new bootstrap.Toast(toastElement, {
-            animation: true,
-            autohide: true,
-            delay: 3000
-        });
-        
-        toast.show();
-        
-        // حذف توست پس از بسته شدن
-        toastElement.addEventListener('hidden.bs.toast', function() {
-            document.body.removeChild(toastContainer);
-        });
-    }
-
-    // دکمه ویرایش گروهی کوتاژ
-    const bulkEditCargoBtn = document.getElementById('bulkEditCargoBtn');
-    bulkEditCargoBtn.addEventListener('click', function() {
-        // اطمینان از انتخاب شدن حداقل یک خرید
-        if (selectedIds.length === 0) {
-            alert('لطفاً حداقل یک خرید را انتخاب کنید');
-            return;
-        }
-        
-        // نمایش مدال
-        loadCargoOptionsForBulkEdit();
-        const modal = new bootstrap.Modal(document.getElementById('bulkEditCargoModal'));
-        modal.show();
-    });
-
-    // بارگذاری گزینه‌های کوتاژ برای ویرایش گروهی
-    function loadCargoOptionsForBulkEdit() {
-        const cargoSelect = document.getElementById('bulkEditCargoSelect');
-        const bulkEditCargoForm = document.getElementById('bulkEditCargoForm');
-        const saveBulkEditCargoBtn = document.getElementById('saveBulkEditCargoBtn');
-        
-        // پاک کردن گزینه‌های قبلی
-        while (cargoSelect.options.length > 1) {
-            cargoSelect.remove(1);
-        }
-        
-        // نمایش فرم در ابتدا مخفی باشد
-        bulkEditCargoForm.classList.add('d-none');
-        saveBulkEditCargoBtn.disabled = true;
-        
-        // استخراج کوتاژ‌های منحصر به فرد از خریدهای انتخاب شده
-        const uniqueCargos = new Set();
-        
-        // بررسی همه خریدهای انتخاب شده
-        document.querySelectorAll('.row-checkbox:checked').forEach(checkbox => {
-            const row = checkbox.closest('tr');
-            
-            // یافتن سلول کوتاژ با روش مطمئن تر
-            const cells = row.querySelectorAll('td');
-            const cargoColumnIndex = 7; // ایندکس ستون کوتاژ
-            
-            // بررسی اینکه ستون کوتاژ نمایش داده شده باشد
-            if (cells.length > cargoColumnIndex && window.getComputedStyle(cells[cargoColumnIndex]).display !== 'none') {
-                const cargoCell = cells[cargoColumnIndex];
-                const cargoText = cargoCell.textContent.trim();
-                
-                if (cargoText && cargoText !== '-') {
-                    // استخراج فقط شماره کوتاژ (در صورتی که متن پیچیده تری دارد)
-                    const cottageMatch = cargoText.match(/^([a-zA-Z0-9]+)/);
-                    if (cottageMatch) {
-                        uniqueCargos.add(cottageMatch[1]);
-                    } else {
-                        uniqueCargos.add(cargoText);
-                    }
-                }
-            }
-        });
-        
-        // اگر هیچ کوتاژی پیدا نشد، افزودن گزینه جدید
-        if (uniqueCargos.size === 0) {
-            const newOption = document.createElement('option');
-            newOption.value = 'new';
-            newOption.textContent = 'ایجاد کوتاژ جدید';
-            cargoSelect.appendChild(newOption);
-            
-            // همچنین گزینه انتخاب کوتاژ از لیست موجود
-            const existingOption = document.createElement('option');
-            existingOption.value = 'existing';
-            existingOption.textContent = 'انتخاب از لیست کوتاژ های موجود';
-            cargoSelect.appendChild(existingOption);
-        } else {
-            // اضافه کردن کوتاژهای پیدا شده
-            uniqueCargos.forEach(cargo => {
-                const option = document.createElement('option');
-                option.value = cargo;
-                option.textContent = cargo;
-                cargoSelect.appendChild(option);
-            });
-            
-            // اضافه کردن گزینه کوتاژ جدید
-            const newOption = document.createElement('option');
-            newOption.value = 'new';
-            newOption.textContent = 'ایجاد کوتاژ جدید';
-            cargoSelect.appendChild(newOption);
-            
-            // همچنین گزینه انتخاب کوتاژ از لیست موجود
-            const existingOption = document.createElement('option');
-            existingOption.value = 'existing';
-            existingOption.textContent = 'انتخاب از لیست کوتاژ های موجود';
-            cargoSelect.appendChild(existingOption);
-        }
-        
-        // رویداد تغییر انتخاب کوتاژ
-        cargoSelect.addEventListener('change', function() {
-            if (this.value === 'new') {
-                // نمایش فرم ایجاد کوتاژ جدید
-                showNewCargoForm();
-                saveBulkEditCargoBtn.disabled = false;
-            } else if (this.value === 'existing') {
-                // نمایش فرم انتخاب از لیست کوتاژهای موجود
-                showExistingCargoSelector();
-                saveBulkEditCargoBtn.disabled = true;
-            } else if (this.value) {
-                // بارگذاری اطلاعات کوتاژ
-                fetchCargoDetails(this.value);
-            } else {
-                // پنهان کردن فرم اگر هیچ کوتاژی انتخاب نشده باشد
-                bulkEditCargoForm.classList.add('d-none');
-                saveBulkEditCargoBtn.disabled = true;
-            }
-        });
-    }
-    
-    // نمایش فرم ایجاد کوتاژ جدید
-    function showNewCargoForm() {
-        const bulkEditCargoForm = document.getElementById('bulkEditCargoForm');
-        const saveBulkEditCargoBtn = document.getElementById('saveBulkEditCargoBtn');
-        
-        bulkEditCargoForm.innerHTML = `
-            <div class="alert alert-info">
-                <p><i class="fas fa-info-circle me-2"></i> در حال ایجاد کوتاژ جدید هستید. پس از تکمیل فرم و کلیک روی دکمه اعمال تغییرات، کوتاژ جدید ایجاد و به خریدهای انتخاب شده اختصاص داده می‌شود.</p>
-            </div>
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="cottageEdit" class="form-label">کوتاژ:</label>
-                    <input type="text" id="cottageEdit" name="cottage" class="form-control" required>
-                    <small class="text-muted">
-                        برای خرید بازارگاه: ۸ رقم عددی، برای خرید خارج از بازارگاه: ۳ رقم عددی
-                    </small>
-                </div>
-                <div class="col-md-6">
-                    <label for="typeEdit" class="form-label">نوع خرید:</label>
-                    <select id="typeEdit" name="type" class="form-select" id="cargoTypeSelect">
-                        <option value="bazaargah">بازارگاه</option>
-                        <option value="non_bazaargah">خارج از بازارگاه</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="companyPriceEdit" class="form-label">فی خرید (ریال):</label>
-                    <input type="number" id="companyPriceEdit" name="company_price" class="form-control" min="50000" value="50000">
-                </div>
-                <div class="col-md-6">
-                    <label for="customerPriceEdit" class="form-label">فی فروش (ریال):</label>
-                    <input type="number" id="customerPriceEdit" name="customer_price" class="form-control" min="50000" value="50000">
-                </div>
-            </div>
-            
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="productTypeEdit" class="form-label">نوع محصول:</label>
-                    <select id="productTypeEdit" name="product_type" class="form-select">
-                        <option value="corn">ذرت</option>
-                        <option value="barley">جو</option>
-                        <option value="soy_meal">کنجاله سویا</option>
-                        <option value="sunflower_meal">کنجاله آفتابگردان</option>
-                        <option value="rapeseed_meal">کنجاله کلزا</option>
-                        <option value="local_extracted_soy">کنجاله سویا استحصالی از دانه داخلی</option>
-                        <option value="foreign_extracted_soy">کنجاله سویا استحصالی از دانه خارجی</option>
-                        <option value="soy_grain">دان سویا</option>
-                        <option value="cotton_seed">دان پنبه</option>
-                        <option value="alfalfa">یونجه</option>
-                        <option value="other">سایر</option>
-                    </select>
-                </div>
-                <div class="col-md-6">
-                    <label for="countryEdit" class="form-label">کشور:</label>
-                    <select id="countryEdit" name="country" class="form-select">
-                        <option value="iran">ایران</option>
-                        <option value="argentina">آرژانتین</option>
-                        <option value="brazil">برزیل</option>
-                        <option value="ukraine">اوکراین</option>
-                        <option value="india">هند</option>
-                        <option value="russia">روسیه</option>
-                        <option value="kazakhstan">قزاقستان</option>
-                        <option value="turkey">ترکیه</option>
-                        <option value="canada">کانادا</option>
-                        <option value="australia">استرالیا</option>
-                        <option value="serbia">صربستان</option>
-                        <option value="romania">رومانی</option>
-                        <option value="other">سایر</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="importerNameEdit" class="form-label">واردکننده/کارخانه:</label>
-                    <input type="text" id="importerNameEdit" name="importer_name" class="form-control">
-                </div>
-                <div class="col-md-6">
-                    <label for="weightEdit" class="form-label">وزن موجود:</label>
-                    <input type="number" id="weightEdit" name="weight" class="form-control" value="100000" min="10000">
-                </div>
-            </div>
-            
-            <div class="form-check mb-3">
-                <input type="checkbox" id="statusEdit" name="status" class="form-check-input" checked>
-                <label for="statusEdit" class="form-check-label">فعال</label>
-            </div>
-        `;
-        
-        bulkEditCargoForm.classList.remove('d-none');
-        saveBulkEditCargoBtn.disabled = false;
-        
-        // اضافه کردن اعتبارسنجی برای شماره کوتاژ
-        setTimeout(() => {
-            const cottageInput = document.getElementById('cottageEdit');
-            const typeSelect = document.getElementById('typeEdit');
-            
-            if (cottageInput && typeSelect) {
-                // فوکوس روی فیلد کوتاژ
-                cottageInput.focus();
-                
-                // اعتبارسنجی شماره کوتاژ بر اساس نوع خرید
-                typeSelect.addEventListener('change', validateCottage);
-                cottageInput.addEventListener('input', validateCottage);
-                
-                function validateCottage() {
-                    const cottage = cottageInput.value.trim();
-                    const type = typeSelect.value;
-                    
-                    if (type === 'bazaargah' && cottage) {
-                        // بازارگاه باید ۸ رقم عددی باشد
-                        if (!/^\d{8}$/.test(cottage)) {
-                            cottageInput.setCustomValidity('کوتاژ بازارگاه باید دقیقاً ۸ رقم عددی باشد');
-                        } else {
-                            cottageInput.setCustomValidity('');
-                        }
-                    } else if (type === 'non_bazaargah' && cottage) {
-                        // خارج از بازارگاه باید ۳ رقم عددی باشد
-                        if (!/^\d{3}$/.test(cottage)) {
-                            cottageInput.setCustomValidity('کوتاژ خارج از بازارگاه باید دقیقاً ۳ رقم عددی باشد');
-                        } else {
-                            cottageInput.setCustomValidity('');
-                        }
-                    } else {
-                        cottageInput.setCustomValidity('');
-                    }
-                    
-                    cottageInput.reportValidity();
-                }
-            }
-        }, 100);
-    }
-    
-    // نمایش انتخابگر کوتاژهای موجود
-    function showExistingCargoSelector() {
-        const bulkEditCargoForm = document.getElementById('bulkEditCargoForm');
-        const saveBulkEditCargoBtn = document.getElementById('saveBulkEditCargoBtn');
-        
-        // نمایش وضعیت بارگذاری
-        bulkEditCargoForm.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">در حال بارگذاری لیست کوتاژها...</p></div>';
-        bulkEditCargoForm.classList.remove('d-none');
-        
-        // ارسال درخواست به سرور برای دریافت لیست کوتاژها
-        fetch('{% url 'cargo_products_list' %}')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('خطا در دریافت لیست کوتاژها');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success' && data.cargos && data.cargos.length > 0) {
-                    // نمایش لیست کوتاژها
-                    showCargoList(data.cargos);
-                    saveBulkEditCargoBtn.disabled = true;
-                } else {
-                    throw new Error('هیچ کوتاژی یافت نشد');
-                }
-            })
-            .catch(error => {
-                // در صورت خطا، فرم جستجوی ساده نمایش دهیم
-                console.error('Error fetching cargo list:', error);
-                showCargoSearchForm();
-            });
-    }
-    
-    // نمایش فرم جستجوی کوتاژ
-    function showCargoSearchForm() {
-        const bulkEditCargoForm = document.getElementById('bulkEditCargoForm');
-        const saveBulkEditCargoBtn = document.getElementById('saveBulkEditCargoBtn');
-        
-        bulkEditCargoForm.innerHTML = `
-            <div class="alert alert-info">
-                <p><i class="fas fa-info-circle me-2"></i> برای یافتن کوتاژ مورد نظر، شماره کوتاژ را وارد کنید.</p>
-            </div>
-            <div class="input-group mb-3">
-                <input type="text" id="cargoSearchInput" class="form-control" placeholder="شماره کوتاژ را وارد کنید...">
-                <button class="btn btn-primary" type="button" id="searchCargoBtn">جستجو</button>
-            </div>
-            <div id="cargoSearchResults"></div>
-        `;
-        
-        bulkEditCargoForm.classList.remove('d-none');
-        
-        // رویداد کلیک برای دکمه جستجو
-        document.getElementById('searchCargoBtn').addEventListener('click', function() {
-            const cottageName = document.getElementById('cargoSearchInput').value.trim();
-            if (cottageName) {
-                fetchCargoDetails(cottageName);
-            }
-        });
-        
-        // رویداد فشردن Enter برای جستجو
-        document.getElementById('cargoSearchInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                document.getElementById('searchCargoBtn').click();
-            }
-        });
-    }
-    
-    // نمایش لیست کوتاژها
-    function showCargoList(cargos) {
-        const bulkEditCargoForm = document.getElementById('bulkEditCargoForm');
-        const saveBulkEditCargoBtn = document.getElementById('saveBulkEditCargoBtn');
-        
-        // ساخت HTML برای جدول کوتاژها
-        let html = `
-            <div class="mb-3">
-                <div class="input-group">
-                    <input type="text" id="cargoFilterInput" class="form-control" placeholder="جستجو در کوتاژها...">
-                    <button class="btn btn-outline-secondary" type="button" id="refreshCargoListBtn">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
-                <table class="table table-sm table-hover">
-                    <thead class="table-light sticky-top">
-                        <tr>
-                            <th>کوتاژ</th>
-                            <th>نوع محصول</th>
-                            <th>کشور</th>
-                            <th>واردکننده</th>
-                            <th>وزن</th>
-                            <th>انتخاب</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
-        
-        if (cargos.length === 0) {
-            html += `
-                <tr>
-                    <td colspan="6" class="text-center">هیچ کوتاژی یافت نشد</td>
-                </tr>`;
-        } else {
-            cargos.forEach(cargo => {
-                html += `
-                    <tr>
-                        <td>${cargo.cottage || ''}</td>
-                        <td>${cargo.product_type || ''}</td>
-                        <td>${cargo.country || ''}</td>
-                        <td>${cargo.importer_name || ''}</td>
-                        <td>${cargo.weight ? cargo.weight.toLocaleString() : ''}</td>
-                        <td>
-                            <button type="button" class="btn btn-sm btn-primary select-cargo-btn" data-cargo-id="${cargo.id}" data-cottage="${cargo.cottage}">
-                                انتخاب
-                            </button>
-                        </td>
-                    </tr>`;
-            });
-        }
-        
-        html += `
-                    </tbody>
-                </table>
-            </div>`;
-        
-        bulkEditCargoForm.innerHTML = html;
-        bulkEditCargoForm.classList.remove('d-none');
-        
-        // اضافه کردن رویداد کلیک به دکمه‌های انتخاب
-        bulkEditCargoForm.querySelectorAll('.select-cargo-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const cargoId = this.getAttribute('data-cargo-id');
-                const cottage = this.getAttribute('data-cottage');
-                fetchCargoDetails(cottage);
-            });
-        });
-        
-        // اضافه کردن رویداد جستجو به فیلد فیلتر
-        const filterInput = document.getElementById('cargoFilterInput');
-        if (filterInput) {
-            filterInput.addEventListener('keyup', function() {
-                const filterText = this.value.toLowerCase();
-                const rows = bulkEditCargoForm.querySelectorAll('tbody tr');
-                
-                rows.forEach(row => {
-                    const text = row.textContent.toLowerCase();
-                    if (text.includes(filterText)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            });
-        }
-        
-        // اضافه کردن رویداد به دکمه بارگذاری مجدد
-        const refreshBtn = document.getElementById('refreshCargoListBtn');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', function() {
-                showExistingCargoSelector();
-            });
+        // به‌روزرسانی وضعیت چک‌باکس انتخاب همه پس از فیلتر
+        if (tableBody.id === 'activePurchasesTable') {
+            updateSelectAllCheckbox('activePurchasesTable', 'selectAllActive');
+        } else if (tableBody.id === 'archivedPurchasesTable') {
+            updateSelectAllCheckbox('archivedPurchasesTable', 'selectAllArchived');
         }
     }
 
-    // دریافت جزئیات کوتاژ از سرور
-    function fetchCargoDetails(cottageName) {
-        const bulkEditCargoForm = document.getElementById('bulkEditCargoForm');
-        const saveBulkEditCargoBtn = document.getElementById('saveBulkEditCargoBtn');
-        
-        // نمایش وضعیت بارگذاری
-        bulkEditCargoForm.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">در حال بارگذاری اطلاعات کوتاژ...</p></div>';
-        bulkEditCargoForm.classList.remove('d-none');
-        
-        // ارسال درخواست به سرور
-        fetch(`{% url 'cargo_product_details' %}?cottage=${encodeURIComponent(cottageName)}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('خطا در دریافت اطلاعات کوتاژ');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                    // پر کردن فرم با اطلاعات دریافتی
-                    fillCargoForm(data.cargo);
-                    saveBulkEditCargoBtn.disabled = false;
-                } else {
-                    throw new Error(data.message || 'خطا در دریافت اطلاعات کوتاژ');
-                }
-            })
-            .catch(error => {
-                bulkEditCargoForm.innerHTML = `<div class="alert alert-danger">خطا: ${error.message}</div>`;
-            });
-    }
-
-    // پر کردن فرم با اطلاعات کوتاژ
-    function fillCargoForm(cargo) {
-        const bulkEditCargoForm = document.getElementById('bulkEditCargoForm');
-        const saveBulkEditCargoBtn = document.getElementById('saveBulkEditCargoBtn');
-        
-        // بازسازی فرم (به خاطر وضعیت loading قبلی)
-        bulkEditCargoForm.innerHTML = `
-            <div class="alert alert-success">
-                <p><i class="fas fa-info-circle me-2"></i> کوتاژ مورد نظر یافت شد. پس از تکمیل فرم زیر، این کوتاژ به خریدهای انتخاب شده اختصاص داده خواهد شد.</p>
-            </div>
-            <input type="hidden" name="cargo_id" value="${cargo.id}">
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="cottageEdit" class="form-label">کوتاژ:</label>
-                    <input type="text" id="cottageEdit" name="cottage" class="form-control" value="${cargo.cottage || ''}" readonly>
-                    <small class="text-muted">شماره کوتاژ قابل ویرایش نیست</small>
-                </div>
-                <div class="col-md-6">
-                    <label for="typeEdit" class="form-label">نوع خرید:</label>
-                    <select id="typeEdit" name="type" class="form-select" disabled>
-                        <option value="bazaargah" ${cargo.type === 'bazaargah' ? 'selected' : ''}>بازارگاه</option>
-                        <option value="non_bazaargah" ${cargo.type === 'non_bazaargah' ? 'selected' : ''}>خارج از بازارگاه</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="companyPriceEdit" class="form-label">فی خرید (ریال):</label>
-                    <input type="number" id="companyPriceEdit" name="company_price" class="form-control" value="${cargo.company_price || ''}" readonly>
-                </div>
-                <div class="col-md-6">
-                    <label for="customerPriceEdit" class="form-label">فی فروش (ریال):</label>
-                    <input type="number" id="customerPriceEdit" name="customer_price" class="form-control" value="${cargo.customer_price || ''}" readonly>
-                </div>
-            </div>
-            
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="productTypeEdit" class="form-label">نوع محصول:</label>
-                    <input type="text" id="productTypeEdit" name="product_type_display" class="form-control" value="${getProductTypeDisplay(cargo.product_type) || ''}" readonly>
-                    <input type="hidden" name="product_type" value="${cargo.product_type || ''}">
-                </div>
-                <div class="col-md-6">
-                    <label for="countryEdit" class="form-label">کشور:</label>
-                    <input type="text" id="countryEdit" name="country_display" class="form-control" value="${getCountryDisplay(cargo.country) || ''}" readonly>
-                    <input type="hidden" name="country" value="${cargo.country || ''}">
-                </div>
-            </div>
-            
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="importerNameEdit" class="form-label">واردکننده/کارخانه:</label>
-                    <input type="text" id="importerNameEdit" name="importer_name" class="form-control" value="${cargo.importer_name || ''}" readonly>
-                </div>
-                <div class="col-md-6">
-                    <label for="weightEdit" class="form-label">وزن موجود:</label>
-                    <input type="number" id="weightEdit" name="weight" class="form-control" value="${cargo.weight || ''}" readonly>
-                </div>
-            </div>
-        `;
-        
-        bulkEditCargoForm.classList.remove('d-none');
-        saveBulkEditCargoBtn.disabled = false;
-    }
-
-    // اعمال تغییرات کوتاژ در خریدهای انتخاب شده
-    document.getElementById('saveBulkEditCargoBtn').addEventListener('click', function() {
-        // گرفتن اطلاعات فرم
-        const form = document.getElementById('bulkEditCargoForm');
-        const formData = new FormData(form);
-        
-        // اضافه کردن لیست خریدهای انتخاب شده به فرم
-        formData.append('purchase_ids', selectedIds.join(','));
-        
-        // اضافه کردن شناسه کوتاژ اگر موجود باشد - برای حالت "انتخاب از موجود"
-        const hiddenCargoId = form.querySelector('input[name="cargo_id"]');
-        if (hiddenCargoId && hiddenCargoId.value) {
-            formData.append('cargo_id', hiddenCargoId.value);
-        }
-        
-        // بررسی اعتبار فرم در حالت ایجاد کوتاژ جدید
-        const cottage = form.querySelector('input[name="cottage"]');
-        if (!hiddenCargoId && cottage && !cottage.value.trim()) {
-            alert('لطفاً شماره کوتاژ را وارد کنید');
-            cottage.focus();
-            return;
-        }
-        
-        // غیرفعال کردن دکمه ذخیره و نمایش وضعیت بارگذاری
-        this.disabled = true;
-        this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> در حال ذخیره...';
-        
-        // ارسال درخواست به سرور
-        fetch('{% url 'bulk_edit_cargo' %}', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: formData
-        })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(data => {
-                    throw new Error(data.message || 'خطا در ذخیره تغییرات');
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.status === 'success') {
-                // بستن مدال و نمایش پیام موفقیت
-                document.getElementById('bulkEditCargoModal').querySelector('.btn-close').click();
-                showSuccessToast(data.message || 'تغییرات با موفقیت اعمال شد');
-                
-                // بارگذاری مجدد صفحه بعد از ۱ ثانیه
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
-            } else {
-                throw new Error(data.message || 'خطا در ذخیره تغییرات');
-            }
-        })
-        .catch(error => {
-            // فعال کردن دوباره دکمه ذخیره و نمایش پیام خطا
-            this.disabled = false;
-            this.innerHTML = 'اعمال تغییرات';
-            alert(`خطا: ${error.message}`);
-        });
-    });
-
-    // فعال/غیرفعال کردن دکمه ویرایش گروهی کوتاژ بر اساس انتخاب ردیف‌ها
-    function updateBulkEditButtonState() {
-        bulkEditCargoBtn.disabled = selectedIds.length === 0;
-    }
-
-    // بروزرسانی وضعیت دکمه ویرایش گروهی کوتاژ هنگام تغییر انتخاب‌ها
-    document.querySelectorAll('.row-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', updateBulkEditButtonState);
-    });
-
-    // نمایش فرم ایجاد کوتاژ جدید
-    function showNewCargoForm() {
-        const bulkEditCargoForm = document.getElementById('bulkEditCargoForm');
-        
-        bulkEditCargoForm.innerHTML = `
-            <div class="alert alert-info">
-                <p><i class="fas fa-info-circle me-2"></i> در حال ایجاد کوتاژ جدید هستید. پس از تکمیل فرم و کلیک روی دکمه اعمال تغییرات، کوتاژ جدید ایجاد و به خریدهای انتخاب شده اختصاص داده می‌شود.</p>
-            </div>
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="cottageEdit" class="form-label">کوتاژ:</label>
-                    <input type="text" id="cottageEdit" name="cottage" class="form-control" required>
-                    <small class="text-muted">
-                        برای خرید بازارگاه: ۸ رقم عددی، برای خرید خارج از بازارگاه: ۳ رقم عددی
-                    </small>
-                </div>
-                <div class="col-md-6">
-                    <label for="typeEdit" class="form-label">نوع خرید:</label>
-                    <select id="typeEdit" name="type" class="form-select" id="cargoTypeSelect">
-                        <option value="bazaargah">بازارگاه</option>
-                        <option value="non_bazaargah">خارج از بازارگاه</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="companyPriceEdit" class="form-label">فی خرید (ریال):</label>
-                    <input type="number" id="companyPriceEdit" name="company_price" class="form-control" min="50000" value="50000">
-                </div>
-                <div class="col-md-6">
-                    <label for="customerPriceEdit" class="form-label">فی فروش (ریال):</label>
-                    <input type="number" id="customerPriceEdit" name="customer_price" class="form-control" min="50000" value="50000">
-                </div>
-            </div>
-            
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="productTypeEdit" class="form-label">نوع محصول:</label>
-                    <select id="productTypeEdit" name="product_type" class="form-select">
-                        <option value="corn">ذرت</option>
-                        <option value="barley">جو</option>
-                        <option value="soy_meal">کنجاله سویا</option>
-                        <option value="sunflower_meal">کنجاله آفتابگردان</option>
-                        <option value="rapeseed_meal">کنجاله کلزا</option>
-                        <option value="local_extracted_soy">کنجاله سویا استحصالی از دانه داخلی</option>
-                        <option value="foreign_extracted_soy">کنجاله سویا استحصالی از دانه خارجی</option>
-                        <option value="soy_grain">دان سویا</option>
-                        <option value="cotton_seed">دان پنبه</option>
-                        <option value="alfalfa">یونجه</option>
-                        <option value="other">سایر</option>
-                    </select>
-                </div>
-                <div class="col-md-6">
-                    <label for="countryEdit" class="form-label">کشور:</label>
-                    <select id="countryEdit" name="country" class="form-select">
-                        <option value="iran">ایران</option>
-                        <option value="argentina">آرژانتین</option>
-                        <option value="brazil">برزیل</option>
-                        <option value="ukraine">اوکراین</option>
-                        <option value="india">هند</option>
-                        <option value="russia">روسیه</option>
-                        <option value="kazakhstan">قزاقستان</option>
-                        <option value="turkey">ترکیه</option>
-                        <option value="canada">کانادا</option>
-                        <option value="australia">استرالیا</option>
-                        <option value="serbia">صربستان</option>
-                        <option value="romania">رومانی</option>
-                        <option value="other">سایر</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="importerNameEdit" class="form-label">واردکننده/کارخانه:</label>
-                    <input type="text" id="importerNameEdit" name="importer_name" class="form-control">
-                </div>
-                <div class="col-md-6">
-                    <label for="weightEdit" class="form-label">وزن موجود:</label>
-                    <input type="number" id="weightEdit" name="weight" class="form-control" value="100000" min="10000">
-                </div>
-            </div>
-            
-            <div class="form-check mb-3">
-                <input type="checkbox" id="statusEdit" name="status" class="form-check-input" checked>
-                <label for="statusEdit" class="form-check-label">فعال</label>
-            </div>
-        `;
-        
-        bulkEditCargoForm.classList.remove('d-none');
-        saveBulkEditCargoBtn.disabled = false;
-        
-        // اضافه کردن اعتبارسنجی برای شماره کوتاژ
-        setTimeout(() => {
-            const cottageInput = document.getElementById('cottageEdit');
-            const typeSelect = document.getElementById('typeEdit');
-            
-            if (cottageInput && typeSelect) {
-                // فوکوس روی فیلد کوتاژ
-                cottageInput.focus();
-                
-                // اعتبارسنجی شماره کوتاژ بر اساس نوع خرید
-                typeSelect.addEventListener('change', validateCottage);
-                cottageInput.addEventListener('input', validateCottage);
-                
-                function validateCottage() {
-                    const cottage = cottageInput.value.trim();
-                    const type = typeSelect.value;
-                    
-                    if (type === 'bazaargah' && cottage) {
-                        // بازارگاه باید ۸ رقم عددی باشد
-                        if (!/^\d{8}$/.test(cottage)) {
-                            cottageInput.setCustomValidity('کوتاژ بازارگاه باید دقیقاً ۸ رقم عددی باشد');
-                        } else {
-                            cottageInput.setCustomValidity('');
-                        }
-                    } else if (type === 'non_bazaargah' && cottage) {
-                        // خارج از بازارگاه باید ۳ رقم عددی باشد
-                        if (!/^\d{3}$/.test(cottage)) {
-                            cottageInput.setCustomValidity('کوتاژ خارج از بازارگاه باید دقیقاً ۳ رقم عددی باشد');
-                        } else {
-                            cottageInput.setCustomValidity('');
-                        }
-                    } else {
-                        cottageInput.setCustomValidity('');
-                    }
-                    
-                    cottageInput.reportValidity();
-                }
-            }
-        }, 100);
-    }
-    
-    // نمایش فرم جستجوی کوتاژ
-    function showCargoSearchForm() {
-        const bulkEditCargoForm = document.getElementById('bulkEditCargoForm');
-        const saveBulkEditCargoBtn = document.getElementById('saveBulkEditCargoBtn');
-        
-        bulkEditCargoForm.innerHTML = `
-            <div class="alert alert-info">
-                <p><i class="fas fa-info-circle me-2"></i> برای یافتن کوتاژ مورد نظر، شماره کوتاژ را وارد کنید.</p>
-            </div>
-            <div class="input-group mb-3">
-                <input type="text" id="cargoSearchInput" class="form-control" placeholder="شماره کوتاژ را وارد کنید...">
-                <button class="btn btn-primary" type="button" id="searchCargoBtn">جستجو</button>
-            </div>
-            <div id="cargoSearchResults" class="mt-3"></div>
-        `;
-        
-        bulkEditCargoForm.classList.remove('d-none');
-        saveBulkEditCargoBtn.disabled = true;
-        
-        // فوکوس روی فیلد جستجو
-        setTimeout(() => {
-            document.getElementById('cargoSearchInput').focus();
-        }, 100);
-        
-        // رویداد کلیک برای دکمه جستجو
-        document.getElementById('searchCargoBtn').addEventListener('click', function() {
-            searchCargo();
-        });
-        
-        // رویداد فشردن Enter برای جستجو
-        document.getElementById('cargoSearchInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                searchCargo();
-            }
-        });
-    }
-    
-    // جستجوی کوتاژ
-    function searchCargo() {
-        const cottageName = document.getElementById('cargoSearchInput').value.trim();
-        if (!cottageName) {
-            document.getElementById('cargoSearchResults').innerHTML = '<div class="alert alert-warning">لطفاً شماره کوتاژ را وارد کنید</div>';
-            return;
-        }
-        
-        // نمایش وضعیت بارگذاری
-        document.getElementById('cargoSearchResults').innerHTML = `
-            <div class="text-center">
-                <div class="spinner-border text-primary" role="status"></div>
-                <p>در حال جستجو...</p>
-            </div>`;
-        
-        // ارسال درخواست به سرور
-        fetch(`{% url 'cargo_product_details' %}?cottage=${encodeURIComponent(cottageName)}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('کوتاژ مورد نظر یافت نشد');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success' && data.cargo) {
-                    // پر کردن فرم با اطلاعات دریافتی
-                    fillCargoForm(data.cargo);
-                } else {
-                    throw new Error(data.message || 'خطا در دریافت اطلاعات کوتاژ');
-                }
-            })
-            .catch(error => {
-                document.getElementById('cargoSearchResults').innerHTML = `
-                    <div class="alert alert-danger">
-                        <p>${error.message || 'کوتاژ مورد نظر یافت نشد'}</p>
-                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="createNewCargoBtn">
-                            ایجاد کوتاژ جدید
-                        </button>
-                    </div>`;
-                
-                // رویداد کلیک برای دکمه ایجاد کوتاژ جدید
-                document.getElementById('createNewCargoBtn').addEventListener('click', function() {
-                    const cargoNumber = document.getElementById('cargoSearchInput').value.trim();
-                    showNewCargoForm();
-                    
-                    // پر کردن شماره کوتاژ از جستجوی قبلی
-                    setTimeout(() => {
-                        const cottageInput = document.getElementById('cottageEdit');
-                        if (cottageInput && cargoNumber) {
-                            cottageInput.value = cargoNumber;
-                        }
-                    }, 100);
-                });
-            });
-    }
-    
     // تبدیل کد محصول به نام نمایشی
     function getProductTypeDisplay(productTypeCode) {
         const productTypes = {
@@ -2095,4 +860,125 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<!-- اسکریپت برای عملکرد انتخاب همه -->
+<script>
+// اطمینان از اجرا شدن اسکریپت پس از بارگذاری کامل صفحه
+document.addEventListener('DOMContentLoaded', function() {
+    // انتخاب عناصر لازم
+    const selectAllActive = document.getElementById('selectAllActive');
+    const selectAllArchived = document.getElementById('selectAllArchived');
+    
+    // تابع به‌روزرسانی وضعیت چک‌باکس انتخاب همه
+    function updateSelectAllStatus(tableId, selectAllCheckbox) {
+        if (!selectAllCheckbox) return;
+        
+        const checkboxes = document.querySelectorAll(`#${tableId} .row-checkbox:not([disabled])`);
+        const visibleCheckboxes = Array.from(checkboxes).filter(checkbox => {
+            const row = checkbox.closest('tr');
+            return row && window.getComputedStyle(row).display !== 'none';
+        });
+        
+        if (visibleCheckboxes.length === 0) {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = false;
+            return;
+        }
+        
+        const checkedCount = visibleCheckboxes.filter(checkbox => checkbox.checked).length;
+        
+        if (checkedCount === 0) {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = false;
+        } else if (checkedCount === visibleCheckboxes.length) {
+            selectAllCheckbox.checked = true;
+            selectAllCheckbox.indeterminate = false;
+        } else {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = true;
+        }
+    }
+    
+    // تابع مدیریت تغییر وضعیت انتخاب همه
+    function handleSelectAllChange(tableId, selectAllCheckbox) {
+        if (!selectAllCheckbox) return;
+        
+        const isChecked = selectAllCheckbox.checked;
+        const checkboxes = document.querySelectorAll(`#${tableId} .row-checkbox:not([disabled])`);
+        const visibleCheckboxes = Array.from(checkboxes).filter(checkbox => {
+            const row = checkbox.closest('tr');
+            return row && window.getComputedStyle(row).display !== 'none';
+        });
+        
+        visibleCheckboxes.forEach(checkbox => {
+            // تغییر وضعیت چک‌باکس فقط اگر با وضعیت انتخاب همه متفاوت باشد
+            if (checkbox.checked !== isChecked) {
+                checkbox.checked = isChecked;
+                // اطمینان از اینکه رویدادهای مربوط به تغییر وضعیت چک‌باکس فراخوانی شوند
+                checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
+    }
+    
+    // اضافه کردن رویدادها برای چک‌باکس انتخاب همه در جدول فعال
+    if (selectAllActive) {
+        selectAllActive.addEventListener('change', function() {
+            handleSelectAllChange('activePurchasesTable', this);
+        });
+        
+        // به‌روزرسانی اولیه وضعیت
+        updateSelectAllStatus('activePurchasesTable', selectAllActive);
+    }
+    
+    // اضافه کردن رویدادها برای چک‌باکس انتخاب همه در جدول آرشیو
+    if (selectAllArchived) {
+        selectAllArchived.addEventListener('change', function() {
+            handleSelectAllChange('archivedPurchasesTable', this);
+        });
+        
+        // به‌روزرسانی اولیه وضعیت
+        updateSelectAllStatus('archivedPurchasesTable', selectAllArchived);
+    }
+    
+    // به‌روزرسانی وضعیت چک‌باکس انتخاب همه پس از هر تغییر در چک‌باکس‌های ردیف
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('row-checkbox')) {
+            const tableId = e.target.closest('tbody').id;
+            if (tableId === 'activePurchasesTable') {
+                updateSelectAllStatus('activePurchasesTable', selectAllActive);
+            } else if (tableId === 'archivedPurchasesTable') {
+                updateSelectAllStatus('archivedPurchasesTable', selectAllArchived);
+            }
+        }
+    });
+    
+    // به‌روزرسانی وضعیت چک‌باکس انتخاب همه پس از فیلتر کردن جدول
+    const searchInputs = document.querySelectorAll('.search-input, .column-search, .column-search-archived');
+    searchInputs.forEach(input => {
+        input.addEventListener('keyup', function() {
+            // تأخیر کوتاه برای اطمینان از اینکه فیلتر اعمال شده است
+            setTimeout(function() {
+                updateSelectAllStatus('activePurchasesTable', selectAllActive);
+                updateSelectAllStatus('archivedPurchasesTable', selectAllArchived);
+            }, 100);
+        });
+    });
+    
+    // به‌روزرسانی وضعیت چک‌باکس انتخاب همه پس از تغییر حالت نمایش بخش آرشیو
+    const toggleButton = document.getElementById('toggleArchived');
+    if (toggleButton) {
+        toggleButton.addEventListener('click', function() {
+            // تأخیر کوتاه برای اطمینان از تغییر وضعیت نمایش
+            setTimeout(function() {
+                updateSelectAllStatus('archivedPurchasesTable', selectAllArchived);
+            }, 100);
+        });
+    }
+});
+</script>
+
+<!-- Tabulator JS -->
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+<script src="{% static 'js/select-all-purchases.js' %}"></script>
+{% block extra_scripts %}{% endblock %}
 {% endblock %}
