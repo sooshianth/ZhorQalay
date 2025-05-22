@@ -10,6 +10,7 @@ from core.decorators.decorators import role_required
 from .bki_api_utils.api_client import test_api_connection, get_all_bazaargah_purchases
 from .bki_api_utils.api_client import analyze_api_response
 from .bki_kharid_list_by_date import send_kharid_list_by_date_request, get_all_purchases_by_date_range
+from .bki_kharid_list_by_date import get_purchases_last_24_hours, get_purchases_last_week
 from core.PurchaseModel import Purchase
 from jdatetime import datetime as jdatetime
 from django.db import transaction
@@ -478,4 +479,150 @@ def merge_purchases_view(request):
             'success': False,
             'error': f'خطا در ادغام خریدها: {str(e)}'
         }, status=500)
+
+@role_required('admin')
+def get_purchases_last_day_view(request):
+    """تابع برای دریافت و ثبت خریدهای 24 ساعت گذشته"""
+    # بررسی اگر درخواست POST نیست، نمایش فرم تایید
+    if request.method != 'POST':
+        return render(request, 'bki_api/get_purchases_last_day_confirm.html')
+    
+    # بررسی اعتبارنامه‌های API
+    username = settings.BKI_USERNAME
+    password = settings.BKI_PASSWORD
+    
+    if not username or not password:
+        messages.error(request, 'اطلاعات کاربری BKI تنظیم نشده است.')
+        return redirect('bki_api:credentials')
+    
+    # تست اتصال به API بازارگاه
+    is_connected, connection_message = test_api_connection()
+    if not is_connected:
+        messages.error(request, f'خطا در اتصال به API بازارگاه: {connection_message}')
+        return redirect('bki_api:credentials')
+    
+    # استفاده از API برای دریافت خریدهای 24 ساعت گذشته
+    try:
+        # فراخوانی تابع برای دریافت و پردازش خریدهای 24 ساعت گذشته
+        total_count, success_count, created_count, updated_count, failed_count, errors = get_purchases_last_24_hours()
+        
+        # ارسال به صفحه نتایج
+        context = {
+            'total': total_count,
+            'successes': success_count,
+            'failures': failed_count,
+            'updated': updated_count,
+            'created': created_count,
+            'errors': errors,
+            'period': '24 ساعت گذشته'
+        }
+        
+        # نمایش پیام‌های مناسب
+        if success_count > 0:
+            messages.success(
+                request,
+                f'عملیات با موفقیت انجام شد. از {total_count} خرید در 24 ساعت گذشته، {success_count} مورد با موفقیت پردازش شد. '
+                f'({created_count} خرید جدید ایجاد شد، {updated_count} خرید موجود به‌روزرسانی شد)'
+            )
+        else:
+            messages.warning(
+                request,
+                'هیچ خرید جدیدی در 24 ساعت گذشته ثبت نشد و هیچ خریدی به‌روزرسانی نشد.'
+            )
+        
+        if failed_count > 0:
+            messages.warning(
+                request,
+                f'{failed_count} خرید با خطا مواجه شد. جزئیات را در جدول نتایج ببینید.'
+            )
+        
+        return render(request, 'bki_api/get_all_purchases_results.html', context)
+        
+    except Exception as e:
+        error_details = traceback.format_exc()
+        error_message = f"خطا در اجرای تابع دریافت خریدهای 24 ساعت گذشته: {str(e)}"
+        messages.error(request, error_message)
+        
+        # ثبت خطا در لاگ
+        log_entry = BKILog(
+            request_type='getPurchasesLast24Hours',
+            is_successful=False,
+            error_message=f"خطا در اجرای تابع: {str(e)}\n{error_details}"
+        )
+        log_entry.save()
+        
+        return redirect('bki_api:credentials')
+
+@role_required('admin')
+def get_purchases_last_week_view(request):
+    """تابع برای دریافت و ثبت خریدهای یک هفته گذشته"""
+    # بررسی اگر درخواست POST نیست، نمایش فرم تایید
+    if request.method != 'POST':
+        return render(request, 'bki_api/get_purchases_last_week_confirm.html')
+    
+    # بررسی اعتبارنامه‌های API
+    username = settings.BKI_USERNAME
+    password = settings.BKI_PASSWORD
+    
+    if not username or not password:
+        messages.error(request, 'اطلاعات کاربری BKI تنظیم نشده است.')
+        return redirect('bki_api:credentials')
+    
+    # تست اتصال به API بازارگاه
+    is_connected, connection_message = test_api_connection()
+    if not is_connected:
+        messages.error(request, f'خطا در اتصال به API بازارگاه: {connection_message}')
+        return redirect('bki_api:credentials')
+    
+    # استفاده از API برای دریافت خریدهای یک هفته گذشته
+    try:
+        # فراخوانی تابع برای دریافت و پردازش خریدهای یک هفته گذشته
+        total_count, success_count, created_count, updated_count, failed_count, errors = get_purchases_last_week()
+        
+        # ارسال به صفحه نتایج
+        context = {
+            'total': total_count,
+            'successes': success_count,
+            'failures': failed_count,
+            'updated': updated_count,
+            'created': created_count,
+            'errors': errors,
+            'period': 'یک هفته گذشته'
+        }
+        
+        # نمایش پیام‌های مناسب
+        if success_count > 0:
+            messages.success(
+                request,
+                f'عملیات با موفقیت انجام شد. از {total_count} خرید در یک هفته گذشته، {success_count} مورد با موفقیت پردازش شد. '
+                f'({created_count} خرید جدید ایجاد شد، {updated_count} خرید موجود به‌روزرسانی شد)'
+            )
+        else:
+            messages.warning(
+                request,
+                'هیچ خرید جدیدی در یک هفته گذشته ثبت نشد و هیچ خریدی به‌روزرسانی نشد.'
+            )
+        
+        if failed_count > 0:
+            messages.warning(
+                request,
+                f'{failed_count} خرید با خطا مواجه شد. جزئیات را در جدول نتایج ببینید.'
+            )
+        
+        return render(request, 'bki_api/get_all_purchases_results.html', context)
+        
+    except Exception as e:
+        error_details = traceback.format_exc()
+        error_message = f"خطا در اجرای تابع دریافت خریدهای یک هفته گذشته: {str(e)}"
+        messages.error(request, error_message)
+        
+        # ثبت خطا در لاگ
+        log_entry = BKILog(
+            request_type='getPurchasesLastWeek',
+            is_successful=False,
+            error_message=f"خطا در اجرای تابع: {str(e)}\n{error_details}"
+        )
+        log_entry.save()
+        
+        return redirect('bki_api:credentials')
 
