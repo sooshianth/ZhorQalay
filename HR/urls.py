@@ -7,5 +7,6 @@ urlpatterns = [
     path('attendance/pending/', weekly_attendance.pending_approvals_view, name='pending_approvals'),
     path('attendance/approve/<int:attendance_id>/', weekly_attendance.approve_attendance, name='approve_attendance'),
     path('attendance/summary/', weekly_attendance.attendance_summary_view, name='attendance_summary'),
+    path('attendance/clear-approvals/', weekly_attendance.clear_approval_references, name='clear_approval_references'),
     path('employee/profile/', employee_profile.employee_profile_view, name='employee_profile'),
 ]

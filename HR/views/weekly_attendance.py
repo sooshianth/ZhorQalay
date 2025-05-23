@@ -29,6 +29,22 @@ def daily_attendance_view(request):
                 approved_by_user2 = form.cleaned_data['approved_by_user2']
                 approved_by_user3 = form.cleaned_data['approved_by_user3']
 
+                # دریافت بازه‌های زمانی
+                time_ranges = []
+                if 'start_times' in request.POST and 'end_times' in request.POST:
+                    start_times = request.POST.getlist('start_times')
+                    end_times = request.POST.getlist('end_times')
+                    
+                    # اطمینان از برابر بودن تعداد بازه‌ها
+                    if len(start_times) == len(end_times):
+                        # چک کردن که بازه‌ها خالی نباشند
+                        for i in range(len(start_times)):
+                            if start_times[i] and end_times[i]:
+                                time_ranges.append({
+                                    'start_time': start_times[i],
+                                    'end_time': end_times[i]
+                                })
+
                 # محاسبه روز هفته
                 jalali_weekday = jalali_date.weekday()
                 
@@ -100,6 +116,25 @@ def daily_attendance_view(request):
                 attendance.calculate_total_hours()
                 attendance.save()
 
+                # ذخیره بازه‌های زمانی
+                # ابتدا بازه‌های قبلی را حذف می‌کنیم
+                from HR.EmployeeAttendanceModel import TimeRange
+                TimeRange.objects.filter(attendance=attendance).delete()
+                
+                # اضافه کردن بازه‌های جدید
+                for time_range in time_ranges:
+                    try:
+                        start_time = datetime.datetime.strptime(time_range['start_time'], '%H:%M').time()
+                        end_time = datetime.datetime.strptime(time_range['end_time'], '%H:%M').time()
+                        
+                        TimeRange.objects.create(
+                            attendance=attendance,
+                            start_time=start_time,
+                            end_time=end_time
+                        )
+                    except (ValueError, TypeError) as e:
+                        print(f"Error saving time range: {e}")
+
                 # ترجمه روز هفته به فارسی برای پیام
                 day_translation = {
                     'Saturday': 'شنبه',
@@ -168,7 +203,6 @@ def daily_attendance_view(request):
         # نیازی به تبدیل نیست چون فیلد از نوع jDateField است
         # فقط فرمت‌دهی مستقیم انجام می‌دهیم
         formatted_date = attendance.week_start_date.strftime('%Y/%m/%d')
-        print(f"Debug - Attendance ID: {attendance.id}, Jalali date direct: {attendance.week_start_date}, Formatted: {formatted_date}")
         
         # مترجم روزهای هفته به فارسی
         day_translation = {
@@ -190,12 +224,44 @@ def daily_attendance_view(request):
             1 if attendance.user2_approved else 0,
             1 if attendance.user3_approved else 0
         ])
+
+        # آماده‌سازی جزئیات ساعات روزانه
+        daily_hours = {
+            'شنبه': attendance.saturday_hours if attendance.saturday_hours > 0 else None,
+            'یکشنبه': attendance.sunday_hours if attendance.sunday_hours > 0 else None,
+            'دوشنبه': attendance.monday_hours if attendance.monday_hours > 0 else None,
+            'سه‌شنبه': attendance.tuesday_hours if attendance.tuesday_hours > 0 else None,
+            'چهارشنبه': attendance.wednesday_hours if attendance.wednesday_hours > 0 else None,
+            'پنج‌شنبه': attendance.thursday_hours if attendance.thursday_hours > 0 else None,
+            'جمعه': attendance.friday_hours if attendance.friday_hours > 0 else None,
+        }
+        
+        # دریافت بازه‌های زمانی
+        from HR.EmployeeAttendanceModel import TimeRange
+        time_ranges = TimeRange.objects.filter(attendance=attendance).order_by('start_time')
+        formatted_time_ranges = []
+        
+        # چک کردن آیا بازه زمانی وجود دارد
+        print(f"Debug - Checking time ranges for attendance {attendance.id}")
+        
+        for time_range in time_ranges:
+            formatted_time_ranges.append({
+                'start_time': time_range.start_time.strftime('%H:%M'),
+                'end_time': time_range.end_time.strftime('%H:%M'),
+                'duration': time_range.duration
+            })
+            print(f"Debug - Added time range: {time_range.start_time.strftime('%H:%M')} to {time_range.end_time.strftime('%H:%M')}")
+        
+        # وضعیت تاییدها
+        attendance.enough_approvals = attendance.is_enough_user_approvals
         
         formatted_attendances.append({
             'id': attendance.id,
             'week_start_date': formatted_date,
             'day': persian_day,
             'total_hours': attendance.total_hours,
+            'daily_hours': daily_hours,  # جزئیات ساعات روزانه
+            'time_ranges': formatted_time_ranges,  # بازه‌های زمانی
             'description': attendance.description,
             'documents': attendance.documents,  # این یک رابطه related_name است و documents.all در تمپلیت استفاده می‌شود
             'approved_by_admin': attendance.approved_by_admin,
@@ -207,9 +273,55 @@ def daily_attendance_view(request):
             'is_fully_approved': attendance.is_fully_approved,
         })
 
+    # دریافت اطلاعات خلاصه ماهانه برای کارمند
+    from django.db.models.functions import TruncMonth
+    from django.db.models import Sum
+    
+    # فیلتر ماهانه
+    filter_month = request.GET.get('filter_month')
+    month_filter = None
+    
+    if filter_month:
+        try:
+            # فرض می‌کنیم فرمت به صورت YYYY/MM یا YYYY-MM باشد
+            filter_month = filter_month.replace('-', '/').replace('.', '/')
+            if '/' in filter_month:
+                month_parts = filter_month.split('/')
+                if len(month_parts) == 2:
+                    year, month = map(int, month_parts)
+                    month_filter = f"{year}-{month:02d}"
+                    print(f"Debug - Filter by month: {month_filter}")
+        except Exception as e:
+            print(f"Error parsing month filter: {e}")
+            pass
+    
+    # استخراج اطلاعات ماهانه از مدل MonthlyAttendance
+    monthly_summary_query = MonthlyAttendance.objects.filter(employee=request.user)
+    
+    # اگر فیلتر ماه فعال باشد، اعمال می‌کنیم
+    if month_filter:
+        monthly_summary_query = monthly_summary_query.filter(month=month_filter)
+        print(f"Debug - Filtered monthly data: {monthly_summary_query.count()} records found")
+    
+    monthly_summary = monthly_summary_query.order_by('-month')
+    
+    # تبدیل تاریخ‌های ماهانه به فرمت جلالی قابل خواندن
+    formatted_monthly_summary = []
+    for month_data in monthly_summary:
+        # فرمت ماه به صورت YYYY-MM است
+        year, month = month_data.month.split('-')
+        # نمایش به فرمت جلالی استاندارد
+        jalali_month = f"{year}/{month}"
+        
+        formatted_monthly_summary.append({
+            'month': jalali_month,
+            'total_hours': round(month_data.total_hours, 2)
+        })
+
     return render(request, 'weekly_attendance.html', {
         'form': form,
         'attendances': formatted_attendances,
+        'monthly_summary': formatted_monthly_summary,
         'status': status,
         'q': q
     })
@@ -254,28 +366,42 @@ def pending_approvals_view(request):
     if request.user.is_superuser:
         # برای ادمین، نمایش رکوردهایی که حداقل 2 تایید دارند ولی تایید ادمین ندارند
         pending_attendances = WeeklyAttendance.objects.filter(
-            Q(user1_approved=True) & Q(user2_approved=True) & Q(approved_by_admin=False) |
-            Q(user1_approved=True) & Q(user3_approved=True) & Q(approved_by_admin=False) |
-            Q(user2_approved=True) & Q(user3_approved=True) & Q(approved_by_admin=False)
+            (
+                (Q(user1_approved=True) & Q(user2_approved=True)) |
+                (Q(user1_approved=True) & Q(user3_approved=True)) |
+                (Q(user2_approved=True) & Q(user3_approved=True))
+            ) & 
+            Q(approved_by_admin=False)
         ).order_by('-week_start_date')
     else:
-        # برای کاربران عادی، نمایش رکوردهایی که در انتظار تایید آنها هستند
+        # برای کاربران عادی، فقط نمایش رکوردهایی که:
+        # 1. در انتظار تایید آنها هستند
+        # 2. هنوز به حد نصاب 2 تایید نرسیده‌اند
         try:
             # ابتدا کارمند متناظر با کاربر فعلی را پیدا می‌کنیم
             current_employee = Employee.objects.get(user=request.user)
+            
+            # نمایش رکوردهایی که کاربر فعلی باید تایید کند و هنوز به 2 تایید نرسیده‌اند
             pending_attendances = WeeklyAttendance.objects.filter(
                 (
-                    Q(approved_by_user1__user=current_employee.user, user1_approved=False) |
-                    Q(approved_by_user2__user=current_employee.user, user2_approved=False) |
-                    Q(approved_by_user3__user=current_employee.user, user3_approved=False)
+                    (Q(approved_by_user1=current_employee, user1_approved=False) & ~(Q(user2_approved=True) & Q(user3_approved=True))) |
+                    (Q(approved_by_user2=current_employee, user2_approved=False) & ~(Q(user1_approved=True) & Q(user3_approved=True))) |
+                    (Q(approved_by_user3=current_employee, user3_approved=False) & ~(Q(user1_approved=True) & Q(user2_approved=True)))
                 )
             ).order_by('-week_start_date')
+            
+            # این کد برای تست کردن تعداد رکوردهای نمایش داده شده است
+            print(f"Debug - Pending approvals for user {request.user.username}: {pending_attendances.count()} records")
+            
         except Employee.DoesNotExist:
             # اگر کاربر فعلی کارمند نیست، لیست خالی نمایش دهیم
             pending_attendances = WeeklyAttendance.objects.none()
         
     # فرمت‌دهی تاریخ‌ها و اطلاعات دیگر
     pending_data = []
+    
+    print(f"Debug - Total pending records: {pending_attendances.count()}")
+    
     for attendance in pending_attendances:
         # استفاده مستقیم از تاریخ جلالی ذخیره شده
         formatted_date = attendance.week_start_date.strftime('%Y/%m/%d')
@@ -299,17 +425,47 @@ def pending_approvals_view(request):
             1 if attendance.user3_approved else 0
         ])
         
-        # وضعیت تاییدها
-        attendance.enough_approvals = attendance.is_enough_user_approvals
+        # آماده‌سازی جزئیات ساعات روزانه
+        daily_hours = {
+            'شنبه': attendance.saturday_hours if attendance.saturday_hours > 0 else None,
+            'یکشنبه': attendance.sunday_hours if attendance.sunday_hours > 0 else None,
+            'دوشنبه': attendance.monday_hours if attendance.monday_hours > 0 else None,
+            'سه‌شنبه': attendance.tuesday_hours if attendance.tuesday_hours > 0 else None,
+            'چهارشنبه': attendance.wednesday_hours if attendance.wednesday_hours > 0 else None,
+            'پنج‌شنبه': attendance.thursday_hours if attendance.thursday_hours > 0 else None,
+            'جمعه': attendance.friday_hours if attendance.friday_hours > 0 else None,
+        }
         
-        pending_data.append({
+        # دریافت بازه‌های زمانی
+        from HR.EmployeeAttendanceModel import TimeRange
+        time_ranges = list(TimeRange.objects.filter(attendance=attendance).order_by('start_time'))
+        
+        print(f"Debug - Attendance ID {attendance.id} has {len(time_ranges)} time ranges")
+        
+        formatted_time_ranges = []
+        for time_range in time_ranges:
+            formatted_entry = {
+                'start_time': time_range.start_time.strftime('%H:%M'),
+                'end_time': time_range.end_time.strftime('%H:%M'),
+                'duration': time_range.duration
+            }
+            formatted_time_ranges.append(formatted_entry)
+            print(f"Debug - Added range: {formatted_entry['start_time']} to {formatted_entry['end_time']}")
+            
+        # اطمینان از اینکه لیست بازه‌های زمانی خالی نیست
+        print(f"Debug - Final formatted_time_ranges: {formatted_time_ranges}")
+        
+        # وضعیت تاییدها
+        attendance_data = {
             'id': attendance.id,
             'employee': attendance.employee,
             'jalali_date': formatted_date,
             'persian_day': persian_day,
             'total_hours': attendance.total_hours,
+            'daily_hours': daily_hours,  # جزئیات ساعات روزانه
+            'time_ranges': formatted_time_ranges,  # بازه‌های زمانی
             'description': attendance.description,
-            'documents': attendance.documents,  # این یک رابطه related_name است و documents.all در تمپلیت استفاده می‌شود
+            'documents': attendance.documents,
             'approved_by_user1': attendance.approved_by_user1,
             'approved_by_user2': attendance.approved_by_user2,
             'approved_by_user3': attendance.approved_by_user3,
@@ -319,7 +475,9 @@ def pending_approvals_view(request):
             'approved_by_admin': attendance.approved_by_admin,
             'approval_count': approval_count,
             'enough_approvals': attendance.is_enough_user_approvals
-        })
+        }
+        
+        pending_data.append(attendance_data)
 
     return render(request, 'pending_approvals.html', {
         'pending_attendances': pending_data
@@ -330,37 +488,58 @@ def pending_approvals_view(request):
 def approve_attendance(request, attendance_id):
     attendance = get_object_or_404(WeeklyAttendance, id=attendance_id)
     
+    # اگر کاربر ادمین است، مستقیماً اجازه تایید بدهیم
+    if request.user.is_superuser:
+        # بررسی اینکه آیا به حد نصاب 2 تایید رسیده‌ایم یا خیر
+        if attendance.is_enough_user_approvals:
+            attendance.approved_by_admin = True
+            attendance.save()
+            messages.success(request, "تأیید ادمین ثبت شد!")
+        else:
+            messages.error(request, "حداقل دو تایید از تاییدکنندگان لازم است، سپس می‌توانید تایید ادمین را انجام دهید.")
+        return redirect('pending_approvals')
+    
     try:
         # ابتدا کارمند متناظر با کاربر فعلی را پیدا می‌کنیم
         current_employee = Employee.objects.get(user=request.user)
         
-        if attendance.approved_by_user1 and attendance.approved_by_user1.user == request.user:
+        # بررسی اینکه آیا به حد نصاب 2 تایید رسیده‌ایم یا خیر
+        approval_count = sum([
+            1 if attendance.user1_approved else 0,
+            1 if attendance.user2_approved else 0,
+            1 if attendance.user3_approved else 0
+        ])
+        
+        # اگر به حد نصاب 2 تایید رسیده‌ایم، نیازی به تایید بیشتر نیست
+        if approval_count >= 2 and not request.user.is_superuser:
+            messages.info(request, "این رکورد قبلاً توسط 2 نفر تایید شده و نیاز به تایید بیشتر ندارد.")
+            return redirect('pending_approvals')
+        
+        if attendance.approved_by_user1 and attendance.approved_by_user1 == current_employee:
             attendance.user1_approved = True
             attendance.save()
             messages.success(request, "تأیید شما ثبت شد!")
-        elif attendance.approved_by_user2 and attendance.approved_by_user2.user == request.user:
+        elif attendance.approved_by_user2 and attendance.approved_by_user2 == current_employee:
             attendance.user2_approved = True
             attendance.save()
             messages.success(request, "تأیید شما ثبت شد!")
-        elif attendance.approved_by_user3 and attendance.approved_by_user3.user == request.user:
+        elif attendance.approved_by_user3 and attendance.approved_by_user3 == current_employee:
             attendance.user3_approved = True
             attendance.save()
             messages.success(request, "تأیید شما ثبت شد!")
-    except Employee.DoesNotExist:
-        # اگر کاربر فعلی کارمند نیست، اجازه تایید ندارد مگر ادمین باشد
-        pass
-    
-    if request.user.is_superuser and attendance.is_enough_user_approvals:
-        attendance.approved_by_admin = True
-        attendance.save()
-        messages.success(request, "تأیید ادمین ثبت شد!")
-    else:
-        if request.user.is_superuser and not attendance.is_enough_user_approvals:
-            messages.error(request, "حداقل دو تایید از تاییدکنندگان لازم است، سپس می‌توانید تایید ادمین را انجام دهید.")
         else:
             messages.error(request, "شما مجاز به تأیید این رکورد نیستید.")
+            return redirect('pending_approvals')
+    except Employee.DoesNotExist:
+        # اگر کاربر فعلی کارمند نیست و ادمین هم نیست، اجازه تایید ندارد
+        messages.error(request, "شما کارمند فعالی نیستید و مجاز به تأیید نمی‌باشید.")
         return redirect('pending_approvals')
-
+    
+    # بررسی اینکه آیا به حد نصاب 2 تایید رسیده‌ایم پس از تایید فعلی
+    if attendance.is_enough_user_approvals:
+        messages.success(request, "این رکورد به حد نصاب 2 تایید رسید و حالا در انتظار تایید ادمین است.")
+    
+    # اگر هم 2 تایید کاربران و هم تایید ادمین را داشته باشیم، آنگاه تایید نهایی شده است
     if attendance.is_fully_approved:
         messages.success(request, "ساعات کاری با موفقیت تأیید شد!")
 
@@ -529,3 +708,24 @@ def attendance_summary_view(request):
         'selected_employee': selected_employee,
         'employee_stats': employee_stats,
     })
+
+@role_required('admin')
+@login_required
+def clear_approval_references(request):
+    if not request.user.is_superuser:
+        messages.error(request, "فقط ادمین اجازه انجام این عملیات را دارد.")
+        return redirect('weekly_attendance_view')
+    
+    # پاک کردن همه ارجاعات به تاییدکنندگان
+    WeeklyAttendance.objects.all().update(
+        approved_by_user1=None,
+        approved_by_user2=None,
+        approved_by_user3=None,
+        user1_approved=False,
+        user2_approved=False,
+        user3_approved=False,
+        approved_by_admin=False
+    )
+    
+    messages.success(request, "همه ارجاعات تاییدکنندگان با موفقیت پاک شدند. اکنون می‌توانید مایگریشن‌ها را اجرا کنید.")
+    return redirect('weekly_attendance_view')

@@ -153,13 +153,13 @@
                                                 <div class="col-md-5">
                                                     <div class="input-group">
                                                         <span class="input-group-text"><i class="fas fa-hourglass-start"></i></span>
-                                                        <input type="time" class="form-control start-time" placeholder="شروع">
+                                                        <input type="time" name="start_times[]" class="form-control start-time" placeholder="شروع">
                                                     </div>
                                                 </div>
                                                 <div class="col-md-5">
                                                     <div class="input-group">
                                                         <span class="input-group-text"><i class="fas fa-hourglass-end"></i></span>
-                                                        <input type="time" class="form-control end-time" placeholder="پایان">
+                                                        <input type="time" name="end_times[]" class="form-control end-time" placeholder="پایان">
                                                     </div>
                                                 </div>
                                                 <div class="col-md-2">
@@ -188,7 +188,7 @@
 
     <!-- بخش فیلترها - در وسط صفحه -->
     <div class="row mb-4">
-        <div class="col-12">
+        <div class="col-md-8">
             <div class="card shadow border-0">
                 <div class="card-header bg-gradient-secondary text-white py-3">
                     <h4 class="card-title m-0 fw-bold"><i class="fas fa-filter me-2"></i>فیلتر و جستجو</h4>
@@ -236,6 +236,76 @@
                 </div>
             </div>
         </div>
+        
+        <!-- بخش خلاصه ماهانه -->
+        <div class="col-md-4">
+            <div class="card shadow border-0">
+                <div class="card-header bg-gradient-primary text-white py-3">
+                    <h4 class="card-title m-0 fw-bold"><i class="fas fa-calendar-alt me-2"></i>خلاصه ماهانه</h4>
+                </div>
+                <div class="card-body">
+                    <form method="get" action="" class="mb-3">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-calendar-month"></i></span>
+                            <input type="text" name="filter_month" class="form-control persian-month-picker" 
+                                   placeholder="انتخاب ماه" value="{{ request.GET.filter_month }}">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter"></i> فیلتر
+                            </button>
+                        </div>
+                        <!-- اگر پارامترهای دیگری در URL باشد، حفظ می‌کنیم -->
+                        {% for key, value in request.GET.items %}
+                            {% if key != 'filter_month' %}
+                                <input type="hidden" name="{{ key }}" value="{{ value }}">
+                            {% endif %}
+                        {% endfor %}
+                    </form>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th class="text-center"><i class="fas fa-calendar-month me-1"></i> ماه</th>
+                                    <th class="text-center"><i class="fas fa-clock me-1"></i> مجموع ساعات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for month in monthly_summary %}
+                                <tr>
+                                    <td class="text-center">{{ month.month }}</td>
+                                    <td class="text-center fw-bold">{{ month.total_hours }} ساعت</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted py-3">
+                                        <i class="fas fa-exclamation-circle me-1"></i>
+                                        اطلاعات ماهانه موجود نیست
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-dark">
+                                <tr>
+                                    <th class="text-center">مجموع کل</th>
+                                    <th class="text-center fw-bold">
+                                        {% with total=monthly_summary|sum_monthly_hours %}
+                                            {{ total }} ساعت
+                                        {% endwith %}
+                                    </th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                {% if request.GET.filter_month %}
+                <div class="card-footer bg-light">
+                    <a href="{% url 'weekly_attendance_view' %}" class="btn btn-sm btn-secondary w-100">
+                        <i class="fas fa-times-circle me-1"></i> حذف فیلتر
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 
     <!-- جدول نمایش رکوردها - در پایین صفحه -->
@@ -266,12 +336,49 @@
                                     <td>{{ attendance.week_start_date }}</td>
                                     <td>{{ attendance.day }}</td>
                                     <td>
-                                        {% if attendance.is_fully_approved %}
-                                            <span class="fw-bold text-success">{{ attendance.total_hours }}</span>
-                                        {% else %}
-                                            <span class="fw-bold">{{ attendance.total_hours }}</span>
-                                            <small class="d-block text-muted">در انتظار تأیید</small>
-                                        {% endif %}
+                                        <div class="d-flex flex-column">
+                                            <span class="fw-bold {% if attendance.is_fully_approved %}text-success{% endif %}">{{ attendance.total_hours }} ساعت</span>
+                                            
+                                            {% if attendance.time_ranges %}
+                                                <div class="time-ranges mt-2 mb-2">
+                                                    <span class="badge bg-info text-white fw-bold mb-1">بازه‌های زمانی:</span>
+                                                    <div class="table-responsive mt-1">
+                                                        <table class="table table-sm table-bordered">
+                                                            <thead class="table-light">
+                                                                <tr>
+                                                                    <th class="text-center">شروع</th>
+                                                                    <th class="text-center">پایان</th>
+                                                                    <th class="text-center">مدت</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {% for range in attendance.time_ranges %}
+                                                                <tr>
+                                                                    <td class="text-center">{{ range.start_time }}</td>
+                                                                    <td class="text-center">{{ range.end_time }}</td>
+                                                                    <td class="text-center">{{ range.duration }} ساعت</td>
+                                                                </tr>
+                                                                {% endfor %}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                            
+                                            <div class="daily-hours mt-2">
+                                                {% for day, hours in attendance.daily_hours.items %}
+                                                    {% if hours %}
+                                                        <span class="badge bg-light text-dark border mb-1">
+                                                            {{ day }}: {{ hours }} ساعت
+                                                        </span>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                            
+                                            {% if not attendance.is_fully_approved %}
+                                                <small class="d-block text-muted">در انتظار تأیید</small>
+                                            {% endif %}
+                                        </div>
                                     </td>
                                     <td>
                                         {% if attendance.description %}
@@ -451,20 +558,19 @@ $(document).ready(function() {
 
     // مدیریت بازه‌های زمانی
     $('#add-time-range').on('click', function() {
-        const container = $('#time-ranges-container');
-        const newItem = $(`
+        const newItem = `
             <div class="time-range-item mb-2">
                 <div class="row g-2">
                     <div class="col-md-5">
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-hourglass-start"></i></span>
-                            <input type="time" class="form-control start-time" placeholder="شروع">
+                            <input type="time" name="start_times[]" class="form-control start-time" placeholder="شروع">
                         </div>
                     </div>
                     <div class="col-md-5">
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-hourglass-end"></i></span>
-                            <input type="time" class="form-control end-time" placeholder="پایان">
+                            <input type="time" name="end_times[]" class="form-control end-time" placeholder="پایان">
                         </div>
                     </div>
                     <div class="col-md-2">
@@ -472,8 +578,9 @@ $(document).ready(function() {
                     </div>
                 </div>
             </div>
-        `);
-        container.append(newItem);
+        `;
+        $('#time-ranges-container').append(newItem);
+        calculateTotalHours();
     });
 
     // حذف بازه زمانی
@@ -672,6 +779,20 @@ $(document).ready(function() {
         } else {
             // اگر فایلی وجود نداشت، فرم را به صورت عادی ارسال کن
             this.submit();
+        }
+    });
+
+    // تنظیم انتخاب‌گر ماه
+    $('.persian-month-picker').persianDatepicker({
+        format: 'YYYY/MM',
+        initialValueType: 'persian',
+        autoClose: true,
+        persianDigit: false,
+        initialValue: false,
+        onlyShowOnFocus: true,
+        viewMode: 'year',
+        timePicker: {
+            enabled: false
         }
     });
 });

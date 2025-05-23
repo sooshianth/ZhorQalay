@@ -1,8 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django_jalali.db import models as jmodels
-from django.db.models import Sum
+from django.db.models import Sum, Q
 import jdatetime
+from .EmployeeModel import Employee
 
 class WeeklyAttendance(models.Model):
     employee = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کارمند")
@@ -17,9 +18,9 @@ class WeeklyAttendance(models.Model):
     friday_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="ساعات جمعه", default=0)
     total_hours = models.DecimalField(max_digits=6, decimal_places=2, verbose_name="مجموع ساعات", default=0)
     description = models.TextField(verbose_name='توضیحات', null=True, blank=True)
-    approved_by_user1 = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="approver1", null=True, blank=True, verbose_name="تایید توسط کاربر 1")
-    approved_by_user2 = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="approver2", null=True, blank=True, verbose_name="تایید توسط کاربر 2")
-    approved_by_user3 = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="approver3", null=True, blank=True, verbose_name="تایید توسط کاربر 3")
+    approved_by_user1 = models.ForeignKey(Employee, on_delete=models.SET_NULL, related_name="approver1", null=True, blank=True, verbose_name="تایید توسط کاربر 1")
+    approved_by_user2 = models.ForeignKey(Employee, on_delete=models.SET_NULL, related_name="approver2", null=True, blank=True, verbose_name="تایید توسط کاربر 2")
+    approved_by_user3 = models.ForeignKey(Employee, on_delete=models.SET_NULL, related_name="approver3", null=True, blank=True, verbose_name="تایید توسط کاربر 3")
     approved_by_admin = models.BooleanField(default=False, verbose_name='تایید توسط ادمین')
     user1_approved = models.BooleanField(default=False, verbose_name="تایید توسط کاربر 1 انجام شده")
     user2_approved = models.BooleanField(default=False, verbose_name="تایید توسط کاربر 2 انجام شده")
@@ -79,6 +80,29 @@ class WeeklyAttendance(models.Model):
     def __str__(self):
         return f"{self.employee.username} - {self.week_start_date}"
 
+# مدل جدید برای ذخیره بازه‌های زمانی
+class TimeRange(models.Model):
+    attendance = models.ForeignKey(WeeklyAttendance, on_delete=models.CASCADE, related_name='time_ranges', verbose_name='ساعت کاری')
+    start_time = models.TimeField(verbose_name='زمان شروع')
+    end_time = models.TimeField(verbose_name='زمان پایان')
+    duration = models.DecimalField(max_digits=5, decimal_places=2, verbose_name='مدت زمان (ساعت)', default=0)
+    
+    class Meta:
+        verbose_name = "بازه زمانی"
+        verbose_name_plural = "بازه‌های زمانی"
+        
+    def save(self, *args, **kwargs):
+        # محاسبه مدت زمان
+        start_seconds = self.start_time.hour * 3600 + self.start_time.minute * 60 + self.start_time.second
+        end_seconds = self.end_time.hour * 3600 + self.end_time.minute * 60 + self.end_time.second
+        if end_seconds > start_seconds:
+            duration_seconds = end_seconds - start_seconds
+            self.duration = round(duration_seconds / 3600, 2)  # تبدیل به ساعت با دو رقم اعشار
+        super().save(*args, **kwargs)
+        
+    def __str__(self):
+        return f"{self.start_time.strftime('%H:%M')} تا {self.end_time.strftime('%H:%M')}"
+
 class MonthlyAttendance(models.Model):
     employee = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کارمند")
     month = models.CharField(max_length=7, verbose_name="ماه (YYYY-MM)")
@@ -106,13 +130,22 @@ class MonthlyAttendance(models.Model):
                 
             print(f"Debug - update_monthly_hours: Month range: {start_of_month} to {end_of_month}")
                 
+            # فقط ساعات تأیید شده را حساب می‌کنیم
+            # چون is_fully_approved یک پراپرتی است و قابل فیلتر کردن در دیتابیس نیست
+            # از شرط معادل آن در دیتابیس استفاده می‌کنیم
             total = WeeklyAttendance.objects.filter(
                 employee=employee,
                 week_start_date__gte=start_of_month,
-                week_start_date__lte=end_of_month
+                week_start_date__lte=end_of_month,
+                approved_by_admin=True,  # فقط ساعات تأیید شده توسط ادمین
+            ).filter(
+                # نیاز به حداقل دو تایید کاربر - باید حداقل دو تا از مقادیر زیر True باشند
+                Q(user1_approved=True, user2_approved=True) |
+                Q(user1_approved=True, user3_approved=True) |
+                Q(user2_approved=True, user3_approved=True)
             ).aggregate(Sum('total_hours'))['total_hours__sum'] or 0
             
-            print(f"Debug - update_monthly_hours: Total hours: {total}")
+            print(f"Debug - update_monthly_hours: Total approved hours for {month_str}: {total}")
             
             obj, created = cls.objects.get_or_create(employee=employee, month=month_str)
             obj.total_hours = total
