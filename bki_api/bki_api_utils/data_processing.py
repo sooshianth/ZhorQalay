@@ -46,6 +46,7 @@ def create_or_get_customer(buyer_name, buyer_phone, buyer_address, province_code
         phone = PhoneNumber.objects.filter(number=clean_phone).first()
         if phone:
             customer = phone.customer
+            customer = Customer.objects.filter(name=buyer_name).first()
     except Exception as e:
         return None, False, f"خطا در جستجوی مشتری با شماره تلفن: {str(e)}"
     
