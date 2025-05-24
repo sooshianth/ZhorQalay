@@ -446,9 +446,12 @@ def determine_purchase_state(purchase_data):
             else:
                 purchase_state = 'BARNAMEH_INCOMPLETE'
                 
-            # Check if purchase is closed (totalweight equals delivered_weight)
+            # Check if purchase is closed
+            # Note: For purchases with multiple allocations, this will be overridden
+            # in process_grouped_purchase_data with the correct logic
             if totalweight > 0 and totalweight == wbarnameshode:
                 purchase_state = 'PURCHASE_CLOSED'
+                print(f"Debug - Purchase state determined as CLOSED: totalweight={totalweight}, wbarnameshode={wbarnameshode}")
     
     return purchase_state
 
@@ -494,6 +497,11 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
             - purchase: The Purchase object created or updated
             - created: True if a new purchase was created, False otherwise
             - error_message: An error message if the operation failed, None otherwise
+            
+    Note:
+        For purchases with multiple allocation IDs, the purchase state is determined as follows:
+        - If the totalweight equals the sum of all wbarnameshode values, the purchase is marked as PURCHASE_CLOSED
+        - Otherwise, the state is determined based on standard rules for allocation and barnameh status
     """
     if not purchase_data_list or len(purchase_data_list) == 0:
         return None, False, "لیست داده‌های خرید خالی است"
@@ -520,7 +528,8 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
         takhsisid = entry.get('allocationid')
         qty = int(entry.get('qty', 0) or 0)
         wbarnameshode = int(entry.get('wbarnameshode', 0) or 0)
-        print(f"Debug - Entry {i+1}: allocationid={takhsisid}, qty={qty}, wbarnameshode={wbarnameshode}")
+        totalweight = int(entry.get('totalweight', 0) or 0)
+        print(f"Debug - Entry {i+1}: allocationid={takhsisid}, qty={qty}, wbarnameshode={wbarnameshode}, totalweight={totalweight}")
     
     try:
         # Search for existing purchase
@@ -544,13 +553,12 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
                 purchase.extelaf_amount = purchase.extelaf_weight * purchase.customer_price
         
         # Update purchase state based on aggregated data
-        # If any entry has totalweight == wbarnameshode, consider the purchase closed
-        for entry in purchase_data_list:
-            totalweight = int(entry.get('totalweight', 0) or 0)
-            wbarnameshode = int(entry.get('wbarnameshode', 0) or 0)
-            if totalweight > 0 and totalweight == wbarnameshode:
-                purchase.state = 'PURCHASE_CLOSED'
-                break
+        # For purchases with multiple allocations, check if totalweight equals total_delivered_weight
+        # Get totalweight from the first entry (should be the same for all entries with the same idkharid)
+        totalweight = int(first_entry.get('totalweight', 0) or 0)
+        if totalweight > 0 and totalweight == total_delivered_weight:
+            purchase.state = 'PURCHASE_CLOSED'
+            print(f"Debug - Purchase {purchase_number} marked as CLOSED: totalweight={totalweight}, total_delivered_weight={total_delivered_weight}")
         else:
             # Check if all entries have allocation IDs
             all_have_allocation = all(
@@ -599,6 +607,14 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
         # Update with group-level calculated values
         purchase.order_weight = total_order_weight
         purchase.delivered_weight = total_delivered_weight
+
+        # Check if the purchase should be marked as closed based on the totalweight
+        totalweight = int(first_entry.get('totalweight', 0) or 0)
+        if totalweight > 0 and totalweight == total_delivered_weight:
+            purchase.state = 'PURCHASE_CLOSED'
+            print(f"Debug - New purchase {purchase_number} marked as CLOSED: totalweight={totalweight}, total_delivered_weight={total_delivered_weight}")
+        # Otherwise, the state is already set by create_purchase function
+
         purchase.save()
         
         # Process additional allocation IDs (the first one was already processed in create_purchase)

@@ -148,114 +148,99 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // گرفتن عناصر مورد نیاز
-        const selectAllCheckbox = document.getElementById('select-all');
-        const itemCheckboxes = document.querySelectorAll('.barnameh-checkbox');
-        
-        // تابع برای به‌روزرسانی وضعیت چک‌باکس "انتخاب همه"
-        function updateSelectAllCheckbox() {
-            if (!selectAllCheckbox) return;
+<script type="text/javascript">
+    // استفاده از jQuery با حفاظت از تداخل متغیرها
+    (function($) {
+        // اجرای کد بعد از بارگذاری کامل صفحه
+        $(document).ready(function() {
+            console.log("Document ready - initializing checkbox functionality");
             
-            const totalCheckboxes = itemCheckboxes.length;
-            const checkedCheckboxes = document.querySelectorAll('.barnameh-checkbox:checked').length;
+            // انتخاب گزینه‌های مورد نیاز
+            var $selectAllCheckbox = $("#select-all");
+            var $barnamehCheckboxes = $(".barnameh-checkbox");
             
-            // اگر همه چک‌باکس‌ها انتخاب شده باشند، چک‌باکس "انتخاب همه" هم انتخاب شود
-            selectAllCheckbox.checked = totalCheckboxes > 0 && checkedCheckboxes === totalCheckboxes;
-            selectAllCheckbox.indeterminate = checkedCheckboxes > 0 && checkedCheckboxes < totalCheckboxes;
-        }
-        
-        // تابع برای انتخاب/عدم انتخاب همه چک‌باکس‌ها
-        function toggleAllCheckboxes(checked) {
-            itemCheckboxes.forEach(function(checkbox) {
-                checkbox.checked = checked;
-            });
-        }
-        
-        // اضافه کردن رویداد به چک‌باکس "انتخاب همه"
-        if (selectAllCheckbox) {
-            selectAllCheckbox.addEventListener('click', function(e) {
-                toggleAllCheckboxes(this.checked);
-            });
-        }
-        
-        // اضافه کردن رویداد به تک تک چک‌باکس‌ها
-        itemCheckboxes.forEach(function(checkbox) {
-            checkbox.addEventListener('change', updateSelectAllCheckbox);
-        });
-        
-        // مدیریت انتخاب با شیفت
-        let lastChecked = null;
-        
-        itemCheckboxes.forEach(function(checkbox) {
-            checkbox.addEventListener('click', function(e) {
-                if (!lastChecked) {
-                    lastChecked = this;
-                    return;
-                }
+            console.log("Select-all checkbox found:", $selectAllCheckbox.length);
+            console.log("Item checkboxes found:", $barnamehCheckboxes.length);
+            
+            // تابع بررسی وضعیت چک‌باکس "انتخاب همه"
+            function updateSelectAllState() {
+                if ($barnamehCheckboxes.length === 0) return;
                 
-                if (e.shiftKey) {
-                    const start = Array.from(itemCheckboxes).indexOf(this);
-                    const end = Array.from(itemCheckboxes).indexOf(lastChecked);
-                    
-                    const checkboxesToUpdate = Array.from(itemCheckboxes).slice(
-                        Math.min(start, end),
-                        Math.max(start, end) + 1
-                    );
-                    
-                    checkboxesToUpdate.forEach(cb => {
-                        cb.checked = lastChecked.checked;
-                    });
-                }
+                var allChecked = $barnamehCheckboxes.length === $barnamehCheckboxes.filter(":checked").length;
+                var someChecked = $barnamehCheckboxes.filter(":checked").length > 0;
                 
-                lastChecked = this;
-                updateSelectAllCheckbox();
+                $selectAllCheckbox.prop("checked", allChecked);
+                $selectAllCheckbox.prop("indeterminate", someChecked && !allChecked);
+                
+                console.log("Updated select-all state:", { allChecked, someChecked });
+            }
+            
+            // رویداد کلیک روی چک‌باکس "انتخاب همه"
+            $selectAllCheckbox.on("click", function() {
+                console.log("Select-all clicked. New state:", this.checked);
+                $barnamehCheckboxes.prop("checked", this.checked);
             });
-        });
-        
-        // زمانی که روی هر سطر کلیک می‌شود، چک‌باکس آن تغییر وضعیت دهد
-        const rows = document.querySelectorAll('tr.align-middle');
-        rows.forEach(function(row) {
-            row.addEventListener('click', function(e) {
-                // فقط اگر روی سلول کلیک شده باشد (نه روی دکمه‌ها یا چک‌باکس‌ها)
-                if (e.target.tagName === 'TD' && !e.target.querySelector('button, a, input')) {
-                    const checkbox = this.querySelector('.barnameh-checkbox');
-                    if (checkbox) {
-                        checkbox.checked = !checkbox.checked;
-                        // ایجاد یک رویداد change دستی
-                        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-                    }
+            
+            // رویداد تغییر وضعیت چک‌باکس‌های آیتم‌ها
+            $barnamehCheckboxes.on("change", function() {
+                updateSelectAllState();
+            });
+            
+            // کلیک روی ردیف‌ها
+            $("tr.align-middle").on("click", function(e) {
+                if ($(e.target).is("td") && !$(e.target).find("button, a, input").length) {
+                    var $checkbox = $(this).find(".barnameh-checkbox");
+                    $checkbox.prop("checked", !$checkbox.prop("checked")).trigger("change");
                 }
             });
-        });
-        
-        // اعتبارسنجی فرم قبل از ارسال
-        const actionButtons = document.querySelectorAll('#bulk-send-btn, #bulk-export-btn, #bulk-edit-btn, #bulk-delete-btn');
-        actionButtons.forEach(function(button) {
-            button.addEventListener('click', function(e) {
-                const checkedBoxes = document.querySelectorAll('.barnameh-checkbox:checked');
-                if (checkedBoxes.length === 0) {
+            
+            // اعتبارسنجی فرم قبل از ارسال
+            $("#bulk-send-btn, #bulk-export-btn, #bulk-edit-btn, #bulk-delete-btn").on("click", function(e) {
+                if ($barnamehCheckboxes.filter(":checked").length === 0) {
                     e.preventDefault();
-                    alert('لطفاً حداقل یک بارنامه را انتخاب کنید.');
+                    alert("لطفاً حداقل یک بارنامه را انتخاب کنید.");
                     return;
                 }
                 
-                // اضافه کردن تایید برای ارسال به بازارگاه و حذف گروهی
-                if (this.id === 'bulk-send-btn' || this.id === 'bulk-delete-btn') {
-                    const message = this.id === 'bulk-send-btn' ? 
-                        'آیا از ارسال بارنامه‌های انتخاب شده به بازارگاه اطمینان دارید؟' :
-                        'آیا از حذف بارنامه‌های انتخاب شده اطمینان دارید؟';
+                if (this.id === "bulk-send-btn" || this.id === "bulk-delete-btn") {
+                    var message = this.id === "bulk-send-btn" ? 
+                        "آیا از ارسال بارنامه‌های انتخاب شده به بازارگاه اطمینان دارید؟" :
+                        "آیا از حذف بارنامه‌های انتخاب شده اطمینان دارید؟";
                     
                     if (!confirm(message)) {
                         e.preventDefault();
                     }
                 }
             });
+            
+            // انتخاب با شیفت
+            var lastChecked = null;
+            
+            $barnamehCheckboxes.on("click", function(e) {
+                if (!lastChecked) {
+                    lastChecked = this;
+                    return;
+                }
+                
+                if (e.shiftKey) {
+                    var start = $barnamehCheckboxes.index(this);
+                    var end = $barnamehCheckboxes.index(lastChecked);
+                    
+                    $barnamehCheckboxes.slice(
+                        Math.min(start, end),
+                        Math.max(start, end) + 1
+                    ).prop("checked", lastChecked.checked).trigger("change");
+                }
+                
+                lastChecked = this;
+            });
+            
+            // بررسی وضعیت اولیه
+            updateSelectAllState();
+            
+            // اطمینان از به‌روزرسانی درست با کمی تأخیر
+            setTimeout(updateSelectAllState, 100);
         });
-        
-        // اجرای اولیه برای تنظیم وضعیت اولیه چک‌باکس "انتخاب همه"
-        updateSelectAllCheckbox();
-    });
+    })(jQuery); // استفاده از jQuery به صورت ایمن
 </script>
 {% endblock %} 

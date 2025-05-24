@@ -30,8 +30,8 @@ class Purchase(models.Model):
         ('BARNAMEH_INCOMPLETE', 'صدور بارنامه (ناقص)'), # logistics_manager #sms
         ('BARNAMEH_ISSUED', 'صدور بارنامه'), # system
         ('PURCHASE_CLOSED', 'بستن خرید در بازارگاه'), # system #sms
-        ('DIFFERENCE_APPROVED', 'پرداخت کسری'), # financial_manager
-        ('DIFFERENCE_APPROVED', 'دریافت سرک'), # financial_manager
+        ('PAY_KASRI', 'پرداخت کسری'), # financial_manager
+        ('RECIEVE_SARAK', 'دریافت سرک'), # financial_manager
         ('FULLY_SETTLED', 'تسویه کامل'), # financial_manager
         ('INVOICE_ISSUED', 'صدور فاکتور'), # financial_manager
 
@@ -590,6 +590,12 @@ class Purchase(models.Model):
             self.extelaf_amount = self.extelaf_weight * self.customer_price
             super().save(update_fields=['extelaf_amount'])
 
+        if self.state == 'PURCHASE_CLOSED':
+            if self.extelaf_type == 'کسری':
+                self.state = 'PAY_KASRI'
+            elif self.extelaf_type == 'سرک':
+                self.state = 'RECIEVE_SARAK'
+            super().save(update_fields=['state'])
 
     def send_notification(self, user, title, message, notification_type='purchase', priority='medium'):
         """ارسال نوتیفیکیشن برای کاربر"""

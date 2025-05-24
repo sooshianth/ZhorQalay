@@ -7,17 +7,22 @@ from django.core.paginator import Paginator
 from django.db.models import Q, Sum, Count
 from django.utils import timezone
 from django.conf import settings
+from django.db import models, transaction
 import pandas as pd
 import os
 import json
 import tempfile
 import re
+import logging
 
 from core.PurchaseModel import Purchase, PurchaseHistory
 from core.CargoProductModel import CargoProduct
 from core.CustomerModel import Customer
 from core.SalesAgentModel import SalesAgent
 from core.decorators.decorators import role_required
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 @role_required('admin',)
 @login_required
@@ -254,64 +259,79 @@ def apply_bulk_edit(request):
                     'message': f'فیلد "{field}" برای ویرایش فله‌ای مجاز نیست.'
                 })
         
-        # اعمال تغییرات بر روی هر خرید
-        for purchase in purchases:
-            try:
-                change_log = []
-                
-                # تنظیم فیلدهای عادی
-                for field, value in changes.items():
-                    if field == 'sales_agent':
-                        continue  # پردازش جداگانه برای کارشناس فروش
+        # استفاده از تراکنش برای اطمینان از اعمال تمام تغییرات یا هیچ کدام
+        with transaction.atomic():
+            # اعمال تغییرات بر روی هر خرید
+            for purchase in purchases:
+                try:
+                    change_log = []
                     
-                    if field == 'cargo' and value:
+                    # تنظیم فیلدهای عادی
+                    for field, value in changes.items():
+                        if field == 'sales_agent':
+                            continue  # پردازش جداگانه برای کارشناس فروش
+                        
+                        if field == 'cargo' and value:
+                            try:
+                                cargo = CargoProduct.objects.get(id=value)
+                                old_value = purchase.cargo.cottage if purchase.cargo else "ندارد"
+                                purchase.cargo = cargo
+                                change_log.append(f"محصول: {old_value} -> {cargo.cottage}")
+                            except CargoProduct.DoesNotExist:
+                                errors.append(f"خطا در خرید {purchase.purchase_number}: محصول با شناسه {value} یافت نشد.")
+                                continue
+                        elif value is not None:
+                            old_value = getattr(purchase, field)
+                            setattr(purchase, field, value)
+                            
+                            # نمایش متن فارسی برای فیلدهای خاص
+                            if field == 'state':
+                                old_display = dict(Purchase.STATUS_CHOICES).get(old_value, old_value)
+                                new_display = dict(Purchase.STATUS_CHOICES).get(value, value)
+                                change_log.append(f"وضعیت: {old_display} -> {new_display}")
+                            else:
+                                field_name = allowed_fields.get(field, field)
+                                change_log.append(f"{field_name}: {old_value} -> {value}")
+                    
+                    # پردازش کارشناس فروش
+                    if 'sales_agent' in changes and changes['sales_agent']:
                         try:
-                            cargo = CargoProduct.objects.get(id=value)
-                            old_value = purchase.cargo.cottage if purchase.cargo else "ندارد"
-                            purchase.cargo = cargo
-                            change_log.append(f"محصول: {old_value} -> {cargo.cottage}")
-                        except CargoProduct.DoesNotExist:
-                            errors.append(f"خطا در خرید {purchase.purchase_number}: محصول با شناسه {value} یافت نشد.")
-                            continue
-                    elif value is not None:
-                        old_value = getattr(purchase, field)
-                        setattr(purchase, field, value)
-                        
-                        # نمایش متن فارسی برای فیلدهای خاص
-                        if field == 'state':
-                            old_display = dict(Purchase.STATUS_CHOICES).get(old_value, old_value)
-                            new_display = dict(Purchase.STATUS_CHOICES).get(value, value)
-                            change_log.append(f"وضعیت: {old_display} -> {new_display}")
-                        else:
-                            field_name = allowed_fields.get(field, field)
-                            change_log.append(f"{field_name}: {old_value} -> {value}")
-                
-                # پردازش کارشناس فروش
-                if 'sales_agent' in changes and changes['sales_agent']:
-                    try:
-                        sales_agent_id = changes['sales_agent']
-                        sales_agent = SalesAgent.objects.get(id=sales_agent_id)
-                        
-                        # بررسی وجود کارشناس فروش در خرید
-                        if not purchase.sales_agent.filter(id=sales_agent_id).exists():
-                            purchase.sales_agent.add(sales_agent)
-                            change_log.append(f"کارشناس فروش: {sales_agent.user.get_full_name() if sales_agent.user else sales_agent.id} اضافه شد")
-                    except SalesAgent.DoesNotExist:
-                        errors.append(f"خطا در خرید {purchase.purchase_number}: کارشناس فروش با شناسه {changes['sales_agent']} یافت نشد.")
-                
-                purchase.save()
-                
-                # ثبت تاریخچه تغییرات
-                if change_log:
-                    PurchaseHistory.objects.create(
-                        purchase=purchase,
-                        user=request.user,
-                        changes="ویرایش فله‌ای: " + " | ".join(change_log)
-                    )
-                    updated_count += 1
-                
-            except Exception as e:
-                errors.append(f"خطا در خرید {purchase.purchase_number}: {str(e)}")
+                            sales_agent_id = changes['sales_agent']
+                            sales_agent = SalesAgent.objects.get(id=sales_agent_id)
+                            
+                            # اضافه کردن کارشناس فروش به خرید
+                            if not purchase.sales_agent.filter(id=sales_agent_id).exists():
+                                purchase.sales_agent.add(sales_agent)
+                                change_log.append(f"کارشناس فروش: {sales_agent.name} اضافه شد")
+                            
+                            # اضافه کردن کارشناس فروش به مشتری مرتبط با این خرید
+                            if purchase.customer:
+                                if not purchase.customer.sales_agent.filter(id=sales_agent_id).exists():
+                                    purchase.customer.sales_agent.add(sales_agent)
+                                    change_log.append(f"کارشناس فروش {sales_agent.name} به مشتری {purchase.customer.name} اضافه شد")
+                            else:
+                                change_log.append(f"خرید {purchase.purchase_number} مشتری ندارد، کارشناس فروش فقط به خرید اضافه شد")
+                        except SalesAgent.DoesNotExist:
+                            errors.append(f"خطا در خرید {purchase.purchase_number}: کارشناس فروش با شناسه {changes['sales_agent']} یافت نشد.")
+                    
+                    purchase.save()
+                    
+                    # ثبت تاریخچه تغییرات
+                    if change_log:
+                        PurchaseHistory.objects.create(
+                            purchase=purchase,
+                            user=request.user,
+                            changes="ویرایش فله‌ای: " + " | ".join(change_log)
+                        )
+                        updated_count += 1
+                    
+                except Exception as e:
+                    errors.append(f"خطا در خرید {purchase.purchase_number}: {str(e)}")
+        
+        # لاگ برای دیباگ
+        logger.info(f"Bulk edit stats: Updated {updated_count} of {total_count} purchases")
+        if errors:
+            logger.warning(f"Bulk edit errors: {errors}")
         
         return JsonResponse({
             'success': True,
