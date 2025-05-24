@@ -10,3 +10,5 @@ from .PurchaseModel import Purchase
 from .SupportAgentModel import SupportAgent
 from todo.ToDoModel import ToDoItem, TaskCategory, TaskReminder
 from .PurchaseModel import PurchaseEditLog
+from .BarbaryModel import Barbary
+from .VaredKonandehModel import VaredKonandeh

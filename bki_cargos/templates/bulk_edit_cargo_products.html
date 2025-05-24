@@ -298,6 +298,8 @@
                     <th>کوتاژ</th>
                     <th>نوع محصول</th>
                     <th>کشور</th>
+                    <th>واردکننده</th>
+                    <th>باربری</th>
                     <th>قیمت فروش</th>
                     <th>محل بارگیری</th>
                     <th>وضعیت</th>
@@ -309,6 +311,8 @@
                         <td>{{ product.cottage }}</td>
                         <td>{{ product.get_product_type_display }}</td>
                         <td>{{ product.get_country_display }}</td>
+                        <td>{{ product.vared_konandeh.name|default:"-" }}</td>
+                        <td>{{ product.barbary.name|default:"-" }}</td>
                         <td>{{ product.customer_price }}</td>
                         <td>{{ product.port }}</td>
                         <td>
@@ -417,6 +421,43 @@
 
             <div class="edit-section">
                 <div class="edit-section-header">
+                    <h3 class="edit-section-title">تغییر واردکننده و باربری</h3>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="checkbox-wrapper">
+                            <input type="checkbox" id="enable_companies" name="enable_companies">
+                            <span class="checkmark"></span>
+                            <span class="checkbox-label">تغییر واردکننده و باربری</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="companies_options" style="display: none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="vared_konandeh">واردکننده:</label>
+                            <select id="vared_konandeh" name="vared_konandeh" class="form-control">
+                                <option value="">انتخاب کنید</option>
+                                {% for vared_konandeh in vared_konandehs %}
+                                    <option value="{{ vared_konandeh.id }}">{{ vared_konandeh.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="barbary">باربری:</label>
+                            <select id="barbary" name="barbary" class="form-control">
+                                <option value="">انتخاب کنید</option>
+                                {% for barbary in barbaries %}
+                                    <option value="{{ barbary.id }}">{{ barbary.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="edit-section">
+                <div class="edit-section-header">
                     <h3 class="edit-section-title">تغییر اطلاعات بارگیری</h3>
                 </div>
                 <div class="form-row">
@@ -496,6 +537,11 @@
         // تغییر کشور
         document.getElementById('enable_country').addEventListener('change', function() {
             document.getElementById('country_options').style.display = this.checked ? 'block' : 'none';
+        });
+        
+        // تغییر واردکننده و باربری
+        document.getElementById('enable_companies').addEventListener('change', function() {
+            document.getElementById('companies_options').style.display = this.checked ? 'block' : 'none';
         });
 
         // تغییر اطلاعات بارگیری

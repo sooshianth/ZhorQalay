@@ -31,46 +31,105 @@
             margin-right: 5px;
         }
         .row-checkbox {
-            margin-left: 5px;
-            margin-right: 5px;
+            margin-left: 10px;
+            margin-right: 10px;
             cursor: pointer;
+            width: 1.2rem;
+            height: 1.2rem;
+            border-radius: 3px;
+            transition: all 0.2s ease;
+        }
+        
+        .row-checkbox:checked {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
         }
 
         .modal-body {
-            max-height: 60vh;
+            max-height: 70vh;
             overflow-y: auto;
         }
 
+        /* بهبود استایل جدول */
+        .table {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        .table thead th {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 600;
+        }
+        
+        .table tbody tr {
+            transition: all 0.2s;
+        }
+        
+        .table tbody tr:hover {
+            background-color: rgba(13, 110, 253, 0.05) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .table td, .table th {
+            padding: 12px;
+            vertical-align: middle;
+        }
+        
+        /* استایل برای دکمه‌ها */
+        .btn {
+            transition: all 0.3s;
+            border-radius: 6px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        /* استایل برای وضعیت‌ها */
+        .table-status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: inline-block;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
         .form-check {
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
+            padding: 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
         }
 
         .form-check-label {
             cursor: pointer;
             user-select: none;
         }
+        
         /* اضافه کردن به purchase_list_style.css */
-th, td {
-    transition: all 0.3s ease;
-}
+        th, td {
+            transition: all 0.3s ease;
+        }
 
-.row-checkbox {
-    margin: 0 5px;
-    transform: scale(1.2);
-    cursor: pointer;
-}
+        #exportBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 
-#exportBtn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-#columnsForm {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-}
+        #columnsForm {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+        }
 
         /* استایل برای ویرایش درجا (Inline Editing) */
         .editable {
@@ -79,6 +138,7 @@ th, td {
             padding: 5px;
             border: 1px solid transparent;
             transition: all 0.2s;
+            border-radius: 4px;
         }
         
         .editable:hover {
@@ -127,6 +187,8 @@ th, td {
             background: white;
             border: 1px solid #ccc;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            border-radius: 4px;
+            overflow: hidden;
         }
         
         .edit-control-btn {
@@ -134,6 +196,11 @@ th, td {
             background: none;
             border: none;
             cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .edit-control-btn:hover {
+            background-color: #f8f9fa;
         }
         
         .edit-save {
@@ -143,16 +210,98 @@ th, td {
         .edit-cancel {
             color: red;
         }
+        
+        /* استایل برای بخش آرشیو */
+        .archive-toggle {
+            background-color: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.3s;
+        }
+        
+        .archive-toggle:hover {
+            background-color: #e9ecef;
+            transform: translateY(-2px);
+        }
+        
+        /* اضافه کردن فیلتر مدرن */
+        .search-panel {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        
+        /* استایل برای جستجوی ستون‌ها */
+        .search-input {
+            margin-top: 10px;
+            padding: 10px;
+            margin-left: 10px;
+            width: 100%;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        
+        .search-input:focus {
+            border-color: #86b7fe;
+            outline: 0;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
 
-@media (max-width: 768px) {
-    #columnsForm {
-        grid-template-columns: 1fr;
-    }
-            
+        @media (max-width: 768px) {
+            #columnsForm {
+                grid-template-columns: 1fr;
+            }
+                    
             .editable:hover::after {
                 content: '';
             }
-}
+        }
+
+        /* استایل چک‌باکس‌های ستون */
+        .column-checkbox {
+            border: 1px solid #eaeaea;
+            border-radius: 10px;
+            transition: all 0.2s;
+            margin: 0;
+            background-color: #f9f9f9;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            height: 100%;
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+        }
+
+        .column-checkbox:hover {
+            background-color: #f2f7ff;
+            border-color: #cce5ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .column-checkbox .form-check-input {
+            width: 22px;
+            height: 22px;
+            margin-top: 0;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .column-checkbox .form-check-label {
+            cursor: pointer;
+            font-size: 1.05rem;
+            user-select: none;
+            margin-top: 1px;
+            margin-right: 15px;
+            margin-left: 15px !important;
+        }
     </style>
 {% endblock %}
 
@@ -183,100 +332,305 @@ th, td {
     </a>
 </div>
 {% endif %}
-<div class="text-start mb-4 d-flex gap-2">
+<div class="text-start mb-4 d-flex gap-3 flex-wrap">
     <!-- دکمه مدیریت ستون‌ها -->
-    <button class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#columnsModal">
+    {% if request.user.is_superuser or request.user.is_staff %}
+    <button class="btn btn-info text-white shadow-sm" data-bs-toggle="modal" data-bs-target="#columnsModal">
         <i class="fas fa-columns me-2"></i> مدیریت ستون‌ها
     </button>
+    {% endif %}
     
     <!-- دکمه انتخاب همه سطرها -->
     {% if user_role == 'admin' or user_role == 'financial_manager' or user_role == 'logistics_manager' %}
-    <button id="selectAllRowsBtn" class="btn btn-primary">
+    <button id="selectAllRowsBtn" class="btn btn-primary shadow-sm">
         <i class="fas fa-check-square me-2"></i> انتخاب همه
     </button>
     
     <!-- دکمه لغو انتخاب همه سطرها -->
-    <button id="deselectAllRowsBtn" class="btn btn-outline-primary">
+    <button id="deselectAllRowsBtn" class="btn btn-outline-primary shadow-sm">
         <i class="fas fa-square me-2"></i> لغو انتخاب همه
     </button>
     
     <!-- دکمه خروجی اکسل (در ابتدا غیرفعال) -->
-    <button id="exportBtn" class="btn btn-success" disabled>
+    <button id="exportBtn" class="btn btn-success shadow-sm" disabled>
         <i class="fas fa-file-excel me-2"></i> خروجی اکسل
     </button>
     {% endif %}
-    <button id="resetColumnsBtn" class="btn btn-warning">
+    <button id="resetColumnsBtn" class="btn btn-warning shadow-sm">
         <i class="fas fa-redo me-2"></i> نمایش همه ستون‌ها
     </button>
 </div>
 
 <!-- مدال مدیریت ستون‌ها -->
 <div class="modal fade" id="columnsModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">مدیریت ستون‌های جدول</h5>
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-white border-bottom">
+                <h5 class="modal-title fw-bold text-primary"><i class="fas fa-columns me-2"></i>مدیریت ستون‌های جدول</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-<div class="modal-body">
-    <div class="mb-3">
-        <button class="btn btn-sm btn-outline-primary me-2" id="selectAllColumns">
-            انتخاب همه
-        </button>
-        <button class="btn btn-sm btn-outline-secondary" id="deselectAllColumns">
-            عدم انتخاب همه
-        </button>
-    </div>
-    <form id="columnsForm">
-        {% for column in all_columns %}
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" 
-                               id="col-{{ column.id }}" name="columns[]" 
-                   value="{{ column.id }}"
-                   {% if column.id in selected_columns %}checked{% endif %}>
-            <label class="form-check-label" for="col-{{ column.id }}">
-                {{ column.name }}
-            </label>
-        </div>
-        {% endfor %}
-    </form>
+            <div class="modal-body py-4">
+                <div class="alert alert-info bg-info bg-opacity-10 border-0 mb-4 p-3">
+                    <p class="mb-0 py-1"><i class="fas fa-info-circle me-2"></i> ستون‌های مورد نظر خود را برای نمایش در جدول و خروجی اکسل انتخاب کنید.</p>
+                </div>
+                
+                <form id="columnsForm" class="px-3">
+                    <!-- ستون‌های جدول -->
+                    <div class="section-container mb-5 pb-4">
+                        <div class="section-header d-flex justify-content-between align-items-center mb-4">
+                            <h6 class="mb-0 fw-bold text-primary fs-5"><i class="fas fa-table me-2"></i>ستون‌های جدول</h6>
+                            <div class="d-flex gap-3">
+                                <button class="btn btn-sm btn-outline-primary px-3 py-2" id="selectAllColumns">
+                                    <i class="fas fa-check-square me-2"></i> انتخاب همه
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary px-3 py-2" id="deselectAllColumns">
+                                    <i class="fas fa-square me-2"></i> هیچکدام
+                                </button>
+                            </div>
+                        </div>
+                        <div class="section-body pt-2">
+                            <div class="row g-4">
+                                {% for column in all_columns %}
+                                    {% if not column.export_only %}
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-{{ column.id }}" name="columns[]" 
+                                                value="{{ column.id }}"
+                                                {% if column.id in selected_columns %}checked{% endif %}>
+                                            <label class="form-check-label" for="col-{{ column.id }}">
+                                                {{ column.name }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ستون‌های اضافی (فقط در خروجی اکسل) -->
+                    <div class="section-container pb-4">
+                        <div class="section-header d-flex justify-content-between align-items-center mb-4">
+                            <h6 class="mb-0 fw-bold text-success fs-5"><i class="fas fa-file-excel me-2"></i>ستون‌های اضافی (فقط در خروجی اکسل)</h6>
+                            <div class="d-flex gap-3">
+                                <button class="btn btn-sm btn-outline-success px-3 py-2" id="selectAllExportColumns">
+                                    <i class="fas fa-check-square me-2"></i> انتخاب همه
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary px-3 py-2" id="deselectAllExportColumns">
+                                    <i class="fas fa-square me-2"></i> هیچکدام
+                                </button>
+                            </div>
+                        </div>
+                        <div class="section-body pt-2">
+                            <div class="row g-4">
+                                {% for column in all_columns %}
+                                    {% if column.export_only %}
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input export-only-column" type="checkbox" 
+                                                id="col-{{ column.id }}" name="columns[]" 
+                                                value="{{ column.id }}"
+                                                {% if column.id in selected_columns %}checked{% endif %}>
+                                            <label class="form-check-label" for="col-{{ column.id }}">
+                                                {{ column.name }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
-                <button type="button" class="btn btn-primary" id="saveColumnsBtn">ذخیره تغییرات</button>
+            <div class="modal-footer bg-light py-3">
+                <button type="button" class="btn btn-outline-secondary px-4 py-2" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>انصراف
+                </button>
+                <button type="button" class="btn btn-primary px-4 py-2" id="saveColumnsBtn">
+                    <i class="fas fa-save me-2"></i>ذخیره تغییرات
+                </button>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+/* استایل برای مدال ستون‌ها */
+#columnsModal .modal-content {
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+#columnsModal .modal-header {
+    padding: 18px 24px;
+}
+
+#columnsModal .modal-body {
+    padding: 24px 30px;
+}
+
+#columnsModal .modal-footer {
+    padding: 18px 24px;
+    border-top: 1px solid #eee;
+}
+
+.section-container {
+    position: relative;
+}
+
+.section-container::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 1px;
+    background-color: #eee;
+    margin-top: 35px;
+}
+
+.section-container:last-child::after {
+    display: none;
+}
+
+.section-header {
+    margin-bottom: 20px;
+}
+
+.section-body {
+    padding: 15px 5px;
+}
+
+/* استایل چک‌باکس‌های ستون */
+.column-checkbox {
+    border: 1px solid #eaeaea;
+    border-radius: 10px;
+    transition: all 0.2s;
+    margin: 0;
+    background-color: #f9f9f9;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+}
+
+.column-checkbox:hover {
+    background-color: #f2f7ff;
+    border-color: #cce5ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.column-checkbox .form-check-input {
+    width: 22px;
+    height: 22px;
+    margin-top: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.column-checkbox .form-check-label {
+    cursor: pointer;
+    font-size: 1.05rem;
+    user-select: none;
+    margin-top: 1px;
+    margin-right: 15px;
+    margin-left: 15px !important;
+}
+
+.column-checkbox .form-check-input:checked ~ .form-check-label {
+    font-weight: 500;
+    color: #0d6efd;
+}
+
+.column-checkbox:has(.form-check-input:checked) {
+    border-color: #9ec5fe;
+    background-color: #e6f0ff;
+}
+
+.column-checkbox:has(.export-only-column:checked) {
+    border-color: #a3cfbb;
+    background-color: #e6fff0;
+}
+
+.column-checkbox .export-only-column:checked ~ .form-check-label {
+    color: #198754;
+}
+
+/* سبک‌سازی دکمه‌ها */
+#columnsModal .btn {
+    transition: all 0.2s ease;
+    border-radius: 6px;
+}
+
+#columnsModal .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+}
+
+#columnsModal .btn-sm {
+    font-size: 0.9rem;
+}
+
+/* استایل برای هاور روی سطرها */
+.form-check:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+    border-radius: 5px;
+}
+
+/* تنظیمات پاسخگویی */
+@media (max-width: 768px) {
+    #columnsForm {
+        grid-template-columns: 1fr;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+    
+    .column-checkbox {
+        padding: 12px 15px;
+    }
+}
+</style>
+
 <!-- نوار جستجوی اصلی -->
-<div class="search-panel mb-4">
+<div class="search-panel mb-4 shadow-sm">
     <form id="searchForm" method="GET" action="">
         <div class="row">
             <div class="col-md-8">
-                <label for="globalSearch" class="form-label">جستجوی سریع:</label>
-                <input type="text" id="globalSearch" name="global_search" class="form-control" placeholder="جستجوی سریع در تمام فیلدها..." value="{{ search_params.global_search }}">
+                <label for="globalSearch" class="form-label fw-bold"><i class="fas fa-search me-2"></i>جستجوی سریع:</label>
+                <input type="text" id="globalSearch" name="global_search" class="form-control" 
+                       placeholder="جستجوی سریع در تمام فیلدها..." value="{{ search_params.global_search }}">
             </div>
             <div class="col-md-2 d-flex align-items-end">
-                <button type="submit" class="btn btn-success w-100 text-white">جستجو</button>
+                <button type="submit" class="btn btn-success w-100 text-white shadow-sm">
+                    <i class="fas fa-search me-2"></i>جستجو
+                </button>
             </div>
             <div class="col-md-2 d-flex align-items-end">
-                <a href="{% url 'purchase_list' %}" class="btn btn-secondary w-100">پاک کردن</a>
+                <a href="{% url 'purchase_list' %}" class="btn btn-secondary w-100 shadow-sm">
+                    <i class="fas fa-times me-2"></i>پاک کردن
+                </a>
             </div>
         </div>
     </form>
 </div>
 
 <!-- Active Purchases Section -->
-<h3 class="mb-4"><i class="fas fa-shopping-cart me-2"></i>خریدهای فعال</h3>
+<h3 class="mb-4 fw-bold text-primary"><i class="fas fa-shopping-cart me-2"></i>خریدهای فعال</h3>
 
 {% if active_purchases %}
-<div class="table-responsive">
+<div class="table-responsive shadow-sm rounded">
 <table class="table table-bordered table-striped align-middle text-center">
     <thead class="table-light sticky-header">
         <tr>
             {% for column in all_columns %}
-                {% if column.id in selected_columns %}
+                {% if column.id in selected_columns and not column.export_only %}
                 <th class="column-{{ column.id }}">
                     {{ column.name }}
                     <input type="text" class="search-input column-search" data-column="{{ forloop.counter0 }}" placeholder="جستجو...">
@@ -288,89 +642,77 @@ th, td {
     <tbody id="activePurchasesTable">
     {% for purchase in active_purchases %}
         <tr class="{% if purchase.is_urgent %}urgent-row{% elif purchase.state == 'CANCELED' or purchase.is_canceled %}canceled-row{% endif %}" data-id="{{ purchase.id }}">
-            {% if 'date' in selected_columns %}
-            <td>{{ purchase.created_at|date:"Y/m/d" }}</td>
-            {% endif %}
-            
-            {% if 'customer' in selected_columns %}
-            <td>
-                {% if purchase.is_urgent %}<span class="urgent-badge">فوری</span>{% endif %}
-                {{ purchase.customer.name }}
-            </td>
-            {% endif %}
-            
-            {% if 'invoice_id' in selected_columns %}
-            <td class="{% if user_role != 'sales_agent' %}editable{% endif %}" data-field="invoice_id">
-                {{ purchase.invoice_id|default:"تعیین نشده" }}
-            </td>
-            {% endif %}
-            
-            {% if 'sales_agent' in selected_columns %}
-            <td>{% for agent in purchase.customer.sales_agent.all %}{{ agent.name }}{% if not forloop.last %}، {% endif %}{% empty %}-{% endfor %}</td>
-            {% endif %}
-            
-            {% if 'purchase_number' in selected_columns %}
-            <td class="{% if user_role != 'sales_agent' %}editable{% endif %}" data-field="purchase_number">
-                {{ purchase.purchase_number|default:"تعیین نشده" }}
-            </td>
-            {% endif %}
-            
-            {% if 'weight' in selected_columns %}
-            <td class="{% if user_role != 'sales_agent' %}editable{% endif %}" data-field="order_weight">
-                {{ purchase.order_weight|add_commas }}
-            </td>
-            {% endif %}
-            
-            {% if 'cargo' in selected_columns %}
-            <td>{% if purchase.cargo %}{{ purchase.cargo }}{% else %}-{% endif %}</td>
-            {% endif %}
-            
-            {% if 'status' in selected_columns %}
-            <td>
-                {# Show the purchase status based on state field #}
-                {% if purchase.state == 'CANCELED' or purchase.is_canceled %}
-                    <span class="table-status-badge bg-danger text-white">لغو شده</span>
-                {% elif purchase.is_urgent %}
-                    <span class="table-status-badge bg-danger text-white">فوری</span>
-                {% elif purchase.state == 'INITIATED' %}
-                    <span class="table-status-badge bg-light text-dark">شروع شده</span>
-                {% elif purchase.state == 'SMS_SENT' %}
-                    <span class="table-status-badge bg-light text-dark">پیامک ارسال شده</span>
-                {% elif purchase.state == 'PAYMENT_VERIFIED' %}
-                    <span class="table-status-badge bg-success text-white">ثبت خرید در بازارگاه</span>
-                {% elif purchase.state == 'ALLOCATION_APPROVED' %}
-                    <span class="table-status-badge bg-warning text-dark">ثبت تخصیص در بازارگاه</span>
-                {% elif purchase.state == 'ADDRESS_SENT' %}
-                    <span class="table-status-badge bg-info text-white">ارسال آدرس به واردکننده</span>
-                {% elif purchase.state == 'WAITING_FOR_BARNAMEH' %}
-                    <span class="table-status-badge bg-warning text-dark">در انتظار بارنامه</span>
-                {% elif purchase.state == 'BARNAMEH_INCOMPLETE' %}
-                    <span class="table-status-badge bg-warning text-dark">صدور بارنامه (ناقص)</span>
-                {% elif purchase.state == 'BARNAMEH_ISSUED' %}
-                    <span class="table-status-badge bg-info text-white">صدور بارنامه</span>
-                {% elif purchase.state == 'PURCHASE_CLOSED' %}
-                    <span class="table-status-badge bg-info text-white">بستن خرید در بازارگاه</span>
-                {% elif purchase.state == 'DIFFERENCE_APPROVED' %}
-                    <span class="table-status-badge bg-warning text-dark">پرداخت کسری / دریافت سرک</span>
-                {% elif purchase.state == 'FULLY_SETTLED' %}
-                    <span class="table-status-badge bg-success text-white">تسویه کامل</span>
-                {% elif purchase.state == 'INVOICE_ISSUED' %}
-                    <span class="table-status-badge bg-info text-white">صدور فاکتور</span>
-                {% elif purchase.state == 'ARCHIVED' or purchase.is_archived %}
-                    <span class="table-status-badge bg-secondary text-white">آرشیو شده</span>
-                {% else %}
-                    <span class="table-status-badge bg-light text-dark">{{ purchase.get_state_display }}</span>
+            {% for column in all_columns %}
+                {% if column.id in selected_columns and not column.export_only %}
+                    {% if column.id == 'date' %}
+                    <td>{{ purchase.created_at|date:"Y/m/d" }}</td>
+                    {% elif column.id == 'customer' %}
+                    <td>
+                        {% if purchase.is_urgent %}<span class="urgent-badge">فوری</span>{% endif %}
+                        {{ purchase.customer.name }}
+                    </td>
+                    {% elif column.id == 'invoice_id' %}
+                    <td class="{% if user_role != 'sales_agent' %}editable{% endif %}" data-field="invoice_id">
+                        {{ purchase.invoice_id|default:"تعیین نشده" }}
+                    </td>
+                    {% elif column.id == 'sales_agent' %}
+                    <td>{% for agent in purchase.customer.sales_agent.all %}{{ agent.name }}{% if not forloop.last %}، {% endif %}{% empty %}-{% endfor %}</td>
+                    {% elif column.id == 'purchase_number' %}
+                    <td class="{% if user_role != 'sales_agent' %}editable{% endif %}" data-field="purchase_number">
+                        {{ purchase.purchase_number|default:"تعیین نشده" }}
+                    </td>
+                    {% elif column.id == 'weight' %}
+                    <td class="{% if user_role != 'sales_agent' %}editable{% endif %}" data-field="order_weight">
+                        {{ purchase.order_weight|add_commas }}
+                    </td>
+                    {% elif column.id == 'cargo' %}
+                    <td>{% if purchase.cargo %}{{ purchase.cargo }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'status' %}
+                    <td>
+                        {# Show the purchase status based on state field #}
+                        {% if purchase.state == 'CANCELED' or purchase.is_canceled %}
+                            <span class="table-status-badge bg-danger text-white">لغو شده</span>
+                        {% elif purchase.is_urgent %}
+                            <span class="table-status-badge bg-danger text-white">فوری</span>
+                        {% elif purchase.state == 'INITIATED' %}
+                            <span class="table-status-badge bg-light text-dark">شروع شده</span>
+                        {% elif purchase.state == 'SMS_SENT' %}
+                            <span class="table-status-badge bg-light text-dark">پیامک ارسال شده</span>
+                        {% elif purchase.state == 'PAYMENT_VERIFIED' %}
+                            <span class="table-status-badge bg-success text-white">ثبت خرید در بازارگاه</span>
+                        {% elif purchase.state == 'ALLOCATION_APPROVED' %}
+                            <span class="table-status-badge bg-warning text-dark">ثبت تخصیص در بازارگاه</span>
+                        {% elif purchase.state == 'ADDRESS_SENT' %}
+                            <span class="table-status-badge bg-info text-white">ارسال آدرس به واردکننده</span>
+                        {% elif purchase.state == 'WAITING_FOR_BARNAMEH' %}
+                            <span class="table-status-badge bg-warning text-dark">در انتظار بارنامه</span>
+                        {% elif purchase.state == 'BARNAMEH_INCOMPLETE' %}
+                            <span class="table-status-badge bg-warning text-dark">صدور بارنامه (ناقص)</span>
+                        {% elif purchase.state == 'BARNAMEH_ISSUED' %}
+                            <span class="table-status-badge bg-info text-white">صدور بارنامه</span>
+                        {% elif purchase.state == 'PURCHASE_CLOSED' %}
+                            <span class="table-status-badge bg-info text-white">بستن خرید در بازارگاه</span>
+                        {% elif purchase.state == 'DIFFERENCE_APPROVED' %}
+                            <span class="table-status-badge bg-warning text-dark">پرداخت کسری / دریافت سرک</span>
+                        {% elif purchase.state == 'FULLY_SETTLED' %}
+                            <span class="table-status-badge bg-success text-white">تسویه کامل</span>
+                        {% elif purchase.state == 'INVOICE_ISSUED' %}
+                            <span class="table-status-badge bg-info text-white">صدور فاکتور</span>
+                        {% elif purchase.state == 'ARCHIVED' or purchase.is_archived %}
+                            <span class="table-status-badge bg-secondary text-white">آرشیو شده</span>
+                        {% else %}
+                            <span class="table-status-badge bg-light text-dark">{{ purchase.get_state_display }}</span>
+                        {% endif %}
+                    </td>
+                    {% elif column.id == 'actions' %}
+                    <td>
+                        <a href="{% url 'purchase_CRUD' purchase.id %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-eye me-1"></i> مشاهده
+                        </a>
+                    </td>
+                    {% endif %}
                 {% endif %}
-            </td>
-            {% endif %}
-            
-            {% if 'actions' in selected_columns %}
-            <td>
-                <a href="{% url 'purchase_CRUD' purchase.id %}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-eye me-1"></i> مشاهده
-                </a>
-            </td>
-            {% endif %}
+            {% endfor %}
         </tr>
     {% endfor %}
     </tbody>
@@ -386,18 +728,18 @@ th, td {
 
 <!-- Archived Purchases Section -->
 <div class="archive-section mt-5">
-<div class="archive-toggle" id="toggleArchived">
-<h3 class="mb-0"><i class="fas fa-archive me-2"></i>خریدهای آرشیو شده</h3>
-<i class="fas fa-chevron-down" id="archiveIcon"></i>
+<div class="archive-toggle shadow-sm" id="toggleArchived">
+<h3 class="mb-0 fw-bold text-secondary"><i class="fas fa-archive me-2"></i>خریدهای آرشیو شده</h3>
+<i class="fas fa-chevron-down text-secondary" id="archiveIcon"></i>
 </div>
 <div id="archivedContent" style="display: none;">
 {% if archived_purchases %}
-<div class="table-responsive">
+<div class="table-responsive shadow-sm rounded">
 <table class="table table-bordered table-striped align-middle text-center">
     <thead class="table-light sticky-header">
         <tr>
             {% for column in all_columns %}
-                {% if column.id in selected_columns %}
+                {% if column.id in selected_columns and not column.export_only %}
                 <th class="column-{{ column.id }}">
                     {{ column.name }}
                     <input type="text" class="search-input column-search-archived" data-column="{{ forloop.counter0 }}" placeholder="جستجو...">
@@ -409,51 +751,39 @@ th, td {
     <tbody id="archivedPurchasesTable">
     {% for purchase in archived_purchases %}
         <tr data-id="{{ purchase.id }}">
-            {% if 'date' in selected_columns %}
-            <td>{{ purchase.created_at|date:"Y/m/d" }}</td>
-            {% endif %}
-            
-            {% if 'customer' in selected_columns %}
-            <td>{{ purchase.customer.name }}</td>
-            {% endif %}
-            
-            {% if 'invoice_id' in selected_columns %}
-            <td>{{ purchase.invoice_id|default:"تعیین نشده" }}</td>
-            {% endif %}
-            
-            {% if 'sales_agent' in selected_columns %}
-            <td>{% for agent in purchase.customer.sales_agent.all %}{{ agent.name }}{% if not forloop.last %}، {% endif %}{% empty %}-{% endfor %}</td>
-            {% endif %}
-            
-            {% if 'purchase_number' in selected_columns %}
-            <td>{{ purchase.purchase_number|default:"تعیین نشده" }}</td>
-            {% endif %}
-            
-            {% if 'weight' in selected_columns %}
-            <td>{{ purchase.order_weight|add_commas }}</td>
-            {% endif %}
-            
-            {% if 'cargo' in selected_columns %}
-            <td>{% if purchase.cargo %}{{ purchase.cargo }} ({{ purchase.cargo.cottage }}){% else %}-{% endif %}</td>
-            {% endif %}
-            
-            {% if 'status' in selected_columns %}
-            <td>
-                {% if purchase.state == 'ARCHIVED' or purchase.is_archived %}
-                    <span class="table-status-badge bg-secondary text-white">آرشیو شده</span>
-                {% else %}
-                    <span class="table-status-badge bg-secondary text-white">{{ purchase.get_state_display }}</span>
+            {% for column in all_columns %}
+                {% if column.id in selected_columns and not column.export_only %}
+                    {% if column.id == 'date' %}
+                    <td>{{ purchase.created_at|date:"Y/m/d" }}</td>
+                    {% elif column.id == 'customer' %}
+                    <td>{{ purchase.customer.name }}</td>
+                    {% elif column.id == 'invoice_id' %}
+                    <td>{{ purchase.invoice_id|default:"تعیین نشده" }}</td>
+                    {% elif column.id == 'sales_agent' %}
+                    <td>{% for agent in purchase.customer.sales_agent.all %}{{ agent.name }}{% if not forloop.last %}، {% endif %}{% empty %}-{% endfor %}</td>
+                    {% elif column.id == 'purchase_number' %}
+                    <td>{{ purchase.purchase_number|default:"تعیین نشده" }}</td>
+                    {% elif column.id == 'weight' %}
+                    <td>{{ purchase.order_weight|add_commas }}</td>
+                    {% elif column.id == 'cargo' %}
+                    <td>{% if purchase.cargo %}{{ purchase.cargo }} ({{ purchase.cargo.cottage }}){% else %}-{% endif %}</td>
+                    {% elif column.id == 'status' %}
+                    <td>
+                        {% if purchase.state == 'ARCHIVED' or purchase.is_archived %}
+                            <span class="table-status-badge bg-secondary text-white">آرشیو شده</span>
+                        {% else %}
+                            <span class="table-status-badge bg-secondary text-white">{{ purchase.get_state_display }}</span>
+                        {% endif %}
+                    </td>
+                    {% elif column.id == 'actions' %}
+                    <td>
+                        <a href="{% url 'purchase_CRUD' purchase.id %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-eye me-1"></i> مشاهده
+                        </a>
+                    </td>
+                    {% endif %}
                 {% endif %}
-            </td>
-            {% endif %}
-            
-            {% if 'actions' in selected_columns %}
-            <td>
-                <a href="{% url 'purchase_CRUD' purchase.id %}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-eye me-1"></i> مشاهده
-                </a>
-            </td>
-            {% endif %}
+            {% endfor %}
         </tr>
     {% endfor %}
     </tbody>
@@ -776,7 +1106,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // انتخاب همه ستون‌ها
     document.getElementById('selectAllColumns').addEventListener('click', function(e) {
         e.preventDefault();
-        document.querySelectorAll('#columnsForm input[type="checkbox"]').forEach(checkbox => {
+        document.querySelectorAll('#columnsForm input[type="checkbox"]:not(.export-only-column)').forEach(checkbox => {
             checkbox.checked = true;
         });
     });
@@ -784,10 +1114,26 @@ document.addEventListener('DOMContentLoaded', function() {
     // عدم انتخاب همه ستون‌ها
     document.getElementById('deselectAllColumns').addEventListener('click', function(e) {
         e.preventDefault();
-        document.querySelectorAll('#columnsForm input[type="checkbox"]').forEach(checkbox => {
+        document.querySelectorAll('#columnsForm input[type="checkbox"]:not(.export-only-column)').forEach(checkbox => {
             if (checkbox.value !== 'actions') { // ستون اکشن همیشه انتخاب شده باقی بماند
                 checkbox.checked = false;
             }
+        });
+    });
+    
+    // انتخاب همه ستون‌های اکسل
+    document.getElementById('selectAllExportColumns').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.querySelectorAll('.export-only-column').forEach(checkbox => {
+            checkbox.checked = true;
+        });
+    });
+    
+    // عدم انتخاب همه ستون‌های اکسل
+    document.getElementById('deselectAllExportColumns').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.querySelectorAll('.export-only-column').forEach(checkbox => {
+            checkbox.checked = false;
         });
     });
     
@@ -809,10 +1155,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // استفاده از ستون‌های نمایش داده شده در جدول
-            const displayedColumns = [];
-            const headers = document.querySelectorAll('table thead th');
+            // جمع‌آوری همه ستون‌های انتخاب شده (نمایش داده شده در جدول + انتخاب شده برای اکسل)
+            const allSelectedColumns = [];
             
+            // ابتدا ستون‌های نمایش داده شده در جدول
+            const headers = document.querySelectorAll('table thead th');
             headers.forEach(function(header) {
                 if (window.getComputedStyle(header).display !== 'none') {
                     const columnClasses = Array.from(header.classList).filter(function(cls) {
@@ -822,15 +1169,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (columnClasses.length > 0) {
                         const columnName = columnClasses[0].replace('column-', '');
                         if (columnName !== 'actions') { // ستون اکشن را اضافه نمی‌کنیم
-                            displayedColumns.push(columnName);
+                            allSelectedColumns.push(columnName);
                         }
                     }
                 }
             });
             
-            // اگر ستونی پیدا نشد، از ستون‌های پیش‌فرض استفاده می‌کنیم
-            let columnsForExport = displayedColumns.length > 0 ? 
-                displayedColumns : 
+            // سپس ستون‌های اضافی انتخاب شده برای اکسل
+            document.querySelectorAll('.export-only-column:checked').forEach(function(checkbox) {
+                allSelectedColumns.push(checkbox.value);
+            });
+            
+            // اگر هیچ ستونی انتخاب نشده بود، از ستون‌های پیش‌فرض استفاده می‌کنیم
+            let columnsForExport = allSelectedColumns.length > 0 ? 
+                allSelectedColumns : 
                 ['date', 'customer', 'invoice_id', 'sales_agent', 'purchase_number', 'weight', 'cargo', 'status'];
             
             // ساخت ادرس URL خروجی
@@ -873,7 +1225,7 @@ document.addEventListener('DOMContentLoaded', function() {
             [...visibleActiveRows, ...visibleArchivedRows].forEach(row => {
                 const checkbox = row.querySelector('.row-checkbox');
                 if (checkbox) {
-                    checkbox.checked = true;
+            checkbox.checked = true;
                     
                     // اطمینان از اضافه شدن به آرایه selectedIds
                     const purchaseId = checkbox.dataset.id;
@@ -899,8 +1251,8 @@ document.addEventListener('DOMContentLoaded', function() {
         deselectAllRowsBtn.addEventListener('click', function() {
             // لغو انتخاب از تمام چک‌باکس‌ها
             document.querySelectorAll('.row-checkbox').forEach(checkbox => {
-                checkbox.checked = false;
-            });
+            checkbox.checked = false;
+        });
             
             // خالی کردن آرایه شناسه‌های انتخاب شده
             selectedIds = [];
@@ -2050,6 +2402,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }, 100);
+    }
+    
+    // نمایش انتخابگر کوتاژهای موجود
+    function showExistingCargoSelector() {
+        const bulkEditCargoForm = document.getElementById('bulkEditCargoForm');
+        const saveBulkEditCargoBtn = document.getElementById('saveBulkEditCargoBtn');
+        
+        // نمایش وضعیت بارگذاری
+        bulkEditCargoForm.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">در حال بارگذاری لیست کوتاژها...</p></div>';
+        bulkEditCargoForm.classList.remove('d-none');
+        
+        // ارسال درخواست به سرور برای دریافت لیست کوتاژها
+        fetch("{% url 'cargo_products_list' %}")
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('خطا در دریافت لیست کوتاژها');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success' && data.cargos && data.cargos.length > 0) {
+                    // نمایش لیست کوتاژها
+                    showCargoList(data.cargos);
+                    saveBulkEditCargoBtn.disabled = true;
+                } else {
+                    throw new Error('هیچ کوتاژی یافت نشد');
+                }
+            })
+            .catch(error => {
+                // در صورت خطا، فرم جستجوی ساده نمایش دهیم
+                console.error('Error fetching cargo list:', error);
+                showCargoSearchForm();
+            });
     }
     
     // نمایش فرم جستجوی کوتاژ

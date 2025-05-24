@@ -86,8 +86,22 @@
             </select>
         </div>
         <div class='form-group'>
-            <label for='importer_name'>نام واردکننده/کارخانه:</label>
-            <input type='text' id='importer_name' name='importer_name' value='{{ product.importer_name }}'>
+            <label for='vared_konandeh'>واردکننده:</label>
+            <select id='vared_konandeh' name='vared_konandeh'>
+                <option value=''>انتخاب کنید</option>
+                {% for vared_konandeh in vared_konandehs %}
+                    <option value='{{ vared_konandeh.id }}' {% if product.vared_konandeh_id == vared_konandeh.id %}selected{% endif %}>{{ vared_konandeh.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class='form-group'>
+            <label for='barbary'>باربری:</label>
+            <select id='barbary' name='barbary'>
+                <option value=''>انتخاب کنید</option>
+                {% for barbary in barbaries %}
+                    <option value='{{ barbary.id }}' {% if product.barbary_id == barbary.id %}selected{% endif %}>{{ barbary.name }}</option>
+                {% endfor %}
+            </select>
         </div>
         <div class='form-group'>
             <label for='port'>محل بارگیری:</label>

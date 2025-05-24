@@ -2,6 +2,8 @@ from django.db import models
 from django_jalali.db import models as jmodels
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+from .BarbaryModel import Barbary
+from .VaredKonandehModel import VaredKonandeh
 
 
 class CargoProduct(models.Model):
@@ -53,7 +55,7 @@ class CargoProduct(models.Model):
     customer_price = models.PositiveIntegerField("فی فروش(ریال)", default=0)
     product_type = models.CharField(_('نوع محصول'), max_length=25, choices=PRODUCT_TYPES, )
     country = models.CharField(_('کشور'), max_length=20, choices=COUNTRIES)
-    importer_name = models.CharField(_('نام واردکننده/کارخانه'), max_length=100, blank=True, null=True)
+    vared_konandeh = models.ForeignKey(VaredKonandeh, on_delete=models.CASCADE, null=True, blank=True)
     port = models.CharField(_("محل بارگیری"), max_length=25, choices=PORTS, default='جنوب')
     loading_time = models.CharField(_('زمان بارگیری'), max_length=50, null=True, blank=True)
     description = models.CharField(_('توضیحات'), max_length=300, null=True, blank=True)
@@ -61,6 +63,7 @@ class CargoProduct(models.Model):
     created_at = jmodels.jDateTimeField(_('تاریخ ثبت'), auto_now_add=True)
     last_modified = jmodels.jDateTimeField(_('تاریخ آخرین ویرایش'), auto_now=True)
     status = models.BooleanField(_('فعال/غیرفعال'), default=True)
+    barbary = models.ForeignKey(Barbary, on_delete=models.CASCADE, null=True, blank=True)
 
     class Meta:
         verbose_name = _('محصول')

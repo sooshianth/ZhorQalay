@@ -8,8 +8,8 @@ from core.decorators.det_user_role import determine_user_role
 @login_required
 def cargo_product_list(request):
     user_role = determine_user_role(request.user)
-    cargo_products = CargoProduct.objects.filter(status=True)
-    deactive_cargo_products = CargoProduct.objects.filter(status=False)
+    cargo_products = CargoProduct.objects.filter(status=True).select_related('vared_konandeh', 'barbary')
+    deactive_cargo_products = CargoProduct.objects.filter(status=False).select_related('vared_konandeh', 'barbary')
     return render(request, 'cargo_product_view.html', {'cargo_products': cargo_products, 'deactive_cargo_products': deactive_cargo_products, 'user_role': user_role})
 
 

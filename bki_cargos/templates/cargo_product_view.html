@@ -42,7 +42,7 @@
     }
     
     .card-header {
-        background-color: #f8fafc;
+        background-color: var(--primary);
         padding: 1rem 1.5rem;
         border-bottom: 1px solid var(--border);
         display: flex;
@@ -270,6 +270,8 @@
                             <th>کوتاژ</th>
                             <th>نوع محصول</th>
                             <th>کشور</th>
+                            <th>واردکننده</th>
+                            <th>باربری</th>
                             <th>قیمت فروش</th>
                             <th>محل بارگیری</th>
                             <th>زمان بارگیری</th>
@@ -287,6 +289,8 @@
                                 <td><strong>{{ product.cottage }}</strong></td>
                                 <td>{{ product.get_product_type_display }}</td>
                                 <td>{{ product.get_country_display }}</td>
+                                <td>{{ product.vared_konandeh.name|default:"-" }}</td>
+                                <td>{{ product.barbary.name|default:"-" }}</td>
                                 <td>{{ product.customer_price }}</td>
                                 <td>{{ product.port }}</td>
                                 <td>{{ product.loading_time }}</td>
@@ -306,7 +310,7 @@
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="10" class="text-center py-6">
+                                <td colspan="12" class="text-center py-6">
                                     <div class="flex flex-col items-center">
                                         <i class="fas fa-box-open text-4xl mb-3 text-gray-300"></i>
                                         <p class="text-gray-500">هیچ محصول فعالی یافت نشد</p>
@@ -338,6 +342,8 @@
                             <th>کوتاژ</th>
                             <th>نوع محصول</th>
                             <th>کشور</th>
+                            <th>واردکننده</th>
+                            <th>باربری</th>
                             <th>قیمت فروش</th>
                             <th>محل بارگیری</th>
                             <th>زمان بارگیری</th>
@@ -355,6 +361,8 @@
                                 <td><strong>{{ product.cottage }}</strong></td>
                                 <td>{{ product.get_product_type_display }}</td>
                                 <td>{{ product.get_country_display }}</td>
+                                <td>{{ product.vared_konandeh.name|default:"-" }}</td>
+                                <td>{{ product.barbary.name|default:"-" }}</td>
                                 <td>{{ product.customer_price }}</td>
                                 <td>{{ product.port }}</td>
                                 <td>{{ product.loading_time }}</td>
@@ -374,7 +382,7 @@
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="10" class="text-center py-6">
+                                <td colspan="12" class="text-center py-6">
                                     <p class="text-gray-500">هیچ محصول غیرفعالی یافت نشد</p>
                                 </td>
                             </tr>

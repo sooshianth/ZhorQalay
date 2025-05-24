@@ -21,6 +21,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth import login
 from django.contrib.admin.sites import site
 from bki_barnameh.models.BarnamehModel import Barnameh
+from .VaredKonandehModel import VaredKonandeh
+from .BarbaryModel import Barbary
 # @admin.register(Notification)
 # class NotificationAdmin(admin.ModelAdmin):
 #     list_display = ('user', 'message')
@@ -76,9 +78,9 @@ class UserAdmin(admin.ModelAdmin):
 
 @admin.register(CargoProduct)
 class CargoProductAdmin(admin.ModelAdmin):
-    list_display = ('cottage', 'product_type', 'country', 'importer_name', 'port', 'weight', 'status')
-    list_filter = ('product_type', 'country', 'importer_name', 'port', 'status')
-    search_fields = ('cottage', 'importer_name')
+    list_display = ('cottage', 'product_type', 'country', 'vared_konandeh', 'port', 'weight', 'status', 'barbary')
+    list_filter = ('product_type', 'country', 'vared_konandeh', 'port', 'status', 'barbary')
+    search_fields = ('cottage', 'vared_konandeh__name', 'barbary__name')
     ordering = ('-created_at',)
 
 class PhoneNumberInline(admin.TabularInline):
@@ -526,4 +528,18 @@ from bki_barnameh.models.BarnamehModel import BarnamehLog
 class BarnamehLogAdmin(admin.ModelAdmin):
     list_display = ('barnameh', 'log_date', 'log_message')
     ordering = ('-log_date',)
+
+@admin.register(VaredKonandeh)
+class VaredKonandehAdmin(admin.ModelAdmin):
+    list_display = ('name', 'phone_number', 'email', 'vallet')
+    search_fields = ('name', 'phone_number', 'email')
+
+@admin.register(Barbary)
+class BarbaryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'phone_number', 'email')
+    search_fields = ('name', 'phone_number', 'email')
+
+
+
+
 
