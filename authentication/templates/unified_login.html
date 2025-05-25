@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% load static %}
+    
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header text-center">
+            {% comment %} <div class="auth-logo">
+                <img src="{% static 'img/3-min.webp' %}" alt="لوگو" width="100%" height="100%" onerror="this.src='https://via.placeholder.com/80?text=LOGO'">
+            </div> {% endcomment %}
+            <h2 class="font-weight-bold">ورود به سامانه سیمرغ</h2>
+        </div>
+        
+        <div class="auth-form">
+            <form method="post" action="" class="text-right" dir="rtl" id="loginForm">
+                {% csrf_token %}
+                
+                {% if messages %}
+                <div class="alert alert-danger mb-4" role="alert">
+                    {% for message in messages %}
+                    <p {% if forloop.last %}class="mb-0"{% endif %}>{{ message }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                {% if not verification_step %}
+                <!-- مرحله اول: ورود شماره موبایل -->
+                <div class="form-group mb-4">
+                    <label for="{{ form.phone_number.id_for_label }}" class="font-weight-bold mb-2">شماره موبایل</label>
+                    {{ form.phone_number }}
+                    <small class="form-text text-muted mt-1">شماره موبایل ثبت شده خود را وارد کنید</small>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn-auth">
+                        <i class="fas fa-paper-plane"></i>
+                        ارسال کد تایید
+                    </button>
+                </div>
+                {% else %}
+                <!-- مرحله دوم: ورود کد تایید -->
+                <input type="hidden" name="phone_number" value="{{ form.phone_number.value }}" id="phoneNumber">
+                
+                <div class="alert alert-info mb-4 text-center" role="alert">
+                    <p class="mb-1">کد تایید به شماره موبایل</p>
+                    <div class="phone-display">{{ form.phone_number.value }}</div>
+                    <div class="mt-2">
+                        <button type="button" class="edit-phone-button" id="editPhone">
+                            <i class="fas fa-edit"></i>
+                            تغییر شماره موبایل
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-group mb-4">
+                    <label for="{{ form.verification_code.id_for_label }}" class="font-weight-bold mb-2">کد تایید</label>
+                    {{ form.verification_code }}
+                    <small class="form-text text-muted mt-1">کد 6 رقمی ارسال شده را وارد کنید</small>
+                </div>
+                
+                <div class="cooldown-timer text-center mb-3 animate" id="cooldownTimer" 
+                    data-cooldown="{{ cooldown_remaining }}" 
+                    data-phone="{{ form.phone_number.value }}">
+                    {% if cooldown_remaining > 0 %}
+                    <span id="timerText">ارسال مجدد کد تا <span id="countdown">{{ cooldown_remaining }}</span> ثانیه دیگر</span>
+                    {% else %}
+                    <button type="button" class="resend-btn" id="resendButton">ارسال مجدد کد تایید</button>
+                    {% endif %}
+                </div>
+                
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn-auth">
+                        <i class="fas fa-sign-in-alt"></i>
+                        ورود به سامانه
+                    </button>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+
+{% if verification_step %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // تنظیم تایمر برای نمایش زمان باقی‌مانده ارسال مجدد کد
+        const timerContainer = document.getElementById('cooldownTimer');
+        const initialCooldown = parseInt(timerContainer.dataset.cooldown || '0');
+        const phoneNumber = timerContainer.dataset.phone;
+        let remainingTime = initialCooldown;
+        
+        const timerText = document.getElementById('timerText');
+        const countdownEl = document.getElementById('countdown');
+        const resendButton = document.getElementById('resendButton');
+        
+        // تنظیم طول انیمیشن کول‌داون بر اساس زمان باقی‌مانده
+        if (initialCooldown > 0) {
+            timerContainer.classList.add('animate');
+            timerContainer.style.setProperty('--cooldown-duration', initialCooldown + 's');
+            
+            // انیمیشن تایمر را متناسب با زمان باقی‌مانده تنظیم می‌کنیم
+            const cooldownAnimation = document.createElement('style');
+            cooldownAnimation.innerHTML = `
+                @keyframes cooldown-progress {
+                    0% { transform: scaleX(${initialCooldown/120}); }
+                    100% { transform: scaleX(0); }
+                }
+                .cooldown-timer.animate::before {
+                    animation: cooldown-progress ${initialCooldown}s linear forwards;
+                }
+            `;
+            document.head.appendChild(cooldownAnimation);
+        }
+        
+        function updateTimer() {
+            if (remainingTime <= 0) {
+                if (timerText) {
+                    timerText.style.display = 'none';
+                }
+                if (resendButton) {
+                    resendButton.style.display = 'inline-block';
+                } else {
+                    // اگر دکمه وجود ندارد، آن را ایجاد کن
+                    const newButton = document.createElement('button');
+                    newButton.type = 'button';
+                    newButton.className = 'resend-btn';
+                    newButton.id = 'resendButton';
+                    newButton.textContent = 'ارسال مجدد کد تایید';
+                    newButton.addEventListener('click', resendCode);
+                    timerContainer.innerHTML = '';
+                    timerContainer.appendChild(newButton);
+                }
+                clearInterval(timerInterval);
+                timerContainer.classList.remove('animate');
+            } else {
+                if (countdownEl) {
+                    countdownEl.textContent = remainingTime;
+                }
+                remainingTime--;
+            }
+        }
+        
+        // اگر کول‌داون فعال است، تایمر را شروع کن
+        let timerInterval;
+        if (initialCooldown > 0) {
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+        
+        // ارسال مجدد کد تایید
+        function resendCode() {
+            const resendBtn = document.getElementById('resendButton');
+            if (resendBtn) {
+                resendBtn.disabled = true;
+                resendBtn.textContent = 'در حال ارسال...';
+            }
+            
+            // ارسال درخواست AJAX برای ارسال مجدد کد
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', window.location.href, true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            if (response.success) {
+                                // ریست کردن تایمر
+                                remainingTime = response.cooldown || 120;
+                                
+                                // نمایش تایمر و مخفی کردن دکمه
+                                if (resendBtn) {
+                                    resendBtn.style.display = 'none';
+                                }
+                                
+                                // ایجاد متن تایمر
+                                if (!timerText) {
+                                    const newTimerText = document.createElement('span');
+                                    newTimerText.id = 'timerText';
+                                    newTimerText.innerHTML = 'ارسال مجدد کد تا <span id="countdown">' + remainingTime + '</span> ثانیه دیگر';
+                                    timerContainer.innerHTML = '';
+                                    timerContainer.appendChild(newTimerText);
+                                } else {
+                                    timerText.style.display = 'inline';
+                                    if (countdownEl) {
+                                        countdownEl.textContent = remainingTime;
+                                    }
+                                }
+                                
+                                // اضافه کردن مجدد کلاس انیمیشن به تایمر
+                                timerContainer.classList.add('animate');
+                                
+                                // تنظیم مجدد انیمیشن بر اساس زمان جدید
+                                const cooldownAnimation = document.createElement('style');
+                                cooldownAnimation.innerHTML = `
+                                    @keyframes cooldown-progress {
+                                        0% { transform: scaleX(1); }
+                                        100% { transform: scaleX(0); }
+                                    }
+                                    .cooldown-timer.animate::before {
+                                        animation: cooldown-progress ${remainingTime}s linear forwards;
+                                    }
+                                `;
+                                document.head.appendChild(cooldownAnimation);
+                                
+                                // شروع مجدد تایمر
+                                clearInterval(timerInterval);
+                                timerInterval = setInterval(updateTimer, 1000);
+                                
+                                // نمایش پیام موفقیت
+                                alert('کد تایید جدید با موفقیت ارسال شد');
+                            } else {
+                                alert(response.message || 'خطا در ارسال مجدد کد');
+                                if (resendBtn) {
+                                    resendBtn.disabled = false;
+                                    resendBtn.textContent = 'ارسال مجدد کد تایید';
+                                }
+                            }
+                        } catch (e) {
+                            console.error('Error parsing response', e);
+                            alert('خطا در پردازش پاسخ سرور');
+                            if (resendBtn) {
+                                resendBtn.disabled = false;
+                                resendBtn.textContent = 'ارسال مجدد کد تایید';
+                            }
+                        }
+                    } else {
+                        alert('خطا در ارتباط با سرور');
+                        if (resendBtn) {
+                            resendBtn.disabled = false;
+                            resendBtn.textContent = 'ارسال مجدد کد تایید';
+                        }
+                    }
+                }
+            };
+            xhr.send('resend_code=1&phone_number=' + encodeURIComponent(phoneNumber) + '&csrfmiddlewaretoken=' + encodeURIComponent(csrfToken));
+        }
+        
+        // اضافه کردن رویداد کلیک به دکمه ارسال مجدد
+        if (resendButton) {
+            resendButton.addEventListener('click', resendCode);
+        }
+        
+        // تغییر شماره موبایل
+        const editPhoneBtn = document.getElementById('editPhone');
+        if (editPhoneBtn) {
+            editPhoneBtn.addEventListener('click', function() {
+                if (confirm('آیا می‌خواهید شماره موبایل را تغییر دهید؟')) {
+                    // اضافه کردن پارامتر reset=1 به URL برای بازگشت به صفحه ورود شماره موبایل
+                    window.location.href = window.location.pathname + '?reset=1';
+                }
+            });
+        }
+        
+        // فوکوس روی فیلد کد تایید
+        const codeInput = document.getElementById('{{ form.verification_code.id_for_label }}');
+        if (codeInput) {
+            codeInput.focus();
+        }
+    });
+</script>
+{% endif %}
+{% endblock %} 

@@ -2,8 +2,6 @@ from django.urls import path, include
 from django.views.generic.base import RedirectView
 
 from .views import (
-    sales_agent_login,
-    sales_agent_logout,
     sales_agent_profile_view,
     mark_notification_read,
     sales_dashboard_view,
@@ -46,8 +44,6 @@ urlpatterns = [
     # Profile and dashboard
     path('profile/', sales_agent_profile_view.sales_agent_profile_view, name='sales_agent_profile'),
     path('dashboard/', sales_dashboard_view.sales_dashboard_view, name='sales_dashboard'),
-    path('login/', sales_agent_login.sales_agent_login_view, name='sales_agent_login'),
-    path('logout/', sales_agent_logout.logout_view, name='logout'),
     
     # Customer list and management
     path('customers/', RedirectView.as_view(pattern_name='enhanced_customer_list', permanent=False), name='customer_list'),

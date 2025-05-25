@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from CRM.views import home_view
+from authentication.views import home_view
 from sms_api.views import sms_dashboard
 from whatsapp_api.views import whatsapp_dashboard
 from django.views.generic.base import RedirectView
@@ -14,21 +14,21 @@ urlpatterns = [
     path('erp/', include('ERP.urls')),
     path('hr/', include('HR.urls')),
     path('sms/', include('sms_api.urls')),
-    path('sms/dashborad', sms_dashboard, name='sms-dashboard'),
     path('todo/', include('todo.urls')),
-    path('', home_view.home_view, name='home_view'),
-    path('login/', home_view.unified_login_view, name='unified_login'),
     path('cargos/', include('bki_cargos.urls')),
+    path('bki/', include('bki_api.urls')),
+    path('bki/barnameh/', include('bki_barnameh.urls')),
+    path('whatsapp/', include(('whatsapp_api.urls', 'whatsapp_api'), namespace='whatsapp_api')),
+
+    path('', include('authentication.urls')),
     # هدایت مسیرهای قدیمی به صفحه ورود جدید
     path('sales_agent_login/', RedirectView.as_view(pattern_name='unified_login', permanent=True)),
     path('financial_manager_login/', RedirectView.as_view(pattern_name='unified_login', permanent=True)),
     path('logistics_manager_login/', RedirectView.as_view(pattern_name='unified_login', permanent=True)),
     path('support_agent_login/', RedirectView.as_view(pattern_name='unified_login', permanent=True)),
     
-    path('whatsapp/', include(('whatsapp_api.urls', 'whatsapp_api'), namespace='whatsapp_api')),
     path('whatsapp/', whatsapp_dashboard, name='whatsapp-dashboard'),
-    path('bki/', include('bki_api.urls')),
-    path('bki/barnameh/', include('bki_barnameh.urls')),
+    path('sms/dashborad', sms_dashboard, name='sms-dashboard'),
 ]
 
 # اضافه کردن URL های مربوط به media در حالت دیباگ

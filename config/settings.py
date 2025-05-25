@@ -54,7 +54,7 @@ INSTALLED_APPS = [
     'core.apps.CoreConfig',
     'sales.apps.SalesConfig',
     'ERP.apps.ERPConfig',
-    'CRM.apps.CRMConfig',
+    'authentication.apps.AuthenticationConfig',
     'sms_api.apps.SmsApiConfig',
     'chat.apps.ChatConfig',
     'HR.apps.HRConfig',
@@ -147,7 +147,7 @@ STATICFILES_DIRS = [
     BASE_DIR / "core/static",
     BASE_DIR / "sales/static",
     BASE_DIR / "ERP/static",
-    BASE_DIR / "CRM/static",
+    BASE_DIR / "authentication/static",
     # BASE_DIR / "excel_manager/static",
     # BASE_DIR / "sms_api/static",
 ]
