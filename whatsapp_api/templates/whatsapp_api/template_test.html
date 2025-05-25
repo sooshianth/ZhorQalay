@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ارسال پیام واتساپ آزمایشی{% endblock %}
+
+{% block styles %}
+<style>
+    .preview-container {
+        max-width: 400px;
+        margin: 0 auto;
+    }
+    .whatsapp-preview {
+        border: 2px solid #25d366;
+        border-radius: 10px;
+        padding: 20px;
+        background-color: #f0f4f8;
+        position: relative;
+        direction: rtl;
+        font-family: tahoma, arial, sans-serif;
+        box-shadow: 0 5px 15px rgba(37, 211, 102, 0.2);
+        white-space: pre-wrap;
+    }
+    .whatsapp-header {
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+        color: #075e54;
+    }
+    .whatsapp-content {
+        min-height: 150px;
+    }
+    .whatsapp-footer {
+        border-top: 1px solid #eee;
+        padding-top: 10px;
+        margin-top: 15px;
+        font-size: 12px;
+        color: #888;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>ارسال پیام واتساپ آزمایشی</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'whatsapp_api:template_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> بازگشت به لیست قالب‌ها
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">مشخصات قالب</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>نام قالب:</strong> {{ template.name }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>نوع قالب:</strong> {{ template.get_template_type_display }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>وضعیت خرید:</strong> {{ template.get_status_display }}
+                    </div>
+                    {% if template.description %}
+                    <div class="mb-3">
+                        <strong>توضیحات:</strong> {{ template.description }}
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <strong>متن قالب:</strong>
+                        <pre class="bg-light p-3 mt-2 border">{{ template.content }}</pre>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">ارسال پیام واتساپ آزمایشی</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        پیام واتساپ به صورت آزمایشی با داده‌های نمونه ارسال خواهد شد.
+                    </div>
+                    
+                    <form method="post" action="{% url 'whatsapp_api:template_test' template.id %}">
+                        {% csrf_token %}
+                        <div class="form-group mb-3">
+                            <label for="recipient_number">شماره تلفن گیرنده <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="recipient_number" name="recipient_number" placeholder="مثال: 09123456789" required>
+                            <small class="form-text text-muted">شماره تلفن گیرنده را به فرمت 11 رقمی وارد کنید.</small>
+                        </div>
+                        
+                        <div class="text-end mt-3">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-paper-plane"></i> ارسال پیام آزمایشی
+                            </button>
+                            <a href="{% url 'whatsapp_api:template_list' %}" class="btn btn-secondary">انصراف</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">پیش‌نمایش پیام واتساپ</h5>
+                </div>
+                <div class="card-body">
+                    <div class="preview-container">
+                        <div class="whatsapp-preview">
+                            <div class="whatsapp-header">
+                                <i class="fab fa-whatsapp"></i> <strong>از:</strong> شرکت تأمین نهاده سیمرغ
+                            </div>
+                            <div class="whatsapp-content" id="previewText"></div>
+                            <div class="whatsapp-footer">
+                                <div>اکنون</div>
+                                <div><span id="charCount">0</span> کاراکتر</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">توضیحات</h5>
+                </div>
+                <div class="card-body">
+                    <ul>
+                        <li>در این پیش‌نمایش از داده‌های آزمایشی استفاده شده است.</li>
+                        <li>پیام واتساپ با محتوای بالا به شماره درج شده ارسال خواهد شد.</li>
+                        <li>برای ارسال پیام واتساپ، شماره گیرنده باید در واتساپ فعال باشد.</li>
+                        <li>این عملیات فقط برای تست و آزمایش قالب است.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const previewText = document.getElementById('previewText');
+        const charCount = document.getElementById('charCount');
+        
+        // داده‌های آزمایشی برای پیش‌نمایش
+        const sampleData = {
+            'customer_name': 'مشتری نمونه',
+            'purchase_number': '1234567',
+            'invoice_id': '12345',
+            'order_weight': '25000',
+            'customer_price': '150000',
+            'amount_paid': '3750000000',
+            'barnameh': 'B-987654',
+            'barnameh_date': '1402/05/01',
+            'driver_name': 'علی محمدی',
+            'driver_phone': '09123456789',
+            'extelaf_type': 'سرک',
+            'extelaf_weight': '500',
+            'extelaf_amount': '75000000',
+            'cottage': '12345678',
+            'product_type': 'ذرت',
+            'product_country': 'برزیل',
+            'sales_agent_phone': '09123456789',
+            'sales_agent_name': 'کارشناس فروش نمونه',
+            'dakheli_number': '۳',
+            'shenase_takhsis': 'ABC123456789'
+        };
+        
+        // دریافت متن قالب
+        let templateContent = `{{ template.content|escapejs }}`;
+        
+        // جایگزینی متغیرها با مقادیر نمونه
+        Object.keys(sampleData).forEach(key => {
+            const placeholder = new RegExp('{{\\s*' + key + '\\s*}}', 'g');
+            templateContent = templateContent.replace(placeholder, sampleData[key]);
+        });
+        
+        // نمایش در پیش‌نمایش
+        previewText.textContent = templateContent;
+        
+        // بروزرسانی شمارنده کاراکترها
+        const chars = templateContent.length;
+        charCount.textContent = chars;
+        
+        // محدودیت ورود فقط اعداد برای شماره تلفن
+        document.getElementById('recipient_number').addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value.length > 11) {
+                this.value = this.value.slice(0, 11);
+            }
+        });
+    });
+</script>
+{% endblock %} 

@@ -31,17 +31,17 @@
             <i class="fas fa-plus"></i>
             ارسال پیام جدید
         </a>
+        <a href="{% url 'whatsapp_api:template_list' %}" class="action-button dark-teal">
+            <i class="fas fa-file-alt"></i>
+            مدیریت قالب‌های پیام
+        </a>
         <a href="{% url 'whatsapp_api:whatsapp-queue' %}" class="action-button light-teal">
             <i class="fas fa-list"></i>
-            مشاهده صف پیام‌های واتساپ
+            مشاهده صف پیام‌ها
         </a>
         <a href="{% url 'whatsapp_api:message-history' %}" class="action-button light-teal">
             <i class="fas fa-history"></i>
             تاریخچه پیام‌ها
-        </a>
-        <a href="{% url 'whatsapp_api:templates' %}" class="action-button dark-teal">
-            <i class="fas fa-list"></i>
-            مدیریت قالب‌ها
         </a>
     </div>
     <div class="recent-section">
@@ -54,6 +54,7 @@
                         <th>قالب</th>
                         <th>تاریخ ارسال</th>
                         <th>وضعیت</th>
+                        <th>عملیات</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -62,11 +63,20 @@
                         <td>{{ msg.recipient_number }}</td>
                         <td>{{ msg.template_type }}</td>
                         <td>{{ msg.sent_at|date:"Y/m/d H:i" }}</td>
-                        <td>{{ msg.get_status_display }}</td>
+                        <td>
+                            <span class="status-badge status-{{ msg.status }}">
+                                {{ msg.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="#" class="action-link view">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="4" class="empty-message">هیچ پیامی یافت نشد</td>
+                        <td colspan="5" class="empty-message">هیچ پیامی یافت نشد</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -196,6 +206,46 @@
         text-align: center;
         color: #757575;
         padding: 2rem;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 0.3rem 0.7rem;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    .status-sent {
+        background-color: var(--wa-light);
+        color: var(--wa-dark);
+    }
+    .status-pending {
+        background-color: #FFE082;
+        color: #FF8F00;
+    }
+    .status-failed {
+        background-color: #FFCDD2;
+        color: #D32F2F;
+    }
+    .status-suspended {
+        background-color: #E0E0E0;
+        color: #616161;
+    }
+    .action-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        color: white;
+        margin: 0 0.2rem;
+    }
+    .action-link.view {
+        background-color: var(--wa-teal);
+    }
+    .action-link:hover {
+        opacity: 0.9;
+        transform: scale(1.1);
     }
     @media (max-width: 768px) {
         .dashboard-stats { grid-template-columns: 1fr; }

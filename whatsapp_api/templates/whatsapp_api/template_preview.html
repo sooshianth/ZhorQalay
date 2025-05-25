@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}پیش‌نمایش قالب واتساپ{% endblock %}
+
+{% block styles %}
+<style>
+    .preview-container {
+        max-width: 400px;
+        margin: 0 auto;
+    }
+    .whatsapp-preview {
+        border: 2px solid #25d366;
+        border-radius: 10px;
+        padding: 20px;
+        background-color: #f0f4f8;
+        position: relative;
+        direction: rtl;
+        font-family: tahoma, arial, sans-serif;
+        box-shadow: 0 5px 15px rgba(37, 211, 102, 0.2);
+        white-space: pre-wrap;
+    }
+    .whatsapp-header {
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+        color: #075e54;
+    }
+    .whatsapp-content {
+        min-height: 200px;
+    }
+    .whatsapp-footer {
+        border-top: 1px solid #eee;
+        padding-top: 10px;
+        margin-top: 15px;
+        font-size: 12px;
+        color: #888;
+    }
+    .placeholder-highlight {
+        background-color: #d4edda;
+        padding: 2px 4px;
+        border-radius: 3px;
+    }
+    .sample-data-row {
+        margin-bottom: 5px;
+    }
+    .sample-data-row .badge {
+        min-width: 120px;
+        text-align: left;
+    }
+    .sample-data-container {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>پیش‌نمایش قالب واتساپ</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'whatsapp_api:template_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> بازگشت به لیست قالب‌ها
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">{{ template.name }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>نوع قالب:</strong> {{ template.get_template_type_display }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>وضعیت خرید:</strong> {{ template.get_status_display }}
+                    </div>
+                    {% if template.description %}
+                    <div class="mb-3">
+                        <strong>توضیحات:</strong> {{ template.description }}
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <strong>متن اصلی قالب:</strong>
+                        <pre class="bg-light p-3 mt-2 border">{{ template.content }}</pre>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between">
+                    <div>
+                        <span class="badge bg-info">{{ template.updated_at|date:"Y/m/d - H:i" }}</span>
+                    </div>
+                    <div>
+                        <a href="{% url 'whatsapp_api:template_edit' template.id %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-edit"></i> ویرایش
+                        </a>
+                        <a href="{% url 'whatsapp_api:template_test' template.id %}" class="btn btn-sm btn-warning">
+                            <i class="fas fa-paper-plane"></i> ارسال آزمایشی
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">داده‌های نمونه استفاده شده</h5>
+                </div>
+                <div class="card-body sample-data-container">
+                    {% for key, value in sample_data.items %}
+                    <div class="row sample-data-row">
+                        <div class="col-md-6">
+                            <span class="badge bg-secondary">{{ key }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            {{ value }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">پیش‌نمایش پیام واتساپ</h5>
+                </div>
+                <div class="card-body">
+                    <div class="preview-container">
+                        <div class="whatsapp-preview">
+                            <div class="whatsapp-header">
+                                <i class="fab fa-whatsapp"></i> <strong>از:</strong> شرکت تأمین نهاده سیمرغ
+                            </div>
+                            <div class="whatsapp-content">
+                                {{ preview_text }}
+                            </div>
+                            <div class="whatsapp-footer">
+                                <div>{{ template.updated_at|date:"Y/m/d - H:i" }}</div>
+                                <div>{{ preview_text|length }} کاراکتر</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
