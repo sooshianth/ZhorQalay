@@ -6,12 +6,120 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'css_file/style.css' %}">
     <style>
+        :root {
+            --primary-color: #065F46;  /* سبز زمردی تیره */
+            --button-color: #22C55E;   /* سبز نئونی جذاب */
+            --hover-color: #86EFAC;    /* سبز فسفری ملایم */
+            --background-color: #ECFDF5; /* سبز مایل به خاکستری */
+            --footer-color: #064E3B;   /* سبز مشکی عمیق */
+            --text-color: #0F172A;     /* مشکی مات */
+            --secondary-color: #059669; /* سبز متوسط */
+            --border-color: #D1FAE5;    /* سبز خیلی کمرنگ */
+        }
+        
+        /* استایل های اتوکامپلیت */
+        .autocomplete-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+        }
+        
+        .autocomplete-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background-color: white;
+            border: 1px solid var(--border-color);
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 4px 8px rgba(6, 95, 70, 0.1);
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .autocomplete-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s;
+        }
+        
+        .autocomplete-item:hover {
+            background-color: var(--background-color);
+        }
+        
+        .autocomplete-item-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .customer-name {
+            font-weight: bold;
+            margin-left: 10px;
+            color: var(--text-color);
+        }
+        
+        .customer-phone {
+            color: var(--primary-color);
+            direction: ltr;
+            display: inline-block;
+        }
+        
+        .loading-indicator, .no-results, .error-message {
+            padding: 15px;
+            text-align: center;
+            color: #666;
+        }
+        
+        .error-message {
+            color: #dc3545;
+        }
+        
+        .no-results {
+            color: var(--primary-color);
+            background-color: var(--background-color);
+        }
+        
+        #search-input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 16px;
+            direction: rtl;
+            background-color: white;
+        }
+        
+        .search-form {
+            display: flex;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+        
+        .search-form button {
+            padding: 10px 20px;
+            background-color: var(--button-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .search-form button:hover {
+            background-color: var(--hover-color);
+        }
+        
+        /* سایر استایل‌های موجود با تم جدید */
         .custom-price-container {
             margin: 15px 0;
             padding: 10px;
-            border: 1px solid #eaeaea;
+            border: 1px solid var(--border-color);
             border-radius: 5px;
-            background-color: #f9f9f9;
+            background-color: var(--background-color);
         }
         
         .checkbox-label {
@@ -19,6 +127,7 @@
             align-items: center;
             cursor: pointer;
             font-weight: bold;
+            color: var(--text-color);
         }
         
         .checkbox-label input[type="checkbox"] {
@@ -28,7 +137,7 @@
         #custom-price-field {
             margin-top: 10px;
             padding-top: 10px;
-            border-top: 1px dashed #ccc;
+            border-top: 1px dashed var(--border-color);
         }
         
         /* استایل‌های جدید برای تاریخچه خرید */
@@ -43,19 +152,19 @@
         }
         
         .bg-purple {
-            background-color: #6f42c1 !important;
+            background-color: #7C3AED !important;
         }
         
         .bg-primary {
-            background-color: #007bff !important;
+            background-color: var(--primary-color) !important;
         }
         
         .bg-secondary {
-            background-color: #6c757d !important;
+            background-color: var(--secondary-color) !important;
         }
         
         .bg-success {
-            background-color: #28a745 !important;
+            background-color: var(--button-color) !important;
         }
         
         .bg-danger {
@@ -67,15 +176,15 @@
         }
         
         .bg-info {
-            background-color: #17a2b8 !important;
+            background-color: #0284c7 !important;
         }
         
         .bg-light {
-            background-color: #f8f9fa !important;
+            background-color: var(--background-color) !important;
         }
         
         .bg-dark {
-            background-color: #343a40 !important;
+            background-color: var(--text-color) !important;
         }
         
         .text-white {
@@ -83,7 +192,7 @@
         }
         
         .text-dark {
-            color: #343a40 !important;
+            color: var(--text-color) !important;
         }
         
         .history-item {
@@ -91,9 +200,14 @@
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            border-right: 4px solid #4a6fdc;
-            background-color: #f8f9fa;
+            box-shadow: 0 2px 5px rgba(6, 95, 70, 0.1);
+            border-right: 4px solid var(--primary-color);
+            background-color: white;
+        }
+        
+        .history-item:hover {
+            background-color: var(--background-color);
+            box-shadow: 0 4px 8px rgba(6, 95, 70, 0.2);
         }
         
         .history-item p {
@@ -103,13 +217,186 @@
         .loading {
             text-align: center;
             padding: 20px;
-            color: #666;
+            color: var(--primary-color);
         }
         
-        .error-message {
-            color: #dc3545;
-            text-align: center;
+        /* تب‌ها */
+        .tab-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        
+        .tab-btn {
+            padding: 8px 16px;
+            background-color: white;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-color);
+        }
+        
+        .tab-btn:hover {
+            background-color: var(--background-color);
+        }
+        
+        .tab-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        /* اصلاح استایل فرم */
+        .customer-form-section {
+            background-color: white;
+            border-radius: 8px;
             padding: 20px;
+            box-shadow: 0 2px 10px rgba(6, 95, 70, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .customer-form h2 {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            color: var(--text-color);
+            font-weight: bold;
+        }
+        
+        .form-group input, .form-group textarea, .form-group select {
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px 12px;
+            width: 100%;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(6, 95, 70, 0.1);
+        }
+        
+        .submit-btn {
+            background-color: var(--button-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .submit-btn:hover {
+            background-color: var(--hover-color);
+        }
+        
+        /* تسک‌ها و تماس‌ها */
+        .task-item, .call-item {
+            background-color: white;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(6, 95, 70, 0.1);
+            border-right: 3px solid var(--primary-color);
+        }
+        
+        .task-item:hover, .call-item:hover {
+            background-color: var(--background-color);
+        }
+        
+        .task-info, .call-info {
+            color: var(--text-color);
+        }
+        
+        .action-button {
+            background-color: var(--button-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .action-button:hover {
+            background-color: var(--hover-color);
+        }
+        
+        /* پیجینیشن */
+        .pagination {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .pagination-link {
+            padding: 5px 10px;
+            margin: 0 2px;
+            background-color: white;
+            color: var(--primary-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+        
+        .pagination-link:hover {
+            background-color: var(--background-color);
+            text-decoration: none;
+        }
+        
+        .pagination .current {
+            padding: 5px 10px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 4px;
+            margin: 0 5px;
+        }
+        
+        /* لیست تلفن‌ها */
+        .phone-numbers-list {
+            margin-top: 10px;
+            background-color: var(--background-color);
+            border-radius: 4px;
+            padding: 10px;
+        }
+        
+        .phone-number-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .primary-badge {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        
+        .small-button {
+            background-color: var(--button-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .small-button:hover {
+            background-color: var(--hover-color);
         }
     </style>
 {% endblock %}
@@ -577,17 +864,8 @@ function showCargoDetails() {
     const selectedCottage = select.value;
     const customPriceInput = document.getElementById('custom-price-input');
     
-    console.log('Selected cottage:', selectedCottage);
-    console.log('Elements:', {
-        select: !!select,
-        detailsDiv: !!detailsDiv,
-        productType: !!document.getElementById('product-type'),
-        customPriceInput: !!customPriceInput
-    });
-    
     {% for product in active_products %}
         if ("{{ product.cottage }}" === selectedCottage) {
-            console.log('Found matching product: {{ product.cottage }} - {{ product.get_product_type_display }}');
             detailsDiv.style.display = 'block';
             document.getElementById('product-type').textContent = `نوع: {{ product.get_product_type_display }}`;
             document.getElementById('product-country').textContent = `کشور: {{ product.get_country_display }}`;
@@ -605,7 +883,6 @@ function showCargoDetails() {
         }
     {% endfor %}
     
-    console.log('No matching product found');
     detailsDiv.style.display = 'none';
 }
 
@@ -625,6 +902,74 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     });
+
+    // Autocomplete جستجو
+    const searchInput = document.getElementById('search-input');
+    const resultsContainer = document.getElementById('autocomplete-results');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            const query = e.target.value.trim();
+            
+            if (query.length < 2) {
+                resultsContainer.style.display = 'none';
+                return;
+            }
+            
+            // نمایش لودینگ
+            resultsContainer.innerHTML = '<div class="loading-indicator">در حال جستجو...</div>';
+            resultsContainer.style.display = 'block';
+            
+            fetch(`/sales/customer/search/?query=${encodeURIComponent(query)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('خطا در جستجو');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    resultsContainer.innerHTML = '';
+                    
+                    if (data.length > 0) {
+                        data.forEach(customer => {
+                            const div = document.createElement('div');
+                            div.className = 'autocomplete-item';
+                            
+                            const displayName = customer.name || 'بدون نام';
+                            const cityInfo = customer.city ? `(${customer.city})` : '';
+                            
+                            div.innerHTML = `
+                                <div class="autocomplete-item-content">
+                                    <span class="customer-name">${displayName} ${cityInfo}</span>
+                                    <span class="customer-phone">${customer.phone_number}</span>
+                                </div>
+                            `;
+                            
+                            div.addEventListener('click', () => {
+                                // کد را طوری تغییر می‌دهیم که به جای پر کردن فیلد، مستقیماً به صفحه مشتری برود
+                                window.location.href = `?customer_id=${customer.id}`;
+                            });
+                            
+                            resultsContainer.appendChild(div);
+                        });
+                        resultsContainer.style.display = 'block';
+                    } else {
+                        resultsContainer.innerHTML = '<div class="no-results">نتیجه‌ای یافت نشد</div>';
+                        resultsContainer.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    resultsContainer.innerHTML = '<div class="error-message">خطا در جستجو</div>';
+                });
+        });
+        
+        // بستن لیست هنگام کلیک خارج
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.autocomplete-container')) {
+                resultsContainer.style.display = 'none';
+            }
+        });
+    }
 
     // کد پیش‌بینی خرید
     const customerId = '{{ customer.id }}';
@@ -734,12 +1079,14 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.call-item, .task-item, .history-item').forEach(item => {
         item.addEventListener('mouseenter', () => {
             item.style.transform = 'translateX(5px)';
-            item.style.boxShadow = '0 3px 8px rgba(0,0,0,0.1)';
+            item.style.boxShadow = '0 3px 8px rgba(6, 95, 70, 0.2)';
+            item.style.borderRightWidth = '6px';
         });
         
         item.addEventListener('mouseleave', () => {
             item.style.transform = 'none';
-            item.style.boxShadow = 'none';
+            item.style.boxShadow = '0 2px 5px rgba(6, 95, 70, 0.1)';
+            item.style.borderRightWidth = '3px';
         });
     });
 
@@ -753,48 +1100,6 @@ document.addEventListener('DOMContentLoaded', function() {
             customPriceField.style.display = this.checked ? 'block' : 'none';
         });
     }
-
-    // Autocomplete جستجو
-    document.getElementById('search-input').addEventListener('input', function(e) {
-        const query = e.target.value.trim();
-        const resultsContainer = document.getElementById('autocomplete-results');
-        
-        if (query.length < 2) {
-            resultsContainer.style.display = 'none';
-            return;
-        }
-
-        fetch(`/sales/customer_search/?query=${encodeURIComponent(query)}`)
-            .then(response => response.json())
-            .then(data => {
-                resultsContainer.innerHTML = '';
-                if (data.length > 0) {
-                    data.forEach(customer => {
-                        const div = document.createElement('div');
-                        div.className = 'autocomplete-item';
-                        div.innerHTML = `
-                            <span>${customer.name || 'بدون نام'}</span>
-                            <span class="phone-number">${customer.phone_number}</span>
-                        `;
-                        div.addEventListener('click', () => {
-                            document.getElementById('search-input').value = customer.phone_number;
-                            resultsContainer.style.display = 'none';
-                        });
-                        resultsContainer.appendChild(div);
-                    });
-                    resultsContainer.style.display = 'block';
-                } else {
-                    resultsContainer.style.display = 'none';
-                }
-            });
-    });
-
-    // بستن لیست هنگام کلیک خارج
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('.autocomplete-container')) {
-            document.getElementById('autocomplete-results').style.display = 'none';
-        }
-    });
 
     // محصولات مرتبط
     function fetchRelatedProducts(customerId) {

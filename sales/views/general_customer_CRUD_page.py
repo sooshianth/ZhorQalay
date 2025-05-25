@@ -232,23 +232,48 @@ def customer_search(request):
         try:
             # جستجوی کاربران مرتبط با این مدیر فروش
             sales_agent = SalesAgent.objects.get(user=request.user)
-            # جستجوی مشتریانی که این کارشناس فروش را دارند
-            customers = Customer.objects.filter(
-                Q(phone_number__icontains=query) | 
-                Q(name__icontains=query),
-                sales_agent=sales_agent
-            )[:10]
             
-            results = [
-                {
+            # تبدیل اعداد فارسی به انگلیسی
+            if query:
+                persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+                english_digits = "0123456789"
+                translation_table = str.maketrans(persian_digits, english_digits)
+                query = query.translate(translation_table)
+            
+            # تمیز کردن شماره تلفن اگر عدد باشد
+            if query.isdigit():
+                clean_query = query
+                if clean_query.startswith('0'):
+                    clean_query = clean_query[1:]
+            else:
+                clean_query = query
+            
+            # جستجوی مشتریانی که این کارشناس فروش را دارند
+            # جستجو در هر دو فیلد: phone_number و PhoneNumber
+            customers = Customer.objects.filter(
+                (Q(phone_number__icontains=clean_query) | 
+                Q(name__icontains=query) |
+                Q(phone_numbers__number__icontains=clean_query)),
+                sales_agent=sales_agent
+            ).distinct()[:10]
+            
+            results = []
+            for c in customers:
+                # اضافه کردن شماره تلفن اصلی
+                primary_phone = c.get_primary_phone()
+                
+                customer_info = {
+                    'id': c.id,
                     'name': c.name if c.name else 'بدون نام',
-                    'phone_number': c.phone_number
+                    'phone_number': primary_phone,
+                    'city': c.city or '',
                 }
-                for c in customers
-            ]
+                results.append(customer_info)
+                
         except Exception as e:
             print(f"Error during customer search: {e}")
             results = []
+    
     return JsonResponse(results, safe=False)
 
 @role_required('sales_agent', 'admin')
