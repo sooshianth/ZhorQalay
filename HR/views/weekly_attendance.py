@@ -709,12 +709,7 @@ def attendance_summary_view(request):
         'employee_stats': employee_stats,
     })
 
-@role_required('admin')
-@login_required
-def clear_approval_references(request):
-    if not request.user.is_superuser:
-        messages.error(request, "فقط ادمین اجازه انجام این عملیات را دارد.")
-        return redirect('weekly_attendance_view')
+def clear_approval_references():
     
     # پاک کردن همه ارجاعات به تاییدکنندگان
     WeeklyAttendance.objects.all().update(
@@ -727,5 +722,4 @@ def clear_approval_references(request):
         approved_by_admin=False
     )
     
-    messages.success(request, "همه ارجاعات تاییدکنندگان با موفقیت پاک شدند. اکنون می‌توانید مایگریشن‌ها را اجرا کنید.")
-    return redirect('weekly_attendance_view')
+    print('done')
