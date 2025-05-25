@@ -64,6 +64,34 @@
             background-color: #003366 !important;
         }
         
+        /* استایل برای نمایش وضعیت فاکتور */
+        .invoice-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .invoice-issued {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .invoice-not-issued {
+            background-color: #6c757d;
+            color: white;
+            opacity: 0.7;
+        }
+        
+        /* استایل برای نمایش همزمان دو وضعیت */
+        .status-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
         .row-checkbox {
             margin-left: 10px;
             margin-right: 10px;
@@ -703,8 +731,9 @@
                     <td>{% if purchase.cargo %}{{ purchase.cargo }}{% else %}-{% endif %}</td>
                     {% elif column.id == 'status' %}
                     <td>
-                        {# Show the purchase status based on state field #}
-                        {% if purchase.state == 'CANCELED' or purchase.is_canceled %}
+                        {% if purchase.state == 'ARCHIVED' or purchase.is_archived %}
+                            <span class="table-status-badge bg-secondary text-white">آرشیو شده</span>
+                        {% elif purchase.state == 'CANCELED' or purchase.is_canceled %}
                             <span class="table-status-badge bg-danger text-white">لغو شده</span>
                         {% elif purchase.is_urgent %}
                             <span class="table-status-badge bg-danger text-white">فوری</span>
@@ -727,17 +756,64 @@
                         {% elif purchase.state == 'PURCHASE_CLOSED' %}
                             <span class="table-status-badge bg-pink text-white">بستن خرید در بازارگاه</span>
                         {% elif purchase.state == 'PAY_KASRI' %}
-                            <span class="table-status-badge bg-secondary text-white">پرداخت کسری</span>
+                            <div class="status-container">
+                                {% if purchase.is_factored %}
+                                    <span class="invoice-badge invoice-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر شده
+                                    </span>
+                                {% else %}
+                                    <span class="invoice-badge invoice-not-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر نشده
+                                    </span>
+                                {% endif %}
+                                <span class="table-status-badge bg-secondary text-white">پرداخت کسری</span>
+                            </div>
                         {% elif purchase.state == 'RECIEVE_SARAK' %}
-                            <span class="table-status-badge bg-danger text-white">دریافت سرک</span>
+                            <div class="status-container">
+                                {% if purchase.is_factored %}
+                                    <span class="invoice-badge invoice-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر شده
+                                    </span>
+                                {% else %}
+                                    <span class="invoice-badge invoice-not-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر نشده
+                                    </span>
+                                {% endif %}
+                                <span class="table-status-badge bg-danger text-white">دریافت سرک</span>
+                            </div>
                         {% elif purchase.state == 'DIFFERENCE_APPROVED' %}
-                            <span class="table-status-badge bg-brown text-white">پرداخت کسری / دریافت سرک</span>
+                            <div class="status-container">
+                                {% if purchase.is_factored %}
+                                    <span class="invoice-badge invoice-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر شده
+                                    </span>
+                                {% else %}
+                                    <span class="invoice-badge invoice-not-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر نشده
+                                    </span>
+                                {% endif %}
+                                <span class="table-status-badge bg-brown text-white">پرداخت کسری / دریافت سرک</span>
+                            </div>
                         {% elif purchase.state == 'FULLY_SETTLED' %}
-                            <span class="table-status-badge bg-success text-white">تسویه کامل</span>
+                            <div class="status-container">
+                                {% if purchase.is_factored %}
+                                    <span class="invoice-badge invoice-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر شده
+                                    </span>
+                                {% else %}
+                                    <span class="invoice-badge invoice-not-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر نشده
+                                    </span>
+                                {% endif %}
+                                <span class="table-status-badge bg-success text-white">تسویه کامل</span>
+                            </div>
                         {% elif purchase.state == 'INVOICE_ISSUED' %}
-                            <span class="table-status-badge bg-indigo text-white">صدور فاکتور</span>
-                        {% elif purchase.state == 'ARCHIVED' or purchase.is_archived %}
-                            <span class="table-status-badge bg-secondary text-white">آرشیو شده</span>
+                            <div class="status-container">
+                                <span class="invoice-badge invoice-issued">
+                                    <i class="fas fa-file-invoice me-1"></i> فاکتور صادر شده
+                                </span>
+                                <span class="table-status-badge bg-indigo text-white">صدور فاکتور</span>
+                            </div>
                         {% else %}
                             <span class="table-status-badge bg-light text-dark">{{ purchase.get_state_display }}</span>
                         {% endif %}
@@ -830,15 +906,64 @@
                         {% elif purchase.state == 'PURCHASE_CLOSED' %}
                             <span class="table-status-badge bg-pink text-white">بستن خرید در بازارگاه</span>
                         {% elif purchase.state == 'PAY_KASRI' %}
-                            <span class="table-status-badge bg-secondary text-white">پرداخت کسری</span>
+                            <div class="status-container">
+                                {% if purchase.is_factored %}
+                                    <span class="invoice-badge invoice-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر شده
+                                    </span>
+                                {% else %}
+                                    <span class="invoice-badge invoice-not-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر نشده
+                                    </span>
+                                {% endif %}
+                                <span class="table-status-badge bg-secondary text-white">پرداخت کسری</span>
+                            </div>
                         {% elif purchase.state == 'RECIEVE_SARAK' %}
-                            <span class="table-status-badge bg-danger text-white">دریافت سرک</span>
+                            <div class="status-container">
+                                {% if purchase.is_factored %}
+                                    <span class="invoice-badge invoice-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر شده
+                                    </span>
+                                {% else %}
+                                    <span class="invoice-badge invoice-not-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر نشده
+                                    </span>
+                                {% endif %}
+                                <span class="table-status-badge bg-danger text-white">دریافت سرک</span>
+                            </div>
                         {% elif purchase.state == 'DIFFERENCE_APPROVED' %}
-                            <span class="table-status-badge bg-brown text-white">پرداخت کسری / دریافت سرک</span>
+                            <div class="status-container">
+                                {% if purchase.is_factored %}
+                                    <span class="invoice-badge invoice-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر شده
+                                    </span>
+                                {% else %}
+                                    <span class="invoice-badge invoice-not-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر نشده
+                                    </span>
+                                {% endif %}
+                                <span class="table-status-badge bg-brown text-white">پرداخت کسری / دریافت سرک</span>
+                            </div>
                         {% elif purchase.state == 'FULLY_SETTLED' %}
-                            <span class="table-status-badge bg-success text-white">تسویه کامل</span>
+                            <div class="status-container">
+                                {% if purchase.is_factored %}
+                                    <span class="invoice-badge invoice-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر شده
+                                    </span>
+                                {% else %}
+                                    <span class="invoice-badge invoice-not-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر نشده
+                                    </span>
+                                {% endif %}
+                                <span class="table-status-badge bg-success text-white">تسویه کامل</span>
+                            </div>
                         {% elif purchase.state == 'INVOICE_ISSUED' %}
-                            <span class="table-status-badge bg-indigo text-white">صدور فاکتور</span>
+                            <div class="status-container">
+                                <span class="invoice-badge invoice-issued">
+                                    <i class="fas fa-file-invoice me-1"></i> فاکتور صادر شده
+                                </span>
+                                <span class="table-status-badge bg-indigo text-white">صدور فاکتور</span>
+                            </div>
                         {% else %}
                             <span class="table-status-badge bg-light text-dark">{{ purchase.get_state_display }}</span>
                         {% endif %}
@@ -1429,10 +1554,30 @@ document.addEventListener('DOMContentLoaded', function() {
                     const cell = row.querySelector(`td[data-field="${data.field_name}"]`);
                     if (cell) {
                         if (data.field_name === 'state') {
-                            // برای فیلد وضعیت، از نمایش رنگی استفاده می‌کنیم
+                            // نمایش وضعیت به صورت رنگی
                             const statusDisplayName = getStatusDisplayName(data.value);
                             const statusClass = getStatusClass(data.value);
-                            cell.innerHTML = `<span class="table-status-badge ${statusClass}">${statusDisplayName}</span>`;
+                            
+                            // بررسی آیا نیاز به نمایش وضعیت فاکتور هست
+                            const needsInvoiceStatus = ['PAY_KASRI', 'RECIEVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED'].includes(data.value);
+                            
+                            if (needsInvoiceStatus) {
+                                // نمایش وضعیت فاکتور + وضعیت اصلی
+                                const isFactored = data.value === 'INVOICE_ISSUED';
+                                const invoiceClass = isFactored ? 'invoice-issued' : 'invoice-not-issued';
+                                const invoiceText = isFactored ? 'فاکتور صادر شده' : 'فاکتور صادر نشده';
+                                
+                                cell.innerHTML = `
+                                    <div class="status-container">
+                                        <span class="invoice-badge ${invoiceClass}">
+                                            <i class="fas fa-file-invoice me-1"></i> ${invoiceText}
+                                        </span>
+                                        <span class="table-status-badge ${statusClass}">${statusDisplayName}</span>
+                                    </div>
+                                `;
+                            } else {
+                                cell.innerHTML = `<span class="table-status-badge ${statusClass}">${statusDisplayName}</span>`;
+                            }
                         } else {
                             cell.textContent = data.value || 'تعیین نشده';
                         }
@@ -1612,6 +1757,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     <option value="CANCELED" ${originalText === 'CANCELED' ? 'selected' : ''}>لغو شده</option>
                     <option value="ARCHIVED" ${originalText === 'ARCHIVED' ? 'selected' : ''}>آرشیو شده</option>
                 </select>`;
+                
+                // بررسی آیا وضعیت انتخاب شده نیازمند وضعیت فاکتور است
+                const needsInvoiceStatus = ['PAY_KASRI', 'RECIEVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED'].includes(originalText);
+                if (needsInvoiceStatus) {
+                    // اضافه کردن چک‌باکس برای وضعیت فاکتور
+                    const isFactored = purchase.is_factored === true;
+                    inputHtml += `
+                    <div class="form-check mt-2">
+                        <input type="checkbox" class="form-check-input" id="invoice-status-checkbox" ${isFactored ? 'checked' : ''}>
+                        <label class="form-check-label" for="invoice-status-checkbox">فاکتور صادر شده</label>
+                    </div>`;
+                }
             } else {
                 // برای سایر فیلدها از input معمولی استفاده می‌کنیم
                 inputHtml = `<input type="text" class="editable-input" value="${originalText}" data-original="${originalText}">`;
@@ -1635,6 +1792,37 @@ document.addEventListener('DOMContentLoaded', function() {
             // نمایش آیکون تاریخچه همیشه در حالت ویرایش
             cell.querySelector('.history-icon').style.display = 'block';
             
+            // اضافه کردن رویداد تغییر برای نمایش/مخفی کردن چک‌باکس فاکتور
+            if (field === 'state') {
+                input.addEventListener('change', function() {
+                    const selectedState = this.value;
+                    const needsInvoiceStatus = ['PAY_KASRI', 'RECIEVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED'].includes(selectedState);
+                    
+                    // حذف چک‌باکس قبلی اگر وجود داشته باشد
+                    const existingCheckbox = cell.querySelector('.invoice-status-container');
+                    if (existingCheckbox) {
+                        existingCheckbox.remove();
+                    }
+                    
+                    // اضافه کردن چک‌باکس جدید اگر نیاز باشد
+                    if (needsInvoiceStatus) {
+                        const checkboxContainer = document.createElement('div');
+                        checkboxContainer.className = 'form-check mt-2 invoice-status-container';
+                        
+                        // اگر وضعیت INVOICE_ISSUED باشد، چک‌باکس را به صورت پیش‌فرض علامت بزن
+                        const isFactored = selectedState === 'INVOICE_ISSUED';
+                        
+                        checkboxContainer.innerHTML = `
+                            <input type="checkbox" class="form-check-input" id="invoice-status-checkbox" ${isFactored ? 'checked' : ''}>
+                            <label class="form-check-label" for="invoice-status-checkbox">فاکتور صادر شده</label>
+                        `;
+                        
+                        // اضافه کردن بعد از input
+                        input.parentNode.insertBefore(checkboxContainer, input.nextSibling);
+                    }
+                });
+            }
+            
             // دکمه ذخیره تغییرات
             cell.querySelector('.edit-save').addEventListener('click', function() {
                 const newValue = input.value.trim();
@@ -1645,6 +1833,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 formData.append('field', field);
                 formData.append('value', newValue);
                 formData.append('old_value', input.getAttribute('data-original'));
+                
+                // اضافه کردن وضعیت فاکتور اگر وجود داشته باشد
+                const invoiceStatusCheckbox = cell.querySelector('#invoice-status-checkbox');
+                if (invoiceStatusCheckbox) {
+                    formData.append('is_factored', invoiceStatusCheckbox.checked);
+                }
                 
                 fetch("{% url 'update_purchase_field' %}", {
                     method: 'POST',
@@ -1662,7 +1856,27 @@ document.addEventListener('DOMContentLoaded', function() {
                             // نمایش وضعیت به صورت رنگی
                             const statusDisplayName = getStatusDisplayName(newValue);
                             const statusClass = getStatusClass(newValue);
-                            cell.innerHTML = `<span class="table-status-badge ${statusClass}">${statusDisplayName}</span>`;
+                            
+                            // بررسی آیا نیاز به نمایش وضعیت فاکتور هست
+                            const needsInvoiceStatus = ['PAY_KASRI', 'RECIEVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED'].includes(newValue);
+                            
+                            if (needsInvoiceStatus) {
+                                // نمایش وضعیت فاکتور + وضعیت اصلی
+                                const isFactored = newValue === 'INVOICE_ISSUED';
+                                const invoiceClass = isFactored ? 'invoice-issued' : 'invoice-not-issued';
+                                const invoiceText = isFactored ? 'فاکتور صادر شده' : 'فاکتور صادر نشده';
+                                
+                                cell.innerHTML = `
+                                    <div class="status-container">
+                                        <span class="invoice-badge ${invoiceClass}">
+                                            <i class="fas fa-file-invoice me-1"></i> ${invoiceText}
+                                        </span>
+                                        <span class="table-status-badge ${statusClass}">${statusDisplayName}</span>
+                                    </div>
+                                `;
+                            } else {
+                                cell.innerHTML = `<span class="table-status-badge ${statusClass}">${statusDisplayName}</span>`;
+                            }
                         } else {
                             cell.textContent = newValue || 'تعیین نشده';
                         }
@@ -1702,7 +1916,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     // نمایش وضعیت به صورت رنگی
                     const statusDisplayName = getStatusDisplayName(originalText);
                     const statusClass = getStatusClass(originalText);
-                    cell.innerHTML = `<span class="table-status-badge ${statusClass}">${statusDisplayName}</span>`;
+                    
+                    // بررسی آیا نیاز به نمایش وضعیت فاکتور هست
+                    const needsInvoiceStatus = ['PAY_KASRI', 'RECIEVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED'].includes(originalText);
+                    
+                    if (needsInvoiceStatus) {
+                        // نمایش وضعیت فاکتور + وضعیت اصلی
+                        const isFactored = originalText === 'INVOICE_ISSUED';
+                        const invoiceClass = isFactored ? 'invoice-issued' : 'invoice-not-issued';
+                        const invoiceText = isFactored ? 'فاکتور صادر شده' : 'فاکتور صادر نشده';
+                        
+                        cell.innerHTML = `
+                            <div class="status-container">
+                                <span class="invoice-badge ${invoiceClass}">
+                                    <i class="fas fa-file-invoice me-1"></i> ${invoiceText}
+                                </span>
+                                <span class="table-status-badge ${statusClass}">${statusDisplayName}</span>
+                            </div>
+                        `;
+                    } else {
+                        cell.innerHTML = `<span class="table-status-badge ${statusClass}">${statusDisplayName}</span>`;
+                    }
                 } else {
                     cell.textContent = originalText || 'تعیین نشده';
                 }
@@ -1955,12 +2189,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="col-md-6">
                     <label for="weightEdit" class="form-label">وزن موجود:</label>
-                    <input type="number" id="weightEdit" name="weight" class="form-control" value="100000" min="10000">
+                    <input type="number" id="weightEdit" name="weight" class="form-control">
                 </div>
             </div>
             
             <div class="form-check mb-3">
-                <input type="checkbox" id="statusEdit" name="status" class="form-check-input" checked>
+                <input type="checkbox" id="statusEdit" name="status" class="form-check-input">
                 <label for="statusEdit" class="form-check-label">فعال</label>
             </div>
         `;

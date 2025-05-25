@@ -95,6 +95,7 @@ def upload_excel(request):
                     'amount_paid': purchase.amount_paid if purchase.amount_paid else 0,
                     'delivered_weight': purchase.delivered_weight if purchase.delivered_weight else 0,
                     'order_weight': purchase.order_weight if purchase.order_weight else 0,
+                    'is_factored': purchase.is_factored,
                 })
             
             # ذخیره شماره خریدها در سشن
@@ -181,6 +182,7 @@ def upload_excel(request):
                 'amount_paid': purchase.amount_paid if purchase.amount_paid else 0,
                 'delivered_weight': purchase.delivered_weight if purchase.delivered_weight else 0,
                 'order_weight': purchase.order_weight if purchase.order_weight else 0,
+                'is_factored': purchase.is_factored,
             })
         
         # ذخیره شماره خریدها در سشن
@@ -249,6 +251,7 @@ def apply_bulk_edit(request):
             'extelaf_type': 'نوع اختلاف',
             'extelaf_weight': 'وزن اختلاف',
             'extelaf_amount': 'مبلغ اختلاف',
+            'is_factored': 'صدور فاکتور',
         }
         
         # بررسی فیلدهای مجاز
@@ -289,6 +292,10 @@ def apply_bulk_edit(request):
                                 old_display = dict(Purchase.STATUS_CHOICES).get(old_value, old_value)
                                 new_display = dict(Purchase.STATUS_CHOICES).get(value, value)
                                 change_log.append(f"وضعیت: {old_display} -> {new_display}")
+                            elif field == 'is_factored':
+                                old_display = 'فاکتور صادر شده' if old_value else 'فاکتور صادر نشده'
+                                new_display = 'فاکتور صادر شده' if value else 'فاکتور صادر نشده'
+                                change_log.append(f"وضعیت فاکتور: {old_display} -> {new_display}")
                             else:
                                 field_name = allowed_fields.get(field, field)
                                 change_log.append(f"{field_name}: {old_value} -> {value}")
@@ -377,6 +384,7 @@ def get_purchase_details(request, purchase_id):
             'extelaf_amount': purchase.extelaf_amount,
             'address': purchase.address,
             'description': purchase.description,
+            'is_factored': purchase.is_factored,
             'sales_agents': [{'id': agent.id, 'name': agent.name} for agent in purchase.customer.sales_agent.all()]
         }
         
@@ -429,6 +437,7 @@ def export_purchase_list(request):
             'آدرس': purchase.address or '',
             'روش پرداخت': purchase.payment_method or '',
             'اولویت': dict(Purchase.PRIORITY_CHOICES).get(purchase.priority, purchase.priority) if hasattr(purchase, 'PRIORITY_CHOICES') else purchase.priority,
+            'وضعیت فاکتور': 'فاکتور صادر شده' if purchase.is_factored else 'فاکتور صادر نشده',
         })
     
     df = pd.DataFrame(data)

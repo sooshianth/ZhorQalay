@@ -367,6 +367,28 @@ def update_purchase_field(request):
         if field_name in allowed_fields:
             # ذخیره تغییرات
             allowed_fields[field_name](purchase, value)
+            
+            # اگر وضعیت فاکتور ارسال شده باشد، آن را نیز ذخیره کنیم
+            is_factored = request.POST.get('is_factored')
+            if is_factored is not None:
+                is_factored_bool = is_factored.lower() == 'true'
+                purchase.is_factored = is_factored_bool
+                
+                # اگر وضعیت صدور فاکتور است، همیشه بولین را true کنیم
+                if field_name == 'state' and value == 'INVOICE_ISSUED':
+                    purchase.is_factored = True
+                
+                # ثبت تغییر وضعیت فاکتور در لاگ
+                log_entry_invoice = PurchaseEditLog(
+                    purchase=purchase,
+                    user=request.user,
+                    field_name='is_factored',
+                    old_value=str(purchase.is_factored),
+                    new_value=str(is_factored_bool),
+                    edit_time=timezone.now()
+                )
+                log_entry_invoice.save()
+            
             purchase.save()
             
             # ثبت تغییرات در لاگ

@@ -595,6 +595,8 @@ class Purchase(models.Model):
                 self.state = 'PAY_KASRI'
             elif self.extelaf_type == 'سرک':
                 self.state = 'RECIEVE_SARAK'
+            if self.extelaf_weight == 0:
+                self.state = 'FULLY_SETTLED'
             super().save(update_fields=['state'])
 
     def send_notification(self, user, title, message, notification_type='purchase', priority='medium'):
