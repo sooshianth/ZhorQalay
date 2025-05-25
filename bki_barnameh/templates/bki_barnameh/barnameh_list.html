@@ -88,6 +88,10 @@
                                     <i class="fas fa-download me-2"></i>
                                     دانلود قالب اکسل
                                 </a>
+                                <a href="{% url 'upload_excel' %}" class="btn btn-info">
+                                    <i class="fas fa-upload me-2"></i>
+                                    آپلود اکسل
+                                </a>
                                 <a href="{% url 'barnameh_create' %}" class="btn btn-primary">
                                     <i class="fas fa-plus me-2"></i>
                                     افزودن بارنامه جدید
@@ -177,6 +181,107 @@
         <div class="row">
             <div class="col-12">
                 <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-light py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 fw-bold">
+                                <i class="fas fa-table me-2"></i>
+                                لیست بارنامه‌ها
+                            </h6>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="columnToggleDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-columns me-1"></i>
+                                    نمایش ستون‌ها
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end p-2" aria-labelledby="columnToggleDropdown" style="min-width: 200px;">
+                                    <li>
+                                        <div class="form-check">
+                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-number" data-column="number" checked>
+                                            <label class="form-check-label" for="toggle-number">شماره بارنامه</label>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div class="form-check">
+                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-serial" data-column="serial" checked>
+                                            <label class="form-check-label" for="toggle-serial">سریال بارنامه</label>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div class="form-check">
+                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-tonnage" data-column="tonnage" checked>
+                                            <label class="form-check-label" for="toggle-tonnage">وزن (کیلوگرم)</label>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div class="form-check">
+                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-purchase_number" data-column="purchase_number" checked>
+                                            <label class="form-check-label" for="toggle-purchase_number">شناسه خرید</label>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div class="form-check">
+                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-shenase_takhsis_code" data-column="shenase_takhsis_code" checked>
+                                            <label class="form-check-label" for="toggle-shenase_takhsis_code">شناسه تخصیص</label>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div class="form-check">
+                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-driver_name" data-column="driver_name">
+                                            <label class="form-check-label" for="toggle-driver_name">نام راننده</label>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div class="form-check">
+                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-driver_phone" data-column="driver_phone">
+                                            <label class="form-check-label" for="toggle-driver_phone">شماره راننده</label>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div class="form-check">
+                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-vehicle_plate" data-column="vehicle_plate">
+                                            <label class="form-check-label" for="toggle-vehicle_plate">پلاک خودرو</label>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div class="form-check">
+                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-receiver_name" data-column="receiver_name">
+                                            <label class="form-check-label" for="toggle-receiver_name">نام گیرنده</label>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div class="form-check">
+                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-destination" data-column="destination">
+                                            <label class="form-check-label" for="toggle-destination">مقصد</label>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div class="form-check">
+                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-barnameh_date" data-column="barnameh_date">
+                                            <label class="form-check-label" for="toggle-barnameh_date">تاریخ بارنامه</label>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div class="form-check">
+                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-status" data-column="status" checked>
+                                            <label class="form-check-label" for="toggle-status">وضعیت</label>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div class="form-check">
+                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-logs" data-column="logs" checked>
+                                            <label class="form-check-label" for="toggle-logs">لاگ‌ها</label>
+                                        </div>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <button id="show-all-columns" class="btn btn-sm btn-outline-primary w-100">نمایش همه</button>
+                                    </li>
+                                    <li>
+                                        <button id="hide-all-columns" class="btn btn-sm btn-outline-secondary w-100 mt-1">مخفی کردن همه</button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table table-hover mb-0">
@@ -187,30 +292,55 @@
                                                 <input type="checkbox" id="select-all" class="form-check-input">
                                             </div>
                                         </th>
-                                        <th class="sortable" data-sort="number">
+                                        <th class="sortable column-number" data-sort="number">
                                             شماره بارنامه
-                                            <i class="fas fa-sort ms-1"></i>
+                                            <i class="fas fa-sort ms-1 {% if current_sort == 'number' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
                                         </th>
-                                        <th class="sortable" data-sort="serial">
+                                        <th class="sortable column-serial" data-sort="serial">
                                             سریال بارنامه
-                                            <i class="fas fa-sort ms-1"></i>
+                                            <i class="fas fa-sort ms-1 {% if current_sort == 'serial' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
                                         </th>
-                                        <th class="sortable" data-sort="tonnage">
+                                        <th class="sortable column-tonnage" data-sort="tonnage">
                                             وزن (کیلوگرم)
-                                            <i class="fas fa-sort ms-1"></i>
+                                            <i class="fas fa-sort ms-1 {% if current_sort == 'tonnage' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
                                         </th>
-                                        <th class="sortable" data-sort="purchase_number">
+                                        <th class="sortable column-purchase_number" data-sort="purchase_number">
                                             شناسه خرید
-                                            <i class="fas fa-sort ms-1"></i>
+                                            <i class="fas fa-sort ms-1 {% if current_sort == 'purchase_number' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
                                         </th>
-                                        <th class="sortable" data-sort="shenase_takhsis_code">
+                                        <th class="sortable column-shenase_takhsis_code" data-sort="shenase_takhsis_code">
                                             شناسه تخصیص
-                                            <i class="fas fa-sort ms-1"></i>
+                                            <i class="fas fa-sort ms-1 {% if current_sort == 'shenase_takhsis_code' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
                                         </th>
-                                        <th class="sortable" data-sort="status">
+                                        <th class="sortable column-driver_name" data-sort="driver_name" style="display: none;">
+                                            نام راننده
+                                            <i class="fas fa-sort ms-1 {% if current_sort == 'driver_name' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
+                                        </th>
+                                        <th class="sortable column-driver_phone" data-sort="driver_phone" style="display: none;">
+                                            شماره راننده
+                                            <i class="fas fa-sort ms-1 {% if current_sort == 'driver_phone' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
+                                        </th>
+                                        <th class="sortable column-vehicle_plate" data-sort="vehicle_plate" style="display: none;">
+                                            پلاک خودرو
+                                            <i class="fas fa-sort ms-1 {% if current_sort == 'vehicle_plate' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
+                                        </th>
+                                        <th class="sortable column-receiver_name" data-sort="receiver_name" style="display: none;">
+                                            نام گیرنده
+                                            <i class="fas fa-sort ms-1 {% if current_sort == 'receiver_name' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
+                                        </th>
+                                        <th class="sortable column-destination" data-sort="destination" style="display: none;">
+                                            مقصد
+                                            <i class="fas fa-sort ms-1 {% if current_sort == 'destination' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
+                                        </th>
+                                        <th class="sortable column-barnameh_date" data-sort="barnameh_date" style="display: none;">
+                                            تاریخ بارنامه
+                                            <i class="fas fa-sort ms-1 {% if current_sort == 'barnameh_date' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
+                                        </th>
+                                        <th class="sortable column-status" data-sort="status">
                                             وضعیت
-                                            <i class="fas fa-sort ms-1"></i>
+                                            <i class="fas fa-sort ms-1 {% if current_sort == 'status' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
                                         </th>
+                                        <th class="column-logs">لاگ‌ها</th>
                                         <th class="text-center">عملیات</th>
                                     </tr>
                                 </thead>
@@ -223,18 +353,50 @@
                                                        class="form-check-input barnameh-checkbox">
                                             </div>
                                         </td>
-                                        <td>{{ barnameh.number|default:"-" }}</td>
-                                        <td>{{ barnameh.serial|default:"-" }}</td>
-                                        <td>{{ barnameh.tonnage|default:"-" }}</td>
-                                        <td>{{ barnameh.purchase_number|default:"-" }}</td>
-                                        <td>{{ barnameh.shenase_takhsis_code|default:"-" }}</td>
-                                        <td>
+                                        <td class="column-number">{{ barnameh.number|default:"-" }}</td>
+                                        <td class="column-serial">{{ barnameh.serial|default:"-" }}</td>
+                                        <td class="column-tonnage">{{ barnameh.tonnage|default:"-" }}</td>
+                                        <td class="column-purchase_number">{{ barnameh.purchase_number|default:"-" }}</td>
+                                        <td class="column-shenase_takhsis_code">{{ barnameh.shenase_takhsis_code|default:"-" }}</td>
+                                        <td class="column-driver_name" style="display: none;">{{ barnameh.driver_name|default:"-" }}</td>
+                                        <td class="column-driver_phone" style="display: none;">{{ barnameh.driver_phone|default:"-" }}</td>
+                                        <td class="column-vehicle_plate" style="display: none;">{{ barnameh.vehicle_plate|default:"-" }}</td>
+                                        <td class="column-receiver_name" style="display: none;">{{ barnameh.receiver_name|default:"-" }}</td>
+                                        <td class="column-destination" style="display: none;">{{ barnameh.destination|default:"-" }}</td>
+                                        <td class="column-barnameh_date" style="display: none;">{{ barnameh.barnameh_date|default:"-" }}</td>
+                                        <td class="column-status">
                                             {% if barnameh.status == 'BARNAMEH_INCOMPLETE' %}
                                             <span class="badge rounded-pill bg-warning text-dark">بارنامه ناقص</span>
                                             {% elif barnameh.status == 'BARNAMEH_COMPLETE' %}
                                             <span class="badge rounded-pill bg-success">بارنامه کامل</span>
                                             {% elif barnameh.status == 'PURCHASE_CLOSED' %}
                                             <span class="badge rounded-pill bg-primary">ارسال شده به بازارگاه</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="column-logs">
+                                            {% if barnameh.logs %}
+                                                <div class="logs-container">
+                                                    <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="collapse" data-bs-target="#logs-{{ barnameh.id }}" aria-expanded="false">
+                                                        <i class="fas fa-history me-1"></i>
+                                                        نمایش لاگ‌ها
+                                                    </button>
+                                                    <div class="collapse mt-2" id="logs-{{ barnameh.id }}">
+                                                        <div class="card card-body p-2 bg-light">
+                                                            <ul class="list-unstyled mb-0 small">
+                                                                {% for log in barnameh.logs %}
+                                                                <li class="mb-1">
+                                                                    <span class="text-muted">{{ log.log_date|date:"Y/m/d H:i" }}</span>: 
+                                                                    {{ log.log_message }}
+                                                                </li>
+                                                                {% empty %}
+                                                                <li>هیچ لاگی یافت نشد</li>
+                                                                {% endfor %}
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted small">بدون لاگ</span>
                                             {% endif %}
                                         </td>
                                         <td class="text-center">
@@ -274,7 +436,7 @@
                                     </tr>
                                     {% empty %}
                                     <tr>
-                                        <td colspan="8" class="text-center py-4">
+                                        <td colspan="14" class="text-center py-4">
                                             <i class="fas fa-inbox text-muted" style="font-size: 3rem;"></i>
                                             <p class="text-muted mt-2">هیچ بارنامه‌ای یافت نشد</p>
                                         </td>
@@ -330,6 +492,27 @@
         {% endif %}
     </div>
 
+    <!-- Hidden forms for bulk actions -->
+    <form id="bulk-send-form" action="{% url 'bulk_send_to_bki' %}" method="post" style="display: none;">
+        {% csrf_token %}
+        <!-- Barnameh IDs will be added dynamically -->
+    </form>
+    
+    <form id="bulk-export-form" action="{% url 'export_excel' %}" method="post" style="display: none;">
+        {% csrf_token %}
+        <!-- Barnameh IDs will be added dynamically -->
+    </form>
+    
+    <form id="bulk-edit-form" action="{% url 'bulk_edit' %}" method="post" style="display: none;">
+        {% csrf_token %}
+        <!-- Barnameh IDs will be added dynamically -->
+    </form>
+    
+    <form id="bulk-delete-form" action="{% url 'bulk_delete' %}" method="post" style="display: none;">
+        {% csrf_token %}
+        <!-- Barnameh IDs will be added dynamically -->
+    </form>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -356,33 +539,25 @@
 
         // عملکرد مرتب‌سازی
         var sortableHeaders = document.querySelectorAll('.sortable');
-        var currentSort = { column: null, direction: 'asc' };
         
         sortableHeaders.forEach(function(header) {
             header.addEventListener('click', function() {
                 var sortField = this.getAttribute('data-sort');
-                var direction = 'asc';
+                var currentDirection = '{{ current_direction }}';
                 
-                // اگر روی همان ستون کلیک شده، جهت را تغییر بده
-                if (currentSort.column === sortField) {
-                    direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                // تعیین جهت مرتب‌سازی جدید
+                var newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
+                
+                if (sortField !== '{{ current_sort }}') {
+                    newDirection = 'asc'; // اگر ستون جدیدی انتخاب شده، ابتدا صعودی مرتب کن
                 }
                 
-                // حذف کلاس‌های مرتب‌سازی از همه هدرها
-                sortableHeaders.forEach(function(h) {
-                    h.classList.remove('sort-asc', 'sort-desc');
-                });
-                
-                // اضافه کردن کلاس مرتب‌سازی به هدر فعلی
-                this.classList.add('sort-' + direction);
-                
-                // ذخیره وضعیت فعلی
-                currentSort = { column: sortField, direction: direction };
-                
-                // ارسال درخواست مرتب‌سازی به سرور
+                // ایجاد URL جدید با پارامترهای مرتب‌سازی
                 var url = new URL(window.location);
                 url.searchParams.set('sort', sortField);
-                url.searchParams.set('direction', direction);
+                url.searchParams.set('direction', newDirection);
+                
+                // حفظ پارامترهای فیلتر
                 window.location.href = url.toString();
             });
         });
@@ -407,6 +582,28 @@
             });
         });
         
+        // تابع کمکی برای اضافه کردن آیدی‌های انتخاب شده به فرم
+        function addSelectedIdsToForm(formId) {
+            var form = document.getElementById(formId);
+            var checkboxes = document.querySelectorAll('.barnameh-checkbox:checked');
+            
+            // حذف همه input های قبلی
+            form.querySelectorAll('input[name="barnameh_ids"]').forEach(function(input) {
+                input.remove();
+            });
+            
+            // اضافه کردن input های جدید
+            checkboxes.forEach(function(checkbox) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'barnameh_ids';
+                input.value = checkbox.value;
+                form.appendChild(input);
+            });
+            
+            return checkboxes.length;
+        }
+        
         // اعتبارسنجی فرم قبل از ارسال
         var actionButtons = document.querySelectorAll('#bulk-send-btn, #bulk-export-btn, #bulk-edit-btn, #bulk-delete-btn');
         actionButtons.forEach(function(button) {
@@ -415,19 +612,115 @@
                 if (checkedBoxes.length === 0) {
                     e.preventDefault();
                     alert('لطفاً حداقل یک بارنامه را انتخاب کنید.');
+                    return;
                 }
                 
-                // اضافه کردن تایید برای ارسال به بازارگاه و حذف گروهی
-                if ((this.id === 'bulk-send-btn' || this.id === 'bulk-delete-btn') && checkedBoxes.length > 0) {
-                    var message = this.id === 'bulk-send-btn' ? 
-                        'آیا از ارسال بارنامه‌های انتخاب شده به بازارگاه اطمینان دارید؟' :
-                        'آیا از حذف بارنامه‌های انتخاب شده اطمینان دارید؟';
+                var formId, message, needConfirmation = false;
+                
+                switch(this.id) {
+                    case 'bulk-send-btn':
+                        formId = 'bulk-send-form';
+                        message = 'آیا از ارسال بارنامه‌های انتخاب شده به بازارگاه اطمینان دارید؟';
+                        needConfirmation = true;
+                        break;
+                    case 'bulk-export-btn':
+                        formId = 'bulk-export-form';
+                        break;
+                    case 'bulk-edit-btn':
+                        formId = 'bulk-edit-form';
+                        break;
+                    case 'bulk-delete-btn':
+                        formId = 'bulk-delete-form';
+                        message = 'آیا از حذف بارنامه‌های انتخاب شده اطمینان دارید؟';
+                        needConfirmation = true;
+                        break;
+                }
+                
+                // اضافه کردن آیدی‌های انتخاب شده به فرم
+                var count = addSelectedIdsToForm(formId);
+                
+                // نمایش پیام تأیید در صورت نیاز
+                if (needConfirmation) {
                     if (!confirm(message)) {
                         e.preventDefault();
+                        return;
                     }
                 }
+                
+                // ارسال فرم
+                document.getElementById(formId).submit();
             });
         });
+
+        // مدیریت نمایش/مخفی‌سازی ستون‌ها
+        var toggleColumnCheckboxes = document.querySelectorAll('.toggle-column');
+        
+        // ذخیره وضعیت نمایش ستون‌ها در localStorage
+        function saveColumnState() {
+            var columnState = {};
+            toggleColumnCheckboxes.forEach(function(checkbox) {
+                var column = checkbox.getAttribute('data-column');
+                columnState[column] = checkbox.checked;
+            });
+            localStorage.setItem('barnameh_column_state', JSON.stringify(columnState));
+        }
+        
+        // بازیابی وضعیت نمایش ستون‌ها از localStorage
+        function loadColumnState() {
+            var columnState = localStorage.getItem('barnameh_column_state');
+            if (columnState) {
+                columnState = JSON.parse(columnState);
+                toggleColumnCheckboxes.forEach(function(checkbox) {
+                    var column = checkbox.getAttribute('data-column');
+                    if (column in columnState) {
+                        checkbox.checked = columnState[column];
+                        toggleColumn(column, columnState[column]);
+                    }
+                });
+            }
+        }
+        
+        // تغییر وضعیت نمایش ستون
+        function toggleColumn(column, show) {
+            var columnElements = document.querySelectorAll('.column-' + column);
+            columnElements.forEach(function(element) {
+                element.style.display = show ? '' : 'none';
+            });
+        }
+        
+        // اضافه کردن رویداد تغییر به چک‌باکس‌های ستون
+        toggleColumnCheckboxes.forEach(function(checkbox) {
+            checkbox.addEventListener('change', function() {
+                var column = this.getAttribute('data-column');
+                toggleColumn(column, this.checked);
+                saveColumnState();
+            });
+        });
+        
+        // نمایش همه ستون‌ها
+        document.getElementById('show-all-columns').addEventListener('click', function(e) {
+            e.preventDefault();
+            toggleColumnCheckboxes.forEach(function(checkbox) {
+                checkbox.checked = true;
+                var column = checkbox.getAttribute('data-column');
+                toggleColumn(column, true);
+            });
+            saveColumnState();
+        });
+        
+        // مخفی کردن همه ستون‌ها
+        document.getElementById('hide-all-columns').addEventListener('click', function(e) {
+            e.preventDefault();
+            toggleColumnCheckboxes.forEach(function(checkbox) {
+                checkbox.checked = false;
+                var column = checkbox.getAttribute('data-column');
+                toggleColumn(column, false);
+            });
+            saveColumnState();
+        });
+        
+        // بارگذاری وضعیت ستون‌ها در زمان بارگذاری صفحه
+        loadColumnState();
     });
     </script>
 </body>

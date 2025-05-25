@@ -156,22 +156,64 @@
             switch(field) {
                 case 'tonnage':
                     hint = 'مقدار عددی وارد کنید. مثال: 1000';
-                    $('#new_value').attr('type', 'number').attr('step', '0.01');
+                    $('#new_value').attr('type', 'number').attr('step', '0.01').attr('min', '0');
                     break;
                 case 'barnameh_date':
                     hint = 'تاریخ را به فرمت 1402/01/01 وارد کنید.';
-                    $('#new_value').attr('type', 'text');
+                    $('#new_value').attr('type', 'text').removeAttr('step').removeAttr('min');
+                    // Add date format validation
+                    $('#new_value').attr('pattern', '\\d{4}/\\d{2}/\\d{2}');
                     break;
                 case 'driver_phone':
                     hint = 'شماره تلفن را بدون خط تیره وارد کنید.';
-                    $('#new_value').attr('type', 'text');
+                    $('#new_value').attr('type', 'tel').removeAttr('step').removeAttr('min');
+                    break;
+                case 'vehicle_plate':
+                    hint = 'پلاک خودرو را وارد کنید. مثال: 12ب345-67';
+                    $('#new_value').attr('type', 'text').removeAttr('step').removeAttr('min');
                     break;
                 default:
                     hint = 'مقدار مورد نظر را وارد کنید.';
-                    $('#new_value').attr('type', 'text');
+                    $('#new_value').attr('type', 'text').removeAttr('step').removeAttr('min');
             }
             
             $('#value_hint').text(hint);
+        });
+        
+        // اعتبارسنجی بیشتر قبل از ارسال فرم
+        $('form').on('submit', function(event) {
+            var field = $('#field_to_update').val();
+            var value = $('#new_value').val();
+            
+            if (field === 'tonnage') {
+                if (isNaN(parseFloat(value))) {
+                    event.preventDefault();
+                    alert('لطفاً یک مقدار عددی معتبر برای وزن وارد کنید.');
+                    return false;
+                }
+            } else if (field === 'barnameh_date') {
+                // Check date format (YYYY/MM/DD)
+                var datePattern = /^\d{4}\/\d{2}\/\d{2}$/;
+                if (!datePattern.test(value)) {
+                    event.preventDefault();
+                    alert('لطفاً تاریخ را به فرمت صحیح وارد کنید (مثال: 1402/01/01)');
+                    return false;
+                }
+                
+                // Additional validation for date parts
+                var parts = value.split('/');
+                var year = parseInt(parts[0]);
+                var month = parseInt(parts[1]);
+                var day = parseInt(parts[2]);
+                
+                if (month < 1 || month > 12 || day < 1 || day > 31) {
+                    event.preventDefault();
+                    alert('لطفاً یک تاریخ معتبر وارد کنید.');
+                    return false;
+                }
+            }
+            
+            return true;
         });
         
         // اطمینان از نمایش صحیح کارت‌ها

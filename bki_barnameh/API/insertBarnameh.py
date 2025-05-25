@@ -2,9 +2,10 @@ import requests
 import xml.dom.minidom
 import xmltodict
 from django.conf import settings
-from ..models.BarnamehModel import Barnameh
+from ..models.BarnamehModel import Barnameh, BarnamehLog
 from ..models.ApiLogModel import BKIApiLog
 import jdatetime
+from django.utils import timezone
 
 def send_barnameh_to_bki(barnameh_id):
     """
@@ -21,6 +22,12 @@ def send_barnameh_to_bki(barnameh_id):
         
         # Check if barnameh is already sent
         if barnameh.is_sent_to_bki:
+            # Create log entry for already sent barnameh
+            BarnamehLog.objects.create(
+                barnameh=barnameh,
+                log_message=f"تلاش مجدد برای ارسال بارنامه به بازارگاه - بارنامه قبلاً ارسال شده است",
+                log_date=timezone.now()
+            )
             return {
                 'success': False,
                 'message': 'این بارنامه قبلاً به بازارگاه ارسال شده است.'
@@ -29,6 +36,19 @@ def send_barnameh_to_bki(barnameh_id):
         # Check if barnameh has all required fields
         if not all([barnameh.number, barnameh.serial, barnameh.tonnage, 
                    barnameh.purchase_number, barnameh.shenase_takhsis_code]):
+            # Create log entry for incomplete barnameh
+            missing_fields = []
+            if not barnameh.number: missing_fields.append('شماره بارنامه')
+            if not barnameh.serial: missing_fields.append('سریال بارنامه')
+            if not barnameh.tonnage: missing_fields.append('وزن')
+            if not barnameh.purchase_number: missing_fields.append('شناسه خرید')
+            if not barnameh.shenase_takhsis_code: missing_fields.append('شناسه تخصیص')
+            
+            BarnamehLog.objects.create(
+                barnameh=barnameh,
+                log_message=f"تلاش برای ارسال بارنامه ناقص به بازارگاه - فیلدهای ناقص: {', '.join(missing_fields)}",
+                log_date=timezone.now()
+            )
             return {
                 'success': False,
                 'message': 'اطلاعات بارنامه ناقص است.'
@@ -202,8 +222,16 @@ def send_barnameh_to_bki(barnameh_id):
                 print("Full response structure:")
                 print(str(response_dict))
                 
-                # Extract data from Table1 if it exists in the response structure
+                # Try to extract response data and error messages
                 try:
+                    # First, try to extract any error message that might be directly in the result
+                    if isinstance(result, dict):
+                        if 'errormsg' in result:
+                            error_message = result['errormsg']
+                        elif 'ErrorMsg' in result:
+                            error_message = result['ErrorMsg']
+                    
+                    # Extract data from Table1 if it exists in the response structure
                     if isinstance(result, dict):
                         # Check for diffgram format (most common format)
                         if 'diffgr:diffgram' in result and 'NewDataSet' in result['diffgr:diffgram']:
@@ -216,6 +244,12 @@ def send_barnameh_to_bki(barnameh_id):
                                     is_success = True
                                 elif 'ErrorCode' in table1 and (table1['ErrorCode'] == '0' or table1['ErrorCode'] == 0):
                                     is_success = True
+                                
+                                # Extract error message if present
+                                if 'ErrorMsg' in table1:
+                                    error_message = table1['ErrorMsg']
+                                elif 'errormsg' in table1:
+                                    error_message = table1['errormsg']
                         
                         # Check for direct values in result
                         elif 'errorcode' in result and (result['errorcode'] == '0' or result['errorcode'] == 0):
@@ -229,6 +263,12 @@ def send_barnameh_to_bki(barnameh_id):
                             
                             if 'ErrorCode' in table1 and (table1['ErrorCode'] == '0' or table1['ErrorCode'] == 0):
                                 is_success = True
+                            
+                            # Extract error message if present
+                            if 'ErrorMsg' in table1:
+                                error_message = table1['ErrorMsg']
+                            elif 'errormsg' in table1:
+                                error_message = table1['errormsg']
                 except Exception as e:
                     log_entry.debug_info += f"\nError extracting data from response: {str(e)}"
                 
@@ -265,127 +305,84 @@ def send_barnameh_to_bki(barnameh_id):
                 if is_success:
                     # Update barnameh status
                     barnameh.is_sent_to_bki = True
-                    barnameh.is_sent_to_bki_at = jdatetime.datetime.now()
+                    barnameh.is_sent_to_bki_at = timezone.now()
                     barnameh.status = 'PURCHASE_CLOSED'
+                    barnameh.bki_response_data = response_xml_info
                     
-                    # Extract and update additional information from API response
-                    try:
-                        # Store the entire response
-                        bki_response_data = response_xml_info
-                        
-                        # Extract and update specific fields from the response
-                        if 'hamlid' in response_xml_info:
-                            barnameh.haml_id = response_xml_info['hamlid']
-                        
-                        # Update driver information if available
-                        if 'drivern' in response_xml_info and response_xml_info['drivern'] and (not barnameh.driver_name or already_registered):
-                            barnameh.driver_name = response_xml_info['drivern']
-                        
-                        # Update car/vehicle information if available
-                        if 'carn' in response_xml_info and response_xml_info['carn'] and (not barnameh.vehicle_plate or already_registered):
-                            barnameh.vehicle_plate = response_xml_info['carn']
-                        
-                        # Update receiver name if available
-                        if 'tahvilname' in response_xml_info and response_xml_info['tahvilname'] and (not barnameh.receiver_name or already_registered):
-                            barnameh.receiver_name = response_xml_info['tahvilname']
-                            
-                        # Update receiver address/destination if available
-                        if 'tahviladdress' in response_xml_info and response_xml_info['tahviladdress'] and (not barnameh.destination or already_registered):
-                            barnameh.destination = response_xml_info['tahviladdress']
-                            
-                        # Update receiver phone if available
-                        if 'tahvilphone' in response_xml_info and response_xml_info['tahvilphone'] and (not barnameh.driver_phone or already_registered):
-                            barnameh.driver_phone = response_xml_info['tahvilphone']
-                        
-                        # Store complete response data
-                        barnameh.bki_response_data = bki_response_data
-                        log_entry.debug_info += f"\nUpdated barnameh with API response data successfully"
-                    except Exception as e:
-                        log_entry.debug_info += f"\nError updating barnameh data from API response: {str(e)}"
+                    # Extract haml_id if available
+                    if isinstance(response_xml_info, dict) and ('hamlid' in response_xml_info or 'HamlId' in response_xml_info):
+                        haml_id = response_xml_info.get('hamlid') or response_xml_info.get('HamlId')
+                        barnameh.haml_id = haml_id
                     
-                    # Save the updated barnameh
                     barnameh.save()
                     
-                    # Mark log entry as successful
+                    # Create success log
+                    BarnamehLog.objects.create(
+                        barnameh=barnameh,
+                        log_message=f"بارنامه با موفقیت به بازارگاه ارسال شد. شناسه حمل: {barnameh.haml_id or 'نامشخص'}",
+                        log_date=timezone.now()
+                    )
+                    
                     log_entry.is_successful = True
                     log_entry.save()
                     
-                    # Return appropriate message
-                    if already_registered:
-                        return {
-                            'success': True,
-                            'message': 'این بارنامه قبلاً در بازارگاه ثبت شده است و اطلاعات آن به‌روز شد.'
-                        }
-                    else:
-                        return {
-                            'success': True,
-                            'message': 'بارنامه با موفقیت در بازارگاه ثبت شد.'
-                        }
+                    return {
+                        'success': True,
+                        'message': 'بارنامه با موفقیت به بازارگاه ارسال شد.',
+                        'haml_id': barnameh.haml_id
+                    }
                 else:
-                    log_entry.is_successful = False
+                    # Extract error message
+                    error_message = "خطا در ثبت بارنامه"
+                    if isinstance(response_xml_info, dict):
+                        # Try to get the error message from various possible locations in the response
+                        if 'ErrorMsg' in response_xml_info:
+                            error_message = response_xml_info['ErrorMsg']
+                        elif 'errormsg' in response_xml_info:
+                            error_message = response_xml_info['errormsg']
+                        elif 'error_message' in response_xml_info:
+                            error_message = response_xml_info['error_message']
                     
-                    # بررسی خطای مربوط به بارنامه‌ای که قبلاً ثبت شده است
-                    error_text = ""
-                    if isinstance(result, dict):
+                    # If we couldn't find the error in response_xml_info, try to find it in the full result
+                    if error_message == "خطا در ثبت بارنامه" and isinstance(result, dict):
                         if 'errormsg' in result:
-                            error_text = str(result['errormsg'])
+                            error_message = result['errormsg']
                         elif 'ErrorMsg' in result:
-                            error_text = str(result['ErrorMsg'])
+                            error_message = result['ErrorMsg']
+                        elif 'error_message' in result:
+                            error_message = result['error_message']
+                        # Check in diffgram structure
                         elif 'diffgr:diffgram' in result and 'NewDataSet' in result['diffgr:diffgram']:
-                            table = result['diffgr:diffgram']['NewDataSet'].get('Table1', {})
-                            if 'ErrorMsg' in table:
-                                error_text = str(table['ErrorMsg'])
-                    elif isinstance(result, str):
-                        error_text = result
+                            if 'Table1' in result['diffgr:diffgram']['NewDataSet']:
+                                table1 = result['diffgr:diffgram']['NewDataSet']['Table1']
+                                if 'ErrorMsg' in table1:
+                                    error_message = table1['ErrorMsg']
+                                elif 'errormsg' in table1:
+                                    error_message = table1['errormsg']
                     
-                    log_entry.debug_info += f"\nError text extracted: {error_text}"
+                    # Add the error code if available
+                    error_code = None
+                    if isinstance(response_xml_info, dict):
+                        error_code = response_xml_info.get('ErrorCode') or response_xml_info.get('errorcode')
                     
-                    # اگر خطای مربوط به ثبت قبلی باشد، وضعیت را به PURCHASE_CLOSED تغییر می‌دهیم
-                    if (error_text and 
-                        ('این بارنامه در تاریخ' in error_text and 'ثبت گردیده است' in error_text and 'امكان ثبت مجدد وجود ندارد' in error_text)):
-                        log_entry.debug_info += "\nDETECTED SPECIFIC ERROR: BARNAMEH ALREADY REGISTERED IN BAZARGAH"
-                        log_entry.is_successful = True  # تغییر وضعیت به موفق
-                        error_message = "این بارنامه قبلاً در بازارگاه ثبت شده است. سیستم وضعیت را به روز کرد."
-                        
-                        # تغییر وضعیت بارنامه در سیستم
-                        barnameh.is_sent_to_bki = True
-                        barnameh.is_sent_to_bki_at = jdatetime.datetime.now()
-                        barnameh.status = 'PURCHASE_CLOSED'
-                        barnameh.save()
-                        
-                        log_entry.error_message = error_message
-                        log_entry.save()
-                        
-                        return {
-                            'success': True,
-                            'message': error_message
-                        }
-                    else:
-                        # Extract error message from the response
-                        try:
-                            # Try to extract the specific error message from various possible response structures
-                            if isinstance(result, dict):
-                                if 'errormsg' in result and result['errormsg']:
-                                    error_message = f"{error_message}: {result.get('errorcode', '')} - {result['errormsg']}"
-                                elif 'diffgr:diffgram' in result:
-                                    table = result['diffgr:diffgram']['NewDataSet'].get('Table1', {})
-                                    if 'ErrorMsg' in table:
-                                        error_message = f"{error_message}: {table.get('ErrorCode', '')} - {table['ErrorMsg']}"
-                                elif 'NewDataSet' in result and 'Table1' in result['NewDataSet']:
-                                    table = result['NewDataSet']['Table1']
-                                    if 'ErrorMsg' in table:
-                                        error_message = f"{error_message}: {table.get('ErrorCode', '')} - {table['ErrorMsg']}"
-                        except Exception as e:
-                            error_message = f"{error_message}: {str(result)}"
-                            log_entry.debug_info += f"\nError parsing error message: {str(e)}"
-                        
-                        log_entry.error_message = error_message
-                        log_entry.save()
-                        
-                        return {
-                            'success': False,
-                            'message': error_message
-                        }
+                    if error_code:
+                        error_message = f"کد خطا: {error_code} - {error_message}"
+                    
+                    # Create error log with the exact API error message
+                    BarnamehLog.objects.create(
+                        barnameh=barnameh,
+                        log_message=f"خطا در ارسال بارنامه به بازارگاه: {error_message}",
+                        log_date=timezone.now()
+                    )
+                    
+                    log_entry.is_successful = False
+                    log_entry.error_message = error_message
+                    log_entry.save()
+                    
+                    return {
+                        'success': False,
+                        'message': f"خطا در ارسال بارنامه به بازارگاه: {error_message}"
+                    }
                 
             except Exception as e:
                 log_entry.is_successful = False
@@ -397,10 +394,17 @@ def send_barnameh_to_bki(barnameh_id):
                     'message': f"خطا در تجزیه پاسخ: {str(e)}"
                 }
                 
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             log_entry.is_successful = False
             log_entry.error_message = f"خطا در ارسال درخواست: {str(e)}"
             log_entry.save()
+            
+            # Create error log
+            BarnamehLog.objects.create(
+                barnameh=barnameh,
+                log_message=f"خطا در ارسال درخواست به بازارگاه: {str(e)}",
+                log_date=timezone.now()
+            )
             
             return {
                 'success': False,
@@ -431,16 +435,62 @@ def send_multiple_barnameh_to_bki(barnameh_ids):
     results = {
         'success': 0,
         'failed': 0,
-        'messages': []
+        'messages': [],
+        'details': []
     }
     
     for barnameh_id in barnameh_ids:
-        result = send_barnameh_to_bki(barnameh_id)
-        
-        if result['success']:
-            results['success'] += 1
-        else:
+        try:
+            barnameh = Barnameh.objects.get(id=barnameh_id)
+            result = send_barnameh_to_bki(barnameh_id)
+            
+            # Add detailed information
+            detail = {
+                'id': barnameh_id,
+                'number': barnameh.number or "نامشخص",
+                'serial': barnameh.serial or "نامشخص",
+                'success': result['success'],
+                'message': result['message']
+            }
+            results['details'].append(detail)
+            
+            if result['success']:
+                results['success'] += 1
+                # Create a log entry for the bulk operation
+                BarnamehLog.objects.create(
+                    barnameh=barnameh,
+                    log_message=f"بارنامه در عملیات ارسال گروهی با موفقیت به بازارگاه ارسال شد.",
+                    log_date=timezone.now()
+                )
+            else:
+                results['failed'] += 1
+                # Use the exact error message from the API
+                error_message = result['message']
+                barnameh_identifier = f"{barnameh.number or '?'}/{barnameh.serial or '?'}"
+                results['messages'].append(f"بارنامه {barnameh_identifier}: {error_message}")
+                
+                # Create a log entry for the bulk operation failure
+                BarnamehLog.objects.create(
+                    barnameh=barnameh,
+                    log_message=f"خطا در ارسال گروهی بارنامه به بازارگاه: {error_message}",
+                    log_date=timezone.now()
+                )
+        except Barnameh.DoesNotExist:
             results['failed'] += 1
-            results['messages'].append(f"بارنامه {barnameh_id}: {result['message']}")
+            results['messages'].append(f"بارنامه با شناسه {barnameh_id} یافت نشد.")
+        except Exception as e:
+            results['failed'] += 1
+            results['messages'].append(f"خطا در ارسال بارنامه {barnameh_id}: {str(e)}")
+            
+            # Try to log the error if we can find the barnameh
+            try:
+                barnameh = Barnameh.objects.get(id=barnameh_id)
+                BarnamehLog.objects.create(
+                    barnameh=barnameh,
+                    log_message=f"خطای سیستمی در ارسال گروهی بارنامه: {str(e)}",
+                    log_date=timezone.now()
+                )
+            except:
+                pass
     
     return results

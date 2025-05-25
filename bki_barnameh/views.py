@@ -155,9 +155,77 @@ def barnameh_list(request):
     """
     نمایش لیست بارنامه ها
     """
-    # Sort by is_sent_to_bki (False first) and then by creation date
-    barnamehs = Barnameh.objects.all().order_by('is_sent_to_bki', '-barnameh_created_at')
-    return render(request, 'bki_barnameh/barnameh_list.html', {'barnamehs': barnamehs})
+    # Get sorting parameters from request
+    sort_field = request.GET.get('sort', 'barnameh_created_at')
+    direction = request.GET.get('direction', 'desc')
+    
+    # Map frontend sort fields to model fields
+    sort_mapping = {
+        'number': 'number',
+        'serial': 'serial',
+        'tonnage': 'tonnage',
+        'purchase_number': 'purchase_number',
+        'shenase_takhsis_code': 'shenase_takhsis_code',
+        'status': 'status',
+        'driver_name': 'driver_name',
+        'driver_phone': 'driver_phone',
+        'vehicle_plate': 'vehicle_plate',
+        'receiver_name': 'receiver_name',
+        'destination': 'destination',
+        'barnameh_date': 'barnameh_date',
+        'created_at': 'barnameh_created_at',
+    }
+    
+    # Use the mapped field or default to created_at
+    sort_field_mapped = sort_mapping.get(sort_field, 'barnameh_created_at')
+    
+    # Apply direction
+    if direction == 'desc' and not sort_field_mapped.startswith('-'):
+        sort_field_mapped = f'-{sort_field_mapped}'
+    elif direction == 'asc' and sort_field_mapped.startswith('-'):
+        sort_field_mapped = sort_field_mapped[1:]
+    
+    # Apply filters
+    filters = {}
+    search_query = request.GET.get('search')
+    status_filter = request.GET.get('status')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    
+    if search_query:
+        # Search in multiple fields
+        from django.db.models import Q
+        barnamehs = Barnameh.objects.filter(
+            Q(number__icontains=search_query) | 
+            Q(serial__icontains=search_query) | 
+            Q(purchase_number__icontains=search_query) |
+            Q(shenase_takhsis_code__icontains=search_query) |
+            Q(driver_name__icontains=search_query)
+        )
+    else:
+        barnamehs = Barnameh.objects.all()
+    
+    if status_filter:
+        barnamehs = barnamehs.filter(status=status_filter)
+    
+    if date_from:
+        barnamehs = barnamehs.filter(barnameh_date__gte=date_from)
+    
+    if date_to:
+        barnamehs = barnamehs.filter(barnameh_date__lte=date_to)
+    
+    # Apply sorting
+    barnamehs = barnamehs.order_by(sort_field_mapped)
+    
+    # Get logs for each barnameh
+    for barnameh in barnamehs:
+        barnameh.logs = barnameh.barnameh_logs.all().order_by('-log_date')[:3]  # Get the 3 most recent logs
+    
+    return render(request, 'bki_barnameh/barnameh_list.html', {
+        'barnamehs': barnamehs,
+        'current_sort': sort_field,
+        'current_direction': direction
+    })
 
 @role_required('logistics_manager', 'admin')
 def barnameh_detail(request, barnameh_id):
@@ -462,19 +530,123 @@ def bulk_edit(request):
             
             # اعمال تغییرات برای همه بارنامه‌های انتخاب شده
             success_count = 0
+            error_count = 0
+            error_messages = []
+            success_details = []
+            error_details = []
+            
             for barnameh in barnamehs:
                 # اگر بارنامه به بازارگاه ارسال نشده باشد
                 if not barnameh.is_sent_to_bki:
                     try:
+                        # پردازش مقدار بر اساس نوع فیلد
+                        processed_value = new_value
+                        
+                        if field_to_update == 'tonnage':
+                            try:
+                                processed_value = float(new_value)
+                            except ValueError:
+                                error_count += 1
+                                error_message = f'مقدار وارد شده برای وزن معتبر نیست: {new_value}'
+                                error_messages.append(error_message)
+                                error_details.append({
+                                    'id': barnameh.id,
+                                    'number': barnameh.number,
+                                    'serial': barnameh.serial,
+                                    'error': error_message
+                                })
+                                continue
+                        
+                        elif field_to_update == 'barnameh_date':
+                            try:
+                                # تبدیل تاریخ شمسی به فرمت مناسب
+                                parts = new_value.split('/')
+                                if len(parts) == 3:
+                                    year, month, day = int(parts[0]), int(parts[1]), int(parts[2])
+                                    processed_value = jdatetime.date(year, month, day)
+                                else:
+                                    error_count += 1
+                                    error_message = f'فرمت تاریخ معتبر نیست: {new_value}. از فرمت 1402/01/01 استفاده کنید.'
+                                    error_messages.append(error_message)
+                                    error_details.append({
+                                        'id': barnameh.id,
+                                        'number': barnameh.number,
+                                        'serial': barnameh.serial,
+                                        'error': error_message
+                                    })
+                                    continue
+                            except Exception as e:
+                                error_count += 1
+                                error_message = f'خطا در تبدیل تاریخ: {str(e)}'
+                                error_messages.append(error_message)
+                                error_details.append({
+                                    'id': barnameh.id,
+                                    'number': barnameh.number,
+                                    'serial': barnameh.serial,
+                                    'error': error_message
+                                })
+                                continue
+                        
                         # بروزرسانی فیلد مورد نظر
-                        setattr(barnameh, field_to_update, new_value)
+                        setattr(barnameh, field_to_update, processed_value)
                         barnameh.save()
                         success_count += 1
-                        barnameh.log_barnameh_edit(request)
+                        
+                        # اضافه کردن به لیست موفق‌ها
+                        success_details.append({
+                            'id': barnameh.id,
+                            'number': barnameh.number,
+                            'serial': barnameh.serial
+                        })
+                        
+                        # ایجاد لاگ برای ویرایش
+                        from django.utils import timezone
+                        barnameh.barnameh_logs.create(
+                            log_message=f"ویرایش گروهی: فیلد '{field_to_update}' به مقدار '{new_value}' تغییر کرد",
+                            log_date=timezone.now()
+                        )
                     except Exception as e:
-                        continue
+                        error_count += 1
+                        error_message = f'خطا در بروزرسانی بارنامه {barnameh.number}/{barnameh.serial}: {str(e)}'
+                        error_messages.append(error_message)
+                        error_details.append({
+                            'id': barnameh.id,
+                            'number': barnameh.number,
+                            'serial': barnameh.serial,
+                            'error': error_message
+                        })
+                else:
+                    error_count += 1
+                    error_message = f'بارنامه {barnameh.number}/{barnameh.serial} قبلاً به بازارگاه ارسال شده است و قابل ویرایش نیست.'
+                    error_messages.append(error_message)
+                    error_details.append({
+                        'id': barnameh.id,
+                        'number': barnameh.number,
+                        'serial': barnameh.serial,
+                        'error': error_message
+                    })
             
-            messages.success(request, f'{success_count} بارنامه با موفقیت بروزرسانی شد.')
+            # ذخیره نتایج در سشن برای نمایش در صفحه نتایج
+            request.session['bulk_edit_results'] = {
+                'field': field_to_update,
+                'value': new_value,
+                'success_count': success_count,
+                'error_count': error_count,
+                'success_details': success_details,
+                'error_details': error_details[:10]  # حداکثر 10 خطا را ذخیره می‌کنیم
+            }
+            
+            if success_count > 0:
+                messages.success(request, f'{success_count} بارنامه با موفقیت بروزرسانی شد.')
+            
+            if error_count > 0:
+                messages.error(request, f'{error_count} بارنامه با خطا مواجه شد.')
+                for error in error_messages[:5]:  # نمایش حداکثر 5 پیام خطا
+                    messages.error(request, error)
+                
+                if len(error_messages) > 5:
+                    messages.error(request, f'و {len(error_messages) - 5} خطای دیگر...')
+            
             return redirect('barnameh_list')
         
         return render(request, 'bki_barnameh/bulk_edit.html', {'barnamehs': barnamehs})
