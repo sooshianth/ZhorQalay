@@ -94,3 +94,14 @@ def average(queryset, attribute):
         return 0
     total = sum(getattr(obj, attribute) for obj in queryset)
     return total / queryset.count() if queryset.count() > 0 else 0
+
+
+@register.filter
+def length(value):
+    """
+    Returns the length of a list or string.
+    """
+    try:
+        return len(value)
+    except (ValueError, TypeError):
+        return 0 

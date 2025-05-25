@@ -1,0 +1,305 @@
+{% extends 'base.html' %}
+
+{% block title %}ویرایش دسته‌ای باربری‌ها{% endblock %}
+
+{% block content %}
+
+{% load custom_filters %}
+
+<style>
+    :root {
+        --primary-color: #065F46;
+        --primary-hover: #45a049;
+        --secondary-color: #f1f1f1;
+        --secondary-hover: #ddd;
+        --dark-color: #333;
+        --light-color: #f9f9f9;
+        --border-color: #ddd;
+    }
+    
+    .container {
+        max-width: 900px;
+        margin: 30px auto;
+        padding: 0 15px;
+        direction: rtl;
+    }
+    
+    .card {
+        background-color: var(--light-color);
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .page-title {
+        color: var(--dark-color);
+        text-align: right;
+        margin-bottom: 20px;
+        font-size: 24px;
+    }
+    
+    .form-section {
+        margin-bottom: 20px;
+        padding: 15px;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        background-color: white;
+    }
+    
+    .form-section-title {
+        font-size: 18px;
+        margin-bottom: 15px;
+        color: var(--dark-color);
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+    }
+    
+    .form-section-title i {
+        margin-left: 10px;
+    }
+    
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: var(--dark-color);
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        box-sizing: border-box;
+    }
+    
+    .form-check {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .form-check-input {
+        margin-left: 10px;
+    }
+    
+    .btn {
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+    }
+    
+    .btn i {
+        margin-left: 8px;
+    }
+    
+    .btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: var(--primary-hover);
+    }
+    
+    .btn-secondary {
+        background-color: var(--secondary-color);
+        color: var(--dark-color);
+    }
+    
+    .btn-secondary:hover {
+        background-color: var(--secondary-hover);
+    }
+    
+    .btn-danger {
+        background-color: #f44336;
+        color: white;
+    }
+    
+    .btn-danger:hover {
+        background-color: #d32f2f;
+    }
+    
+    .actions {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 20px;
+    }
+    
+    .section-content {
+        display: none;
+    }
+    
+    .section-content.active {
+        display: block;
+    }
+    
+    .selected-ids {
+        margin-bottom: 20px;
+        font-size: 14px;
+        color: #666;
+    }
+</style>
+
+<div class="container">
+    <h1 class="page-title">ویرایش دسته‌ای باربری‌ها</h1>
+    
+    {% if selected_barbaries %}
+    <div class="selected-ids">
+        <p>تعداد موارد انتخاب شده: {{ selected_barbaries|length }}</p>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        {% for barbary_id in selected_barbary_ids %}
+        <input type="hidden" name="selected_barbary_ids" value="{{ barbary_id }}">
+        {% endfor %}
+        
+        <div class="card">
+            <!-- بخش شماره تماس -->
+            <div class="form-section">
+                <div class="form-section-title" onclick="toggleSection('phone-section')">
+                    <i class="fas fa-phone"></i>
+                    تغییر شماره تماس
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="section-content" id="phone-section">
+                    <div class="form-check">
+                        <input type="checkbox" id="update_phone" name="update_phone" class="form-check-input">
+                        <label for="update_phone">شماره تماس را تغییر بده</label>
+                    </div>
+                    <div class="form-group">
+                        <label for="phone_number">شماره تماس جدید:</label>
+                        <input type="text" id="phone_number" name="phone_number" class="form-control">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- بخش ایمیل -->
+            <div class="form-section">
+                <div class="form-section-title" onclick="toggleSection('email-section')">
+                    <i class="fas fa-envelope"></i>
+                    تغییر ایمیل
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="section-content" id="email-section">
+                    <div class="form-check">
+                        <input type="checkbox" id="update_email" name="update_email" class="form-check-input">
+                        <label for="update_email">ایمیل را تغییر بده</label>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">ایمیل جدید:</label>
+                        <input type="email" id="email" name="email" class="form-control">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- بخش توضیحات -->
+            <div class="form-section">
+                <div class="form-section-title" onclick="toggleSection('description-section')">
+                    <i class="fas fa-info-circle"></i>
+                    تغییر توضیحات
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="section-content" id="description-section">
+                    <div class="form-check">
+                        <input type="checkbox" id="update_description" name="update_description" class="form-check-input">
+                        <label for="update_description">توضیحات را تغییر بده</label>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">توضیحات جدید:</label>
+                        <textarea id="description" name="description" class="form-control" rows="4"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="actions">
+                <a href="{% url 'barbary_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-right"></i>
+                    بازگشت
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i>
+                    ذخیره تغییرات
+                </button>
+            </div>
+        </div>
+    </form>
+    {% else %}
+    <div class="card">
+        <p>هیچ باربری انتخاب نشده است.</p>
+        <div class="actions">
+            <a href="{% url 'barbary_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i>
+                بازگشت به لیست
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    // اضافه کردن آیکون‌های Font Awesome
+    document.addEventListener('DOMContentLoaded', function() {
+        // اگر لینک Font Awesome قبلاً اضافه نشده باشد، آن را اضافه کن
+        if (!document.querySelector('link[href*="font-awesome"]')) {
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css';
+            document.head.appendChild(link);
+        }
+    });
+    
+    // نمایش/مخفی کردن بخش‌ها
+    function toggleSection(sectionId) {
+        const section = document.getElementById(sectionId);
+        section.classList.toggle('active');
+    }
+    
+    // فعال/غیرفعال کردن فیلدها بر اساس چک‌باکس‌ها
+    document.addEventListener('DOMContentLoaded', function() {
+        const phoneCheckbox = document.getElementById('update_phone');
+        const phoneInput = document.getElementById('phone_number');
+        
+        if (phoneCheckbox && phoneInput) {
+            phoneCheckbox.addEventListener('change', function() {
+                phoneInput.disabled = !this.checked;
+            });
+            phoneInput.disabled = !phoneCheckbox.checked;
+        }
+        
+        const emailCheckbox = document.getElementById('update_email');
+        const emailInput = document.getElementById('email');
+        
+        if (emailCheckbox && emailInput) {
+            emailCheckbox.addEventListener('change', function() {
+                emailInput.disabled = !this.checked;
+            });
+            emailInput.disabled = !emailCheckbox.checked;
+        }
+        
+        const descriptionCheckbox = document.getElementById('update_description');
+        const descriptionInput = document.getElementById('description');
+        
+        if (descriptionCheckbox && descriptionInput) {
+            descriptionCheckbox.addEventListener('change', function() {
+                descriptionInput.disabled = !this.checked;
+            });
+            descriptionInput.disabled = !descriptionCheckbox.checked;
+        }
+    });
+</script>
+{% endblock %} 

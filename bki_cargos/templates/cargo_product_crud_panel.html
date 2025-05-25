@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}{% if product %}ویرایش محصول{% else %}ایجاد محصول جدید{% endif %}{% endblock %}
+{% block title %}ایجاد محصول جدید{% endblock %}
 
 {% block content %}
 <style>
@@ -46,34 +46,34 @@
     }
 </style>
 <div class='form-container'>
-    <h2>{% if product %}ویرایش محصول{% else %}ایجاد محصول جدید{% endif %}</h2>
+    <h2>ایجاد محصول جدید</h2>
     <form method='post'>
         {% csrf_token %}
         <div class='form-group'>
             <label for='type'>نوع خرید:</label>
             <select id='type' name='type'>
                 {% for value, label in purchase_types %}
-                    <option value='{{ value }}' {% if product.type == value %}selected{% endif %}>{{ label }}</option>
+                    <option value='{{ value }}'>{{ label }}</option>
                 {% endfor %}
             </select>
         </div>
         <div class='form-group'>
             <label for='cottage'>کوتاژ:</label>
-            <input type='text' id='cottage' name='cottage' value='{{ product.cottage }}'>
+            <input type='text' id='cottage' name='cottage' value=''>
         </div>
         <div class='form-group'>
             <label for='company_price'>فی خرید (ریال):</label>
-            <input type='number' id='company_price' name='company_price' value='{{ product.company_price }}'>
+            <input type='number' id='company_price' name='company_price' value='0'>
         </div>
         <div class='form-group'>
             <label for='customer_price'>فی فروش (ریال):</label>
-            <input type='number' id='customer_price' name='customer_price' value='{{ product.customer_price }}'>
+            <input type='number' id='customer_price' name='customer_price' value='0'>
         </div>
         <div class='form-group'>
             <label for='product_type'>نوع محصول:</label>
             <select id='product_type' name='product_type'>
                 {% for value, label in product_types %}
-                    <option value='{{ value }}' {% if product.product_type == value %}selected{% endif %}>{{ label }}</option>
+                    <option value='{{ value }}'>{{ label }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -81,7 +81,7 @@
             <label for='country'>کشور:</label>
             <select id='country' name='country'>
                 {% for value, label in countries %}
-                    <option value='{{ value }}' {% if product.country == value %}selected{% endif %}>{{ label }}</option>
+                    <option value='{{ value }}'>{{ label }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -90,7 +90,7 @@
             <select id='vared_konandeh' name='vared_konandeh'>
                 <option value=''>انتخاب کنید</option>
                 {% for vared_konandeh in vared_konandehs %}
-                    <option value='{{ vared_konandeh.id }}' {% if product.vared_konandeh_id == vared_konandeh.id %}selected{% endif %}>{{ vared_konandeh.name }}</option>
+                    <option value='{{ vared_konandeh.id }}'>{{ vared_konandeh.name }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -99,7 +99,7 @@
             <select id='barbary' name='barbary'>
                 <option value=''>انتخاب کنید</option>
                 {% for barbary in barbaries %}
-                    <option value='{{ barbary.id }}' {% if product.barbary_id == barbary.id %}selected{% endif %}>{{ barbary.name }}</option>
+                    <option value='{{ barbary.id }}'>{{ barbary.name }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -107,27 +107,27 @@
             <label for='port'>محل بارگیری:</label>
             <select id='port' name='port'>
                 {% for value, label in ports %}
-                    <option value='{{ value }}' {% if product.port == value %}selected{% endif %}>{{ label }}</option>
+                    <option value='{{ value }}'>{{ label }}</option>
                 {% endfor %}
             </select>
         </div>
         <div class='form-group'>
             <label for='loading_time'>زمان بارگیری:</label>
-            <input type='text' id='loading_time' name='loading_time' value='{{ product.loading_time }}'>
+            <input type='text' id='loading_time' name='loading_time' value=''>
         </div>
         <div class='form-group'>
             <label for='description'>توضیحات:</label>
-            <textarea id='description' name='description'>{{ product.description }}</textarea>
+            <textarea id='description' name='description'></textarea>
         </div>
         <div class='form-group'>
             <label for='weight'>وزن موجود:</label>
-            <input type='number' id='weight' name='weight' value='{{ product.weight }}'>
+            <input type='number' id='weight' name='weight' value='100000'>
         </div>
         <div class='form-group'>
             <label for='status'>وضعیت:</label>
-            <input type='checkbox' id='status' name='status' {% if product.status %}checked{% endif %}>
+            <input type='checkbox' id='status' name='status' checked>
         </div>
-        <button type='submit' class='btn-submit'>{% if product %}به‌روزرسانی{% else %}ایجاد{% endif %}</button>
+        <button type='submit' class='btn-submit'>ایجاد</button>
     </form>
 </div>
 {% endblock %} 

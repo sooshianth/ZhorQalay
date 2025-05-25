@@ -215,6 +215,9 @@ def apply_bulk_edit(request):
         data = json.loads(request.body)
         purchase_ids = data.get('purchase_ids', [])
         
+        # لاگ داده‌های دریافتی برای دیباگ
+        logger.info(f"Received bulk edit data: {data}")
+        
         # بررسی وجود خریدهای انتخابی
         if not purchase_ids:
             purchase_ids = request.session.get('bulk_edit_purchase_ids', [])
@@ -224,6 +227,9 @@ def apply_bulk_edit(request):
         changes = data.get('changes', {})
         if not changes:
             return JsonResponse({'success': False, 'message': 'هیچ تغییری برای اعمال مشخص نشده است.'})
+        
+        # لاگ تغییرات برای دیباگ
+        logger.info(f"Changes to apply: {changes}")
         
         # دریافت خریدهای انتخابی
         purchases = Purchase.objects.filter(id__in=purchase_ids)
@@ -285,6 +291,19 @@ def apply_bulk_edit(request):
                                 continue
                         elif value is not None:
                             old_value = getattr(purchase, field)
+                            
+                            # تبدیل مقادیر خاص
+                            if field == 'is_factored':
+                                # اطمینان از اینکه مقدار is_factored درست تبدیل شده باشد
+                                logger.info(f"Processing is_factored field: value={value}, type={type(value)}")
+                                
+                                # تبدیل به boolean
+                                if isinstance(value, str):
+                                    value = value.lower() == 'true'
+                                value = bool(value)
+                                
+                                logger.info(f"Converted is_factored value to {value}, type={type(value)}")
+                            
                             setattr(purchase, field, value)
                             
                             # نمایش متن فارسی برای فیلدهای خاص

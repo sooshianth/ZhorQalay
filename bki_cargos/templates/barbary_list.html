@@ -1,0 +1,557 @@
+{% extends 'base.html' %}
+
+{% block title %}لیست باربری‌ها{% endblock %}
+
+{% block content %}
+
+{% load custom_filters %}
+
+<style>
+    /* CSS Variables */
+    :root {
+        --primary: #065F46;
+        --primary-hover: #064e3b;
+        --secondary: #3b82f6;
+        --secondary-hover: #2563eb;
+        --neutral: #64748b;
+        --neutral-hover: #475569;
+        --light-bg: #f8fafc;
+        --border: #e2e8f0;
+        --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    /* Base styles */
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1.5rem;
+    }
+    
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Cards */
+    .card {
+        background-color: white;
+        border-radius: 0.75rem;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+    
+    .card-header {
+        background-color: var(--primary);
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: white;
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+    }
+    
+    /* Buttons */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        text-decoration: none;
+        border: none;
+    }
+    
+    .btn-primary {
+        background-color: var(--primary);
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: var(--primary-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--card-shadow);
+    }
+    
+    .btn-secondary {
+        background-color: var(--secondary);
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background-color: var(--secondary-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--card-shadow);
+    }
+    
+    .btn-icon {
+        margin-right: 0.5rem;
+    }
+    
+    /* Action area */
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Search area */
+    .search-container {
+        margin-bottom: 1.5rem;
+        display: flex;
+        max-width: 500px;
+    }
+    
+    .search-input {
+        flex-grow: 1;
+        padding: 0.5rem 1rem;
+        border: 1px solid var(--border);
+        border-radius: 0.5rem 0 0 0.5rem;
+        font-size: 1rem;
+    }
+    
+    .search-button {
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 0 0.5rem 0.5rem 0;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+    }
+    
+    /* Table styles */
+    table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+    
+    thead {
+        background-color: #f8fafc;
+    }
+    
+    th {
+        padding: 1rem;
+        text-align: right;
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        position: relative;
+    }
+    
+    th:hover {
+        background-color: #f1f5f9;
+    }
+    
+    .sort-icon {
+        display: inline-block;
+        width: 0;
+        height: 0;
+        margin-right: 5px;
+        vertical-align: middle;
+    }
+    
+    .sort-icon.asc {
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-bottom: 5px solid #475569;
+    }
+    
+    .sort-icon.desc {
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 5px solid #475569;
+    }
+    
+    td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+    }
+    
+    tr:last-child td {
+        border-bottom: none;
+    }
+    
+    tr.selected {
+        background-color: rgba(59, 130, 246, 0.1);
+    }
+    
+    /* Checkbox */
+    input[type="checkbox"] {
+        width: 1.25rem;
+        height: 1.25rem;
+        border-radius: 0.25rem;
+        border: 1px solid #cbd5e1;
+        cursor: pointer;
+    }
+    
+    /* Column display options */
+    .column-options {
+        position: relative;
+        display: inline-block;
+        margin-right: 1rem;
+    }
+    
+    .column-options-btn {
+        background-color: #f1f5f9;
+        color: #334155;
+        border: 1px solid var(--border);
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+    }
+    
+    .column-options-btn:hover {
+        background-color: #e2e8f0;
+    }
+    
+    .column-options-menu {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        z-index: 10;
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: var(--card-shadow);
+        min-width: 200px;
+        padding: 0.5rem 0;
+        display: none;
+    }
+    
+    .column-options-menu.show {
+        display: block;
+    }
+    
+    .column-option {
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .column-option:hover {
+        background-color: #f1f5f9;
+    }
+    
+    .column-option label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+    }
+    
+    .column-option input[type="checkbox"] {
+        margin-left: 0.5rem;
+    }
+    
+    /* Animations */
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+    }
+    
+    .animate-slide-up {
+        animation: slideUp 0.3s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes slideUp {
+        from { transform: translateY(10px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+</style>
+
+<div class="container">
+    <h1 class="page-title animate-fade-in">لیست باربری‌ها</h1>
+    
+    <div class="action-buttons animate-slide-up">
+        <a href="{% url 'barbary_add' %}" class="btn btn-primary">
+            <span class="btn-icon"><i class="fas fa-plus"></i></span>
+            ایجاد باربری جدید
+        </a>
+        <button onclick="bulkEdit()" class="btn btn-secondary">
+            <span class="btn-icon"><i class="fas fa-edit"></i></span>
+            ویرایش گروهی
+        </button>
+        <div class="column-options">
+            <button class="column-options-btn" onclick="toggleColumnOptions()">
+                <i class="fas fa-columns btn-icon"></i>
+                تنظیم ستون‌ها
+            </button>
+            <div class="column-options-menu" id="columnOptions">
+                <div class="column-option">
+                    <label>
+                        <input type="checkbox" data-column="0" checked disabled> انتخاب
+                    </label>
+                </div>
+                <div class="column-option">
+                    <label>
+                        <input type="checkbox" data-column="1" checked> نام
+                    </label>
+                </div>
+                <div class="column-option">
+                    <label>
+                        <input type="checkbox" data-column="2" checked> شماره تماس
+                    </label>
+                </div>
+                <div class="column-option">
+                    <label>
+                        <input type="checkbox" data-column="3" checked> ایمیل
+                    </label>
+                </div>
+                <div class="column-option">
+                    <label>
+                        <input type="checkbox" data-column="4" checked> توضیحات
+                    </label>
+                </div>
+            </div>
+        </div>
+        <a href="{% url 'cargo_product_list' %}" class="btn btn-primary" style="margin-right: 10px;">
+            <span class="btn-icon"><i class="fas fa-box"></i></span>
+            بازگشت به کوتاژها
+        </a>
+    </div>
+    
+    <div class="search-container animate-slide-up">
+        <form method="get" style="display: flex; width: 100%;">
+            <input type="text" name="q" class="search-input" placeholder="جستجو در باربری‌ها..." value="{{ query }}">
+            <button type="submit" class="search-button">
+                <i class="fas fa-search"></i>
+            </button>
+        </form>
+    </div>
+    
+    <div class="card animate-slide-up" style="animation-delay: 0.1s;">
+        <div class="card-header">
+            <h2 class="text-lg font-semibold">لیست باربری‌ها</h2>
+            <span class="badge badge-success">{{ barbaries|length }} باربری</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="overflow-x-auto">
+                <table class="table-hover" id="barbariesTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="select-all" onclick="toggleAll()"></th>
+                            <th onclick="sortTable(1, 'barbariesTable')">نام <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(2, 'barbariesTable')">شماره تماس <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(3, 'barbariesTable')">ایمیل <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(4, 'barbariesTable')">توضیحات <span class="sort-icon"></span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for barbary in barbaries %}
+                            <tr onclick="toggleSelection(this, {{ barbary.id }});" class="animate-fade-in" style="animation-delay: {{ forloop.counter0|add:1|divisibleby:10 }}0ms">
+                                <td>
+                                    <input type="checkbox" name="barbary_id" value="{{ barbary.id }}" onclick="event.stopPropagation();">
+                                </td>
+                                <td><strong>{{ barbary.name|default:"-" }}</strong></td>
+                                <td>{{ barbary.phone_number|default:"-" }}</td>
+                                <td>{{ barbary.email|default:"-" }}</td>
+                                <td>{{ barbary.description|default:"-" }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-6">
+                                    <div class="flex flex-col items-center">
+                                        <i class="fas fa-truck text-4xl mb-3 text-gray-300"></i>
+                                        <p class="text-gray-500">هیچ باربری یافت نشد</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleSelection(row, barbaryId) {
+        var checkbox = row.querySelector('input[type="checkbox"]');
+        checkbox.checked = !checkbox.checked;
+        
+        // اضافه کردن یا حذف کلاس selected برای نمایش انتخاب
+        if (checkbox.checked) {
+            row.classList.add('selected');
+        } else {
+            row.classList.remove('selected');
+        }
+    }
+    
+    function toggleAll() {
+        var mainCheckbox = document.getElementById('select-all');
+        var checkboxes = document.querySelectorAll('input[name="barbary_id"]');
+        var isChecked = mainCheckbox.checked;
+        
+        checkboxes.forEach(function(checkbox) {
+            checkbox.checked = isChecked;
+            var row = checkbox.closest('tr');
+            if (isChecked) {
+                row.classList.add('selected');
+            } else {
+                row.classList.remove('selected');
+            }
+        });
+    }
+    
+    function bulkEdit() {
+        var checkedBarbaries = document.querySelectorAll('input[name="barbary_id"]:checked');
+        if (checkedBarbaries.length > 0) {
+            var ids = Array.from(checkedBarbaries).map(function(checkbox) { return checkbox.value; });
+            var url = "{% url 'bulk_edit_barbaries' %}?";
+            ids.forEach(function(id) {
+                url += "ids=" + id + "&";
+            });
+            window.location.href = url.slice(0, -1); // Remove the trailing &
+        } else {
+            alert('لطفاً حداقل یک باربری را انتخاب کنید.');
+        }
+    }
+
+    // تابع مرتب سازی جدول
+    function sortTable(n, tableId) {
+        var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+        table = document.getElementById(tableId);
+        switching = true;
+        // تنظیم جهت مرتب سازی به صعودی
+        dir = "asc";
+        
+        // پاکسازی تمام آیکون‌های مرتب‌سازی قبلی
+        table.querySelectorAll('th .sort-icon').forEach(function(icon) {
+            icon.className = 'sort-icon';
+        });
+        
+        // بروزرسانی آیکون مرتب‌سازی برای ستون فعلی
+        var currentIcon = table.rows[0].cells[n].querySelector('.sort-icon');
+        
+        while (switching) {
+            switching = false;
+            rows = table.rows;
+            
+            // حلقه در میان تمام ردیف‌های جدول به جز سرصفحه
+            for (i = 1; i < (rows.length - 1); i++) {
+                shouldSwitch = false;
+                
+                // دریافت دو عنصر برای مقایسه
+                x = rows[i].cells[n];
+                y = rows[i + 1].cells[n];
+                
+                // بررسی اگر دو ردیف باید جابجا شوند
+                if (dir == "asc") {
+                    if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                } else if (dir == "desc") {
+                    if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (shouldSwitch) {
+                // اگر باید جابجا شود، انجام جابجایی و ادامه حلقه
+                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                switching = true;
+                switchcount++;
+            } else {
+                // اگر هیچ جابجایی انجام نشده و جهت فعلی "asc" است، تغییر به "desc" و شروع مجدد حلقه
+                if (switchcount == 0 && dir == "asc") {
+                    dir = "desc";
+                    switching = true;
+                }
+            }
+        }
+        
+        // تنظیم کلاس آیکون مرتب‌سازی بر اساس جهت
+        if (dir === "asc") {
+            currentIcon.className = 'sort-icon asc';
+        } else {
+            currentIcon.className = 'sort-icon desc';
+        }
+    }
+
+    // تابع تغییر نمایش ستون‌ها
+    function toggleColumnVisibility() {
+        var checkboxes = document.querySelectorAll('#columnOptions input[type="checkbox"]');
+        var table = document.getElementById('barbariesTable');
+        
+        checkboxes.forEach(function(checkbox) {
+            var columnIndex = checkbox.getAttribute('data-column');
+            var isVisible = checkbox.checked;
+            
+            // تغییر نمایش ستون در جدول
+            if (table) {
+                var headerCells = table.querySelectorAll('th');
+                var rows = table.querySelectorAll('tr');
+                
+                // تغییر نمایش در سرصفحه
+                if (headerCells[columnIndex]) {
+                    headerCells[columnIndex].style.display = isVisible ? '' : 'none';
+                }
+                
+                // تغییر نمایش در ردیف‌ها
+                rows.forEach(function(row) {
+                    var cells = row.querySelectorAll('td');
+                    if (cells[columnIndex]) {
+                        cells[columnIndex].style.display = isVisible ? '' : 'none';
+                    }
+                });
+            }
+        });
+    }
+
+    // نمایش/پنهان کردن منوی تنظیمات ستون
+    function toggleColumnOptions() {
+        var menu = document.getElementById('columnOptions');
+        menu.classList.toggle('show');
+    }
+
+    // بستن منوی تنظیمات ستون با کلیک خارج از آن
+    document.addEventListener('click', function(event) {
+        var menu = document.getElementById('columnOptions');
+        var button = document.querySelector('.column-options-btn');
+        
+        if (!menu.contains(event.target) && !button.contains(event.target)) {
+            menu.classList.remove('show');
+        }
+    });
+    
+    // اضافه کردن آیکون‌های Font Awesome
+    document.addEventListener('DOMContentLoaded', function() {
+        // اگر لینک Font Awesome قبلاً اضافه نشده باشد، آن را اضافه کن
+        if (!document.querySelector('link[href*="font-awesome"]')) {
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css';
+            document.head.appendChild(link);
+        }
+        
+        // افزودن event listener برای تغییر نمایش ستون‌ها
+        document.querySelectorAll('#columnOptions input[type="checkbox"]').forEach(function(checkbox) {
+            checkbox.addEventListener('change', toggleColumnVisibility);
+        });
+    });
+</script>
+{% endblock %} 

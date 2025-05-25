@@ -21,8 +21,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import login
 from django.contrib.admin.sites import site
 from bki_barnameh.models.BarnamehModel import Barnameh
-from .VaredKonandehModel import VaredKonandeh
-from .BarbaryModel import Barbary
+from .CargoProductModel import VaredKonandeh, Barbary, VaredKonandehTransaction
 # @admin.register(Notification)
 # class NotificationAdmin(admin.ModelAdmin):
 #     list_display = ('user', 'message')
@@ -531,13 +530,21 @@ class BarnamehLogAdmin(admin.ModelAdmin):
 
 @admin.register(VaredKonandeh)
 class VaredKonandehAdmin(admin.ModelAdmin):
-    list_display = ('name', 'phone_number', 'email', 'vallet')
+    list_display = ('name', 'phone_number', 'email', 'balance')
     search_fields = ('name', 'phone_number', 'email')
 
 @admin.register(Barbary)
 class BarbaryAdmin(admin.ModelAdmin):
     list_display = ('name', 'phone_number', 'email')
     search_fields = ('name', 'phone_number', 'email')
+
+@admin.register(VaredKonandehTransaction)
+class VaredKonandehTransactionAdmin(admin.ModelAdmin):
+    list_display = ('vared_konandeh', 'amount', 'type', 'created_at')
+    list_filter = ('type',)
+    search_fields = ('vared_konandeh__name', 'amount', 'type')
+    ordering = ('-created_at',)
+
 
 
 

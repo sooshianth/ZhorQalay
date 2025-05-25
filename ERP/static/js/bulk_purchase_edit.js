@@ -382,6 +382,7 @@ function populateTable(purchaseData) {
             <td>${formatNumber(purchase.customer_price)} ریال</td>
             <td>${formatNumber(purchase.order_weight)} کیلوگرم</td>
             <td>${formatNumber(purchase.delivered_weight)} کیلوگرم</td>
+            <td>${purchase.is_factored ? '<span class="badge bg-success">فاکتور صادر شده</span>' : '<span class="badge bg-warning">فاکتور صادر نشده</span>'}</td>
             <td>
                 <button class="btn btn-sm btn-info" onclick="viewPurchaseDetails(${purchase.id})">
                     <i class="fas fa-eye"></i>
@@ -520,6 +521,10 @@ function viewPurchaseDetails(purchaseId) {
                             <div class="detail-label">توضیحات:</div>
                             <div class="detail-value">${purchase.description || '-'}</div>
                         </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="detail-label">وضعیت فاکتور:</div>
+                            <div class="detail-value">${purchase.is_factored ? '<span class="badge bg-success">فاکتور صادر شده</span>' : '<span class="badge bg-warning">فاکتور صادر نشده</span>'}</div>
+                        </div>
                         <div class="col-md-12 mb-3">
                             <div class="detail-label">کارشناسان فروش:</div>
                             <div class="detail-value">${purchase.sales_agents && purchase.sales_agents.length > 0 ? purchase.sales_agents.map(agent => agent.name).join('، ') : '-'}</div>
@@ -574,7 +579,8 @@ function applyBulkEdit() {
         { name: 'extelafAmount', label: 'مبلغ اختلاف', dbField: 'extelaf_amount' },
         { name: 'address', label: 'آدرس' },
         { name: 'description', label: 'توضیحات' },
-        { name: 'salesAgent', label: 'کارشناس فروش', dbField: 'sales_agent' }
+        { name: 'salesAgent', label: 'کارشناس فروش', dbField: 'sales_agent' },
+        { name: 'isFactored', label: 'وضعیت فاکتور', dbField: 'is_factored' }
     ];
     
     fields.forEach(field => {
@@ -582,10 +588,26 @@ function applyBulkEdit() {
         
         if (checkbox && checkbox.checked) {
             const fieldElement = document.getElementById(`${field.name}Field`);
-            const value = fieldElement.value;
+            let value = fieldElement.value;
             
             // اضافه کردن به تغییرات
             const dbField = field.dbField || field.name;
+            
+            // تبدیل مقادیر مخصوص به نوع مناسب
+            if (field.name === 'isFactored') {
+                // فقط مقادیر true یا false را به صورت boolean ارسال کن
+                if (value === 'true') {
+                    value = true;
+                } else if (value === 'false') {
+                    value = false;
+                } else {
+                    // اگر مقدار معتبر نیست، آن را ارسال نکن
+                    return;
+                }
+            } else if (['companyPrice', 'customerPrice', 'orderWeight', 'deliveredWeight', 'amountPaid', 'extelafWeight', 'extelafAmount'].includes(field.name) && value !== '') {
+                value = Number(value);
+            }
+            
             changes[dbField] = value;
             
             // خاص برای نمایش وضعیت
@@ -602,6 +624,11 @@ function applyBulkEdit() {
             else if (field.name === 'salesAgent' && value) {
                 const agentLabel = fieldElement.options[fieldElement.selectedIndex].text;
                 changeLabels.push(`افزودن ${field.label}: ${agentLabel}`);
+            }
+            // خاص برای نمایش وضعیت فاکتور
+            else if (field.name === 'isFactored') {
+                const isFactoredText = value === true ? 'فاکتور صادر شده' : 'فاکتور صادر نشده';
+                changeLabels.push(`${field.label}: ${isFactoredText}`);
             }
             // فیلدهای عمومی
             else {
@@ -637,6 +664,13 @@ function confirmBulkEdit(changes) {
     // مخفی کردن مدال تایید
     bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
     
+    // لاگ اطلاعات ارسالی برای دیباگ
+    debugLog('در حال ارسال تغییرات به سرور...');
+    debugLog('داده‌های ارسالی: ' + JSON.stringify({
+        purchase_ids: selectedPurchases,
+        changes: changes
+    }, null, 2));
+    
     // ارسال درخواست به سرور
     fetch('/erp/bulk-purchase-edit/apply/', {
         method: 'POST',
@@ -649,9 +683,18 @@ function confirmBulkEdit(changes) {
             changes: changes
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        debugLog(`پاسخ دریافت شد: ${response.status} ${response.statusText}`);
+        
+        if (!response.ok) {
+            throw new Error(`خطای سرور: ${response.status} ${response.statusText}`);
+        }
+        
+        return response.json();
+    })
     .then(response => {
         hideLoading();
+        debugLog('پاسخ سرور با موفقیت پردازش شد: ' + JSON.stringify(response));
         
         if (response.success) {
             // نمایش پیام موفقیت
@@ -696,7 +739,16 @@ function confirmBulkEdit(changes) {
     })
     .catch(error => {
         hideLoading();
-        showError('خطا در ارتباط با سرور: ' + error.message);
+        console.error('Error in bulk edit:', error);
+        debugLog(`خطا در ارتباط با سرور: ${error.message}`);
+        
+        // نمایش پیام خطا در مودال
+        Swal.fire({
+            title: 'خطا در برقراری ارتباط',
+            text: error.message,
+            icon: 'error',
+            confirmButtonText: 'تایید'
+        });
     });
 }
 

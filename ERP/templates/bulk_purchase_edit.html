@@ -496,27 +496,19 @@
     
     <!-- مدال تایید تغییرات -->
     <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="confirmModalLabel">تایید تغییرات</h5>
+                    <h5 class="modal-title" id="confirmModalLabel">تایید اعمال تغییرات</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="alert alert-warning mb-3">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong id="purchaseCount"></strong> خرید انتخاب شده است. آیا از اعمال تغییرات زیر اطمینان دارید؟
-                    </div>
-                    
-                    <div class="changes-summary">
-                        <h6>خلاصه تغییرات</h6>
-                        <div id="changesList" class="mt-2"></div>
-                    </div>
+                    <p>آیا از اعمال تغییرات زیر روی <span id="purchaseCount">0</span> خرید انتخاب شده اطمینان دارید؟</p>
+                    <div id="changesList" class="mt-3"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
-                    <button type="button" class="btn btn-danger" id="confirmChangesBtn">تایید و اعمال تغییرات</button>
-                </div>
+                    <button type="button" class="btn btn-primary" id="confirmChangesBtn">اعمال تغییرات</button>
                 </div>
             </div>
         </div>
@@ -745,59 +737,6 @@
                 </td>
             `;
             tableBody.appendChild(row);
-        });
-    }
-
-    // ارسال تغییرات فله‌ای
-    function applyBulkEdit() {
-        const selectedPurchaseIds = Array.from(document.querySelectorAll('.purchase-checkbox:checked')).map(cb => cb.value);
-        const changes = {
-            state: document.getElementById('stateField').value,
-            cargo: document.getElementById('cargoField').value,
-            paymentMethod: document.getElementById('paymentMethodField').value,
-            salesAgent: document.getElementById('salesAgentField').value,
-            companyPrice: document.getElementById('companyPriceField').value,
-            customerPrice: document.getElementById('customerPriceField').value,
-            orderWeight: document.getElementById('orderWeightField').value,
-            deliveredWeight: document.getElementById('deliveredWeightField').value,
-            amountPaid: document.getElementById('amountPaidField').value,
-            extelafType: document.getElementById('extelafTypeField').value,
-            extelafWeight: document.getElementById('extelafWeightField').value,
-            extelafAmount: document.getElementById('extelafAmountField').value,
-            address: document.getElementById('addressField').value,
-            description: document.getElementById('descriptionField').value,
-            is_factored: document.getElementById('isFactoredField').value === 'true' ? true : 
-                          document.getElementById('isFactoredField').value === 'false' ? false : null
-        };
-
-        fetch('/erp/bulk-purchase-edit/apply-bulk-edit/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({purchase_ids: selectedPurchaseIds, changes: changes})
-        })
-        .then(response => {
-            console.log('وضعیت پاسخ:', response.status);
-            return response.json();
-        })
-        .then(data => {
-            console.log('پاسخ سرور:', data);
-            
-            if (data.success) {
-                // نمایش موفقیت
-                alert('تغییرات با موفقیت اعمال شد.');
-                
-                // بستن مدال تایید
-                $('#confirmModal').modal('hide');
-            } else {
-                alert(data.message || 'خطا در اعمال تغییرات');
-            }
-        })
-        .catch(error => {
-            console.error('خطا در ارتباط با سرور:', error);
-            alert('خطا در ارتباط با سرور: ' + error.message);
         });
     }
 </script>

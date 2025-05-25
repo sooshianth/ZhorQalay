@@ -1,75 +1,46 @@
 from django.shortcuts import render, redirect
-from core._models import CargoProduct
+from core._models import CargoProduct, VaredKonandeh, Barbary
 from django.contrib.auth.decorators import login_required
 from core.decorators.decorators import role_required
 from django.http import JsonResponse
 from django.db.models import Q
 from django.db import connection
-from core.VaredKonandehModel import VaredKonandeh
-from core.BarbaryModel import Barbary
 
 @role_required('admin', 'logistics_manager')
 @login_required
 def cargo_product_crud_panel(request, product_id=None):
-    product = None
+    # اجازه ویرایش تکی محصولات داده نمی‌شود
     if product_id:
-        product = CargoProduct.objects.get(id=product_id)
+        return redirect('cargo_product_list')
+    
+    product = None
     if request.method == 'POST':
         data = request.POST
-        if product:
-            # Update existing product
-            product.type = data.get('type')
-            product.cottage = data.get('cottage')
-            product.company_price = data.get('company_price')
-            product.customer_price = data.get('customer_price')
-            product.product_type = data.get('product_type')
-            product.country = data.get('country')
+        # فقط ایجاد محصول جدید
+        # Create new product
+        vared_konandeh = None
+        if data.get('vared_konandeh'):
+            vared_konandeh = VaredKonandeh.objects.get(id=data.get('vared_konandeh'))
             
-            # Handle vared_konandeh
-            vared_konandeh_id = data.get('vared_konandeh')
-            if vared_konandeh_id:
-                product.vared_konandeh = VaredKonandeh.objects.get(id=vared_konandeh_id)
-            else:
-                product.vared_konandeh = None
-                
-            # Handle barbary
-            barbary_id = data.get('barbary')
-            if barbary_id:
-                product.barbary = Barbary.objects.get(id=barbary_id)
-            else:
-                product.barbary = None
-                
-            product.port = data.get('port')
-            product.loading_time = data.get('loading_time')
-            product.description = data.get('description')
-            product.weight = data.get('weight')
-            product.status = data.get('status') == 'on'
-            product.save()
-        else:
-            # Create new product
-            vared_konandeh = None
-            if data.get('vared_konandeh'):
-                vared_konandeh = VaredKonandeh.objects.get(id=data.get('vared_konandeh'))
-                
-            barbary = None
-            if data.get('barbary'):
-                barbary = Barbary.objects.get(id=data.get('barbary'))
-                
-            CargoProduct.objects.create(
-                type=data.get('type'),
-                cottage=data.get('cottage'),
-                company_price=data.get('company_price'),
-                customer_price=data.get('customer_price'),
-                product_type=data.get('product_type'),
-                country=data.get('country'),
-                vared_konandeh=vared_konandeh,
-                barbary=barbary,
-                port=data.get('port'),
-                loading_time=data.get('loading_time'),
-                description=data.get('description'),
-                weight=data.get('weight'),
-                status=data.get('status') == 'on'
-            )
+        barbary = None
+        if data.get('barbary'):
+            barbary = Barbary.objects.get(id=data.get('barbary'))
+            
+        CargoProduct.objects.create(
+            type=data.get('type'),
+            cottage=data.get('cottage'),
+            company_price=data.get('company_price'),
+            customer_price=data.get('customer_price'),
+            product_type=data.get('product_type'),
+            country=data.get('country'),
+            vared_konandeh=vared_konandeh,
+            barbary=barbary,
+            port=data.get('port'),
+            loading_time=data.get('loading_time'),
+            description=data.get('description'),
+            weight=data.get('weight'),
+            status=data.get('status') == 'on'
+        )
         return redirect('cargo_product_list')
     
     # Get all vared_konandeh and barbary for dropdown
@@ -142,6 +113,12 @@ def bulk_edit_cargo_products(request):
                     country = request.POST.get('country')
                     products.update(country=country)
             
+            # تغییر نوع محصول
+            if 'enable_product_type' in request.POST:
+                if request.POST.get('product_type'):
+                    product_type = request.POST.get('product_type')
+                    products.update(product_type=product_type)
+            
             # تغییر وارد کننده و باربری
             if 'enable_companies' in request.POST:
                 if request.POST.get('vared_konandeh'):
@@ -183,6 +160,7 @@ def bulk_edit_cargo_products(request):
             'products': products,
             'ports': CargoProduct.PORTS,
             'countries': CargoProduct.COUNTRIES,
+            'product_types': CargoProduct.PRODUCT_TYPES,
             'products_ids_str': products_ids_str,
             'vared_konandehs': vared_konandehs,
             'barbaries': barbaries

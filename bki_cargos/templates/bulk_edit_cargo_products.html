@@ -421,6 +421,34 @@
 
             <div class="edit-section">
                 <div class="edit-section-header">
+                    <h3 class="edit-section-title">تغییر نوع محصول</h3>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="checkbox-wrapper">
+                            <input type="checkbox" id="enable_product_type" name="enable_product_type">
+                            <span class="checkmark"></span>
+                            <span class="checkbox-label">تغییر نوع محصول</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="product_type_options" style="display: none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="product_type">نوع محصول:</label>
+                            <select id="product_type" name="product_type" class="form-control">
+                                <option value="">انتخاب کنید</option>
+                                {% for value, label in product_types %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="edit-section">
+                <div class="edit-section-header">
                     <h3 class="edit-section-title">تغییر واردکننده و باربری</h3>
                 </div>
                 <div class="form-row">
@@ -537,6 +565,11 @@
         // تغییر کشور
         document.getElementById('enable_country').addEventListener('change', function() {
             document.getElementById('country_options').style.display = this.checked ? 'block' : 'none';
+        });
+        
+        // تغییر نوع محصول
+        document.getElementById('enable_product_type').addEventListener('change', function() {
+            document.getElementById('product_type_options').style.display = this.checked ? 'block' : 'none';
         });
         
         // تغییر واردکننده و باربری

@@ -141,6 +141,32 @@
         text-transform: uppercase;
         letter-spacing: 0.05em;
         border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        position: relative;
+    }
+    
+    th:hover {
+        background-color: #f1f5f9;
+    }
+    
+    .sort-icon {
+        display: inline-block;
+        width: 0;
+        height: 0;
+        margin-right: 5px;
+        vertical-align: middle;
+    }
+    
+    .sort-icon.asc {
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-bottom: 5px solid #475569;
+    }
+    
+    .sort-icon.desc {
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 5px solid #475569;
     }
     
     td {
@@ -203,17 +229,64 @@
         border-top: none;
     }
     
-    /* Links */
-    .edit-link {
-        color: var(--secondary);
-        text-decoration: none;
-        font-weight: 500;
-        transition: color 0.3s ease;
+    /* Column display options */
+    .column-options {
+        position: relative;
+        display: inline-block;
+        margin-right: 1rem;
     }
     
-    .edit-link:hover {
-        color: var(--secondary-hover);
-        text-decoration: underline;
+    .column-options-btn {
+        background-color: #f1f5f9;
+        color: #334155;
+        border: 1px solid var(--border);
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+    }
+    
+    .column-options-btn:hover {
+        background-color: #e2e8f0;
+    }
+    
+    .column-options-menu {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        z-index: 10;
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: var(--card-shadow);
+        min-width: 200px;
+        padding: 0.5rem 0;
+        display: none;
+    }
+    
+    .column-options-menu.show {
+        display: block;
+    }
+    
+    .column-option {
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .column-option:hover {
+        background-color: #f1f5f9;
+    }
+    
+    .column-option label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+    }
+    
+    .column-option input[type="checkbox"] {
+        margin-left: 0.5rem;
     }
     
     /* Animations */
@@ -249,6 +322,77 @@
             <span class="btn-icon"><i class="fas fa-edit"></i></span>
             ویرایش گروهی
         </button>
+        <div class="column-options">
+            <button class="column-options-btn" onclick="toggleColumnOptions()">
+                <i class="fas fa-columns btn-icon"></i>
+                تنظیم ستون‌ها
+            </button>
+            <div class="column-options-menu" id="columnOptions">
+                <div class="column-option">
+                    <label>
+                        <input type="checkbox" data-column="0" checked disabled> انتخاب
+                    </label>
+                </div>
+                <div class="column-option">
+                    <label>
+                        <input type="checkbox" data-column="1" checked> کوتاژ
+                    </label>
+                </div>
+                <div class="column-option">
+                    <label>
+                        <input type="checkbox" data-column="2" checked> نوع محصول
+                    </label>
+                </div>
+                <div class="column-option">
+                    <label>
+                        <input type="checkbox" data-column="3" checked> کشور
+                    </label>
+                </div>
+                <div class="column-option">
+                    <label>
+                        <input type="checkbox" data-column="4" checked> واردکننده
+                    </label>
+                </div>
+                <div class="column-option">
+                    <label>
+                        <input type="checkbox" data-column="5" checked> باربری
+                    </label>
+                </div>
+                <div class="column-option">
+                    <label>
+                        <input type="checkbox" data-column="6" checked> قیمت فروش
+                    </label>
+                </div>
+                <div class="column-option">
+                    <label>
+                        <input type="checkbox" data-column="7" checked> محل بارگیری
+                    </label>
+                </div>
+                <div class="column-option">
+                    <label>
+                        <input type="checkbox" data-column="8" checked> زمان بارگیری
+                    </label>
+                </div>
+                <div class="column-option">
+                    <label>
+                        <input type="checkbox" data-column="9" checked> توضیحات
+                    </label>
+                </div>
+                <div class="column-option">
+                    <label>
+                        <input type="checkbox" data-column="10" checked> وضعیت
+                    </label>
+                </div>
+            </div>
+        </div>
+        <a href="{% url 'barbary_list' %}" class="btn btn-primary" style="margin-right: 10px;">
+            <span class="btn-icon"><i class="fas fa-truck"></i></span>
+            مدیریت باربری‌ها
+        </a>
+        <a href="{% url 'vared_konandeh_list' %}" class="btn btn-primary" style="margin-right: 10px;">
+            <span class="btn-icon"><i class="fas fa-users"></i></span>
+            مدیریت واردکنندگان
+        </a>
     </div>
     {% endif %}
     <form id="bulkEditForm" action="{% url 'bulk_edit_cargo_products' %}" method="post" style="display: none;">
@@ -263,21 +407,20 @@
         </div>
         <div class="card-body p-0">
             <div class="overflow-x-auto">
-                <table class="table-hover">
+                <table class="table-hover" id="activeProductsTable">
                     <thead>
                         <tr>
                             <th style="width: 40px;"><input type="checkbox" id="select-all" onclick="toggleAllActive()"></th>
-                            <th>کوتاژ</th>
-                            <th>نوع محصول</th>
-                            <th>کشور</th>
-                            <th>واردکننده</th>
-                            <th>باربری</th>
-                            <th>قیمت فروش</th>
-                            <th>محل بارگیری</th>
-                            <th>زمان بارگیری</th>
-                            <th>توضیحات</th>
-                            <th>وضعیت</th>
-                            <th>ویرایش</th>
+                            <th onclick="sortTable(1, 'activeProductsTable')">کوتاژ <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(2, 'activeProductsTable')">نوع محصول <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(3, 'activeProductsTable')">کشور <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(4, 'activeProductsTable')">واردکننده <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(5, 'activeProductsTable')">باربری <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(6, 'activeProductsTable')">قیمت فروش <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(7, 'activeProductsTable')">محل بارگیری <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(8, 'activeProductsTable')">زمان بارگیری <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(9, 'activeProductsTable')">توضیحات <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(10, 'activeProductsTable')">وضعیت <span class="sort-icon"></span></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -301,16 +444,10 @@
                                         فعال
                                     </span>
                                 </td>
-                                <td>
-                                    <a href="{% url 'cargo_product_crud_panel' product.id %}" class="edit-link" onclick="event.stopPropagation();">
-                                        <i class="fas fa-edit mr-1"></i>
-                                        ویرایش
-                                    </a>
-                                </td>
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="12" class="text-center py-6">
+                                <td colspan="11" class="text-center py-6">
                                     <div class="flex flex-col items-center">
                                         <i class="fas fa-box-open text-4xl mb-3 text-gray-300"></i>
                                         <p class="text-gray-500">هیچ محصول فعالی یافت نشد</p>
@@ -335,21 +472,20 @@
         </summary>
         <div class="dropdown-content">
             <div class="overflow-x-auto">
-                <table class="table-hover">
+                <table class="table-hover" id="inactiveProductsTable">
                     <thead>
                         <tr>
                             <th style="width: 40px;"><input type="checkbox" id="select-all-inactive" onclick="toggleAllInactive()"></th>
-                            <th>کوتاژ</th>
-                            <th>نوع محصول</th>
-                            <th>کشور</th>
-                            <th>واردکننده</th>
-                            <th>باربری</th>
-                            <th>قیمت فروش</th>
-                            <th>محل بارگیری</th>
-                            <th>زمان بارگیری</th>
-                            <th>توضیحات</th>
-                            <th>وضعیت</th>
-                            <th>ویرایش</th>
+                            <th onclick="sortTable(1, 'inactiveProductsTable')">کوتاژ <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(2, 'inactiveProductsTable')">نوع محصول <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(3, 'inactiveProductsTable')">کشور <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(4, 'inactiveProductsTable')">واردکننده <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(5, 'inactiveProductsTable')">باربری <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(6, 'inactiveProductsTable')">قیمت فروش <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(7, 'inactiveProductsTable')">محل بارگیری <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(8, 'inactiveProductsTable')">زمان بارگیری <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(9, 'inactiveProductsTable')">توضیحات <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(10, 'inactiveProductsTable')">وضعیت <span class="sort-icon"></span></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -373,16 +509,10 @@
                                         غیرفعال
                                     </span>
                                 </td>
-                                <td>
-                                    <a href="{% url 'cargo_product_crud_panel' product.id %}" class="edit-link" onclick="event.stopPropagation();">
-                                        <i class="fas fa-edit mr-1"></i>
-                                        ویرایش
-                                    </a>
-                                </td>
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="12" class="text-center py-6">
+                                <td colspan="11" class="text-center py-6">
                                     <p class="text-gray-500">هیچ محصول غیرفعالی یافت نشد</p>
                                 </td>
                             </tr>
@@ -449,6 +579,136 @@
             alert('لطفاً حداقل یک محصول را انتخاب کنید.');
         }
     }
+
+    // تابع مرتب سازی جدول
+    function sortTable(n, tableId) {
+        var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+        table = document.getElementById(tableId);
+        switching = true;
+        // تنظیم جهت مرتب سازی به صعودی
+        dir = "asc";
+        
+        // پاکسازی تمام آیکون‌های مرتب‌سازی قبلی
+        table.querySelectorAll('th .sort-icon').forEach(function(icon) {
+            icon.className = 'sort-icon';
+        });
+        
+        // بروزرسانی آیکون مرتب‌سازی برای ستون فعلی
+        var currentIcon = table.rows[0].cells[n].querySelector('.sort-icon');
+        
+        while (switching) {
+            switching = false;
+            rows = table.rows;
+            
+            // حلقه در میان تمام ردیف‌های جدول به جز سرصفحه
+            for (i = 1; i < (rows.length - 1); i++) {
+                shouldSwitch = false;
+                
+                // دریافت دو عنصر برای مقایسه
+                x = rows[i].cells[n];
+                y = rows[i + 1].cells[n];
+                
+                // بررسی اگر دو ردیف باید جابجا شوند
+                if (dir == "asc") {
+                    if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                } else if (dir == "desc") {
+                    if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (shouldSwitch) {
+                // اگر باید جابجا شود، انجام جابجایی و ادامه حلقه
+                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                switching = true;
+                switchcount++;
+            } else {
+                // اگر هیچ جابجایی انجام نشده و جهت فعلی "asc" است، تغییر به "desc" و شروع مجدد حلقه
+                if (switchcount == 0 && dir == "asc") {
+                    dir = "desc";
+                    switching = true;
+                }
+            }
+        }
+        
+        // تنظیم کلاس آیکون مرتب‌سازی بر اساس جهت
+        if (dir === "asc") {
+            currentIcon.className = 'sort-icon asc';
+        } else {
+            currentIcon.className = 'sort-icon desc';
+        }
+    }
+
+    // تابع تغییر نمایش ستون‌ها
+    function toggleColumnVisibility() {
+        var checkboxes = document.querySelectorAll('#columnOptions input[type="checkbox"]');
+        var activeTable = document.getElementById('activeProductsTable');
+        var inactiveTable = document.getElementById('inactiveProductsTable');
+        
+        checkboxes.forEach(function(checkbox) {
+            var columnIndex = checkbox.getAttribute('data-column');
+            var isVisible = checkbox.checked;
+            
+            // تغییر نمایش ستون در جدول محصولات فعال
+            if (activeTable) {
+                var headerCells = activeTable.querySelectorAll('th');
+                var rows = activeTable.querySelectorAll('tr');
+                
+                // تغییر نمایش در سرصفحه
+                if (headerCells[columnIndex]) {
+                    headerCells[columnIndex].style.display = isVisible ? '' : 'none';
+                }
+                
+                // تغییر نمایش در ردیف‌ها
+                rows.forEach(function(row) {
+                    var cells = row.querySelectorAll('td');
+                    if (cells[columnIndex]) {
+                        cells[columnIndex].style.display = isVisible ? '' : 'none';
+                    }
+                });
+            }
+            
+            // تغییر نمایش ستون در جدول محصولات غیرفعال
+            if (inactiveTable) {
+                var inactiveHeaderCells = inactiveTable.querySelectorAll('th');
+                var inactiveRows = inactiveTable.querySelectorAll('tr');
+                
+                // تغییر نمایش در سرصفحه
+                if (inactiveHeaderCells[columnIndex]) {
+                    inactiveHeaderCells[columnIndex].style.display = isVisible ? '' : 'none';
+                }
+                
+                // تغییر نمایش در ردیف‌ها
+                inactiveRows.forEach(function(row) {
+                    var cells = row.querySelectorAll('td');
+                    if (cells[columnIndex]) {
+                        cells[columnIndex].style.display = isVisible ? '' : 'none';
+                    }
+                });
+            }
+        });
+    }
+
+    // نمایش/پنهان کردن منوی تنظیمات ستون
+    function toggleColumnOptions() {
+        var menu = document.getElementById('columnOptions');
+        menu.classList.toggle('show');
+    }
+
+    // بستن منوی تنظیمات ستون با کلیک خارج از آن
+    document.addEventListener('click', function(event) {
+        var menu = document.getElementById('columnOptions');
+        var button = document.querySelector('.column-options-btn');
+        
+        if (!menu.contains(event.target) && !button.contains(event.target)) {
+            menu.classList.remove('show');
+        }
+    });
     
     // اضافه کردن آیکون‌های Font Awesome
     document.addEventListener('DOMContentLoaded', function() {
@@ -459,6 +719,11 @@
             link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css';
             document.head.appendChild(link);
         }
+        
+        // افزودن event listener برای تغییر نمایش ستون‌ها
+        document.querySelectorAll('#columnOptions input[type="checkbox"]').forEach(function(checkbox) {
+            checkbox.addEventListener('change', toggleColumnVisibility);
+        });
     });
 </script>
 {% endblock %}

@@ -2,9 +2,53 @@ from django.db import models
 from django_jalali.db import models as jmodels
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
-from .BarbaryModel import Barbary
-from .VaredKonandehModel import VaredKonandeh
 
+class VaredKonandeh(models.Model):
+    name = models.CharField(max_length=50, verbose_name='نام', blank=True, null=True)
+    phone_number = models.CharField(max_length=11, verbose_name='شماره تماس', blank=True, null=True)
+    email = models.EmailField(max_length=50, verbose_name='ایمیل', blank=True, null=True)
+    website = models.URLField(max_length=200, verbose_name='وبسایت', blank=True, null=True)
+    balance = models.IntegerField(verbose_name='کیف پول', blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+    
+    class Meta:
+        verbose_name = 'وارد کننده'
+        verbose_name_plural = 'واردکنندگان'
+    
+class Barbary(models.Model):
+    name = models.CharField(max_length=50, verbose_name='نام', blank=True, null=True)
+    phone_number = models.CharField(max_length=11, verbose_name='شماره تماس', blank=True, null=True)
+    email = models.EmailField(max_length=50, verbose_name='ایمیل', blank=True, null=True)
+    description = models.CharField(max_length=200, verbose_name='توضیحات', blank=True, null=True)
+    
+    def __str__(self):
+        return self.name
+    
+    class Meta:
+        verbose_name = 'باربری'
+        verbose_name_plural = 'باربری ها'
+
+class VaredKonandehTransaction(models.Model):
+    TRANSACTION_TYPES = [
+        ('deposit', 'واریز'),
+        ('withdrawal', 'برداشت'),
+    ]
+    vared_konandeh = models.ForeignKey(VaredKonandeh, on_delete=models.CASCADE, null=True, blank=True)
+    amount = models.IntegerField(verbose_name='مبلغ(ریال)', blank=True, null=True)
+    description = models.CharField(max_length=200, verbose_name='توضیحات', blank=True, null=True)
+    type = models.CharField(max_length=20, verbose_name='نوع تراکنش', choices=TRANSACTION_TYPES, default='deposit')
+    created_at = jmodels.jDateTimeField(auto_now_add=True, verbose_name='تاریخ ثبت')
+    account_number = models.CharField(max_length=20, verbose_name='شماره حساب', blank=True, null=True)
+    
+    def __str__(self):
+        return f"{self.vared_konandeh.name} - {self.amount}"
+    
+    class Meta:
+        verbose_name = 'تراکنش وارد کننده'
+        verbose_name_plural = 'تراکنش های وارد کننده'
+ 
 
 class CargoProduct(models.Model):
     PURCHASE_TYPES = [
@@ -117,3 +161,4 @@ class CargoProduct(models.Model):
     def get_active_products():
         return CargoProduct.objects.filter(status=True) 
     
+
