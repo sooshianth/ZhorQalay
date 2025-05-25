@@ -618,6 +618,7 @@
             <div id="tasks" class="tab-content active">
                 <form method="post" class="task-form">
                     {% csrf_token %}
+                    <input type="hidden" name="active_tab" value="tasks" class="tab-input">
                     <textarea name="task_description" placeholder="توضیحات تسک"></textarea>
                     <br>
                     <input type="text" 
@@ -672,6 +673,7 @@
             <div id="calls" class="tab-content">
                 <form method="post" class="call-form">
                     {% csrf_token %}
+                    <input type="hidden" name="active_tab" value="calls" class="tab-input">
                     <select name="call_type">
                         <option value="incoming">ورودی</option>
                         <option value="outgoing">خروجی</option>
@@ -706,6 +708,7 @@
                 <!-- فرم ثبت خرید جدید -->
                 <form method="post" id="purchase-form" class="purchase-form">
                     {% csrf_token %}
+                    <input type="hidden" name="active_tab" value="purchases" class="tab-input">
                     <!-- DEBUG: Number of active products: {{ active_products|length }} -->
                     <div class="form-group">
                         <label>انتخاب کوتاژ:</label>
@@ -887,6 +890,9 @@ function showCargoDetails() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    // تعریف متغیر مشترک برای شناسه مشتری
+    const customerId = '{{ customer.id }}';
+
     // کنترل باز و بسته شدن ترجیحات کالایی
     const collapsibleToggles = document.querySelectorAll('.collapsible-toggle');
     
@@ -972,7 +978,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // کد پیش‌بینی خرید
-    const customerId = '{{ customer.id }}';
     const predictionTab = document.querySelector('[data-target="prediction"]');
     let predictionLoaded = false;
 
@@ -999,7 +1004,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             datasets: [{
                                 label: 'وزن خرید (کیلوگرم)',
                                 data: data.prediction.history.map(h => h.weight),
-                                borderColor: '#4F46E5',
+                                borderColor: '#065F46',
                                 fill: false,
                                 tension: 0.4
                             }]
@@ -1043,7 +1048,6 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 loading.classList.add('hidden');
                 content.innerHTML = '<p class="text-red-500">خطا در بارگذاری پیش‌بینی.</p>';
-                console.error('Error:', error);
             });
     }
 
@@ -1064,16 +1068,62 @@ document.addEventListener('DOMContentLoaded', function() {
     // تب‌ها
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
+    
+    // تابع تغییر تب
+    function switchTab(tabTarget) {
+        // غیرفعال کردن همه تب‌ها
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        tabContents.forEach(content => content.classList.remove('active'));
+        
+        // فعال کردن تب انتخاب شده
+        const selectedBtn = document.querySelector(`.tab-btn[data-target="${tabTarget}"]`);
+        if (selectedBtn) {
+            selectedBtn.classList.add('active');
+            const targetContent = document.getElementById(tabTarget);
+            if (targetContent) {
+                targetContent.classList.add('active');
+                
+                // ذخیره تب فعال در localStorage
+                if (customerId) {
+                    localStorage.setItem(`activeTab_${customerId}`, tabTarget);
+                }
+                
+                // به‌روز کردن مقدار فیلدهای hidden برای همه فرم‌ها
+                document.querySelectorAll('.tab-input').forEach(input => {
+                    input.value = tabTarget;
+                });
+            }
+        }
+    }
 
+    // رویداد کلیک برای تب‌ها
     tabButtons.forEach(button => {
         button.addEventListener('click', function() {
-            tabButtons.forEach(btn => btn.classList.remove('active'));
-            tabContents.forEach(content => content.classList.remove('active'));
-
-            this.classList.add('active');
-            document.getElementById(this.getAttribute('data-target')).classList.add('active');
+            const target = this.getAttribute('data-target');
+            switchTab(target);
         });
     });
+    
+    // بازیابی تب فعال هنگام بارگذاری صفحه
+    if (customerId) {
+        // بررسی پارامتر active_tab در URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlTab = urlParams.get('active_tab');
+        
+        if (urlTab) {
+            // اگر تب در URL موجود بود، آن را نمایش بده
+            switchTab(urlTab);
+        } else {
+            // در غیر این صورت از localStorage استفاده کن
+            const savedTab = localStorage.getItem(`activeTab_${customerId}`);
+            if (savedTab) {
+                switchTab(savedTab);
+            } else {
+                // تب پیش‌فرض اگر تبی ذخیره نشده باشد
+                switchTab('tasks');
+            }
+        }
+    }
 
     // افکت‌ها برای آیتم‌ها
     document.querySelectorAll('.call-item, .task-item, .history-item').forEach(item => {
@@ -1107,41 +1157,27 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 const list = document.getElementById('related-products-list');
+                if (!list) return;
+                
                 list.innerHTML = '';
                 data.products.forEach(product => {
                     const li = document.createElement('li');
                     li.innerText = `کوتاژ: ${product.cottage}, نوع: ${product.product_type}, کشور: ${product.country}`;
                     list.appendChild(li);
                 });
-                document.getElementById('related-products').style.display = 'block';
+                
+                const relatedProductsContainer = document.getElementById('related-products');
+                if (relatedProductsContainer) {
+                    relatedProductsContainer.style.display = 'block';
+                }
             })
             .catch(error => {
-                console.error('Error fetching related products:', error);
+                // خطا در دریافت محصولات مرتبط
             });
     }
 
     if (customerId) {
         fetchRelatedProducts(customerId);
-    }
-
-    // دارک مود
-    const themeToggle = document.getElementById('theme-toggle');
-    const htmlElement = document.documentElement;
-
-    if (localStorage.getItem('darkMode') === 'enabled') {
-        htmlElement.classList.add('dark-mode');
-    }
-
-    if (themeToggle) {
-        themeToggle.addEventListener('click', function() {
-            if (htmlElement.classList.contains('dark-mode')) {
-                htmlElement.classList.remove('dark-mode');
-                localStorage.setItem('darkMode', 'disabled');
-            } else {
-                htmlElement.classList.add('dark-mode');
-                localStorage.setItem('darkMode', 'enabled');
-            }
-        });
     }
 
     // Handle purchase history pagination with AJAX
@@ -1155,7 +1191,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const link = e.target.classList.contains('purchase-page-link') ? e.target : e.target.parentElement;
                 const page = link.getAttribute('data-page');
-                const customerId = {{ customer.id|default:'null' }};
                 
                 if (page && customerId) {
                     // Show loading indicator

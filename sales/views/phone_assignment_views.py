@@ -11,6 +11,7 @@ from core.SalesAgentModel import SalesAgent
 from core.CustomerModel import Customer, PhoneNumber
 from core._models import Customer as CustomerAlias
 from core.decorators.decorators import role_required
+
 def is_admin(user):
     """بررسی دسترسی ادمین"""
     return user.is_superuser or user.is_staff
@@ -23,12 +24,35 @@ def admin_import_phone_numbers(request):
     form = PhoneImportForm()
     
     if request.method == 'POST':
-        form = PhoneImportForm(request.POST, request.FILES)
-        if form.is_valid():
+        # بررسی نوع درخواست: کپی/پیست یا آپلود فایل
+        import_method = request.POST.get('import_method', 'file')
+        
+        if import_method == 'paste':
+            # پردازش شماره‌های کپی/پیست شده
             try:
                 with transaction.atomic():
-                    sales_agent = form.cleaned_data['sales_agent']
-                    phone_numbers = form.extract_phone_numbers()
+                    sales_agent_id = request.POST.get('sales_agent')
+                    phone_numbers_text = request.POST.get('phone_numbers', '')
+                    
+                    if not sales_agent_id:
+                        return JsonResponse({'success': False, 'error': 'لطفا یک کارشناس فروش انتخاب کنید'})
+                    
+                    sales_agent = get_object_or_404(SalesAgent, id=sales_agent_id)
+                    
+                    # استخراج شماره‌ها از متن
+                    phone_numbers = []
+                    for line in phone_numbers_text.strip().split('\n'):
+                        number = ''.join(c for c in line.strip() if c.isdigit())
+                        if number:
+                            # اعمال فرمت استاندارد (حذف صفر ابتدایی)
+                            if number.startswith('0'):
+                                number = number[1:]
+                            # اطمینان از اینکه شماره با 9 شروع می‌شود و 10 رقم است
+                            if number.startswith('9') and len(number) == 10:
+                                phone_numbers.append(number)
+                    
+                    if not phone_numbers:
+                        return JsonResponse({'success': False, 'error': 'هیچ شماره معتبری یافت نشد'})
                     
                     # بررسی تکراری نبودن شماره‌ها
                     existing_numbers = set(PhoneAssignment.objects.filter(
@@ -53,17 +77,60 @@ def admin_import_phone_numbers(request):
                             )
                             new_count += 1
                     
-                    # پیام موفقیت
-                    messages.success(
-                        request, 
-                        f"{new_count} شماره جدید به {sales_agent.name} تخصیص داده شد. "
-                        f"{len(existing_numbers)} شماره قبلاً تخصیص داده شده و "
-                        f"{len(customer_numbers)} شماره قبلاً به عنوان مشتری ثبت شده‌اند."
-                    )
-                    return redirect('admin_phone_assignment_list')
+                    return JsonResponse({
+                        'success': True, 
+                        'message': f"{new_count} شماره جدید به {sales_agent.name} تخصیص داده شد.",
+                        'total': len(phone_numbers),
+                        'new': new_count,
+                        'existing': len(existing_numbers),
+                        'customers': len(customer_numbers)
+                    })
                     
             except Exception as e:
-                messages.error(request, f"خطا در پردازش شماره‌ها: {str(e)}")
+                return JsonResponse({'success': False, 'error': str(e)})
+        else:
+            # روش قبلی: آپلود فایل
+            form = PhoneImportForm(request.POST, request.FILES)
+            if form.is_valid():
+                try:
+                    with transaction.atomic():
+                        sales_agent = form.cleaned_data['sales_agent']
+                        phone_numbers = form.extract_phone_numbers()
+                        
+                        # بررسی تکراری نبودن شماره‌ها
+                        existing_numbers = set(PhoneAssignment.objects.filter(
+                            phone_number__in=phone_numbers,
+                            status='pending'
+                        ).values_list('phone_number', flat=True))
+                        
+                        # بررسی مشتری بودن شماره‌ها
+                        customer_numbers = set()
+                        for number in phone_numbers:
+                            if Customer.get_customer_by_phone(number):
+                                customer_numbers.add(number)
+                        
+                        # تخصیص شماره‌های غیرتکراری و غیرمشتری
+                        new_count = 0
+                        for number in phone_numbers:
+                            if number not in existing_numbers and number not in customer_numbers:
+                                PhoneAssignment.objects.create(
+                                    phone_number=number,
+                                    sales_agent=sales_agent,
+                                    status='pending'
+                                )
+                                new_count += 1
+                        
+                        # پیام موفقیت
+                        messages.success(
+                            request, 
+                            f"{new_count} شماره جدید به {sales_agent.name} تخصیص داده شد. "
+                            f"{len(existing_numbers)} شماره قبلاً تخصیص داده شده و "
+                            f"{len(customer_numbers)} شماره قبلاً به عنوان مشتری ثبت شده‌اند."
+                        )
+                        return redirect('admin_phone_assignment_list')
+                        
+                except Exception as e:
+                    messages.error(request, f"خطا در پردازش شماره‌ها: {str(e)}")
     
     # لیست همه کارشناسان فروش برای نمایش در فرم
     sales_agents = SalesAgent.objects.all()

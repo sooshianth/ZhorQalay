@@ -511,6 +511,7 @@ def general_customer_CRUD_view(request):
         call_type = request.POST.get('call_type')
         call_status = request.POST.get('call_status')
         note = request.POST.get('note')
+        active_tab = request.POST.get('active_tab', 'calls')
         
         new_call = CallSession(
             customer=customer,
@@ -524,12 +525,13 @@ def general_customer_CRUD_view(request):
             messages.success(request, "تماس جدید ثبت شد")
         except ValidationError as e:
             messages.error(request, f"خطا در تماس: {e}")
-        return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
+        return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}&active_tab={active_tab}')
 
     # بخش ثبت تسک
     if request.method == "POST" and 'create_task' in request.POST and customer:
         task_description = request.POST.get('task_description')
         due_date_str = request.POST.get('due_date', '').strip()
+        active_tab = request.POST.get('active_tab', 'tasks')
 
         new_task = Task(
             description=task_description,
@@ -544,7 +546,7 @@ def general_customer_CRUD_view(request):
             messages.success(request, "تسک جدید ثبت شد")
         except ValidationError as e:
             messages.error(request, f"خطا در تسک: {e}")
-        return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
+        return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}&active_tab={active_tab}')
 
     # بخش ثبت خرید
     if request.method == "POST" and 'create_purchase' in request.POST and customer:
@@ -552,6 +554,7 @@ def general_customer_CRUD_view(request):
         order_weight = request.POST.get('weight')
         use_custom_price = request.POST.get('use_custom_price') == 'on'
         custom_price = request.POST.get('custom_price')
+        active_tab = request.POST.get('active_tab', 'purchases')
         
         # try:
         with transaction.atomic():
@@ -574,12 +577,13 @@ def general_customer_CRUD_view(request):
             new_purchase.amount_paid = new_purchase.customer_price * new_purchase.order_weight
             new_purchase.save()
             messages.success(request, "خرید جدید ثبت شد")
-            return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
+            return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}&active_tab={active_tab}')
     elif request.method == "POST" and 'create_purchase_without_sms' in request.POST and customer:
         cottage_number = request.POST.get('cottage_number')
         order_weight = request.POST.get('weight')
         use_custom_price = request.POST.get('use_custom_price') == 'on'
         custom_price = request.POST.get('custom_price')
+        active_tab = request.POST.get('active_tab', 'purchases')
         
         # try:
         with transaction.atomic():
@@ -603,7 +607,7 @@ def general_customer_CRUD_view(request):
             new_purchase.amount_paid = new_purchase.customer_price * new_purchase.order_weight
             new_purchase.save()
             messages.success(request, "خرید جدید ثبت شد")
-            return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
+            return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}&active_tab={active_tab}')
 
         # except Exception as e:
         #     messages.error(request, f"خطا در خرید: {e}")

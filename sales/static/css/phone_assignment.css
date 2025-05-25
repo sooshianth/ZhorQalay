@@ -1,0 +1,421 @@
+:root {
+    --main-color: #065F46;
+    --main-color-light: #10B981;
+    --main-color-dark: #064E3B;
+    --accent-color: #F59E0B;
+    --success-color: #10B981;
+    --danger-color: #EF4444;
+    --warning-color: #F59E0B;
+    --info-color: #3B82F6;
+    --light-bg: #F3F4F6;
+    --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --transition: all 0.3s ease;
+}
+
+/* استایل‌های عمومی */
+.page-heading {
+    border-right: 4px solid var(--main-color);
+    padding-right: 15px;
+    margin-bottom: 20px;
+    color: var(--main-color);
+}
+
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+    transition: var(--transition);
+    margin-bottom: 25px;
+}
+
+.card:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.card-header {
+    background-color: var(--main-color);
+    color: white;
+    border-bottom: none;
+    padding: 15px 20px;
+}
+
+.card-header .card-title {
+    font-weight: 600;
+    margin-bottom: 0;
+}
+
+.card-header.sub-header {
+    background-color: rgba(6, 95, 70, 0.8);
+}
+
+.card-body {
+    padding: 20px;
+    background-color: white;
+}
+
+/* دکمه‌ها */
+.btn {
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.btn-sm {
+    padding: 5px 10px;
+    font-size: 0.875rem;
+}
+
+.btn-primary {
+    background-color: var(--main-color);
+    border-color: var(--main-color);
+}
+
+.btn-primary:hover, .btn-primary:focus {
+    background-color: var(--main-color-dark);
+    border-color: var(--main-color-dark);
+}
+
+.btn-outline-primary {
+    color: var(--main-color);
+    border-color: var(--main-color);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--main-color);
+    border-color: var(--main-color);
+    color: white;
+}
+
+.btn-outline-danger {
+    color: var(--danger-color);
+    border-color: var(--danger-color);
+}
+
+.btn-outline-danger:hover {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.btn-outline-success {
+    color: var(--success-color);
+    border-color: var(--success-color);
+}
+
+.btn-outline-success:hover {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.action-buttons .btn {
+    margin-right: 5px;
+    position: relative;
+    overflow: hidden;
+}
+
+.action-buttons .btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.action-buttons .btn:hover::before {
+    width: 100%;
+}
+
+.action-buttons .btn i {
+    margin-left: 5px;
+}
+
+/* جدول */
+.table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+}
+
+.table thead th {
+    background-color: var(--light-bg);
+    color: var(--main-color);
+    font-weight: 600;
+    padding: 12px 15px;
+    border: none;
+}
+
+.table tbody tr {
+    transition: var(--transition);
+}
+
+.table tbody tr:hover {
+    background-color: rgba(6, 95, 70, 0.05);
+}
+
+.table td, .table th {
+    padding: 12px 15px;
+    vertical-align: middle;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* شماره تلفن */
+.phone-number {
+    direction: ltr;
+    display: inline-block;
+    font-family: monospace;
+    font-weight: 500;
+    padding: 4px 8px;
+    background-color: rgba(6, 95, 70, 0.05);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+}
+
+.phone-number:hover {
+    background-color: rgba(6, 95, 70, 0.1);
+}
+
+.phone-number:hover::after {
+    content: "کلیک برای کپی";
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    opacity: 0.9;
+    z-index: 10;
+}
+
+/* یادداشت‌ها */
+.note-form {
+    display: none;
+    margin-top: 10px;
+    padding: 10px;
+    background-color: var(--light-bg);
+    border-radius: 8px;
+    border-right: 3px solid var(--main-color);
+}
+
+.expand-note {
+    cursor: pointer;
+    color: var(--info-color);
+    transition: var(--transition);
+    margin-right: 5px;
+}
+
+.expand-note:hover {
+    color: var(--main-color);
+}
+
+.note-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+    display: inline-block;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.note-text:hover {
+    color: var(--main-color);
+}
+
+.notes-popover {
+    position: absolute;
+    display: none;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    padding: 15px;
+    min-width: 250px;
+    max-width: 450px;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    border-right: 3px solid var(--main-color);
+}
+
+.notes-popover p {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.notes-full-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+}
+
+.notes-modal-content {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    padding: 20px;
+    width: 600px;
+    max-width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    border-top: 4px solid var(--main-color);
+}
+
+.notes-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.notes-modal-body {
+    max-height: calc(80vh - 120px);
+    overflow-y: auto;
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: var(--light-bg);
+    border-radius: 8px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.notes-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+}
+
+/* صفحه‌بندی */
+.pagination .page-link {
+    color: var(--main-color);
+    border: 1px solid rgba(6, 95, 70, 0.2);
+    margin: 0 3px;
+    border-radius: 4px;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--main-color);
+    border-color: var(--main-color);
+}
+
+/* فرم‌ها */
+.form-label {
+    font-weight: 500;
+    color: var(--main-color-dark);
+    margin-bottom: 8px;
+}
+
+.form-control, .form-select {
+    border-radius: 8px;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    transition: var(--transition);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--main-color);
+    box-shadow: 0 0 0 0.25rem rgba(6, 95, 70, 0.25);
+}
+
+.form-text {
+    font-size: 0.85rem;
+    color: #6B7280;
+}
+
+/* توست‌ها */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+
+.custom-toast {
+    width: 300px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
+    opacity: 0;
+    transform: translateY(-20px);
+    animation: slide-in 0.3s ease forwards;
+}
+
+@keyframes slide-in {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.toast-header {
+    background-color: var(--main-color);
+    color: white;
+    padding: 10px 15px;
+    border-bottom: none;
+}
+
+.toast-body {
+    padding: 15px;
+    background-color: white;
+}
+
+/* بخش ایمپورت شماره‌ها */
+.import-textarea {
+    height: 200px;
+    font-family: monospace;
+    direction: ltr;
+}
+
+.badge {
+    padding: 6px 10px;
+    font-weight: 500;
+    border-radius: 6px;
+}
+
+.badge.bg-warning {
+    background-color: var(--warning-color) !important;
+    color: white !important;
+}
+
+.badge.bg-danger {
+    background-color: var(--danger-color) !important;
+}
+
+.badge.bg-success {
+    background-color: var(--success-color) !important;
+}
+
+.info-card {
+    background-color: rgba(6, 95, 70, 0.03);
+    border-right: 3px solid var(--main-color);
+}
+
+/* کادر فیلتر */
+.filter-card {
+    background-color: rgba(6, 95, 70, 0.02);
+    border: 1px solid rgba(6, 95, 70, 0.1);
+}
+
+.filter-card .card-header {
+    background-color: rgba(6, 95, 70, 0.05);
+    color: var(--main-color);
+} 
