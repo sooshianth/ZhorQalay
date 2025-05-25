@@ -30,6 +30,87 @@
             padding-top: 10px;
             border-top: 1px dashed #ccc;
         }
+        
+        /* استایل‌های جدید برای تاریخچه خرید */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        
+        .bg-purple {
+            background-color: #6f42c1 !important;
+        }
+        
+        .bg-primary {
+            background-color: #007bff !important;
+        }
+        
+        .bg-secondary {
+            background-color: #6c757d !important;
+        }
+        
+        .bg-success {
+            background-color: #28a745 !important;
+        }
+        
+        .bg-danger {
+            background-color: #dc3545 !important;
+        }
+        
+        .bg-warning {
+            background-color: #ffc107 !important;
+        }
+        
+        .bg-info {
+            background-color: #17a2b8 !important;
+        }
+        
+        .bg-light {
+            background-color: #f8f9fa !important;
+        }
+        
+        .bg-dark {
+            background-color: #343a40 !important;
+        }
+        
+        .text-white {
+            color: #fff !important;
+        }
+        
+        .text-dark {
+            color: #343a40 !important;
+        }
+        
+        .history-item {
+            transition: all 0.3s ease;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-right: 4px solid #4a6fdc;
+            background-color: #f8f9fa;
+        }
+        
+        .history-item p {
+            margin-bottom: 8px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .error-message {
+            color: #dc3545;
+            text-align: center;
+            padding: 20px;
+        }
     </style>
 {% endblock %}
 
@@ -389,13 +470,46 @@
                             {% if purchase.customer and purchase.customer.id != customer.id %}
                             <p><strong>مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ purchase.customer.id }}">{{ purchase.customer }} ({{ purchase.customer.get_primary_phone }})</a></p>
                             {% endif %}
-                            <p>کوتاژ: {{ purchase.cottage_number }} {{ purchase.cargo.get_product_type_display }} {{ purchase.cargo.get_country_display }}</p>
-                            <p>وزن: {{ purchase.order_weight|add_commas }} کیلوگرم</p>
-                            <p>وضعیت پرداخت: 
-                                {% if purchase.state in 'PAYMENT_VERIFIED,ALLOCATION_REGISTERED,ALLOCATION_APPROVED,VENDOR_SETTLED,ADDRESS_SENT,SENT_TO_SHIPPING,BARNAMEH_ISSUED,DELIVERED,DIFFERENCE_APPROVED,SHORTAGE_DEPOSITED,SURPLUS_DEPOSITED,RECEIPT_SUBMITTED,INVOICE_ISSUED,SALES_APPROVED,LOGISTICS_APPROVED,FINANCIAL_APPROVED,COMPLETED'|split:',' %}
-                                ✅ پرداخت شده
+                            <p><strong>شماره خرید:</strong> {% if purchase.purchase_number %}{{ purchase.purchase_number }}{% else %}<span class="text-muted">تعیین نشده</span>{% endif %}</p>
+                            <p><strong>کوتاژ:</strong> {{ purchase.cottage_number }} {{ purchase.cargo.get_product_type_display }} {{ purchase.cargo.get_country_display }}</p>
+                            <p><strong>وزن:</strong> {{ purchase.order_weight|add_commas }} کیلوگرم</p>
+                            <p><strong>وضعیت:</strong> 
+                                {% if purchase.state == 'ARCHIVED' or purchase.is_archived %}
+                                    <span class="status-badge bg-secondary">آرشیو شده</span>
+                                {% elif purchase.state == 'CANCELED' or purchase.is_canceled %}
+                                    <span class="status-badge bg-danger">لغو شده</span>
+                                {% elif purchase.is_urgent %}
+                                    <span class="status-badge bg-danger">فوری</span>
+                                {% elif purchase.state == 'INITIATED' %}
+                                    <span class="status-badge bg-light text-dark">شروع شده</span>
+                                {% elif purchase.state == 'SMS_SENT' %}
+                                    <span class="status-badge bg-purple">پیامک ارسال شده</span>
+                                {% elif purchase.state == 'PAYMENT_VERIFIED' %}
+                                    <span class="status-badge bg-warning text-dark">ثبت خرید در بازارگاه</span>
+                                {% elif purchase.state == 'ALLOCATION_APPROVED' %}
+                                    <span class="status-badge bg-primary">ثبت تخصیص در بازارگاه</span>
+                                {% elif purchase.state == 'ADDRESS_SENT' %}
+                                    <span class="status-badge bg-info">ارسال آدرس به واردکننده</span>
+                                {% elif purchase.state == 'WAITING_FOR_BARNAMEH' %}
+                                    <span class="status-badge bg-primary">در انتظار بارنامه</span>
+                                {% elif purchase.state == 'BARNAMEH_INCOMPLETE' %}
+                                    <span class="status-badge bg-warning text-dark">صدور بارنامه (ناقص)</span>
+                                {% elif purchase.state == 'BARNAMEH_ISSUED' %}
+                                    <span class="status-badge bg-success">صدور بارنامه</span>
+                                {% elif purchase.state == 'PURCHASE_CLOSED' %}
+                                    <span class="status-badge bg-info">بستن خرید در بازارگاه</span>
+                                {% elif purchase.state == 'PAY_KASRI' %}
+                                    <span class="status-badge bg-secondary">پرداخت کسری</span>
+                                {% elif purchase.state == 'RECIEVE_SARAK' %}
+                                    <span class="status-badge bg-danger">دریافت سرک</span>
+                                {% elif purchase.state == 'DIFFERENCE_APPROVED' %}
+                                    <span class="status-badge bg-warning text-dark">پرداخت کسری / دریافت سرک</span>
+                                {% elif purchase.state == 'FULLY_SETTLED' %}
+                                    <span class="status-badge bg-success">تسویه کامل</span>
+                                {% elif purchase.state == 'INVOICE_ISSUED' %}
+                                    <span class="status-badge bg-success">صدور فاکتور</span>
                                 {% else %}
-                                ❌ پرداخت نشده
+                                    <span class="status-badge bg-light text-dark">{{ purchase.get_state_display }}</span>
                                 {% endif %}
                             </p>
                             <p><a href="{% url 'purchase_CRUD' purchase.id %}" class="view-details-button">مشاهده جزئیات</a></p>
@@ -409,8 +523,8 @@
                 <div class="pagination">
                     <span class="step-links">
                         {% if purchases.has_previous %}
-                            <a href="?customer_id={{ customer.id }}&purchase_page=1" class="pagination-link">&laquo; اول</a>
-                            <a href="?customer_id={{ customer.id }}&purchase_page={{ purchases.previous_page_number }}" class="pagination-link">قبلی</a>
+                            <a href="javascript:void(0)" class="pagination-link purchase-page-link" data-page="1">&laquo; اول</a>
+                            <a href="javascript:void(0)" class="pagination-link purchase-page-link" data-page="{{ purchases.previous_page_number }}">قبلی</a>
                         {% endif %}
             
                         <span class="current">
@@ -418,8 +532,8 @@
                         </span>
             
                         {% if purchases.has_next %}
-                            <a href="?customer_id={{ customer.id }}&purchase_page={{ purchases.next_page_number }}" class="pagination-link">بعدی</a>
-                            <a href="?customer_id={{ customer.id }}&purchase_page={{ purchases.paginator.num_pages }}" class="pagination-link">آخر &raquo;</a>
+                            <a href="javascript:void(0)" class="pagination-link purchase-page-link" data-page="{{ purchases.next_page_number }}">بعدی</a>
+                            <a href="javascript:void(0)" class="pagination-link purchase-page-link" data-page="{{ purchases.paginator.num_pages }}">آخر &raquo;</a>
                         {% endif %}
                     </span>
                 </div>
@@ -721,6 +835,54 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 htmlElement.classList.add('dark-mode');
                 localStorage.setItem('darkMode', 'enabled');
+            }
+        });
+    }
+
+    // Handle purchase history pagination with AJAX
+    const purchaseHistoryContainer = document.getElementById('purchase_history');
+    
+    if (purchaseHistoryContainer) {
+        purchaseHistoryContainer.addEventListener('click', function(e) {
+            // Check if pagination link was clicked
+            if (e.target.classList.contains('purchase-page-link') || e.target.parentElement.classList.contains('purchase-page-link')) {
+                e.preventDefault();
+                
+                const link = e.target.classList.contains('purchase-page-link') ? e.target : e.target.parentElement;
+                const page = link.getAttribute('data-page');
+                const customerId = {{ customer.id|default:'null' }};
+                
+                if (page && customerId) {
+                    // Show loading indicator
+                    const historyList = purchaseHistoryContainer.querySelector('.history-list');
+                    historyList.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> در حال بارگذاری...</div>';
+                    
+                    // Make AJAX request
+                    fetch(`{% url 'get_purchase_history' %}?customer_id=${customerId}&page=${page}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('خطا در بارگذاری تاریخچه خرید');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.status === 'success') {
+                                // Update history list
+                                historyList.innerHTML = data.html;
+                                
+                                // Update pagination
+                                const paginationContainer = purchaseHistoryContainer.querySelector('.purchase-pagination');
+                                if (paginationContainer && data.pagination) {
+                                    paginationContainer.innerHTML = data.pagination;
+                                }
+                            } else {
+                                throw new Error(data.message || 'خطا در بارگذاری تاریخچه خرید');
+                            }
+                        })
+                        .catch(error => {
+                            historyList.innerHTML = `<div class="error-message">${error.message || 'خطا در بارگذاری تاریخچه خرید'}</div>`;
+                        });
+                }
             }
         });
     }

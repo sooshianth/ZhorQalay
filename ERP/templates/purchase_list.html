@@ -111,14 +111,26 @@
             max-height: 70vh;
             overflow-y: auto;
         }
+        
+        /* تنظیمات عرض جدول و ستون‌ها */        
+        .table-responsive {
+            overflow-x: auto;
+        }
 
         /* بهبود استایل جدول */
         .table {
+            min-width: 100%;
+            table-layout: auto;
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 0 10px rgba(0,0,0,0.05);
             border-collapse: separate;
             border-spacing: 0;
+        }
+        
+        .table th {
+            min-width: 120px;
+            white-space: nowrap;
         }
         
         .table thead th {
@@ -433,14 +445,14 @@
             </div>
             <div class="modal-body py-4">
                 <div class="alert alert-info bg-info bg-opacity-10 border-0 mb-4 p-3">
-                    <p class="mb-0 py-1"><i class="fas fa-info-circle me-2"></i> ستون‌های مورد نظر خود را برای نمایش در جدول و خروجی اکسل انتخاب کنید.</p>
+                    <p class="mb-0 py-1"><i class="fas fa-info-circle me-2"></i> ستون‌های مورد نظر خود را برای نمایش در جدول و خروجی اکسل انتخاب کنید. همه ستون‌های انتخاب شده هم در جدول و هم در اکسل نمایش داده می‌شوند.</p>
                 </div>
                 
                 <form id="columnsForm" class="px-3">
                     <!-- ستون‌های جدول -->
-                    <div class="section-container mb-5 pb-4">
+                    <div class="section-container pb-4">
                         <div class="section-header d-flex justify-content-between align-items-center mb-4">
-                            <h6 class="mb-0 fw-bold text-primary fs-5"><i class="fas fa-table me-2"></i>ستون‌های جدول</h6>
+                            <h6 class="mb-0 fw-bold text-primary fs-5"><i class="fas fa-table me-2"></i>ستون‌های قابل انتخاب</h6>
                             <div class="d-flex gap-3">
                                 <button class="btn btn-sm btn-outline-primary px-3 py-2" id="selectAllColumns">
                                     <i class="fas fa-check-square me-2"></i> انتخاب همه
@@ -453,7 +465,6 @@
                         <div class="section-body pt-2">
                             <div class="row g-4">
                                 {% for column in all_columns %}
-                                    {% if not column.export_only %}
                                     <div class="col-lg-4 col-md-6">
                                         <div class="column-checkbox">
                                             <input class="form-check-input" type="checkbox" 
@@ -465,41 +476,6 @@
                                             </label>
                                         </div>
                                     </div>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- ستون‌های اضافی (فقط در خروجی اکسل) -->
-                    <div class="section-container pb-4">
-                        <div class="section-header d-flex justify-content-between align-items-center mb-4">
-                            <h6 class="mb-0 fw-bold text-success fs-5"><i class="fas fa-file-excel me-2"></i>ستون‌های اضافی (فقط در خروجی اکسل)</h6>
-                            <div class="d-flex gap-3">
-                                <button class="btn btn-sm btn-outline-success px-3 py-2" id="selectAllExportColumns">
-                                    <i class="fas fa-check-square me-2"></i> انتخاب همه
-                                </button>
-                                <button class="btn btn-sm btn-outline-secondary px-3 py-2" id="deselectAllExportColumns">
-                                    <i class="fas fa-square me-2"></i> هیچکدام
-                                </button>
-                            </div>
-                        </div>
-                        <div class="section-body pt-2">
-                            <div class="row g-4">
-                                {% for column in all_columns %}
-                                    {% if column.export_only %}
-                                    <div class="col-lg-4 col-md-6">
-                                        <div class="column-checkbox">
-                                            <input class="form-check-input export-only-column" type="checkbox" 
-                                                id="col-{{ column.id }}" name="columns[]" 
-                                                value="{{ column.id }}"
-                                                {% if column.id in selected_columns %}checked{% endif %}>
-                                            <label class="form-check-label" for="col-{{ column.id }}">
-                                                {{ column.name }}
-                                            </label>
-                                        </div>
-                                    </div>
-                                    {% endif %}
                                 {% endfor %}
                             </div>
                         </div>
@@ -612,15 +588,6 @@
     background-color: #e6f0ff;
 }
 
-.column-checkbox:has(.export-only-column:checked) {
-    border-color: #a3cfbb;
-    background-color: #e6fff0;
-}
-
-.column-checkbox .export-only-column:checked ~ .form-check-label {
-    color: #198754;
-}
-
 /* سبک‌سازی دکمه‌ها */
 #columnsModal .btn {
     transition: all 0.2s ease;
@@ -692,7 +659,7 @@
     <thead class="table-light sticky-header">
         <tr>
             {% for column in all_columns %}
-                {% if column.id in selected_columns and not column.export_only %}
+                {% if column.id in selected_columns %}
                 <th class="column-{{ column.id }}">
                     {{ column.name }}
                     <input type="text" class="search-input column-search" data-column="{{ forloop.counter0 }}" placeholder="جستجو...">
@@ -705,7 +672,7 @@
     {% for purchase in active_purchases %}
         <tr class="{% if purchase.is_urgent %}urgent-row{% elif purchase.state == 'CANCELED' or purchase.is_canceled %}canceled-row{% endif %}" data-id="{{ purchase.id }}">
             {% for column in all_columns %}
-                {% if column.id in selected_columns and not column.export_only %}
+                {% if column.id in selected_columns %}
                     {% if column.id == 'date' %}
                     <td>{{ purchase.created_at|date:"Y/m/d" }}</td>
                     {% elif column.id == 'customer' %}
@@ -729,6 +696,66 @@
                     </td>
                     {% elif column.id == 'cargo' %}
                     <td>{% if purchase.cargo %}{{ purchase.cargo }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'address' %}
+                    <td>{{ purchase.address|default:"-" }}</td>
+                    {% elif column.id == 'description' %}
+                    <td>{{ purchase.description|default:"-" }}</td>
+                    {% elif column.id == 'company_price' %}
+                    <td>{{ purchase.company_price|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'customer_price' %}
+                    <td>{{ purchase.customer_price|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'factor_code' %}
+                    <td>{{ purchase.factor_code|default:"-" }}</td>
+                    {% elif column.id == 'tracking_number' %}
+                    <td>{{ purchase.tracking_number|default:"-" }}</td>
+                    {% elif column.id == 'shenase_takhsis' %}
+                    <td>{{ purchase.shenase_takhsis|default:"-" }}</td>
+                    {% elif column.id == 'code_melli_tahvil' %}
+                    <td>{{ purchase.code_melli_tahvil|default:"-" }}</td>
+                    {% elif column.id == 'bazaargah_phone_number' %}
+                    <td>{{ purchase.bazaargah_phone_number|default:"-" }}</td>
+                    {% elif column.id == 'buyer_name' %}
+                    <td>{{ purchase.buyer_name|default:"-" }}</td>
+                    {% elif column.id == 'tahvil_phone_number' %}
+                    <td>{{ purchase.tahvil_phone_number|default:"-" }}</td>
+                    {% elif column.id == 'send_cottage_sms' %}
+                    <td>{% if purchase.send_cottage_sms %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'total_weight' %}
+                    <td>{{ purchase.total_weight|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'delivered_weight' %}
+                    <td>{{ purchase.delivered_weight|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'type' %}
+                    <td>{{ purchase.get_type_display|default:"-" }}</td>
+                    {% elif column.id == 'amount_paid' %}
+                    <td>{{ purchase.amount_paid|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'payment_method' %}
+                    <td>{{ purchase.get_payment_method_display|default:"-" }}</td>
+                    {% elif column.id == 'updated_at' %}
+                    <td>{{ purchase.updated_at|date:"Y/m/d"|default:"-" }}</td>
+                    {% elif column.id == 'is_weight_costed' %}
+                    <td>{% if purchase.is_weight_costed %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_ap_af' %}
+                    <td>{% if purchase.is_ap_af %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'extelaf_type' %}
+                    <td>{{ purchase.get_extelaf_type_display|default:"-" }}</td>
+                    {% elif column.id == 'extelaf_weight' %}
+                    <td>{{ purchase.extelaf_weight|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'extelaf_amount' %}
+                    <td>{{ purchase.extelaf_amount|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'is_urgent' %}
+                    <td>{% if purchase.is_urgent %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_canceled' %}
+                    <td>{% if purchase.is_canceled %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_archived' %}
+                    <td>{% if purchase.is_archived %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_fully_tasvied' %}
+                    <td>{% if purchase.is_fully_tasvied %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_factored' %}
+                    <td>{% if purchase.is_factored %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'priority' %}
+                    <td>{{ purchase.priority|default:"-" }}</td>
+                    {% elif column.id == 'priority_reason' %}
+                    <td>{{ purchase.priority_reason|default:"-" }}</td>
                     {% elif column.id == 'status' %}
                     <td>
                         {% if purchase.state == 'ARCHIVED' or purchase.is_archived %}
@@ -853,7 +880,7 @@
     <thead class="table-light sticky-header">
         <tr>
             {% for column in all_columns %}
-                {% if column.id in selected_columns and not column.export_only %}
+                {% if column.id in selected_columns %}
                 <th class="column-{{ column.id }}">
                     {{ column.name }}
                     <input type="text" class="search-input column-search-archived" data-column="{{ forloop.counter0 }}" placeholder="جستجو...">
@@ -866,7 +893,7 @@
     {% for purchase in archived_purchases %}
         <tr data-id="{{ purchase.id }}">
             {% for column in all_columns %}
-                {% if column.id in selected_columns and not column.export_only %}
+                {% if column.id in selected_columns %}
                     {% if column.id == 'date' %}
                     <td>{{ purchase.created_at|date:"Y/m/d" }}</td>
                     {% elif column.id == 'customer' %}
@@ -881,6 +908,66 @@
                     <td>{{ purchase.order_weight|add_commas }}</td>
                     {% elif column.id == 'cargo' %}
                     <td>{% if purchase.cargo %}{{ purchase.cargo }} ({{ purchase.cargo.cottage }}){% else %}-{% endif %}</td>
+                    {% elif column.id == 'address' %}
+                    <td>{{ purchase.address|default:"-" }}</td>
+                    {% elif column.id == 'description' %}
+                    <td>{{ purchase.description|default:"-" }}</td>
+                    {% elif column.id == 'company_price' %}
+                    <td>{{ purchase.company_price|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'customer_price' %}
+                    <td>{{ purchase.customer_price|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'factor_code' %}
+                    <td>{{ purchase.factor_code|default:"-" }}</td>
+                    {% elif column.id == 'tracking_number' %}
+                    <td>{{ purchase.tracking_number|default:"-" }}</td>
+                    {% elif column.id == 'shenase_takhsis' %}
+                    <td>{{ purchase.shenase_takhsis|default:"-" }}</td>
+                    {% elif column.id == 'code_melli_tahvil' %}
+                    <td>{{ purchase.code_melli_tahvil|default:"-" }}</td>
+                    {% elif column.id == 'bazaargah_phone_number' %}
+                    <td>{{ purchase.bazaargah_phone_number|default:"-" }}</td>
+                    {% elif column.id == 'buyer_name' %}
+                    <td>{{ purchase.buyer_name|default:"-" }}</td>
+                    {% elif column.id == 'tahvil_phone_number' %}
+                    <td>{{ purchase.tahvil_phone_number|default:"-" }}</td>
+                    {% elif column.id == 'send_cottage_sms' %}
+                    <td>{% if purchase.send_cottage_sms %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'total_weight' %}
+                    <td>{{ purchase.total_weight|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'delivered_weight' %}
+                    <td>{{ purchase.delivered_weight|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'type' %}
+                    <td>{{ purchase.get_type_display|default:"-" }}</td>
+                    {% elif column.id == 'amount_paid' %}
+                    <td>{{ purchase.amount_paid|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'payment_method' %}
+                    <td>{{ purchase.get_payment_method_display|default:"-" }}</td>
+                    {% elif column.id == 'updated_at' %}
+                    <td>{{ purchase.updated_at|date:"Y/m/d"|default:"-" }}</td>
+                    {% elif column.id == 'is_weight_costed' %}
+                    <td>{% if purchase.is_weight_costed %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_ap_af' %}
+                    <td>{% if purchase.is_ap_af %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'extelaf_type' %}
+                    <td>{{ purchase.get_extelaf_type_display|default:"-" }}</td>
+                    {% elif column.id == 'extelaf_weight' %}
+                    <td>{{ purchase.extelaf_weight|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'extelaf_amount' %}
+                    <td>{{ purchase.extelaf_amount|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'is_urgent' %}
+                    <td>{% if purchase.is_urgent %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_canceled' %}
+                    <td>{% if purchase.is_canceled %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_archived' %}
+                    <td>{% if purchase.is_archived %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_fully_tasvied' %}
+                    <td>{% if purchase.is_fully_tasvied %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_factored' %}
+                    <td>{% if purchase.is_factored %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'priority' %}
+                    <td>{{ purchase.priority|default:"-" }}</td>
+                    {% elif column.id == 'priority_reason' %}
+                    <td>{{ purchase.priority_reason|default:"-" }}</td>
                     {% elif column.id == 'status' %}
                     <td>
                         {% if purchase.state == 'ARCHIVED' or purchase.is_archived %}
@@ -1299,7 +1386,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // انتخاب همه ستون‌ها
     document.getElementById('selectAllColumns').addEventListener('click', function(e) {
         e.preventDefault();
-        document.querySelectorAll('#columnsForm input[type="checkbox"]:not(.export-only-column)').forEach(checkbox => {
+        document.querySelectorAll('#columnsForm input[type="checkbox"]').forEach(checkbox => {
             checkbox.checked = true;
         });
     });
@@ -1307,26 +1394,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // عدم انتخاب همه ستون‌ها
     document.getElementById('deselectAllColumns').addEventListener('click', function(e) {
         e.preventDefault();
-        document.querySelectorAll('#columnsForm input[type="checkbox"]:not(.export-only-column)').forEach(checkbox => {
+        document.querySelectorAll('#columnsForm input[type="checkbox"]').forEach(checkbox => {
             if (checkbox.value !== 'actions') { // ستون اکشن همیشه انتخاب شده باقی بماند
                 checkbox.checked = false;
             }
-        });
-    });
-    
-    // انتخاب همه ستون‌های اکسل
-    document.getElementById('selectAllExportColumns').addEventListener('click', function(e) {
-        e.preventDefault();
-        document.querySelectorAll('.export-only-column').forEach(checkbox => {
-            checkbox.checked = true;
-        });
-    });
-    
-    // عدم انتخاب همه ستون‌های اکسل
-    document.getElementById('deselectAllExportColumns').addEventListener('click', function(e) {
-        e.preventDefault();
-        document.querySelectorAll('.export-only-column').forEach(checkbox => {
-            checkbox.checked = false;
         });
     });
     

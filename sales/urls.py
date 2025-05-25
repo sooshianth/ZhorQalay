@@ -17,7 +17,8 @@ from .views.general_customer_CRUD_page import (
     change_task_status,
     get_related_products,
     predict_next_purchase,
-    update_task_order
+    update_task_order,
+    get_purchase_history
 )
 
 # Phone assignment views
@@ -66,6 +67,7 @@ urlpatterns = [
     path('get-related-products/', get_related_products, name='get_related_products'),
     path('customer/get_related_products/', get_related_products, name='get_related_products'),
     path('customer/predict_next_purchase/', predict_next_purchase, name='predict_next_purchase'),
+    path('get_purchase_history/', get_purchase_history, name='get_purchase_history'),
     path('delete-unpaid-purchase/<int:purchase_id>/', sales_agent_profile_view.delete_unpaid_purchase, name='delete_unpaid_purchase'),
     
     # Notification endpoints

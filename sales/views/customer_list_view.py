@@ -116,6 +116,10 @@ def enhanced_customer_list_view(request):
         'updated_desc': '-updated_at',
         'amount_asc': 'total_purchase_weight',
         'amount_desc': '-total_purchase_weight',
+        'favorite_asc': 'is_favorite',
+        'favorite_desc': '-is_favorite',
+        'phone_asc': 'phone_number',
+        'phone_desc': '-phone_number',
     }
     
     sort_key = request.GET.get('sort', 'name_asc')

@@ -887,9 +887,15 @@ def generate_purchase_pdf(request, purchase_id):
     
     # اطلاعات بارنامه و حمل
     shipping_data = [
-        [Paragraph(safe_text(purchase.barnameh), styles['Right']), Paragraph(process_persian_text('شماره بارنامه:'), styles['Right'])],
+        [Paragraph(safe_text(getattr(purchase, 'barnameh', None)), styles['Right']), Paragraph(process_persian_text('شماره بارنامه:'), styles['Right'])],
         [Paragraph(safe_text(purchase.address), styles['Right']), Paragraph(process_persian_text('آدرس تحویل:'), styles['Right'])],
     ]
+    
+    # اگر بارنامه ندارد، سعی کنیم از رابطه barnamehs استفاده کنیم
+    if hasattr(purchase, 'barnamehs') and purchase.barnamehs.exists():
+        barnameh_numbers = [b.number for b in purchase.barnamehs.all() if b.number]
+        if barnameh_numbers:
+            shipping_data[0] = [Paragraph(safe_text(", ".join(barnameh_numbers)), styles['Right']), Paragraph(process_persian_text('شماره بارنامه:'), styles['Right'])]
     
     shipping_table = Table(shipping_data, colWidths=[doc.width*2/3, doc.width/3])
     shipping_table.setStyle(TableStyle([

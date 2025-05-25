@@ -1,0 +1,55 @@
+{% load custom_filters %}
+
+{% for purchase in purchases %}
+    <div class="history-item">
+        <p>📅 {{ purchase.created_at|date:"Y/m/d H:i" }}</p>
+        {% if purchase.customer and purchase.customer.id != customer.id %}
+        <p><strong>مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ purchase.customer.id }}">{{ purchase.customer }} ({{ purchase.customer.get_primary_phone }})</a></p>
+        {% endif %}
+        <p><strong>شماره خرید:</strong> {% if purchase.purchase_number %}{{ purchase.purchase_number }}{% else %}<span class="text-muted">تعیین نشده</span>{% endif %}</p>
+        <p><strong>کوتاژ:</strong> {{ purchase.cottage_number }} {{ purchase.cargo.get_product_type_display }} {{ purchase.cargo.get_country_display }}</p>
+        <p><strong>وزن:</strong> {{ purchase.order_weight|add_commas }} کیلوگرم</p>
+        <p><strong>وضعیت:</strong> 
+            {% if purchase.state == 'ARCHIVED' or purchase.is_archived %}
+                <span class="status-badge bg-secondary text-white">آرشیو شده</span>
+            {% elif purchase.state == 'CANCELED' or purchase.is_canceled %}
+                <span class="status-badge bg-danger text-white">لغو شده</span>
+            {% elif purchase.is_urgent %}
+                <span class="status-badge bg-danger text-white">فوری</span>
+            {% elif purchase.state == 'INITIATED' %}
+                <span class="status-badge bg-light text-dark">شروع شده</span>
+            {% elif purchase.state == 'SMS_SENT' %}
+                <span class="status-badge bg-purple text-white">پیامک ارسال شده</span>
+            {% elif purchase.state == 'PAYMENT_VERIFIED' %}
+                <span class="status-badge bg-warning text-dark">ثبت خرید در بازارگاه</span>
+            {% elif purchase.state == 'ALLOCATION_APPROVED' %}
+                <span class="status-badge bg-primary text-white">ثبت تخصیص در بازارگاه</span>
+            {% elif purchase.state == 'ADDRESS_SENT' %}
+                <span class="status-badge bg-info text-white">ارسال آدرس به واردکننده</span>
+            {% elif purchase.state == 'WAITING_FOR_BARNAMEH' %}
+                <span class="status-badge bg-primary text-white">در انتظار بارنامه</span>
+            {% elif purchase.state == 'BARNAMEH_INCOMPLETE' %}
+                <span class="status-badge bg-warning text-dark">صدور بارنامه (ناقص)</span>
+            {% elif purchase.state == 'BARNAMEH_ISSUED' %}
+                <span class="status-badge bg-success text-white">صدور بارنامه</span>
+            {% elif purchase.state == 'PURCHASE_CLOSED' %}
+                <span class="status-badge bg-info text-white">بستن خرید در بازارگاه</span>
+            {% elif purchase.state == 'PAY_KASRI' %}
+                <span class="status-badge bg-secondary text-white">پرداخت کسری</span>
+            {% elif purchase.state == 'RECIEVE_SARAK' %}
+                <span class="status-badge bg-danger text-white">دریافت سرک</span>
+            {% elif purchase.state == 'DIFFERENCE_APPROVED' %}
+                <span class="status-badge bg-warning text-dark">پرداخت کسری / دریافت سرک</span>
+            {% elif purchase.state == 'FULLY_SETTLED' %}
+                <span class="status-badge bg-success text-white">تسویه کامل</span>
+            {% elif purchase.state == 'INVOICE_ISSUED' %}
+                <span class="status-badge bg-success text-white">صدور فاکتور</span>
+            {% else %}
+                <span class="status-badge bg-light text-dark">{{ purchase.get_state_display }}</span>
+            {% endif %}
+        </p>
+        <p><a href="{% url 'purchase_CRUD' purchase.id %}" class="view-details-button">مشاهده جزئیات</a></p>
+    </div>
+{% empty %}
+    <p class="empty-message">هیچ خریدی ثبت نشده است.</p>
+{% endfor %} 

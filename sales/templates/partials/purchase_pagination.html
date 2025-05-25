@@ -1,0 +1,15 @@
+<span class="step-links">
+    {% if purchases.has_previous %}
+        <a href="javascript:void(0)" class="pagination-link purchase-page-link" data-page="1">&laquo; اول</a>
+        <a href="javascript:void(0)" class="pagination-link purchase-page-link" data-page="{{ purchases.previous_page_number }}">قبلی</a>
+    {% endif %}
+
+    <span class="current">
+        صفحه {{ purchases.number }} از {{ purchases.paginator.num_pages }}
+    </span>
+
+    {% if purchases.has_next %}
+        <a href="javascript:void(0)" class="pagination-link purchase-page-link" data-page="{{ purchases.next_page_number }}">بعدی</a>
+        <a href="javascript:void(0)" class="pagination-link purchase-page-link" data-page="{{ purchases.paginator.num_pages }}">آخر &raquo;</a>
+    {% endif %}
+</span> 

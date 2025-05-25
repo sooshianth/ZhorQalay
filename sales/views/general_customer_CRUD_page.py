@@ -28,6 +28,7 @@ from core.SalesAgentModel import SalesAgent
 from core.decorators.decorators import role_required
 
 import json
+from django.template.loader import render_to_string
 
 def persian_digits_to_english(persian_text):
     """تبدیل اعداد فارسی به انگلیسی در یک رشته."""
@@ -590,7 +591,7 @@ def general_customer_CRUD_view(request):
         except:
             purchases = []
     purchase_page = request.GET.get('purchase_page', 1)  # دریافت شماره صفحه از URL
-    purchase_paginator = Paginator(purchases, 4)  # نمایش ۵ خرید در هر صفحه
+    purchase_paginator = Paginator(purchases, 9)
     try:
         purchases = purchase_paginator.page(purchase_page)
     except PageNotAnInteger:
@@ -818,65 +819,58 @@ def predict_next_purchase(request):
 @role_required('sales_agent', 'admin')
 @login_required
 def update_task_order(request):
+    if request.method == "POST":
+        task_order = request.POST.getlist('task_order[]')
+        for i, task_id in enumerate(task_order):
+            Task.objects.filter(id=task_id).update(order=i)
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error'}, status=400)
+
+@role_required('sales_agent', 'admin')
+@login_required
+def get_purchase_history(request):
     """
-    Updates the order of tasks when they are reordered using drag and drop.
-    Called via AJAX from the sales agent profile page.
+    نمایش تاریخچه خرید برای یک مشتری با قابلیت صفحه‌بندی AJAX
     """
-    if request.method != 'POST':
-        return JsonResponse({'status': 'error', 'message': 'روش درخواست نامعتبر است.'}, status=405)
+    customer_id = request.GET.get('customer_id')
+    if not customer_id:
+        return JsonResponse({'status': 'error', 'message': 'شناسه مشتری وجود ندارد'}, status=400)
     
     try:
-        data = json.loads(request.body)
-        moved_task_id = data.get('moved_task_id')
-        target_task_id = data.get('target_task_id')
+        customer = get_object_or_404(Customer, id=customer_id)
+        sales_agent = SalesAgent.objects.get(user=request.user)
+        check_customer_sales_agent(customer=customer, sales_agent=sales_agent)
+
+        # بارگیری تاریخچه خرید
+        purchases = customer.get_purchases_by_time()
         
-        if not moved_task_id or not target_task_id:
-            return JsonResponse({
-                'status': 'error', 
-                'message': 'شناسه تسک‌ها نامعتبر است.'
-            }, status=400)
+        # صفحه‌بندی
+        page = request.GET.get('page', 1)
+        paginator = Paginator(purchases, 9) 
         
-        # Get the tasks
-        moved_task = get_object_or_404(Task, id=moved_task_id)
-        target_task = get_object_or_404(Task, id=target_task_id)
+        try:
+            purchases_page = paginator.page(page)
+        except PageNotAnInteger:
+            purchases_page = paginator.page(1)
+        except EmptyPage:
+            purchases_page = paginator.page(paginator.num_pages)
         
-        # Check permissions - ensure user can only reorder their own tasks
-        sales_agent = None
-        if hasattr(request.user, 'salesagent'):
-            sales_agent = request.user.salesagent
-        elif hasattr(request.user, 'admin'):
-            # Admins can reorder any task
-            pass
-        else:
-            return JsonResponse({
-                'status': 'error', 
-                'message': 'شما مجوز تغییر ترتیب تسک‌ها را ندارید.'
-            }, status=403)
-        
-        # Check if the tasks belong to the sales agent
-        if sales_agent and moved_task.sales_agent.id != sales_agent.id:
-            return JsonResponse({
-                'status': 'error', 
-                'message': 'شما مجوز تغییر ترتیب این تسک را ندارید.'
-            }, status=403)
-        
-        # Update order (implementation depends on how you store task order)
-        # This is a simple implementation. If you have a specific order field, you'd update that instead.
-        # Alternatively, you might want to consider implementing a priority field for tasks.
-        
-        # For now, we'll just acknowledge the change and return success
-        return JsonResponse({
-            'status': 'success',
-            'message': 'ترتیب تسک‌ها با موفقیت بروزرسانی شد.'
+        # ساخت HTML برای تاریخچه خرید
+        purchases_html = render_to_string('partials/purchase_history_items.html', {
+            'purchases': purchases_page,
+            'customer': customer
         })
         
-    except json.JSONDecodeError:
+        # ساخت HTML برای پیجینیشن
+        pagination_html = render_to_string('partials/purchase_pagination.html', {
+            'purchases': purchases_page,
+            'customer': customer
+        })
+        
         return JsonResponse({
-            'status': 'error',
-            'message': 'فرمت داده‌های ارسالی نامعتبر است.'
-        }, status=400)
+            'status': 'success',
+            'html': purchases_html,
+            'pagination': pagination_html
+        })
     except Exception as e:
-        return JsonResponse({
-            'status': 'error',
-            'message': f'خطایی رخ داد: {str(e)}'
-        }, status=500)
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

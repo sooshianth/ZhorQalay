@@ -75,6 +75,8 @@ MIDDLEWARE = [
     'django.middleware.locale.LocaleMiddleware',
     'config.middleware.SessionTimeoutMiddleware',
     # 'config.middleware.RestrictAdminAccessMiddleware',
+    'HR.middleware.DebugMiddleware',  # دیباگ میدلور
+
 ]
 
 ROOT_URLCONF = 'config.urls'
