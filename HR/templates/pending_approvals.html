@@ -64,16 +64,25 @@
                                                 <div class="time-ranges mt-2 mb-2">
                                                     <span class="badge bg-info text-white fw-bold mb-1">بازه‌های زمانی:</span>
                                                     
-                                                    <div class="mt-1">
-                                                        {% for range in attendance.time_ranges %}
-                                                            <div class="time-range-item bg-light p-2 rounded mb-1">
-                                                                <span class="d-block">
-                                                                    <i class="fas fa-clock text-primary me-1"></i> 
-                                                                    {{ range.start_time }} تا {{ range.end_time }}
-                                                                    <span class="badge bg-secondary ms-1">{{ range.duration }} ساعت</span>
-                                                                </span>
-                                                            </div>
-                                                        {% endfor %}
+                                                    <div class="table-responsive mt-1">
+                                                        <table class="table table-sm table-bordered">
+                                                            <thead class="table-light">
+                                                                <tr>
+                                                                    <th class="text-center">شروع</th>
+                                                                    <th class="text-center">پایان</th>
+                                                                    <th class="text-center">مدت</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {% for range in attendance.time_ranges %}
+                                                                <tr>
+                                                                    <td class="text-center">{{ range.start_time }}</td>
+                                                                    <td class="text-center">{{ range.end_time }}</td>
+                                                                    <td class="text-center">{{ range.duration }} ساعت</td>
+                                                                </tr>
+                                                                {% endfor %}
+                                                            </tbody>
+                                                        </table>
                                                     </div>
                                                 </div>
                                             {% else %}
@@ -169,14 +178,14 @@
                                             <a href="{% url 'approve_attendance' attendance.id %}" class="btn btn-success btn-sm">
                                                 <i class="fas fa-check me-1"></i> تایید توسط شما (کاربر ۳)
                                             </a>
-                                        {% elif request.user.is_superuser and attendance.enough_approvals and not attendance.approved_by_admin %}
+                                        {% elif request.user.is_superuser and not attendance.approved_by_admin %}
                                             <a href="{% url 'approve_attendance' attendance.id %}" class="btn btn-primary btn-sm">
                                                 <i class="fas fa-check-double me-1"></i> تایید نهایی توسط ادمین
                                             </a>
-                                        {% elif request.user.is_superuser and not attendance.enough_approvals %}
-                                            <button class="btn btn-outline-secondary btn-sm" disabled>
-                                                <i class="fas fa-exclamation-triangle me-1"></i> نیاز به حداقل دو تایید
-                                            </button>
+                                        {% elif attendance.approved_by_admin %}
+                                            <span class="badge bg-success p-2">
+                                                <i class="fas fa-check-circle me-1"></i> تایید نهایی شده
+                                            </span>
                                         {% else %}
                                             <span class="text-muted">
                                                 <i class="fas fa-hourglass-half me-1"></i> در انتظار تایید دیگران

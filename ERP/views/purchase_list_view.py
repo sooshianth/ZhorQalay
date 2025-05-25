@@ -12,12 +12,38 @@ from core.CargoProductModel import CargoProduct
 from django.core.exceptions import ValidationError
 from core.decorators.decorators import role_required
 from core.decorators.det_user_role import determine_user_role
+from datetime import datetime
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
 def purchase_list(request):
-    # دریافت پارامتر جستجوی سریع
+    # دریافت پارامترهای فیلتر
     global_search = request.GET.get('global_search', '')
+    customer = request.GET.get('customer', '')
+    sales_agent = request.GET.get('sales_agent', '')
+    invoice_id = request.GET.get('invoice_id', '')
+    purchase_number = request.GET.get('purchase_number', '')
+    cottage = request.GET.get('cottage', '')
+    state = request.GET.get('state', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    min_weight = request.GET.get('min_weight', '')
+    max_weight = request.GET.get('max_weight', '')
+    product_type = request.GET.get('product_type', '')
+    country = request.GET.get('country', '')
+    is_archived = request.GET.get('is_archived', '')
+    is_factored = request.GET.get('is_factored', '')
+    priority = request.GET.get('priority', '')
+    
+    # پارامترهای فیلتر اضافی
+    factor_code = request.GET.get('factor_code', '')
+    is_urgent = request.GET.get('is_urgent', '')
+    is_canceled = request.GET.get('is_canceled', '')
+    is_fully_tasvied = request.GET.get('is_fully_tasvied', '')
+    type = request.GET.get('type', '')
+    payment_method = request.GET.get('payment_method', '')
+    extelaf_type = request.GET.get('extelaf_type', '')
+    send_cottage_sms = request.GET.get('send_cottage_sms', '')
     
     # تشخیص نقش کاربر
     user_role = determine_user_role(request.user)
@@ -31,7 +57,127 @@ def purchase_list(request):
         active_purchases = active_purchases.filter(customer__sales_agent=request.user.sales_agent)
         archived_purchases = archived_purchases.filter(customer__sales_agent=request.user.sales_agent)
 
-    # اعمال فیلتر جستجوی سریع
+    # اگر فیلتر وضعیت آرشیو انتخاب شده است
+    if is_archived != '':
+        if is_archived == '1':
+            active_purchases = Purchase.objects.none()  # لیست فعال خالی شود
+        else:  # is_archived == '0'
+            archived_purchases = Purchase.objects.none()  # لیست آرشیو خالی شود
+
+    # اعمال فیلترهای پیشرفته
+    if customer:
+        active_purchases = active_purchases.filter(customer__name__icontains=customer)
+        archived_purchases = archived_purchases.filter(customer__name__icontains=customer)
+    
+    if sales_agent:
+        active_purchases = active_purchases.filter(customer__sales_agent__name__icontains=sales_agent)
+        archived_purchases = archived_purchases.filter(customer__sales_agent__name__icontains=sales_agent)
+    
+    if invoice_id:
+        active_purchases = active_purchases.filter(invoice_id__icontains=invoice_id)
+        archived_purchases = archived_purchases.filter(invoice_id__icontains=invoice_id)
+    
+    if purchase_number:
+        active_purchases = active_purchases.filter(purchase_number__icontains=purchase_number)
+        archived_purchases = archived_purchases.filter(purchase_number__icontains=purchase_number)
+    
+    if cottage:
+        active_purchases = active_purchases.filter(cargo__cottage__icontains=cottage)
+        archived_purchases = archived_purchases.filter(cargo__cottage__icontains=cottage)
+    
+    if state:
+        active_purchases = active_purchases.filter(state=state)
+        archived_purchases = archived_purchases.filter(state=state)
+    
+    # فیلتر تاریخ
+    if date_from:
+        try:
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            active_purchases = active_purchases.filter(created_at__date__gte=date_from_obj)
+            archived_purchases = archived_purchases.filter(created_at__date__gte=date_from_obj)
+        except ValueError:
+            pass  # تاریخ نامعتبر نادیده گرفته می‌شود
+    
+    if date_to:
+        try:
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+            active_purchases = active_purchases.filter(created_at__date__lte=date_to_obj)
+            archived_purchases = archived_purchases.filter(created_at__date__lte=date_to_obj)
+        except ValueError:
+            pass  # تاریخ نامعتبر نادیده گرفته می‌شود
+    
+    # فیلتر وزن
+    if min_weight:
+        try:
+            min_weight_float = float(min_weight)
+            active_purchases = active_purchases.filter(order_weight__gte=min_weight_float)
+            archived_purchases = archived_purchases.filter(order_weight__gte=min_weight_float)
+        except ValueError:
+            pass  # مقدار نامعتبر نادیده گرفته می‌شود
+    
+    if max_weight:
+        try:
+            max_weight_float = float(max_weight)
+            active_purchases = active_purchases.filter(order_weight__lte=max_weight_float)
+            archived_purchases = archived_purchases.filter(order_weight__lte=max_weight_float)
+        except ValueError:
+            pass  # مقدار نامعتبر نادیده گرفته می‌شود
+    
+    # فیلتر نوع محصول و کشور
+    if product_type:
+        active_purchases = active_purchases.filter(cargo__product_type=product_type)
+        archived_purchases = archived_purchases.filter(cargo__product_type=product_type)
+    
+    if country:
+        active_purchases = active_purchases.filter(cargo__country=country)
+        archived_purchases = archived_purchases.filter(cargo__country=country)
+    
+    # فیلتر وضعیت فاکتور
+    if is_factored != '':
+        is_factored_bool = is_factored == '1'
+        active_purchases = active_purchases.filter(is_factored=is_factored_bool)
+        archived_purchases = archived_purchases.filter(is_factored=is_factored_bool)
+    
+    # فیلتر اولویت
+    if priority:
+        active_purchases = active_purchases.filter(priority=priority)
+        archived_purchases = archived_purchases.filter(priority=priority)
+    
+    # فیلترهای اضافی
+    if factor_code:
+        active_purchases = active_purchases.filter(factor_code__icontains=factor_code)
+        archived_purchases = archived_purchases.filter(factor_code__icontains=factor_code)
+    
+    if is_urgent == '1':
+        active_purchases = active_purchases.filter(is_urgent=True)
+        archived_purchases = archived_purchases.filter(is_urgent=True)
+    
+    if is_canceled == '1':
+        active_purchases = active_purchases.filter(Q(is_canceled=True) | Q(state='CANCELED'))
+        archived_purchases = archived_purchases.filter(Q(is_canceled=True) | Q(state='CANCELED'))
+    
+    if is_fully_tasvied == '1':
+        active_purchases = active_purchases.filter(is_fully_tasvied=True)
+        archived_purchases = archived_purchases.filter(is_fully_tasvied=True)
+    
+    if type:
+        active_purchases = active_purchases.filter(type=type)
+        archived_purchases = archived_purchases.filter(type=type)
+    
+    if payment_method:
+        active_purchases = active_purchases.filter(payment_method=payment_method)
+        archived_purchases = archived_purchases.filter(payment_method=payment_method)
+    
+    if extelaf_type:
+        active_purchases = active_purchases.filter(extelaf_type=extelaf_type)
+        archived_purchases = archived_purchases.filter(extelaf_type=extelaf_type)
+    
+    if send_cottage_sms != '':
+        send_cottage_sms_bool = send_cottage_sms == '1'
+        active_purchases = active_purchases.filter(send_cottage_sms=send_cottage_sms_bool)
+        archived_purchases = archived_purchases.filter(send_cottage_sms=send_cottage_sms_bool)
+    
+    # اعمال فیلتر جستجوی سریع در آخر
     if global_search:
         active_purchases = active_purchases.filter(
             Q(customer__name__icontains=global_search) |
@@ -130,6 +276,29 @@ def purchase_list(request):
         # پارامترهای جستجو برای حفظ وضعیت در فرم
         'search_params': {
             'global_search': global_search,
+            'customer': customer,
+            'sales_agent': sales_agent,
+            'invoice_id': invoice_id,
+            'purchase_number': purchase_number,
+            'cottage': cottage,
+            'state': state,
+            'date_from': date_from,
+            'date_to': date_to,
+            'min_weight': min_weight,
+            'max_weight': max_weight,
+            'product_type': product_type,
+            'country': country,
+            'is_archived': is_archived,
+            'is_factored': is_factored,
+            'priority': priority,
+            'factor_code': factor_code,
+            'is_urgent': is_urgent,
+            'is_canceled': is_canceled,
+            'is_fully_tasvied': is_fully_tasvied,
+            'type': type,
+            'payment_method': payment_method,
+            'extelaf_type': extelaf_type,
+            'send_cottage_sms': send_cottage_sms,
         },
         'selected_columns': selected_columns,
         'all_columns': all_columns,

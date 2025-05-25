@@ -167,6 +167,34 @@ def daily_attendance_view(request):
     elif status == 'pending':
         attendances = attendances.exclude(approved_by_admin=True)
 
+    # شمارش تعداد درخواست‌های در انتظار تایید برای نمایش نوتیفیکیشن
+    pending_approvals_count = 0
+    try:
+        # اگر کاربر ادمین است
+        if request.user.is_superuser:
+            # شمارش رکوردهایی که حداقل 2 تایید دارند ولی تایید ادمین ندارند
+            pending_approvals_count = WeeklyAttendance.objects.filter(
+                (
+                    (Q(user1_approved=True) & Q(user2_approved=True)) |
+                    (Q(user1_approved=True) & Q(user3_approved=True)) |
+                    (Q(user2_approved=True) & Q(user3_approved=True))
+                ) & 
+                Q(approved_by_admin=False)
+            ).count()
+        else:
+            # برای کاربران عادی، شمارش رکوردهایی که در انتظار تایید آنها هستند
+            current_employee = Employee.objects.get(user=request.user)
+            pending_approvals_count = WeeklyAttendance.objects.filter(
+                (
+                    (Q(approved_by_user1=current_employee, user1_approved=False) & ~(Q(user2_approved=True) & Q(user3_approved=True))) |
+                    (Q(approved_by_user2=current_employee, user2_approved=False) & ~(Q(user1_approved=True) & Q(user3_approved=True))) |
+                    (Q(approved_by_user3=current_employee, user3_approved=False) & ~(Q(user1_approved=True) & Q(user2_approved=True)))
+                )
+            ).count()
+    except Employee.DoesNotExist:
+        # اگر کاربر فعلی کارمند نیست
+        pending_approvals_count = 0
+    
     q = request.GET.get('q')
     if q:
         attendances = attendances.filter(Q(description__icontains=q) | Q(day__icontains=q))
@@ -238,11 +266,13 @@ def daily_attendance_view(request):
         
         # دریافت بازه‌های زمانی
         from HR.EmployeeAttendanceModel import TimeRange
-        time_ranges = TimeRange.objects.filter(attendance=attendance).order_by('start_time')
+        # اصلاح: استفاده درست از رابطه ریلیتید نیم 'time_ranges'
+        time_ranges = attendance.time_ranges.all().order_by('start_time')
         formatted_time_ranges = []
         
         # چک کردن آیا بازه زمانی وجود دارد
-        print(f"Debug - Checking time ranges for attendance {attendance.id}")
+        print(f"Debug - daily_attendance_view: Checking time ranges for attendance {attendance.id}")
+        print(f"Debug - daily_attendance_view: Found {time_ranges.count()} time ranges")
         
         for time_range in time_ranges:
             formatted_time_ranges.append({
@@ -250,7 +280,6 @@ def daily_attendance_view(request):
                 'end_time': time_range.end_time.strftime('%H:%M'),
                 'duration': time_range.duration
             })
-            print(f"Debug - Added time range: {time_range.start_time.strftime('%H:%M')} to {time_range.end_time.strftime('%H:%M')}")
         
         # وضعیت تاییدها
         attendance.enough_approvals = attendance.is_enough_user_approvals
@@ -323,7 +352,8 @@ def daily_attendance_view(request):
         'attendances': formatted_attendances,
         'monthly_summary': formatted_monthly_summary,
         'status': status,
-        'q': q
+        'q': q,
+        'pending_approvals_count': pending_approvals_count  # افزودن تعداد درخواست‌های در انتظار تایید به کانتکست
     })
 
 @role_required('employee', 'admin')
@@ -364,15 +394,11 @@ def download_attendance_report(request):
 @login_required
 def pending_approvals_view(request):
     if request.user.is_superuser:
-        # برای ادمین، نمایش رکوردهایی که حداقل 2 تایید دارند ولی تایید ادمین ندارند
+        # برای ادمین، نمایش تمام رکوردهایی که تایید ادمین ندارند، صرف نظر از تعداد تایید کاربران
         pending_attendances = WeeklyAttendance.objects.filter(
-            (
-                (Q(user1_approved=True) & Q(user2_approved=True)) |
-                (Q(user1_approved=True) & Q(user3_approved=True)) |
-                (Q(user2_approved=True) & Q(user3_approved=True))
-            ) & 
-            Q(approved_by_admin=False)
+            approved_by_admin=False
         ).order_by('-week_start_date')
+        print(f"Debug - Admin user: Found {pending_attendances.count()} records waiting for admin approval")
     else:
         # برای کاربران عادی، فقط نمایش رکوردهایی که:
         # 1. در انتظار تایید آنها هستند
@@ -438,9 +464,10 @@ def pending_approvals_view(request):
         
         # دریافت بازه‌های زمانی
         from HR.EmployeeAttendanceModel import TimeRange
-        time_ranges = list(TimeRange.objects.filter(attendance=attendance).order_by('start_time'))
+        # اصلاح: استفاده درست از رابطه ریلیتید نیم 'time_ranges'
+        time_ranges = attendance.time_ranges.all().order_by('start_time')
         
-        print(f"Debug - Attendance ID {attendance.id} has {len(time_ranges)} time ranges")
+        print(f"Debug - pending_approvals_view: Attendance ID {attendance.id} has {time_ranges.count()} time ranges")
         
         formatted_time_ranges = []
         for time_range in time_ranges:
@@ -450,12 +477,13 @@ def pending_approvals_view(request):
                 'duration': time_range.duration
             }
             formatted_time_ranges.append(formatted_entry)
-            print(f"Debug - Added range: {formatted_entry['start_time']} to {formatted_entry['end_time']}")
             
         # اطمینان از اینکه لیست بازه‌های زمانی خالی نیست
-        print(f"Debug - Final formatted_time_ranges: {formatted_time_ranges}")
+        print(f"Debug - pending_approvals_view: Final formatted_time_ranges: {formatted_time_ranges}")
         
         # وضعیت تاییدها
+        attendance.enough_approvals = attendance.is_enough_user_approvals
+        
         attendance_data = {
             'id': attendance.id,
             'employee': attendance.employee,
@@ -488,15 +516,12 @@ def pending_approvals_view(request):
 def approve_attendance(request, attendance_id):
     attendance = get_object_or_404(WeeklyAttendance, id=attendance_id)
     
-    # اگر کاربر ادمین است، مستقیماً اجازه تایید بدهیم
+    # اگر کاربر ادمین است، مستقیماً تایید نهایی را انجام می‌دهیم بدون نیاز به تایید کاربران
     if request.user.is_superuser:
-        # بررسی اینکه آیا به حد نصاب 2 تایید رسیده‌ایم یا خیر
-        if attendance.is_enough_user_approvals:
-            attendance.approved_by_admin = True
-            attendance.save()
-            messages.success(request, "تأیید ادمین ثبت شد!")
-        else:
-            messages.error(request, "حداقل دو تایید از تاییدکنندگان لازم است، سپس می‌توانید تایید ادمین را انجام دهید.")
+        # ادمین می‌تواند در هر مرحله‌ای تایید کند و نیازی به تایید کاربران نیست
+        attendance.approved_by_admin = True
+        attendance.save()
+        messages.success(request, "تأیید ادمین ثبت شد! ساعات کاری با موفقیت تایید نهایی شد.")
         return redirect('pending_approvals')
     
     try:

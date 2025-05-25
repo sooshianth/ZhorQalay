@@ -51,8 +51,8 @@ class WeeklyAttendance(models.Model):
 
     @property
     def is_fully_approved(self):
-        # حداقل دو کاربر تایید کرده باشند و ادمین هم تایید کرده باشد
-        return self.is_enough_user_approvals and self.approved_by_admin
+        # اگر ادمین تایید کرده باشد، کامل تایید شده محسوب می‌شود، بدون نیاز به تایید کاربران
+        return self.approved_by_admin
     
     def save(self, *args, **kwargs):
         if self.day and not self.day.endswith('شنبه'):
@@ -130,19 +130,13 @@ class MonthlyAttendance(models.Model):
                 
             print(f"Debug - update_monthly_hours: Month range: {start_of_month} to {end_of_month}")
                 
-            # فقط ساعات تأیید شده را حساب می‌کنیم
-            # چون is_fully_approved یک پراپرتی است و قابل فیلتر کردن در دیتابیس نیست
-            # از شرط معادل آن در دیتابیس استفاده می‌کنیم
+            # فقط ساعات تأیید شده توسط ادمین را حساب می‌کنیم
+            # با توجه به تغییر منطق تایید، دیگر نیازی به تایید کاربران نیست
             total = WeeklyAttendance.objects.filter(
                 employee=employee,
                 week_start_date__gte=start_of_month,
                 week_start_date__lte=end_of_month,
                 approved_by_admin=True,  # فقط ساعات تأیید شده توسط ادمین
-            ).filter(
-                # نیاز به حداقل دو تایید کاربر - باید حداقل دو تا از مقادیر زیر True باشند
-                Q(user1_approved=True, user2_approved=True) |
-                Q(user1_approved=True, user3_approved=True) |
-                Q(user2_approved=True, user3_approved=True)
             ).aggregate(Sum('total_hours'))['total_hours__sum'] or 0
             
             print(f"Debug - update_monthly_hours: Total approved hours for {month_str}: {total}")

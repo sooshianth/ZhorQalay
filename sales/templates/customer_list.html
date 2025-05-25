@@ -633,45 +633,65 @@
             filtersContainer.classList.toggle('hidden');
         }
     });
+    
+    // بستن فیلترها
+    document.getElementById('close-filters-btn').addEventListener('click', function() {
+        var filtersContainer = document.getElementById('filters-container');
+        if (filtersContainer) {
+            filtersContainer.classList.add('hidden');
+        }
+    });
 
     // انتخاب همه
-    document.getElementById('select-all-btn').addEventListener('click', function() {
-        var checkboxes = document.querySelectorAll('.customer-checkbox');
-        checkboxes.forEach(function(checkbox) {
-            checkbox.checked = true;
-            checkbox.closest('tr').classList.add('selected-row');
+    var selectAllBtn = document.getElementById('select-all-btn');
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function() {
+            var checkboxes = document.querySelectorAll('.customer-checkbox');
+            checkboxes.forEach(function(checkbox) {
+                checkbox.checked = true;
+                checkbox.closest('tr').classList.add('selected-row');
+            });
+            updateSelectionCount();
         });
-        updateSelectionCount();
-    });
+    }
 
     // لغو انتخاب همه
-    document.getElementById('deselect-all-btn').addEventListener('click', function() {
-        var checkboxes = document.querySelectorAll('.customer-checkbox');
-        checkboxes.forEach(function(checkbox) {
-            checkbox.checked = false;
-            checkbox.closest('tr').classList.remove('selected-row');
+    var deselectAllBtn = document.getElementById('deselect-all-btn');
+    if (deselectAllBtn) {
+        deselectAllBtn.addEventListener('click', function() {
+            var checkboxes = document.querySelectorAll('.customer-checkbox');
+            checkboxes.forEach(function(checkbox) {
+                checkbox.checked = false;
+                checkbox.closest('tr').classList.remove('selected-row');
+            });
+            updateSelectionCount();
         });
-        updateSelectionCount();
-    });
+    }
 
     // انتخاب همه در هدر جدول
-    document.getElementById('select-all-checkbox').addEventListener('change', function() {
-        var checkboxes = document.querySelectorAll('.customer-checkbox');
-        checkboxes.forEach(function(checkbox) {
-            checkbox.checked = this.checked;
-            if (this.checked) {
-                checkbox.closest('tr').classList.add('selected-row');
-            } else {
-                checkbox.closest('tr').classList.remove('selected-row');
-            }
+    var selectAllCheckbox = document.getElementById('select-all-checkbox');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            var checkboxes = document.querySelectorAll('.customer-checkbox');
+            checkboxes.forEach(function(checkbox) {
+                checkbox.checked = this.checked;
+                if (this.checked) {
+                    checkbox.closest('tr').classList.add('selected-row');
+                } else {
+                    checkbox.closest('tr').classList.remove('selected-row');
+                }
+            });
+            updateSelectionCount();
         });
-        updateSelectionCount();
-    });
+    }
 
     // محاسبه تعداد انتخاب‌ها
     function updateSelectionCount() {
         var count = document.querySelectorAll('.customer-checkbox:checked').length;
-        document.getElementById('send-sms-btn').disabled = count === 0;
+        var sendSmsBtn = document.getElementById('send-sms-btn');
+        if (sendSmsBtn) {
+            sendSmsBtn.disabled = count === 0;
+        }
         var selectedCount = document.getElementById('selected-count');
         if (selectedCount) {
             selectedCount.textContent = count;
@@ -691,81 +711,132 @@
     });
 
     // اضافه کردن قابلیت کلیک روی سطرها برای انتخاب
-    document.querySelectorAll('.table-hover tbody tr').forEach(function(row) {
-        row.addEventListener('click', function(e) {
-            // اگر روی لینک یا آیکون علاقه‌مندی کلیک شده، کاری انجام نده
-            if (e.target.tagName === 'A' || e.target.closest('.favorite-icon')) {
-                return;
-            }
-            var checkbox = this.querySelector('.customer-checkbox');
-            if (checkbox) {
-                checkbox.checked = !checkbox.checked;
-                if (checkbox.checked) {
-                    this.classList.add('selected-row');
-                } else {
-                    this.classList.remove('selected-row');
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('tbody tr').forEach(function(row) {
+            row.addEventListener('click', function(e) {
+                // اگر روی لینک، ستاره یا چک‌باکس کلیک شده، کاری انجام نده
+                if (e.target.tagName === 'A' || 
+                    e.target.closest('a') || 
+                    e.target.classList.contains('fa-star') || 
+                    e.target.classList.contains('far') || 
+                    e.target.classList.contains('fas') || 
+                    e.target.classList.contains('favorite-icon') || 
+                    e.target.closest('.favorite-icon') ||
+                    e.target.type === 'checkbox' || 
+                    e.target.closest('input[type="checkbox"]')) {
+                    return;
                 }
-                updateSelectionCount();
-            }
+                
+                var checkbox = this.querySelector('.customer-checkbox');
+                if (checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                    if (checkbox.checked) {
+                        this.classList.add('selected-row');
+                    } else {
+                        this.classList.remove('selected-row');
+                    }
+                    updateSelectionCount();
+                    
+                    // اجرای رویداد change به صورت دستی
+                    var event = new Event('change', {
+                        'bubbles': true,
+                        'cancelable': true
+                    });
+                    checkbox.dispatchEvent(event);
+                }
+            });
+        });
+        
+        // تغییر وضعیت علاقه‌مندی
+        document.querySelectorAll('.favorite-icon').forEach(function(icon) {
+            icon.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                var customerId = this.getAttribute('data-customer-id');
+                if (!customerId) {
+                    console.error('شناسه مشتری یافت نشد');
+                    return;
+                }
+                
+                toggleFavorite(customerId, this);
+            });
         });
     });
 
     // نمایش پنل ارسال پیامک
-    document.getElementById('send-sms-btn').addEventListener('click', function() {
-        var smsPanel = document.getElementById('sms-panel');
-        if (smsPanel) {
-            smsPanel.classList.remove('hidden');
-        }
-    });
+    var sendSmsBtn = document.getElementById('send-sms-btn');
+    if (sendSmsBtn) {
+        sendSmsBtn.addEventListener('click', function() {
+            var smsPanel = document.getElementById('sms-panel');
+            if (smsPanel) {
+                smsPanel.classList.remove('hidden');
+            }
+        });
+    }
 
     // بستن پنل پیامک
-    document.getElementById('close-sms-panel').addEventListener('click', function() {
-        var smsPanel = document.getElementById('sms-panel');
-        if (smsPanel) {
-            smsPanel.classList.add('hidden');
-        }
-    });
+    var closeSmsPanel = document.getElementById('close-sms-panel');
+    if (closeSmsPanel) {
+        closeSmsPanel.addEventListener('click', function() {
+            var smsPanel = document.getElementById('sms-panel');
+            if (smsPanel) {
+                smsPanel.classList.add('hidden');
+            }
+        });
+    }
 
     // حذف فیلترها
     document.getElementById('reset-filters').addEventListener('click', function() {
         window.location.href = window.location.pathname;
     });
 
-    // تغییر وضعیت علاقه‌مندی
-    document.querySelectorAll('.favorite-icon').forEach(function(icon) {
-        icon.addEventListener('click', function() {
-            var customerId = this.getAttribute('data-customer-id');
-            toggleFavorite(customerId, this);
-        });
-    });
-
     // تابع تغییر وضعیت علاقه‌مندی
     function toggleFavorite(customerId, iconElement) {
+        console.log('Toggling favorite for customer ID:', customerId);
+        
+        // یافتن توکن CSRF
         var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        if (!csrfToken) {
+            console.error('CSRF token not found');
+            return;
+        }
         
-        var params = new URLSearchParams();
-        params.append('customer_id', customerId);
+        // نمایش لودینگ روی آیکون
+        var originalHTML = iconElement.innerHTML;
+        iconElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         
+        // ارسال درخواست
         fetch('{% url "toggle_favorite" %}', {
             method: 'POST',
             headers: {
-                'X-CSRFToken': csrfToken,
-                'Content-Type': 'application/x-www-form-urlencoded'
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken
             },
-            body: params
+            body: 'customer_id=' + encodeURIComponent(customerId)
         })
         .then(function(response) {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.status);
+            }
             return response.json();
         })
         .then(function(data) {
+            console.log('Response:', data);
+            
             if (data.success) {
+                // تغییر آیکون بر اساس وضعیت جدید
                 if (data.is_favorite) {
-                    iconElement.innerHTML = '<i class="fas fa-star"></i>';
+                    iconElement.innerHTML = '<i class="fas fa-star text-yellow-500"></i>';
                     iconElement.setAttribute('data-is-favorite', 'true');
+                    iconElement.title = 'حذف از علاقه‌مندی‌ها';
                 } else {
                     iconElement.innerHTML = '<i class="far fa-star"></i>';
                     iconElement.setAttribute('data-is-favorite', 'false');
+                    iconElement.title = 'افزودن به علاقه‌مندی‌ها';
                 }
+                
+                // نمایش پیام موفقیت
                 Swal.fire({
                     icon: 'success',
                     title: 'موفق',
@@ -774,6 +845,10 @@
                     timer: 1500
                 });
             } else {
+                // بازگرداندن آیکون به حالت قبلی در صورت خطا
+                iconElement.innerHTML = originalHTML;
+                
+                // نمایش پیام خطا
                 Swal.fire({
                     icon: 'error',
                     title: 'خطا',
@@ -782,6 +857,9 @@
             }
         })
         .catch(function(error) {
+            // بازگرداندن آیکون به حالت قبلی در صورت خطا
+            iconElement.innerHTML = originalHTML;
+            
             console.error('خطا در ارسال درخواست:', error);
             Swal.fire({
                 icon: 'error',

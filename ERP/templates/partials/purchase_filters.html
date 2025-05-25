@@ -1,0 +1,539 @@
+<!-- فیلترهای پیشرفته لیست خرید -->
+<div class="card mb-4 filter-panel shadow-sm border-0 rounded-lg">
+    <div class="card-header d-flex justify-content-between align-items-center py-3" data-bs-toggle="collapse" data-bs-target="#advancedFilters" aria-expanded="false">
+        <span class="fw-bold text-primary"><i class="fas fa-sliders-h me-2"></i>فیلترهای پیشرفته</span>
+        <button class="btn btn-sm btn-link text-decoration-none p-0">
+            <i class="fas fa-chevron-down filter-toggle-icon"></i>
+        </button>
+    </div>
+    <div class="card-body collapse" id="advancedFilters">
+        <form id="purchaseFilterForm" method="get" class="row g-3">
+            <!-- هدر جستجو -->
+            <div class="col-12">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="filter-section-icon bg-primary bg-opacity-10 text-primary p-2 rounded-circle me-2">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <h6 class="fw-bold mb-0">جستجوی اطلاعات پایه</h6>
+                </div>
+                <hr class="mt-2 mb-3">
+            </div>
+            
+            <!-- جستجوی سریع -->
+            <div class="col-md-4 mb-3">
+                <label for="global_search" class="form-label fw-semibold">جستجوی سریع</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" class="form-control border-start-0" id="global_search" name="global_search" 
+                        value="{{ search_params.global_search }}" placeholder="جستجو در تمام فیلدها...">
+                </div>
+            </div>
+
+            <!-- فیلتر مشتری -->
+            <div class="col-md-4 mb-3">
+                <label for="customer" class="form-label fw-semibold">مشتری</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="fas fa-user text-muted"></i></span>
+                    <input type="text" class="form-control border-start-0" id="customer" name="customer" 
+                        value="{{ search_params.customer }}" placeholder="نام مشتری...">
+                </div>
+            </div>
+
+            <!-- فیلتر نماینده فروش -->
+            <div class="col-md-4 mb-3">
+                <label for="sales_agent" class="form-label fw-semibold">نماینده فروش</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="fas fa-user-tie text-muted"></i></span>
+                    <input type="text" class="form-control border-start-0" id="sales_agent" name="sales_agent" 
+                        value="{{ search_params.sales_agent }}" placeholder="نام نماینده فروش...">
+                </div>
+            </div>
+
+            <!-- هدر اطلاعات شناسایی -->
+            <div class="col-12">
+                <div class="d-flex align-items-center mb-2 mt-2">
+                    <div class="filter-section-icon bg-success bg-opacity-10 text-success p-2 rounded-circle me-2">
+                        <i class="fas fa-tag"></i>
+                    </div>
+                    <h6 class="fw-bold mb-0">اطلاعات شناسایی</h6>
+                </div>
+                <hr class="mt-2 mb-3">
+            </div>
+
+            <!-- فیلتر کد درون سازمانی -->
+            <div class="col-md-3 mb-3">
+                <label for="invoice_id" class="form-label fw-semibold">کد درون سازمانی</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="fas fa-barcode text-muted"></i></span>
+                    <input type="text" class="form-control border-start-0" id="invoice_id" name="invoice_id" 
+                        value="{{ search_params.invoice_id }}" placeholder="کد درون سازمانی...">
+                </div>
+            </div>
+
+            <!-- فیلتر شماره خرید -->
+            <div class="col-md-3 mb-3">
+                <label for="purchase_number" class="form-label fw-semibold">شماره خرید</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="fas fa-hashtag text-muted"></i></span>
+                    <input type="text" class="form-control border-start-0" id="purchase_number" name="purchase_number" 
+                        value="{{ search_params.purchase_number }}" placeholder="شماره خرید...">
+                </div>
+            </div>
+
+            <!-- فیلتر کوتاژ -->
+            <div class="col-md-3 mb-3">
+                <label for="cottage" class="form-label fw-semibold">کوتاژ</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="fas fa-boxes text-muted"></i></span>
+                    <input type="text" class="form-control border-start-0" id="cottage" name="cottage" 
+                        value="{{ search_params.cottage }}" placeholder="شماره کوتاژ...">
+                </div>
+            </div>
+
+            <!-- فیلتر فاکتور کد -->
+            <div class="col-md-3 mb-3">
+                <label for="factor_code" class="form-label fw-semibold">کد فاکتور</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="fas fa-file-invoice text-muted"></i></span>
+                    <input type="text" class="form-control border-start-0" id="factor_code" name="factor_code" 
+                        value="{{ search_params.factor_code }}" placeholder="کد فاکتور...">
+                </div>
+            </div>
+
+            <!-- هدر مشخصات محصول -->
+            <div class="col-12">
+                <div class="d-flex align-items-center mb-2 mt-2">
+                    <div class="filter-section-icon bg-info bg-opacity-10 text-info p-2 rounded-circle me-2">
+                        <i class="fas fa-box-open"></i>
+                    </div>
+                    <h6 class="fw-bold mb-0">مشخصات محصول</h6>
+                </div>
+                <hr class="mt-2 mb-3">
+            </div>
+
+            <!-- فیلتر نوع محصول -->
+            <div class="col-md-3 mb-3">
+                <label for="product_type" class="form-label fw-semibold">نوع محصول</label>
+                <select class="form-select" id="product_type" name="product_type">
+                    <option value="">همه محصولات</option>
+                    <option value="corn" {% if search_params.product_type == 'corn' %}selected{% endif %}>ذرت</option>
+                    <option value="barley" {% if search_params.product_type == 'barley' %}selected{% endif %}>جو</option>
+                    <option value="soy_meal" {% if search_params.product_type == 'soy_meal' %}selected{% endif %}>کنجاله سویا</option>
+                    <option value="sunflower_meal" {% if search_params.product_type == 'sunflower_meal' %}selected{% endif %}>کنجاله آفتابگردان</option>
+                    <option value="rapeseed_meal" {% if search_params.product_type == 'rapeseed_meal' %}selected{% endif %}>کنجاله کلزا</option>
+                    <option value="soy_grain" {% if search_params.product_type == 'soy_grain' %}selected{% endif %}>دان سویا</option>
+                    <option value="cotton_seed" {% if search_params.product_type == 'cotton_seed' %}selected{% endif %}>دان پنبه</option>
+                    <option value="alfalfa" {% if search_params.product_type == 'alfalfa' %}selected{% endif %}>یونجه</option>
+                    <option value="other" {% if search_params.product_type == 'other' %}selected{% endif %}>سایر</option>
+                </select>
+            </div>
+
+            <!-- فیلتر کشور -->
+            <div class="col-md-3 mb-3">
+                <label for="country" class="form-label fw-semibold">کشور</label>
+                <select class="form-select" id="country" name="country">
+                    <option value="">همه کشورها</option>
+                    <option value="iran" {% if search_params.country == 'iran' %}selected{% endif %}>ایران</option>
+                    <option value="brazil" {% if search_params.country == 'brazil' %}selected{% endif %}>برزیل</option>
+                    <option value="russia" {% if search_params.country == 'russia' %}selected{% endif %}>روسیه</option>
+                    <option value="other" {% if search_params.country == 'other' %}selected{% endif %}>سایر</option>
+                </select>
+            </div>
+
+            <!-- فیلتر حداقل وزن -->
+            <div class="col-md-3 mb-3">
+                <label for="min_weight" class="form-label fw-semibold">حداقل وزن (کیلوگرم)</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="fas fa-weight-hanging text-muted"></i></span>
+                    <input type="number" class="form-control border-start-0" id="min_weight" name="min_weight" 
+                        value="{{ search_params.min_weight }}" placeholder="حداقل وزن...">
+                </div>
+            </div>
+
+            <!-- فیلتر حداکثر وزن -->
+            <div class="col-md-3 mb-3">
+                <label for="max_weight" class="form-label fw-semibold">حداکثر وزن (کیلوگرم)</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="fas fa-weight-hanging text-muted"></i></span>
+                    <input type="number" class="form-control border-start-0" id="max_weight" name="max_weight" 
+                        value="{{ search_params.max_weight }}" placeholder="حداکثر وزن...">
+                </div>
+            </div>
+
+            <!-- هدر وضعیت -->
+            <div class="col-12">
+                <div class="d-flex align-items-center mb-2 mt-2">
+                    <div class="filter-section-icon bg-warning bg-opacity-10 text-warning p-2 rounded-circle me-2">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <h6 class="fw-bold mb-0">وضعیت و زمان‌بندی</h6>
+                </div>
+                <hr class="mt-2 mb-3">
+            </div>
+
+            <!-- فیلتر وضعیت -->
+            <div class="col-md-3 mb-3">
+                <label for="state" class="form-label fw-semibold">وضعیت خرید</label>
+                <select class="form-select" id="state" name="state">
+                    <option value="">همه وضعیت‌ها</option>
+                    {% for status_code, status_name in all_states.items %}
+                        <option value="{{ status_code }}" {% if search_params.state == status_code %}selected{% endif %}>
+                            {{ status_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- فیلتر وضعیت آرشیو -->
+            <div class="col-md-3 mb-3">
+                <label for="is_archived" class="form-label fw-semibold">وضعیت آرشیو</label>
+                <select class="form-select" id="is_archived" name="is_archived">
+                    <option value="">همه</option>
+                    <option value="0" {% if search_params.is_archived == '0' %}selected{% endif %}>فعال</option>
+                    <option value="1" {% if search_params.is_archived == '1' %}selected{% endif %}>آرشیو شده</option>
+                </select>
+            </div>
+
+            <!-- فیلتر وضعیت فاکتور -->
+            <div class="col-md-3 mb-3">
+                <label for="is_factored" class="form-label fw-semibold">وضعیت فاکتور</label>
+                <select class="form-select" id="is_factored" name="is_factored">
+                    <option value="">همه</option>
+                    <option value="0" {% if search_params.is_factored == '0' %}selected{% endif %}>بدون فاکتور</option>
+                    <option value="1" {% if search_params.is_factored == '1' %}selected{% endif %}>فاکتور شده</option>
+                </select>
+            </div>
+
+            <!-- فیلتر اولویت -->
+            <div class="col-md-3 mb-3">
+                <label for="priority" class="form-label fw-semibold">اولویت</label>
+                <select class="form-select" id="priority" name="priority">
+                    <option value="">همه</option>
+                    <option value="LOW" {% if search_params.priority == 'LOW' %}selected{% endif %}>کم</option>
+                    <option value="MEDIUM" {% if search_params.priority == 'MEDIUM' %}selected{% endif %}>متوسط</option>
+                    <option value="HIGH" {% if search_params.priority == 'HIGH' %}selected{% endif %}>زیاد</option>
+                </select>
+            </div>
+
+            <!-- فیلتر تاریخ شروع -->
+            <div class="col-md-3 mb-3">
+                <label for="date_from" class="form-label fw-semibold">از تاریخ</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="fas fa-calendar-alt text-muted"></i></span>
+                    <input type="date" class="form-control border-start-0" id="date_from" name="date_from" 
+                        value="{{ search_params.date_from }}">
+                </div>
+            </div>
+
+            <!-- فیلتر تاریخ پایان -->
+            <div class="col-md-3 mb-3">
+                <label for="date_to" class="form-label fw-semibold">تا تاریخ</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="fas fa-calendar-alt text-muted"></i></span>
+                    <input type="date" class="form-control border-start-0" id="date_to" name="date_to" 
+                        value="{{ search_params.date_to }}">
+                </div>
+            </div>
+
+            <!-- فیلتر وضعیت‌های ویژه -->
+            <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold d-block">وضعیت‌های ویژه</label>
+                <div class="d-flex flex-wrap gap-3">
+                    <div class="form-check form-check-inline bg-light py-2 px-3 rounded">
+                        <input class="form-check-input" type="checkbox" id="is_urgent" name="is_urgent" value="1" 
+                            {% if search_params.is_urgent == '1' %}checked{% endif %}>
+                        <label class="form-check-label" for="is_urgent">فقط خریدهای فوری</label>
+                    </div>
+                    <div class="form-check form-check-inline bg-light py-2 px-3 rounded">
+                        <input class="form-check-input" type="checkbox" id="is_canceled" name="is_canceled" value="1" 
+                            {% if search_params.is_canceled == '1' %}checked{% endif %}>
+                        <label class="form-check-label" for="is_canceled">فقط خریدهای لغو شده</label>
+                    </div>
+                    <div class="form-check form-check-inline bg-light py-2 px-3 rounded">
+                        <input class="form-check-input" type="checkbox" id="is_fully_tasvied" name="is_fully_tasvied" value="1" 
+                            {% if search_params.is_fully_tasvied == '1' %}checked{% endif %}>
+                        <label class="form-check-label" for="is_fully_tasvied">فقط تسویه شده‌ها</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- دکمه‌های فرم -->
+            <div class="col-12 d-flex justify-content-between mt-4 border-top pt-3">
+                <div>
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="fas fa-search me-2"></i> اعمال فیلترها
+                    </button>
+                    <button type="button" id="toggleFilterOptions" class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-sliders-h me-2"></i> گزینه‌های بیشتر
+                    </button>
+                </div>
+                <div>
+                    <button type="button" id="closeFiltersBtn" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-times-circle me-2"></i> بستن فیلترها
+                    </button>
+                    <button type="button" id="resetFilters" class="btn btn-outline-danger">
+                        <i class="fas fa-undo me-2"></i> پاک کردن فیلترها
+                    </button>
+                </div>
+            </div>
+
+            <!-- گزینه‌های پیشرفته (به صورت پیش‌فرض مخفی) -->
+            <div id="advancedFilterOptions" class="col-12 mt-3 d-none">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label for="type" class="form-label fw-semibold">نوع خرید</label>
+                        <select class="form-select" id="type" name="type">
+                            <option value="">همه</option>
+                            <option value="bazaargah" {% if search_params.type == 'bazaargah' %}selected{% endif %}>بازارگاه</option>
+                            <option value="non_bazaargah" {% if search_params.type == 'non_bazaargah' %}selected{% endif %}>خارج از بازارگاه</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="payment_method" class="form-label fw-semibold">روش پرداخت</label>
+                        <select class="form-select" id="payment_method" name="payment_method">
+                            <option value="">همه</option>
+                            <option value="cash" {% if search_params.payment_method == 'cash' %}selected{% endif %}>نقدی</option>
+                            <option value="credit" {% if search_params.payment_method == 'credit' %}selected{% endif %}>اعتباری</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="extelaf_type" class="form-label fw-semibold">نوع اختلاف</label>
+                        <select class="form-select" id="extelaf_type" name="extelaf_type">
+                            <option value="">همه</option>
+                            <option value="sarak" {% if search_params.extelaf_type == 'sarak' %}selected{% endif %}>سرک</option>
+                            <option value="kasri" {% if search_params.extelaf_type == 'kasri' %}selected{% endif %}>کسری</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="send_cottage_sms" class="form-label fw-semibold">وضعیت ارسال پیامک</label>
+                        <select class="form-select" id="send_cottage_sms" name="send_cottage_sms">
+                            <option value="">همه</option>
+                            <option value="1" {% if search_params.send_cottage_sms == '1' %}selected{% endif %}>ارسال شده</option>
+                            <option value="0" {% if search_params.send_cottage_sms == '0' %}selected{% endif %}>ارسال نشده</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- استایل‌های مربوط به فیلتر -->
+<style>
+    .filter-panel {
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+    
+    .filter-panel:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
+    }
+    
+    .filter-panel .card-header {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid rgba(0,0,0,.05);
+    }
+    
+    .filter-panel .card-header:hover {
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+    
+    .filter-panel .card-body {
+        transition: all 0.3s ease;
+        padding: 1.25rem;
+    }
+    
+    .filter-toggle-icon {
+        transition: transform 0.3s ease;
+    }
+    
+    #advancedFilters.show .filter-toggle-icon {
+        transform: rotate(180deg);
+    }
+    
+    .filter-section-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .form-control, .form-select {
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.375rem;
+        border: 1px solid #dee2e6;
+        transition: all 0.2s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    
+    .input-group-text {
+        border-radius: 0.375rem 0 0 0.375rem;
+        border: 1px solid #dee2e6;
+        border-right: none;
+    }
+    
+    .btn {
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    
+    #toggleFilterOptions {
+        transition: all 0.3s ease;
+    }
+    
+    #toggleFilterOptions.active {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .form-check-inline {
+        margin-right: 0;
+        transition: all 0.2s ease;
+    }
+    
+    .form-check-inline:hover {
+        background-color: rgba(13, 110, 253, 0.1);
+    }
+</style>
+
+<!-- اسکریپت مربوط به فیلتر -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // نمایش/مخفی کردن پنل فیلتر با کلیک روی هدر
+        document.querySelector('.filter-panel .card-header').addEventListener('click', function() {
+            const icon = this.querySelector('.filter-toggle-icon');
+            const advancedFilters = document.getElementById('advancedFilters');
+            
+            if (icon.classList.contains('fa-chevron-down')) {
+                icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+                // با استفاده از کلاس Bootstrap، collapse را تغییر می‌دهیم
+                new bootstrap.Collapse(advancedFilters).show();
+            } else {
+                icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+                new bootstrap.Collapse(advancedFilters).hide();
+            }
+        });
+
+        // دکمه بستن فیلترها
+        document.getElementById('closeFiltersBtn').addEventListener('click', function() {
+            const advancedFilters = document.getElementById('advancedFilters');
+            const icon = document.querySelector('.filter-toggle-icon');
+            
+            icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+            new bootstrap.Collapse(advancedFilters).hide();
+        });
+
+        // گزینه‌های بیشتر
+        const toggleFilterOptionsBtn = document.getElementById('toggleFilterOptions');
+        const advancedFilterOptions = document.getElementById('advancedFilterOptions');
+        
+        toggleFilterOptionsBtn.addEventListener('click', function() {
+            advancedFilterOptions.classList.toggle('d-none');
+            this.classList.toggle('active');
+            
+            if (!advancedFilterOptions.classList.contains('d-none')) {
+                this.innerHTML = '<i class="fas fa-minus me-2"></i> گزینه‌های کمتر';
+            } else {
+                this.innerHTML = '<i class="fas fa-sliders-h me-2"></i> گزینه‌های بیشتر';
+            }
+        });
+
+        // پاک کردن فیلترها
+        document.getElementById('resetFilters').addEventListener('click', function() {
+            const form = document.getElementById('purchaseFilterForm');
+            const inputs = form.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                input.value = '';
+                
+                // برای چک‌باکس‌ها
+                if (input.type === 'checkbox') {
+                    input.checked = false;
+                }
+            });
+            form.submit();
+        });
+        
+        // اگر حداقل یک فیلتر فعال است، پنل را به صورت خودکار باز کنیم
+        const hasActiveFilters = checkForActiveFilters();
+        if (hasActiveFilters) {
+            const advancedFilters = document.getElementById('advancedFilters');
+            const icon = document.querySelector('.filter-toggle-icon');
+            
+            icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+            new bootstrap.Collapse(advancedFilters).show();
+        }
+        
+        // بررسی فعال بودن فیلترها
+        function checkForActiveFilters() {
+            const form = document.getElementById('purchaseFilterForm');
+            const inputs = form.querySelectorAll('input, select');
+            
+            for (let input of inputs) {
+                // برای فیلدهای متنی و عددی
+                if ((input.type === 'text' || input.type === 'number' || input.type === 'date') && input.value) {
+                    return true;
+                }
+                
+                // برای سلکت‌باکس‌ها
+                if (input.tagName === 'SELECT' && input.value) {
+                    return true;
+                }
+                
+                // برای چک‌باکس‌ها
+                if (input.type === 'checkbox' && input.checked) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+        
+        // پیشرفته: اضافه کردن بج تعداد فیلترهای فعال
+        updateActiveFiltersCount();
+        
+        function updateActiveFiltersCount() {
+            const form = document.getElementById('purchaseFilterForm');
+            const inputs = form.querySelectorAll('input:not([name="global_search"]), select');
+            let activeCount = 0;
+            
+            inputs.forEach(input => {
+                if ((input.type === 'text' || input.type === 'number' || input.type === 'date') && input.value) {
+                    activeCount++;
+                } else if (input.tagName === 'SELECT' && input.value) {
+                    activeCount++;
+                } else if (input.type === 'checkbox' && input.checked) {
+                    activeCount++;
+                }
+            });
+            
+            // اگر فیلتر فعالی وجود دارد، بج را نمایش دهیم
+            if (activeCount > 0) {
+                const filterHeader = document.querySelector('.filter-panel .card-header span');
+                
+                // اگر بج قبلاً وجود ندارد، ایجاد کنیم
+                if (!document.querySelector('.active-filters-badge')) {
+                    const badge = document.createElement('span');
+                    badge.className = 'badge bg-primary ms-2 active-filters-badge';
+                    badge.textContent = activeCount;
+                    filterHeader.appendChild(badge);
+                } else {
+                    // بروزرسانی بج موجود
+                    document.querySelector('.active-filters-badge').textContent = activeCount;
+                }
+            }
+        }
+    });
+</script> 
