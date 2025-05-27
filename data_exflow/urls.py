@@ -4,6 +4,9 @@ from . import views
 app_name = 'data_exflow'
 
 urlpatterns = [
+    # Index page
+    path('', views.index_view, name='index'),
+    
     # Import URLs
     path('import/', views.import_view, name='import'),
     path('import/upload/', views.import_upload, name='import_upload'),
@@ -17,6 +20,8 @@ urlpatterns = [
     # Export URLs
     path('export/', views.export_view, name='export'),
     path('export/select-fields/', views.export_select_fields, name='export_select_fields'),
+    path('export/confirm/', views.export_confirm, name='export_confirm'),
+    path('export/download/<uuid:session_id>/', views.export_download, name='export_download'),
     path('export/process/', views.export_process, name='export_process'),
     
     # API endpoints for AJAX requests

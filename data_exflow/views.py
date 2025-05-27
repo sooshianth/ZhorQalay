@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse, Http404
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from django.urls import reverse
@@ -24,11 +24,29 @@ from .utils import (
 
 # Create your views here.
 
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def index_view(request):
+    """Main dashboard for data import/export operations."""
+    
+    # Get recent import/export sessions
+    recent_sessions = ImportExportSession.objects.filter(
+        user=request.user
+    ).order_by('-created_at')[:10]
+    
+    context = {
+        'title': 'مدیریت داده‌ها',
+        'recent_sessions': recent_sessions,
+    }
+    
+    return render(request, 'data_exflow/index.html', context)
+
 # ---------------------------
 # Import Views
 # ---------------------------
 
 @login_required
+@user_passes_test(lambda u: u.is_superuser)
 def import_view(request):
     """Main import view showing available models to import."""
     models = get_all_registered_models()
@@ -42,6 +60,7 @@ def import_view(request):
 
 
 @login_required
+@user_passes_test(lambda u: u.is_superuser)
 def import_upload(request):
     """Handle file upload for import."""
     if request.method != 'POST':
@@ -90,6 +109,7 @@ def import_upload(request):
 
 
 @login_required
+@user_passes_test(lambda u: u.is_superuser)
 def import_preview(request, session_id):
     """Preview the uploaded file contents."""
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
@@ -364,26 +384,37 @@ def import_revert(request, session_id):
 # ---------------------------
 
 @login_required
+@user_passes_test(lambda u: u.is_superuser)
 def export_view(request):
     """Main export view showing available models to export."""
-    models = get_all_registered_models()
+    # Get all registered models organized by app
+    models_by_app = get_all_registered_models()
+    
+    # Get recent exports
+    recent_exports = ImportExportSession.objects.filter(
+        session_type=ImportExportSession.EXPORT,
+        user=request.user,
+        status=ImportExportSession.COMPLETED
+    ).order_by('-created_at')[:5]
     
     context = {
         'title': 'Export Data',
-        'models': models,
+        'available_models': models_by_app,
+        'recent_exports': recent_exports,
     }
     
     return render(request, 'data_exflow/export.html', context)
 
 
 @login_required
+@user_passes_test(lambda u: u.is_superuser)
 def export_select_fields(request):
     """Select fields to export."""
     if request.method != 'POST':
         return redirect('data_exflow:export')
     
     # Get selected models
-    selected_models = request.POST.getlist('content_type_id')
+    selected_models = request.POST.getlist('models')
     
     if not selected_models:
         messages.error(request, 'No models selected')
@@ -410,12 +441,134 @@ def export_select_fields(request):
         'title': 'Select Export Fields',
         'content_types': content_types,
         'model_fields': model_fields,
+        'selected_model_ids': selected_models,
+        'export_format': request.POST.get('export_format', 'xlsx'),
+        'selected_models': [{'content_type_id': ct.id, 'verbose_name': ct.model_class()._meta.verbose_name} for ct in content_types],
     }
     
     return render(request, 'data_exflow/export_select_fields.html', context)
 
 
 @login_required
+@user_passes_test(lambda u: u.is_superuser)
+def export_confirm(request):
+    """Confirm export settings and process the export."""
+    if request.method != 'POST':
+        return redirect('data_exflow:export')
+    
+    # Get form data
+    field_mapping = {}
+    content_types = []
+    export_format = request.POST.get('export_format', 'xlsx')
+    
+    # Process field selections from form data
+    for key, value in request.POST.items():
+        if key.startswith('field_'):
+            # Parse the field key - format: field_modelId_fieldName
+            parts = key.split('_', 2)
+            if len(parts) < 3:
+                continue
+                
+            model_id = parts[1]
+            field_name = parts[2]
+            
+            try:
+                ct = ContentType.objects.get(id=model_id)
+                model_key = f"{ct.app_label}.{ct.model}"
+                
+                if model_key not in field_mapping:
+                    field_mapping[model_key] = {}
+                    content_types.append(ct)
+                
+                # Use the field value (display name) for the mapping
+                field_mapping[model_key][field_name] = value
+            except ContentType.DoesNotExist:
+                continue
+    
+    if not content_types or not field_mapping:
+        messages.error(request, 'No fields selected for export')
+        return redirect('data_exflow:export')
+    
+    try:
+        # Process the export
+        session = process_export(content_types, field_mapping, request.user, format=export_format)
+        
+        # Redirect to download page
+        return redirect('data_exflow:export_download', session_id=session.id)
+        
+    except Exception as e:
+        messages.error(request, f'Export error: {str(e)}')
+        return redirect('data_exflow:export')
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def export_download(request, session_id):
+    """Show download page for the exported file."""
+    session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
+    
+    if session.session_type != ImportExportSession.EXPORT:
+        messages.error(request, 'Invalid session type')
+        return redirect('data_exflow:export')
+    
+    if not session.file:
+        messages.error(request, 'No export file found')
+        return redirect('data_exflow:export')
+    
+    # Get file size
+    try:
+        file_size_bytes = session.file.size
+        if file_size_bytes < 1024:
+            file_size = f"{file_size_bytes} B"
+        elif file_size_bytes < 1024 * 1024:
+            file_size = f"{file_size_bytes/1024:.1f} KB"
+        else:
+            file_size = f"{file_size_bytes/(1024*1024):.1f} MB"
+    except:
+        file_size = "N/A"
+    
+    # Get selected models and field count
+    content_types = []
+    field_count = 0
+    exported_fields = []
+    
+    if session.mapping:
+        for model_key, fields in session.mapping.items():
+            app_label, model_name = model_key.split('.')
+            try:
+                ct = ContentType.objects.get(app_label=app_label, model=model_name)
+                content_types.append({
+                    'verbose_name': ct.model_class()._meta.verbose_name
+                })
+                
+                for field_name, field_label in fields.items():
+                    field_count += 1
+                    exported_fields.append({
+                        'name': field_label,
+                        'model': ct.model_class()._meta.verbose_name
+                    })
+            except:
+                continue
+    
+    context = {
+        'title': 'Download Export',
+        'session': session,
+        'export_filename': session.file_name,
+        'export_file_url': session.file.url,
+        'export_format': session.file_type,
+        'export_date': session.created_at,
+        'file_size': file_size,
+        'record_count': session.record_count or 0,
+        'field_count': field_count,
+        'selected_models': content_types,
+        'exported_fields': exported_fields,
+    }
+    
+    return render(request, 'data_exflow/export_download.html', context)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
 def export_process(request):
     """Process the export operation."""
     if request.method != 'POST':

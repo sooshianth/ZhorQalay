@@ -657,15 +657,15 @@ def revert_import(session):
         )
 
 
-def process_export(content_types, field_mapping, user):
+def process_export(content_types, field_mapping, user, format='xlsx'):
     """Process the export operation."""
     # Create a new export session
     session = ImportExportSession.objects.create(
         session_type=ImportExportSession.EXPORT,
         user=user,
         content_type=content_types[0],  # Use the first content type for reference
-        file_name=f"export_{content_types[0].model}.xlsx",
-        file_type='xlsx',
+        file_name=f"export_{content_types[0].model}.{format}",
+        file_type=format,
         status=ImportExportSession.PROCESSING,
         mapping=field_mapping
     )
@@ -709,16 +709,24 @@ def process_export(content_types, field_mapping, user):
         else:
             final_df = pd.DataFrame()
         
-        # Create the Excel file
-        excel_file_path = f"media/data_exflow/files/export_{session.id}.xlsx"
-        os.makedirs(os.path.dirname(excel_file_path), exist_ok=True)
-        final_df.to_excel(excel_file_path, index=False)
+        # Create the export file
+        file_path = f"media/data_exflow/files/export_{session.id}.{format}"
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
+        # Save based on format
+        if format.lower() == 'xlsx':
+            final_df.to_excel(file_path, index=False)
+        elif format.lower() == 'csv':
+            final_df.to_csv(file_path, index=False)
+        else:
+            # Default to Excel
+            final_df.to_excel(file_path, index=False)
         
         # Update the session with the file
-        with open(excel_file_path, 'rb') as f:
-            session.file.save(f"export_{session.id}.xlsx", f)
+        with open(file_path, 'rb') as f:
+            session.file.save(f"export_{session.id}.{format}", f)
         
-        session.row_count = len(final_df)
+        session.record_count = len(final_df)
         session.processed_count = len(final_df)
         session.status = ImportExportSession.COMPLETED
         session.save()
