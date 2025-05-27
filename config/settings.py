@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'bki_api.apps.BkiApiConfig',
     'bki_barnameh.apps.BkiBarnamehConfig',
     'bki_cargos.apps.BkiCargosConfig',
+    'data_exflow.apps.DataExflowConfig',
 ]
 
 MIDDLEWARE = [

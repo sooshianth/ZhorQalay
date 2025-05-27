@@ -58,20 +58,13 @@ def process_excel_file(excel_file_id):
         
         # Process each row
         processed_rows = 0
-        skipped_rows = 0  # Counter for skipped duplicate rows
+        updated_rows = 0  # Counter for updated duplicate rows
         duplicate_numbers = []  # List to store duplicate barnameh numbers
         
         for index, row in df.iterrows():
             try:
                 # Extract data from Excel row and clean numeric values
                 barnameh_number = clean_numeric_value(row.get('شماره بارنامه', ''))
-                
-                # Skip if barnameh with this number already exists
-                if barnameh_number and Barnameh.objects.filter(number=barnameh_number).exists():
-                    skipped_rows += 1
-                    duplicate_numbers.append(barnameh_number)
-                    continue
-                    
                 barnameh_serial = str(row.get('سریال بارنامه', ''))
                 
                 # تبدیل وزن به عدد با حفظ دقت اعشار (اگر لازم باشد)
@@ -114,24 +107,45 @@ def process_excel_file(excel_file_id):
                     except Exception as e:
                         print(f"Error parsing date: {e}")
                 
-                # Create or update Barnameh object
-                barnameh, created = Barnameh.objects.update_or_create(
-                    number=barnameh_number,
-                    defaults={
-                        'serial': barnameh_serial,
-                        'tonnage': tonnage,
-                        'driver_phone': driver_phone,
-                        'driver_name': driver_name,
-                        'vehicle_plate': vehicle_plate,
-                        'receiver_name': receiver_name,
-                        'destination': destination,
-                        'barnameh_date': barnameh_date,
-                        'purchase_number': purchase_number,
-                        'shenase_takhsis_code': shenase_takhsis_code,
-                        'is_created_by_excel': True,
-                        'status': 'BARNAMEH_COMPLETE' if all([barnameh_number, barnameh_serial, tonnage]) else 'BARNAMEH_INCOMPLETE'
-                    }
-                )
+                # Check if barnameh with this number already exists
+                existing_barnameh = None
+                if barnameh_number:
+                    try:
+                        existing_barnameh = Barnameh.objects.get(number=barnameh_number)
+                        # Record as duplicate for reporting
+                        duplicate_numbers.append(barnameh_number)
+                        updated_rows += 1
+                    except Barnameh.DoesNotExist:
+                        existing_barnameh = None
+                
+                # Create new or update existing Barnameh object
+                barnameh_data = {
+                    'serial': barnameh_serial,
+                    'tonnage': tonnage,
+                    'driver_phone': driver_phone,
+                    'driver_name': driver_name,
+                    'vehicle_plate': vehicle_plate,
+                    'receiver_name': receiver_name,
+                    'destination': destination,
+                    'barnameh_date': barnameh_date,
+                    'purchase_number': purchase_number,
+                    'shenase_takhsis_code': shenase_takhsis_code,
+                    'is_created_by_excel': True,
+                    'status': 'BARNAMEH_COMPLETE' if all([barnameh_number, barnameh_serial, tonnage]) else 'BARNAMEH_INCOMPLETE'
+                }
+                
+                if existing_barnameh:
+                    # Update existing barnameh with new data
+                    for key, value in barnameh_data.items():
+                        setattr(existing_barnameh, key, value)
+                    existing_barnameh.save()
+                    barnameh = existing_barnameh
+                else:
+                    # Create new barnameh
+                    barnameh = Barnameh.objects.create(
+                        number=barnameh_number,
+                        **barnameh_data
+                    )
 
                 from core.PurchaseModel import Purchase
                 # Only try to associate with purchase if purchase_number is not empty or just whitespace
@@ -155,14 +169,14 @@ def process_excel_file(excel_file_id):
         # Update the processed rows count and add duplicate info
         excel_file.processed_rows = processed_rows
         excel_file.processed = True
-        excel_file.debug_info = f"تعداد ردیف‌های رد شده به دلیل تکراری بودن: {skipped_rows}\nشماره بارنامه‌های تکراری: {', '.join(duplicate_numbers)}"
+        excel_file.debug_info = f"تعداد بارنامه‌های بروزرسانی شده: {updated_rows}\nشماره بارنامه‌های بروزرسانی شده: {', '.join(duplicate_numbers)}"
         excel_file.save()
         
         return {
             'success': True,
-            'message': f'فایل با موفقیت پردازش شد. {processed_rows} از {excel_file.rows_count} ردیف پردازش شدند. {skipped_rows} ردیف به دلیل تکراری بودن رد شدند.',
+            'message': f'فایل با موفقیت پردازش شد. {processed_rows} از {excel_file.rows_count} ردیف پردازش شدند. {updated_rows} بارنامه به دلیل تکراری بودن بروزرسانی شدند.',
             'processed_rows': processed_rows,
-            'skipped_rows': skipped_rows,
+            'updated_rows': updated_rows,
             'total_rows': excel_file.rows_count,
             'duplicate_numbers': duplicate_numbers
         }
