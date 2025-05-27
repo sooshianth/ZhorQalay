@@ -18,6 +18,7 @@ urlpatterns = [
 
     path('purchase_list/', purchase_list_view.purchase_list, name='purchase_list' ),
     path('purchases/update-columns/', purchase_list_view.update_columns, name='update_columns'),
+    path('update_column_order/', purchase_list_view.update_column_order, name='update_column_order'),
     path('purchases/export/', purchase_list_view.export_to_excel, name='export_purchases'),
     path('purchases/update-field/', purchase_list_view.update_purchase_field, name='update_purchase_field'),
     path('purchases/revert-edit/', purchase_list_view.revert_purchase_edit, name='revert_purchase_edit'),

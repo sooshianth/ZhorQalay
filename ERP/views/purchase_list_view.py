@@ -845,3 +845,26 @@ def bulk_edit_cargo(request):
         
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+
+@require_POST
+@login_required
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+def update_column_order(request):
+    """
+    ذخیره ترتیب جدید ستون‌ها
+    """
+    try:
+        data = json.loads(request.body)
+        column_order = data.get('column_order', [])
+        
+        if not column_order:
+            return JsonResponse({'status': 'error', 'message': 'ترتیب ستون‌ها ارسال نشده است'}, status=400)
+        
+        # ذخیره در کوکی (به مدت 30 روز)
+        response = JsonResponse({'status': 'success'})
+        response.set_cookie('purchase_list_column_order', json.dumps(column_order), max_age=30*24*60*60)
+        
+        return response
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
