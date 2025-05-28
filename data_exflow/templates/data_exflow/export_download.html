@@ -1,0 +1,102 @@
+{% extends 'data_exflow/standalone_layout.html' %}
+{% load static %}
+
+{% block title %}دانلود خروجی{% endblock %}
+{% block page_title %}دانلود خروجی{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'data_exflow:export' %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-right me-1"></i> بازگشت به صادرات داده
+</a>
+{% endblock %}
+
+{% block module_content %}
+<div class="card">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i> عملیات با موفقیت انجام شد</h5>
+    </div>
+    <div class="card-body">
+        <div class="text-center mb-4">
+            <div class="display-1 text-success mb-3">
+                <i class="fas fa-file-excel"></i>
+            </div>
+            <h4 class="mb-1">فایل خروجی آماده دانلود است</h4>
+            <p class="text-muted">می‌توانید فایل را از لینک زیر دانلود کنید</p>
+        </div>
+        
+        <div class="d-grid gap-2 col-md-8 mx-auto mb-4">
+            <a href="{{ export_file_url }}" class="btn btn-success btn-lg" download="{{ export_filename }}">
+                <i class="fas fa-download me-2"></i> دانلود فایل
+            </a>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <tr>
+                    <th class="bg-light" style="width: 150px;">نام فایل</th>
+                    <td>{{ export_filename }}</td>
+                </tr>
+                <tr>
+                    <th class="bg-light">فرمت</th>
+                    <td>{{ export_format|upper }}</td>
+                </tr>
+                <tr>
+                    <th class="bg-light">حجم فایل</th>
+                    <td>{{ file_size }}</td>
+                </tr>
+                <tr>
+                    <th class="bg-light">تعداد رکوردها</th>
+                    <td>{{ record_count }}</td>
+                </tr>
+                <tr>
+                    <th class="bg-light">تعداد فیلدها</th>
+                    <td>{{ field_count }}</td>
+                </tr>
+                <tr>
+                    <th class="bg-light">تاریخ ایجاد</th>
+                    <td>{{ export_date }}</td>
+                </tr>
+            </table>
+        </div>
+        
+        <hr>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <h6><i class="fas fa-database me-1"></i> مدل‌های انتخاب شده</h6>
+                <ul class="list-group mb-3">
+                    {% for model in selected_models %}
+                    <li class="list-group-item">
+                        <i class="fas fa-table me-1 text-primary"></i> {{ model.verbose_name }}
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-muted">بدون مدل</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            
+            <div class="col-md-6">
+                <h6><i class="fas fa-list me-1"></i> فیلدهای صادر شده</h6>
+                <ul class="list-group">
+                    {% for field in exported_fields %}
+                    <li class="list-group-item">
+                        <i class="fas fa-tag me-1 text-success"></i> {{ field.name }}
+                        <small class="text-muted d-block">{{ field.model }}</small>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-muted">بدون فیلد</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer text-center">
+        <a href="{% url 'data_exflow:export' %}" class="btn btn-outline-primary">
+            <i class="fas fa-file-export me-1"></i> صادرات داده جدید
+        </a>
+        <a href="{% url 'data_exflow:index' %}" class="btn btn-outline-secondary ms-2">
+            <i class="fas fa-home me-1"></i> بازگشت به داشبورد
+        </a>
+    </div>
+</div>
+{% endblock %} 

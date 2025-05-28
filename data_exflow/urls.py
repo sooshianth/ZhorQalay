@@ -27,5 +27,8 @@ urlpatterns = [
     # API endpoints for AJAX requests
     path('api/models/', views.api_get_models, name='api_get_models'),
     path('api/model-fields/<str:app_label>/<str:model_name>/', views.api_get_model_fields, name='api_get_model_fields'),
+    path('api/model-fields/<str:app_label>/<str:model_name>', views.api_get_model_fields, name='api_get_model_fields_no_slash'),
+    path('api/model-fields/', views.api_get_model_fields, name='api_get_model_fields_direct'),
+    path('api/contenttypes/', views.api_list_contenttypes, name='api_list_contenttypes'),
     path('api/edit-cell/<uuid:session_id>/', views.api_edit_cell, name='api_edit_cell'),
 ]

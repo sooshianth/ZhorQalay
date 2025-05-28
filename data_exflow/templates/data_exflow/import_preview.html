@@ -1,0 +1,685 @@
+{% extends 'data_exflow/standalone_layout.html' %}
+{% load static %}
+{% load data_exflow_tags %}
+
+{% block title %}پیش‌نمایش داده‌ها{% endblock %}
+{% block page_title %}پیش‌نمایش داده‌ها{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'data_exflow:import' %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-right me-1"></i> بازگشت به صفحه ورود داده
+</a>
+{% endblock %}
+
+{% block module_content %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">پیش‌نمایش داده‌های فایل</h5>
+    </div>
+    <div class="card-body">
+        <!-- Steps indicator -->
+        <div class="step-indicator mb-5">
+            <div class="step-item completed">
+                <div class="step-number">1</div>
+                <div class="step-title">انتخاب مدل و فایل</div>
+            </div>
+            <div class="step-item active">
+                <div class="step-number">2</div>
+                <div class="step-title">پیش‌نمایش و نگاشت</div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">3</div>
+                <div class="step-title">اعتبارسنجی</div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">4</div>
+                <div class="step-title">پردازش و نتایج</div>
+            </div>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <h6 class="fw-bold">اطلاعات فایل</h6>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm">
+                            <tr>
+                                <th class="bg-light">نام فایل</th>
+                                <td>{{ session.file_name }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">نوع فایل</th>
+                                <td>{{ session.file_type|upper }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">تعداد ردیف‌ها</th>
+                                <td><span id="totalRowsCount">{{ preview.total_rows }}</span></td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">تعداد ستون‌ها</th>
+                                <td>{{ preview.columns|length }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <h6 class="fw-bold">اطلاعات مدل</h6>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm">
+                            <tr>
+                                <th class="bg-light">نام مدل</th>
+                                <td>{{ session.content_type.name }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">اپلیکیشن</th>
+                                <td>{{ session.content_type.app_label }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">تعداد فیلدها</th>
+                                <td>{{ model_fields|length }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0">پیش‌نمایش داده‌ها</h6>
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-warning" id="toggleEditMode">
+                        <i class="fas fa-edit me-1"></i> حالت ویرایش
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-success" id="saveChanges" style="display: none;">
+                        <i class="fas fa-save me-1"></i> ذخیره تغییرات
+                    </button>
+                </div>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover table-striped" id="previewTable">
+                    <thead class="bg-light">
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th style="width: 60px; display: none;" id="deleteColumn">حذف</th>
+                            {% for column in preview.columns %}
+                            <th>{{ column }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in preview.rows %}
+                        <tr data-row-index="{{ forloop.counter0 }}">
+                            <td>{{ forloop.counter }}</td>
+                            <td class="delete-cell" style="display: none;">
+                                <button type="button" class="btn btn-sm btn-outline-danger delete-row-btn">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                            {% for column in preview.columns %}
+                            <td class="editable-cell" data-column="{{ column }}" data-original-value="{{ row|get_item:column|default:'' }}">
+                                {{ row|get_item:column|default:"-" }}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-muted mt-2">
+                <small>* نمایش <span id="visibleRowsCount">{{ preview.rows|length }}</span> ردیف از <span id="totalRowsDisplay">{{ preview.total_rows }}</span> ردیف</small>
+            </div>
+        </div>
+        
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            لطفاً فیلدهای فایل را با فیلدهای مدل تطبیق دهید. این کار به سیستم اجازه می‌دهد تا داده‌ها را به درستی وارد کند.
+            <br><small class="text-muted mt-1">
+                <i class="fas fa-lightbulb me-1"></i>
+                می‌توانید با کلیک روی دکمه "حالت ویرایش" سلول‌ها را ویرایش کرده و ردیف‌های ناخواسته را حذف کنید.
+            </small>
+        </div>
+        
+        <form method="post" action="{% url 'data_exflow:import_map_fields' session_id=session.id %}" id="mappingForm">
+            {% csrf_token %}
+            
+            <!-- Hidden field to store edited data -->
+            <input type="hidden" name="edited_data" id="editedDataInput" value="">
+            <input type="hidden" name="deleted_rows" id="deletedRowsInput" value="">
+            
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="bg-light">
+                        <tr>
+                            <th style="width: 40%;">ستون فایل</th>
+                            <th style="width: 60%;">فیلد مدل</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for column in preview.columns %}
+                        <tr>
+                            <td>{{ column }}</td>
+                            <td>
+                                <select name="map_{{ column }}" class="form-select">
+                                    <option value="">-- انتخاب فیلد --</option>
+                                    {% for field in model_fields %}
+                                    <option value="{{ field.name }}" {% if column|lower == field.name|lower or column|lower == field.verbose_name|lower %}selected{% endif %}>
+                                        {{ field.verbose_name }} ({{ field.name }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{% url 'data_exflow:import' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-right me-1"></i> بازگشت
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-map-signs me-1"></i> نگاشت فیلدها و ادامه
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+/* Base cell styling */
+.editable-cell {
+    position: relative;
+    transition: all 0.2s ease;
+    cursor: default;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* Edit mode active - cells become clickable */
+.edit-mode .editable-cell {
+    cursor: pointer !important;
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+}
+
+.edit-mode .editable-cell:hover {
+    background-color: #e3f2fd !important;
+    border: 1px solid #2196f3 !important;
+}
+
+/* Cell being edited */
+.editable-cell.editing {
+    background-color: #fff3cd !important;
+    border: 2px solid #ffc107 !important;
+    padding: 2px;
+}
+
+/* Input field styling */
+.editable-cell input {
+    border: none !important;
+    background: transparent !important;
+    width: 100% !important;
+    padding: 4px !important;
+    font-size: inherit !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Changed cell styling */
+.editable-cell.changed {
+    background-color: #fff3cd !important;
+    border-left: 3px solid #ffc107 !important;
+    position: relative;
+}
+
+.editable-cell.changed::after {
+    content: "✏️";
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 10px;
+    opacity: 0.8;
+}
+
+/* Delete button styling */
+.delete-row-btn {
+    transition: all 0.2s ease;
+    opacity: 0.8;
+}
+
+.delete-row-btn:hover {
+    background-color: #dc3545 !important;
+    color: white !important;
+    transform: scale(1.05);
+    opacity: 1;
+}
+
+/* Deleted row styling */
+.row-deleted {
+    opacity: 0.5;
+    text-decoration: line-through;
+    background-color: #f8d7da !important;
+}
+
+.row-deleted .editable-cell {
+    pointer-events: none !important;
+    cursor: not-allowed !important;
+    background-color: #f8d7da !important;
+}
+
+/* Button animations */
+.btn {
+    transition: all 0.3s ease;
+}
+
+/* Step indicator */
+.step-indicator {
+    margin-bottom: 2rem;
+}
+
+/* Tooltip for edit mode */
+.edit-mode .editable-cell:hover::before {
+    content: "کلیک کنید تا ویرایش کنید";
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+    opacity: 0.9;
+    pointer-events: none;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // State variables
+    let isEditMode = false;
+    let editedData = {};
+    let deletedRows = new Set();
+    let originalValues = new Map(); // Store original values properly
+    
+    // DOM elements
+    const toggleEditBtn = document.getElementById('toggleEditMode');
+    const saveChangesBtn = document.getElementById('saveChanges');
+    const deleteColumn = document.getElementById('deleteColumn');
+    const deleteCells = document.querySelectorAll('.delete-cell');
+    const previewTable = document.getElementById('previewTable');
+    const tableBody = previewTable.querySelector('tbody');
+    
+    console.log('🚀 Edit system initialized');
+    
+    // Initialize original values
+    initializeOriginalValues();
+    
+    function initializeOriginalValues() {
+        const editableCells = document.querySelectorAll('.editable-cell');
+        editableCells.forEach(cell => {
+            const rowIndex = cell.closest('tr').dataset.rowIndex;
+            const column = cell.dataset.column;
+            // Get original value from data attribute OR current text content
+            let originalValue = cell.dataset.originalValue;
+            if (!originalValue) {
+                // Fallback to current text content, but clean it
+                originalValue = cell.textContent.trim();
+                if (originalValue === '-') {
+                    originalValue = '';
+                }
+            }
+            const key = `${rowIndex}-${column}`;
+            originalValues.set(key, originalValue);
+            
+            console.log(`📋 Original value for ${key}:`, {
+                fromDataAttribute: cell.dataset.originalValue,
+                fromTextContent: cell.textContent.trim(),
+                finalValue: originalValue
+            });
+        });
+        console.log('📋 Original values initialized:', originalValues.size, 'cells');
+        console.log('📋 All original values:', Object.fromEntries(originalValues));
+    }
+    
+    // Toggle edit mode
+    toggleEditBtn.addEventListener('click', function() {
+        if (isEditMode) {
+            exitEditMode();
+        } else {
+            enterEditMode();
+        }
+    });
+    
+    function enterEditMode() {
+        isEditMode = true;
+        
+        // Update UI
+        toggleEditBtn.innerHTML = '<i class="fas fa-times me-1"></i> خروج از ویرایش';
+        toggleEditBtn.className = 'btn btn-sm btn-outline-danger';
+        saveChangesBtn.style.display = 'inline-block';
+        deleteColumn.style.display = 'table-cell';
+        deleteCells.forEach(cell => cell.style.display = 'table-cell');
+        
+        // Add edit mode class to table
+        previewTable.classList.add('edit-mode');
+        
+        console.log('✅ Edit mode ENABLED');
+    }
+    
+    function exitEditMode() {
+        isEditMode = false;
+        
+        // Finish any ongoing edits
+        const editingCells = document.querySelectorAll('.editable-cell.editing');
+        editingCells.forEach(cell => finishEditing(cell));
+        
+        // Update UI
+        toggleEditBtn.innerHTML = '<i class="fas fa-edit me-1"></i> حالت ویرایش';
+        toggleEditBtn.className = 'btn btn-sm btn-outline-warning';
+        saveChangesBtn.style.display = 'none';
+        deleteColumn.style.display = 'none';
+        deleteCells.forEach(cell => cell.style.display = 'none');
+        
+        // Remove edit mode class from table
+        previewTable.classList.remove('edit-mode');
+        
+        console.log('❌ Edit mode DISABLED');
+    }
+    
+    // Handle cell clicks for editing - using event delegation on tbody
+    tableBody.addEventListener('click', function(event) {
+        const cell = event.target.closest('.editable-cell');
+        if (!cell) return;
+        
+        console.log('🖱️ Cell clicked, edit mode:', isEditMode);
+        
+        // Only allow editing if in edit mode
+        if (!isEditMode) {
+            console.log('❌ Not in edit mode - ignoring click');
+            return;
+        }
+        
+        // Don't edit deleted rows
+        if (cell.closest('tr').classList.contains('row-deleted')) {
+            console.log('❌ Row is deleted - cannot edit');
+            return;
+        }
+        
+        // Don't edit if already editing
+        if (cell.classList.contains('editing')) {
+            console.log('❌ Cell already being edited');
+            return;
+        }
+        
+        console.log('✏️ Making cell editable');
+        makeCellEditable(cell);
+    });
+    
+    function makeCellEditable(cell) {
+        const rowIndex = cell.closest('tr').dataset.rowIndex;
+        const column = cell.dataset.column;
+        const key = `${rowIndex}-${column}`;
+        const originalValue = originalValues.get(key) || '';
+        const currentValue = cell.textContent.trim();
+        const displayValue = currentValue === '-' ? '' : currentValue;
+        
+        console.log('📝 Making cell editable:', { 
+            rowIndex, 
+            column, 
+            key,
+            originalValue, 
+            currentValue, 
+            displayValue 
+        });
+        
+        // Create input
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = displayValue;
+        input.className = 'form-control form-control-sm';
+        
+        // Replace cell content
+        cell.innerHTML = '';
+        cell.appendChild(input);
+        cell.classList.add('editing');
+        
+        // Focus and select
+        setTimeout(() => {
+            input.focus();
+            input.select();
+            console.log('🎯 Input focused and selected');
+        }, 50);
+        
+        // Event handlers
+        function saveEdit() {
+            const newValue = input.value.trim();
+            console.log('💾 Saving edit - new value:', newValue);
+            finishEditing(cell, newValue);
+        }
+        
+        function cancelEdit() {
+            console.log('🚫 Canceling edit');
+            finishEditing(cell, displayValue);
+        }
+        
+        // Add event listeners
+        input.addEventListener('blur', saveEdit);
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveEdit();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                cancelEdit();
+            }
+        });
+        
+        // Prevent event bubbling
+        input.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    }
+    
+    function finishEditing(cell, newValue = null) {
+        if (!cell.classList.contains('editing')) {
+            console.log('❌ Cell not in editing state');
+            return;
+        }
+        
+        const input = cell.querySelector('input');
+        const value = newValue !== null ? newValue : (input ? input.value.trim() : '');
+        const rowIndex = cell.closest('tr').dataset.rowIndex;
+        const column = cell.dataset.column;
+        const key = `${rowIndex}-${column}`;
+        const originalValue = originalValues.get(key) || '';
+        
+        console.log('🏁 Finishing edit:', { 
+            rowIndex, 
+            column, 
+            key,
+            originalValue: `"${originalValue}"`, 
+            newValue: `"${value}"`,
+            areEqual: value === originalValue,
+            originalType: typeof originalValue,
+            newType: typeof value,
+            originalLength: originalValue.length,
+            newLength: value.length
+        });
+        
+        // Update display
+        cell.innerHTML = value || '-';
+        cell.classList.remove('editing');
+        
+        // Track changes - use strict comparison
+        const hasChanged = String(value) !== String(originalValue);
+        
+        if (hasChanged) {
+            // Value changed - track it
+            if (!editedData[rowIndex]) {
+                editedData[rowIndex] = {};
+            }
+            editedData[rowIndex][column] = value;
+            
+            // Visual indication of change
+            cell.classList.add('changed');
+            
+            console.log('✅ Change tracked for row', rowIndex, 'column', column, ':', `"${value}"`);
+        } else {
+            // Value unchanged - remove from tracking
+            if (editedData[rowIndex]) {
+                delete editedData[rowIndex][column];
+                if (Object.keys(editedData[rowIndex]).length === 0) {
+                    delete editedData[rowIndex];
+                }
+            }
+            
+            // Remove visual indication
+            cell.classList.remove('changed');
+            
+            console.log('🔄 Change removed for row', rowIndex, 'column', column);
+        }
+        
+        console.log('📊 Current edited data:', editedData);
+        updateChangesSummary();
+    }
+    
+    function updateChangesSummary() {
+        const changedCellsCount = Object.values(editedData).reduce((total, row) => total + Object.keys(row).length, 0);
+        const deletedRowsCount = deletedRows.size;
+        
+        console.log('📈 Summary update:', {
+            changedCells: changedCellsCount,
+            deletedRows: deletedRowsCount,
+            editedData: editedData
+        });
+        
+        if (changedCellsCount > 0 || deletedRowsCount > 0) {
+            saveChangesBtn.innerHTML = `<i class="fas fa-save me-1"></i> ذخیره تغییرات (${changedCellsCount + deletedRowsCount})`;
+            saveChangesBtn.classList.remove('btn-outline-success');
+            saveChangesBtn.classList.add('btn-success');
+        } else {
+            saveChangesBtn.innerHTML = '<i class="fas fa-save me-1"></i> ذخیره تغییرات';
+            saveChangesBtn.classList.remove('btn-success');
+            saveChangesBtn.classList.add('btn-outline-success');
+        }
+    }
+    
+    // Delete row functionality - using event delegation
+    document.addEventListener('click', function(event) {
+        const deleteBtn = event.target.closest('.delete-row-btn');
+        if (!deleteBtn) return;
+        
+        // Only work if in edit mode
+        if (!isEditMode) {
+            console.log('❌ Delete clicked but not in edit mode - ignoring');
+            return;
+        }
+        
+        event.preventDefault();
+        event.stopPropagation();
+        
+        const row = deleteBtn.closest('tr');
+        const rowIndex = row.dataset.rowIndex;
+        
+        console.log('🗑️ Delete button clicked for row:', rowIndex);
+        
+        if (row.classList.contains('row-deleted')) {
+            // Restore row
+            row.classList.remove('row-deleted');
+            deletedRows.delete(rowIndex);
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteBtn.className = 'btn btn-sm btn-outline-danger delete-row-btn';
+            console.log('♻️ Row restored:', rowIndex);
+        } else {
+            // Delete row
+            row.classList.add('row-deleted');
+            deletedRows.add(rowIndex);
+            deleteBtn.innerHTML = '<i class="fas fa-undo"></i>';
+            deleteBtn.className = 'btn btn-sm btn-outline-success delete-row-btn';
+            console.log('🗑️ Row deleted:', rowIndex);
+        }
+        
+        updateRowCounts();
+        updateChangesSummary();
+    });
+    
+    function updateRowCounts() {
+        const totalRows = parseInt(document.getElementById('totalRowsCount').textContent);
+        const deletedCount = deletedRows.size;
+        const visibleCount = totalRows - deletedCount;
+        
+        document.getElementById('visibleRowsCount').textContent = visibleCount;
+        document.getElementById('totalRowsDisplay').textContent = totalRows;
+        
+        console.log('📊 Row counts updated - total:', totalRows, 'deleted:', deletedCount, 'visible:', visibleCount);
+    }
+    
+    // Save changes
+    saveChangesBtn.addEventListener('click', function() {
+        console.log('💾 Save changes clicked');
+        
+        const changedCellsCount = Object.values(editedData).reduce((total, row) => total + Object.keys(row).length, 0);
+        const deletedRowsCount = deletedRows.size;
+        
+        console.log('💾 Final check before save:', {
+            changedCellsCount,
+            deletedRowsCount,
+            editedData,
+            deletedRows: Array.from(deletedRows)
+        });
+        
+        if (changedCellsCount === 0 && deletedRowsCount === 0) {
+            alert('هیچ تغییری انجام نشده است.');
+            console.log('❌ No changes to save');
+            return;
+        }
+        
+        // Update hidden inputs
+        document.getElementById('editedDataInput').value = JSON.stringify(editedData);
+        document.getElementById('deletedRowsInput').value = JSON.stringify(Array.from(deletedRows));
+        
+        // Show confirmation
+        const message = `تغییرات ذخیره شد:\n- ${changedCellsCount} سلول ویرایش شده\n- ${deletedRowsCount} ردیف حذف شده`;
+        alert(message);
+        
+        console.log('✅ Changes saved:', {
+            editedData: editedData,
+            deletedRows: Array.from(deletedRows)
+        });
+        
+        // Reset change indicator
+        updateChangesSummary();
+    });
+    
+    // Form submission
+    document.getElementById('mappingForm').addEventListener('submit', function() {
+        console.log('📤 Form submitted with changes');
+        document.getElementById('editedDataInput').value = JSON.stringify(editedData);
+        document.getElementById('deletedRowsInput').value = JSON.stringify(Array.from(deletedRows));
+    });
+    
+    // Debug function - add to window for manual testing
+    window.debugEditSystem = function() {
+        console.log('🔍 Debug Info:', {
+            isEditMode,
+            editedData,
+            deletedRows: Array.from(deletedRows),
+            originalValues: Object.fromEntries(originalValues),
+            changedCellsCount: Object.values(editedData).reduce((total, row) => total + Object.keys(row).length, 0)
+        });
+    };
+});
+</script>
+{% endblock %} 

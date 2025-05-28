@@ -1,0 +1,187 @@
+{% extends 'data_exflow/standalone_layout.html' %}
+{% load static %}
+
+{% block title %}ورود داده{% endblock %}
+{% block page_title %}ورود داده{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'data_exflow:index' %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-right me-1"></i> بازگشت به داشبورد
+</a>
+{% endblock %}
+
+{% block module_content %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">انتخاب مدل و فایل</h5>
+    </div>
+    <div class="card-body">
+        <!-- Steps indicator -->
+        <div class="step-indicator mb-5">
+            <div class="step-item active">
+                <div class="step-number">1</div>
+                <div class="step-title">انتخاب مدل و فایل</div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">2</div>
+                <div class="step-title">پیش‌نمایش و نگاشت</div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">3</div>
+                <div class="step-title">اعتبارسنجی</div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">4</div>
+                <div class="step-title">پردازش و نتایج</div>
+            </div>
+        </div>
+        
+        <form method="post" action="{% url 'data_exflow:import_upload' %}" enctype="multipart/form-data" class="needs-validation" novalidate>
+            {% csrf_token %}
+            
+            <div class="row mb-4">
+                <div class="col-md-6 mb-3">
+                    <label for="content_type_id" class="form-label fw-bold">انتخاب مدل داده</label>
+                    <select name="content_type_id" id="content_type_id" class="form-select" required>
+                        <option value="">-- انتخاب مدل --</option>
+                        {% for app_label, models in models.items %}
+                            <optgroup label="{{ app_label }}">
+                                {% for model in models %}
+                                    <option value="{{ model.content_type_id }}" 
+                                            data-app-label="{{ app_label }}" 
+                                            data-model-name="{{ model.name }}">
+                                        {{ model.verbose_name }}
+                                    </option>
+                                {% endfor %}
+                            </optgroup>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text text-muted">
+                        مدل داده‌ای که قصد واردسازی اطلاعات به آن را دارید را انتخاب کنید.
+                    </div>
+                    <div class="invalid-feedback">
+                        لطفاً یک مدل داده انتخاب کنید.
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">اطلاعات مدل</label>
+                    <div id="model-fields-container">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            لطفاً ابتدا یک مدل انتخاب کنید تا فیلدهای آن نمایش داده شود.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label for="file" class="form-label fw-bold">انتخاب فایل</label>
+                <div class="mb-2">
+                    <input type="file" id="file" name="file" class="d-none" accept=".xlsx,.xls,.csv" required>
+                    <label for="file" class="custom-file-upload">
+                        <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i>
+                        <div>فایل خود را انتخاب کنید یا در اینجا رها کنید</div>
+                        <small class="text-muted d-block mt-1">فرمت‌های مجاز: Excel (.xlsx, .xls) و CSV</small>
+                    </label>
+                    <div class="file-upload-info" style="display: none;"></div>
+                </div>
+                <div class="form-text text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <span>فایل شما باید دارای سربرگ ستون‌ها در سطر اول باشد. حداکثر حجم مجاز: 10 مگابایت</span>
+                </div>
+                <div class="invalid-feedback">
+                    لطفاً یک فایل انتخاب کنید.
+                </div>
+            </div>
+            
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>هشدار:</strong> 
+                پس از واردسازی داده‌ها، تغییرات مستقیماً بر روی پایگاه داده اعمال می‌شوند. 
+                لطفاً از صحت داده‌های خود اطمینان حاصل کنید.
+            </div>
+            
+            <div class="d-flex justify-content-end mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-upload me-1"></i> آپلود و ادامه
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Recent import sessions -->
+{% if recent_imports %}
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="mb-0">واردسازی‌های اخیر</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>مدل</th>
+                        <th>فایل</th>
+                        <th>وضعیت</th>
+                        <th>تعداد رکورد</th>
+                        <th>تاریخ</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for session in recent_imports %}
+                    <tr>
+                        <td>{{ session.content_type }}</td>
+                        <td>{{ session.file_name }}</td>
+                        <td>
+                            <span class="badge badge-{{ session.status }}">
+                                {{ session.get_status_display }}
+                            </span>
+                        </td>
+                        <td>{{ session.processed_count }}/{{ session.row_count }}</td>
+                        <td>{{ session.created_at|date:"Y/m/d - H:i" }}</td>
+                        <td>
+                            {% if session.status == 'completed' %}
+                            <a href="{% url 'data_exflow:import_results' session_id=session.id %}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-eye"></i> نتایج
+                            </a>
+                            {% elif session.status == 'validated' %}
+                            <a href="{% url 'data_exflow:import_validate' session_id=session.id %}" class="btn btn-sm btn-info">
+                                <i class="fas fa-check-circle"></i> پردازش
+                            </a>
+                            {% elif session.status == 'pending' %}
+                            <a href="{% url 'data_exflow:import_preview' session_id=session.id %}" class="btn btn-sm btn-secondary">
+                                <i class="fas fa-sync"></i> ادامه
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% block module_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Form validation
+    const form = document.querySelector('.needs-validation');
+    
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        
+        form.classList.add('was-validated');
+    });
+});
+</script>
+{% endblock %}
+
+{% endblock %} 

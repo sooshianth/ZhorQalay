@@ -1,0 +1,172 @@
+{% extends 'data_exflow/standalone_layout.html' %}
+{% load static %}
+
+{% block title %}اعتبارسنجی داده‌ها{% endblock %}
+{% block page_title %}اعتبارسنجی داده‌ها{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'data_exflow:import_preview' session_id=session.id %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-right me-1"></i> بازگشت به پیش‌نمایش
+</a>
+{% endblock %}
+
+{% block module_content %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">نتایج اعتبارسنجی</h5>
+    </div>
+    <div class="card-body">
+        <!-- Steps indicator -->
+        <div class="step-indicator mb-5">
+            <div class="step-item completed">
+                <div class="step-number">1</div>
+                <div class="step-title">انتخاب مدل و فایل</div>
+            </div>
+            <div class="step-item completed">
+                <div class="step-number">2</div>
+                <div class="step-title">پیش‌نمایش و نگاشت</div>
+            </div>
+            <div class="step-item active">
+                <div class="step-number">3</div>
+                <div class="step-title">اعتبارسنجی</div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">4</div>
+                <div class="step-title">پردازش و نتایج</div>
+            </div>
+        </div>
+
+        <!-- Validation Summary -->
+        <div class="validation-summary mb-4">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="validation-stat text-center">
+                        <div class="validation-stat-number text-primary">{{ validation.total_rows|default:0 }}</div>
+                        <div class="validation-stat-label">کل ردیف‌ها</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="validation-stat text-center">
+                        <div class="validation-stat-number text-success">{{ validation.creates|default:0 }}</div>
+                        <div class="validation-stat-label">ایجاد جدید</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="validation-stat text-center">
+                        <div class="validation-stat-number text-info">{{ validation.updates|default:0 }}</div>
+                        <div class="validation-stat-label">به‌روزرسانی</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="validation-stat text-center">
+                        <div class="validation-stat-number text-danger">{{ validation.errors|length|default:0 }}</div>
+                        <div class="validation-stat-label">خطاها</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Validation Status -->
+        {% if validation.valid %}
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>
+            اعتبارسنجی موفق! داده‌ها آماده پردازش هستند.
+        </div>
+        {% else %}
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            اعتبارسنجی ناموفق! لطفاً خطاهای زیر را برطرف کنید.
+        </div>
+        {% endif %}
+
+        <!-- Errors -->
+        {% if validation.errors %}
+        <div class="validation-errors mb-4">
+            <h6 class="text-danger">خطاهای اعتبارسنجی:</h6>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm">
+                    <thead class="bg-danger text-white">
+                        <tr>
+                            <th>ردیف</th>
+                            <th>خطا</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for error in validation.errors %}
+                        <tr>
+                            <td>{{ error.row }}</td>
+                            <td>
+                                {% for err in error.errors %}
+                                <div class="mb-1">{{ err.message }}</div>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Warnings -->
+        {% if validation.warnings %}
+        <div class="validation-warnings mb-4">
+            <h6 class="text-warning">هشدارها:</h6>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm">
+                    <thead class="bg-warning">
+                        <tr>
+                            <th>ردیف</th>
+                            <th>هشدار</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for warning in validation.warnings %}
+                        <tr>
+                            <td>{{ warning.row }}</td>
+                            <td>{{ warning.message }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Logs -->
+        {% if logs %}
+        <div class="log-container mb-4">
+            <h6>گزارش‌های اعتبارسنجی:</h6>
+            <div class="log-list">
+                {% for log in logs %}
+                <div class="log-item log-{{ log.log_level }}">
+                    <div class="log-time">{{ log.created_at|date:"H:i:s" }}</div>
+                    <div class="log-message">{{ log.message }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-between mt-4">
+            <a href="{% url 'data_exflow:import_preview' session_id=session.id %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-right me-1"></i> بازگشت به نگاشت
+            </a>
+            
+            {% if validation.valid %}
+            <form method="post" action="{% url 'data_exflow:import_process' session_id=session.id %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-play me-1"></i> شروع پردازش
+                </button>
+            </form>
+            {% else %}
+            <button type="button" class="btn btn-secondary" disabled>
+                <i class="fas fa-ban me-1"></i> ابتدا خطاها را برطرف کنید
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

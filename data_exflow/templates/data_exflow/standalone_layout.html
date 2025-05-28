@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}مدیریت داده‌ها{% endblock %}</title>
+    
+    <!-- Google Fonts - Vazirmatn -->
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap RTL -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.rtl.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/data_exflow.css' %}">
+    
+    {% block extra_css %}{% endblock %}
+    
+    <style>
+        body {
+            font-family: Vazirmatn, Tahoma, Arial, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .custom-file-upload {
+            border: 2px dashed #ccc;
+            display: inline-block;
+            width: 100%;
+            padding: 30px 0;
+            cursor: pointer;
+            text-align: center;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        .custom-file-upload:hover {
+            border-color: #6c757d;
+            background-color: #f8f9fa;
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+        }
+        .step-item {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+        .step-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            right: 60%;
+            width: 80%;
+            height: 2px;
+            background-color: #dee2e6;
+            z-index: 0;
+        }
+        .step-item.active .step-number, .step-item.completed .step-number {
+            background-color: #0d6efd;
+            color: white;
+        }
+        .step-item.completed:not(:last-child)::after {
+            background-color: #0d6efd;
+        }
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            position: relative;
+            z-index: 1;
+        }
+        .badge-completed {
+            background-color: #198754;
+        }
+        .badge-failed {
+            background-color: #dc3545;
+        }
+        .badge-pending {
+            background-color: #0dcaf0;
+        }
+        .badge-processing {
+            background-color: #ffc107;
+        }
+        .badge-validating {
+            background-color: #6c757d;
+        }
+        .badge-validated {
+            background-color: #0d6efd;
+        }
+        
+        /* Additional custom styles */
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: #212529;
+        }
+        .mapping-field {
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.2s;
+        }
+        .mapping-field:hover {
+            border-color: #adb5bd;
+            background-color: #f8f9fa;
+        }
+        .file-upload-info {
+            background-color: #e9ecef;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            margin-top: 0.5rem;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        .editable-cell {
+            cursor: pointer;
+        }
+        .editable-cell:hover {
+            background-color: #f8f9fa;
+        }
+        .filter-row {
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            background-color: #f8f9fa;
+        }
+        .badge {
+            padding: 0.5em 0.75em;
+            font-weight: 500;
+            border-radius: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Back to Admin button -->
+    <div class="container-fluid bg-dark text-white py-2 mb-3">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <span>سیستم مدیریت داده‌ها</span>
+                <div>
+                    <!-- Standalone navigation -->
+                    <span class="text-light small">
+                        <i class="fas fa-user me-1"></i> {{ request.user.username|default:"کاربر" }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mt-2 mb-5">
+        <!-- Navbar specific to data_exflow -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4 rounded">
+            <div class="container">
+                <a class="navbar-brand" href="{% url 'data_exflow:index' %}">
+                    <i class="fas fa-database me-2"></i>
+                    مدیریت داده‌ها
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'index' %}active{% endif %}" href="{% url 'data_exflow:index' %}">
+                                <i class="fas fa-home me-1"></i> داشبورد
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'import' %}active{% endif %}" href="{% url 'data_exflow:import' %}">
+                                <i class="fas fa-file-import me-1"></i> ورود داده
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'export' %}active{% endif %}" href="{% url 'data_exflow:export' %}">
+                                <i class="fas fa-file-export me-1"></i> خروج داده
+                            </a>
+                        </li>
+                    </ul>
+                    <div class="navbar-nav">
+                        <span class="nav-item nav-link">
+                            <i class="fas fa-user me-1"></i> {{ request.user.username }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        
+        <!-- Messages -->
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="page-title">{% block page_title %}مدیریت داده‌ها{% endblock %}</h1>
+            {% block page_actions %}{% endblock %}
+        </div>
+        
+        <!-- Content -->
+        {% block module_content %}{% endblock %}
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{% static 'js/data_exflow.js' %}"></script>
+    
+    <script>
+    // Debug info
+    console.log('Standalone layout loaded');
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM fully loaded in standalone layout');
+        // Log available models if any
+        const modelSelect = document.getElementById('content_type_id');
+        if (modelSelect) {
+            console.log('Model select found:', modelSelect);
+            console.log('Options count:', modelSelect.options.length);
+            
+            // Log all options with their data attributes
+            Array.from(modelSelect.options).forEach(option => {
+                if (option.value) {
+                    console.log('Option:', {
+                        value: option.value,
+                        text: option.text,
+                        appLabel: option.getAttribute('data-app-label'),
+                        modelName: option.getAttribute('data-model-name')
+                    });
+                }
+            });
+            
+            // Add change event listener to log selected model info
+            modelSelect.addEventListener('change', function() {
+                const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+                if (selectedOption && selectedOption.value) {
+                    console.log('Selected model:', {
+                        value: selectedOption.value,
+                        text: selectedOption.text,
+                        appLabel: selectedOption.getAttribute('data-app-label'),
+                        modelName: selectedOption.getAttribute('data-model-name')
+                    });
+                    
+                    // Get capitalized model name as it would be used in API
+                    let modelName = selectedOption.getAttribute('data-model-name');
+                    if (modelName && modelName.length > 0) {
+                        modelName = modelName.charAt(0).toUpperCase() + modelName.slice(1);
+                    }
+                    
+                    console.log('API will use:', {
+                        appLabel: selectedOption.getAttribute('data-app-label'),
+                        modelName: modelName
+                    });
+                    
+                    // Add test button to directly fetch model fields
+                    const fieldsContainer = document.getElementById('model-fields-container');
+                    if (fieldsContainer) {
+                        const appLabel = selectedOption.getAttribute('data-app-label');
+                        const url = `/data-exflow/api/model-fields/${appLabel}/${modelName}/`;
+                        const directUrl = `/data-exflow/api/model-fields/?content_type_id=${selectedOption.value}`;
+                        
+                        // Add a debug section with direct fetch button
+                        const debugHtml = `
+                            <div class="debug-tools mt-3 mb-3 p-3 border border-info rounded">
+                                <h6>Debug Tools</h6>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-info test-api-btn" 
+                                            data-url="${url}">
+                                        Test URL API
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-primary test-direct-api-btn" 
+                                            data-url="${directUrl}">
+                                        Test Direct API
+                                    </button>
+                                    <a href="${directUrl}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                        Open Direct URL
+                                    </a>
+                                </div>
+                                <div class="api-result mt-2 small" style="max-height: 150px; overflow-y: auto;"></div>
+                            </div>
+                        `;
+                        
+                        // Add debug HTML after loading indicator
+                        const existingDebug = fieldsContainer.querySelector('.debug-tools');
+                        if (!existingDebug) {
+                            fieldsContainer.insertAdjacentHTML('afterbegin', debugHtml);
+                            
+                            // Add click handler for test button
+                            const testBtn = fieldsContainer.querySelector('.test-api-btn');
+                            if (testBtn) {
+                                testBtn.addEventListener('click', function() {
+                                    const url = this.getAttribute('data-url');
+                                    const resultElement = fieldsContainer.querySelector('.api-result');
+                                    
+                                    resultElement.innerHTML = 'Loading...';
+                                    console.log('Debug Test: Testing URL API:', url);
+                                    
+                                    fetch(url)
+                                        .then(response => {
+                                            console.log('Debug Test: URL API response:', {
+                                                status: response.status,
+                                                statusText: response.statusText,
+                                                headers: {
+                                                    contentType: response.headers.get('content-type')
+                                                }
+                                            });
+                                            resultElement.innerHTML += `<br>Status: ${response.status} ${response.statusText}`;
+                                            return response.text();
+                                        })
+                                        .then(text => {
+                                            console.log('Debug Test: URL API raw text:', text.substring(0, 500));
+                                            resultElement.innerHTML += `<br>Raw Response (first 100 chars): ${text.substring(0, 100).replace(/</g, '&lt;').replace(/>/g, '&gt;')}...`;
+                                            try {
+                                                const data = JSON.parse(text);
+                                                console.log('Debug Test: URL API parsed data:', data);
+                                                resultElement.innerHTML += `<br>Data: ${JSON.stringify(data).substring(0, 100)}...`;
+                                                
+                                                // Display fields count if available
+                                                if (data.fields && Array.isArray(data.fields)) {
+                                                    resultElement.innerHTML += `<br>Fields count: ${data.fields.length}`;
+                                                    
+                                                    // Display first field as sample
+                                                    if (data.fields.length > 0) {
+                                                        resultElement.innerHTML += `<br>First field: ${JSON.stringify(data.fields[0])}`;
+                                                    }
+                                                }
+                                            } catch (e) {
+                                                console.log('Debug Test: URL API JSON parse error:', e);
+                                                resultElement.innerHTML += `<br>Parse error: ${e.message}`;
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.log('Debug Test: URL API fetch error:', error);
+                                            resultElement.innerHTML += `<br>Error: ${error.message}`;
+                                        });
+                                });
+                            }
+                            
+                            // Add click handler for direct test button
+                            const directTestBtn = fieldsContainer.querySelector('.test-direct-api-btn');
+                            if (directTestBtn) {
+                                directTestBtn.addEventListener('click', function() {
+                                    const url = this.getAttribute('data-url');
+                                    const resultElement = fieldsContainer.querySelector('.api-result');
+                                    
+                                    resultElement.innerHTML = 'Loading direct API...';
+                                    console.log('Debug Test: Testing Direct API:', url);
+                                    
+                                    fetch(url)
+                                        .then(response => {
+                                            console.log('Debug Test: Direct API response:', {
+                                                status: response.status,
+                                                statusText: response.statusText,
+                                                headers: {
+                                                    contentType: response.headers.get('content-type')
+                                                }
+                                            });
+                                            resultElement.innerHTML += `<br>Status: ${response.status} ${response.statusText}`;
+                                            return response.text();
+                                        })
+                                        .then(text => {
+                                            console.log('Debug Test: Direct API raw text:', text.substring(0, 500));
+                                            resultElement.innerHTML += `<br>Raw Response (first 100 chars): ${text.substring(0, 100).replace(/</g, '&lt;').replace(/>/g, '&gt;')}...`;
+                                            try {
+                                                const data = JSON.parse(text);
+                                                console.log('Debug Test: Direct API parsed data:', data);
+                                                resultElement.innerHTML += `<br>Data: ${JSON.stringify(data).substring(0, 100)}...`;
+                                                
+                                                // Display fields count if available
+                                                if (data.fields && Array.isArray(data.fields)) {
+                                                    resultElement.innerHTML += `<br>Fields count: ${data.fields.length}`;
+                                                    
+                                                    // Display first field as sample
+                                                    if (data.fields.length > 0) {
+                                                        resultElement.innerHTML += `<br>First field: ${JSON.stringify(data.fields[0])}`;
+                                                    }
+                                                }
+                                            } catch (e) {
+                                                console.log('Debug Test: Direct API JSON parse error:', e);
+                                                resultElement.innerHTML += `<br>Parse error: ${e.message}`;
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.log('Debug Test: Direct API fetch error:', error);
+                                            resultElement.innerHTML += `<br>Error: ${error.message}`;
+                                        });
+                                });
+                            }
+                            
+                            // Add a raw fetch test function that posts directly to the server
+                            fieldsContainer.insertAdjacentHTML('beforeend', `
+                                <div class="mt-3 mb-3 p-3 border border-warning rounded">
+                                    <h6>Raw API Test</h6>
+                                    <div class="mb-2">
+                                        <select id="api-test-method" class="form-select form-select-sm">
+                                            <option value="GET">GET</option>
+                                            <option value="POST">POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-2">
+                                        <input type="text" id="api-test-url" class="form-control form-control-sm" 
+                                               value="${directUrl}" placeholder="API URL">
+                                    </div>
+                                    <div class="mb-2">
+                                        <button type="button" id="api-raw-test-btn" class="btn btn-sm btn-warning">
+                                            Test Raw API
+                                        </button>
+                                    </div>
+                                    <div class="api-raw-result small" style="max-height: 200px; overflow-y: auto; white-space: pre-wrap; font-family: monospace;"></div>
+                                </div>
+                            `);
+                            
+                            // Add handler for raw test
+                            const rawTestBtn = fieldsContainer.querySelector('#api-raw-test-btn');
+                            if (rawTestBtn) {
+                                rawTestBtn.addEventListener('click', function() {
+                                    const url = document.getElementById('api-test-url').value;
+                                    const method = document.getElementById('api-test-method').value;
+                                    const resultElement = fieldsContainer.querySelector('.api-raw-result');
+                                    
+                                    resultElement.innerHTML = `Testing ${method} request to ${url}...`;
+                                    console.log(`Debug Raw Test: ${method} ${url}`);
+                                    
+                                    const options = {
+                                        method: method,
+                                        headers: {
+                                            'Accept': 'application/json, text/plain, */*'
+                                        }
+                                    };
+                                    
+                                    fetch(url, options)
+                                        .then(response => {
+                                            const responseInfo = {
+                                                status: response.status,
+                                                statusText: response.statusText,
+                                                headers: {}
+                                            };
+                                            
+                                            // Get all headers
+                                            response.headers.forEach((value, name) => {
+                                                responseInfo.headers[name] = value;
+                                            });
+                                            
+                                            console.log('Debug Raw Test: Response:', responseInfo);
+                                            resultElement.innerHTML = `Response Status: ${response.status} ${response.statusText}\n\nHeaders:\n`;
+                                            
+                                            Object.entries(responseInfo.headers).forEach(([name, value]) => {
+                                                resultElement.innerHTML += `${name}: ${value}\n`;
+                                            });
+                                            
+                                            resultElement.innerHTML += '\nResponse Body:\n';
+                                            return response.text();
+                                        })
+                                        .then(text => {
+                                            console.log('Debug Raw Test: Response text:', text);
+                                            resultElement.innerHTML += text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                        })
+                                        .catch(error => {
+                                            console.log('Debug Raw Test: Error:', error);
+                                            resultElement.innerHTML += `\nError: ${error.message}`;
+                                        });
+                                });
+                            }
+                            
+                            // Add content types browser
+                            fieldsContainer.insertAdjacentHTML('beforeend', `
+                                <div class="mt-3 mb-3 p-3 border border-primary rounded">
+                                    <h6>ContentTypes Browser</h6>
+                                    <p class="small">This tool helps you find the correct content_type_id for the model you need.</p>
+                                    <div class="mb-2">
+                                        <button type="button" id="load-contenttypes-btn" class="btn btn-sm btn-primary">
+                                            Load ContentTypes
+                                        </button>
+                                    </div>
+                                    <div class="mb-2">
+                                        <input type="text" id="filter-contenttypes" class="form-control form-control-sm" 
+                                               placeholder="Filter by app or model name">
+                                    </div>
+                                    <div id="contenttypes-list" class="small" style="max-height: 300px; overflow-y: auto;">
+                                        <div class="text-muted">Click "Load ContentTypes" to view all registered models</div>
+                                    </div>
+                                </div>
+                            `);
+                            
+                            // Add handler for content types browser
+                            const loadContentTypesBtn = fieldsContainer.querySelector('#load-contenttypes-btn');
+                            if (loadContentTypesBtn) {
+                                loadContentTypesBtn.addEventListener('click', function() {
+                                    const contentTypesList = document.getElementById('contenttypes-list');
+                                    contentTypesList.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm text-primary"></div> Loading...</div>';
+                                    
+                                    fetch('/data-exflow/api/contenttypes/')
+                                        .then(response => {
+                                            if (!response.ok) {
+                                                throw new Error(`HTTP error! Status: ${response.status}`);
+                                            }
+                                            return response.json();
+                                        })
+                                        .then(data => {
+                                            if (data.contenttypes && data.contenttypes.length) {
+                                                // Group by app_label
+                                                const groupedByApp = {};
+                                                data.contenttypes.forEach(ct => {
+                                                    if (!groupedByApp[ct.app_label]) {
+                                                        groupedByApp[ct.app_label] = [];
+                                                    }
+                                                    groupedByApp[ct.app_label].push(ct);
+                                                });
+                                                
+                                                // Create HTML
+                                                let html = '';
+                                                Object.keys(groupedByApp).sort().forEach(app => {
+                                                    html += `<div class="content-type-app mb-2">
+                                                        <div class="fw-bold text-primary">${app}</div>
+                                                        <div class="ms-3">`;
+                                                    
+                                                    groupedByApp[app].forEach(ct => {
+                                                        const directUrl = `/data-exflow/api/model-fields/?content_type_id=${ct.id}`;
+                                                        html += `<div class="content-type-model" 
+                                                                     data-app="${ct.app_label}" 
+                                                                     data-model="${ct.model}">
+                                                            <a href="#" class="text-decoration-none content-type-link" 
+                                                               data-id="${ct.id}" 
+                                                               data-app="${ct.app_label}" 
+                                                               data-model="${ct.model}"
+                                                               data-url="${directUrl}">
+                                                                ${ct.model} (ID: ${ct.id})
+                                                            </a>
+                                                        </div>`;
+                                                    });
+                                                    
+                                                    html += `</div></div>`;
+                                                });
+                                                
+                                                contentTypesList.innerHTML = html;
+                                                
+                                                // Add click handlers for content type links
+                                                contentTypesList.querySelectorAll('.content-type-link').forEach(link => {
+                                                    link.addEventListener('click', function(e) {
+                                                        e.preventDefault();
+                                                        const id = this.getAttribute('data-id');
+                                                        const app = this.getAttribute('data-app');
+                                                        const model = this.getAttribute('data-model');
+                                                        const url = this.getAttribute('data-url');
+                                                        
+                                                        // Update the API test URL
+                                                        document.getElementById('api-test-url').value = url;
+                                                        
+                                                        // Highlight selected item
+                                                        contentTypesList.querySelectorAll('.content-type-link').forEach(l => {
+                                                            l.classList.remove('fw-bold', 'text-success');
+                                                        });
+                                                        this.classList.add('fw-bold', 'text-success');
+                                                        
+                                                        // Show info
+                                                        alert(`Selected model: ${app}.${model} (ID: ${id})\nURL: ${url}\n\nYou can now click 'Test Raw API' to fetch the fields.`);
+                                                    });
+                                                });
+                                                
+                                                // Add filter functionality
+                                                const filterInput = document.getElementById('filter-contenttypes');
+                                                if (filterInput) {
+                                                    filterInput.addEventListener('input', function() {
+                                                        const filterText = this.value.toLowerCase();
+                                                        
+                                                        contentTypesList.querySelectorAll('.content-type-model').forEach(model => {
+                                                            const app = model.getAttribute('data-app').toLowerCase();
+                                                            const modelName = model.getAttribute('data-model').toLowerCase();
+                                                            
+                                                            if (app.includes(filterText) || modelName.includes(filterText)) {
+                                                                model.style.display = 'block';
+                                                                // Also show parent app
+                                                                model.closest('.content-type-app').style.display = 'block';
+                                                            } else {
+                                                                model.style.display = 'none';
+                                                            }
+                                                        });
+                                                        
+                                                        // Hide empty app sections
+                                                        contentTypesList.querySelectorAll('.content-type-app').forEach(app => {
+                                                            const visibleModels = app.querySelectorAll('.content-type-model[style="display: block"]').length;
+                                                            if (visibleModels === 0) {
+                                                                app.style.display = 'none';
+                                                            }
+                                                        });
+                                                    });
+                                                }
+                                            } else {
+                                                contentTypesList.innerHTML = '<div class="alert alert-warning">No content types found</div>';
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.error('Error loading content types:', error);
+                                            contentTypesList.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+                                        });
+                                });
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            console.log('Model select not found');
+        }
+    });
+    </script>
+    
+    {% block module_js %}{% endblock %}
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html> 

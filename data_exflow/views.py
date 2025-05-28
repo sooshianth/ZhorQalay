@@ -7,36 +7,142 @@ from django.urls import reverse
 from django.contrib.contenttypes.models import ContentType
 from django.apps import apps
 from django.conf import settings
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 import pandas as pd
 import numpy as np
 import json
 import os
 import uuid
 import tempfile
+from django.db.models import Count, Q
+from datetime import datetime, timedelta
+from django.utils import timezone
 
 from .models import ImportExportSession, ImportExportLog, ImportRecord
 from .utils import (
     get_file_extension, is_valid_file_type, read_file_to_dataframe,
     get_all_registered_models, get_model_fields, validate_import_data,
-    process_import, revert_import, process_export
+    process_import, revert_import, process_export, check_file_size
 )
 
 # Create your views here.
 
+def validate_content_type(content_type_id):
+    """Validate a content type ID for security."""
+    try:
+        # Try to get the content type
+        content_type = ContentType.objects.get(id=content_type_id)
+        
+        # Get all allowed models
+        allowed_models = get_all_registered_models()
+        
+        # Check if this content type is in our allowed models
+        for app_label, models in allowed_models.items():
+            for model in models:
+                if model['content_type_id'] == content_type.id:
+                    return content_type
+                    
+        # If we get here, the content type wasn't in our allowed list
+        raise ValidationError("The selected model is not allowed for import/export operations")
+        
+    except ContentType.DoesNotExist:
+        raise ValidationError("Invalid model selected")
+    except Exception as e:
+        raise ValidationError(f"Error validating model: {str(e)}")
+
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
 def index_view(request):
-    """Main dashboard for data import/export operations."""
-    
-    # Get recent import/export sessions
+    """نمایش داشبورد اصلی"""
+    # دریافت جلسات اخیر
     recent_sessions = ImportExportSession.objects.filter(
         user=request.user
     ).order_by('-created_at')[:10]
     
+    # محاسبه آمار
+    import_count = ImportExportSession.objects.filter(
+        user=request.user, 
+        session_type='import'
+    ).count()
+    
+    export_count = ImportExportSession.objects.filter(
+        user=request.user, 
+        session_type='export'
+    ).count()
+    
+    # تعداد مدل‌های قابل استفاده
+    model_count = ContentType.objects.filter(
+        app_label__in=['core', 'accounts', 'data_exflow']  # اپ‌های مورد نظر
+    ).count()
+    
+    # تعداد کل رکوردهای پردازش شده
+    record_count = ImportExportSession.objects.filter(
+        user=request.user,
+        status='completed'
+    ).aggregate(
+        total=Count('processed_count')
+    )['total'] or 0
+    
+    # محاسبه نرخ موفقیت
+    import_sessions = ImportExportSession.objects.filter(
+        user=request.user, 
+        session_type='import'
+    )
+    import_success = import_sessions.filter(status='completed').count()
+    import_total = import_sessions.count()
+    import_success_rate = (import_success * 100 // import_total) if import_total > 0 else 0
+    import_failure_rate = 100 - import_success_rate
+    
+    export_sessions = ImportExportSession.objects.filter(
+        user=request.user, 
+        session_type='export'
+    )
+    export_success = export_sessions.filter(status='completed').count()
+    export_total = export_sessions.count()
+    export_success_rate = (export_success * 100 // export_total) if export_total > 0 else 0
+    export_failure_rate = 100 - export_success_rate
+    
+    # داده‌های نمودار (6 ماه اخیر)
+    six_months_ago = timezone.now() - timedelta(days=180)
+    
+    # آمار ماهانه ورود داده
+    import_monthly = []
+    export_monthly = []
+    
+    for i in range(6):
+        month_start = six_months_ago + timedelta(days=30*i)
+        month_end = month_start + timedelta(days=30)
+        
+        import_count_month = ImportExportSession.objects.filter(
+            user=request.user,
+            session_type='import',
+            created_at__gte=month_start,
+            created_at__lt=month_end
+        ).count()
+        
+        export_count_month = ImportExportSession.objects.filter(
+            user=request.user,
+            session_type='export',
+            created_at__gte=month_start,
+            created_at__lt=month_end
+        ).count()
+        
+        import_monthly.append(import_count_month)
+        export_monthly.append(export_count_month)
+    
     context = {
-        'title': 'مدیریت داده‌ها',
+        'title': 'داشبورد مدیریت داده‌ها',
         'recent_sessions': recent_sessions,
+        'import_count': import_count,
+        'export_count': export_count,
+        'model_count': model_count,
+        'record_count': record_count,
+        'import_success_rate': import_success_rate,
+        'import_failure_rate': import_failure_rate,
+        'export_success_rate': export_success_rate,
+        'export_failure_rate': export_failure_rate,
+        'chart_import_data': ','.join(map(str, import_monthly)),
+        'chart_export_data': ','.join(map(str, export_monthly)),
     }
     
     return render(request, 'data_exflow/index.html', context)
@@ -51,9 +157,17 @@ def import_view(request):
     """Main import view showing available models to import."""
     models = get_all_registered_models()
     
+    # Get recent import sessions
+    recent_imports = ImportExportSession.objects.filter(
+        user=request.user,
+        session_type=ImportExportSession.IMPORT
+    ).order_by('-created_at')[:5]
+    
     context = {
-        'title': 'Import Data',
+        'title': 'ورود داده',
         'models': models,
+        'recent_imports': recent_imports,
+        'standalone': True,
     }
     
     return render(request, 'data_exflow/import.html', context)
@@ -70,42 +184,59 @@ def import_upload(request):
     content_type_id = request.POST.get('content_type_id')
     file = request.FILES.get('file')
     
-    if not content_type_id or not file:
-        messages.error(request, 'Missing required fields')
+    # Validate required fields with specific error messages
+    if not content_type_id:
+        messages.error(request, 'لطفاً مدل داده را انتخاب کنید')
+        return redirect('data_exflow:import')
+        
+    if not file:
+        messages.error(request, 'لطفاً فایل مورد نظر را انتخاب کنید')
         return redirect('data_exflow:import')
     
     # Check if content type exists
     try:
-        content_type = ContentType.objects.get(id=content_type_id)
-    except ContentType.DoesNotExist:
-        messages.error(request, 'Invalid model selected')
+        content_type = validate_content_type(content_type_id)
+    except ValidationError as e:
+        messages.error(request, f'خطا در انتخاب مدل: {str(e)}')
         return redirect('data_exflow:import')
     
     # Check file extension
     file_extension = get_file_extension(file.name)
     if not is_valid_file_type(file_extension):
-        messages.error(request, f'Invalid file type: {file_extension}. Supported types: .xlsx, .xls, .csv')
+        messages.error(request, f'فرمت فایل {file_extension} پشتیبانی نمی‌شود. فرمت‌های مجاز: .xlsx, .xls, .csv')
         return redirect('data_exflow:import')
     
-    # Create import session
-    session = ImportExportSession.objects.create(
-        session_type=ImportExportSession.IMPORT,
-        user=request.user,
-        content_type=content_type,
-        file=file,
-        file_name=file.name,
-        file_type=file_extension.replace('.', ''),
-        status=ImportExportSession.PENDING
-    )
+    # Check file size
+    try:
+        check_file_size(file)
+    except ValueError as e:
+        messages.error(request, f'خطای حجم فایل: {str(e)}')
+        return redirect('data_exflow:import')
     
-    # Log file upload
-    ImportExportLog.objects.create(
-        session=session,
-        log_level=ImportExportLog.INFO,
-        message=f"File '{file.name}' uploaded for {content_type.model} import"
-    )
-    
-    return redirect('data_exflow:import_preview', session_id=session.id)
+    try:
+        # Create import session
+        session = ImportExportSession.objects.create(
+            session_type=ImportExportSession.IMPORT,
+            user=request.user,
+            content_type=content_type,
+            file=file,
+            file_name=file.name,
+            file_type=file_extension.replace('.', ''),
+            status=ImportExportSession.PENDING
+        )
+        
+        # Log file upload
+        ImportExportLog.objects.create(
+            session=session,
+            log_level=ImportExportLog.INFO,
+            message=f"File '{file.name}' uploaded for {content_type.model} import"
+        )
+        
+        messages.success(request, f'فایل «{file.name}» با موفقیت آپلود شد. لطفاً فیلدها را مپ کنید.')
+        return redirect('data_exflow:import_preview', session_id=session.id)
+    except Exception as e:
+        messages.error(request, f'خطا در آپلود فایل: {str(e)}')
+        return redirect('data_exflow:import')
 
 
 @login_required
@@ -123,7 +254,14 @@ def import_preview(request, session_id):
     file_extension = get_file_extension(session.file_name)
     
     try:
+        print(f"DEBUG: Reading file: {file_path}")
+        print(f"DEBUG: File extension: {file_extension}")
+        
         df = read_file_to_dataframe(file_path, file_extension)
+        print(f"DEBUG: DataFrame shape: {df.shape}")
+        print(f"DEBUG: DataFrame columns: {df.columns.tolist()}")
+        print(f"DEBUG: First few rows:")
+        print(df.head())
         
         # Convert dataframe to JSON for template
         preview_data = {
@@ -132,24 +270,35 @@ def import_preview(request, session_id):
             'total_rows': len(df)
         }
         
+        print(f"DEBUG: Preview data columns: {preview_data['columns']}")
+        print(f"DEBUG: Preview data rows count: {len(preview_data['rows'])}")
+        print(f"DEBUG: First row: {preview_data['rows'][0] if preview_data['rows'] else 'No rows'}")
+        
         # Get model fields for mapping
         model_class = session.get_model_class()
+        print(f"DEBUG: Model class: {model_class}")
         fields = get_model_fields(model_class._meta.app_label, model_class.__name__)
+        print(f"DEBUG: Model fields count: {len(fields)}")
         
         context = {
             'title': 'Preview Import Data',
             'session': session,
             'preview': preview_data,
             'model_fields': fields,
+            'standalone': True,
         }
         
         return render(request, 'data_exflow/import_preview.html', context)
     except Exception as e:
+        print(f"DEBUG: Error in import_preview: {str(e)}")
+        import traceback
+        traceback.print_exc()
         messages.error(request, f'Error reading file: {str(e)}')
         return redirect('data_exflow:import')
 
 
 @login_required
+@user_passes_test(lambda u: u.is_superuser)
 def import_map_fields(request, session_id):
     """Map file columns to model fields."""
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
@@ -170,6 +319,82 @@ def import_map_fields(request, session_id):
     file_extension = get_file_extension(session.file_name)
     df = read_file_to_dataframe(file_path, file_extension)
     columns = df.columns.tolist()
+    
+    # Process edited data and deleted rows
+    edited_data_json = request.POST.get('edited_data', '{}')
+    deleted_rows_json = request.POST.get('deleted_rows', '[]')
+    
+    try:
+        edited_data = json.loads(edited_data_json) if edited_data_json else {}
+        deleted_rows = json.loads(deleted_rows_json) if deleted_rows_json else []
+        deleted_rows = set(map(int, deleted_rows))  # Convert to set of integers
+        
+        # Apply edits to dataframe
+        if edited_data:
+            for row_index, changes in edited_data.items():
+                row_idx = int(row_index)
+                if row_idx < len(df):
+                    for column, new_value in changes.items():
+                        if column in df.columns:
+                            df.iloc[row_idx, df.columns.get_loc(column)] = new_value
+            
+            ImportExportLog.objects.create(
+                session=session,
+                log_level=ImportExportLog.INFO,
+                message=f"Applied edits to {len(edited_data)} rows"
+            )
+        
+        # Remove deleted rows
+        if deleted_rows:
+            # Sort in descending order to avoid index shifting issues
+            sorted_deleted_rows = sorted(deleted_rows, reverse=True)
+            for row_idx in sorted_deleted_rows:
+                if row_idx < len(df):
+                    df = df.drop(df.index[row_idx])
+            
+            # Reset index after dropping rows
+            df = df.reset_index(drop=True)
+            
+            ImportExportLog.objects.create(
+                session=session,
+                log_level=ImportExportLog.INFO,
+                message=f"Removed {len(deleted_rows)} rows from import data"
+            )
+        
+        # Save the modified dataframe back to file
+        if edited_data or deleted_rows:
+            # Create a temporary file with the modified data
+            import tempfile
+            import os
+            
+            temp_dir = tempfile.mkdtemp()
+            temp_filename = f"modified_{session.file_name}"
+            temp_path = os.path.join(temp_dir, temp_filename)
+            
+            # Save based on file type
+            if file_extension.lower() in ['.xlsx', '.xls']:
+                df.to_excel(temp_path, index=False)
+            else:  # CSV
+                df.to_csv(temp_path, index=False, encoding='utf-8')
+            
+            # Replace the original file
+            import shutil
+            shutil.move(temp_path, file_path)
+            
+            # Update session row count
+            session.row_count = len(df)
+            session.save()
+            
+            # Clean up temp directory
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            
+    except (json.JSONDecodeError, ValueError) as e:
+        ImportExportLog.objects.create(
+            session=session,
+            log_level=ImportExportLog.WARNING,
+            message=f"Could not process edited data: {str(e)}"
+        )
     
     # Process field mapping
     for column in columns:
@@ -195,16 +420,17 @@ def import_map_fields(request, session_id):
 
 
 @login_required
+@user_passes_test(lambda u: u.is_superuser)
 def import_validate(request, session_id):
     """Validate the import data against the model."""
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
     
     if session.session_type != ImportExportSession.IMPORT:
-        messages.error(request, 'Invalid session type')
+        messages.error(request, 'نوع جلسه نامعتبر است')
         return redirect('data_exflow:import')
     
     if not session.mapping:
-        messages.error(request, 'No field mapping found')
+        messages.error(request, 'نگاشت فیلدها یافت نشد. لطفا ابتدا فیلدها را نگاشت کنید')
         return redirect('data_exflow:import_preview', session_id=session.id)
     
     # Update session status
@@ -230,21 +456,23 @@ def import_validate(request, session_id):
             ImportExportLog.objects.create(
                 session=session,
                 log_level=ImportExportLog.SUCCESS,
-                message=f"Validation successful. {validation_result['creates']} records to create, {validation_result['updates']} records to update."
+                message=f"اعتبارسنجی موفق. {validation_result['creates']} رکورد برای ایجاد، {validation_result['updates']} رکورد برای به‌روزرسانی."
             )
+            messages.success(request, f"اعتبارسنجی موفق. {validation_result['creates']} رکورد برای ایجاد، {validation_result['updates']} رکورد برای به‌روزرسانی.")
         else:
             ImportExportLog.objects.create(
                 session=session,
                 log_level=ImportExportLog.ERROR,
-                message=f"Validation failed with {len(validation_result['errors'])} errors."
+                message=f"اعتبارسنجی ناموفق با {len(validation_result['errors'])} خطا."
             )
+            messages.error(request, f"اعتبارسنجی ناموفق با {len(validation_result['errors'])} خطا. لطفا خطاها را برطرف کنید.")
             
             # Log each error
             for error in validation_result['errors']:
                 ImportExportLog.objects.create(
                     session=session,
                     log_level=ImportExportLog.ERROR,
-                    message=f"Row {error['row']}: " + ", ".join([e['message'] for e in error['errors']]),
+                    message=f"ردیف {error['row']}: " + ", ".join([e['message'] for e in error['errors']]),
                     row_number=error['row']
                 )
         
@@ -258,10 +486,11 @@ def import_validate(request, session_id):
             )
         
         context = {
-            'title': 'Validate Import Data',
+            'title': 'اعتبارسنجی داده‌ها',
             'session': session,
             'validation': validation_result,
-            'logs': ImportExportLog.objects.filter(session=session).order_by('-created_at')[:20]
+            'logs': ImportExportLog.objects.filter(session=session).order_by('-created_at')[:20],
+            'standalone': True,
         }
         
         return render(request, 'data_exflow/import_validate.html', context)
@@ -273,24 +502,25 @@ def import_validate(request, session_id):
         ImportExportLog.objects.create(
             session=session,
             log_level=ImportExportLog.ERROR,
-            message=f"Validation error: {str(e)}"
+            message=f"خطای اعتبارسنجی: {str(e)}"
         )
         
-        messages.error(request, f'Validation error: {str(e)}')
+        messages.error(request, f'خطای اعتبارسنجی: {str(e)}')
         return redirect('data_exflow:import')
 
 
 @login_required
+@user_passes_test(lambda u: u.is_superuser)
 def import_process(request, session_id):
     """Process the import operation."""
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
     
     if session.session_type != ImportExportSession.IMPORT:
-        messages.error(request, 'Invalid session type')
+        messages.error(request, 'نوع جلسه نامعتبر است')
         return redirect('data_exflow:import')
     
     if session.status != ImportExportSession.VALIDATED:
-        messages.error(request, 'Session not validated')
+        messages.error(request, 'جلسه اعتبارسنجی نشده است. لطفا ابتدا داده‌ها را اعتبارسنجی کنید')
         return redirect('data_exflow:import_validate', session_id=session.id)
     
     if request.method != 'POST':
@@ -300,9 +530,27 @@ def import_process(request, session_id):
         # Process the import
         process_import(session)
         
-        messages.success(request, 'Import process completed successfully')
+        messages.success(request, 'عملیات ایمپورت با موفقیت انجام شد')
         return redirect('data_exflow:import_results', session_id=session.id)
         
+    except ValueError as e:
+        # Handle specific error types with user-friendly messages
+        if "already being processed" in str(e):
+            messages.error(request, 'این جلسه در حال حاضر توسط درخواست دیگری در حال پردازش است. لطفا بعدا تلاش کنید')
+        else:
+            messages.error(request, f'خطا در پردازش ایمپورت: {str(e)}')
+            
+        # Log the error
+        ImportExportLog.objects.create(
+            session=session,
+            log_level=ImportExportLog.ERROR,
+            message=f"خطا در پردازش ایمپورت: {str(e)}"
+        )
+        
+        session.status = ImportExportSession.FAILED
+        session.save()
+        
+        return redirect('data_exflow:import_validate', session_id=session.id)
     except Exception as e:
         session.status = ImportExportSession.FAILED
         session.save()
@@ -310,14 +558,15 @@ def import_process(request, session_id):
         ImportExportLog.objects.create(
             session=session,
             log_level=ImportExportLog.ERROR,
-            message=f"Import process error: {str(e)}"
+            message=f"خطای پردازش ایمپورت: {str(e)}"
         )
         
-        messages.error(request, f'Import process error: {str(e)}')
+        messages.error(request, f'خطای پردازش ایمپورت: {str(e)}')
         return redirect('data_exflow:import_validate', session_id=session.id)
 
 
 @login_required
+@user_passes_test(lambda u: u.is_superuser)
 def import_results(request, session_id):
     """Show import results."""
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
@@ -340,22 +589,24 @@ def import_results(request, session_id):
         'success_count': import_records.filter(action='create').count() + import_records.filter(action='update').count(),
         'create_count': import_records.filter(action='create').count(),
         'update_count': import_records.filter(action='update').count(),
+        'standalone': True,
     }
     
     return render(request, 'data_exflow/import_results.html', context)
 
 
 @login_required
+@user_passes_test(lambda u: u.is_superuser)
 def import_revert(request, session_id):
     """Revert an import operation."""
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
     
     if session.session_type != ImportExportSession.IMPORT:
-        messages.error(request, 'Invalid session type')
+        messages.error(request, 'نوع جلسه نامعتبر است')
         return redirect('data_exflow:import')
     
     if not session.can_be_reverted:
-        messages.error(request, 'This session cannot be reverted')
+        messages.error(request, 'این جلسه قابل بازگشت نیست. فقط جلسه‌های ایمپورت موفق قابل بازگشت هستند')
         return redirect('data_exflow:import_results', session_id=session.id)
     
     if request.method != 'POST':
@@ -365,17 +616,34 @@ def import_revert(request, session_id):
         # Revert the import
         revert_import(session)
         
-        messages.success(request, 'Import reverted successfully')
+        messages.success(request, 'بازگشت ایمپورت با موفقیت انجام شد')
         return redirect('data_exflow:import_results', session_id=session.id)
+    
+    except ValueError as e:
+        # Handle specific error types with user-friendly messages
+        if "already being processed" in str(e):
+            messages.error(request, 'این جلسه در حال حاضر توسط درخواست دیگری در حال پردازش است. لطفا بعدا تلاش کنید')
+        elif "cannot be reverted" in str(e):
+            messages.error(request, 'این جلسه قابل بازگشت نیست')
+        else:
+            messages.error(request, f'خطا در بازگشت ایمپورت: {str(e)}')
+            
+        # Log the error
+        ImportExportLog.objects.create(
+            session=session,
+            log_level=ImportExportLog.ERROR,
+            message=f"خطا در بازگشت ایمپورت: {str(e)}"
+        )
         
+        return redirect('data_exflow:import_results', session_id=session.id)
     except Exception as e:
         ImportExportLog.objects.create(
             session=session,
             log_level=ImportExportLog.ERROR,
-            message=f"Revert error: {str(e)}"
+            message=f"خطای بازگشت ایمپورت: {str(e)}"
         )
         
-        messages.error(request, f'Revert error: {str(e)}')
+        messages.error(request, f'خطای بازگشت ایمپورت: {str(e)}')
         return redirect('data_exflow:import_results', session_id=session.id)
 
 
@@ -401,6 +669,7 @@ def export_view(request):
         'title': 'Export Data',
         'available_models': models_by_app,
         'recent_exports': recent_exports,
+        'standalone': True,
     }
     
     return render(request, 'data_exflow/export.html', context)
@@ -413,20 +682,22 @@ def export_select_fields(request):
     if request.method != 'POST':
         return redirect('data_exflow:export')
     
-    # Get selected models
+    # Get selected models - could be a list or a single value
     selected_models = request.POST.getlist('models')
+    if not selected_models and request.POST.get('models'):
+        selected_models = [request.POST.get('models')]
     
     if not selected_models:
-        messages.error(request, 'No models selected')
+        messages.error(request, 'لطفاً حداقل یک مدل انتخاب کنید')
         return redirect('data_exflow:export')
     
-    # Get content types and model fields
+    # Get content types
     content_types = []
     model_fields = {}
     
     for ct_id in selected_models:
         try:
-            ct = ContentType.objects.get(id=ct_id)
+            ct = validate_content_type(ct_id)
             content_types.append(ct)
             
             model_class = ct.model_class()
@@ -434,16 +705,19 @@ def export_select_fields(request):
             
             model_fields[f"{ct.app_label}.{ct.model}"] = fields
             
-        except ContentType.DoesNotExist:
-            continue
+        except ValidationError as e:
+            messages.error(request, str(e))
+            return redirect('data_exflow:export')
     
     context = {
-        'title': 'Select Export Fields',
+        'title': 'انتخاب فیلدهای خروجی',
         'content_types': content_types,
         'model_fields': model_fields,
         'selected_model_ids': selected_models,
-        'export_format': request.POST.get('export_format', 'xlsx'),
+        'export_format': request.POST.get('format', 'xlsx'),
+        'export_type': request.POST.get('export_type', 'all'),
         'selected_models': [{'content_type_id': ct.id, 'verbose_name': ct.model_class()._meta.verbose_name} for ct in content_types],
+        'standalone': True,
     }
     
     return render(request, 'data_exflow/export_select_fields.html', context)
@@ -558,10 +832,11 @@ def export_download(request, session_id):
         'export_format': session.file_type,
         'export_date': session.created_at,
         'file_size': file_size,
-        'record_count': session.record_count or 0,
+        'record_count': session.row_count or 0,
         'field_count': field_count,
         'selected_models': content_types,
         'exported_fields': exported_fields,
+        'standalone': True,
     }
     
     return render(request, 'data_exflow/export_download.html', context)
@@ -625,21 +900,93 @@ def export_process(request):
 # ---------------------------
 
 @login_required
+@user_passes_test(lambda u: u.is_superuser)
 def api_get_models(request):
-    """API endpoint to get all available models."""
+    """API endpoint to get all registered models."""
     models = get_all_registered_models()
     return JsonResponse(models)
 
 
 @login_required
-def api_get_model_fields(request, app_label, model_name):
+@user_passes_test(lambda u: u.is_superuser)
+def api_get_model_fields(request, app_label=None, model_name=None):
     """API endpoint to get fields for a specific model."""
-    fields = get_model_fields(app_label, model_name)
-    return JsonResponse({'fields': fields})
+    try:
+        # Print request information for debugging
+        print(f"DEBUG API: Received API request for model fields")
+        print(f"DEBUG API: URL path: {request.path}")
+        print(f"DEBUG API: Method: {request.method}")
+        print(f"DEBUG API: GET params: {request.GET}")
+        print(f"DEBUG API: POST params: {request.POST}")
+        print(f"DEBUG API: URL params: app_label={app_label}, model_name={model_name}")
+        
+        # Check if parameters are in URL or POST/GET
+        if not app_label:
+            app_label = request.POST.get('app_label') or request.GET.get('app_label')
+            print(f"DEBUG API: Got app_label from request params: {app_label}")
+        
+        if not model_name:
+            model_name = request.POST.get('model_name') or request.GET.get('model_name')
+            print(f"DEBUG API: Got model_name from request params: {model_name}")
+            
+        # Check if we have content_type_id instead
+        content_type_id = request.POST.get('content_type_id') or request.GET.get('content_type_id')
+        print(f"DEBUG API: content_type_id from request: {content_type_id}")
+        
+        if content_type_id and not (app_label and model_name):
+            try:
+                from django.contrib.contenttypes.models import ContentType
+                print(f"DEBUG API: Looking up ContentType with ID: {content_type_id}")
+                content_type = ContentType.objects.get(id=content_type_id)
+                app_label = content_type.app_label
+                model_name = content_type.model
+                print(f"DEBUG API: Retrieved model info from content_type_id: {app_label}.{model_name} (ID: {content_type_id})")
+            except Exception as e:
+                print(f"DEBUG API: Error getting content type: {str(e)}")
+                
+        # Clean and normalize inputs if they exist
+        if app_label:
+            app_label_orig = app_label
+            app_label = app_label.strip().lower()
+            print(f"DEBUG API: Normalized app_label: '{app_label_orig}' -> '{app_label}'")
+            
+        if model_name:
+            model_name_orig = model_name
+            model_name = model_name.strip()
+            print(f"DEBUG API: Normalized model_name: '{model_name_orig}' -> '{model_name}'")
+        
+        print(f"DEBUG API: Final parameters - app_label: '{app_label}', model_name: '{model_name}'")
+        
+        if not app_label or not model_name:
+            print(f"DEBUG API: Missing required parameters")
+            return JsonResponse({
+                'error': 'Missing app_label or model_name parameters'
+            }, status=400)
+        
+        # Get model fields
+        print(f"DEBUG API: Calling get_model_fields({app_label}, {model_name})")
+        fields = get_model_fields(app_label, model_name)
+        
+        if not fields:
+            print(f"DEBUG API: No fields found for {app_label}.{model_name}")
+            return JsonResponse({
+                'error': f'Model {app_label}.{model_name} not found or has no accessible fields'
+            }, status=404)
+            
+        # Return fields as JSON
+        print(f"DEBUG API: Returning {len(fields)} fields for {app_label}.{model_name}")
+        return JsonResponse({'fields': fields})
+    except Exception as e:
+        print(f"DEBUG API: Exception in api_get_model_fields: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'error': f'Error retrieving model fields: {str(e)}'
+        }, status=500)
 
 
-@csrf_exempt
 @login_required
+@user_passes_test(lambda u: u.is_superuser)
 def api_edit_cell(request, session_id):
     """API endpoint to edit a cell in the preview."""
     if request.method != 'POST':
@@ -659,6 +1006,15 @@ def api_edit_cell(request, session_id):
         if row is None or column is None or value is None:
             return JsonResponse({'error': 'Missing parameters'}, status=400)
         
+        # Validate input parameters
+        if not isinstance(row, int) or row < 0:
+            return JsonResponse({'error': 'Invalid row number'}, status=400)
+            
+        if not isinstance(column, str) or not column:
+            return JsonResponse({'error': 'Invalid column name'}, status=400)
+            
+        # Value can be of various types, so we don't validate it strictly
+        
         # Read the file
         file_path = session.file.path
         file_extension = get_file_extension(session.file_name)
@@ -669,23 +1025,60 @@ def api_edit_cell(request, session_id):
         df.iloc[row, df.columns.get_loc(column)] = value
         
         # Create a temporary file to save the updated data
-        with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as tmp:
-            temp_path = tmp.name
-            
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as tmp:
+                temp_path = tmp.name
+                
             # Save the dataframe to the temporary file
             if file_extension in ['.xlsx', '.xls']:
                 df.to_excel(temp_path, index=False)
             elif file_extension == '.csv':
                 df.to_csv(temp_path, index=False)
-        
-        # Save the updated file
-        with open(temp_path, 'rb') as f:
-            session.file.save(session.file_name, f)
-        
-        # Clean up the temporary file
-        os.unlink(temp_path)
-        
-        return JsonResponse({'success': True})
+            
+            # Save the updated file
+            with open(temp_path, 'rb') as f:
+                session.file.save(session.file_name, f)
+            
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        finally:
+            # Always clean up the temporary file
+            if temp_path and os.path.exists(temp_path):
+                try:
+                    os.unlink(temp_path)
+                except Exception:
+                    pass  # Log this error but don't fail if cleanup fails
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def api_list_contenttypes(request):
+    """API endpoint to list all content types."""
+    try:
+        from django.contrib.contenttypes.models import ContentType
+        
+        # Get all content types
+        contenttypes = ContentType.objects.all().order_by('app_label', 'model')
+        
+        # Format data for JSON response
+        data = []
+        for ct in contenttypes:
+            data.append({
+                'id': ct.id,
+                'app_label': ct.app_label,
+                'model': ct.model,
+                'name': str(ct)
+            })
+        
+        return JsonResponse({'contenttypes': data})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'error': f'Error listing content types: {str(e)}'
+        }, status=500)

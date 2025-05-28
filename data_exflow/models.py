@@ -49,6 +49,7 @@ class ImportExportSession(models.Model):
     processed_count = models.IntegerField(default=0)
     error_count = models.IntegerField(default=0)
     mapping = models.JSONField(null=True, blank=True)
+    is_locked = models.BooleanField(default=False, help_text=_("Indicates if this session is currently being processed"))
     
     def __str__(self):
         return f"{self.get_session_type_display()} - {self.content_type} - {self.created_at}"
