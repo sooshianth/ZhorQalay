@@ -5,7 +5,9 @@
 {% block head_styles %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'css_files/purchase_list_style.css' %}">
+    <link rel="stylesheet" href="{% static 'css_files/advanced_filter.css' %}">
     <script src="{% static 'js/drag_and_drop_columns.js' %}"></script>
+    <script src="{% static 'js/advanced_filter.js' %}"></script>
     <style>
         /* استایل برای خرید‌های فوری */
         tr.urgent-row {
@@ -435,13 +437,7 @@
     </a>
 </div>
 {% endif %}
-{% if user_role == 'admin' or user_role == 'logistics_manager' or user_role == 'financial_manager' %}
-<div class="text-start mb-4">
-    <a href="{% url 'barnameh_list' %}" class="btn btn-lg btn-success shadow-lg rounded-pill">
-        <i class="fas fa-truck me-2"></i> پنل ویرایش بارنامه‌ها
-    </a>
-</div>
-{% endif %}
+
 <div class="text-start mb-4 d-flex gap-3 flex-wrap">
     <!-- دکمه مدیریت ستون‌ها -->
     {% if request.user.is_superuser or request.user.is_staff %}
@@ -452,26 +448,11 @@
     
     <!-- دکمه انتخاب همه سطرها -->
     {% if user_role == 'admin' or user_role == 'financial_manager' or user_role == 'logistics_manager' %}
-    <button id="selectAllRowsBtn" class="btn btn-primary shadow-sm">
-        <i class="fas fa-check-square me-2"></i> انتخاب همه
-    </button>
-    
-    <!-- دکمه لغو انتخاب همه سطرها -->
-    <button id="deselectAllRowsBtn" class="btn btn-outline-primary shadow-sm">
-        <i class="fas fa-square me-2"></i> لغو انتخاب همه
-    </button>
-    
     <!-- دکمه خروجی اکسل (در ابتدا غیرفعال) -->
     <button id="exportBtn" class="btn btn-success shadow-sm" disabled>
         <i class="fas fa-file-excel me-2"></i> خروجی اکسل
     </button>
     {% endif %}
-    <button id="resetColumnsBtn" class="btn btn-warning shadow-sm">
-        <i class="fas fa-redo me-2"></i> نمایش همه ستون‌ها
-    </button>
-    <button id="resetColumnOrderBtn" class="btn btn-outline-warning shadow-sm">
-        <i class="fas fa-sync-alt me-2"></i> بازگردانی ترتیب پیش‌فرض
-    </button>
 </div>
 
 <!-- مدال مدیریت ستون‌ها -->
@@ -527,6 +508,9 @@
                 </button>
                 <button type="button" class="btn btn-primary px-4 py-2" id="saveColumnsBtn">
                     <i class="fas fa-save me-2"></i>ذخیره تغییرات
+                </button>
+                <button id="resetColumnsBtn" class="btn btn-warning shadow-sm">
+                    <i class="fas fa-redo me-2"></i> نمایش همه ستون‌ها
                 </button>
             </div>
         </div>
@@ -689,25 +673,97 @@
     </form>
 </div>
 
-<!-- اضافه کردن فیلترهای پیشرفته -->
-{% include 'partials/purchase_filters.html' %}
-
 <!-- Active Purchases Section -->
 <h3 class="mb-4 fw-bold text-primary"><i class="fas fa-shopping-cart me-2"></i>خریدهای فعال</h3>
+
+<!-- Sección de estadísticas agregadas -->
+<div id="aggregatedStats" class="card mb-4 shadow-sm" style="display: none;">
+    <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold text-primary">
+            <i class="fas fa-chart-pie me-2"></i> آمار خریدهای انتخاب شده
+            <span id="selectedRowsCount" class="badge bg-primary ms-2">0</span>
+        </h5>
+        <button id="closeAggregatedStats" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3 mb-3">
+                <div class="border rounded p-3 h-100 bg-light">
+                    <h6 class="text-muted mb-2">مجموع وزن سفارشات</h6>
+                    <h4 class="fw-bold text-primary" id="totalOrderWeight">0 <small>کیلوگرم</small></h4>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="border rounded p-3 h-100 bg-light">
+                    <h6 class="text-muted mb-2">مجموع وزن بارنامه شده</h6>
+                    <h4 class="fw-bold text-success" id="totalDeliveredWeight">0 <small>کیلوگرم</small></h4>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="border rounded p-3 h-100 bg-light">
+                    <h6 class="text-muted mb-2">میانگین قیمت خرید</h6>
+                    <h4 class="fw-bold text-danger" id="avgCompanyPrice">0 <small>ریال</small></h4>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="border rounded p-3 h-100 bg-light">
+                    <h6 class="text-muted mb-2">میانگین قیمت فروش</h6>
+                    <h4 class="fw-bold text-success" id="avgCustomerPrice">0 <small>ریال</small></h4>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-3 mb-3">
+                <div class="border rounded p-3 h-100 bg-light">
+                    <h6 class="text-muted mb-2">مجموع مبلغ پرداختی</h6>
+                    <h4 class="fw-bold text-primary" id="totalAmountPaid">0 <small>ریال</small></h4>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="border rounded p-3 h-100 bg-light">
+                    <h6 class="text-muted mb-2">تعداد خریدهای فوری</h6>
+                    <h4 class="fw-bold text-danger" id="urgentPurchasesCount">0</h4>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="border rounded p-3 h-100 bg-light">
+                    <h6 class="text-muted mb-2">مجموع اختلاف وزن</h6>
+                    <h4 class="fw-bold text-warning" id="totalExtelafWeight">0 <small>کیلوگرم</small></h4>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="border rounded p-3 h-100 bg-light">
+                    <h6 class="text-muted mb-2">مجموع مبلغ اختلاف</h6>
+                    <h4 class="fw-bold text-danger" id="totalExtelafAmount">0 <small>ریال</small></h4>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 {% if active_purchases %}
 <div class="table-responsive shadow-sm rounded">
 <table class="table table-bordered table-striped align-middle text-center">
     <thead class="table-light sticky-header">
         <tr>
+            <!-- Columna para checkboxes de selección -->
+            <th class="text-center" style="width: 50px;">
+                <div class="d-flex justify-content-center">
+                    <input type="checkbox" class="select-all-checkbox" style="width: 20px; height: 20px; cursor: pointer;">
+                </div>
+            </th>
             {% for column in all_columns %}
                 {% if column.id in selected_columns %}
                 <th class="column-{{ column.id }}">
-                    {{ column.name }}
-                    <span class="sort-icons">
-                        <i class="fas fa-sort-up sort-icon" data-sort="asc" data-column="{{ column.id }}"></i>
-                        <i class="fas fa-sort-down sort-icon" data-sort="desc" data-column="{{ column.id }}"></i>
-                    </span>
+                    <div class="filter-header">
+                        <span>{{ column.name }}</span>
+                        <button class="filter-dropdown-btn" onclick="window.advancedFilter.toggleDropdown('{{ column.id }}', this.closest('th'))">
+                            <i class="fas fa-filter"></i>
+                            <span class="filter-indicator"></span>
+                        </button>
+                    </div>
                 </th>
                 {% endif %}
             {% endfor %}
@@ -716,6 +772,10 @@
     <tbody id="activePurchasesTable">
     {% for purchase in active_purchases %}
         <tr class="{% if purchase.is_urgent %}urgent-row{% elif purchase.state == 'CANCELED' or purchase.is_canceled %}canceled-row{% endif %}" data-id="{{ purchase.id }}">
+            <!-- Celda para checkbox de selección -->
+            <td class="text-center">
+                <input type="checkbox" class="row-checkbox" data-id="{{ purchase.id }}" style="width: 18px; height: 18px; cursor: pointer;">
+            </td>
             {% for column in all_columns %}
                 {% if column.id in selected_columns %}
                     {% if column.id == 'date' %}
@@ -924,14 +984,22 @@
 <table class="table table-bordered table-striped align-middle text-center">
     <thead class="table-light sticky-header">
         <tr>
+            <!-- Columna para checkboxes de selección -->
+            <th class="text-center" style="width: 50px;">
+                <div class="d-flex justify-content-center">
+                    <input type="checkbox" class="select-all-checkbox-archived" style="width: 20px; height: 20px; cursor: pointer;">
+                </div>
+            </th>
             {% for column in all_columns %}
                 {% if column.id in selected_columns %}
                 <th class="column-{{ column.id }}">
-                    {{ column.name }}
-                    <span class="sort-icons">
-                        <i class="fas fa-sort-up sort-icon-archived" data-sort="asc" data-column="{{ column.id }}"></i>
-                        <i class="fas fa-sort-down sort-icon-archived" data-sort="desc" data-column="{{ column.id }}"></i>
-                    </span>
+                    <div class="filter-header">
+                        <span>{{ column.name }}</span>
+                        <button class="filter-dropdown-btn" onclick="window.advancedFilter.toggleDropdown('{{ column.id }}', this.closest('th'))">
+                            <i class="fas fa-filter"></i>
+                            <span class="filter-indicator"></span>
+                        </button>
+                    </div>
                 </th>
                 {% endif %}
             {% endfor %}
@@ -940,6 +1008,10 @@
     <tbody id="archivedPurchasesTable">
     {% for purchase in archived_purchases %}
         <tr data-id="{{ purchase.id }}">
+            <!-- Celda para checkbox de selección -->
+            <td class="text-center">
+                <input type="checkbox" class="row-checkbox" data-id="{{ purchase.id }}" style="width: 18px; height: 18px; cursor: pointer;">
+            </td>
             {% for column in all_columns %}
                 {% if column.id in selected_columns %}
                     {% if column.id == 'date' %}
@@ -1022,6 +1094,8 @@
                             <span class="table-status-badge bg-secondary text-white">آرشیو شده</span>
                         {% elif purchase.state == 'CANCELED' or purchase.is_canceled %}
                             <span class="table-status-badge bg-danger text-white">لغو شده</span>
+                        {% elif purchase.is_urgent %}
+                            <span class="table-status-badge bg-danger text-white">فوری</span>
                         {% elif purchase.state == 'INITIATED' %}
                             <span class="table-status-badge bg-light text-dark">شروع شده</span>
                         {% elif purchase.state == 'SMS_SENT' %}
@@ -1305,8 +1379,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-
-
     // تابع فیلتر کردن کل جدول
     function filterTable(tableBody, searchText) {
         if (!tableBody) return;
@@ -1322,207 +1394,80 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-
-
-    // اضافه کردن چک‌باکس به هر ردیف جدول برای انتخاب
+    // مدیریت انتخاب سطرها و نمایش آمارهای تجمیعی
     let selectedIds = [];
     let exportBtnElement = document.getElementById('exportBtn');
+    const aggregatedStatsSection = document.getElementById('aggregatedStats');
+    const selectedRowsCountElement = document.getElementById('selectedRowsCount');
+    const closeAggregatedStatsBtn = document.getElementById('closeAggregatedStats');
     
-    // اضافه کردن چک‌باکس به ردیف‌های جداول
-    function addCheckboxesToRows(tableBodyId) {
-        const tableBody = document.getElementById(tableBodyId);
-        if (!tableBody) return;
-        
-        const rows = tableBody.querySelectorAll('tr');
-            rows.forEach(row => {
-            const purchaseId = row.getAttribute('data-id');
-            if (!purchaseId) return;
-                
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.className = 'row-checkbox';
-            checkbox.dataset.id = purchaseId;
-                
-                const firstCell = row.querySelector('td');
-                if (firstCell) {
-                firstCell.insertBefore(checkbox, firstCell.firstChild);
-                
-                checkbox.addEventListener('change', function() {
-                    if (this.checked) {
-                        if (!selectedIds.includes(this.dataset.id)) {
-                        selectedIds.push(this.dataset.id);
-                        }
-                    } else {
-                        selectedIds = selectedIds.filter(id => id !== this.dataset.id);
-                    }
-                    
-                    // فعال/غیرفعال کردن دکمه خروجی اکسل
-                    if (exportBtnElement) {
-                        exportBtnElement.disabled = selectedIds.length === 0;
-                    }
-                });
-            }
-        });
-    }
+    // تمام چک‌باکس‌های سطرها
+    const rowCheckboxes = document.querySelectorAll('.row-checkbox');
     
-    // اضافه کردن چک‌باکس به هر دو جدول
-    addCheckboxesToRows('activePurchasesTable');
-    addCheckboxesToRows('archivedPurchasesTable');
+    // چک‌باکس انتخاب همه برای جدول فعال و آرشیو
+    const selectAllCheckbox = document.querySelector('.select-all-checkbox');
+    const selectAllCheckboxArchived = document.querySelector('.select-all-checkbox-archived');
     
-    // مدیریت ستون‌ها
-    document.getElementById('saveColumnsBtn').addEventListener('click', function() {
-        const form = document.getElementById('columnsForm');
-        const formData = new FormData(form);
-        
-        // اطمینان از اینکه حداقل یک ستون انتخاب شده است
-        if (form.querySelectorAll('input[type="checkbox"]:checked').length === 0) {
-            alert('لطفا حداقل یک ستون را انتخاب کنید.');
-            return;
-        }
-        
-        fetch("{% url 'update_columns' %}", {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: formData
-        }).then(response => response.json())
-          .then(data => {
-            if (data.status === 'success') {
-                // پاک کردن تنظیمات ترتیب ستون قبلی از localStorage
-                localStorage.removeItem('purchaseListColumnOrder');
-                // بارگذاری مجدد صفحه برای اعمال تغییرات
-                location.reload();
-            }
-        }).catch(error => {
-            console.error('Error:', error);
-            alert('خطا در ذخیره تنظیمات ستون‌ها');
-        });
-    });
-    
-    // انتخاب همه ستون‌ها
-    document.getElementById('selectAllColumns').addEventListener('click', function(e) {
-        e.preventDefault();
-        document.querySelectorAll('#columnsForm input[type="checkbox"]').forEach(checkbox => {
-            checkbox.checked = true;
-        });
-    });
-    
-    // عدم انتخاب همه ستون‌ها
-    document.getElementById('deselectAllColumns').addEventListener('click', function(e) {
-        e.preventDefault();
-        document.querySelectorAll('#columnsForm input[type="checkbox"]').forEach(checkbox => {
-            if (checkbox.value !== 'actions') { // ستون اکشن همیشه انتخاب شده باقی بماند
-                checkbox.checked = false;
-            }
-        });
-    });
-    
-    // ریست کردن ستون‌ها
-    const resetColumnsBtn = document.getElementById('resetColumnsBtn');
-    if (resetColumnsBtn) {
-        resetColumnsBtn.addEventListener('click', function() {
-            // پاک کردن تنظیمات انتخاب ستون‌ها
-            document.cookie = "selected_columns=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    // رویداد انتخاب/عدم انتخاب همه سطرها برای جدول فعال
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            const activeTable = document.getElementById('activePurchasesTable');
+            if (!activeTable) return;
             
-            // پاک کردن تنظیمات ترتیب ستون‌ها
-            localStorage.removeItem('purchaseListColumnOrder');
-            document.cookie = "purchase_list_column_order=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-            
-            // بارگذاری مجدد صفحه
-            location.reload();
-        });
-    }
-        
-    // دکمه خروجی اکسل
-    const exportBtn = document.getElementById('exportBtn');
-    if (exportBtn) {
-        exportBtn.addEventListener('click', function() {
-            if (selectedIds.length === 0) {
-                alert('لطفاً حداقل یک خرید را انتخاب کنید');
-                return;
-            }
-            
-            // جمع‌آوری همه ستون‌های انتخاب شده (نمایش داده شده در جدول + انتخاب شده برای اکسل)
-            const allSelectedColumns = [];
-            
-            // ابتدا ستون‌های نمایش داده شده در جدول
-            const headers = document.querySelectorAll('table thead th');
-            headers.forEach(function(header) {
-                if (window.getComputedStyle(header).display !== 'none') {
-                    const columnClasses = Array.from(header.classList).filter(function(cls) {
-                        return cls.startsWith('column-');
-                    });
-                    
-                    if (columnClasses.length > 0) {
-                        const columnName = columnClasses[0].replace('column-', '');
-                        if (columnName !== 'actions') { // ستون اکشن را اضافه نمی‌کنیم
-                            allSelectedColumns.push(columnName);
-                        }
-                    }
-                }
-            });
-            
-            // سپس ستون‌های اضافی انتخاب شده برای اکسل
-            document.querySelectorAll('.export-only-column:checked').forEach(function(checkbox) {
-                allSelectedColumns.push(checkbox.value);
-            });
-            
-            // اگر هیچ ستونی انتخاب نشده بود، از ستون‌های پیش‌فرض استفاده می‌کنیم
-            let columnsForExport = allSelectedColumns.length > 0 ? 
-                allSelectedColumns : 
-                ['date', 'customer', 'invoice_id', 'sales_agent', 'purchase_number', 'weight', 'cargo', 'status'];
-            
-            // ساخت ادرس URL خروجی
-            const exportUrl = "{% url 'export_purchases' %}?ids=" + selectedIds.join(',') + "&columns=" + columnsForExport.join(',');
-            
-            // انجام redirect به آدرس خروجی
-            console.log("Export URL:", exportUrl);
-            window.open(exportUrl, '_blank');
-        });
-    }
-
-    // دکمه انتخاب همه سطرها
-    const selectAllRowsBtn = document.getElementById('selectAllRowsBtn');
-    if (selectAllRowsBtn) {
-        selectAllRowsBtn.addEventListener('click', function() {
-            // انتخاب همه سطرهای قابل مشاهده در جدول فعال
-            const visibleActiveRows = Array.from(document.querySelectorAll('#activePurchasesTable tr')).filter(row => {
+            const visibleRows = Array.from(activeTable.querySelectorAll('tr')).filter(row => {
                 return window.getComputedStyle(row).display !== 'none';
             });
-
-            // انتخاب همه سطرهای قابل مشاهده در جدول آرشیو (اگر نمایش داده شده باشد)
-            const archivedContent = document.getElementById('archivedContent');
-            let visibleArchivedRows = [];
-            if (archivedContent && window.getComputedStyle(archivedContent).display !== 'none') {
-                visibleArchivedRows = Array.from(document.querySelectorAll('#archivedPurchasesTable tr')).filter(row => {
-                    return window.getComputedStyle(row).display !== 'none';
-                });
-            }
-
-            // تعداد کل سطرهای قابل مشاهده
-            const totalVisibleRows = visibleActiveRows.length + visibleArchivedRows.length;
-
-            // اگر هیچ سطری قابل مشاهده نیست، پیام نمایش دهیم
-            if (totalVisibleRows === 0) {
-                alert('هیچ خریدی برای انتخاب یافت نشد');
-                return;
-            }
-
-            // انتخاب همه سطرهای قابل مشاهده
-            [...visibleActiveRows, ...visibleArchivedRows].forEach(row => {
+            
+            visibleRows.forEach(row => {
                 const checkbox = row.querySelector('.row-checkbox');
                 if (checkbox) {
-            checkbox.checked = true;
+                    checkbox.checked = this.checked;
                     
-                    // اطمینان از اضافه شدن به آرایه selectedIds
                     const purchaseId = checkbox.dataset.id;
-                    if (!selectedIds.includes(purchaseId)) {
+                    if (this.checked && !selectedIds.includes(purchaseId)) {
                         selectedIds.push(purchaseId);
+                    } else if (!this.checked) {
+                        selectedIds = selectedIds.filter(id => id !== purchaseId);
                     }
                 }
             });
-
+            
+            updateSelectedCount();
+            calculateAggregatedStats();
+            
+            // فعال/غیرفعال کردن دکمه خروجی اکسل
+            if (exportBtnElement) {
+                exportBtnElement.disabled = selectedIds.length === 0;
+            }
+        });
+    }
+    
+    // رویداد انتخاب/عدم انتخاب همه سطرها برای جدول آرشیو
+    if (selectAllCheckboxArchived) {
+        selectAllCheckboxArchived.addEventListener('change', function() {
+            const archivedTable = document.getElementById('archivedPurchasesTable');
+            if (!archivedTable) return;
+            
+            const visibleRows = Array.from(archivedTable.querySelectorAll('tr')).filter(row => {
+                return window.getComputedStyle(row).display !== 'none';
+            });
+            
+            visibleRows.forEach(row => {
+                const checkbox = row.querySelector('.row-checkbox');
+                if (checkbox) {
+                    checkbox.checked = this.checked;
+                    
+                    const purchaseId = checkbox.dataset.id;
+                    if (this.checked && !selectedIds.includes(purchaseId)) {
+                        selectedIds.push(purchaseId);
+                    } else if (!this.checked) {
+                        selectedIds = selectedIds.filter(id => id !== purchaseId);
+                    }
+                }
+            });
+            
+            updateSelectedCount();
+            calculateAggregatedStats();
             // فعال کردن دکمه خروجی اکسل
             if (exportBtn) {
                 exportBtn.disabled = false;
@@ -2253,6 +2198,383 @@ document.addEventListener('DOMContentLoaded', function() {
     function isDate(value) {
         // الگوی تاریخ: YYYY/MM/DD یا MM/DD/YYYY
         return /^\d{4}\/\d{1,2}\/\d{1,2}$/.test(value) || /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(value);
+    }
+
+    // رویداد انتخاب/عدم انتخاب تک سطر
+    rowCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const purchaseId = this.dataset.id;
+            
+            if (this.checked) {
+                if (!selectedIds.includes(purchaseId)) {
+                    selectedIds.push(purchaseId);
+                }
+            } else {
+                selectedIds = selectedIds.filter(id => id !== purchaseId);
+            }
+            
+            updateSelectedCount();
+            calculateAggregatedStats();
+            
+            // فعال/غیرفعال کردن دکمه خروجی اکسل
+            if (exportBtnElement) {
+                exportBtnElement.disabled = selectedIds.length === 0;
+            }
+        });
+    });
+    
+    // بستن بخش آمارهای تجمیعی
+    if (closeAggregatedStatsBtn) {
+        closeAggregatedStatsBtn.addEventListener('click', function() {
+            aggregatedStatsSection.style.display = 'none';
+        });
+    }
+    
+    // به‌روزرسانی تعداد سطرهای انتخاب شده
+    function updateSelectedCount() {
+        if (selectedRowsCountElement) {
+            selectedRowsCountElement.textContent = selectedIds.length;
+        }
+        
+        // نمایش/عدم نمایش بخش آمارهای تجمیعی
+        if (aggregatedStatsSection) {
+            if (selectedIds.length > 0) {
+                aggregatedStatsSection.style.display = 'block';
+            } else {
+                aggregatedStatsSection.style.display = 'none';
+            }
+        }
+    }
+    
+    // محاسبه و نمایش آمارهای تجمیعی
+    function calculateAggregatedStats() {
+        if (selectedIds.length === 0) return;
+        
+        console.log("محاسبه آمار برای آیتم‌های انتخاب شده:", selectedIds);
+        
+        // مقادیر اولیه
+        let totalOrderWeight = 0;
+        let totalDeliveredWeight = 0;
+        let totalCompanyPrice = 0;
+        let totalCustomerPrice = 0;
+        let totalAmountPaid = 0;
+        let urgentPurchasesCount = 0;
+        let totalExtelafWeight = 0;
+        let totalExtelafAmount = 0;
+        
+        // تعداد آیتم‌های دارای قیمت برای محاسبه میانگین
+        let companyPriceCount = 0;
+        let customerPriceCount = 0;
+        
+        // جمع‌آوری داده‌ها از سطرهای انتخاب شده
+        selectedIds.forEach(id => {
+            // یافتن سطر در جدول فعال یا آرشیو
+            let row = document.querySelector(`#activePurchasesTable tr[data-id="${id}"]`);
+            if (!row) {
+                row = document.querySelector(`#archivedPurchasesTable tr[data-id="${id}"]`);
+            }
+            
+            if (row) {
+                console.log(`پردازش سطر با شناسه ${id}`);
+                
+                // بررسی وضعیت فوری بودن
+                if (row.classList.contains('urgent-row')) {
+                    urgentPurchasesCount++;
+                }
+                
+                // یافتن مقادیر از سلول‌های جدول
+                const cells = row.querySelectorAll('td');
+                console.log(`تعداد سلول‌های یافت شده: ${cells.length}`);
+                
+                // پیدا کردن سلول وزن سفارش
+                const weightCell = getColumnCell(cells, 'weight');
+                if (weightCell) {
+                    console.log(`سلول وزن یافت شد: "${weightCell.textContent}"`);
+                    const weight = parseNumericValue(weightCell.textContent);
+                    console.log(`وزن استخراج شده: ${weight}`);
+                    if (!isNaN(weight)) {
+                        totalOrderWeight += weight;
+                        console.log(`مجموع وزن تا این سطر: ${totalOrderWeight}`);
+                    }
+                } else {
+                    console.warn(`سلول وزن برای سطر ${id} یافت نشد`);
+                }
+                
+                // پیدا کردن سلول وزن بارنامه شده
+                const deliveredWeightCell = getColumnCell(cells, 'delivered_weight');
+                if (deliveredWeightCell) {
+                    const deliveredWeight = parseNumericValue(deliveredWeightCell.textContent);
+                    if (!isNaN(deliveredWeight)) {
+                        totalDeliveredWeight += deliveredWeight;
+                    }
+                }
+                
+                // پیدا کردن سلول قیمت خرید
+                const companyPriceCell = getColumnCell(cells, 'company_price');
+                if (companyPriceCell) {
+                    const companyPrice = parseNumericValue(companyPriceCell.textContent);
+                    if (!isNaN(companyPrice)) {
+                        totalCompanyPrice += companyPrice;
+                        companyPriceCount++;
+                    }
+                }
+                
+                // پیدا کردن سلول قیمت فروش
+                const customerPriceCell = getColumnCell(cells, 'customer_price');
+                if (customerPriceCell) {
+                    const customerPrice = parseNumericValue(customerPriceCell.textContent);
+                    if (!isNaN(customerPrice)) {
+                        totalCustomerPrice += customerPrice;
+                        customerPriceCount++;
+                    }
+                }
+                
+                // پیدا کردن سلول مبلغ پرداختی
+                const amountPaidCell = getColumnCell(cells, 'amount_paid');
+                if (amountPaidCell) {
+                    const amountPaid = parseNumericValue(amountPaidCell.textContent);
+                    if (!isNaN(amountPaid)) {
+                        totalAmountPaid += amountPaid;
+                    }
+                }
+                
+                // پیدا کردن سلول وزن اختلاف
+                const extelafWeightCell = getColumnCell(cells, 'extelaf_weight');
+                if (extelafWeightCell) {
+                    const extelafWeight = parseNumericValue(extelafWeightCell.textContent);
+                    if (!isNaN(extelafWeight)) {
+                        totalExtelafWeight += extelafWeight;
+                    }
+                }
+                
+                // پیدا کردن سلول مبلغ اختلاف
+                const extelafAmountCell = getColumnCell(cells, 'extelaf_amount');
+                if (extelafAmountCell) {
+                    const extelafAmount = parseNumericValue(extelafAmountCell.textContent);
+                    if (!isNaN(extelafAmount)) {
+                        totalExtelafAmount += extelafAmount;
+                    }
+                }
+            } else {
+                console.warn(`سطر با شناسه ${id} یافت نشد`);
+            }
+        });
+        
+        // محاسبه میانگین‌ها
+        const avgCompanyPrice = companyPriceCount > 0 ? Math.round(totalCompanyPrice / companyPriceCount) : 0;
+        const avgCustomerPrice = customerPriceCount > 0 ? Math.round(totalCustomerPrice / customerPriceCount) : 0;
+        
+        console.log("نتایج نهایی محاسبات:", {
+            totalOrderWeight,
+            totalDeliveredWeight,
+            avgCompanyPrice,
+            avgCustomerPrice,
+            totalAmountPaid,
+            urgentPurchasesCount,
+            totalExtelafWeight,
+            totalExtelafAmount
+        });
+        
+        // نمایش مقادیر در بخش آمارهای تجمیعی
+        document.getElementById('totalOrderWeight').innerHTML = formatNumber(totalOrderWeight) + ' <small>کیلوگرم</small>';
+        document.getElementById('totalDeliveredWeight').innerHTML = formatNumber(totalDeliveredWeight) + ' <small>کیلوگرم</small>';
+        document.getElementById('avgCompanyPrice').innerHTML = formatNumber(avgCompanyPrice) + ' <small>ریال</small>';
+        document.getElementById('avgCustomerPrice').innerHTML = formatNumber(avgCustomerPrice) + ' <small>ریال</small>';
+        document.getElementById('totalAmountPaid').innerHTML = formatNumber(totalAmountPaid) + ' <small>ریال</small>';
+        document.getElementById('urgentPurchasesCount').textContent = urgentPurchasesCount;
+        document.getElementById('totalExtelafWeight').innerHTML = formatNumber(totalExtelafWeight) + ' <small>کیلوگرم</small>';
+        document.getElementById('totalExtelafAmount').innerHTML = formatNumber(totalExtelafAmount) + ' <small>ریال</small>';
+    }
+    
+    // پیدا کردن سلول مربوط به یک ستون خاص - روش اصلاح شده
+    function getColumnCell(cells, columnId) {
+        try {
+            // اول بررسی کنیم آیا سلول‌ها تهی است یا نه
+            if (!cells || cells.length === 0) {
+                console.warn("No cells provided to getColumnCell");
+                return null;
+            }
+            
+            // اکنون شاخص ستون را به صورت مستقیم پیدا می‌کنیم
+            const tableHeaders = document.querySelectorAll('table thead th');
+            let targetHeaderIndex = -1;
+            
+            // پیمایش هدرها برای پیدا کردن ستون مورد نظر
+            for (let i = 0; i < tableHeaders.length; i++) {
+                if (tableHeaders[i].classList.contains(`column-${columnId}`)) {
+                    targetHeaderIndex = i;
+                    break;
+                }
+            }
+            
+            if (targetHeaderIndex === -1) {
+                console.warn(`Column ${columnId} not found in table headers`);
+                return null;
+            }
+            
+            // چون ستون اول چک‌باکس است، باید از شاخص صفر شروع کنیم
+            // شاخص سلول‌ها با شاخص هدرها مطابقت دارد
+            if (targetHeaderIndex >= cells.length) {
+                console.warn(`Target index ${targetHeaderIndex} out of range (0-${cells.length-1})`);
+                return null;
+            }
+            
+            console.log(`Found ${columnId} column at index ${targetHeaderIndex}`);
+            return cells[targetHeaderIndex];
+        } catch (error) {
+            console.error("Error in getColumnCell:", error);
+            return null;
+        }
+    }
+    
+    // تبدیل متن به عدد (با حذف کاما و کاراکترهای غیرعددی) - روش ساده
+    function parseNumericValue(text) {
+        if (!text) return 0;
+        
+        // پاک کردن متن از کاراکترهای اضافی
+        const cleanedText = text.trim();
+        if (cleanedText === '-' || cleanedText === 'تعیین نشده') return 0;
+        
+        try {
+            // حذف همه کاراکترها به جز اعداد (کاما را هم حذف می‌کنیم)
+            const numericString = cleanedText.replace(/[^\d]/g, '');
+            
+            // تبدیل به عدد
+            const number = parseInt(numericString);
+            
+            console.log(`Converting "${cleanedText}" to number: ${number}`);
+            
+            // اطمینان از اینکه عدد معتبر است
+            return isNaN(number) ? 0 : number;
+        } catch (error) {
+            console.error('Error extracting number from:', cleanedText, error);
+            return 0;
+        }
+    }
+    
+    // فرمت کردن اعداد با کاما - روش ساده
+    function formatNumber(number) {
+        // اگر عدد معتبر نیست، صفر برگردان
+        if (isNaN(number) || number === null || number === undefined) {
+            return "0";
+        }
+        
+        // گرد کردن به عدد صحیح و فرمت با کاما
+        const roundedNumber = Math.round(number);
+        return roundedNumber.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    // مدیریت ستون‌ها
+    document.getElementById('saveColumnsBtn').addEventListener('click', function() {
+        const form = document.getElementById('columnsForm');
+        const formData = new FormData(form);
+        
+        // اطمینان از اینکه حداقل یک ستون انتخاب شده است
+        if (form.querySelectorAll('input[type="checkbox"]:checked').length === 0) {
+            alert('لطفا حداقل یک ستون را انتخاب کنید.');
+            return;
+        }
+        
+        fetch("{% url 'update_columns' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: formData
+        }).then(response => response.json())
+          .then(data => {
+            if (data.status === 'success') {
+                // پاک کردن تنظیمات ترتیب ستون قبلی از localStorage
+                localStorage.removeItem('purchaseListColumnOrder');
+                // بارگذاری مجدد صفحه برای اعمال تغییرات
+                location.reload();
+            }
+        }).catch(error => {
+            console.error('Error:', error);
+            alert('خطا در ذخیره تنظیمات ستون‌ها');
+        });
+    });
+    
+    // انتخاب همه ستون‌ها
+    document.getElementById('selectAllColumns').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.querySelectorAll('#columnsForm input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = true;
+        });
+    });
+    
+    // عدم انتخاب همه ستون‌ها
+    document.getElementById('deselectAllColumns').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.querySelectorAll('#columnsForm input[type="checkbox"]').forEach(checkbox => {
+            if (checkbox.value !== 'actions') { // ستون اکشن همیشه انتخاب شده باقی بماند
+                checkbox.checked = false;
+            }
+        });
+    });
+    
+    // ریست کردن ستون‌ها
+    const resetColumnsBtn = document.getElementById('resetColumnsBtn');
+    if (resetColumnsBtn) {
+        resetColumnsBtn.addEventListener('click', function() {
+            // پاک کردن تنظیمات انتخاب ستون‌ها
+            document.cookie = "selected_columns=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            
+            // پاک کردن تنظیمات ترتیب ستون‌ها
+            localStorage.removeItem('purchaseListColumnOrder');
+            document.cookie = "purchase_list_column_order=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            
+            // بارگذاری مجدد صفحه
+            location.reload();
+        });
+    }
+        
+    // دکمه خروجی اکسل
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+            if (selectedIds.length === 0) {
+                alert('لطفاً حداقل یک خرید را انتخاب کنید');
+                return;
+            }
+            
+            // جمع‌آوری همه ستون‌های انتخاب شده (نمایش داده شده در جدول + انتخاب شده برای اکسل)
+            const allSelectedColumns = [];
+            
+            // ابتدا ستون‌های نمایش داده شده در جدول
+            const headers = document.querySelectorAll('table thead th');
+            headers.forEach(function(header) {
+                if (window.getComputedStyle(header).display !== 'none') {
+                    const columnClasses = Array.from(header.classList).filter(function(cls) {
+                        return cls.startsWith('column-');
+                    });
+                    
+                    if (columnClasses.length > 0) {
+                        const columnName = columnClasses[0].replace('column-', '');
+                        if (columnName !== 'actions') { // ستون اکشن را اضافه نمی‌کنیم
+                            allSelectedColumns.push(columnName);
+                        }
+                    }
+                }
+            });
+            
+            // سپس ستون‌های اضافی انتخاب شده برای اکسل
+            document.querySelectorAll('.export-only-column:checked').forEach(function(checkbox) {
+                allSelectedColumns.push(checkbox.value);
+            });
+            
+            // اگر هیچ ستونی انتخاب نشده بود، از ستون‌های پیش‌فرض استفاده می‌کنیم
+            let columnsForExport = allSelectedColumns.length > 0 ? 
+                allSelectedColumns : 
+                ['date', 'customer', 'invoice_id', 'sales_agent', 'purchase_number', 'weight', 'cargo', 'status'];
+            
+            // ساخت ادرس URL خروجی
+            const exportUrl = "{% url 'export_purchases' %}?ids=" + selectedIds.join(',') + "&columns=" + columnsForExport.join(',');
+            
+            // انجام redirect به آدرس خروجی
+            console.log("Export URL:", exportUrl);
+            window.open(exportUrl, '_blank');
+        });
     }
 });
 </script>

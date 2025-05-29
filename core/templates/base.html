@@ -23,142 +23,231 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <div class="mobile-header" id="mobile-header">
-        <img src="{% static 'images/3-min.webp' %}" loading="lazy" alt="Logo" class="mobile-header-logo">
-        <h2 class="mobile-header-title">سیمرغ افزار</h2>
-        <div class="mobile-header-controls">
-            <button class="menu-toggle" id="mobile-menu-toggle">
-                <i class="fas fa-bars"></i>
+    <!-- دکمه همبرگر برای باز کردن نوبار -->
+    <button class="menu-toggle-btn" id="menuToggleBtn">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- پس‌زمینه تاریک برای موقع باز بودن نوبار -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    
+    <!-- نوبار سمت راست -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <img src="{% static 'images/3-min.webp' %}" loading="lazy" alt="Logo" class="sidebar-logo">
+            <h2 class="sidebar-title">سیمرغ افزار</h2>
+            <button class="sidebar-close" id="sidebarClose">
+                <i class="fas fa-times"></i>
             </button>
         </div>
-    </div>
-    
-    <header>
-        <div class="container">
-            <div class="header-top">
-                <a href="{% url 'home_view' %}">
-                    <img src="{% static 'images/3-min.webp' %}" loading="lazy" width='55px' alt="Logo" class="header-logo">
-                </a>
-                <h1>سامانه جامع سیمرغ‌ افزار</h1>
-                <div class="mobile-controls">
-                    <div class="toggle-container" id="dark-mode-toggle">
-                        <span>🌙</span>
-                        <div class="toggle-switch">
-                            <div class="toggle-circle"></div>
-                        </div>
-                        <span>🌞</span>
+        
+        <ul class="sidebar-menu">
+            {% if request.user.is_authenticated %}
+                <!-- دسته اول: مدیریت مشتریان و فروش -->
+                <div class="menu-category">
+                    <div class="category-title" data-toggle="collapse" data-target="customer-management">
+                        <i class="fas fa-users category-icon"></i>
+                        <span>مدیریت مشتریان و فروش</span>
+                        <i class="fas fa-chevron-down category-arrow"></i>
                     </div>
-                    <button class="menu-toggle" id="menu-toggle">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                </div>
-            </div>
-            
-            {% if request.user.is_superuser or request.user.is_staff %}
-                <div class="admin-panel-link">
-                    <a href="{% url 'admin:index' %}" class="admin-button" style="background-color: white; color: green; border: 1px solid green;">
-                        <i class="fas fa-user-shield"></i>
-                        پنل مدیریت
-                    </a>
-                </div>
-            {% endif %}
-            <nav>
-                <ul id="nav-menu">
-                    {% if request.user.is_authenticated %}
+                    
+                    <div class="submenu-container collapsed" id="customer-management">
                         {% if request.user.sales_agent %}
-                            <li><a href="{% url 'sales_agent_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
-                            <li><a href="{% url 'customer_list' %}"><i class="fas fa-users icon-customers"></i> لیست مشتریان</a></li>
-                            <li><a href="{% url 'general_customer_CRUD' %}"><i class="fas fa-tasks icon-management"></i> مدیریت مشتریان</a></li>
-                            <li><a href="{% url 'todo_dashboard' %}"><i class="fas fa-tasks"></i> لیست انجام کارها</a></li>                  
-                            {% endif %}
-                            {% if request.user.logistics_manager %}
-                            <li><a href="{% url 'logistics_manager_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
-                            {% endif %}
-                            {% if request.user.financial_manager %}
-                            <li><a href="{% url 'financial_manager_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
-                            {% endif %}
-                        {% if request.user.support_agent %}
-                        <li><a href="{% url 'support_agent_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
-                        <li><a href="{% url 'sms-dashboard' %}"><i class="fas fa-sms icon-sms"></i> داشبورد پیامک</a></li>
-                        <li><a href="{% url 'whatsapp-dashboard' %}"><i class="fab fa-whatsapp icon-sms"></i>داشبورد واتساپ</a></li>
+                        <li><a href="{% url 'sales_agent_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
+                        <li><a href="{% url 'customer_list' %}"><i class="fas fa-users icon-customers"></i> لیست مشتریان</a></li>
+                        <li><a href="{% url 'general_customer_CRUD' %}"><i class="fas fa-tasks icon-management"></i> مدیریت مشتریان</a></li>
+                        <li><a href="{% url 'todo_dashboard' %}"><i class="fas fa-tasks"></i> لیست انجام کارها</a></li>
+                        {% endif %}
+                        {% if request.user.logistics_manager %}
+                        <li><a href="{% url 'logistics_manager_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
+                        {% endif %}
+                        {% if request.user.financial_manager %}
+                        <li><a href="{% url 'financial_manager_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
                         {% endif %}
                         {% if request.user.employee %}
                         <li><a href="{% url 'employee_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
-                        <li><a href="{% url 'weekly_attendance_view' %}"><i class="fas fa-clock"></i> ثبت ساعات کاری</a></li>
                         {% endif %}
-                        <li><a href="{% url 'purchase_list' %}"><i class="fa-solid fa-cart-shopping"></i> خریدها</a></li>
-                        <li><a href="{% url 'cargo_product_list' %}"><i class="fas fa-box icon-products"></i> لیست کوتاژها</a></li>
                         {% if request.user.is_superuser %}
-                        <li><a href="{% url 'data_exflow:index' %}"><i class="fas fa-database"></i> مدیریت داده‌ها</a></li>
-                        <li><a href="{% url 'bki_api:credentials' %}"><i class="fas fa-phone-alt"></i>تست وب سرویس بازارگاه</a></li>
-                        <li><a href="{% url 'attendance_summary' %}"><i class="fas fa-chart-line"></i> گزارش کارکرد</a></li>
                         <li><a href="{% url 'admin_phone_assignment_list' %}"><i class="fas fa-phone-alt"></i> مدیریت شماره‌های ویزیت</a></li>
-                        <li><a href="{% url 'pending_approvals' %}"><i class="fas fa-check-circle"></i> تاییدها در انتظار</a></li>
                         {% endif %}
-                        <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt icon-logout"></i> خروج</a></li>
-                    {% else %}
-                        <li><a href="{% url 'unified_login' %}"><i class="fas fa-sign-in-alt"></i> ورود به سامانه</a></li>
-                    {% endif %}
-                </ul>
-            </nav>
-        </div>
-    </header>
-
-    <main class="container">
-        {% if messages %}
-        <div class="messages-container">
-            {% for message in messages %}
-            <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
-                <i class="{% if message.tags == 'success' %}fas fa-check-circle{% else %}fas fa-exclamation-triangle{% endif %}"></i>
-                {{ message }}
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-
-        {% block content %}{% endblock %}
-    </main>
-
-    <!-- شامل کردن ویجت چت -->
-    {% include 'chat/include_chat.html' %}
-
-    <footer>
-        <div class="footer-container">
-            <div class="footer-logo-section">
-                <a href="{% url 'home_view' %}">
-                    <img src="{% static 'images/3-min.webp' %}" alt="لوگوی شرکت" class="footer-logo" loading="lazy">
-                </a>
-            </div>
-            
-            <div class="footer-content">
-                <div class="footer-column about-column">
-                    <h3 class="footer-title">ارتباط با پشتیبانی</h3>
-                    <p class="footer-description">جهت ارتباط با پشتیبانی فنی نرم‌افزار جامع منابع سازمانی شرکت تأمین نهاده سیمرغ از یکی از راه‌های زیر اقدام نمائید</p>
-                    <div class="footer-contacts">
-                        <p><i class="fas fa-envelope contact-icon"></i> <a href="mailto:s.sedaghati@simurgh360.com" style="color: white;">s.sedaghati@simurgh360.com</a></p>
-                        <p><i class="fas fa-phone-alt contact-icon"></i> 3014 360 900 98+</p>
                     </div>
                 </div>
                 
-                <div class="footer-column links-column">
-                    <h3 class="footer-title">دسترسی سریع به وبسایت شرکت</h3>
-                    <ul class="footer-links">
-                        <li><a href="https://www.simurgh360.com" class="footer-link"><i class="fas fa-angle-left link-icon"></i>خانه</a></li>
-                        <li><a href="https://simurgh360.com/about.html" class="footer-link"><i class="fas fa-angle-left link-icon"></i>درباره ما</a></li>
-                        <li><a href="https://simurgh360.com/contact" class="footer-link"><i class="fas fa-angle-left link-icon"></i>تماس با ما</a></li>
-                    </ul>
+                <!-- دسته دوم: مدیریت خرید و کوتاژ -->
+                <div class="menu-category">
+                    <div class="category-title" data-toggle="collapse" data-target="purchase-management">
+                        <i class="fas fa-shopping-cart category-icon"></i>
+                        <span>مدیریت خرید و کوتاژ</span>
+                        <i class="fas fa-chevron-down category-arrow"></i>
+                    </div>
+                    
+                    <div class="submenu-container collapsed" id="purchase-management">
+                        <li><a href="{% url 'purchase_list' %}"><i class="fa-solid fa-cart-shopping"></i> خریدها</a></li>
+                        <li><a href="{% url 'cargo_product_list' %}"><i class="fas fa-box icon-products"></i> لیست کوتاژها</a></li>
+                        {% if request.user.is_superuser or request.user.is_staff %}
+                        <li><a href="{% url 'bki_api:credentials' %}"><i class="fas fa-phone-alt"></i>تست وب سرویس بازارگاه</a></li>
+                        {% endif %}
+                        {% if request.user.is_superuser or request.user.is_staff or request.user.logistics_manager or request.user.financial_manager %}
+                        <li><a href="{% url 'barnameh_list' %}"><i class="fas fa-truck"></i> پنل ویرایش بارنامه‌ها</a></li>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- دسته سوم: پیام‌رسانی و پشتیبانی -->
+                {% if request.user.support_agent %}
+                <div class="menu-category">
+                    <div class="category-title" data-toggle="collapse" data-target="messaging-support">
+                        <i class="fas fa-comments category-icon"></i>
+                        <span>پیام‌رسانی و پشتیبانی</span>
+                        <i class="fas fa-chevron-down category-arrow"></i>
+                    </div>
+                    
+                    <div class="submenu-container collapsed" id="messaging-support">
+                        <li><a href="{% url 'support_agent_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
+                        <li><a href="{% url 'sms-dashboard' %}"><i class="fas fa-sms icon-sms"></i> داشبورد پیامک</a></li>
+                        <li><a href="{% url 'whatsapp-dashboard' %}"><i class="fab fa-whatsapp icon-sms"></i>داشبورد واتساپ</a></li>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- دسته جدید: مدیریت داده‌ها -->
+                {% if request.user.is_superuser %}
+                <div class="menu-category data-management-category">
+                    <div class="category-title" data-toggle="collapse" data-target="data-management">
+                        <i class="fas fa-database category-icon"></i>
+                        <span>مدیریت داده‌ها</span>
+                        <i class="fas fa-chevron-down category-arrow"></i>
+                    </div>
+                    
+                    <div class="submenu-container collapsed" id="data-management">
+                        <li><a href="{% url 'data_exflow:index' %}"><i class="fas fa-database"></i> پنل مدیریت داده‌ها</a></li>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- دسته چهارم: گزارشات و مدیریت -->
+                <div class="menu-category">
+                    <div class="category-title" data-toggle="collapse" data-target="reports-management">
+                        <i class="fas fa-chart-line category-icon"></i>
+                        <span>منابع انسانی</span>
+                        <i class="fas fa-chevron-down category-arrow"></i>
+                    </div>
+                    
+                    <div class="submenu-container collapsed" id="reports-management">
+                        {% if request.user.employee %}
+                        <li><a href="{% url 'weekly_attendance_view' %}"><i class="fas fa-clock"></i> ثبت ساعات کاری</a></li>
+                        {% endif %}
+                        {% if request.user.is_superuser %}
+                        <li><a href="{% url 'attendance_summary' %}"><i class="fas fa-chart-line"></i> گزارش کارکرد</a></li>
+                        <li><a href="{% url 'pending_approvals' %}"><i class="fas fa-check-circle"></i> تاییدها در انتظار</a></li>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- خروج از سیستم -->
+                <div class="menu-category logout-category">
+                    <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt icon-logout"></i> خروج</a></li>
+                </div>
+            {% else %}
+                <div class="menu-category">
+                    <li><a href="{% url 'unified_login' %}"><i class="fas fa-sign-in-alt"></i> ورود به سامانه</a></li>
+                </div>
+            {% endif %}
+        </ul>
+    </div>
+
+    <div class="mobile-header" id="mobile-header">
+        <img src="{% static 'images/3-min.webp' %}" loading="lazy" alt="Logo" class="mobile-header-logo">
+        <h2 class="mobile-header-title">سیمرغ افزار</h2>
+    </div>
+    
+    <div class="main-content-wrapper">
+        <header>
+            <div class="container">
+                <div class="header-top">
+                    <a href="{% url 'home_view' %}">
+                        <img src="{% static 'images/3-min.webp' %}" loading="lazy" width='55px' alt="Logo" class="header-logo">
+                    </a>
+                    <h1>سامانه جامع سیمرغ‌ افزار</h1>
+                    <div class="mobile-controls">
+                        <div class="toggle-container" id="dark-mode-toggle">
+                            <span>🌙</span>
+                            <div class="toggle-switch">
+                                <div class="toggle-circle"></div>
+                            </div>
+                            <span>🌞</span>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if request.user.is_superuser or request.user.is_staff %}
+                    <div class="admin-panel-link">
+                        <a href="{% url 'admin:index' %}" class="admin-button" style="background-color: white; color: green; border: 1px solid green;">
+                            <i class="fas fa-user-shield"></i>
+                            پنل مدیریت
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </header>
+
+        <main class="container">
+            {% if messages %}
+            <div class="messages-container">
+                {% for message in messages %}
+                <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
+                    <i class="{% if message.tags == 'success' %}fas fa-check-circle{% else %}fas fa-exclamation-triangle{% endif %}"></i>
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+
+            {% block content %}{% endblock %}
+        </main>
+
+        <!-- شامل کردن ویجت چت -->
+        {% include 'chat/include_chat.html' %}
+
+        <footer>
+            <div class="footer-container">
+                <div class="footer-logo-section">
+                    <a href="{% url 'home_view' %}">
+                        <img src="{% static 'images/3-min.webp' %}" alt="لوگوی شرکت" class="footer-logo" loading="lazy">
+                    </a>
+                </div>
+                
+                <div class="footer-content">
+                    <div class="footer-column about-column">
+                        <h3 class="footer-title">ارتباط با پشتیبانی</h3>
+                        <p class="footer-description">جهت ارتباط با پشتیبانی فنی نرم‌افزار جامع منابع سازمانی شرکت تأمین نهاده سیمرغ از یکی از راه‌های زیر اقدام نمائید</p>
+                        <div class="footer-contacts">
+                            <p><i class="fas fa-envelope contact-icon"></i> <a href="mailto:s.sedaghati@simurgh360.com" style="color: white;">s.sedaghati@simurgh360.com</a></p>
+                            <p><i class="fas fa-phone-alt contact-icon"></i> 3014 360 900 98+</p>
+                        </div>
+                    </div>
+                    
+                    <div class="footer-column links-column">
+                        <h3 class="footer-title">دسترسی سریع به وبسایت شرکت</h3>
+                        <ul class="footer-links">
+                            <li><a href="https://www.simurgh360.com" class="footer-link"><i class="fas fa-angle-left link-icon"></i>خانه</a></li>
+                            <li><a href="https://simurgh360.com/about.html" class="footer-link"><i class="fas fa-angle-left link-icon"></i>درباره ما</a></li>
+                            <li><a href="https://simurgh360.com/contact" class="footer-link"><i class="fas fa-angle-left link-icon"></i>تماس با ما</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <div class="footer-bottom">
-            <p class="copyright"> 1404 - 1403 © تمامی حقوق برای شرکت تأمین نهاده سیمرغ محفوظ است</p>
-        </div>
-    </footer>
+            
+            <div class="footer-bottom">
+                <p class="copyright"> 1404 - 1403 © تمامی حقوق برای شرکت تأمین نهاده سیمرغ محفوظ است</p>
+            </div>
+        </footer>
+    </div>
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
+            // Dark mode functionality
             const toggleBtn = document.getElementById("dark-mode-toggle");
             if (localStorage.getItem("theme") === "dark") {
                 document.body.classList.add("dark-mode");
@@ -178,30 +267,69 @@
                 console.log('Attempted to remove aria-hidden from body.'); // لاگ برای تایید اجرا
             }, 50); // تاخیر 50 میلی‌ثانیه
 
-            const menuToggle = document.getElementById("menu-toggle");
-            const mobileMenuToggle = document.getElementById("mobile-menu-toggle");
-            const navMenu = document.getElementById("nav-menu");
+            // Sidebar functionality
+            const menuToggleBtn = document.getElementById("menuToggleBtn");
+            const sidebar = document.getElementById("sidebar");
+            const sidebarClose = document.getElementById("sidebarClose");
+            const sidebarBackdrop = document.getElementById("sidebarBackdrop");
             const mobileHeader = document.getElementById("mobile-header");
 
-            const toggleMenu = function() {
-                navMenu.classList.toggle("active");
-                this.classList.toggle("active");
-            };
-
-            menuToggle.addEventListener("click", toggleMenu);
-            mobileMenuToggle.addEventListener("click", toggleMenu);
-
-            const navLinks = document.querySelectorAll("#nav-menu a");
-            navLinks.forEach(link => {
-                link.addEventListener("click", function() {
-                    if (window.innerWidth <= 768) {
-                        navMenu.classList.remove("active");
-                        menuToggle.classList.remove("active");
-                        mobileMenuToggle.classList.remove("active");
-                    }
-                });
+            // Open sidebar
+            menuToggleBtn.addEventListener("click", function() {
+                sidebar.classList.add("active");
+                sidebarBackdrop.style.display = "block";
+                setTimeout(() => {
+                    sidebarBackdrop.classList.add("active");
+                }, 10);
+                document.body.style.overflow = "hidden"; // Prevent scrolling
             });
 
+            // Close sidebar
+            function closeSidebar() {
+                sidebar.classList.remove("active");
+                sidebarBackdrop.classList.remove("active");
+                setTimeout(() => {
+                    sidebarBackdrop.style.display = "none";
+                }, 300);
+                document.body.style.overflow = ""; // Enable scrolling
+            }
+
+            sidebarClose.addEventListener("click", closeSidebar);
+            sidebarBackdrop.addEventListener("click", closeSidebar);
+
+            // Collapsible menu functionality
+            const categoryTitles = document.querySelectorAll('.category-title[data-toggle="collapse"]');
+            categoryTitles.forEach(title => {
+                title.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-target');
+                    const targetElement = document.getElementById(targetId);
+                    
+                    // Toggle aria-expanded attribute
+                    const isExpanded = this.getAttribute('aria-expanded') === 'true';
+                    this.setAttribute('aria-expanded', !isExpanded);
+                    
+                    // Toggle the collapsed class
+                    targetElement.classList.toggle('collapsed');
+                    
+                    // Close other submenus when opening a new one
+                    if (!isExpanded) {
+                        document.querySelectorAll('.submenu-container:not(.collapsed)').forEach(submenu => {
+                            if (submenu.id !== targetId) {
+                                submenu.classList.add('collapsed');
+                                const relatedTitle = document.querySelector(`.category-title[data-target="${submenu.id}"]`);
+                                if (relatedTitle) {
+                                    relatedTitle.setAttribute('aria-expanded', 'false');
+                                }
+                            }
+                        });
+                    }
+                });
+                
+                // Set initial state
+                title.setAttribute('aria-expanded', 'false');
+            });
+
+            // Mobile header behavior on scroll
             let lastScrollTop = 0;
             const header = document.querySelector('header');
             const headerHeight = header.offsetHeight;
@@ -214,15 +342,22 @@
                             mobileHeader.classList.add("visible");
                         } else {
                             mobileHeader.classList.remove("visible");
-                            navMenu.classList.remove("active");
-                            menuToggle.classList.remove("active");
-                            mobileMenuToggle.classList.remove("active");
                         }
                     } else {
                         mobileHeader.classList.remove("visible");
                     }
                     lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
                 }
+            });
+            
+            // Close sidebar when clicking menu items on mobile
+            const sidebarLinks = document.querySelectorAll(".sidebar-menu a");
+            sidebarLinks.forEach(link => {
+                link.addEventListener("click", function() {
+                    if (window.innerWidth <= 768) {
+                        closeSidebar();
+                    }
+                });
             });
         });
     </script>
