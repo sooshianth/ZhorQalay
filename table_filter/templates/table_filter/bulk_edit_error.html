@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}خطا در ویرایش گروهی{% endblock %}
+
+{% block head_styles %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-lg mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        خطا در ویرایش گروهی
+                    </h4>
+                </div>
+                <div class="card-body text-center">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-times-circle me-2"></i>
+                        {{ error }}
+                    </div>
+                    
+                    <button type="button" class="btn btn-primary" onclick="history.back()">
+                        <i class="fas fa-arrow-right me-2"></i>بازگشت
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

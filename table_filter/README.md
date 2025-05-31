@@ -324,3 +324,354 @@ path('table-filter/', include('table_filter.urls')),
 - ✅ Django 3.2+
 
 فیلتر کاملاً عمومی است و بدون نیاز به تنظیم روی هر جدولی کار می‌کند! 
+
+# Table Filter with Bulk Edit System
+
+یک سیستم پیشرفته برای فیلتر کردن جداول و ویرایش گروهی داده‌ها با قابلیت آپلود/دانلود اکسل.
+
+## ویژگی‌های اصلی
+
+### 1. فیلتر جدول
+- فیلتر کردن خودکار ستون‌ها
+- جستجوی سریع و پیشرفته
+- مرتب‌سازی ستون‌ها
+- نمایش/مخفی کردن ستون‌ها
+
+### 2. ویرایش گروهی (Bulk Edit)
+- ویرایش چندین رکورد به‌طور همزمان
+- فرم ویرایش پویا بر اساس نوع جدول
+- ویرایش با آپلود فایل اکسل
+- دانلود قالب اکسل با داده‌های موجود
+
+## نصب و راه‌اندازی
+
+### 1. اضافه کردن به INSTALLED_APPS
+
+```python
+INSTALLED_APPS = [
+    # ...
+    'table_filter',
+    # ...
+]
+```
+
+### 2. اضافه کردن URL ها
+
+```python
+# در فایل urls.py اصلی
+urlpatterns = [
+    # ...
+    path('table-filter/', include('table_filter.urls')),
+    # ...
+]
+```
+
+### 3. نصب وابستگی‌ها
+
+```bash
+pip install openpyxl
+```
+
+## نحوه استفاده
+
+### 1. فیلتر ساده جدول
+
+در template:
+
+```html
+{% load table_filter_tags %}
+
+{% block head_styles %}
+    {% table_filter_scripts %}
+{% endblock %}
+
+<!-- جدول شما -->
+<table class="table enable-filter" id="myTable">
+    <thead>
+        <tr>
+            <th data-column-type="text">نام</th>
+            <th data-column-type="number">مبلغ</th>
+            <th data-column-type="date">تاریخ</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- داده‌های جدول -->
+    </tbody>
+</table>
+
+{% block extra_js %}
+    {% enable_table_filter %}
+{% endblock %}
+```
+
+### 2. فیلتر + ویرایش گروهی
+
+```html
+{% load table_filter_tags %}
+
+{% block head_styles %}
+    {% table_filter_scripts %}
+    {% bulk_edit_scripts %}
+{% endblock %}
+
+<!-- جدول با چک‌باکس -->
+<table class="table enable-filter" id="purchasesTable">
+    <thead>
+        <tr>
+            <th>
+                <input type="checkbox" class="select-all-checkbox">
+            </th>
+            <th data-column-type="text">مشتری</th>
+            <th data-column-type="number">مبلغ</th>
+            <th data-column-type="date">تاریخ</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in items %}
+        <tr>
+            <td>
+                <input type="checkbox" class="row-checkbox" data-id="{{ item.id }}">
+            </td>
+            <td>{{ item.customer }}</td>
+            <td>{{ item.amount }}</td>
+            <td>{{ item.date }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% block extra_js %}
+    {% enable_table_filter %}
+    {% enable_bulk_edit %}
+    
+    <script>
+    // تنظیم URL های bulk edit
+    if (typeof bulkEditManager !== 'undefined') {
+        bulkEditManager.config.bulkEditUrl = '{% url "table_filter:bulk_edit" %}';
+        bulkEditManager.config.excelUploadUrl = '{% url "table_filter:bulk_edit_excel" %}';
+        bulkEditManager.config.downloadTemplateUrl = '{% url "table_filter:bulk_edit_template" %}';
+    }
+    </script>
+{% endblock %}
+```
+
+### 3. تنظیمات پیشرفته
+
+```html
+{% enable_bulk_edit %}
+
+<script>
+// تنظیمات سفارشی
+const bulkEditConfig = {
+    tableSelector: '.my-custom-table',
+    bulkEditUrl: '/custom-bulk-edit/',
+    enableToast: true
+};
+
+// اعمال تنظیمات
+if (typeof bulkEditManager !== 'undefined') {
+    Object.assign(bulkEditManager.config, bulkEditConfig);
+}
+</script>
+```
+
+## انواع ستون‌ها
+
+برای درست کار کردن فیلترها، نوع ستون‌ها را مشخص کنید:
+
+| نوع | مثال |
+|-----|------|
+| `text` | نام، توضیحات |
+| `number` | مبلغ، وزن، تعداد |
+| `date` | تاریخ‌ها |
+
+```html
+<th data-column-type="text">نام مشتری</th>
+<th data-column-type="number">مبلغ</th>
+<th data-column-type="date">تاریخ ایجاد</th>
+```
+
+## ویرایش گروهی
+
+### فیلدهای پشتیبانی شده
+
+برای جدول خریدها (`purchase`):
+- کد درون سازمانی (`invoice_id`)
+- شماره خرید (`purchase_number`)
+- وزن سفارش (`order_weight`)
+- قیمت خرید (`company_price`)
+- قیمت فروش (`customer_price`)
+- وضعیت (`state`)
+- فوری (`is_urgent`)
+- فاکتور صادر شده (`is_factored`)
+- آرشیو شده (`is_archived`)
+
+### آپلود اکسل
+
+1. سطرهای مورد نظر را انتخاب کنید
+2. دکمه "ویرایش با اکسل" را کلیک کنید
+3. "دانلود قالب اکسل" را کلیک کنید
+4. فایل اکسل را با اطلاعات جدید پر کنید
+5. فایل پر شده را آپلود کنید
+
+⚠️ **نکته مهم**: ستون ID را تغییر ندهید!
+
+## API Endpoints
+
+### POST `/table-filter/bulk-edit/`
+ویرایش گروهی داده‌ها
+
+**پارامترها:**
+- `selected_ids[]`: آرایه شناسه‌های انتخاب شده
+- `model_name`: نام مدل (اختیاری)
+- `app_name`: نام اپ (پیش‌فرض: ERP)
+- سایر فیلدها برای به‌روزرسانی
+
+### POST `/table-filter/bulk-edit-excel/`
+ویرایش گروهی با فایل اکسل
+
+**پارامترها:**
+- `excel_file`: فایل اکسل
+- `selected_ids[]`: آرایه شناسه‌های انتخاب شده
+
+### GET `/table-filter/bulk-edit-template/`
+دانلود قالب اکسل
+
+**پارامترها:**
+- `table_type`: نوع جدول (purchase, customer, barbary)
+- `selected_ids`: شناسه‌های انتخاب شده (جدا شده با کاما)
+
+## پیکربندی JavaScript
+
+```javascript
+// تنظیمات پیش‌فرض
+const defaultConfig = {
+    tableSelector: '.enable-filter',
+    bulkEditUrl: '/table-filter/bulk-edit/',
+    excelUploadUrl: '/table-filter/bulk-edit-excel/',
+    downloadTemplateUrl: '/table-filter/bulk-edit-template/',
+    enableToast: true
+};
+
+// سفارشی‌سازی
+window.bulkEditManager = new BulkEditManager({
+    tableSelector: '.my-table',
+    enableToast: false,
+    // تنظیمات دیگر...
+});
+```
+
+## استایل‌ها
+
+فایل‌های CSS موجود:
+- `table_filter.css`: استایل‌های فیلتر جدول
+- `bulk_edit.css`: استایل‌های ویرایش گروهی
+
+برای سفارشی‌سازی استایل‌ها:
+
+```css
+/* سفارشی‌سازی دکمه‌های bulk edit */
+.bulk-edit-actions .btn {
+    /* استایل دلخواه */
+}
+
+/* سفارشی‌سازی modal */
+#bulkEditModal .modal-content {
+    /* استایل دلخواه */
+}
+```
+
+## مثال کامل
+
+```html
+{% load table_filter_tags %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    {% table_filter_scripts %}
+    {% bulk_edit_scripts %}
+</head>
+<body>
+    <div class="container">
+        <h1>لیست خریدها</h1>
+        
+        <table class="table table-striped enable-filter" id="purchasesTable">
+            <thead>
+                <tr>
+                    <th>
+                        <input type="checkbox" class="select-all-checkbox">
+                    </th>
+                    <th data-column-type="text">مشتری</th>
+                    <th data-column-type="number">مبلغ</th>
+                    <th data-column-type="date">تاریخ</th>
+                    <th data-column-type="text">وضعیت</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for purchase in purchases %}
+                <tr>
+                    <td>
+                        <input type="checkbox" class="row-checkbox" data-id="{{ purchase.id }}">
+                    </td>
+                    <td>{{ purchase.customer.name }}</td>
+                    <td>{{ purchase.amount|add_commas }}</td>
+                    <td>{{ purchase.date|date:"Y/m/d" }}</td>
+                    <td>{{ purchase.get_state_display }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% enable_table_filter %}
+    {% enable_bulk_edit %}
+    
+    <script>
+    // تنظیم URL ها
+    if (typeof bulkEditManager !== 'undefined') {
+        bulkEditManager.config.bulkEditUrl = '{% url "table_filter:bulk_edit" %}';
+        bulkEditManager.config.excelUploadUrl = '{% url "table_filter:bulk_edit_excel" %}';
+        bulkEditManager.config.downloadTemplateUrl = '{% url "table_filter:bulk_edit_template" %}';
+    }
+    </script>
+</body>
+</html>
+```
+
+## رفع مشکلات
+
+### مشکلات رایج
+
+**1. دکمه‌های bulk edit نمایش داده نمی‌شوند**
+- اطمینان حاصل کنید که `{% bulk_edit_scripts %}` لود شده
+- بررسی کنید که جدول کلاس `enable-filter` دارد
+- چک‌باکس‌ها باید کلاس `row-checkbox` داشته باشند
+
+**2. خطا در آپلود اکسل**
+- اطمینان حاصل کنید که ستون ID وجود دارد
+- فرمت فایل باید `.xlsx` یا `.xls` باشد
+- بررسی کنید که URL ها درست تنظیم شده‌اند
+
+**3. فیلترها کار نمی‌کنند**
+- `data-column-type` را برای هر ستون تنظیم کنید
+- اطمینان حاصل کنید که `{% table_filter_scripts %}` لود شده
+- `{% enable_table_filter %}` را فراموش نکنید
+
+### دیباگ
+
+```javascript
+// بررسی وجود BulkEditManager
+if (typeof BulkEditManager !== 'undefined') {
+    console.log('BulkEditManager loaded successfully');
+} else {
+    console.error('BulkEditManager not found');
+}
+
+// بررسی تنظیمات
+console.log(bulkEditManager.config);
+```
+
+## لایسنس
+
+این پروژه تحت لایسنس MIT منتشر شده است. 

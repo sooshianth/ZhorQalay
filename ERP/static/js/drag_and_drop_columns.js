@@ -282,21 +282,68 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // تابع برای بازگرداندن ترتیب ستون‌ها به حالت پیش‌فرض
     function resetColumnOrder() {
+        console.log('Resetting column order to default...');
+        
         // پاک کردن ترتیب ستون‌ها از localStorage
         localStorage.removeItem('purchaseListColumnOrder');
         
         // پاک کردن کوکی‌های مربوط به ترتیب ستون‌ها
         document.cookie = "purchase_list_column_order=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         
-        // نمایش پیام موفقیت (اگر تابع وجود داشته باشد)
-        if (typeof showSuccessToast === 'function') {
-            showSuccessToast('ترتیب ستون‌ها به حالت پیش‌فرض بازگردانده شد');
+        // نمایش پیام در حال پردازش
+        const button = document.getElementById('resetColumnOrderBtn');
+        if (button) {
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> در حال بازگردانی...';
+            button.disabled = true;
+            
+            // ارسال درخواست به سرور برای بازگردانی کامل
+            fetch('/purchase/reset_column_order/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Reset response:', data);
+                // بازگردانی ظاهر دکمه
+                button.innerHTML = originalText;
+                button.disabled = false;
+                
+                // نمایش پیام موفقیت
+                if (typeof showSuccessToast === 'function') {
+                    showSuccessToast('ترتیب ستون‌ها به حالت پیش‌فرض بازگردانده شد');
+                } else {
+                    alert('ترتیب ستون‌ها به حالت پیش‌فرض بازگردانده شد');
+                }
+                
+                // بارگذاری مجدد صفحه برای اعمال تغییرات
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Error resetting column order:', error);
+                // بازگردانی ظاهر دکمه
+                button.innerHTML = originalText;
+                button.disabled = false;
+                
+                // نمایش پیام خطا
+                if (typeof showErrorToast === 'function') {
+                    showErrorToast('خطا در بازگردانی ترتیب ستون‌ها');
+                } else {
+                    alert('خطا در بازگردانی ترتیب ستون‌ها');
+                }
+                
+                // بازگذاری مجدد صفحه برای اعمال تغییرات به هر حال
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            });
         } else {
-            alert('ترتیب ستون‌ها به حالت پیش‌فرض بازگردانده شد');
+            // اگر دکمه پیدا نشد، مستقیماً صفحه را بارگذاری مجدد کنیم
+            window.location.reload();
         }
-        
-        // بارگذاری مجدد صفحه برای اعمال تغییرات
-        window.location.reload();
     }
 
     // اضافه کردن رویداد کلیک به دکمه بازگردانی ترتیب پیش‌فرض

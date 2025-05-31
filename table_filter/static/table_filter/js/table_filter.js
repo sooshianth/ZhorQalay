@@ -67,46 +67,65 @@ class TableFilter {
             const headers = table.querySelectorAll('thead th, thead td');
             this.columnMappings[tableId] = {};
             
-            // حذف سورت‌های مثلثی قبلی
-            this.removeTriangleSorters(headers);
-            
             headers.forEach((header, index) => {
-                let columnId = this.getColumnId(header, index, tableId);
+                // Extraer column-id desde la clase para asegurar vínculo consistente
+                let columnClass = Array.from(header.classList).find(cls => cls.startsWith('column-'));
+                let columnId;
+                
+                if (columnClass) {
+                    // Extraer ID de columna desde la clase (column-purchase_number -> purchase_number)
+                    columnId = columnClass.replace('column-', '');
+                } else {
+                    // Respaldo: usar el índice o texto si no hay clase column-X
+                    columnId = this.getColumnId(header, index, tableId);
+                }
+                
                 let columnName = this.getColumnName(header);
-                let columnType = this.detectColumnType(header, tableId, index);
+                let columnType = header.getAttribute('data-column-type') || this.detectColumnType(header, tableId, index);
                 
                 this.columnMappings[tableId][columnId] = {
                     name: columnName,
                     type: columnType,
                     index: index,
-                    tableId: tableId
+                    tableId: tableId,
+                    element: header // Almacenar referencia al elemento para uso futuro
                 };
                 
-                // اضافه کردن دکمه فیلتر اگر وجود نداشته باشد
+                // Añadir botón de filtro
                 this.addFilterButton(header, columnId, tableId);
             });
         });
     }
 
     getColumnId(header, index, tableId) {
-        // اولویت با کلاس‌های موجود
-        const classList = Array.from(header.classList);
-        const columnClass = classList.find(cls => cls.startsWith('column-'));
+        // Primero verificar si hay una clase column-X
+        let columnClass = Array.from(header.classList).find(cls => cls.startsWith('column-'));
         if (columnClass) {
             return columnClass.replace('column-', '');
         }
         
-        // استفاده از data-column اگر وجود داشته باشد
-        if (header.dataset.column) {
-            return header.dataset.column;
+        // Verificar atributo data-column-id
+        if (header.hasAttribute('data-column-id')) {
+            return header.getAttribute('data-column-id');
         }
         
-        // استفاده از متن header به عنوان شناسه
-        const text = header.textContent.trim().toLowerCase()
-            .replace(/\s+/g, '_')
-            .replace(/[^\w\u0600-\u06FF]/g, '');
+        // Verificar configuración específica
+        if (this.config.columnConfig && this.config.columnConfig[tableId] && this.config.columnConfig[tableId][index]) {
+            return this.config.columnConfig[tableId][index].id;
+        }
         
-        return text || `${tableId}_column_${index}`;
+        // Respaldo: generar ID basado en texto del encabezado
+        const headerText = header.innerText.trim();
+        if (headerText) {
+            // Normalizar texto como ID: quitar espacios, convertir a minúscula
+            return headerText
+                .toLowerCase()
+                .replace(/\s+/g, '_')
+                .replace(/[^\w\s]/gi, '');
+        }
+        
+        // Último recurso: usar el índice
+        return `column_${index}`;
     }
 
     getColumnName(header) {
@@ -881,14 +900,31 @@ class TableFilter {
                     
                     if (filter.tableId !== tableId) return;
                     
-                    const columnIndex = this.columnMappings[tableId][filter.columnId]?.index;
+                    // اولویت با پیدا کردن سلول با کلاس column-X
+                    let cell = null;
                     
-                    if (columnIndex !== -1 && columnIndex !== undefined && row.children[columnIndex]) {
-                        const cellValue = this.extractCellValue(row.children[columnIndex], filter.columnId);
+                    // 1. ابتدا با کلاس ستون جستجو کنیم که پایدارتر است
+                    cell = row.querySelector(`.column-${filter.columnId}`);
+                    
+                    // 2. اگر با کلاس پیدا نشد، از ایندکس استفاده کنیم (به عنوان پشتیبان)
+                    if (!cell) {
+                        const columnIndex = this.columnMappings[tableId][filter.columnId]?.index;
+                        if (columnIndex !== undefined && columnIndex !== -1) {
+                            cell = row.children[columnIndex];
+                            console.log(`Using fallback index ${columnIndex} for column ${filter.columnId}`);
+                        } else {
+                            console.warn(`Column ${filter.columnId} not found by class or index`);
+                        }
+                    }
+                    
+                    if (cell) {
+                        const cellValue = this.extractCellValue(cell, filter.columnId);
                         
                         if (filter.type === 'include' && !filter.values.includes(cellValue)) {
                             shouldShow = false;
                         }
+                    } else {
+                        console.warn(`Could not find cell for column ${filter.columnId} in row`, row);
                     }
                 });
                 
@@ -1452,9 +1488,38 @@ class TableFilter {
         `;
         deselectAllBtn.addEventListener('click', () => this.toggleAllColumns(tableId, false));
 
+        // اضافه کردن دکمه بازگشت به ترتیب پیش‌فرض
+        const resetOrderBtn = document.createElement('button');
+        resetOrderBtn.textContent = 'بازگشت به ترتیب اولیه';
+        resetOrderBtn.style.cssText = `
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            display: block;
+        `;
+        resetOrderBtn.addEventListener('click', () => this.resetColumnOrder(tableId));
+
         controlButtons.appendChild(selectAllBtn);
         controlButtons.appendChild(deselectAllBtn);
+        
         dropdown.appendChild(controlButtons);
+        
+        // اضافه کردن دکمه بازگشت به حالت اولیه در div جدید
+        const resetContainer = document.createElement('div');
+        resetContainer.style.cssText = `
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        `;
+        resetContainer.appendChild(resetOrderBtn);
+        dropdown.appendChild(resetContainer);
 
         // لیست ستون‌ها
         const columnsList = document.createElement('div');
@@ -1513,20 +1578,39 @@ class TableFilter {
         const table = document.getElementById(tableId);
         if (!table) return;
 
+        console.log(`Toggle visibility of column ${columnIndex} to ${isVisible ? 'visible' : 'hidden'}`);
+
         // تغییر نمایش در header
         const headerCells = table.querySelectorAll('thead th, thead td');
         if (headerCells[columnIndex]) {
             headerCells[columnIndex].style.display = isVisible ? '' : 'none';
-        }
-
-        // تغییر نمایش در تمام ردیف‌ها
-        const rows = table.querySelectorAll('tbody tr');
-        rows.forEach(row => {
-            const cells = row.querySelectorAll('td, th');
-            if (cells[columnIndex]) {
-                cells[columnIndex].style.display = isVisible ? '' : 'none';
+            
+            // بدست آوردن کلاس column-X از هدر برای استفاده در سلول‌های بدنه
+            const columnClass = Array.from(headerCells[columnIndex].classList)
+                .find(cls => cls.startsWith('column-'));
+            
+            // اگر کلاس column-X را یافتیم، از آن برای یافتن سلول‌های مرتبط استفاده کنیم
+            if (columnClass) {
+                // تغییر نمایش سلول‌هایی که دارای کلاس مشابه هستند (روش دقیق‌تر)
+                const bodyCells = table.querySelectorAll(`tbody td.${columnClass}`);
+                bodyCells.forEach(cell => {
+                    cell.style.display = isVisible ? '' : 'none';
+                });
+                console.log(`Found ${bodyCells.length} cells with class ${columnClass}`);
+            } else {
+                // تغییر نمایش در تمام ردیف‌ها با استفاده از ایندکس (روش پشتیبان)
+                console.log(`No column class found for column index ${columnIndex}, using index-based method`);
+                const rows = table.querySelectorAll('tbody tr');
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('td, th');
+                    if (cells[columnIndex]) {
+                        cells[columnIndex].style.display = isVisible ? '' : 'none';
+                    }
+                });
             }
-        });
+        } else {
+            console.warn(`Header cell at index ${columnIndex} not found`);
+        }
     }
 
     toggleAllColumns(tableId, isVisible) {
@@ -1558,6 +1642,68 @@ class TableFilter {
                 triangle.style.backgroundImage = 'none';
             });
         });
+    }
+
+    // اضافه کردن متد جدید برای بازگشت به ترتیب اولیه ستون‌ها
+    resetColumnOrder(tableId) {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+        
+        // نمایش پیام بارگیری
+        this.showToast('در حال بازگردانی ترتیب پیش‌فرض ستون‌ها...');
+        
+        // ارسال درخواست به سرور برای بازگشت به ترتیب پیش‌فرض
+        fetch('/purchase/reset_column_order/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': this.getCsrfToken()
+            },
+            body: JSON.stringify({
+                table_id: tableId
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Server response was not OK');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // بازخوانی صفحه برای اعمال تغییرات
+                window.location.reload();
+            } else {
+                this.showToast('خطا در بازگردانی ترتیب ستون‌ها: ' + (data.error || 'خطای نامشخص'));
+            }
+        })
+        .catch(error => {
+            console.error('Error resetting column order:', error);
+            this.showToast('خطا در ارتباط با سرور');
+        });
+    }
+    
+    // متد کمکی برای دریافت CSRF توکن
+    getCsrfToken() {
+        // تلاش برای یافتن از طریق input
+        const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        if (csrfInput) {
+            return csrfInput.value;
+        }
+        
+        // تلاش برای یافتن در meta tag
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        if (csrfMeta) {
+            return csrfMeta.content;
+        }
+        
+        // روش جایگزین: دریافت از کوکی
+        const cookieValue = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1];
+            
+        return cookieValue || '';
     }
 }
 

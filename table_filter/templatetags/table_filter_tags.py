@@ -1,16 +1,20 @@
 from django import template
 from django.utils.safestring import mark_safe
 from django.templatetags.static import static
+import json
 
 register = template.Library()
 
 
-@register.inclusion_tag('table_filter/table_filter_scripts.html')
+@register.simple_tag
 def table_filter_scripts():
     """
     Load table filter CSS and JavaScript files
     """
-    return {}
+    return mark_safe("""
+        <link rel="stylesheet" href="/static/table_filter/css/table_filter.css">
+        <script src="/static/table_filter/js/table_filter.js"></script>
+    """)
 
 
 @register.simple_tag
@@ -51,46 +55,15 @@ def table_filter_init(table_selector='table', **kwargs):
 
 @register.simple_tag
 def enable_table_filter():
-    """
-    این تگ را در انتهای صفحه قرار دهید تا فیلترهای جدول فعال شوند.
-    """
-    script = """
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Initializing table filters...');
-            setTimeout(function() {
-                try {
-                    // ابتدا هر دکمه فیلتر موجود را حذف می‌کنیم تا از تکرار جلوگیری شود
-                    document.querySelectorAll('.filter-btn, .filter-dropdown-btn').forEach(function(btn) {
-                        btn.remove();
-                    });
-                    
-                    // تلاش برای حذف سورت‌های مثلثی موجود قبل از راه‌اندازی فیلترها
-                    document.querySelectorAll('.enable-filter th').forEach(function(th) {
-                        // حذف کلاس‌های سورت مثلثی
-                        th.classList.remove('sorting', 'sorting_asc', 'sorting_desc');
-                        // حذف آیکون سورت
-                        th.style.backgroundImage = 'none';
-                    });
-                    
-                    // ایجاد نمونه جدید از TableFilter
-                    const tableFilter = new TableFilter({
-                        tableSelector: '.enable-filter',
-                        filterButtonClass: 'filter-btn'
-                    });
-                    
-                    // ثبت در window برای دسترسی احتمالی
-                    window.tableFilter = tableFilter;
-                    
-                    console.log('Table filters initialized successfully!');
-                } catch (e) {
-                    console.error('Error initializing table filters:', e);
-                }
-            }, 100);
-        });
-    </script>
-    """
-    return mark_safe(script)
+    """Enable table filtering functionality"""
+    return mark_safe("""
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Table filter functionality will be loaded here
+                console.log('Table filter enabled');
+            });
+        </script>
+    """)
 
 
 @register.simple_tag
@@ -201,4 +174,171 @@ def table_filter_quick_setup(table_id, columns_config=None):
     </script>
     """
     
-    return mark_safe(script) 
+    return mark_safe(script)
+
+
+@register.simple_tag
+def bulk_edit_scripts():
+    """Load bulk edit CSS and JavaScript files"""
+    return mark_safe("""
+        <link rel="stylesheet" href="/static/table_filter/css/bulk_edit.css">
+        <script src="/static/table_filter/js/bulk_edit.js"></script>
+    """)
+
+
+@register.simple_tag
+def enable_bulk_edit():
+    """Enable bulk edit functionality"""
+    return mark_safe("""
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Initialize bulk edit manager
+                if (typeof bulkEditManager !== 'undefined') {
+                    bulkEditManager.init();
+                    console.log('Bulk edit manager initialized');
+                } else {
+                    console.warn('Bulk edit manager not found');
+                }
+            });
+        </script>
+    """)
+
+
+@register.simple_tag
+def table_filter_with_bulk_edit():
+    """Enable both table filter and bulk edit functionality"""
+    return mark_safe("""
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Initialize table filter
+                console.log('Table filter enabled');
+                
+                // Initialize bulk edit
+                if (typeof bulkEditManager !== 'undefined') {
+                    bulkEditManager.init();
+                    console.log('Bulk edit manager initialized');
+                } else {
+                    console.warn('Bulk edit manager not found');
+                }
+            });
+        </script>
+    """)
+
+
+@register.simple_tag
+def edit_history_scripts():
+    """Load edit history CSS and JavaScript files"""
+    return mark_safe("""
+        <link rel="stylesheet" href="/static/table_filter/css/edit_history.css">
+        <script src="/static/table_filter/js/edit_history.js"></script>
+    """)
+
+
+@register.simple_tag
+def enable_edit_history(app_name='', model_name=''):
+    """Enable edit history functionality"""
+    config = {
+        'app_name': app_name,
+        'model_name': model_name
+    }
+    
+    config_str = str(config).replace("'", '"')
+    
+    return mark_safe(f"""
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {{
+                // Initialize edit history manager
+                if (typeof editHistoryManager !== 'undefined') {{
+                    // تنظیم فیلترهای اولیه
+                    editHistoryManager.filters.app_name = '{app_name}';
+                    editHistoryManager.filters.model_name = '{model_name}';
+                    
+                    editHistoryManager.init();
+                    console.log('Edit history manager initialized with config:', {config_str});
+                }} else {{
+                    console.warn('Edit history manager not found');
+                }}
+            }});
+        </script>
+    """)
+
+
+@register.filter
+def get_item(dictionary, key):
+    """دریافت آیتم از دیکشنری با کلید"""
+    if dictionary is None:
+        return None
+    return dictionary.get(key)
+
+
+@register.filter
+def object_fields(obj):
+    """دریافت فیلدهای یک آبجکت به صورت قابل نمایش"""
+    fields = []
+    if obj is None:
+        return fields
+    
+    # حذف فیلدهای خاص و متدها
+    exclude = ['_state', 'id', 'pk', 'DoesNotExist', 'MultipleObjectsReturned']
+    
+    for field in obj._meta.fields:
+        if field.name not in exclude:
+            value = getattr(obj, field.name, '')
+            
+            # بررسی وجود متد get_FIELD_display برای فیلدهای choice
+            if hasattr(obj, f'get_{field.name}_display'):
+                display_value = getattr(obj, f'get_{field.name}_display')()
+                if display_value:
+                    value = display_value
+            
+            # تبدیل نوع‌های خاص
+            if isinstance(value, bool):
+                value = 'بله' if value else 'خیر'
+            elif value is None:
+                value = ''
+                
+            fields.append({
+                'name': field.verbose_name or field.name,
+                'value': value
+            })
+    
+    return fields
+
+
+@register.simple_tag
+def highlight_changes(old_value, new_value):
+    """هایلایت تفاوت‌های بین مقادیر قدیمی و جدید"""
+    if old_value is None:
+        old_value = ''
+    if new_value is None:
+        new_value = ''
+    
+    try:
+        # تبدیل رشته‌های JSON به دیکشنری
+        if isinstance(old_value, str) and old_value.startswith('{'):
+            try:
+                old_value = json.loads(old_value)
+                old_value = json.dumps(old_value, indent=2, ensure_ascii=False)
+            except:
+                pass
+            
+        if isinstance(new_value, str) and new_value.startswith('{'):
+            try:
+                new_value = json.loads(new_value)
+                new_value = json.dumps(new_value, indent=2, ensure_ascii=False)
+            except:
+                pass
+        
+        # تبدیل به رشته
+        old_value = str(old_value)
+        new_value = str(new_value)
+        
+        # هایلایت تفاوت‌ها (ساده)
+        if old_value == new_value:
+            return mark_safe(f'<code>{old_value}</code>')
+        else:
+            return mark_safe(
+                f'<code class="text-danger">{old_value}</code> &rarr; <code class="text-success">{new_value}</code>'
+            )
+    except Exception as e:
+        return mark_safe(f'<span class="text-danger">خطا در نمایش: {str(e)}</span>') 

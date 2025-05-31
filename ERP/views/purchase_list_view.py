@@ -207,17 +207,34 @@ def purchase_list(request):
 
     # دریافت ستون های انتخاب شده از کوکی
     selected_columns = request.COOKIES.get('selected_columns', '')
+    
+    # For debugging
+    print(f"Cookie selected_columns: '{selected_columns}'")
+    
     if not selected_columns:
-        selected_columns = 'date,customer,invoice_id,sales_agent,purchase_number,weight,cargo,status,actions'
-    selected_columns = selected_columns.split(',')
+        selected_columns = 'purchase_number,date,customer,invoice_id,sales_agent,weight,cargo,status,actions'
+        print("Using default columns")
+    
+    # Make sure we have a string before splitting
+    if isinstance(selected_columns, str):
+        selected_columns = selected_columns.split(',')
+    else:
+        selected_columns = ['purchase_number', 'date', 'customer', 'invoice_id', 'sales_agent', 'weight', 'cargo', 'status', 'actions']
+        print("Type error on selected_columns - using defaults")
+    
+    # اطمینان از حضور ستون actions
+    if 'actions' not in selected_columns:
+        selected_columns.append('actions')
+    
+    print(f"Final selected columns: {selected_columns}")
     
     # تعریف ایندکس ستون ها برای نمایش/مخفی کردن آنها در جاوااسکریپت
     column_indices = {
-        'date': 1,
-        'customer': 2,
-        'invoice_id': 3,
-        'sales_agent': 4,
-        'purchase_number': 5,
+        'purchase_number': 1,
+        'date': 2,
+        'customer': 3,
+        'invoice_id': 4,
+        'sales_agent': 5,
         'weight': 6,
         'cargo': 7,
         'status': 8,
@@ -226,11 +243,11 @@ def purchase_list(request):
     
     # لیست همه ستون های ممکن با اطلاعات لازم
     all_columns = [
+        {'id': 'purchase_number', 'name': 'شماره خرید', 'field': 'purchase_number', 'editable': True},
         {'id': 'date', 'name': 'تاریخ', 'field': 'created_at', 'format': 'date'},
         {'id': 'customer', 'name': 'مشتری', 'field': 'customer.name', 'editable': False},
         {'id': 'invoice_id', 'name': 'کد درون سازمانی', 'field': 'invoice_id', 'editable': True},
         {'id': 'sales_agent', 'name': 'نماینده فروش', 'field': 'customer.sales_agent.name', 'editable': False},
-        {'id': 'purchase_number', 'name': 'شماره خرید', 'field': 'purchase_number', 'editable': True},
         {'id': 'weight', 'name': 'وزن (کیلوگرم)', 'field': 'order_weight', 'editable': True},
         {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage', 'editable': True},
         {'id': 'status', 'name': 'وضعیت‌ها', 'field': 'state', 'editable': True},
@@ -303,11 +320,11 @@ def purchase_list(request):
         'selected_columns': selected_columns,
         'all_columns': all_columns,
         'column_mapping': {
-            'date': 0,
-            'customer': 1,
-            'invoice_id': 2,
-            'sales_agent': 3,
-            'purchase_number': 4,
+            'purchase_number': 0,
+            'date': 1,
+            'customer': 2,
+            'invoice_id': 3,
+            'sales_agent': 4,
             'weight': 5,
             'cargo': 6,
             'status': 7,
@@ -323,16 +340,63 @@ def purchase_list(request):
 @require_POST
 @login_required
 def update_columns(request):
-    selected_columns = request.POST.getlist('columns[]')
-    if not selected_columns and 'columns' in request.POST:
-        selected_columns = request.POST.getlist('columns')
-    
-    if 'actions' not in selected_columns:
-        selected_columns.append('actions')  # ستون جزئیات همیشه باید نمایش داده شود
-    
-    response = JsonResponse({'status': 'success'})
-    response.set_cookie('selected_columns', ','.join(selected_columns), max_age=30*24*60*60)
-    return response
+    """
+    Actualiza las columnas seleccionadas para mostrar en la lista de compras
+    """
+    try:
+        # Obtener las columnas seleccionadas del formulario
+        selected_columns = request.POST.getlist('columns[]')
+        
+        # Registrar para depuración
+        print(f"Columnas recibidas: {selected_columns}")
+        print(f"Datos POST completos: {dict(request.POST)}")
+        
+        # Comprobar si hay datos en un formato alternativo
+        if not selected_columns and 'columns' in request.POST:
+            selected_columns = request.POST.getlist('columns')
+            print(f"Usando formato alternativo: {selected_columns}")
+        
+        # Si todavía no hay columnas, buscar otro formato posible
+        if not selected_columns and request.POST.get('columns'):
+            # Intentar con una cadena separada por comas
+            columns_str = request.POST.get('columns')
+            selected_columns = [c.strip() for c in columns_str.split(',') if c.strip()]
+            print(f"Usando cadena separada por comas: {selected_columns}")
+        
+        # Verificar que hay columnas seleccionadas
+        if not selected_columns:
+            return JsonResponse({
+                'status': 'error', 
+                'message': 'No se recibieron columnas seleccionadas'
+            }, status=400)
+        
+        # Asegurar que la columna de acciones siempre está presente
+        if 'actions' not in selected_columns:
+            selected_columns.append('actions')  # ستون جزئیات همیشه باید نمایش داده شود
+        
+        # Crear la respuesta y establecer la cookie
+        cookie_value = ','.join(selected_columns)
+        print(f"Setting cookie 'selected_columns' with value: {cookie_value}")
+        
+        response = JsonResponse({'status': 'success', 'selected_columns': selected_columns})
+        
+        # Establecer la cookie con un período de validez de 30 días
+        # Parámetro httponly=False para permitir acceso desde JavaScript
+        # Asegurar valores correctos para SameSite y Secure
+        response.set_cookie(
+            'selected_columns', 
+            cookie_value, 
+            max_age=30*24*60*60,  # 30 días
+            httponly=False,       # Permitir acceso desde JavaScript
+            samesite='Lax'        # Permitir envío en contextos de navegación
+        )
+        
+        return response
+    except Exception as e:
+        import traceback
+        print(f"Error en update_columns: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
@@ -868,3 +932,32 @@ def update_column_order(request):
         return response
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@require_POST
+@login_required
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+def reset_column_order(request):
+    """
+    بازگرداندن ترتیب ستون‌ها به حالت پیش‌فرض
+    """
+    try:
+        # ستون‌های پیش‌فرض اصلی
+        default_columns = ['purchase_number', 'date', 'customer', 'invoice_id', 'sales_agent', 'weight', 'cargo', 'status', 'actions']
+        
+        # برای آسان‌تر کردن دیباگ
+        print("Resetting column order to default:", default_columns)
+        
+        # ایجاد پاسخ
+        response = JsonResponse({'success': True, 'message': 'ترتیب ستون‌ها به حالت پیش‌فرض بازگردانده شد'})
+        
+        # حذف تمامی کوکی‌های مربوط به ستون‌ها
+        response.delete_cookie('purchase_list_column_order')
+        response.delete_cookie('selected_columns')
+        
+        # تنظیم مجدد کوکی‌ها با مقادیر پیش‌فرض
+        response.set_cookie('selected_columns', ','.join(default_columns))
+        
+        return response
+    except Exception as e:
+        print(f"Error in reset_column_order: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

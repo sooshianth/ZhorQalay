@@ -1,0 +1,477 @@
+/**
+ * Bulk Edit CSS Styles
+ * Styling for bulk editing functionality
+ */
+
+/* Container برای دکمه‌های ویرایش گروهی */
+.bulk-edit-controls {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #dee2e6;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    padding: 15px 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.bulk-edit-controls::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #007bff, #28a745, #17a2b8);
+    border-radius: 12px 12px 0 0;
+}
+
+.bulk-edit-controls.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* Toolbar اصلی */
+.bulk-edit-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+/* شمارنده موارد انتخاب شده */
+.selected-count {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #495057;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 8px 15px;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 123, 255, 0.2);
+    backdrop-filter: blur(5px);
+    min-width: 180px;
+}
+
+.selected-count i {
+    color: #007bff;
+    font-size: 1.1rem;
+}
+
+.selected-count .count {
+    background: #007bff;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    min-width: 25px;
+    text-align: center;
+    display: inline-block;
+}
+
+/* دکمه‌های عملیات */
+.bulk-edit-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.bulk-edit-actions .btn {
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    border: none;
+    position: relative;
+    overflow: hidden;
+    min-width: 120px;
+    text-align: center;
+}
+
+.bulk-edit-actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.bulk-edit-actions .btn:active {
+    transform: translateY(0);
+}
+
+/* دکمه ویرایش گروهی */
+.bulk-edit-btn {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    box-shadow: 0 2px 6px rgba(0, 123, 255, 0.3);
+}
+
+.bulk-edit-btn:hover {
+    background: linear-gradient(135deg, #0056b3, #004085);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+}
+
+/* دکمه ویرایش با اکسل */
+.bulk-edit-excel-btn {
+    background: linear-gradient(135deg, #28a745, #1e7e34);
+    color: white;
+    box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3);
+}
+
+.bulk-edit-excel-btn:hover {
+    background: linear-gradient(135deg, #1e7e34, #155724);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+/* دکمه دانلود قالب */
+.download-template-btn {
+    background: linear-gradient(135deg, #17a2b8, #117a8b);
+    color: white;
+    box-shadow: 0 2px 6px rgba(23, 162, 184, 0.3);
+}
+
+.download-template-btn:hover {
+    background: linear-gradient(135deg, #117a8b, #0c5460);
+    box-shadow: 0 4px 12px rgba(23, 162, 184, 0.4);
+}
+
+/* دکمه لغو انتخاب */
+.clear-selection-btn {
+    background: linear-gradient(135deg, #6c757d, #545b62);
+    color: white;
+    box-shadow: 0 2px 6px rgba(108, 117, 125, 0.3);
+}
+
+.clear-selection-btn:hover {
+    background: linear-gradient(135deg, #545b62, #3d4144);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
+}
+
+/* انیمیشن‌های ظاهر شدن */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.bulk-edit-controls {
+    animation: slideDown 0.4s ease-out;
+}
+
+/* Modal های ویرایش گروهی */
+#bulkEditModal .modal-content,
+#excelUploadModal .modal-content {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+#bulkEditModal .modal-header,
+#excelUploadModal .modal-header {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    border-bottom: none;
+    padding: 20px 25px;
+}
+
+#bulkEditModal .modal-title,
+#excelUploadModal .modal-title {
+    font-weight: 600;
+    font-size: 1.3rem;
+}
+
+#bulkEditModal .modal-body,
+#excelUploadModal .modal-body {
+    padding: 25px;
+    background: #f8f9fa;
+}
+
+#bulkEditModal .modal-footer,
+#excelUploadModal .modal-footer {
+    padding: 20px 25px;
+    border-top: 1px solid #e9ecef;
+    background: white;
+}
+
+/* فرم ویرایش گروهی */
+#bulkEditForm .form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+}
+
+#bulkEditForm .form-control,
+#bulkEditForm .form-select {
+    border-radius: 8px;
+    border: 1px solid #ced4da;
+    padding: 10px 15px;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+#bulkEditForm .form-control:focus,
+#bulkEditForm .form-select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    outline: none;
+}
+
+#bulkEditForm .form-check {
+    padding: 10px 15px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+#bulkEditForm .form-check:hover {
+    background: #f8f9fa;
+    border-color: #007bff;
+}
+
+#bulkEditForm .form-check-input {
+    width: 1.2rem;
+    height: 1.2rem;
+    margin-top: 0.125rem;
+}
+
+#bulkEditForm .form-check-label {
+    font-weight: 500;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+/* فرم آپلود اکسل */
+#excelUploadForm .form-control {
+    border-radius: 8px;
+    border: 2px dashed #ced4da;
+    padding: 15px;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+#excelUploadForm .form-control:hover {
+    border-color: #007bff;
+    background: #f8f9fa;
+}
+
+#excelUploadForm .form-control:focus {
+    border-color: #007bff;
+    border-style: solid;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Progress Bar برای آپلود */
+#uploadProgress .progress {
+    height: 8px;
+    border-radius: 10px;
+    background: #e9ecef;
+    overflow: hidden;
+}
+
+#uploadProgress .progress-bar {
+    background: linear-gradient(90deg, #28a745, #20c997);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+/* Alert ها */
+.alert {
+    border: none;
+    border-radius: 10px;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+}
+
+.alert-info {
+    background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+    color: #0c5460;
+    border-left: 4px solid #17a2b8;
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    color: #856404;
+    border-left: 4px solid #ffc107;
+}
+
+/* Toast Notifications */
+.toast {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+/* چک‌باکس‌های جدول */
+.row-checkbox,
+.select-all-checkbox {
+    width: 1.2rem !important;
+    height: 1.2rem !important;
+    border-radius: 4px;
+    border: 2px solid #ced4da;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.row-checkbox:checked,
+.select-all-checkbox:checked {
+    background-color: #007bff;
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.row-checkbox:hover,
+.select-all-checkbox:hover {
+    border-color: #007bff;
+    transform: scale(1.1);
+}
+
+/* سطرهای انتخاب شده */
+tr.selected {
+    background-color: rgba(0, 123, 255, 0.1) !important;
+    border-left: 3px solid #007bff;
+}
+
+tr.selected:hover {
+    background-color: rgba(0, 123, 255, 0.15) !important;
+}
+
+/* حالت موبایل */
+@media (max-width: 768px) {
+    .bulk-edit-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    
+    .selected-count {
+        text-align: center;
+        min-width: auto;
+        justify-content: center;
+    }
+    
+    .bulk-edit-actions {
+        justify-content: center;
+        gap: 8px;
+    }
+    
+    .bulk-edit-actions .btn {
+        flex: 1;
+        min-width: auto;
+        font-size: 0.8rem;
+        padding: 8px 12px;
+    }
+    
+    #bulkEditModal .modal-dialog,
+    #excelUploadModal .modal-dialog {
+        margin: 10px;
+        max-width: calc(100% - 20px);
+    }
+    
+    #bulkEditModal .modal-body,
+    #excelUploadModal .modal-body {
+        padding: 15px;
+    }
+    
+    #bulkEditForm .row {
+        margin: 0;
+    }
+    
+    #bulkEditForm .col-md-6,
+    #bulkEditForm .col-md-4 {
+        padding: 5px;
+    }
+}
+
+/* حالت تاریک */
+@media (prefers-color-scheme: dark) {
+    .bulk-edit-controls {
+        background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+    
+    .selected-count {
+        background: rgba(45, 55, 72, 0.8);
+        color: #e2e8f0;
+        border-color: rgba(66, 153, 225, 0.3);
+    }
+    
+    #bulkEditModal .modal-body,
+    #excelUploadModal .modal-body {
+        background: #2d3748;
+        color: #e2e8f0;
+    }
+    
+    #bulkEditForm .form-control,
+    #bulkEditForm .form-select {
+        background: #4a5568;
+        border-color: #718096;
+        color: #e2e8f0;
+    }
+    
+    #bulkEditForm .form-check {
+        background: #4a5568;
+        border-color: #718096;
+    }
+}
+
+/* انیمیشن‌های اضافی */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.bulk-edit-actions .btn:focus {
+    animation: pulse 0.3s ease-in-out;
+}
+
+/* اصلاح استایل دکمه‌ها در modal */
+.modal-footer .btn {
+    min-width: 120px;
+    padding: 10px 20px;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.modal-footer .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Loading state */
+.btn.loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+} 

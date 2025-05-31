@@ -1,0 +1,344 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تاریخچه تغییرات{% endblock %}
+
+{% block head_styles %}
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<style>
+    .card {
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: all 0.3s ease;
+        margin-bottom: 25px;
+    }
+    
+    .card:hover {
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        transform: translateY(-5px);
+    }
+    
+    .card-header {
+        background: linear-gradient(135deg, #065F46, #047857);
+        padding: 20px;
+        border-bottom: none;
+    }
+    
+    .filter-section {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .log-group {
+        margin-bottom: 20px;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        overflow: hidden;
+        transition: all 0.3s;
+    }
+    
+    .log-group:hover {
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .log-header {
+        background-color: #f0f0f0;
+        padding: 12px 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+    }
+    
+    .log-details {
+        display: none;
+        padding: 0;
+    }
+    
+    .log-details.active {
+        display: block;
+    }
+    
+    .log-item {
+        padding: 12px 15px;
+        border-top: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .log-item:hover {
+        background-color: #f9f9f9;
+    }
+    
+    .badge-form {
+        background-color: #4CAF50;
+    }
+    
+    .badge-excel {
+        background-color: #2196F3;
+    }
+    
+    .field-value {
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .restore-btn {
+        background-color: #FF9800;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .restore-btn:hover {
+        background-color: #F57C00;
+        transform: scale(1.05);
+    }
+    
+    .pagination {
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
+    }
+    
+    .date-range {
+        display: flex;
+        gap: 10px;
+    }
+    
+    @media (max-width: 768px) {
+        .date-range {
+            flex-direction: column;
+            gap: 5px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-lg mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        تاریخچه تغییرات
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- فیلتر کردن -->
+                    <div class="filter-section">
+                        <h5 class="mb-3">
+                            <i class="fas fa-filter me-2"></i>
+                            فیلتر تاریخچه
+                        </h5>
+                        <form method="get" action="{% url 'table_filter:edit_history' %}">
+                            <div class="row">
+                                <div class="col-md-3 mb-3">
+                                    <label for="app_name" class="form-label">اپلیکیشن</label>
+                                    <select name="app_name" id="app_name" class="form-select">
+                                        <option value="">همه</option>
+                                        {% for app in apps %}
+                                            <option value="{{ app }}" {% if filters.app_name == app %}selected{% endif %}>{{ app }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="model_name" class="form-label">مدل</label>
+                                    <select name="model_name" id="model_name" class="form-select">
+                                        <option value="">همه</option>
+                                        {% for model in models %}
+                                            <option value="{{ model }}" {% if filters.model_name == model %}selected{% endif %}>{{ model }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="object_id" class="form-label">شناسه آبجکت</label>
+                                    <input type="text" name="object_id" id="object_id" class="form-control" value="{{ filters.object_id }}">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="user_id" class="form-label">کاربر</label>
+                                    <select name="user_id" id="user_id" class="form-select">
+                                        <option value="">همه</option>
+                                        {% for user in users %}
+                                            <option value="{{ user.id }}" {% if filters.user_id == user.id|stringformat:"i" %}selected{% endif %}>{{ user.username }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="action_type" class="form-label">نوع عملیات</label>
+                                    <select name="action_type" id="action_type" class="form-select">
+                                        <option value="">همه</option>
+                                        <option value="FORM" {% if filters.action_type == 'FORM' %}selected{% endif %}>ویرایش فرمی</option>
+                                        <option value="EXCEL" {% if filters.action_type == 'EXCEL' %}selected{% endif %}>ویرایش اکسلی</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">بازه زمانی</label>
+                                    <div class="date-range">
+                                        <input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}" placeholder="از تاریخ">
+                                        <input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}" placeholder="تا تاریخ">
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="fas fa-filter me-2"></i>
+                                        اعمال فیلتر
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- نمایش لاگ‌ها -->
+                    <h5 class="mb-3">
+                        <i class="fas fa-list-alt me-2"></i>
+                        تاریخچه تغییرات ({{ logs_page.paginator.count }} مورد)
+                    </h5>
+
+                    {% if logs_page %}
+                        {% for group_key, logs in grouped_logs.items %}
+                            <div class="log-group">
+                                <div class="log-header" onclick="toggleLogDetails(this)">
+                                    <div>
+                                        <strong>{{ logs.0.model_name }}</strong> - 
+                                        شناسه: {{ logs.0.object_id }} - 
+                                        {% with user=users_dict|get_item:logs.0.user_id %}
+                                            کاربر: {{ user.username|default:"نامشخص" }}
+                                        {% endwith %}
+                                    </div>
+                                    <div>
+                                        <span class="badge {% if logs.0.action_type == 'FORM' %}badge-form{% else %}badge-excel{% endif %}">
+                                            {{ logs.0.get_action_type_display }}
+                                        </span>
+                                        <span class="text-muted small ms-2">{{ logs.0.timestamp|date:"Y/m/d H:i:s" }}</span>
+                                        <i class="fas fa-chevron-down ms-2"></i>
+                                    </div>
+                                </div>
+                                <div class="log-details">
+                                    {% for log in logs %}
+                                        <div class="log-item">
+                                            <div>
+                                                <strong>{{ log.field_name }}</strong>: 
+                                                <span class="field-value old-value text-danger">{{ log.old_value|default:"خالی" }}</span>
+                                                <i class="fas fa-arrow-left mx-2"></i>
+                                                <span class="field-value new-value text-success">{{ log.new_value|default:"خالی" }}</span>
+                                            </div>
+                                            <button class="restore-btn" onclick="restoreValue({{ log.id }})">
+                                                <i class="fas fa-undo me-1"></i>
+                                                بازگرداندن
+                                            </button>
+                                        </div>
+                                    {% endfor %}
+                                    <div class="p-2 text-center">
+                                        <a href="{% url 'table_filter:object_edit_history' logs.0.app_name logs.0.model_name logs.0.object_id %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye me-1"></i>
+                                            مشاهده کامل تاریخچه این آیتم
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+
+                        <!-- پیجینیشن -->
+                        <div class="pagination justify-content-center">
+                            <ul class="pagination">
+                                {% if logs_page.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=1{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                            <i class="fas fa-angle-double-right"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ logs_page.previous_page_number }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                            <i class="fas fa-angle-right"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                <li class="page-item active">
+                                    <span class="page-link">{{ logs_page.number }} از {{ logs_page.paginator.num_pages }}</span>
+                                </li>
+
+                                {% if logs_page.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ logs_page.next_page_number }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                            <i class="fas fa-angle-left"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ logs_page.paginator.num_pages }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                            <i class="fas fa-angle-double-left"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            هیچ تاریخچه‌ای یافت نشد.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function toggleLogDetails(header) {
+        const details = header.nextElementSibling;
+        details.classList.toggle('active');
+        
+        const icon = header.querySelector('.fa-chevron-down, .fa-chevron-up');
+        if (icon) {
+            icon.classList.toggle('fa-chevron-down');
+            icon.classList.toggle('fa-chevron-up');
+        }
+    }
+    
+    function restoreValue(logId) {
+        if (confirm('آیا از بازگرداندن این مقدار اطمینان دارید؟')) {
+            fetch(`{% url 'table_filter:restore_field' 0 %}`.replace('0', logId), {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('خطا: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('خطا در ارتباط با سرور');
+            });
+        }
+    }
+    
+    // کمک تابع برای دریافت آیتم از دیکشنری
+    function get_item(dict, key) {
+        return dict[key] || null;
+    }
+</script>
+{% endblock %} 

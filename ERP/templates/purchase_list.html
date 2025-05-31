@@ -7,7 +7,11 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'css_files/purchase_list_style.css' %}">
     {% table_filter_scripts %}
+    {% bulk_edit_scripts %}
+    {% edit_history_scripts %}
     <script src="{% static 'js/drag_and_drop_columns.js' %}"></script>
+    <!-- CSRF Token for AJAX requests -->
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <style>
         /* استایل برای خرید‌های فوری */
         tr.urgent-row {
@@ -409,9 +413,15 @@
     <!-- دکمه مدیریت ستون‌ها -->
     {% if request.user.is_superuser or request.user.is_staff %}
     <button class="btn btn-info text-white shadow-sm" data-bs-toggle="modal" data-bs-target="#columnsModal">
-        <i class="fas fa-columns me-2"></i> مدیریت ستون‌ها
-    </button>
+        <i class="fas fa-columns me-2"></i> مدیریت ستون‌های جدول</button>
+    <button id="resetColumnOrderBtn" class="btn btn-warning text-white shadow-sm ms-2">
+        <i class="fas fa-undo me-2"></i> بازگشت به ترتیب اولیه</button>
     {% endif %}
+    
+    <!-- دکمه تاریخچه تغییرات -->
+    <button class="btn btn-warning text-white shadow-sm" data-bs-toggle="modal" data-bs-target="#historyModal">
+        <i class="fas fa-history me-2"></i> تاریخچه تغییرات
+    </button>
     
     <!-- دکمه انتخاب همه سطرها -->
     {% if user_role == 'admin' or user_role == 'financial_manager' or user_role == 'logistics_manager' %}
@@ -436,6 +446,7 @@
                 </div>
                 
                 <form id="columnsForm" class="px-3">
+                    {% csrf_token %}
                     <!-- ستون‌های جدول -->
                     <div class="section-container pb-4">
                         <div class="section-header d-flex justify-content-between align-items-center mb-4">
@@ -711,6 +722,34 @@
 </div>
 
 {% if active_purchases %}
+
+<!-- Bulk Edit Controls Panel -->
+<div class="bulk-edit-controls" style="display: none;">
+    <div class="bulk-edit-toolbar">
+        <div class="selected-count">
+            <i class="fas fa-check-square"></i>
+            <span class="count">0</span> مورد انتخاب شده
+        </div>
+        <div class="bulk-edit-actions">
+            <button class="btn btn-primary bulk-edit-btn" data-action="edit">
+                <i class="fas fa-edit"></i> ویرایش گروهی
+            </button>
+            <button class="btn btn-success bulk-edit-excel-btn" data-action="excel">
+                <i class="fas fa-file-excel"></i> ویرایش با اکسل
+            </button>
+            <button class="btn btn-info download-template-btn" data-action="template">
+                <i class="fas fa-download"></i> دانلود قالب اکسل
+            </button>
+            <button class="btn btn-warning history-btn" onclick="viewEditHistory()">
+                <i class="fas fa-history"></i> تاریخچه تغییرات
+            </button>
+            <button class="btn btn-secondary clear-selection-btn" data-action="clear">
+                <i class="fas fa-times"></i> لغو انتخاب
+            </button>
+        </div>
+    </div>
+</div>
+
 <div class="table-responsive shadow-sm rounded">
 <table class="table table-bordered table-striped align-middle text-center enable-filter" id="activePurchasesTable">
     <thead class="table-light sticky-header">
@@ -740,90 +779,90 @@
             {% for column in all_columns %}
                 {% if column.id in selected_columns %}
                     {% if column.id == 'date' %}
-                    <td>{{ purchase.created_at|date:"Y/m/d" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.created_at|date:"Y/m/d" }}</td>
                     {% elif column.id == 'customer' %}
-                    <td>
+                    <td class="column-{{ column.id }}">
                         {% if purchase.is_urgent %}<span class="urgent-badge">فوری</span>{% endif %}
                         {{ purchase.customer.name }}
                     </td>
                     {% elif column.id == 'invoice_id' %}
-                    <td class="{% if user_role != 'sales_agent' %}editable{% endif %}" data-field="invoice_id">
+                    <td class="column-{{ column.id }} {% if user_role != 'sales_agent' %}editable{% endif %}" data-field="invoice_id">
                         {{ purchase.invoice_id|default:"تعیین نشده" }}
                     </td>
                     {% elif column.id == 'sales_agent' %}
-                    <td>{% for agent in purchase.customer.sales_agent.all %}{{ agent.name }}{% if not forloop.last %}، {% endif %}{% empty %}-{% endfor %}</td>
+                    <td class="column-{{ column.id }}">{% for agent in purchase.customer.sales_agent.all %}{{ agent.name }}{% if not forloop.last %}، {% endif %}{% empty %}-{% endfor %}</td>
                     {% elif column.id == 'purchase_number' %}
-                    <td class="{% if user_role != 'sales_agent' %}editable{% endif %}" data-field="purchase_number">
+                    <td class="column-{{ column.id }} {% if user_role != 'sales_agent' %}editable{% endif %}" data-field="purchase_number">
                         {{ purchase.purchase_number|default:"تعیین نشده" }}
                     </td>
                     {% elif column.id == 'weight' %}
-                    <td class="{% if user_role != 'sales_agent' %}editable{% endif %}" data-field="order_weight">
+                    <td class="column-{{ column.id }} {% if user_role != 'sales_agent' %}editable{% endif %}" data-field="order_weight">
                         {{ purchase.order_weight|add_commas }}
                     </td>
                     {% elif column.id == 'cargo' %}
-                    <td>{% if purchase.cargo %}{{ purchase.cargo }}{% else %}-{% endif %}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.cargo %}{{ purchase.cargo }}{% else %}-{% endif %}</td>
                     {% elif column.id == 'address' %}
-                    <td>{{ purchase.address|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.address|default:"-" }}</td>
                     {% elif column.id == 'description' %}
-                    <td>{{ purchase.description|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.description|default:"-" }}</td>
                     {% elif column.id == 'company_price' %}
-                    <td>{{ purchase.company_price|default:"-"|add_commas }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.company_price|default:"-"|add_commas }}</td>
                     {% elif column.id == 'customer_price' %}
-                    <td>{{ purchase.customer_price|default:"-"|add_commas }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.customer_price|default:"-"|add_commas }}</td>
                     {% elif column.id == 'factor_code' %}
-                    <td>{{ purchase.factor_code|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.factor_code|default:"-" }}</td>
                     {% elif column.id == 'tracking_number' %}
-                    <td>{{ purchase.tracking_number|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.tracking_number|default:"-" }}</td>
                     {% elif column.id == 'shenase_takhsis' %}
-                    <td>{{ purchase.shenase_takhsis|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.shenase_takhsis|default:"-" }}</td>
                     {% elif column.id == 'code_melli_tahvil' %}
-                    <td>{{ purchase.code_melli_tahvil|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.code_melli_tahvil|default:"-" }}</td>
                     {% elif column.id == 'bazaargah_phone_number' %}
-                    <td>{{ purchase.bazaargah_phone_number|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.bazaargah_phone_number|default:"-" }}</td>
                     {% elif column.id == 'buyer_name' %}
-                    <td>{{ purchase.buyer_name|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.buyer_name|default:"-" }}</td>
                     {% elif column.id == 'tahvil_phone_number' %}
-                    <td>{{ purchase.tahvil_phone_number|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.tahvil_phone_number|default:"-" }}</td>
                     {% elif column.id == 'send_cottage_sms' %}
-                    <td>{% if purchase.send_cottage_sms %}بله{% else %}خیر{% endif %}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.send_cottage_sms %}بله{% else %}خیر{% endif %}</td>
                     {% elif column.id == 'total_weight' %}
-                    <td>{{ purchase.total_weight|default:"-"|add_commas }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.total_weight|default:"-"|add_commas }}</td>
                     {% elif column.id == 'delivered_weight' %}
-                    <td>{{ purchase.delivered_weight|default:"-"|add_commas }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.delivered_weight|default:"-"|add_commas }}</td>
                     {% elif column.id == 'type' %}
-                    <td>{{ purchase.get_type_display|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.get_type_display|default:"-" }}</td>
                     {% elif column.id == 'amount_paid' %}
-                    <td>{{ purchase.amount_paid|default:"-"|add_commas }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.amount_paid|default:"-"|add_commas }}</td>
                     {% elif column.id == 'payment_method' %}
-                    <td>{{ purchase.get_payment_method_display|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.get_payment_method_display|default:"-" }}</td>
                     {% elif column.id == 'updated_at' %}
-                    <td>{{ purchase.updated_at|date:"Y/m/d"|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.updated_at|date:"Y/m/d"|default:"-" }}</td>
                     {% elif column.id == 'is_weight_costed' %}
-                    <td>{% if purchase.is_weight_costed %}بله{% else %}خیر{% endif %}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.is_weight_costed %}بله{% else %}خیر{% endif %}</td>
                     {% elif column.id == 'is_ap_af' %}
-                    <td>{% if purchase.is_ap_af %}بله{% else %}خیر{% endif %}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.is_ap_af %}بله{% else %}خیر{% endif %}</td>
                     {% elif column.id == 'extelaf_type' %}
-                    <td>{{ purchase.get_extelaf_type_display|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.get_extelaf_type_display|default:"-" }}</td>
                     {% elif column.id == 'extelaf_weight' %}
-                    <td>{{ purchase.extelaf_weight|default:"-"|add_commas }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.extelaf_weight|default:"-"|add_commas }}</td>
                     {% elif column.id == 'extelaf_amount' %}
-                    <td>{{ purchase.extelaf_amount|default:"-"|add_commas }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.extelaf_amount|default:"-"|add_commas }}</td>
                     {% elif column.id == 'is_urgent' %}
-                    <td>{% if purchase.is_urgent %}بله{% else %}خیر{% endif %}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.is_urgent %}بله{% else %}خیر{% endif %}</td>
                     {% elif column.id == 'is_canceled' %}
-                    <td>{% if purchase.is_canceled %}بله{% else %}خیر{% endif %}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.is_canceled %}بله{% else %}خیر{% endif %}</td>
                     {% elif column.id == 'is_archived' %}
-                    <td>{% if purchase.is_archived %}بله{% else %}خیر{% endif %}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.is_archived %}بله{% else %}خیر{% endif %}</td>
                     {% elif column.id == 'is_fully_tasvied' %}
-                    <td>{% if purchase.is_fully_tasvied %}بله{% else %}خیر{% endif %}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.is_fully_tasvied %}بله{% else %}خیر{% endif %}</td>
                     {% elif column.id == 'is_factored' %}
-                    <td>{% if purchase.is_factored %}بله{% else %}خیر{% endif %}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.is_factored %}بله{% else %}خیر{% endif %}</td>
                     {% elif column.id == 'priority' %}
-                    <td>{{ purchase.priority|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.priority|default:"-" }}</td>
                     {% elif column.id == 'priority_reason' %}
-                    <td>{{ purchase.priority_reason|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.priority_reason|default:"-" }}</td>
                     {% elif column.id == 'status' %}
-                    <td>
+                    <td class="column-{{ column.id }}">
                         {% if purchase.state == 'ARCHIVED' or purchase.is_archived %}
                             <span class="table-status-badge bg-secondary text-white">آرشیو شده</span>
                         {% elif purchase.state == 'CANCELED' or purchase.is_canceled %}
@@ -912,10 +951,16 @@
                         {% endif %}
                     </td>
                     {% elif column.id == 'actions' %}
-                    <td>
-                        <a href="{% url 'purchase_CRUD' purchase.id %}" class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-eye me-1"></i> مشاهده
-                        </a>
+                    <td class="column-{{ column.id }}">
+                        <div class="btn-group">
+                            <a href="{% url 'purchase_CRUD' purchase.id %}" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-eye me-1"></i> مشاهده
+                            </a>
+                            <button type="button" class="btn btn-outline-success btn-sm item-history-btn" 
+                                    data-id="{{ purchase.id }}" title="تاریخچه تغییرات">
+                                <i class="fas fa-history"></i>
+                            </button>
+                        </div>
                     </td>
                     {% endif %}
                 {% endif %}
@@ -970,81 +1015,81 @@
             {% for column in all_columns %}
                 {% if column.id in selected_columns %}
                     {% if column.id == 'date' %}
-                    <td>{{ purchase.created_at|date:"Y/m/d" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.created_at|date:"Y/m/d" }}</td>
                     {% elif column.id == 'customer' %}
-                    <td>{{ purchase.customer.name }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.customer.name }}</td>
                     {% elif column.id == 'invoice_id' %}
-                    <td>{{ purchase.invoice_id|default:"تعیین نشده" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.invoice_id|default:"تعیین نشده" }}</td>
                     {% elif column.id == 'sales_agent' %}
-                    <td>{% for agent in purchase.customer.sales_agent.all %}{{ agent.name }}{% if not forloop.last %}، {% endif %}{% empty %}-{% endfor %}</td>
+                    <td class="column-{{ column.id }}">{% for agent in purchase.customer.sales_agent.all %}{{ agent.name }}{% if not forloop.last %}، {% endif %}{% empty %}-{% endfor %}</td>
                     {% elif column.id == 'purchase_number' %}
-                    <td>{{ purchase.purchase_number|default:"تعیین نشده" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.purchase_number|default:"تعیین نشده" }}</td>
                     {% elif column.id == 'weight' %}
-                    <td>{{ purchase.order_weight|add_commas }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.order_weight|add_commas }}</td>
                     {% elif column.id == 'cargo' %}
-                    <td>{% if purchase.cargo %}{{ purchase.cargo }} ({{ purchase.cargo.cottage }}){% else %}-{% endif %}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.cargo %}{{ purchase.cargo }} ({{ purchase.cargo.cottage }}){% else %}-{% endif %}</td>
                     {% elif column.id == 'address' %}
-                    <td>{{ purchase.address|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.address|default:"-" }}</td>
                     {% elif column.id == 'description' %}
-                    <td>{{ purchase.description|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.description|default:"-" }}</td>
                     {% elif column.id == 'company_price' %}
-                    <td>{{ purchase.company_price|default:"-"|add_commas }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.company_price|default:"-"|add_commas }}</td>
                     {% elif column.id == 'customer_price' %}
-                    <td>{{ purchase.customer_price|default:"-"|add_commas }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.customer_price|default:"-"|add_commas }}</td>
                     {% elif column.id == 'factor_code' %}
-                    <td>{{ purchase.factor_code|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.factor_code|default:"-" }}</td>
                     {% elif column.id == 'tracking_number' %}
-                    <td>{{ purchase.tracking_number|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.tracking_number|default:"-" }}</td>
                     {% elif column.id == 'shenase_takhsis' %}
-                    <td>{{ purchase.shenase_takhsis|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.shenase_takhsis|default:"-" }}</td>
                     {% elif column.id == 'code_melli_tahvil' %}
-                    <td>{{ purchase.code_melli_tahvil|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.code_melli_tahvil|default:"-" }}</td>
                     {% elif column.id == 'bazaargah_phone_number' %}
-                    <td>{{ purchase.bazaargah_phone_number|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.bazaargah_phone_number|default:"-" }}</td>
                     {% elif column.id == 'buyer_name' %}
-                    <td>{{ purchase.buyer_name|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.buyer_name|default:"-" }}</td>
                     {% elif column.id == 'tahvil_phone_number' %}
-                    <td>{{ purchase.tahvil_phone_number|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.tahvil_phone_number|default:"-" }}</td>
                     {% elif column.id == 'send_cottage_sms' %}
-                    <td>{% if purchase.send_cottage_sms %}بله{% else %}خیر{% endif %}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.send_cottage_sms %}بله{% else %}خیر{% endif %}</td>
                     {% elif column.id == 'total_weight' %}
-                    <td>{{ purchase.total_weight|default:"-"|add_commas }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.total_weight|default:"-"|add_commas }}</td>
                     {% elif column.id == 'delivered_weight' %}
-                    <td>{{ purchase.delivered_weight|default:"-"|add_commas }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.delivered_weight|default:"-"|add_commas }}</td>
                     {% elif column.id == 'type' %}
-                    <td>{{ purchase.get_type_display|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.get_type_display|default:"-" }}</td>
                     {% elif column.id == 'amount_paid' %}
-                    <td>{{ purchase.amount_paid|default:"-"|add_commas }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.amount_paid|default:"-"|add_commas }}</td>
                     {% elif column.id == 'payment_method' %}
-                    <td>{{ purchase.get_payment_method_display|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.get_payment_method_display|default:"-" }}</td>
                     {% elif column.id == 'updated_at' %}
-                    <td>{{ purchase.updated_at|date:"Y/m/d"|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.updated_at|date:"Y/m/d"|default:"-" }}</td>
                     {% elif column.id == 'is_weight_costed' %}
-                    <td>{% if purchase.is_weight_costed %}بله{% else %}خیر{% endif %}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.is_weight_costed %}بله{% else %}خیر{% endif %}</td>
                     {% elif column.id == 'is_ap_af' %}
-                    <td>{% if purchase.is_ap_af %}بله{% else %}خیر{% endif %}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.is_ap_af %}بله{% else %}خیر{% endif %}</td>
                     {% elif column.id == 'extelaf_type' %}
-                    <td>{{ purchase.get_extelaf_type_display|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.get_extelaf_type_display|default:"-" }}</td>
                     {% elif column.id == 'extelaf_weight' %}
-                    <td>{{ purchase.extelaf_weight|default:"-"|add_commas }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.extelaf_weight|default:"-"|add_commas }}</td>
                     {% elif column.id == 'extelaf_amount' %}
-                    <td>{{ purchase.extelaf_amount|default:"-"|add_commas }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.extelaf_amount|default:"-"|add_commas }}</td>
                     {% elif column.id == 'is_urgent' %}
-                    <td>{% if purchase.is_urgent %}بله{% else %}خیر{% endif %}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.is_urgent %}بله{% else %}خیر{% endif %}</td>
                     {% elif column.id == 'is_canceled' %}
-                    <td>{% if purchase.is_canceled %}بله{% else %}خیر{% endif %}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.is_canceled %}بله{% else %}خیر{% endif %}</td>
                     {% elif column.id == 'is_archived' %}
-                    <td>{% if purchase.is_archived %}بله{% else %}خیر{% endif %}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.is_archived %}بله{% else %}خیر{% endif %}</td>
                     {% elif column.id == 'is_fully_tasvied' %}
-                    <td>{% if purchase.is_fully_tasvied %}بله{% else %}خیر{% endif %}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.is_fully_tasvied %}بله{% else %}خیر{% endif %}</td>
                     {% elif column.id == 'is_factored' %}
-                    <td>{% if purchase.is_factored %}بله{% else %}خیر{% endif %}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.is_factored %}بله{% else %}خیر{% endif %}</td>
                     {% elif column.id == 'priority' %}
-                    <td>{{ purchase.priority|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.priority|default:"-" }}</td>
                     {% elif column.id == 'priority_reason' %}
-                    <td>{{ purchase.priority_reason|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{{ purchase.priority_reason|default:"-" }}</td>
                     {% elif column.id == 'status' %}
-                    <td>
+                    <td class="column-{{ column.id }}">
                         {% if purchase.state == 'ARCHIVED' or purchase.is_archived %}
                             <span class="table-status-badge bg-secondary text-white">آرشیو شده</span>
                         {% elif purchase.state == 'CANCELED' or purchase.is_canceled %}
@@ -1133,10 +1178,16 @@
                         {% endif %}
                     </td>
                     {% elif column.id == 'actions' %}
-                    <td>
-                        <a href="{% url 'purchase_CRUD' purchase.id %}" class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-eye me-1"></i> مشاهده
-                        </a>
+                    <td class="column-{{ column.id }}">
+                        <div class="btn-group">
+                            <a href="{% url 'purchase_CRUD' purchase.id %}" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-eye me-1"></i> مشاهده
+                            </a>
+                            <button type="button" class="btn btn-outline-success btn-sm item-history-btn" 
+                                    data-id="{{ purchase.id }}" title="تاریخچه تغییرات">
+                                <i class="fas fa-history"></i>
+                            </button>
+                        </div>
                     </td>
                     {% endif %}
                 {% endif %}
@@ -1157,11 +1208,335 @@
 </div>
 </div>
 
+<!-- مدال تاریخچه تغییرات -->
+<div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-xl">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-warning bg-opacity-10 border-bottom">
+                <h5 class="modal-title fw-bold text-warning"><i class="fas fa-history me-2"></i>تاریخچه تغییرات</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4">
+                <div class="alert alert-info bg-info bg-opacity-10 border-0 mb-4 p-3">
+                    <p class="mb-0 py-1"><i class="fas fa-info-circle me-2"></i> تاریخچه کامل تغییرات انجام شده در سیستم را مشاهده کنید. برای بازگردانی یک تغییر، روی دکمه «بازگردانی» کلیک کنید.</p>
+                </div>
+                
+                <div class="edit-history-container">
+                    <!-- فیلترهای تاریخچه -->
+                    <div class="filter-section mb-4">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label for="historyUserFilter" class="form-label">کاربر:</label>
+                                <select class="form-select" id="historyUserFilter">
+                                    <option value="">همه کاربران</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="historyActionFilter" class="form-label">نوع عملیات:</label>
+                                <select class="form-select" id="historyActionFilter">
+                                    <option value="">همه عملیات‌ها</option>
+                                    <option value="CREATE">ایجاد</option>
+                                    <option value="UPDATE">بروزرسانی</option>
+                                    <option value="DELETE">حذف</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="historyFieldFilter" class="form-label">فیلد:</label>
+                                <select class="form-select" id="historyFieldFilter">
+                                    <option value="">همه فیلدها</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="historyDateFilter" class="form-label">تاریخ:</label>
+                                <input type="date" class="form-control" id="historyDateFilter">
+                            </div>
+                            <div class="col-12 d-flex justify-content-end gap-2 mt-3">
+                                <button class="btn btn-primary" id="applyHistoryFilters">
+                                    <i class="fas fa-filter me-1"></i> اعمال فیلترها
+                                </button>
+                                <button class="btn btn-secondary" id="resetHistoryFilters">
+                                    <i class="fas fa-undo me-1"></i> پاک کردن فیلترها
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- جدول تاریخچه -->
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered table-hover history-table">
+                            <thead>
+                                <tr>
+                                    <th>شناسه</th>
+                                    <th>کاربر</th>
+                                    <th>مدل</th>
+                                    <th>شناسه آبجکت</th>
+                                    <th>فیلد</th>
+                                    <th>مقدار قبلی</th>
+                                    <th>مقدار جدید</th>
+                                    <th>عملیات</th>
+                                    <th>تاریخ</th>
+                                    <th>بازگردانی</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                                <!-- این بخش با JavaScript پر می‌شود -->
+                                <tr>
+                                    <td colspan="10" class="text-center py-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">در حال بارگذاری...</span>
+                                        </div>
+                                        <p class="mt-2">در حال دریافت اطلاعات تاریخچه...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- صفحه‌بندی -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div id="historyTotalRecords" class="text-muted">0 رکورد</div>
+                        <nav aria-label="صفحه‌بندی تاریخچه">
+                            <ul class="pagination" id="historyPagination">
+                                <!-- صفحه‌بندی با JavaScript پر می‌شود -->
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-3">
+                <button type="button" class="btn btn-secondary px-4 py-2" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>بستن
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Aqui vai o script para ativar os filtros de tabela -->
 {% enable_table_filter %}
+{% enable_bulk_edit %}
+{% enable_edit_history "core" "Purchase" %}
 
-</div>
+<script>
+// تنظیم URL های صحیح bulk edit manager بعد از لود شدن صفحه
+document.addEventListener('DOMContentLoaded', function() {
+    // تنظیم URL های مناسب برای bulk edit manager
+    if (typeof bulkEditManager !== 'undefined') {
+        bulkEditManager.config.bulkEditPageUrl = '{% url "table_filter:bulk_edit_page" %}';
+        bulkEditManager.config.excelEditPageUrl = '{% url "table_filter:bulk_edit_excel_page" %}';
+        bulkEditManager.config.downloadTemplateUrl = '{% url "table_filter:bulk_edit_template" %}';
+        
+        console.log('Bulk edit URLs configured:', {
+            bulkEditPageUrl: bulkEditManager.config.bulkEditPageUrl,
+            excelEditPageUrl: bulkEditManager.config.excelEditPageUrl,
+            downloadTemplateUrl: bulkEditManager.config.downloadTemplateUrl
+        });
+    }
+    
+    // Debugging cookies and columns
+    console.log('Current cookies:', document.cookie);
+    let columnsFromCookie = '';
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.startsWith('selected_columns=')) {
+            columnsFromCookie = cookie.substring('selected_columns='.length, cookie.length);
+            break;
+        }
+    }
+    console.log('Selected columns from cookie:', columnsFromCookie);
+    
+    // Available columns in the page
+    const availableColumns = [];
+    document.querySelectorAll('input[name="columns[]"]').forEach(checkbox => {
+        availableColumns.push({
+            id: checkbox.value,
+            checked: checkbox.checked
+        });
+    });
+    console.log('Available columns:', availableColumns);
+    
+    // Table columns actually showing
+    const tableColumns = [];
+    document.querySelectorAll('#activePurchasesTable thead th').forEach(th => {
+        const classes = th.className.split(' ');
+        for (let i = 0; i < classes.length; i++) {
+            if (classes[i].startsWith('column-')) {
+                tableColumns.push(classes[i].replace('column-', ''));
+                break;
+            }
+        }
+    });
+    console.log('Table columns showing:', tableColumns);
+    
+    // تاریخچه تغییرات
+    if (typeof editHistoryManager !== 'undefined') {
+        // تنظیم URL های مناسب برای edit history manager
+        editHistoryManager.config.historyApiUrl = '{% url "table_filter:edit_history_api" %}';
+        editHistoryManager.config.restoreValueApiUrl = '{% url "table_filter:restore_value_api" %}';
+        
+        // تنظیم تاریخچه برای مدل Purchase
+        editHistoryManager.filters.app_name = 'core';
+        editHistoryManager.filters.model_name = 'Purchase';
+        
+        console.log('Edit history URLs configured:', {
+            historyApiUrl: editHistoryManager.config.historyApiUrl,
+            restoreValueApiUrl: editHistoryManager.config.restoreValueApiUrl
+        });
+    }
+    
+    // اضافه کردن event listener برای دکمه‌های تاریخچه
+    document.querySelectorAll('.item-history-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const purchaseId = this.getAttribute('data-id');
+            showPurchaseHistory(purchaseId);
+        });
+    });
+    
+    // مدیریت ستون‌ها - افزودن event listener برای دکمه ذخیره تغییرات
+    const saveColumnsBtn = document.getElementById('saveColumnsBtn');
+    if (saveColumnsBtn) {
+        saveColumnsBtn.addEventListener('click', function() {
+            const form = document.getElementById('columnsForm');
+            const checkboxes = form.querySelectorAll('input[name="columns[]"]:checked');
+            
+            if (checkboxes.length === 0) {
+                alert('لطفاً حداقل یک ستون را انتخاب کنید');
+                return;
+            }
+            
+            const selectedColumns = Array.from(checkboxes).map(checkbox => checkbox.value);
+            console.log('Selected columns:', selectedColumns);
+            
+            // ساخت FormData برای ارسال به سرور
+            const formData = new FormData();
+            selectedColumns.forEach(column => {
+                formData.append('columns[]', column);
+            });
+            
+            // ارسال داده‌ها به سرور با FormData
+            fetch('{% url "update_columns" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: formData
+            })
+            .then(response => {
+                console.log('Server response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Server response data:', data);
+                if (data.status === 'success') {
+                    // بستن مدال
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('columnsModal'));
+                    modal.hide();
+                    
+                    // بارگذاری مجدد صفحه برای اعمال تغییرات
+                    window.location.reload();
+                } else {
+                    alert('خطا در ذخیره تغییرات: ' + (data.message || 'خطای نامشخص'));
+                }
+            })
+            .catch(error => {
+                console.error('Error saving columns:', error);
+                alert('خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.');
+            });
+        });
+    }
+    
+    // انتخاب همه ستون‌ها
+    const selectAllColumnsBtn = document.getElementById('selectAllColumns');
+    if (selectAllColumnsBtn) {
+        selectAllColumnsBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const checkboxes = document.querySelectorAll('input[name="columns[]"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        });
+    }
+    
+    // لغو انتخاب همه ستون‌ها
+    const deselectAllColumnsBtn = document.getElementById('deselectAllColumns');
+    if (deselectAllColumnsBtn) {
+        deselectAllColumnsBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const checkboxes = document.querySelectorAll('input[name="columns[]"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        });
+    }
+    
+    // بازنشانی ستون‌ها به حالت پیش‌فرض
+    const resetColumnsBtn = document.getElementById('resetColumnsBtn');
+    if (resetColumnsBtn) {
+        resetColumnsBtn.addEventListener('click', function() {
+            // انتخاب ستون‌های پیش‌فرض
+            const defaultColumns = ['purchase_number', 'date', 'customer', 'invoice_id', 'sales_agent', 'weight', 'cargo', 'status', 'actions'];
+            
+            // بازنشانی همه چک‌باکس‌ها
+            const checkboxes = document.querySelectorAll('input[name="columns[]"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = defaultColumns.includes(checkbox.value);
+            });
+            
+            // ذخیره تغییرات
+            saveColumnsBtn.click();
+        });
+    }
+});
+
+// تابع مشاهده تاریخچه تغییرات کلی
+function viewEditHistory() {
+    // باز کردن مدال تاریخچه تغییرات
+    const historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
+    historyModal.show();
+    
+    // پاک کردن فیلتر شناسه آبجکت اگر تنظیم شده باشد
+    if (typeof editHistoryManager !== 'undefined') {
+        editHistoryManager.filters.object_id = '';
+        editHistoryManager.loadHistoryData();
+        
+        // تغییر عنوان مدال
+        document.querySelector('#historyModal .modal-title').innerHTML = 
+            `<i class="fas fa-history me-2"></i>تاریخچه تغییرات`;
+    }
+}
+
+// تابع نمایش تاریخچه تغییرات یک خرید خاص
+function showPurchaseHistory(purchaseId) {
+    // باز کردن مدال تاریخچه
+    const historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
+    historyModal.show();
+    
+    // تنظیم فیلترها
+    if (typeof editHistoryManager !== 'undefined') {
+        // تنظیم فیلترها برای نمایش تاریخچه خرید خاص
+        editHistoryManager.filters.object_id = purchaseId;
+        
+        // بارگیری داده‌ها
+        editHistoryManager.loadHistoryData();
+        
+        // تغییر عنوان مدال
+        document.querySelector('#historyModal .modal-title').innerHTML = 
+            `<i class="fas fa-history me-2"></i>تاریخچه تغییرات خرید شماره ${purchaseId}`;
+    }
+}
+</script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+{% if messages %}
+<div class="messages-container">
+    {% for message in messages %}
+    <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
+        <i class="{% if message.tags == 'success' %}fas fa-check-circle{% else %}fas fa-exclamation-triangle{% endif %}"></i>
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 {% endblock %}
