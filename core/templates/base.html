@@ -88,7 +88,7 @@
                         <li><a href="{% url 'bki_api:credentials' %}"><i class="fas fa-phone-alt"></i>تست وب سرویس بازارگاه</a></li>
                         {% endif %}
                         {% if request.user.is_superuser or request.user.is_staff or request.user.logistics_manager or request.user.financial_manager %}
-                        <li><a href="{% url 'barnameh_list' %}"><i class="fas fa-truck"></i> پنل ویرایش بارنامه‌ها</a></li>
+                        <li><a href="{% url 'barnameh_list' %}"><i class="fas fa-truck"></i> ویرایش بارنامه‌ها</a></li>
                         {% endif %}
                     </div>
                 </div>
@@ -112,7 +112,7 @@
                 
                 <!-- دسته جدید: مدیریت داده‌ها -->
                 {% if request.user.is_superuser %}
-                <div class="menu-category data-management-category">
+                <div class="menu-category">
                     <div class="category-title" data-toggle="collapse" data-target="data-management">
                         <i class="fas fa-database category-icon"></i>
                         <span>مدیریت داده‌ها</span>

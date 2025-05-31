@@ -1,6 +1,11 @@
 {% extends 'base.html' %}
+{% load table_filter_tags %}
 
 {% block title %}لیست باربری‌ها{% endblock %}
+
+{% block extra_css %}
+{% table_filter_scripts %}
+{% endblock %}
 
 {% block content %}
 
@@ -347,19 +352,19 @@
         </div>
         <div class="card-body p-0">
             <div class="overflow-x-auto">
-                <table class="table-hover" id="barbariesTable">
+                <table class="table-hover enable-filter" id="barbariesTable">
                     <thead>
                         <tr>
-                            <th style="width: 40px;"><input type="checkbox" id="select-all" onclick="toggleAll()"></th>
-                            <th onclick="sortTable(1, 'barbariesTable')">نام <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(2, 'barbariesTable')">شماره تماس <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(3, 'barbariesTable')">ایمیل <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(4, 'barbariesTable')">توضیحات <span class="sort-icon"></span></th>
+                            <th style="width: 40px;" data-column-type="checkbox"><input type="checkbox" id="select-all" onclick="toggleAll()"></th>
+                            <th onclick="sortTable(1, 'barbariesTable')" data-column-type="text">نام <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(2, 'barbariesTable')" data-column-type="text">شماره تماس <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(3, 'barbariesTable')" data-column-type="text">ایمیل <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(4, 'barbariesTable')" data-column-type="text">توضیحات <span class="sort-icon"></span></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for barbary in barbaries %}
-                            <tr onclick="toggleSelection(this, {{ barbary.id }});" class="animate-fade-in" style="animation-delay: {{ forloop.counter0|add:1|divisibleby:10 }}0ms">
+                            <tr onclick="toggleSelection(this, {{ barbary.id }});" class="animate-fade-in" style="animation-delay: {{ forloop.counter0|add:1|divisibleby:10 }}0ms;">
                                 <td>
                                     <input type="checkbox" name="barbary_id" value="{{ barbary.id }}" onclick="event.stopPropagation();">
                                 </td>
@@ -554,4 +559,8 @@
         });
     });
 </script>
+
+<!-- Initialize table filters -->
+{% enable_table_filter %}
+
 {% endblock %} 

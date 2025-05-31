@@ -1,6 +1,11 @@
 {% extends 'base.html' %}
+{% load table_filter_tags %}
 
 {% block title %}لیست واردکنندگان{% endblock %}
+
+{% block extra_css %}
+{% table_filter_scripts %}
+{% endblock %}
 
 {% block content %}
 
@@ -352,15 +357,15 @@
         </div>
         <div class="card-body p-0">
             <div class="overflow-x-auto">
-                <table class="table-hover" id="varedKonandeTable">
+                <table class="table-hover enable-filter" id="varedKonandeTable">
                     <thead>
                         <tr>
-                            <th style="width: 40px;"><input type="checkbox" id="select-all" onclick="toggleAll()"></th>
-                            <th onclick="sortTable(1, 'varedKonandeTable')">نام <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(2, 'varedKonandeTable')">شماره تماس <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(3, 'varedKonandeTable')">ایمیل <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(4, 'varedKonandeTable')">وبسایت <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(5, 'varedKonandeTable')">کیف پول <span class="sort-icon"></span></th>
+                            <th style="width: 40px;" data-column-type="checkbox"><input type="checkbox" id="select-all" onclick="toggleAll()"></th>
+                            <th onclick="sortTable(1, 'varedKonandeTable')" data-column-type="text">نام <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(2, 'varedKonandeTable')" data-column-type="text">شماره تماس <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(3, 'varedKonandeTable')" data-column-type="text">ایمیل <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(4, 'varedKonandeTable')" data-column-type="text">وبسایت <span class="sort-icon"></span></th>
+                            <th onclick="sortTable(5, 'varedKonandeTable')" data-column-type="number">کیف پول <span class="sort-icon"></span></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -561,4 +566,8 @@
         });
     });
 </script>
+
+<!-- Initialize table filters -->
+{% enable_table_filter %}
+
 {% endblock %} 

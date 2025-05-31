@@ -1,8 +1,10 @@
 {% extends 'base.html' %}
+{% load table_filter_tags %}
 
 {% block title %}لیست محصولات و کوتاژهای فعال{% endblock %}
 
 {% block content %}
+{% table_filter_scripts %}
 
 <style>
     /* CSS Variables */
@@ -322,69 +324,6 @@
             <span class="btn-icon"><i class="fas fa-edit"></i></span>
             ویرایش گروهی
         </button>
-        <div class="column-options">
-            <button class="column-options-btn" onclick="toggleColumnOptions()">
-                <i class="fas fa-columns btn-icon"></i>
-                تنظیم ستون‌ها
-            </button>
-            <div class="column-options-menu" id="columnOptions">
-                <div class="column-option">
-                    <label>
-                        <input type="checkbox" data-column="0" checked disabled> انتخاب
-                    </label>
-                </div>
-                <div class="column-option">
-                    <label>
-                        <input type="checkbox" data-column="1" checked> کوتاژ
-                    </label>
-                </div>
-                <div class="column-option">
-                    <label>
-                        <input type="checkbox" data-column="2" checked> نوع محصول
-                    </label>
-                </div>
-                <div class="column-option">
-                    <label>
-                        <input type="checkbox" data-column="3" checked> کشور
-                    </label>
-                </div>
-                <div class="column-option">
-                    <label>
-                        <input type="checkbox" data-column="4" checked> واردکننده
-                    </label>
-                </div>
-                <div class="column-option">
-                    <label>
-                        <input type="checkbox" data-column="5" checked> باربری
-                    </label>
-                </div>
-                <div class="column-option">
-                    <label>
-                        <input type="checkbox" data-column="6" checked> قیمت فروش
-                    </label>
-                </div>
-                <div class="column-option">
-                    <label>
-                        <input type="checkbox" data-column="7" checked> محل بارگیری
-                    </label>
-                </div>
-                <div class="column-option">
-                    <label>
-                        <input type="checkbox" data-column="8" checked> زمان بارگیری
-                    </label>
-                </div>
-                <div class="column-option">
-                    <label>
-                        <input type="checkbox" data-column="9" checked> توضیحات
-                    </label>
-                </div>
-                <div class="column-option">
-                    <label>
-                        <input type="checkbox" data-column="10" checked> وضعیت
-                    </label>
-                </div>
-            </div>
-        </div>
         <a href="{% url 'barbary_list' %}" class="btn btn-primary" style="margin-right: 10px;">
             <span class="btn-icon"><i class="fas fa-truck"></i></span>
             مدیریت باربری‌ها
@@ -395,6 +334,7 @@
         </a>
     </div>
     {% endif %}
+    
     <form id="bulkEditForm" action="{% url 'bulk_edit_cargo_products' %}" method="post" style="display: none;">
         {% csrf_token %}
         <input type="hidden" name="product_ids" id="product_ids">
@@ -402,30 +342,30 @@
     
     <div class="card animate-slide-up" style="animation-delay: 0.1s;">
         <div class="card-header">
-            <h2 class="text-lg font-semibold">محصولات و کوتاژهای فعال</h2>
+            <h2 class="text-lg font-semibold" style="color: white;">محصولات و کوتاژهای فعال</h2>
             <span class="badge badge-success">{{ cargo_products|length }} محصول</span>
         </div>
-        <div class="card-body p-0">
-            <div class="overflow-x-auto">
-                <table class="table-hover" id="activeProductsTable">
+        <div class="card-body" style="padding: 0;">
+            <div style="overflow-x: auto;">
+                <table class="enable-filter" id="activeProductsTable">
                     <thead>
                         <tr>
                             <th style="width: 40px;"><input type="checkbox" id="select-all" onclick="toggleAllActive()"></th>
-                            <th onclick="sortTable(1, 'activeProductsTable')">کوتاژ <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(2, 'activeProductsTable')">نوع محصول <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(3, 'activeProductsTable')">کشور <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(4, 'activeProductsTable')">واردکننده <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(5, 'activeProductsTable')">باربری <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(6, 'activeProductsTable')">قیمت فروش <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(7, 'activeProductsTable')">محل بارگیری <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(8, 'activeProductsTable')">زمان بارگیری <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(9, 'activeProductsTable')">توضیحات <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(10, 'activeProductsTable')">وضعیت <span class="sort-icon"></span></th>
+                            <th data-column-type="text">کوتاژ</th>
+                            <th data-column-type="text">نوع محصول</th>
+                            <th data-column-type="text">کشور</th>
+                            <th data-column-type="text">واردکننده</th>
+                            <th data-column-type="text">باربری</th>
+                            <th data-column-type="number">قیمت فروش</th>
+                            <th data-column-type="text">محل بارگیری</th>
+                            <th data-column-type="date">زمان بارگیری</th>
+                            <th data-column-type="text">توضیحات</th>
+                            <th data-column-type="status">وضعیت</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for product in cargo_products %}
-                            <tr onclick="toggleSelection(this, {{ product.id }});" class="animate-fade-in" style="animation-delay: {{ forloop.counter0|add:1|divisibleby:10 }}0ms">
+                            <tr onclick="toggleSelection(this, '{{ product.id }}');" class="animate-fade-in">
                                 <td>
                                     <input type="checkbox" name="product_id" value="{{ product.id }}" onclick="event.stopPropagation();">
                                 </td>
@@ -434,23 +374,23 @@
                                 <td>{{ product.get_country_display }}</td>
                                 <td>{{ product.vared_konandeh.name|default:"-" }}</td>
                                 <td>{{ product.barbary.name|default:"-" }}</td>
-                                <td>{{ product.customer_price }}</td>
+                                <td data-value="{{ product.customer_price }}">{{ product.customer_price }}</td>
                                 <td>{{ product.port }}</td>
-                                <td>{{ product.loading_time }}</td>
+                                <td data-value="{{ product.loading_time }}">{{ product.loading_time }}</td>
                                 <td>{{ product.description }}</td>
                                 <td>
                                     <span class="badge badge-success">
-                                        <i class="fas fa-check-circle mr-1"></i>
+                                        <i class="fas fa-check-circle" style="margin-left: 0.25rem;"></i>
                                         فعال
                                     </span>
                                 </td>
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="11" class="text-center py-6">
-                                    <div class="flex flex-col items-center">
-                                        <i class="fas fa-box-open text-4xl mb-3 text-gray-300"></i>
-                                        <p class="text-gray-500">هیچ محصول فعالی یافت نشد</p>
+                                <td colspan="11" style="text-align: center; padding: 3rem;">
+                                    <div style="display: flex; flex-direction: column; align-items: center;">
+                                        <i class="fas fa-box-open" style="font-size: 2.5rem; margin-bottom: 1rem; color: #ccc;"></i>
+                                        <p style="color: #666;">هیچ محصول فعالی یافت نشد</p>
                                     </div>
                                 </td>
                             </tr>
@@ -463,34 +403,34 @@
     
     <details class="dropdown-container animate-slide-up" style="animation-delay: 0.2s;">
         <summary class="dropdown-header">
-            <div class="flex items-center">
-                <i class="fas fa-archive mr-2"></i>
+            <div style="display: flex; align-items: center;">
+                <i class="fas fa-archive" style="margin-left: 0.5rem;"></i>
                 لیست محصولات و کوتاژهای غیرفعال
-                <span class="badge badge-danger ml-2">{{ deactive_cargo_products|length }}</span>
+                <span class="badge badge-danger" style="margin-right: 0.5rem;">{{ deactive_cargo_products|length }}</span>
             </div>
             <i class="fas fa-chevron-down dropdown-icon"></i>
         </summary>
         <div class="dropdown-content">
-            <div class="overflow-x-auto">
-                <table class="table-hover" id="inactiveProductsTable">
+            <div style="overflow-x: auto;">
+                <table class="enable-filter" id="inactiveProductsTable">
                     <thead>
                         <tr>
                             <th style="width: 40px;"><input type="checkbox" id="select-all-inactive" onclick="toggleAllInactive()"></th>
-                            <th onclick="sortTable(1, 'inactiveProductsTable')">کوتاژ <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(2, 'inactiveProductsTable')">نوع محصول <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(3, 'inactiveProductsTable')">کشور <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(4, 'inactiveProductsTable')">واردکننده <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(5, 'inactiveProductsTable')">باربری <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(6, 'inactiveProductsTable')">قیمت فروش <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(7, 'inactiveProductsTable')">محل بارگیری <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(8, 'inactiveProductsTable')">زمان بارگیری <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(9, 'inactiveProductsTable')">توضیحات <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(10, 'inactiveProductsTable')">وضعیت <span class="sort-icon"></span></th>
+                            <th data-column-type="text">کوتاژ</th>
+                            <th data-column-type="text">نوع محصول</th>
+                            <th data-column-type="text">کشور</th>
+                            <th data-column-type="text">واردکننده</th>
+                            <th data-column-type="text">باربری</th>
+                            <th data-column-type="number">قیمت فروش</th>
+                            <th data-column-type="text">محل بارگیری</th>
+                            <th data-column-type="date">زمان بارگیری</th>
+                            <th data-column-type="text">توضیحات</th>
+                            <th data-column-type="status">وضعیت</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for product in deactive_cargo_products %}
-                            <tr onclick="toggleSelection(this, {{ product.id }});">
+                            <tr onclick="toggleSelection(this, '{{ product.id }}');">
                                 <td>
                                     <input type="checkbox" name="product_id" value="{{ product.id }}" onclick="event.stopPropagation();">
                                 </td>
@@ -499,21 +439,21 @@
                                 <td>{{ product.get_country_display }}</td>
                                 <td>{{ product.vared_konandeh.name|default:"-" }}</td>
                                 <td>{{ product.barbary.name|default:"-" }}</td>
-                                <td>{{ product.customer_price }}</td>
+                                <td data-value="{{ product.customer_price }}">{{ product.customer_price }}</td>
                                 <td>{{ product.port }}</td>
-                                <td>{{ product.loading_time }}</td>
+                                <td data-value="{{ product.loading_time }}">{{ product.loading_time }}</td>
                                 <td>{{ product.description }}</td>
                                 <td>
                                     <span class="badge badge-danger">
-                                        <i class="fas fa-times-circle mr-1"></i>
+                                        <i class="fas fa-times-circle" style="margin-left: 0.25rem;"></i>
                                         غیرفعال
                                     </span>
                                 </td>
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="11" class="text-center py-6">
-                                    <p class="text-gray-500">هیچ محصول غیرفعالی یافت نشد</p>
+                                <td colspan="11" style="text-align: center; padding: 3rem;">
+                                    <p style="color: #666;">هیچ محصول غیرفعالی یافت نشد</p>
                                 </td>
                             </tr>
                         {% endfor %}
@@ -529,7 +469,6 @@
         var checkbox = row.querySelector('input[type="checkbox"]');
         checkbox.checked = !checkbox.checked;
         
-        // اضافه کردن یا حذف کلاس selected برای نمایش انتخاب
         if (checkbox.checked) {
             row.classList.add('selected');
         } else {
@@ -580,150 +519,18 @@
         }
     }
 
-    // تابع مرتب سازی جدول
-    function sortTable(n, tableId) {
-        var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
-        table = document.getElementById(tableId);
-        switching = true;
-        // تنظیم جهت مرتب سازی به صعودی
-        dir = "asc";
-        
-        // پاکسازی تمام آیکون‌های مرتب‌سازی قبلی
-        table.querySelectorAll('th .sort-icon').forEach(function(icon) {
-            icon.className = 'sort-icon';
-        });
-        
-        // بروزرسانی آیکون مرتب‌سازی برای ستون فعلی
-        var currentIcon = table.rows[0].cells[n].querySelector('.sort-icon');
-        
-        while (switching) {
-            switching = false;
-            rows = table.rows;
-            
-            // حلقه در میان تمام ردیف‌های جدول به جز سرصفحه
-            for (i = 1; i < (rows.length - 1); i++) {
-                shouldSwitch = false;
-                
-                // دریافت دو عنصر برای مقایسه
-                x = rows[i].cells[n];
-                y = rows[i + 1].cells[n];
-                
-                // بررسی اگر دو ردیف باید جابجا شوند
-                if (dir == "asc") {
-                    if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
-                        shouldSwitch = true;
-                        break;
-                    }
-                } else if (dir == "desc") {
-                    if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
-                        shouldSwitch = true;
-                        break;
-                    }
-                }
-            }
-            
-            if (shouldSwitch) {
-                // اگر باید جابجا شود، انجام جابجایی و ادامه حلقه
-                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-                switching = true;
-                switchcount++;
-            } else {
-                // اگر هیچ جابجایی انجام نشده و جهت فعلی "asc" است، تغییر به "desc" و شروع مجدد حلقه
-                if (switchcount == 0 && dir == "asc") {
-                    dir = "desc";
-                    switching = true;
-                }
-            }
-        }
-        
-        // تنظیم کلاس آیکون مرتب‌سازی بر اساس جهت
-        if (dir === "asc") {
-            currentIcon.className = 'sort-icon asc';
-        } else {
-            currentIcon.className = 'sort-icon desc';
-        }
-    }
-
-    // تابع تغییر نمایش ستون‌ها
-    function toggleColumnVisibility() {
-        var checkboxes = document.querySelectorAll('#columnOptions input[type="checkbox"]');
-        var activeTable = document.getElementById('activeProductsTable');
-        var inactiveTable = document.getElementById('inactiveProductsTable');
-        
-        checkboxes.forEach(function(checkbox) {
-            var columnIndex = checkbox.getAttribute('data-column');
-            var isVisible = checkbox.checked;
-            
-            // تغییر نمایش ستون در جدول محصولات فعال
-            if (activeTable) {
-                var headerCells = activeTable.querySelectorAll('th');
-                var rows = activeTable.querySelectorAll('tr');
-                
-                // تغییر نمایش در سرصفحه
-                if (headerCells[columnIndex]) {
-                    headerCells[columnIndex].style.display = isVisible ? '' : 'none';
-                }
-                
-                // تغییر نمایش در ردیف‌ها
-                rows.forEach(function(row) {
-                    var cells = row.querySelectorAll('td');
-                    if (cells[columnIndex]) {
-                        cells[columnIndex].style.display = isVisible ? '' : 'none';
-                    }
-                });
-            }
-            
-            // تغییر نمایش ستون در جدول محصولات غیرفعال
-            if (inactiveTable) {
-                var inactiveHeaderCells = inactiveTable.querySelectorAll('th');
-                var inactiveRows = inactiveTable.querySelectorAll('tr');
-                
-                // تغییر نمایش در سرصفحه
-                if (inactiveHeaderCells[columnIndex]) {
-                    inactiveHeaderCells[columnIndex].style.display = isVisible ? '' : 'none';
-                }
-                
-                // تغییر نمایش در ردیف‌ها
-                inactiveRows.forEach(function(row) {
-                    var cells = row.querySelectorAll('td');
-                    if (cells[columnIndex]) {
-                        cells[columnIndex].style.display = isVisible ? '' : 'none';
-                    }
-                });
-            }
-        });
-    }
-
-    // نمایش/پنهان کردن منوی تنظیمات ستون
-    function toggleColumnOptions() {
-        var menu = document.getElementById('columnOptions');
-        menu.classList.toggle('show');
-    }
-
-    // بستن منوی تنظیمات ستون با کلیک خارج از آن
-    document.addEventListener('click', function(event) {
-        var menu = document.getElementById('columnOptions');
-        var button = document.querySelector('.column-options-btn');
-        
-        if (!menu.contains(event.target) && !button.contains(event.target)) {
-            menu.classList.remove('show');
-        }
-    });
-    
     // اضافه کردن آیکون‌های Font Awesome
     document.addEventListener('DOMContentLoaded', function() {
-        // اگر لینک Font Awesome قبلاً اضافه نشده باشد، آن را اضافه کن
         if (!document.querySelector('link[href*="font-awesome"]')) {
             var link = document.createElement('link');
             link.rel = 'stylesheet';
             link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css';
             document.head.appendChild(link);
         }
-        
-        // افزودن event listener برای تغییر نمایش ستون‌ها
-        document.querySelectorAll('#columnOptions input[type="checkbox"]').forEach(function(checkbox) {
-            checkbox.addEventListener('change', toggleColumnVisibility);
-        });
     });
 </script>
+
+<!-- Initialize table filters -->
+{% enable_table_filter %}
+
 {% endblock %}

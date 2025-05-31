@@ -2529,7 +2529,7 @@ body {
 /* استایل دسته خروج */
 .logout-category {
   margin-top: 20px;
-  background-color: rgba(255, 0, 0, 0.1);
+  background-color: rgba(198, 14, 14, 0.1);
 }
 
 .logout-category a {
@@ -2537,7 +2537,7 @@ body {
 }
 
 .logout-category a:hover {
-  background-color: rgba(255, 0, 0, 0.2) !important;
+  background-color: rgba(255, 0, 0, 0.923) !important;
 }
 
 /* استایل دسته مدیریت داده‌ها */

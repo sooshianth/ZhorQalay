@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'bki_barnameh.apps.BkiBarnamehConfig',
     'bki_cargos.apps.BkiCargosConfig',
     'data_exflow.apps.DataExflowConfig',
+    'table_filter.apps.TableFilterConfig',
 ]
 
 MIDDLEWARE = [
@@ -149,6 +150,7 @@ STATICFILES_DIRS = [
     BASE_DIR / "sales/static",
     BASE_DIR / "ERP/static",
     BASE_DIR / "authentication/static",
+    BASE_DIR / "table_filter/static",
     # BASE_DIR / "excel_manager/static",
     # BASE_DIR / "sms_api/static",
 ]

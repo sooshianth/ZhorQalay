@@ -1,9 +1,11 @@
 {% extends 'base.html' %}
 {% load humanize %}
+{% load table_filter_tags %}
 
 {% block title %}لیست پیشرفته مشتریان{% endblock %}
 
 {% block extra_css %}
+{% table_filter_scripts %}
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 <style>
@@ -215,49 +217,6 @@
         position: relative;
     }
     
-    /* استایل برای آیکون‌های مرتب‌سازی */
-    .sort-icon {
-        font-size: 0.7rem;
-        color: #ccc;
-        display: block;
-        margin: -3px 0;
-        transition: all 0.2s ease;
-    }
-    
-    .sort-icon:hover {
-        color: #666;
-    }
-    
-    .sort-icon.active {
-        color: #0d6efd;
-    }
-    
-    .sort-container {
-        display: inline-flex;
-        align-items: center;
-    }
-    
-    .sort-icons {
-        display: flex;
-        flex-direction: column;
-        margin-right: 0.5rem;
-    }
-    
-    .sort-icon {
-        color: #cbd5e1;
-        font-size: 0.7rem;
-        line-height: 0.5;
-        transition: color 0.2s ease;
-    }
-    
-    .sort-icon:hover {
-        color: #3b82f6;
-    }
-    
-    .sort-icon.active {
-        color: #2563eb;
-    }
-    
     td {
         padding: 1rem;
         border-bottom: 1px solid var(--border-color);
@@ -312,7 +271,7 @@
     <div class="flex flex-col md:flex-row justify-between items-center mb-6 card p-4 animate-slide-up">
         <h1 class="text-3xl font-bold text-indigo-800 mb-3 md:mb-0">لیست پیشرفته مشتریان</h1>
         <div class="flex gap-3">
-            <button id="toggle-filters-btn" class="btn-secondary px-4 py-2 shadow-md flex items-center">
+            <button type="button" id="toggle-filters-btn" class="btn-secondary px-4 py-2 shadow-md flex items-center">
                 <i class="fas fa-filter mr-2"></i>فیلترهای پیشرفته
             </button>
             <a href="{% url 'sales_agent_profile' %}" class="btn-secondary px-4 py-2 shadow-md flex items-center">
@@ -489,79 +448,91 @@
         </div>
     </div>
     
-    <!-- جدول مشتریان با امکان انتخاب چندگانه -->    <form id="sms-selection-form" class="card p-0 mb-6 animate-slide-up" style="animation-delay: 0.5s;">        {% csrf_token %}        <div class="overflow-x-auto">            <table class="min-w-full table-hover">                <thead>                    <tr>                        <th width="40px" class="px-6 py-3 text-right">                            <input type="checkbox" id="select-all-checkbox" class="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">                        </th>                        <th width="40px" class="px-6 py-3 text-right">
-                            <div class="flex items-center justify-end">
-                                <span>علاقه</span>
-                                <div class="flex flex-col mr-2">
-                                    <a href="?sort=favorite_asc{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="sort-icon {% if sort_key == 'favorite_asc' %}active{% endif %}">
-                                        <i class="fas fa-caret-up"></i>
-                                    </a>
-                                    <a href="?sort=favorite_desc{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="sort-icon {% if sort_key == 'favorite_desc' %}active{% endif %}">
-                                        <i class="fas fa-caret-down"></i>
-                                    </a>
+    <!-- جدول مشتریان با امکان انتخاب چندگانه -->
+    <form id="sms-selection-form" class="card p-0 mb-6 animate-slide-up" style="animation-delay: 0.5s;">
+        {% csrf_token %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full table-hover enable-filter">
+                <thead>
+                    <tr>
+                        <th width="40px" class="px-6 py-3 text-right">
+                            <input type="checkbox" id="select-all-checkbox" class="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                        </th>
+                        <th width="40px" class="px-6 py-3 text-right" data-column-type="boolean">
+                            <span>علاقه</span>
+                        </th>
+                        <th class="px-6 py-3 text-right" data-column-type="text">
+                            <span>نام</span>
+                        </th>
+                        <th class="px-6 py-3 text-right" data-column-type="text">
+                            <span>شماره موبایل</span>
+                        </th>
+                        <th class="px-6 py-3 text-right" data-column-type="text">
+                            <span>شهر</span>
+                        </th>
+                        <th class="px-6 py-3 text-right" data-column-type="text">حوزه فعالیت</th>
+                        <th class="px-6 py-3 text-right" data-column-type="number">
+                            <span>تعداد خرید</span>
+                        </th>
+                        <th class="px-6 py-3 text-right" data-column-type="number">
+                            <span>حجم خرید کل (کیلوگرم)</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for customer in customers %}
+                        <tr>
+                            <td class="px-6 py-4 text-right">
+                                <input type="checkbox" name="customer_ids" value="{{ customer.id }}" class="customer-checkbox h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <span class="favorite-icon text-yellow-500 cursor-pointer hover:scale-125 transition-transform" data-customer-id="{{ customer.id }}" data-is-favorite="{{ customer.is_favorite|lower }}">
+                                    {% if customer.is_favorite %}
+                                        <i class="fas fa-star"></i>
+                                    {% else %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <a href="{% url 'general_customer_CRUD' %}?customer_id={{ customer.id }}" class="text-blue-600 hover:text-blue-900 font-medium">
+                                    {{ customer.name }}
+                                </a>
+                            </td>
+                            <td class="px-6 py-4 text-right font-mono">{{ customer.get_primary_phone }}</td>
+                            <td class="px-6 py-4 text-right">
+                                <span class="tag">{{ customer.city }}</span>
+                            </td>
+                            <td class="px-6 py-4 text-right">{{ customer.get_field_of_activity_display }}</td>
+                            <td class="px-6 py-4 text-right" data-value="{{ customer.purchases_made.count }}">
+                                <span class="bg-blue-100 text-blue-800 py-1 px-2 rounded-full text-xs font-medium">
+                                {% if customer.purchases_made.count %}
+                                    {{ customer.purchases_made.count }}
+                                {% else %}
+                                    0
+                                {% endif %}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-right font-medium" data-value="{{ customer.total_purchase_weight }}">
+                                <span class="bg-green-100 text-green-800 py-1 px-2 rounded-full text-xs">
+                                    {{ customer.total_purchase_weight|floatformat:0|default:"0"|intcomma }}
+                                </span>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-10 text-gray-500">
+                                <div class="flex flex-col items-center">
+                                    <i class="fas fa-search text-4xl mb-3 text-gray-300"></i>
+                                    <p>مشتری‌ای یافت نشد</p>
                                 </div>
-                            </div>
-                        </th>                        <th class="px-6 py-3 text-right">
-                            <div class="flex items-center justify-end">
-                                <span>نام</span>
-                                <div class="flex flex-col mr-2">
-                                    <a href="?sort=name_asc{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="sort-icon {% if sort_key == 'name_asc' %}active{% endif %}">
-                                        <i class="fas fa-caret-up"></i>
-                                    </a>
-                                    <a href="?sort=name_desc{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="sort-icon {% if sort_key == 'name_desc' %}active{% endif %}">
-                                        <i class="fas fa-caret-down"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        </th>                        <th class="px-6 py-3 text-right">
-                            <div class="flex items-center justify-end">
-                                <span>شماره موبایل</span>
-                                <div class="flex flex-col mr-2">
-                                    <a href="?sort=phone_asc{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="sort-icon {% if sort_key == 'phone_asc' %}active{% endif %}">
-                                        <i class="fas fa-caret-up"></i>
-                                    </a>
-                                    <a href="?sort=phone_desc{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="sort-icon {% if sort_key == 'phone_desc' %}active{% endif %}">
-                                        <i class="fas fa-caret-down"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        </th>                        <th class="px-6 py-3 text-right">
-                            <div class="flex items-center justify-end">
-                                <span>شهر</span>
-                                <div class="flex flex-col mr-2">
-                                    <a href="?sort=city_asc{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="sort-icon {% if sort_key == 'city_asc' %}active{% endif %}">
-                                        <i class="fas fa-caret-up"></i>
-                                    </a>
-                                    <a href="?sort=city_desc{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="sort-icon {% if sort_key == 'city_desc' %}active{% endif %}">
-                                        <i class="fas fa-caret-down"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        </th>                        <th class="px-6 py-3 text-right">حوزه فعالیت</th>                        <th class="px-6 py-3 text-right">
-                            <div class="flex items-center justify-end">
-                                <span>تعداد خرید</span>
-                                <div class="flex flex-col mr-2">
-                                    <a href="?sort=purchase_asc{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="sort-icon {% if sort_key == 'purchase_asc' %}active{% endif %}">
-                                        <i class="fas fa-caret-up"></i>
-                                    </a>
-                                    <a href="?sort=purchase_desc{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="sort-icon {% if sort_key == 'purchase_desc' %}active{% endif %}">
-                                        <i class="fas fa-caret-down"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        </th>                        <th class="px-6 py-3 text-right">
-                            <div class="flex items-center justify-end">
-                                <span>حجم خرید کل (کیلوگرم)</span>
-                                <div class="flex flex-col mr-2">
-                                    <a href="?sort=amount_asc{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="sort-icon {% if sort_key == 'amount_asc' %}active{% endif %}">
-                                        <i class="fas fa-caret-up"></i>
-                                    </a>
-                                    <a href="?sort=amount_desc{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="sort-icon {% if sort_key == 'amount_desc' %}active{% endif %}">
-                                        <i class="fas fa-caret-down"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        </th>                    </tr>                </thead>                <tbody>                    {% for customer in customers %}                        <tr>                            <td class="px-6 py-4 text-right">                                <input type="checkbox" name="customer_ids" value="{{ customer.id }}" class="customer-checkbox h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">                            </td>                            <td class="px-6 py-4 text-right">                                <span class="favorite-icon text-yellow-500 cursor-pointer hover:scale-125 transition-transform" data-customer-id="{{ customer.id }}" data-is-favorite="{{ customer.is_favorite|lower }}">                                    {% if customer.is_favorite %}                                        <i class="fas fa-star"></i>                                    {% else %}                                        <i class="far fa-star"></i>                                    {% endif %}                                </span>                            </td>                            <td class="px-6 py-4 text-right">                                <a href="{% url 'general_customer_CRUD' %}?customer_id={{ customer.id }}" class="text-blue-600 hover:text-blue-900 font-medium">                                    {{ customer.name }}                                </a>                            </td>                            <td class="px-6 py-4 text-right font-mono">{{ customer.get_primary_phone }}</td>                            <td class="px-6 py-4 text-right">                                <span class="tag">{{ customer.city }}</span>                            </td>                            <td class="px-6 py-4 text-right">{{ customer.get_field_of_activity_display }}</td>                            <td class="px-6 py-4 text-right">                                <span class="bg-blue-100 text-blue-800 py-1 px-2 rounded-full text-xs font-medium">                                {% if customer.purchases_made.count %}                                    {{ customer.purchases_made.count }}                                {% else %}                                    0                                {% endif %}                                </span>                            </td>                            <td class="px-6 py-4 text-right font-medium">                                <span class="bg-green-100 text-green-800 py-1 px-2 rounded-full text-xs">                                    {{ customer.total_purchase_weight|floatformat:0|default:"0"|intcomma }}                                </span>                            </td>                        </tr>                    {% empty %}                        <tr>                            <td colspan="8" class="text-center py-10 text-gray-500">                                <div class="flex flex-col items-center">                                    <i class="fas fa-search text-4xl mb-3 text-gray-300"></i>                                    <p>مشتری‌ای یافت نشد</p>                                </div>                            </td>                        </tr>                    {% endfor %}                </tbody>            </table>        </div>    </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </form>
     
     <!-- پنل ارسال پیامک -->
     <div id="sms-panel" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden modal-overlay z-50">
@@ -621,7 +592,54 @@
         </div>
     </div>
     
-    <!-- Pagination links -->    <div class="flex justify-center mt-8 mb-6 animate-slide-up" style="animation-delay: 0.6s;">        <nav aria-label="Page navigation" class="card p-3">            <ul class="pagination flex gap-2 flex-wrap justify-center">                {% if customers.has_previous %}                    <li class="pagination-item">                        <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"                            class="pagination-link" title="صفحه اول">                            <i class="fas fa-angle-double-right"></i>                        </a>                    </li>                    <li class="pagination-item">                        <a href="?page={{ customers.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"                            class="pagination-link" title="صفحه قبلی">                            <i class="fas fa-angle-right"></i>                        </a>                    </li>                {% endif %}                <li class="pagination-item">                    <span class="pagination-link active">{{ customers.number }}</span>                </li>                                {% if customers.paginator.num_pages > 1 %}                    <li class="pagination-item">                        <span class="text-gray-600 py-2">از</span>                    </li>                    <li class="pagination-item">                        <span class="pagination-link bg-gray-100">{{ customers.paginator.num_pages }}</span>                    </li>                {% endif %}                {% if customers.has_next %}                    <li class="pagination-item">                        <a href="?page={{ customers.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"                            class="pagination-link" title="صفحه بعدی">                            <i class="fas fa-angle-left"></i>                        </a>                    </li>                    <li class="pagination-item">                        <a href="?page={{ customers.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"                            class="pagination-link" title="صفحه آخر">                            <i class="fas fa-angle-double-left"></i>                        </a>                    </li>                {% endif %}            </ul>        </nav>    </div></div>{% endblock %}
+    <!-- Pagination links -->
+    <div class="flex justify-center mt-8 mb-6 animate-slide-up" style="animation-delay: 0.6s;">
+        <nav aria-label="Page navigation" class="card p-3">
+            <ul class="pagination flex gap-2 flex-wrap justify-center">
+                {% if customers.has_previous %}
+                    <li class="pagination-item">
+                        <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                            class="pagination-link" title="صفحه اول">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                    <li class="pagination-item">
+                        <a href="?page={{ customers.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                            class="pagination-link" title="صفحه قبلی">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+                <li class="pagination-item">
+                    <span class="pagination-link active">{{ customers.number }}</span>
+                </li>
+                {% if customers.paginator.num_pages > 1 %}
+                    <li class="pagination-item">
+                        <span class="text-gray-600 py-2">از</span>
+                    </li>
+                    <li class="pagination-item">
+                        <span class="pagination-link bg-gray-100">{{ customers.paginator.num_pages }}</span>
+                    </li>
+                {% endif %}
+                {% if customers.has_next %}
+                    <li class="pagination-item">
+                        <a href="?page={{ customers.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                            class="pagination-link" title="صفحه بعدی">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    </li>
+                    <li class="pagination-item">
+                        <a href="?page={{ customers.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                            class="pagination-link" title="صفحه آخر">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</div>
+{% endblock %}
 
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8/dist/sweetalert2.all.min.js"></script>
@@ -629,28 +647,36 @@
     document.addEventListener('DOMContentLoaded', function() {
         console.log('DOM fully loaded');
         
-        // تابع ساده برای نشان دادن/مخفی کردن فیلترها
+        // تنظیم فیلتر مناسب برای لیست مشتریان
         var toggleFiltersBtn = document.getElementById('toggle-filters-btn');
-        if (toggleFiltersBtn) {
-            toggleFiltersBtn.addEventListener('click', function() {
-                var filtersContainer = document.getElementById('filters-container');
-                if (filtersContainer) {
-                    filtersContainer.classList.toggle('hidden');
+        var filtersContainer = document.getElementById('filters-container');
+        
+        if (toggleFiltersBtn && filtersContainer) {
+            // توقف کامل propagation برای دکمه فیلترها
+            toggleFiltersBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                filtersContainer.classList.toggle('hidden');
+                return false;
+            });
+            
+            // توقف propagation برای درون منوی فیلتر
+            filtersContainer.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+            
+            // اضافه کردن event listener برای کلیک خارج از منو
+            document.addEventListener('click', function(e) {
+                if (!filtersContainer.classList.contains('hidden')) {
+                    if (!filtersContainer.contains(e.target) && 
+                        e.target !== toggleFiltersBtn && 
+                        !toggleFiltersBtn.contains(e.target)) {
+                        filtersContainer.classList.add('hidden');
+                    }
                 }
             });
         }
         
-        // بستن فیلترها
-        var closeFiltersBtn = document.getElementById('close-filters-btn');
-        if (closeFiltersBtn) {
-            closeFiltersBtn.addEventListener('click', function() {
-                var filtersContainer = document.getElementById('filters-container');
-                if (filtersContainer) {
-                    filtersContainer.classList.add('hidden');
-                }
-            });
-        }
-
         // حذف فیلترها
         var resetFiltersBtn = document.getElementById('reset-filters');
         if (resetFiltersBtn) {
@@ -900,4 +926,8 @@
     // کد مربوط به قالب‌های پیامک و سایر عملکردها را حفظ می‌کنیم
     // ...
 </script>
+
+<!-- Initialize table filters -->
+{% enable_table_filter %}
+
 {% endblock %} 
