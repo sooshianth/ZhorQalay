@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Static Files Test</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=1748703972">
+    <link rel="stylesheet" href="/static/css_files/purchase_list_style.css?v=1748703972">
+</head>
+<body>
+    <h1>Static Files Test</h1>
+    <div class="sidebar" style="position: relative; display: block;">
+        <div class="sidebar-header">
+            <img src="/static/images/3-min.webp?v=1748703972" alt="Logo" class="sidebar-logo">
+            <h2 class="sidebar-title">سیمرغ افزار</h2>
+        </div>
+    </div>
+    
+    <script src="/static/js/drag_and_drop_columns.js?v=1748703972"></script>
+    <script src="/static/table_filter/js/table_filter.js?v=1748703972"></script>
+    
+    <script>
+        // تست بارگذاری فایل‌ها
+        window.onload = function() {
+            console.log('Page loaded');
+            
+            // تست CSS
+            var cssLoaded = getComputedStyle(document.querySelector('.sidebar')).position;
+            console.log('CSS loaded:', cssLoaded !== 'static');
+            
+            // تست تصاویر
+            var img = document.querySelector('img');
+            console.log('Image loaded:', img.complete && img.naturalHeight !== 0);
+        };
+    </script>
+</body>
+</html>
