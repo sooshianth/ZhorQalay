@@ -4,14 +4,18 @@
 {% load table_filter_tags %}
 
 {% block head_styles %}
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    <link rel="stylesheet" href="{% static 'css_files/purchase_list_style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=1748703972">
+    <link rel="stylesheet" href="{% static 'css_files/purchase_list_style.css' %}?v=1748703972">
     {% table_filter_scripts %}
     {% bulk_edit_scripts %}
     {% edit_history_scripts %}
-    <script src="{% static 'js/drag_and_drop_columns.js' %}"></script>
+    <script src="{% static 'js/drag_and_drop_columns.js' %}?v=1748703972"></script>
     <!-- CSRF Token for AJAX requests -->
     <meta name="csrf-token" content="{{ csrf_token }}">
+    <!-- Force refresh meta tags for production -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <style>
         /* استایل برای خرید‌های فوری */
         tr.urgent-row {

@@ -1,0 +1,22 @@
+
+# دستورات برای سرور Production
+
+# 1. پاک کردن Cache Django
+python manage.py clearcache
+
+# 2. جمع‌آوری فایل‌های Static
+python manage.py collectstatic --noinput --clear
+
+# 3. اعمال Migration ها (در صورت نیاز)
+python manage.py migrate
+
+# 4. راه‌اندازی مجدد وب سرور (IIS/Apache/Nginx)
+# برای IIS:
+# iisreset
+
+# 5. پاک کردن Cache مرورگر کاربران
+# این کار باید توسط کاربران انجام شود یا از Cache Busting استفاده کنید
+
+# دستورات PowerShell برای Windows Server:
+# Restart-WebAppPool "DefaultAppPool"
+# iisreset

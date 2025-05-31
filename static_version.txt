@@ -1,0 +1,10 @@
+
+# Cache Buster Information
+# Generated: 2025-05-31 18:36:12
+# Version: 1748703972
+
+# برای استفاده در تمپلیت‌ها از این version استفاده کنید:
+# href="{{ static 'css/style.css' }}?v=1748703972"
+# src="{{ static 'js/script.js' }}?v=1748703972"
+
+STATIC_VERSION = "1748703972"

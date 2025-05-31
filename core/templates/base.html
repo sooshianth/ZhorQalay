@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}سیستم CRM{% endblock %}</title>
     {% load static %}
-    <link rel="icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}" loading="lazy">
+    <link rel="icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}?v=1748703972" loading="lazy">
     {% block head_styles %}
-        <link rel="stylesheet" href="{% static 'css/style.css' %}">
+        <link rel="stylesheet" href="{% static 'css/style.css' %}?v=1748703972">
     {% endblock %}
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" loading="lazy"></script>
@@ -21,6 +21,11 @@
     <!-- Tabulator CSS -->
     <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator_bootstrap5.min.css" rel="stylesheet">
     {% block extra_css %}{% endblock %}
+    
+    <!-- Force refresh meta tags for production -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
 </head>
 <body>
     <!-- دکمه همبرگر برای باز کردن نوبار -->
@@ -34,7 +39,7 @@
     <!-- نوبار سمت راست -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <img src="{% static 'images/3-min.webp' %}" loading="lazy" alt="Logo" class="sidebar-logo">
+            <img src="{% static 'images/3-min.webp' %}?v=1748703972" loading="lazy" alt="Logo" class="sidebar-logo">
             <h2 class="sidebar-title">سیمرغ افزار</h2>
             <button class="sidebar-close" id="sidebarClose">
                 <i class="fas fa-times"></i>
@@ -157,7 +162,7 @@
     </div>
 
     <div class="mobile-header" id="mobile-header">
-        <img src="{% static 'images/3-min.webp' %}" loading="lazy" alt="Logo" class="mobile-header-logo">
+        <img src="{% static 'images/3-min.webp' %}?v=1748703972" loading="lazy" alt="Logo" class="mobile-header-logo">
         <h2 class="mobile-header-title">سیمرغ افزار</h2>
     </div>
     
@@ -166,7 +171,7 @@
             <div class="container">
                 <div class="header-top">
                     <a href="{% url 'home_view' %}">
-                        <img src="{% static 'images/3-min.webp' %}" loading="lazy" width='55px' alt="Logo" class="header-logo">
+                        <img src="{% static 'images/3-min.webp' %}?v=1748703972" loading="lazy" width='55px' alt="Logo" class="header-logo">
                     </a>
                     <h1>سامانه جامع سیمرغ‌ افزار</h1>
                     <div class="mobile-controls">
@@ -214,7 +219,7 @@
             <div class="footer-container">
                 <div class="footer-logo-section">
                     <a href="{% url 'home_view' %}">
-                        <img src="{% static 'images/3-min.webp' %}" alt="لوگوی شرکت" class="footer-logo" loading="lazy">
+                        <img src="{% static 'images/3-min.webp' %}?v=1748703972" alt="لوگوی شرکت" class="footer-logo" loading="lazy">
                     </a>
                 </div>
                 
