@@ -3,6 +3,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: 'Vazir', sans-serif !important; /* اضافه کردن important برای اطمینان از اعمال فونت */
 }
 
 /* تعریف رنگ‌های اصلی */
@@ -13,19 +14,24 @@
   --background-color: #ECFDF5; /* سبز مایل به خاکستری */
   --footer-color: #064E3B;    /* سبز مشکی عمیق */
   --text-color: #0F172A;      /* مشکی مات */
+  --font-family: 'Vazir', sans-serif; /* تعریف متغیر برای فونت */
 }
 
 /* تنظیم کلی برای راست‌چین و استایل پایه */
 body {
   direction: rtl;
   text-align: right;
-  font-family: 'Vazir', sans-serif; /* فونت جدید */
+  font-family: var(--font-family);
   background-color: var(--background-color);
   color: var(--text-color);
   line-height: 1.6;
   padding-top: 0;
 }
 
+/* اطمینان از اعمال فونت به همه عناصر فرم، جداول و دکمه‌ها */
+button, .button, input, textarea, select, table, th, td, h1, h2, h3, h4, h5, h6, p, a, span, div {
+  font-family: var(--font-family) !important;
+}
 
 /* تغییرات برای استایل هدر و عنوان */
 header {

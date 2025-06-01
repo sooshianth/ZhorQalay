@@ -159,7 +159,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-DEFAULT_LOGIN_URL = 'sales_agent_login'
+DEFAULT_LOGIN_URL = 'welcome_profile'
 DEFAULT_LOGIN_REDIRECT_URL = 'home_view'
 DEFAULT_LOGOUT_URL = 'logout'
 

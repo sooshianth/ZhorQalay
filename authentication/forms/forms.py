@@ -184,39 +184,43 @@ class OTPLoginForm(forms.Form):
         return {'success': False, 'message': "شماره موبایل یا کد تایید وارد نشده است"}
     
     def find_user_by_phone(self, phone):
-        """
-        پیدا کردن کاربر با شماره موبایل بدون توجه به نقش
-        """
-        # وارد کردن همه مدل‌ها در ابتدا برای جلوگیری از وارد کردن مکرر
-        from core.SalesAgentModel import SalesAgent
-        from core.LogisticsManagerModel import LogisticsManager
-        from core.FinancialManagerModel import FinancialManager
-        from core.SupportAgentModel import SupportAgent
-        from HR.EmployeeModel import Employee
+        # """
+        # پیدا کردن کاربر با شماره موبایل بدون توجه به نقش
+        # """
+        # # وارد کردن همه مدل‌ها در ابتدا برای جلوگیری از وارد کردن مکرر
+        # from core.SalesAgentModel import SalesAgent
+        # from core.LogisticsManagerModel import LogisticsManager
+        # from core.FinancialManagerModel import FinancialManager
+        # from core.SupportAgentModel import SupportAgent
+        # from HR.EmployeeModel import Employee
         
-        models_to_check = [
-            (FinancialManager, 'phone_number'),
-            (LogisticsManager, 'phone_number'),
-            (SalesAgent, 'phone_number'),
-            (SupportAgent, 'phone_number'),
-            (Employee, 'phone_number')
-        ]
+        # models_to_check = [
+        #     (FinancialManager, 'phone_number'),
+        #     (LogisticsManager, 'phone_number'),
+        #     (SalesAgent, 'phone_number'),
+        #     (SupportAgent, 'phone_number'),
+        #     (Employee, 'phone_number')
+        # ]
         
-        for model, field_name in models_to_check:
-            try:
-                # ایجاد پرس و جوی پویا
-                query = {field_name: phone}
-                instance = model.objects.filter(**query).first()
-                if instance:
-                    logger.info(f"کاربر با نقش {model.__name__} و شماره {phone} یافت شد")
-                    return instance.user
-            except Exception as e:
-                logger.error(f"خطا در بررسی {model.__name__}: {e}")
-                continue
+        # for model, field_name in models_to_check:
+        #     try:
+        #         # ایجاد پرس و جوی پویا
+        #         query = {field_name: phone}
+        #         instance = model.objects.filter(**query).first()
+        #         if instance:
+        #             logger.info(f"کاربر با نقش {model.__name__} و شماره {phone} یافت شد")
+        #             return instance.user
+        #     except Exception as e:
+        #         logger.error(f"خطا در بررسی {model.__name__}: {e}")
+        #         continue
         
-        logger.warning(f"کاربری با شماره {phone} یافت نشد")
+        # logger.warning(f"کاربری با شماره {phone} یافت نشد")
+        # return None
+        from authentication.models import UserPhoneNumber
+        user = UserPhoneNumber.objects.filter(phone_number=phone).first()
+        if user:
+            return user.user
         return None
-
 
 class SalesAgentLoginForm(OTPLoginForm):
     def __init__(self, *args, **kwargs):
