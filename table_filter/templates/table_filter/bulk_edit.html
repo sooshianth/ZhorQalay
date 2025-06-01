@@ -6,330 +6,683 @@
 {% block head_styles %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'table_filter/css/bulk_edit.css' %}">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
-        /* استایل‌های اضافی برای بهبود ظاهر */
+        :root {
+            --primary-color: #065F46;
+            --primary-hover: #064E3B;
+            --primary-light: #10B981;
+            --secondary-color: #059669;
+            --secondary-hover: #047857;
+            --accent-color: #34D399;
+            --danger-color: #DC2626;
+            --warning-color: #F59E0B;
+            --info-color: #3B82F6;
+            --success-color: #10B981;
+            --light-bg: #F0FDF4;
+            --card-bg: #ffffff;
+            --text-color: #1F2937;
+            --text-light: #6B7280;
+            --text-muted: #9CA3AF;
+            --border-color: #D1FAE5;
+            --input-bg: #F9FDF9;
+            --input-focus: #ffffff;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        body {
+            background: linear-gradient(135deg, #F0FDF4 0%, #ECFDF5 100%);
+            color: var(--text-color);
+            line-height: 1.6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        
+        /* کارت‌ها */
         .card {
-            border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
             overflow: hidden;
-            transition: all 0.3s ease;
+            margin-bottom: 2rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
         }
         
         .card:hover {
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-            transform: translateY(-5px);
+            box-shadow: var(--shadow-xl);
+            transform: translateY(-2px);
         }
         
         .card-header {
-            background: linear-gradient(135deg, #065F46, #047857);
-            padding: 20px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 1.5rem 2rem;
             border-bottom: none;
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+            pointer-events: none;
         }
         
         .card-header h4 {
+            margin: 0;
+            font-size: 1.25rem;
             font-weight: 600;
-            display: flex;
-            align-items: center;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
         
-        .alert-info {
-            background-color: #e1f5fe;
-            border-color: #b3e5fc;
-            color: #0288d1;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 25px;
-            position: relative;
-            padding-right: 50px;
+        .card-body {
+            padding: 2rem;
+            background: var(--card-bg);
         }
         
-        .alert-info i {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 1.5em;
-            color: #0288d1;
-        }
-        
+        /* فرم‌ها و ورودی‌ها */
         .form-control, .form-select {
-            border-radius: 10px;
-            padding: 12px 15px;
-            border: 1px solid #e0e0e0;
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
+            background-color: var(--input-bg);
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            padding: 0.875rem 1.25rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: var(--text-color);
+            box-shadow: var(--shadow-sm);
+            font-size: 0.95rem;
         }
         
         .form-control:focus, .form-select:focus {
-            border-color: #065F46;
-            box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.2);
+            background-color: var(--input-focus);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(6, 95, 70, 0.1), var(--shadow-md);
+            outline: none;
+            transform: translateY(-1px);
+        }
+        
+        .form-control:hover, .form-select:hover {
+            border-color: var(--primary-light);
+            box-shadow: var(--shadow-md);
         }
         
         .form-group {
-            background-color: #f9f9f9;
-            padding: 15px;
+            background: linear-gradient(145deg, #ffffff 0%, #fefefe 100%);
             border-radius: 12px;
-            transition: all 0.3s ease;
-            border: 1px solid #f0f0f0;
-            margin-bottom: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            position: relative;
         }
         
         .form-group:hover {
-            background-color: #f3f9f6;
-            border-color: #d7e7e0;
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+            border-color: var(--primary-light);
+        }
+        
+        .form-group::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            border-radius: 0 0 0 12px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .form-group:hover::before {
+            opacity: 1;
         }
         
         .form-label {
-            margin-bottom: 10px;
-            color: #333;
-        }
-        
-        .btn {
-            padding: 12px 25px;
-            border-radius: 10px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-success {
-            background: linear-gradient(135deg, #28a745, #218838);
-            border: none;
-            box-shadow: 0 4px 10px rgba(40, 167, 69, 0.2);
-        }
-        
-        .btn-success:hover {
-            background: linear-gradient(135deg, #218838, #1e7e34);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(40, 167, 69, 0.3);
-        }
-        
-        .btn-secondary {
-            background: linear-gradient(135deg, #6c757d, #5a6268);
-            border: none;
-            box-shadow: 0 4px 10px rgba(108, 117, 125, 0.2);
-        }
-        
-        .btn-secondary:hover {
-            background: linear-gradient(135deg, #5a6268, #4e555b);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(108, 117, 125, 0.3);
-        }
-        
-        .badge {
-            padding: 7px 12px;
-            border-radius: 30px;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-        
-        .table {
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-        
-        .table th {
-            background-color: #f5f5f5;
-            border-bottom: 2px solid #ddd;
             font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.85rem;
-            letter-spacing: 1px;
-        }
-        
-        .table td {
-            padding: 12px 15px;
-            vertical-align: middle;
-        }
-        
-        .table tr:hover {
-            background-color: #f9f9f9;
+            margin-bottom: 0.75rem;
+            color: var(--text-color);
+            display: block;
+            font-size: 0.95rem;
+            letter-spacing: 0.025em;
         }
         
         /* نشانگر فیلدهای یکتا */
         .unique-field-indicator {
-            margin-right: 8px;
-            color: #dc3545;
-            font-size: 0.8rem;
-            font-weight: bold;
-            padding: 2px 6px;
-            background-color: #fff5f5;
-            border-radius: 4px;
-            border: 1px solid #ffcccc;
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);
+            color: var(--danger-color);
+            font-size: 0.7rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            margin-left: 0.75rem;
+            font-weight: 600;
+            vertical-align: middle;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid #FCA5A5;
         }
         
-        /* کلاس جدید برای توضیحات فیلد */
+        .unique-field-indicator::before {
+            content: '⚠';
+            margin-left: 0.25rem;
+            font-size: 0.8rem;
+        }
+        
+        /* دکمه‌ها */
+        .btn {
+            border-radius: 12px;
+            padding: 0.875rem 2rem;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: none;
+            font-size: 0.95rem;
+            letter-spacing: 0.025em;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border: 2px solid transparent;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-hover) 0%, var(--secondary-hover) 100%);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color) 0%, var(--accent-color) 100%);
+            color: white;
+            border: 2px solid transparent;
+        }
+        
+        .btn-success:hover {
+            background: linear-gradient(135deg, var(--secondary-color) 0%, var(--success-color) 100%);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #6B7280 0%, #9CA3AF 100%);
+            color: white;
+            border: 2px solid transparent;
+        }
+        
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #4B5563 0%, #6B7280 100%);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-xl);
+        }
+        
+        /* هشدارها */
+        .alert {
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 2rem;
+            border: none;
+            box-shadow: var(--shadow-md);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .alert::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--info-color);
+        }
+        
+        .alert-info {
+            background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+            color: #1E40AF;
+            border: 1px solid #BFDBFE;
+        }
+        
+        .alert-info::before {
+            background: linear-gradient(180deg, var(--info-color) 0%, #60A5FA 100%);
+        }
+        
         .field-help {
             display: block;
             font-size: 0.8rem;
-            color: #666;
-            margin-top: 5px;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+        
+        /* جدول */
+        .table {
+            width: 100%;
+            margin-bottom: 1rem;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+        }
+        
+        .table th {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            font-weight: 600;
+            padding: 1rem 1.25rem;
+            border: none;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+        }
+        
+        .table td {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+            background-color: white;
+        }
+        
+        .table tbody tr:hover {
+            background: linear-gradient(135deg, #F0FDF4 0%, #ECFDF5 100%);
+            transform: scale(1.01);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .table-responsive {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        /* نشان */
+        .badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            letter-spacing: 0.025em;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .badge-success {
+            background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+            color: #065F46;
+            border: 1px solid #6EE7B7;
+        }
+        
+        .badge-info {
+            background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%);
+            color: #1E40AF;
+            border: 1px solid #93C5FD;
+        }
+        
+        .badge-danger {
+            background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);
+            color: #DC2626;
+            border: 1px solid #FCA5A5;
+        }
+        
+        /* گرید چندستونه مناسب */
+        .fields-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        /* انیمیشن‌ها */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .card {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        .form-group {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        /* استایل‌های select2 */
+        .select2-container--default .select2-selection--single,
+        .select2-container--default .select2-selection--multiple {
+            background-color: var(--input-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            min-height: 48px;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .select2-container--default .select2-selection--multiple .select2-selection__rendered {
+            padding: 8px 12px;
+        }
+        
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 44px;
+            padding-right: 16px;
+            color: var(--text-color);
+        }
+        
+        .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 4px 12px;
+            margin: 4px;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+            color: white;
+            margin-left: 8px;
+            margin-right: 0;
+        }
+        
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: var(--primary-color);
+        }
+        
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 44px;
+        }
+        
+        .select2-dropdown {
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .fields-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .card-body {
+                padding: 1.5rem;
+            }
+            
+            .btn {
+                padding: 0.75rem 1.5rem;
+                font-size: 0.9rem;
+            }
         }
     </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-lg mt-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">
-                        <i class="fas fa-edit me-2"></i>
-                        ویرایش گروهی
-                        <span class="badge bg-light text-dark ms-2">{{ selected_count }} مورد انتخاب شده</span>
-                    </h4>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i>
-                        <strong>راهنما:</strong> فقط فیلدهایی که مقدار وارد کنید تغییر خواهند کرد. فیلدهای خالی بدون تغییر باقی می‌مانند.
+<div class="container-lg my-4">
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-edit me-2"></i>
+                    ویرایش گروهی
+                </h4>
+                <span class="badge bg-light text-dark">{{ selected_count }} مورد انتخاب شده</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <div class="d-flex">
+                    <div class="me-3">
+                        <i class="fas fa-info-circle fa-lg"></i>
+                    </div>
+                    <div>
+                        <p class="mb-1"><strong>راهنما:</strong> فقط فیلدهایی که مقدار وارد کنید تغییر خواهند کرد. فیلدهای خالی بدون تغییر باقی می‌مانند.</p>
+                        
                         {% if selected_count > 1 %}
-                        <div class="mt-2">
-                            <strong>توجه:</strong> هنگام ویرایش چندین مورد، فیلدهای با محدودیت یکتایی نمی‌توانند برای همه موارد یکسان باشند.
-                        </div>
+                        <p class="mb-0"><strong>توجه:</strong> هنگام ویرایش چندین مورد، فیلدهای با محدودیت یکتایی (علامت <span class="unique-field-indicator">یکتا</span>) نمی‌توانند برای همه موارد یکسان باشند.</p>
                         {% endif %}
                     </div>
-
-                    <form method="post" action="{% url 'table_filter:bulk_edit' %}" id="bulkEditForm">
-                        {% csrf_token %}
-                        
-                        <!-- Hidden fields for model info -->
-                        <input type="hidden" name="model_name" value="{{ model_name }}">
-                        <input type="hidden" name="app_name" value="{{ app_name }}">
-                        
-                        <!-- Hidden fields for selected IDs -->
-                        {% for id in selected_ids %}
-                            <input type="hidden" name="selected_ids" value="{{ id }}">
-                        {% endfor %}
-
-                        <div class="row">
-                            {% for field in editable_fields %}
-                            <div class="col-md-6 mb-3">
-                                <div class="form-group">
-                                    <label for="{{ field.name }}" class="form-label fw-bold">
-                                        {% if field.is_unique and selected_count > 1 %}
-                                        <span class="unique-field-indicator" title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد">یکتا</span>
-                                        {% endif %}
-                                        {{ field.label }}
-                                    </label>
-                                    
-                                    {% if field.type == 'text' %}
-                                        <input type="text" 
-                                               class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
-                                               id="{{ field.name }}" 
-                                               name="{{ field.name }}" 
-                                               placeholder="بدون تغییر"
-                                               {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
-                                    
-                                    {% elif field.type == 'number' %}
-                                        <input type="number" 
-                                               class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
-                                               id="{{ field.name }}" 
-                                               name="{{ field.name }}" 
-                                               placeholder="بدون تغییر"
-                                               {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
-                                    
-                                    {% elif field.type == 'textarea' %}
-                                        <textarea class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
-                                                  id="{{ field.name }}" 
-                                                  name="{{ field.name }}" 
-                                                  rows="3" 
-                                                  placeholder="بدون تغییر"
-                                                  {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}></textarea>
-                                    
-                                    {% elif field.type == 'select' %}
-                                        <select class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
-                                                id="{{ field.name }}" 
-                                                name="{{ field.name }}"
-                                                {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
-                                            <option value="">بدون تغییر</option>
-                                            {% for value, label in field.choices %}
-                                                <option value="{{ value }}">{{ label }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    
-                                    {% elif field.type == 'checkbox' %}
-                                        <div class="form-check mt-2">
-                                            <input type="checkbox" 
-                                                   class="form-check-input" 
-                                                   id="{{ field.name }}" 
-                                                   name="{{ field.name }}"
-                                                   {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
-                                            <label class="form-check-label" for="{{ field.name }}">
-                                                {{ field.label }}
-                                            </label>
-                                        </div>
-                                    {% endif %}
-                                    
-                                    {% if field.help_text %}
-                                    <small class="field-help">{{ field.help_text }}</small>
-                                    {% endif %}
-                                    
-                                    {% if field.is_unique and selected_count > 1 %}
-                                    <small class="text-danger">این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد</small>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-
-                        <div class="d-flex justify-content-between mt-4">
-                            <button type="button" class="btn btn-secondary" onclick="history.back()">
-                                <i class="fas fa-arrow-right me-2"></i>بازگشت
-                            </button>
-                            <button type="submit" class="btn btn-success">
-                                <i class="fas fa-save me-2"></i>اعمال تغییرات
-                            </button>
-                        </div>
-                    </form>
                 </div>
             </div>
 
-            <!-- Preview of selected objects -->
-            <div class="card shadow-sm mt-4">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-list me-2"></i>
-                        موارد انتخاب شده برای ویرایش
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>شناسه</th>
-                                    <th>نام/عنوان</th>
-                                    <th>وضعیت فعلی</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for obj in objects %}
-                                <tr>
-                                    <td>{{ obj.id }}</td>
-                                    <td>
-                                        {% if model_name == 'Purchase' %}
-                                            {{ obj.customer.name|default:"نامشخص" }} - {{ obj.purchase_number|default:"بدون شماره" }}
-                                        {% elif model_name == 'Customer' %}
-                                            {{ obj.name }}
-                                        {% else %}
-                                            {{ obj }}
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if model_name == 'Purchase' %}
-                                            <span class="badge bg-info">{{ obj.get_state_display|default:"نامشخص" }}</span>
-                                        {% else %}
-                                            <span class="badge bg-success">فعال</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
+            <form method="post" action="{% url 'table_filter:bulk_edit' %}" id="bulkEditForm">
+                {% csrf_token %}
+                
+                <!-- Hidden fields for model info -->
+                <input type="hidden" name="model_name" value="{{ model_name }}">
+                <input type="hidden" name="app_name" value="{{ app_name }}">
+                
+                <!-- Hidden fields for selected IDs -->
+                {% for id in selected_ids %}
+                    <input type="hidden" name="selected_ids" value="{{ id }}">
+                {% endfor %}
+
+                <div class="fields-grid">
+                    {% for field in editable_fields %}
+                    <div class="form-group">
+                        <label for="{{ field.name }}" class="form-label">
+                            {{ field.label }}
+                            {% if field.is_unique and selected_count > 1 %}
+                            <span class="unique-field-indicator" title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد">یکتا</span>
+                            {% endif %}
+                        </label>
+                        
+                        {% if field.type == 'select' %}
+                            <select class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
+                                    id="{{ field.name }}" 
+                                    name="{{ field.name }}"
+                                    {% if field.multiple %}multiple{% endif %}
+                                    {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
+                                <option value="">بدون تغییر</option>
+                                {% for value, label in field.choices %}
+                                    <option value="{{ value }}">{{ label }}</option>
                                 {% endfor %}
-                            </tbody>
-                        </table>
+                            </select>
+                            
+                            {% if field.help_text %}
+                            <small class="field-help">{{ field.help_text }}</small>
+                            {% endif %}
+                        
+                        {% elif field.type == 'checkbox' %}
+                            <div class="form-check mt-2">
+                                <input type="checkbox" 
+                                       class="form-check-input" 
+                                       id="{{ field.name }}" 
+                                       name="{{ field.name }}"
+                                       {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
+                                <label class="form-check-label" for="{{ field.name }}">
+                                    {{ field.label }}
+                                </label>
+                                {% if field.help_text %}
+                                <small class="field-help d-block mt-1">{{ field.help_text }}</small>
+                                {% endif %}
+                            </div>
+                        
+                        {% elif field.type == 'date' %}
+                            <input type="date" 
+                                   class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
+                                   id="{{ field.name }}" 
+                                   name="{{ field.name }}"
+                                   {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
+                            
+                            {% if field.help_text %}
+                            <small class="field-help">{{ field.help_text }}</small>
+                            {% endif %}
+                        
+                        {% elif field.type == 'datetime-local' %}
+                            <input type="datetime-local" 
+                                   class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
+                                   id="{{ field.name }}" 
+                                   name="{{ field.name }}"
+                                   {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
+                            
+                            {% if field.help_text %}
+                            <small class="field-help">{{ field.help_text }}</small>
+                            {% endif %}
+                        
+                        {% elif field.type == 'time' %}
+                            <input type="time" 
+                                   class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
+                                   id="{{ field.name }}" 
+                                   name="{{ field.name }}"
+                                   {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
+                            
+                            {% if field.help_text %}
+                            <small class="field-help">{{ field.help_text }}</small>
+                            {% endif %}
+                        
+                        {% elif field.type == 'textarea' %}
+                            <textarea class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
+                                      id="{{ field.name }}" 
+                                      name="{{ field.name }}" 
+                                      rows="3" 
+                                      placeholder="بدون تغییر"
+                                      {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}></textarea>
+                            
+                            {% if field.help_text %}
+                            <small class="field-help">{{ field.help_text }}</small>
+                            {% endif %}
+                        
+                        {% elif field.type == 'text' %}
+                            <input type="text" 
+                                   class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
+                                   id="{{ field.name }}" 
+                                   name="{{ field.name }}" 
+                                   placeholder="بدون تغییر"
+                                   {% if field.max_length %}maxlength="{{ field.max_length }}"{% endif %}
+                                   {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
+                            
+                            {% if field.help_text %}
+                            <small class="field-help">{{ field.help_text }}</small>
+                            {% endif %}
+                        
+                        {% elif field.type == 'number' %}
+                            <input type="number" 
+                                   class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
+                                   id="{{ field.name }}" 
+                                   name="{{ field.name }}" 
+                                   placeholder="بدون تغییر"
+                                   {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
+                            
+                            {% if field.help_text %}
+                            <small class="field-help">{{ field.help_text }}</small>
+                            {% endif %}
+                        
+                        {% else %}
+                            <!-- Default fallback for any other field type -->
+                            <input type="text" 
+                                   class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
+                                   id="{{ field.name }}" 
+                                   name="{{ field.name }}" 
+                                   placeholder="بدون تغییر"
+                                   {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
+                            
+                            {% if field.help_text %}
+                            <small class="field-help">{{ field.help_text }}</small>
+                            {% endif %}
+                        {% endif %}
+                        
+                        {% if field.is_unique and selected_count > 1 %}
+                        <small class="text-danger mt-1 d-block">این فیلد دارای محدودیت یکتایی است</small>
+                        {% endif %}
                     </div>
+                    {% endfor %}
                 </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" class="btn btn-secondary" onclick="history.back()">
+                        <i class="fas fa-arrow-right me-2"></i>بازگشت
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save me-2"></i>اعمال تغییرات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Preview of selected objects -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>
+                موارد انتخاب شده برای ویرایش
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>شناسه</th>
+                            <th>نام/عنوان</th>
+                            <th>وضعیت فعلی</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for obj in objects %}
+                        <tr>
+                            <td>{{ obj.id }}</td>
+                            <td>
+                                {% if model_name == 'Purchase' %}
+                                    {{ obj.customer.name|default:"نامشخص" }} - {{ obj.purchase_number|default:"بدون شماره" }}
+                                {% elif model_name == 'Customer' %}
+                                    {{ obj.name }}
+                                {% elif model_name == 'CargoProduct' %}
+                                    {{ obj.cottage }} - {{ obj.get_product_type_display }}
+                                {% else %}
+                                    {{ obj }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if model_name == 'Purchase' %}
+                                    <span class="badge badge-info">{{ obj.get_state_display|default:"نامشخص" }}</span>
+                                {% elif model_name == 'CargoProduct' %}
+                                    {% if obj.status %}
+                                        <span class="badge badge-success">فعال</span>
+                                    {% else %}
+                                        <span class="badge badge-danger">غیرفعال</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge badge-success">فعال</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -337,8 +690,20 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // فعال‌سازی select2 برای همه select ها
+    $(document).ready(function() {
+        $('select').select2({
+            dir: "rtl",
+            language: "fa",
+            placeholder: "انتخاب کنید...",
+            allowClear: true
+        });
+    });
+    
     // نمایش پیام تأیید قبل از ارسال فرم
     const form = document.querySelector('#bulkEditForm');
     form.addEventListener('submit', function(e) {

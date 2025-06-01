@@ -84,6 +84,11 @@ urlpatterns = [
     # API endpoints
     path('api/active-products/', get_active_products, name='get_active_products'),
     
+    # Bulk edit functionality
+    path('customers/bulk-edit/', lambda request: RedirectView.as_view(url='/table_filter/bulk-edit-page/')(request), name='customer_bulk_edit'),
+    path('customers/bulk-edit-excel/', lambda request: RedirectView.as_view(url='/table_filter/bulk-edit-excel-page/')(request), name='customer_bulk_edit_excel'),
+    path('customers/bulk-edit-template/', lambda request: RedirectView.as_view(url='/table_filter/bulk-edit-template/')(request), name='customer_bulk_edit_template'),
+    
     # External apps
     path('captcha/', include('captcha.urls')),
 ]

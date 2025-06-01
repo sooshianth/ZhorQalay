@@ -172,6 +172,10 @@ class BulkEditManager {
             return 'customer';
         } else if (url.includes('barbary')) {
             return 'barbary';
+        } else if (url.includes('vared_konandeh')) {
+            return 'vared_konandeh';
+        } else if (url.includes('cargo_product') || url.includes('cargo-product')) {
+            return 'cargo_product';
         }
         return 'generic';
     }
@@ -189,7 +193,7 @@ class BulkEditManager {
             ids: selectedIdsArray.join(','),
             table_type: tableType,
             model: this.getModelName(tableType),
-            app: 'core'
+            app: this.getAppName(tableType)
         });
 
         window.open(`${this.config.bulkEditPageUrl}?${params.toString()}`, '_blank');
@@ -208,7 +212,7 @@ class BulkEditManager {
             ids: selectedIdsArray.join(','),
             table_type: tableType,
             model: this.getModelName(tableType),
-            app: 'core'
+            app: this.getAppName(tableType)
         });
 
         window.open(`${this.config.excelEditPageUrl}?${params.toString()}`, '_blank');
@@ -225,7 +229,9 @@ class BulkEditManager {
         
         const params = new URLSearchParams({
             table_type: tableType,
-            selected_ids: selectedIdsArray.join(',')
+            selected_ids: selectedIdsArray.join(','),
+            model: this.getModelName(tableType),
+            app: this.getAppName(tableType)
         });
 
         // ایجاد لینک مخفی برای دانلود
@@ -243,9 +249,15 @@ class BulkEditManager {
         const modelMap = {
             'purchase': 'Purchase',
             'customer': 'Customer',
-            'barbary': 'Barbary'
+            'barbary': 'Barbary',
+            'vared_konandeh': 'VaredKonandeh',
+            'cargo_product': 'CargoProduct'
         };
-        return modelMap[tableType] || 'Purchase';
+        return modelMap[tableType] || 'Unknown';
+    }
+    
+    getAppName(tableType) {
+        return 'core';
     }
 
     showToast(message, type = 'info') {
@@ -310,7 +322,7 @@ style.textContent = `
 document.head.appendChild(style);
 
 // ایجاد instance global
-const bulkEditManager = new BulkEditManager();
+window.bulkEditManager = new BulkEditManager();
 
 // Export برای استفاده در سایر فایل‌ها
 if (typeof module !== 'undefined' && module.exports) {

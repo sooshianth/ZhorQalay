@@ -7,6 +7,8 @@
 {% table_filter_scripts %}
 {% endblock %}
 
+{% load static %}
+
 {% block content %}
 
 {% load custom_filters %}
@@ -293,10 +295,6 @@
             <span class="btn-icon"><i class="fas fa-plus"></i></span>
             ایجاد باربری جدید
         </a>
-        <button onclick="bulkEdit()" class="btn btn-secondary">
-            <span class="btn-icon"><i class="fas fa-edit"></i></span>
-            ویرایش گروهی
-        </button>
         <div class="column-options">
             <button class="column-options-btn" onclick="toggleColumnOptions()">
                 <i class="fas fa-columns btn-icon"></i>
@@ -355,18 +353,18 @@
                 <table class="table-hover enable-filter" id="barbariesTable">
                     <thead>
                         <tr>
-                            <th style="width: 40px;" data-column-type="checkbox"><input type="checkbox" id="select-all" onclick="toggleAll()"></th>
-                            <th onclick="sortTable(1, 'barbariesTable')" data-column-type="text">نام <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(2, 'barbariesTable')" data-column-type="text">شماره تماس <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(3, 'barbariesTable')" data-column-type="text">ایمیل <span class="sort-icon"></span></th>
-                            <th onclick="sortTable(4, 'barbariesTable')" data-column-type="text">توضیحات <span class="sort-icon"></span></th>
+                            <th style="width: 40px;" class="column-select" data-column-type="checkbox"><input type="checkbox" id="select-all" class="select-all-checkbox" onclick="toggleAll()"></th>
+                            <th class="column-name" onclick="sortTable(1, 'barbariesTable')" data-column-type="text">نام <span class="sort-icon"></span></th>
+                            <th class="column-phone_number" onclick="sortTable(2, 'barbariesTable')" data-column-type="text">شماره تماس <span class="sort-icon"></span></th>
+                            <th class="column-email" onclick="sortTable(3, 'barbariesTable')" data-column-type="text">ایمیل <span class="sort-icon"></span></th>
+                            <th class="column-description" onclick="sortTable(4, 'barbariesTable')" data-column-type="text">توضیحات <span class="sort-icon"></span></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for barbary in barbaries %}
                             <tr onclick="toggleSelection(this, {{ barbary.id }});" class="animate-fade-in" style="animation-delay: {{ forloop.counter0|add:1|divisibleby:10 }}0ms;">
                                 <td>
-                                    <input type="checkbox" name="barbary_id" value="{{ barbary.id }}" onclick="event.stopPropagation();">
+                                    <input type="checkbox" name="barbary_id" value="{{ barbary.id }}" class="row-checkbox" data-id="{{ barbary.id }}" onclick="event.stopPropagation();">
                                 </td>
                                 <td><strong>{{ barbary.name|default:"-" }}</strong></td>
                                 <td>{{ barbary.phone_number|default:"-" }}</td>
@@ -398,9 +396,15 @@
         // اضافه کردن یا حذف کلاس selected برای نمایش انتخاب
         if (checkbox.checked) {
             row.classList.add('selected');
+            row.classList.add('bulk-selected');
         } else {
             row.classList.remove('selected');
+            row.classList.remove('bulk-selected');
         }
+        
+        // Trigger a change event to notify the bulk edit manager
+        var event = new Event('change', { bubbles: true });
+        checkbox.dispatchEvent(event);
     }
     
     function toggleAll() {
@@ -413,24 +417,26 @@
             var row = checkbox.closest('tr');
             if (isChecked) {
                 row.classList.add('selected');
+                row.classList.add('bulk-selected');
             } else {
                 row.classList.remove('selected');
+                row.classList.remove('bulk-selected');
             }
+            
+            // Trigger a change event to notify the bulk edit manager
+            var event = new Event('change', { bubbles: true });
+            checkbox.dispatchEvent(event);
         });
     }
     
     function bulkEdit() {
-        var checkedBarbaries = document.querySelectorAll('input[name="barbary_id"]:checked');
-        if (checkedBarbaries.length > 0) {
-            var ids = Array.from(checkedBarbaries).map(function(checkbox) { return checkbox.value; });
-            var url = "{% url 'bulk_edit_barbaries' %}?";
-            ids.forEach(function(id) {
-                url += "ids=" + id + "&";
-            });
-            window.location.href = url.slice(0, -1); // Remove the trailing &
-        } else {
-            alert('لطفاً حداقل یک باربری را انتخاب کنید.');
-        }
+        // This function is now handled by BulkEditManager
+        console.log('Bulk edit handled by BulkEditManager');
+    }
+    
+    function bulkEditExcel() {
+        // This function is now handled by BulkEditManager
+        console.log('Bulk edit Excel handled by BulkEditManager');
     }
 
     // تابع مرتب سازی جدول
@@ -562,5 +568,56 @@
 
 <!-- Initialize table filters -->
 {% enable_table_filter %}
+
+<!-- Initialize bulk edit manager -->
+<script src="{% static 'table_filter/js/bulk_edit.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Configure the existing global bulk edit manager
+        if (window.bulkEditManager) {
+            // Override the detectTableType function
+            window.bulkEditManager.detectTableType = function() {
+                const url = window.location.pathname;
+                if (url.includes('barbary')) {
+                    return 'barbary';
+                } else if (url.includes('cargo_product')) {
+                    return 'cargo_product';
+                } else if (url.includes('purchase')) {
+                    return 'purchase';
+                } else if (url.includes('customer')) {
+                    return 'customer';
+                } else if (url.includes('vared_konandeh')) {
+                    return 'vared_konandeh';
+                }
+                return 'generic';
+            };
+            
+            // Override the getModelName function
+            window.bulkEditManager.getModelName = function(tableType) {
+                const modelMap = {
+                    'purchase': 'Purchase',
+                    'customer': 'Customer',
+                    'barbary': 'Barbary',
+                    'vared_konandeh': 'VaredKonandeh',
+                    'cargo_product': 'CargoProduct'
+                };
+                return modelMap[tableType] || 'Barbary';
+            };
+            
+            // Override the getAppName function
+            window.bulkEditManager.getAppName = function(tableType) {
+                return 'core';
+            };
+            
+            // Update the configuration
+            window.bulkEditManager.config.bulkEditPageUrl = '{% url "table_filter:bulk_edit_page" %}';
+            window.bulkEditManager.config.excelEditPageUrl = '{% url "table_filter:bulk_edit_excel_page" %}';
+            window.bulkEditManager.config.downloadTemplateUrl = '{% url "table_filter:bulk_edit_template" %}';
+            
+            // Re-initialize to apply new configuration
+            window.bulkEditManager.init();
+        }
+    });
+</script>
 
 {% endblock %} 

@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load table_filter_tags %}
+{% load static %}
 
 {% block title %}لیست محصولات و کوتاژهای فعال{% endblock %}
 
@@ -309,6 +310,83 @@
         from { transform: translateY(10px); opacity: 0; }
         to { transform: translateY(0); opacity: 1; }
     }
+    
+    /* Bulk edit controls */
+    .bulk-edit-controls {
+        background-color: white;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: var(--card-shadow);
+        transition: all 0.3s ease;
+    }
+    
+    .bulk-edit-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .selected-count {
+        font-weight: 600;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .bulk-edit-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .bulk-selected {
+        background-color: rgba(59, 130, 246, 0.1);
+        border-left: 3px solid var(--primary);
+    }
+    
+    .btn-success {
+        background-color: #10b981;
+        color: white;
+        transition: all 0.3s ease;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: none;
+    }
+    
+    .btn-success:hover {
+        background-color: #059669;
+        transform: translateY(-1px);
+        box-shadow: var(--card-shadow);
+    }
+    
+    .btn-info {
+        background-color: #3b82f6;
+        color: white;
+        transition: all 0.3s ease;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: none;
+    }
+    
+    .btn-info:hover {
+        background-color: #2563eb;
+        transform: translateY(-1px);
+        box-shadow: var(--card-shadow);
+    }
 </style>
 
 <div class="container">
@@ -320,10 +398,6 @@
             <span class="btn-icon"><i class="fas fa-plus"></i></span>
             ایجاد محصول جدید
         </a>
-        <button onclick="bulkEdit()" class="btn btn-secondary">
-            <span class="btn-icon"><i class="fas fa-edit"></i></span>
-            ویرایش گروهی
-        </button>
         <a href="{% url 'barbary_list' %}" class="btn btn-primary" style="margin-right: 10px;">
             <span class="btn-icon"><i class="fas fa-truck"></i></span>
             مدیریت باربری‌ها
@@ -335,11 +409,6 @@
     </div>
     {% endif %}
     
-    <form id="bulkEditForm" action="{% url 'bulk_edit_cargo_products' %}" method="post" style="display: none;">
-        {% csrf_token %}
-        <input type="hidden" name="product_ids" id="product_ids">
-    </form>
-    
     <div class="card animate-slide-up" style="animation-delay: 0.1s;">
         <div class="card-header">
             <h2 class="text-lg font-semibold" style="color: white;">محصولات و کوتاژهای فعال</h2>
@@ -350,24 +419,24 @@
                 <table class="enable-filter" id="activeProductsTable">
                     <thead>
                         <tr>
-                            <th style="width: 40px;"><input type="checkbox" id="select-all" onclick="toggleAllActive()"></th>
-                            <th data-column-type="text">کوتاژ</th>
-                            <th data-column-type="text">نوع محصول</th>
-                            <th data-column-type="text">کشور</th>
-                            <th data-column-type="text">واردکننده</th>
-                            <th data-column-type="text">باربری</th>
-                            <th data-column-type="number">قیمت فروش</th>
-                            <th data-column-type="text">محل بارگیری</th>
-                            <th data-column-type="date">زمان بارگیری</th>
-                            <th data-column-type="text">توضیحات</th>
-                            <th data-column-type="status">وضعیت</th>
+                            <th style="width: 40px;" class="column-select" data-column-type="checkbox"><input type="checkbox" id="select-all" class="select-all-checkbox" onclick="toggleAllActive()"></th>
+                            <th class="column-cottage" data-column-type="text">کوتاژ</th>
+                            <th class="column-product_type" data-column-type="text">نوع محصول</th>
+                            <th class="column-country" data-column-type="text">کشور</th>
+                            <th class="column-vared_konandeh" data-column-type="text">واردکننده</th>
+                            <th class="column-barbary" data-column-type="text">باربری</th>
+                            <th class="column-customer_price" data-column-type="number">قیمت فروش</th>
+                            <th class="column-port" data-column-type="text">محل بارگیری</th>
+                            <th class="column-loading_time" data-column-type="date">زمان بارگیری</th>
+                            <th class="column-description" data-column-type="text">توضیحات</th>
+                            <th class="column-status" data-column-type="status">وضعیت</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for product in cargo_products %}
                             <tr onclick="toggleSelection(this, '{{ product.id }}');" class="animate-fade-in">
                                 <td>
-                                    <input type="checkbox" name="product_id" value="{{ product.id }}" onclick="event.stopPropagation();">
+                                    <input type="checkbox" name="product_id" value="{{ product.id }}" class="row-checkbox" data-id="{{ product.id }}" onclick="event.stopPropagation();">
                                 </td>
                                 <td><strong>{{ product.cottage }}</strong></td>
                                 <td>{{ product.get_product_type_display }}</td>
@@ -415,24 +484,24 @@
                 <table class="enable-filter" id="inactiveProductsTable">
                     <thead>
                         <tr>
-                            <th style="width: 40px;"><input type="checkbox" id="select-all-inactive" onclick="toggleAllInactive()"></th>
-                            <th data-column-type="text">کوتاژ</th>
-                            <th data-column-type="text">نوع محصول</th>
-                            <th data-column-type="text">کشور</th>
-                            <th data-column-type="text">واردکننده</th>
-                            <th data-column-type="text">باربری</th>
-                            <th data-column-type="number">قیمت فروش</th>
-                            <th data-column-type="text">محل بارگیری</th>
-                            <th data-column-type="date">زمان بارگیری</th>
-                            <th data-column-type="text">توضیحات</th>
-                            <th data-column-type="status">وضعیت</th>
+                            <th style="width: 40px;" class="column-select" data-column-type="checkbox"><input type="checkbox" id="select-all-inactive" class="select-all-checkbox-archived" onclick="toggleAllInactive()"></th>
+                            <th class="column-cottage" data-column-type="text">کوتاژ</th>
+                            <th class="column-product_type" data-column-type="text">نوع محصول</th>
+                            <th class="column-country" data-column-type="text">کشور</th>
+                            <th class="column-vared_konandeh" data-column-type="text">واردکننده</th>
+                            <th class="column-barbary" data-column-type="text">باربری</th>
+                            <th class="column-customer_price" data-column-type="number">قیمت فروش</th>
+                            <th class="column-port" data-column-type="text">محل بارگیری</th>
+                            <th class="column-loading_time" data-column-type="date">زمان بارگیری</th>
+                            <th class="column-description" data-column-type="text">توضیحات</th>
+                            <th class="column-status" data-column-type="status">وضعیت</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for product in deactive_cargo_products %}
                             <tr onclick="toggleSelection(this, '{{ product.id }}');">
                                 <td>
-                                    <input type="checkbox" name="product_id" value="{{ product.id }}" onclick="event.stopPropagation();">
+                                    <input type="checkbox" name="product_id" value="{{ product.id }}" class="row-checkbox" data-id="{{ product.id }}" onclick="event.stopPropagation();">
                                 </td>
                                 <td><strong>{{ product.cottage }}</strong></td>
                                 <td>{{ product.get_product_type_display }}</td>
@@ -471,14 +540,20 @@
         
         if (checkbox.checked) {
             row.classList.add('selected');
+            row.classList.add('bulk-selected');
         } else {
             row.classList.remove('selected');
+            row.classList.remove('bulk-selected');
         }
+        
+        // Trigger a change event to notify the bulk edit manager
+        var event = new Event('change', { bubbles: true });
+        checkbox.dispatchEvent(event);
     }
     
     function toggleAllActive() {
         var mainCheckbox = document.getElementById('select-all');
-        var checkboxes = document.querySelectorAll('table:not(.dropdown-content table) input[name="product_id"]');
+        var checkboxes = document.querySelectorAll('#activeProductsTable input.row-checkbox');
         var isChecked = mainCheckbox.checked;
         
         checkboxes.forEach(function(checkbox) {
@@ -486,15 +561,21 @@
             var row = checkbox.closest('tr');
             if (isChecked) {
                 row.classList.add('selected');
+                row.classList.add('bulk-selected');
             } else {
                 row.classList.remove('selected');
+                row.classList.remove('bulk-selected');
             }
+            
+            // Trigger a change event to notify the bulk edit manager
+            var event = new Event('change', { bubbles: true });
+            checkbox.dispatchEvent(event);
         });
     }
     
     function toggleAllInactive() {
         var mainCheckbox = document.getElementById('select-all-inactive');
-        var checkboxes = document.querySelectorAll('.dropdown-content table input[name="product_id"]');
+        var checkboxes = document.querySelectorAll('#inactiveProductsTable input.row-checkbox');
         var isChecked = mainCheckbox.checked;
         
         checkboxes.forEach(function(checkbox) {
@@ -502,21 +583,16 @@
             var row = checkbox.closest('tr');
             if (isChecked) {
                 row.classList.add('selected');
+                row.classList.add('bulk-selected');
             } else {
                 row.classList.remove('selected');
+                row.classList.remove('bulk-selected');
             }
+            
+            // Trigger a change event to notify the bulk edit manager
+            var event = new Event('change', { bubbles: true });
+            checkbox.dispatchEvent(event);
         });
-    }
-    
-    function bulkEdit() {
-        var checkedProducts = document.querySelectorAll('input[name="product_id"]:checked');
-        if (checkedProducts.length > 0) {
-            var productIds = Array.from(checkedProducts).map(function(checkbox) { return checkbox.value; });
-            document.getElementById('product_ids').value = productIds.join(',');
-            document.getElementById('bulkEditForm').submit();
-        } else {
-            alert('لطفاً حداقل یک محصول را انتخاب کنید.');
-        }
     }
 
     // اضافه کردن آیکون‌های Font Awesome
@@ -532,5 +608,56 @@
 
 <!-- Initialize table filters -->
 {% enable_table_filter %}
+
+<!-- Initialize bulk edit manager -->
+<script src="{% static 'table_filter/js/bulk_edit.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Configure the existing global bulk edit manager
+        if (window.bulkEditManager) {
+            // Override the detectTableType function
+            window.bulkEditManager.detectTableType = function() {
+                const url = window.location.pathname;
+                if (url.includes('cargo_product')) {
+                    return 'cargo_product';
+                } else if (url.includes('purchase')) {
+                    return 'purchase';
+                } else if (url.includes('customer')) {
+                    return 'customer';
+                } else if (url.includes('barbary')) {
+                    return 'barbary';
+                } else if (url.includes('vared_konandeh')) {
+                    return 'vared_konandeh';
+                }
+                return 'generic';
+            };
+            
+            // Override the getModelName function
+            window.bulkEditManager.getModelName = function(tableType) {
+                const modelMap = {
+                    'purchase': 'Purchase',
+                    'customer': 'Customer',
+                    'barbary': 'Barbary',
+                    'vared_konandeh': 'VaredKonandeh',
+                    'cargo_product': 'CargoProduct'
+                };
+                return modelMap[tableType] || 'CargoProduct';
+            };
+            
+            // Override the getAppName function
+            window.bulkEditManager.getAppName = function(tableType) {
+                return 'core';
+            };
+            
+            // Update the configuration
+            window.bulkEditManager.config.bulkEditPageUrl = '{% url "table_filter:bulk_edit_page" %}';
+            window.bulkEditManager.config.excelEditPageUrl = '{% url "table_filter:bulk_edit_excel_page" %}';
+            window.bulkEditManager.config.downloadTemplateUrl = '{% url "table_filter:bulk_edit_template" %}';
+            
+            // Re-initialize to apply new configuration
+            window.bulkEditManager.init();
+        }
+    });
+</script>
 
 {% endblock %}

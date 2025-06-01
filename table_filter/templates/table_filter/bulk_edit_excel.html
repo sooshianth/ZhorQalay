@@ -6,23 +6,391 @@
 {% block head_styles %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'table_filter/css/bulk_edit.css' %}">
+    <style>
+        :root {
+            --primary-color: #065F46;
+            --primary-hover: #064E3B;
+            --primary-light: #10B981;
+            --secondary-color: #059669;
+            --secondary-hover: #047857;
+            --accent-color: #34D399;
+            --danger-color: #DC2626;
+            --warning-color: #F59E0B;
+            --info-color: #3B82F6;
+            --success-color: #10B981;
+            --light-bg: #F0FDF4;
+            --card-bg: #ffffff;
+            --text-color: #1F2937;
+            --text-light: #6B7280;
+            --text-muted: #9CA3AF;
+            --border-color: #D1FAE5;
+            --input-bg: #F9FDF9;
+            --input-focus: #ffffff;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        body {
+            background: linear-gradient(135deg, #F0FDF4 0%, #ECFDF5 100%);
+            color: var(--text-color);
+            line-height: 1.6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        
+        /* کارت‌ها */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            margin-bottom: 2rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .card:hover {
+            box-shadow: var(--shadow-xl);
+            transform: translateY(-2px);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            border-bottom: none;
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card-header.bg-success {
+            background: linear-gradient(135deg, var(--success-color) 0%, var(--accent-color) 100%);
+        }
+        
+        .card-header.bg-info {
+            background: linear-gradient(135deg, var(--info-color) 0%, #60A5FA 100%);
+        }
+        
+        .card-header.bg-warning {
+            background: linear-gradient(135deg, var(--warning-color) 0%, #FCD34D 100%);
+        }
+        
+        .card-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+            pointer-events: none;
+        }
+        
+        .card-body {
+            padding: 2rem;
+            background: var(--card-bg);
+        }
+        
+        /* فرم‌ها و ورودی‌ها */
+        .form-control, .form-select {
+            background-color: var(--input-bg);
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            padding: 0.875rem 1.25rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: var(--text-color);
+            box-shadow: var(--shadow-sm);
+            font-size: 0.95rem;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            background-color: var(--input-focus);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(6, 95, 70, 0.1), var(--shadow-md);
+            outline: none;
+            transform: translateY(-1px);
+        }
+        
+        /* دکمه‌ها */
+        .btn {
+            border-radius: 12px;
+            padding: 0.875rem 2rem;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: none;
+            font-size: 0.95rem;
+            letter-spacing: 0.025em;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border: 2px solid transparent;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-hover) 0%, var(--secondary-hover) 100%);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color) 0%, var(--accent-color) 100%);
+            color: white;
+            border: 2px solid transparent;
+        }
+        
+        .btn-success:hover {
+            background: linear-gradient(135deg, var(--secondary-color) 0%, var(--success-color) 100%);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, var(--info-color) 0%, #60A5FA 100%);
+            color: white;
+            border: 2px solid transparent;
+        }
+        
+        .btn-info:hover {
+            background: linear-gradient(135deg, #1E40AF 0%, var(--info-color) 100%);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #6B7280 0%, #9CA3AF 100%);
+            color: white;
+            border: 2px solid transparent;
+        }
+        
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #4B5563 0%, #6B7280 100%);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-xl);
+        }
+        
+        /* هشدارها */
+        .alert {
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 2rem;
+            border: none;
+            box-shadow: var(--shadow-md);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .alert::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+        }
+        
+        .alert-warning {
+            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+            color: #92400E;
+            border: 1px solid #F9A8D4;
+        }
+        
+        .alert-warning::before {
+            background: linear-gradient(180deg, var(--warning-color) 0%, #FCD34D 100%);
+        }
+        
+        .alert-info {
+            background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+            color: #1E40AF;
+            border: 1px solid #BFDBFE;
+        }
+        
+        .alert-info::before {
+            background: linear-gradient(180deg, var(--info-color) 0%, #60A5FA 100%);
+        }
+        
+        /* جدول */
+        .table {
+            width: 100%;
+            margin-bottom: 1rem;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+        }
+        
+        .table th {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            font-weight: 600;
+            padding: 1rem 1.25rem;
+            border: none;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+        }
+        
+        .table td {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+            background-color: white;
+        }
+        
+        .table tbody tr:hover {
+            background: linear-gradient(135deg, #F0FDF4 0%, #ECFDF5 100%);
+            transform: scale(1.01);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .table-responsive {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        /* نشان */
+        .badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            letter-spacing: 0.025em;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .badge-success {
+            background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+            color: #065F46;
+            border: 1px solid #6EE7B7;
+        }
+        
+        .badge-info {
+            background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%);
+            color: #1E40AF;
+            border: 1px solid #93C5FD;
+        }
+        
+        .badge-danger {
+            background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);
+            color: #DC2626;
+            border: 1px solid #FCA5A5;
+        }
+        
+        /* کارت‌های مرحله‌ای */
+        .step-card {
+            height: 100%;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(145deg, #ffffff 0%, #fefefe 100%);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .step-card:hover {
+            border-color: var(--primary-light);
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        
+        .step-number {
+            width: 3rem;
+            height: 3rem;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.25rem;
+            margin: 0 auto 1rem;
+            box-shadow: var(--shadow-md);
+        }
+        
+        /* انیمیشن‌ها */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .card {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        .step-card {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .card-body {
+                padding: 1.5rem;
+            }
+            
+            .btn {
+                padding: 0.75rem 1.5rem;
+                font-size: 0.9rem;
+            }
+            
+            .step-number {
+                width: 2.5rem;
+                height: 2.5rem;
+                font-size: 1rem;
+            }
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-lg mt-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-success text-white">
-                    <h4 class="mb-0">
-                        <i class="fas fa-file-excel me-2"></i>
-                        ویرایش گروهی با اکسل
-                        <span class="badge bg-light text-dark ms-2">{{ selected_count }} مورد انتخاب شده</span>
-                    </h4>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
+<div class="container-lg my-4">
+    <div class="card">
+        <div class="card-header bg-success">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-file-excel me-2"></i>
+                    ویرایش گروهی با اکسل
+                </h4>
+                <span class="badge bg-light text-dark">{{ selected_count }} مورد انتخاب شده</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning">
+                <div class="d-flex">
+                    <div class="me-3">
+                        <i class="fas fa-exclamation-triangle fa-lg"></i>
+                    </div>
+                    <div>
                         <strong>راهنمای استفاده:</strong>
                         <ol class="mt-2 mb-0">
                             <li>ابتدا قالب اکسل را دانلود کنید</li>
@@ -31,126 +399,135 @@
                             <li><strong>هشدار:</strong> ستون ID را تغییر ندهید</li>
                         </ol>
                     </div>
+                </div>
+            </div>
 
-                    <!-- Download Template Section -->
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <div class="card border-info">
-                                <div class="card-header bg-info text-white">
-                                    <h5 class="mb-0">
-                                        <i class="fas fa-download me-2"></i>مرحله ۱: دانلود قالب
-                                    </h5>
-                                </div>
-                                <div class="card-body text-center">
-                                    <p>ابتدا قالب اکسل حاوی اطلاعات موارد انتخاب شده را دانلود کنید</p>
-                                    <a href="{% url 'table_filter:bulk_edit_template' %}?table_type={{ table_type }}&selected_ids={{ selected_ids|join:',' }}" 
-                                       class="btn btn-info btn-lg">
-                                        <i class="fas fa-download me-2"></i>دانلود قالب اکسل
-                                    </a>
-                                </div>
-                            </div>
+            <!-- Download Template Section -->
+            <div class="row mb-4">
+                <div class="col-md-6 mb-3 mb-md-0">
+                    <div class="card step-card">
+                        <div class="card-header bg-info">
+                            <h5 class="mb-0">
+                                <i class="fas fa-download me-2"></i>مرحله ۱: دانلود قالب
+                            </h5>
                         </div>
-                        
-                        <div class="col-md-6">
-                            <div class="card border-success">
-                                <div class="card-header bg-success text-white">
-                                    <h5 class="mb-0">
-                                        <i class="fas fa-upload me-2"></i>مرحله ۲: آپلود فایل
-                                    </h5>
-                                </div>
-                                <div class="card-body">
-                                    <form method="post" 
-                                          action="{% url 'table_filter:bulk_edit_excel' %}" 
-                                          enctype="multipart/form-data">
-                                        {% csrf_token %}
-                                        
-                                        <!-- Hidden fields for model info -->
-                                        <input type="hidden" name="model_name" value="{{ model_name }}">
-                                        <input type="hidden" name="app_name" value="{{ app_name }}">
-                                        
-                                        <!-- Hidden fields for selected IDs -->
-                                        {% for id in selected_ids %}
-                                            <input type="hidden" name="selected_ids" value="{{ id }}">
-                                        {% endfor %}
-
-                                        <div class="mb-3">
-                                            <label for="excel_file" class="form-label fw-bold">
-                                                <i class="fas fa-file-excel me-2"></i>انتخاب فایل اکسل
-                                            </label>
-                                            <input type="file" 
-                                                   class="form-control" 
-                                                   id="excel_file" 
-                                                   name="excel_file" 
-                                                   accept=".xlsx,.xls" 
-                                                   required>
-                                            <div class="form-text">
-                                                فقط فایل‌های اکسل (.xlsx, .xls) پذیرفته می‌شوند
-                                            </div>
-                                        </div>
-
-                                        <div class="d-grid">
-                                            <button type="submit" class="btn btn-success btn-lg">
-                                                <i class="fas fa-upload me-2"></i>آپلود و اعمال تغییرات
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
+                        <div class="card-body text-center">
+                            <p>ابتدا قالب اکسل حاوی اطلاعات موارد انتخاب شده را دانلود کنید</p>
+                            <a href="{% url 'table_filter:bulk_edit_template' %}?table_type={{ table_type }}&model={{ model_name }}&app={{ app_name }}&selected_ids={{ selected_ids }}" 
+                               class="btn btn-info btn-lg">
+                                <i class="fas fa-download me-2"></i>دانلود قالب اکسل
+                            </a>
                         </div>
                     </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card step-card">
+                        <div class="card-header bg-success">
+                            <h5 class="mb-0">
+                                <i class="fas fa-upload me-2"></i>مرحله ۲: آپلود فایل
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" 
+                                  action="{% url 'table_filter:bulk_edit_excel' %}" 
+                                  enctype="multipart/form-data">
+                                {% csrf_token %}
+                                
+                                <!-- Hidden fields for model info -->
+                                <input type="hidden" name="model_name" value="{{ model_name }}">
+                                <input type="hidden" name="app_name" value="{{ app_name }}">
+                                <input type="hidden" name="table_type" value="{{ table_type }}">
+                                
+                                <!-- Hidden fields for selected IDs -->
+                                {% for id in selected_ids.split %}
+                                    <input type="hidden" name="selected_ids" value="{{ id }}">
+                                {% endfor %}
 
-                    <div class="d-flex justify-content-between mt-4">
-                        <button type="button" class="btn btn-secondary" onclick="history.back()">
-                            <i class="fas fa-arrow-right me-2"></i>بازگشت
-                        </button>
+                                <div class="mb-3">
+                                    <label for="excel_file" class="form-label fw-bold">
+                                        <i class="fas fa-file-excel me-2"></i>انتخاب فایل اکسل
+                                    </label>
+                                    <input type="file" 
+                                           class="form-control" 
+                                           id="excel_file" 
+                                           name="excel_file" 
+                                           accept=".xlsx,.xls" 
+                                           required>
+                                    <div class="form-text">
+                                        فقط فایل‌های اکسل (.xlsx, .xls) پذیرفته می‌شوند
+                                    </div>
+                                </div>
+
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-success btn-lg">
+                                        <i class="fas fa-upload me-2"></i>آپلود و اعمال تغییرات
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Preview of selected objects -->
-            <div class="card shadow-sm mt-4">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-list me-2"></i>
-                        موارد انتخاب شده برای ویرایش
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>شناسه</th>
-                                    <th>نام/عنوان</th>
-                                    <th>وضعیت فعلی</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for obj in objects %}
-                                <tr>
-                                    <td>{{ obj.id }}</td>
-                                    <td>
-                                        {% if model_name == 'Purchase' %}
-                                            {{ obj.customer.name|default:"نامشخص" }} - {{ obj.purchase_number|default:"بدون شماره" }}
-                                        {% elif model_name == 'Customer' %}
-                                            {{ obj.name }}
-                                        {% else %}
-                                            {{ obj }}
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if model_name == 'Purchase' %}
-                                            <span class="badge bg-info">{{ obj.get_state_display|default:"نامشخص" }}</span>
-                                        {% else %}
-                                            <span class="badge bg-success">فعال</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            <div class="d-flex justify-content-between mt-4">
+                <button type="button" class="btn btn-secondary" onclick="history.back()">
+                    <i class="fas fa-arrow-right me-2"></i>بازگشت
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview of selected objects -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>
+                موارد انتخاب شده برای ویرایش
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>شناسه</th>
+                            <th>نام/عنوان</th>
+                            <th>وضعیت فعلی</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for obj in objects %}
+                        <tr>
+                            <td>{{ obj.id }}</td>
+                            <td>
+                                {% if model_name == 'Purchase' %}
+                                    {{ obj.customer.name|default:"نامشخص" }} - {{ obj.purchase_number|default:"بدون شماره" }}
+                                {% elif model_name == 'Customer' %}
+                                    {{ obj.name }}
+                                {% elif model_name == 'CargoProduct' %}
+                                    {{ obj.cottage }} - {{ obj.get_product_type_display }}
+                                {% else %}
+                                    {{ obj }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if model_name == 'Purchase' %}
+                                    <span class="badge badge-info">{{ obj.get_state_display|default:"نامشخص" }}</span>
+                                {% elif model_name == 'CargoProduct' %}
+                                    {% if obj.status %}
+                                        <span class="badge badge-success">فعال</span>
+                                    {% else %}
+                                        <span class="badge badge-danger">غیرفعال</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge badge-success">فعال</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -177,6 +554,13 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('لطفاً فقط فایل‌های اکسل (.xlsx یا .xls) را انتخاب کنید');
             e.preventDefault();
             return;
+        }
+        
+        if (confirm('آیا از اعمال تغییرات روی ' + '{{ selected_count }}' + ' مورد انتخاب شده اطمینان دارید؟')) {
+            return true; // ارسال فرم در صورت تأیید
+        } else {
+            e.preventDefault();
+            return false;
         }
     });
 });

@@ -34,6 +34,8 @@ def bulk_edit_page(request):
     app_name = request.GET.get('app', 'core')
     table_type = request.GET.get('table_type', '')
     
+    print(f"DEBUG - Received parameters: model_name={model_name}, app_name={app_name}, table_type={table_type}, selected_ids={selected_ids}")
+    
     if not selected_ids:
         return render(request, 'table_filter/bulk_edit_error.html', {
             'error': 'هیچ موردی انتخاب نشده است'
@@ -42,25 +44,45 @@ def bulk_edit_page(request):
     # تشخیص مدل
     if not model_name:
         referer = request.META.get('HTTP_REFERER', '')
+        print(f"DEBUG - Referer URL: {referer}")
         if 'purchase' in referer:
             model_name = 'Purchase'
             table_type = 'purchase'
         elif 'customer' in referer:
             model_name = 'Customer'
             table_type = 'customer'
+        elif 'cargo_product' in referer or 'cargo-product' in referer:
+            model_name = 'CargoProduct'
+            table_type = 'cargo_product'
+    
+    # اگر model_name مشخص شده ولی table_type نه، آن را تشخیص دهیم
+    if model_name and not table_type:
+        if model_name == 'Purchase':
+            table_type = 'purchase'
+        elif model_name == 'Customer':
+            table_type = 'customer'
+        elif model_name == 'CargoProduct':
+            table_type = 'cargo_product'
+    
+    print(f"DEBUG - Final parameters: model_name={model_name}, app_name={app_name}, table_type={table_type}")
     
     try:
         model = apps.get_model(app_name, model_name)
-    except LookupError:
+        print(f"DEBUG - Model found: {model.__name__}")
+    except LookupError as e:
+        print(f"DEBUG - LookupError: {e}")
         return render(request, 'table_filter/bulk_edit_error.html', {
-            'error': f'مدل {model_name} یافت نشد'
+            'error': f'مدل {model_name} در اپلیکیشن {app_name} یافت نشد'
         })
     
     # دریافت آبجکت‌های انتخاب شده
     objects = model.objects.filter(id__in=selected_ids)
+    print(f"DEBUG - Found {objects.count()} objects")
     
     # دریافت فیلدهای قابل ویرایش
-    editable_fields = get_editable_fields(model, table_type)
+    editable_fields = get_editable_fields(model, table_type, selected_ids)
+    print(f"DEBUG - Editable fields count: {len(editable_fields)}")
+    print(f"DEBUG - Editable fields: {[f['name'] for f in editable_fields]}")
     
     context = {
         'objects': objects,
@@ -74,65 +96,157 @@ def bulk_edit_page(request):
     
     return render(request, 'table_filter/bulk_edit.html', context)
 
-def get_editable_fields(model, table_type):
-    """دریافت فیلدهای قابل ویرایش برای هر مدل"""
-    fields_map = {
-        'purchase': [
-            {'name': 'invoice_id', 'label': 'کد درون سازمانی', 'type': 'text'},
-            {'name': 'purchase_number', 'label': 'شماره خرید', 'type': 'text', 'is_unique': True},
-            {'name': 'order_weight', 'label': 'وزن سفارش (کیلوگرم)', 'type': 'number'},
-            {'name': 'delivered_weight', 'label': 'وزن تحویلی (کیلوگرم)', 'type': 'number'},
-            {'name': 'company_price', 'label': 'قیمت خرید (ریال)', 'type': 'number'},
-            {'name': 'customer_price', 'label': 'قیمت فروش (ریال)', 'type': 'number'},
-            {'name': 'amount_paid', 'label': 'مبلغ پرداختی (ریال)', 'type': 'number'},
-            {'name': 'description', 'label': 'توضیحات', 'type': 'textarea'},
-            {'name': 'state', 'label': 'وضعیت', 'type': 'select', 'choices': [
-                ('INITIATED', 'شروع شده'),
-                ('SMS_SENT', 'پیامک ارسال شده'),
-                ('PAYMENT_VERIFIED', 'ثبت خرید در بازارگاه'),
-                ('ALLOCATION_APPROVED', 'ثبت تخصیص در بازارگاه'),
-                ('ADDRESS_SENT', 'ارسال آدرس به واردکننده'),
-                ('WAITING_FOR_BARNAMEH', 'در انتظار بارنامه'),
-                ('BARNAMEH_INCOMPLETE', 'صدور بارنامه (ناقص)'),
-                ('BARNAMEH_ISSUED', 'صدور بارنامه'),
-                ('PURCHASE_CLOSED', 'بستن خرید در بازارگاه'),
-                ('PAY_KASRI', 'پرداخت کسری'),
-                ('RECIEVE_SARAK', 'دریافت سرک'),
-                ('DIFFERENCE_APPROVED', 'پرداخت کسری / دریافت سرک'),
-                ('FULLY_SETTLED', 'تسویه کامل'),
-                ('INVOICE_ISSUED', 'صدور فاکتور'),
-                ('CANCELED', 'لغو شده'),
-                ('ARCHIVED', 'آرشیو شده'),
-            ]},
-            {'name': 'is_urgent', 'label': 'فوری', 'type': 'checkbox'},
-            {'name': 'is_factored', 'label': 'فاکتور صادر شده', 'type': 'checkbox'},
-            {'name': 'is_archived', 'label': 'آرشیو شده', 'type': 'checkbox'},
-            {'name': 'is_fully_tasvied', 'label': 'تسویه کامل', 'type': 'checkbox'},
-        ],
-        'customer': [
-            {'name': 'name', 'label': 'نام مشتری', 'type': 'text'},
-            {'name': 'phone_number', 'label': 'شماره تلفن', 'type': 'text', 'is_unique': True},
-            {'name': 'address', 'label': 'آدرس', 'type': 'textarea'},
-            {'name': 'national_code', 'label': 'کد ملی', 'type': 'text', 'is_unique': True},
-        ]
+def get_editable_fields(model, table_type, selected_ids=None):
+    """دریافت فیلدهای قابل ویرایش برای هر مدل به صورت کاملاً دینامیک"""
+    
+    # فیلدهایی که نباید ویرایش شوند
+    excluded_fields = [
+        'id', 'pk', 'created_at', 'updated_at', 'last_modified', 
+        'date_joined', 'password', 'last_login', 'groups', 'user_permissions',
+        'registration_date', 'total_purchase_weight', 'field_of_activity_list', 
+        'purchase_preferences_list', 'product_preferences_list', 'phone_numbers'
+    ]
+    
+    # فیلدهایی که منحصر به فرد هستند و نباید در ویرایش گروهی نمایش داده شوند
+    unique_identifier_fields = {
+        'Purchase': ['purchase_number', 'invoice_id'],
+        'Customer': ['name', 'phone_number', 'city', 'address', 'quota', 'social_media', 'national_code', 'added_description'],
+        'CargoProduct': ['cottage', 'invoice_id'],
+        'Barbary': ['name'],
+        'VaredKonandeh': ['name'],
     }
     
-    # دریافت لیست فیلدهای مورد نظر
-    fields = fields_map.get(table_type, [])
+    model_name = model.__name__
     
-    # اضافه کردن ویژگی is_unique به فیلدها با بررسی مدل
-    if model:
-        # پیدا کردن فیلدهای یکتا
-        unique_fields = []
-        for field in model._meta.fields:
-            if field.unique or field.primary_key:
-                unique_fields.append(field.name)
+    # اگر بیش از یک مورد انتخاب شده، فیلدهای منحصر به فرد را حذف کن
+    excluded_for_bulk = []
+    if selected_ids and len(selected_ids) > 1:
+        unique_identifiers = unique_identifier_fields.get(model_name, [])
+        excluded_for_bulk.extend(unique_identifiers)
+        print(f"DEBUG - Excluding unique identifier fields for bulk edit: {unique_identifiers}")
+    
+    fields = []
+    
+    print(f"DEBUG - Processing model: {model_name}")
+    print(f"DEBUG - All model fields: {[f.name for f in model._meta.get_fields()]}")
+    
+    for field in model._meta.get_fields():
+        print(f"DEBUG - Processing field: {field.name}, type: {type(field).__name__}")
         
-        # اضافه کردن ویژگی is_unique به فیلدهای یکتا
-        for field_data in fields:
-            if field_data['name'] in unique_fields and 'is_unique' not in field_data:
-                field_data['is_unique'] = True
+        # رد کردن فیلدهای غیرقابل ویرایش
+        if field.name in excluded_fields:
+            print(f"DEBUG - Excluding field {field.name} (in excluded list)")
+            continue
+            
+        # رد کردن فیلدهای منحصر به فرد در ویرایش گروهی
+        if field.name in excluded_for_bulk:
+            print(f"DEBUG - Excluding field {field.name} (unique identifier for bulk edit)")
+            continue
+            
+        # رد کردن فیلدهای reverse relation
+        if hasattr(field, 'related_model') and hasattr(field, 'remote_field'):
+            if field.remote_field and not hasattr(field, 'model'):
+                print(f"DEBUG - Excluding field {field.name} (reverse relation)")
+                continue
+        
+        # رد کردن فیلدهای ManyToMany که پیچیده هستند
+        if hasattr(field, 'many_to_many') and field.many_to_many:
+            print(f"DEBUG - Excluding field {field.name} (many_to_many)")
+            continue
+        
+        # فقط فیلدهای واقعی مدل را در نظر بگیر
+        if not hasattr(field, 'get_internal_type'):
+            print(f"DEBUG - Excluding field {field.name} (no internal type)")
+            continue
+        
+        # تعیین نوع فیلد
+        field_type = 'text'
+        field_choices = None
+        
+        # بررسی نوع فیلد Django
+        internal_type = field.get_internal_type()
+        print(f"DEBUG - Field {field.name} internal type: {internal_type}")
+        
+        if internal_type == 'BooleanField':
+            field_type = 'checkbox'
+        elif internal_type in ['IntegerField', 'PositiveIntegerField', 'BigIntegerField', 'SmallIntegerField']:
+            field_type = 'number'
+        elif internal_type in ['FloatField', 'DecimalField']:
+            field_type = 'number'
+        elif internal_type in ['TextField']:
+            field_type = 'textarea'
+        elif internal_type in ['DateField']:
+            field_type = 'date'
+        elif internal_type in ['DateTimeField']:
+            field_type = 'datetime-local'
+        elif internal_type in ['TimeField']:
+            field_type = 'time'
+        elif internal_type == 'EmailField':
+            field_type = 'email'
+        elif internal_type == 'URLField':
+            field_type = 'url'
+        elif internal_type == 'ForeignKey':
+            field_type = 'select'
+            # دریافت گزینه‌های ForeignKey
+            try:
+                related_model = field.related_model
+                field_choices = [(obj.id, str(obj)) for obj in related_model.objects.all()[:100]]  # محدود به 100 مورد
+                print(f"DEBUG - Relation field {field.name} has {len(field_choices)} choices")
+            except Exception as e:
+                print(f"DEBUG - Error getting relation choices for {field.name}: {e}")
+                field_choices = []
+        
+        # بررسی وجود choices در فیلد
+        if hasattr(field, 'choices') and field.choices:
+            field_type = 'select'
+            field_choices = field.choices
+            print(f"DEBUG - Field {field.name} has choices: {len(field_choices)}")
+        
+        # تعیین برچسب فیلد
+        field_label = getattr(field, 'verbose_name', None)
+        if not field_label:
+            field_label = field.name.replace('_', ' ').title()
+        
+        # بررسی یکتا بودن فیلد
+        is_unique = False
+        if hasattr(field, 'unique'):
+            is_unique = field.unique
+        if hasattr(field, 'primary_key'):
+            is_unique = is_unique or field.primary_key
+        
+        # ساخت دیکشنری فیلد
+        field_data = {
+            'name': field.name,
+            'label': str(field_label),
+            'type': field_type,
+            'is_unique': is_unique,
+        }
+        
+        # اضافه کردن choices اگر وجود دارد
+        if field_choices:
+            field_data['choices'] = field_choices
+        
+        # اضافه کردن محدودیت‌های اضافی
+        if hasattr(field, 'max_length') and field.max_length:
+            field_data['max_length'] = field.max_length
+            
+        if hasattr(field, 'null') and field.null:
+            field_data['nullable'] = True
+            
+        if hasattr(field, 'blank') and field.blank:
+            field_data['optional'] = True
+            
+        # اضافه کردن متن راهنما
+        if hasattr(field, 'help_text') and field.help_text:
+            field_data['help_text'] = str(field.help_text)
+        
+        fields.append(field_data)
+        print(f"DEBUG - Added field: {field.name} as {field_type}")
     
+    # مرتب‌سازی فیلدها بر اساس نام
+    fields.sort(key=lambda x: x['name'])
+    
+    print(f"DEBUG - Final editable fields: {[f['name'] for f in fields]}")
     return fields
 
 @login_required
@@ -145,6 +259,8 @@ def bulk_edit_excel_page(request):
     app_name = request.GET.get('app', 'core')
     table_type = request.GET.get('table_type', '')
     
+    print(f"DEBUG - Excel page: model_name={model_name}, app_name={app_name}, table_type={table_type}")
+    
     if not selected_ids:
         return render(request, 'table_filter/bulk_edit_error.html', {
             'error': 'هیچ موردی انتخاب نشده است'
@@ -153,22 +269,38 @@ def bulk_edit_excel_page(request):
     # تشخیص مدل
     if not model_name:
         referer = request.META.get('HTTP_REFERER', '')
+        print(f"DEBUG - Excel page referer: {referer}")
         if 'purchase' in referer:
             model_name = 'Purchase'
             table_type = 'purchase'
         elif 'customer' in referer:
             model_name = 'Customer'
             table_type = 'customer'
+        elif 'cargo_product' in referer or 'cargo-product' in referer:
+            model_name = 'CargoProduct'
+            table_type = 'cargo_product'
+        
+    # اگر model_name مشخص شده ولی table_type نه، آن را تشخیص دهیم
+    if model_name and not table_type:
+        if model_name == 'Purchase':
+            table_type = 'purchase'
+        elif model_name == 'Customer':
+            table_type = 'customer'
+        elif model_name == 'CargoProduct':
+            table_type = 'cargo_product'
     
     try:
         model = apps.get_model(app_name, model_name)
-    except LookupError:
+        print(f"DEBUG - Excel page: Found model {model.__name__}")
+    except LookupError as e:
+        print(f"DEBUG - Excel page: LookupError {e}")
         return render(request, 'table_filter/bulk_edit_error.html', {
-            'error': f'مدل {model_name} یافت نشد'
+            'error': f'مدل {model_name} در اپلیکیشن {app_name} یافت نشد'
         })
     
     # دریافت آبجکت‌های انتخاب شده
     objects = model.objects.filter(id__in=selected_ids)
+    print(f"DEBUG - Excel page: Found {objects.count()} objects")
     
     context = {
         'objects': objects,
@@ -176,7 +308,7 @@ def bulk_edit_excel_page(request):
         'app_name': app_name,
         'table_type': table_type,
         'selected_count': len(selected_ids),
-        'selected_ids': selected_ids,
+        'selected_ids': ','.join(selected_ids),
     }
     
     return render(request, 'table_filter/bulk_edit_excel.html', context)
@@ -208,6 +340,12 @@ def bulk_edit_view(request):
                 app_name = 'core'
             elif 'barbary' in referer:
                 model_name = 'Barbary'
+                app_name = 'core'
+            elif 'vared_konandeh' in referer:
+                model_name = 'VaredKonandeh'
+                app_name = 'core'
+            elif 'cargo_product' in referer:
+                model_name = 'CargoProduct'
                 app_name = 'core'
             else:
                 return JsonResponse({
@@ -245,54 +383,60 @@ def bulk_edit_view(request):
         # لاگ فیلدهای یکتا برای اشکال‌زدایی
         print(f"Unique fields for {model_name}: {unique_fields}")
         
-        # پردازش فیلدهای مختلف
+        # پردازش فیلدهای مختلف - فقط فیلدهایی که مقدار دارند
         for field_name, value in request.POST.items():
             if field_name in ['selected_ids', 'model_name', 'app_name', 'csrfmiddlewaretoken']:
                 continue
+            
+            # بررسی وجود فیلد در مدل ابتدا
+            try:
+                field = model._meta.get_field(field_name)
+            except FieldDoesNotExist:
+                continue
                 
-            if value and value.strip():  # فقط فیلدهای با مقدار
-                # بررسی وجود فیلد در مدل
-                try:
-                    field = model._meta.get_field(field_name)
-                    
-                    # هشدار: اگر یک فیلد یکتا برای چندین رکورد تغییر کند
-                    if field_name in unique_fields and len(selected_ids) > 1:
-                        return JsonResponse({
-                            'status': 'error',
-                            'message': f'فیلد {field_name} دارای محدودیت یکتایی است و نمی‌تواند برای چندین رکورد یکسان باشد.'
-                        })
-                    
-                    # تبدیل مقدار به نوع مناسب
-                    if field.get_internal_type() in ['IntegerField', 'PositiveIntegerField', 'BigIntegerField']:
-                        try:
-                            update_data[field_name] = int(value)
-                        except ValueError:
-                            continue
-                    elif field.get_internal_type() in ['FloatField', 'DecimalField']:
-                        try:
-                            update_data[field_name] = float(value)
-                        except ValueError:
-                            continue
-                    elif field.get_internal_type() == 'BooleanField':
-                        update_data[field_name] = value.lower() in ['true', '1', 'yes', 'on']
-                    else:
-                        update_data[field_name] = value
-                        
-                except FieldDoesNotExist:
-                    continue
-        
-        # پردازش چک‌باکس‌ها (که در POST نیستند اگر انتخاب نشده باشند)
-        checkbox_fields = ['is_urgent', 'is_factored', 'is_archived', 'is_canceled', 'is_weight_costed', 'is_ap_af', 'is_fully_tasvied']
-        for field_name in checkbox_fields:
-            if field_name in request.POST:
-                update_data[field_name] = True
-            else:
-                # اگر چک‌باکس وجود نداشت، آن را False کن (فقط اگر مدل این فیلد را دارد)
-                try:
-                    model._meta.get_field(field_name)
-                    update_data[field_name] = False
-                except FieldDoesNotExist:
-                    continue
+            # فقط فیلدهایی که مقدار دارند را پردازش کن
+            if value is not None and str(value).strip():
+                # هشدار: اگر یک فیلد یکتا برای چندین رکورد تغییر کند
+                if field_name in unique_fields and len(selected_ids) > 1:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': f'فیلد {field_name} دارای محدودیت یکتایی است و نمی‌تواند برای چندین رکورد یکسان باشد.'
+                    })
+                
+                # تبدیل مقدار به نوع مناسب
+                if field.get_internal_type() in ['IntegerField', 'PositiveIntegerField', 'BigIntegerField']:
+                    try:
+                        update_data[field_name] = int(value)
+                    except ValueError:
+                        continue
+                elif field.get_internal_type() in ['FloatField', 'DecimalField']:
+                    try:
+                        update_data[field_name] = float(value)
+                    except ValueError:
+                        continue
+                elif field.get_internal_type() == 'BooleanField':
+                    update_data[field_name] = value.lower() in ['true', '1', 'yes', 'on', 'بله', 'فعال']
+                elif field.get_internal_type() == 'ForeignKey':
+                    # برای ForeignKey، مقدار باید ID باشد
+                    try:
+                        if value and value != '':
+                            update_data[field_name + '_id'] = int(value)
+                    except (ValueError, TypeError):
+                        continue
+                else:
+                    update_data[field_name] = value
+            
+            # پردازش ویژه برای چک‌باکس‌ها - فقط اگر explicitly sent شده باشند
+            elif field.get_internal_type() == 'BooleanField':
+                # اگر چک‌باکس در POST است، یعنی true است
+                if field_name in request.POST:
+                    update_data[field_name] = True
+                # اگر نیست و فیلد از نوع بولین است، False کن (فقط برای فیلدهای مشخص)
+                elif field_name in ['is_urgent', 'is_factored', 'is_archived', 'is_canceled', 'is_weight_costed', 'is_ap_af', 'is_fully_tasvied', 'is_active', 'is_blocked', 'is_favorite', 'whatsapp_preference', 'sms_preference', 'is_bazaargah_enjoyer']:
+                    # فقط اگر در form موجود بود ولی انتخاب نشده
+                    form_checkbox_names = [name for name in request.POST.keys() if name.startswith('checkbox_') or name in ['is_urgent', 'is_factored', 'is_archived', 'is_canceled', 'is_weight_costed', 'is_ap_af', 'is_fully_tasvied', 'is_active', 'is_blocked', 'is_favorite', 'whatsapp_preference', 'sms_preference', 'is_bazaargah_enjoyer']]
+                    if any(field_name in name for name in form_checkbox_names):
+                        update_data[field_name] = False
         
         # لاگ کردن داده‌های به‌روزرسانی
         print(f"Update data: {update_data}")
@@ -443,19 +587,20 @@ def bulk_edit_excel_view(request):
         if not model_name:
             # تلاش برای تشخیص از URL
             referer = request.META.get('HTTP_REFERER', '')
-            if 'purchase' in referer or 'purchase_list' in referer:
+            if 'purchase' in referer:
                 model_name = 'Purchase'
                 app_name = 'core'
             elif 'customer' in referer:
                 model_name = 'Customer'
                 app_name = 'core'
-            elif 'barbary' in referer:
-                model_name = 'Barbary'
+            elif 'cargo_product' in referer:
+                model_name = 'CargoProduct'
                 app_name = 'core'
             else:
-                from django.contrib import messages
-                messages.error(request, 'نوع مدل تشخیص داده نشد')
-                return redirect(request.META.get('HTTP_REFERER', '/'))
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'نوع مدل تشخیص داده نشد'
+                })
         
         try:
             model = apps.get_model(app_name, model_name)
@@ -609,153 +754,160 @@ def bulk_edit_excel_view(request):
 
 @login_required
 def download_excel_template_view(request):
-    """Download Excel template for bulk editing"""
-    try:
-        table_type = request.GET.get('table_type', 'generic')
-        selected_ids = request.GET.get('selected_ids', '').split(',')
-        selected_ids = [id.strip() for id in selected_ids if id.strip()]
+    """دانلود قالب اکسل برای ویرایش گروهی"""
+    table_type = request.GET.get('table_type', '')
+    selected_ids = request.GET.get('selected_ids', '').split(',')
+    selected_ids = [id.strip() for id in selected_ids if id.strip()]
+    model_name = request.GET.get('model', '')
+    app_name = request.GET.get('app', 'core')
         
-        # تشخیص مدل
-        model_name = None
-        app_name = 'core'
+    print(f"DEBUG - Excel Template: Initial params: model_name={model_name}, app_name={app_name}, table_type={table_type}, selected_ids={selected_ids}")
         
-        # تشخیص از URL اگر table_type ارسال نشده باشد
-        if table_type == 'generic':
-            referer = request.META.get('HTTP_REFERER', '')
-            if 'purchase' in referer or 'purchase_list' in referer:
-                table_type = 'purchase'
-            elif 'customer' in referer:
-                table_type = 'customer'
-            elif 'barbary' in referer:
-                table_type = 'barbary'
-        
-        if table_type == 'purchase':
+    # تشخیص مدل
+    if not table_type or not model_name:
+        referer = request.META.get('HTTP_REFERER', '')
+        print(f"DEBUG - Excel Template referer: {referer}")
+        if 'purchase' in referer:
+            table_type = 'purchase'
             model_name = 'Purchase'
-        elif table_type == 'customer':
+        elif 'customer' in referer:
+            table_type = 'customer'
             model_name = 'Customer'
-        elif table_type == 'barbary':
+        elif 'cargo_product' in referer or 'cargo-product' in referer:
+            table_type = 'cargo_product'
+            model_name = 'CargoProduct'
+        elif 'barbary' in referer:
+            table_type = 'barbary'
             model_name = 'Barbary'
+        elif 'vared_konandeh' in referer:
+            table_type = 'vared_konandeh'
+            model_name = 'VaredKonandeh'
         else:
-            return HttpResponse('نوع جدول پشتیبانی نمی‌شود', status=400)
+            return HttpResponse('نوع جدول تشخیص داده نشد', status=400)
+    
+    print(f"DEBUG - Excel Template: Final params: model_name={model_name}, table_type={table_type}")
         
-        try:
-            model = apps.get_model(app_name, model_name)
-        except LookupError:
-            return HttpResponse('مدل یافت نشد', status=400)
+    try:
+        model = apps.get_model(app_name, model_name)
+        print(f"DEBUG - Excel Template: Found model {model.__name__}")
+    except LookupError as e:
+        print(f"DEBUG - Excel Template: LookupError {e}")
+        return HttpResponse(f'مدل {model_name} در اپلیکیشن {app_name} یافت نشد. خطا: {str(e)}', status=400)
         
-        # ایجاد فایل اکسل
-        workbook = openpyxl.Workbook()
-        worksheet = workbook.active
-        worksheet.title = f'Template_{model_name}'
+    # ایجاد فایل اکسل
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"ویرایش گروهی {model_name}"
+    
+    # قالب‌بندی هدر
+    header_font = Font(bold=True)
+    header_fill = PatternFill(start_color="AAAAAA", end_color="AAAAAA", fill_type="solid")
+    header_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    
+    # ستون‌های اکسل
+    headers_fields = get_excel_headers_fields(table_type, selected_ids)
+    
+    if not headers_fields:
+        print(f"DEBUG - Excel Template: No headers fields found for table_type={table_type}")
+        return HttpResponse(f'خطا در دریافت فیلدها برای نوع جدول {table_type}', status=400)
+    
+    print(f"DEBUG - Excel Template: Found {len(headers_fields)} header fields")
         
-        # تنظیم راست به چپ بودن شیت
-        worksheet.sheet_view.rightToLeft = True
-        
-        # تعریف هدرها و فیلدها
-        headers_fields = get_excel_headers_fields(table_type)
-        headers = list(headers_fields.keys())
-        
-        # نوشتن هدرها
-        for col_num, header in enumerate(headers, 1):
-            cell = worksheet.cell(row=1, column=col_num, value=header)
-            cell.font = Font(bold=True, color="FFFFFF")
-            cell.fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-            cell.alignment = Alignment(horizontal="center", vertical="center")
-        
-        # دریافت داده‌های موجود برای موارد انتخاب شده
-        if selected_ids:
-            queryset = model.objects.filter(id__in=selected_ids)
+    # اضافه کردن هدرها
+    for col_idx, (header, _) in enumerate(headers_fields, start=1):
+        cell = ws.cell(row=1, column=col_idx, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+    
+    # اضافه کردن ستون ID در ابتدا
+    id_cell = ws.cell(row=1, column=len(headers_fields) + 1, value="ID")
+    id_cell.font = header_font
+    id_cell.fill = header_fill
+    id_cell.alignment = header_alignment
+    
+    # اگر آیدی‌های انتخاب شده وجود دارند، اطلاعات آنها را اضافه کنیم
+    if selected_ids:
+        objects = model.objects.filter(id__in=selected_ids)
+        print(f"DEBUG - Excel Template: Found {objects.count()} objects for selected IDs")
             
-            for row_num, obj in enumerate(queryset, 2):
-                for col_num, (header, field_name) in enumerate(headers_fields.items(), 1):
-                    if field_name == 'id':
-                        value = obj.id
-                    else:
-                        try:
-                            value = getattr(obj, field_name, '')
-                            
-                            # تبدیل مقادیر خاص
-                            if hasattr(obj, f'get_{field_name}_display'):
-                                display_value = getattr(obj, f'get_{field_name}_display')()
-                                if display_value:
-                                    value = display_value
-                            elif isinstance(value, bool):
-                                value = 'بله' if value else 'خیر'
-                            elif value is None:
-                                value = ''
-                                
-                        except AttributeError:
-                            value = ''
-                    
-                    cell = worksheet.cell(row=row_num, column=col_num, value=value)
-                    # تنظیم alignment برای سلول‌ها
-                    cell.alignment = Alignment(horizontal="center", vertical="center")
-        
-        # تنظیم عرض ستون‌ها
-        for col in worksheet.columns:
-            max_length = 0
-            column = col[0].column_letter
-            for cell in col:
+        for row_idx, obj in enumerate(objects, start=2):
+            # مقدار هر ستون را اضافه کنیم
+            for col_idx, (_, field_name) in enumerate(headers_fields, start=1):
                 try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = min(max_length + 5, 50)  # کمی عرض بیشتر برای خوانایی بهتر متن فارسی
-            worksheet.column_dimensions[column].width = adjusted_width
+                    value = getattr(obj, field_name)
+                            
+                    # اگر فیلد از نوع ForeignKey است، نام آن را به‌جای آبجکت استفاده کنیم
+                    if hasattr(value, '__class__') and value is not None:
+                        if hasattr(value, 'name'):
+                            value = value.name
+                        elif hasattr(value, 'id'):
+                            value = str(value.id)
+                    
+                    ws.cell(row=row_idx, column=col_idx, value=value)
+                except (AttributeError, FieldDoesNotExist) as e:
+                    print(f"DEBUG - Excel Template: Error getting field {field_name} for object {obj.id}: {e}")
+                    continue
+            
+            # اضافه کردن ID برای شناسایی
+            ws.cell(row=row_idx, column=len(headers_fields) + 1, value=str(obj.id))
         
-        # تنظیم استایل کلی فایل
-        for row in worksheet.rows:
-            for cell in row:
-                if cell.row > 1:  # برای همه سطرها به جز هدر
-                    cell.font = Font(name='Tahoma', size=11)
+    # ذخیره در BytesIO
+    excel_file = BytesIO()
+    wb.save(excel_file)
+    excel_file.seek(0)
         
-        # ذخیره فایل در حافظه
-        output = BytesIO()
-        workbook.save(output)
-        output.seek(0)
+    # ارسال فایل به کاربر
+    response = HttpResponse(
+        excel_file.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename=bulk_edit_{table_type}.xlsx'
         
-        # تنظیم response
-        response = HttpResponse(
-            output.getvalue(),
-            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-        
-        filename = f'bulk_edit_template_{model_name}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        
-        return response
-        
-    except Exception as e:
-        return HttpResponse(f'خطا در ایجاد قالب: {str(e)}', status=500)
+    return response
 
 def get_field_name_from_header(header, model_name):
-    """Map Excel header to model field name"""
-    mapping = {
-        'purchase': {
-            'کد درون سازمانی': 'invoice_id',
-            'شماره خرید': 'purchase_number',
-            'وزن سفارش': 'order_weight',
-            'قیمت خرید': 'company_price',
-            'قیمت فروش': 'customer_price',
-            'وضعیت': 'state',
-            'فوری': 'is_urgent',
-            'فاکتور صادر شده': 'is_factored',
-            'آرشیو شده': 'is_archived',
-            'وزن تحویلی': 'delivered_weight',
-            'مبلغ پرداختی': 'amount_paid',
-            'توضیحات': 'description',
-        },
-        'customer': {
-            'نام مشتری': 'name',
-            'شماره تلفن': 'phone_number',
-            'آدرس': 'address',
-            'کد ملی': 'national_code',
-        }
-    }
-    
-    model_mapping = mapping.get(model_name.lower(), {})
-    return model_mapping.get(header)
+    """Map Excel header to model field name به صورت دینامیک"""
+    try:
+        # دریافت مدل
+        model = apps.get_model('core', model_name)
+        
+        # جستجو در فیلدهای مدل
+        for field in model._meta.get_fields():
+            # بررسی verbose_name
+            if hasattr(field, 'verbose_name') and field.verbose_name:
+                if field.verbose_name.strip() == header.strip():
+                    return field.name
+            
+            # بررسی نام فیلد به صورت مستقیم
+            if field.name == header:
+                return field.name
+        
+        # جستجوی فازی برای موارد مشابه
+        header_lower = header.lower().strip()
+        for field in model._meta.get_fields():
+            field_name_lower = field.name.lower()
+            if hasattr(field, 'verbose_name') and field.verbose_name:
+                verbose_name_lower = field.verbose_name.lower().strip()
+                
+                # بررسی تشابه کلمات کلیدی
+                if ('کوتاژ' in header_lower and 'cottage' in field_name_lower) or \
+                   ('محصول' in header_lower and 'product' in field_name_lower) or \
+                   ('کشور' in header_lower and 'country' in field_name_lower) or \
+                   ('وزن' in header_lower and 'weight' in field_name_lower) or \
+                   ('قیمت' in header_lower and 'price' in field_name_lower) or \
+                   ('توضیحات' in header_lower and 'description' in field_name_lower) or \
+                   ('وضعیت' in header_lower and 'status' in field_name_lower) or \
+                   ('نام' in header_lower and 'name' in field_name_lower) or \
+                   ('تلفن' in header_lower and 'phone' in field_name_lower) or \
+                   ('آدرس' in header_lower and 'address' in field_name_lower):
+                    return field.name
+        
+        return None
+        
+    except Exception as e:
+        print(f"Error in get_field_name_from_header: {e}")
+        return None
 
 def convert_excel_value(value, field):
     """Convert Excel cell value to appropriate field type"""
@@ -768,32 +920,49 @@ def convert_excel_value(value, field):
     else:
         return str(value) if value else ''
 
-def get_excel_headers_fields(table_type):
-    """Get headers and corresponding field names for Excel template"""
-    mappings = {
-        'purchase': {
-            'ID': 'id',
-            'کد درون سازمانی': 'invoice_id',
-            'شماره خرید': 'purchase_number',
-            'وزن سفارش (کیلوگرم)': 'order_weight',
-            'قیمت خرید (ریال)': 'company_price',
-            'قیمت فروش (ریال)': 'customer_price',
-            'وضعیت': 'state',
-            'فوری': 'is_urgent',
-            'فاکتور صادر شده': 'is_factored',
-            'آرشیو شده': 'is_archived',
-            'توضیحات': 'description',
-        },
-        'customer': {
-            'ID': 'id',
-            'نام مشتری': 'name',
-            'شماره تلفن': 'phone_number',
-            'آدرس': 'address',
-            'کد ملی': 'national_code',
+def get_excel_headers_fields(table_type, selected_ids=None):
+    """بازگرداندن لیست هدرهای اکسل و فیلدهای متناظر به صورت دینامیک"""
+    try:
+        # تبدیل table_type به model_name
+        model_map = {
+            'purchase': 'Purchase',
+            'customer': 'Customer',
+            'barbary': 'Barbary',
+            'cargo_product': 'CargoProduct',
+            'vared_konandeh': 'VaredKonandeh'
         }
-    }
-    
-    return mappings.get(table_type, {'ID': 'id'})
+        model_name = model_map.get(table_type)
+        
+        if not model_name:
+            print(f"DEBUG - get_excel_headers_fields: Unknown table_type {table_type}")
+            return []
+        
+        # دریافت مدل
+        try:
+            model = apps.get_model('core', model_name)
+            print(f"DEBUG - get_excel_headers_fields: Found model {model.__name__}")
+        except LookupError as e:
+            print(f"DEBUG - get_excel_headers_fields: LookupError {e}")
+            return []
+        
+        # دریافت فیلدهای قابل ویرایش
+        editable_fields = get_editable_fields(model, table_type, selected_ids)
+        print(f"DEBUG - get_excel_headers_fields: Found {len(editable_fields)} editable fields")
+        
+        # تبدیل به فرمت مورد نیاز برای اکسل
+        headers_fields = []
+        for field_data in editable_fields:
+            header = field_data['label']
+            field_name = field_data['name']
+            headers_fields.append((header, field_name))
+        
+        return headers_fields
+        
+    except Exception as e:
+        print(f"Error in get_excel_headers_fields: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
 
 @login_required
 def edit_history_view(request):

@@ -20,7 +20,7 @@ urlpatterns = [
     path('bki/barnameh/', include('bki_barnameh.urls')),
     path('whatsapp/', include(('whatsapp_api.urls', 'whatsapp_api'), namespace='whatsapp_api')),
     path('data-exflow/', include('data_exflow.urls')),
-    path('table-filter/', include('table_filter.urls')),
+    path('table_filter/', include('table_filter.urls')),
 
     path('', include('authentication.urls')),
     # هدایت مسیرهای قدیمی به صفحه ورود جدید

@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import cargo_product_view, cargo_product_CRUD_panel
 from .views import barbary_view, vared_konandeh_view
+from django.views.generic.base import RedirectView
 
 urlpatterns = [
     path('cargo-products/', cargo_product_view.cargo_product_list, name='cargo_product_list'),
@@ -19,5 +20,10 @@ urlpatterns = [
     path('vared-konandehs/', vared_konandeh_view.vared_konandeh_list, name='vared_konandeh_list'),
     path('vared-konandeh/add/', vared_konandeh_view.vared_konandeh_add, name='vared_konandeh_add'),
     path('vared-konandeh/bulk-edit/', vared_konandeh_view.bulk_edit_vared_konandehs, name='bulk_edit_vared_konandehs'),
+    
+    # URL‌های مرتبط با ویرایش گروهی
+    path('cargo-products/bulk-edit/', lambda request: RedirectView.as_view(url='/table_filter/bulk-edit-page/')(request), name='cargo_product_bulk_edit'),
+    path('cargo-products/bulk-edit-excel/', lambda request: RedirectView.as_view(url='/table_filter/bulk-edit-excel-page/')(request), name='cargo_product_bulk_edit_excel'),
+    path('cargo-products/bulk-edit-template/', lambda request: RedirectView.as_view(url='/table_filter/bulk-edit-template/')(request), name='cargo_product_bulk_edit_template'),
 ]
 

@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load humanize %}
 {% load table_filter_tags %}
+{% load static %}
 
 {% block title %}لیست پیشرفته مشتریان{% endblock %}
 
@@ -260,6 +261,77 @@
         background-color: var(--primary-color);
         color: white;
     }
+    
+    .bulk-edit-controls {
+        background-color: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        box-shadow: var(--card-shadow);
+        transition: all 0.3s ease;
+    }
+    
+    .bulk-edit-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .selected-count {
+        font-weight: 600;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .bulk-edit-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .bulk-selected {
+        background-color: #e0f2fe;
+        border-left: 3px solid var(--secondary-color);
+    }
+    
+    .btn-success {
+        background-color: #10b981;
+        color: white;
+        transition: all var(--transition-speed) ease;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn-success:hover {
+        background-color: #059669;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    .btn-info {
+        background-color: #3b82f6;
+        color: white;
+        transition: all var(--transition-speed) ease;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn-info:hover {
+        background-color: #2563eb;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
 </style>
 {% endblock %}
 
@@ -456,7 +528,7 @@
                 <thead>
                     <tr>
                         <th width="40px" class="px-6 py-3 text-right">
-                            <input type="checkbox" id="select-all-checkbox" class="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <input type="checkbox" id="select-all-checkbox" class="select-all-checkbox h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
                         </th>
                         <th width="40px" class="px-6 py-3 text-right" data-column-type="boolean">
                             <span>علاقه</span>
@@ -483,7 +555,7 @@
                     {% for customer in customers %}
                         <tr>
                             <td class="px-6 py-4 text-right">
-                                <input type="checkbox" name="customer_ids" value="{{ customer.id }}" class="customer-checkbox h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                <input type="checkbox" name="customer_ids" value="{{ customer.id }}" class="row-checkbox h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" data-id="{{ customer.id }}">
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <span class="favorite-icon text-yellow-500 cursor-pointer hover:scale-125 transition-transform" data-customer-id="{{ customer.id }}" data-is-favorite="{{ customer.is_favorite|lower }}">
@@ -643,9 +715,50 @@
 
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8/dist/sweetalert2.all.min.js"></script>
+<script src="{% static 'table_filter/js/bulk_edit.js' %}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         console.log('DOM fully loaded');
+        
+        // Initialize the bulk edit manager
+        const bulkEditManager = new BulkEditManager({
+            tableSelector: '.enable-filter',
+            bulkEditPageUrl: '{% url "table_filter:bulk_edit_page" %}',
+            excelEditPageUrl: '{% url "table_filter:bulk_edit_excel_page" %}',
+            downloadTemplateUrl: '{% url "table_filter:bulk_edit_template" %}'
+        });
+        bulkEditManager.init();
+        
+        // اضافه کردن امکان تشخیص نوع جدول برای cargo_product
+        bulkEditManager.detectTableType = function() {
+            const url = window.location.pathname;
+            if (url.includes('cargo_product')) {
+                return 'cargo_product';
+            } else if (url.includes('purchase')) {
+                return 'purchase';
+            } else if (url.includes('customer')) {
+                return 'customer';
+            } else if (url.includes('barbary')) {
+                return 'barbary';
+            }
+            return 'generic';
+        };
+        
+        // اضافه کردن نگاشت مدل برای cargo_product
+        bulkEditManager.getModelName = function(tableType) {
+            const modelMap = {
+                'purchase': 'Purchase',
+                'customer': 'Customer',
+                'barbary': 'Barbary',
+                'cargo_product': 'CargoProduct'
+            };
+            return modelMap[tableType] || 'Customer';
+        };
+        
+        // تنظیم اپلیکیشن مدل
+        bulkEditManager.getAppName = function(tableType) {
+            return 'core';
+        };
         
         // تنظیم فیلتر مناسب برای لیست مشتریان
         var toggleFiltersBtn = document.getElementById('toggle-filters-btn');
@@ -689,7 +802,7 @@
         var selectAllBtn = document.getElementById('select-all-btn');
         if (selectAllBtn) {
             selectAllBtn.addEventListener('click', function() {
-                var checkboxes = document.querySelectorAll('.customer-checkbox');
+                var checkboxes = document.querySelectorAll('.row-checkbox');
                 checkboxes.forEach(function(checkbox) {
                     checkbox.checked = true;
                     checkbox.closest('tr').classList.add('selected-row');
@@ -702,7 +815,7 @@
         var deselectAllBtn = document.getElementById('deselect-all-btn');
         if (deselectAllBtn) {
             deselectAllBtn.addEventListener('click', function() {
-                var checkboxes = document.querySelectorAll('.customer-checkbox');
+                var checkboxes = document.querySelectorAll('.row-checkbox');
                 checkboxes.forEach(function(checkbox) {
                     checkbox.checked = false;
                     checkbox.closest('tr').classList.remove('selected-row');
@@ -715,7 +828,7 @@
         var selectAllCheckbox = document.getElementById('select-all-checkbox');
         if (selectAllCheckbox) {
             selectAllCheckbox.addEventListener('change', function() {
-                var checkboxes = document.querySelectorAll('.customer-checkbox');
+                var checkboxes = document.querySelectorAll('.row-checkbox');
                 checkboxes.forEach(function(checkbox) {
                     checkbox.checked = this.checked;
                     if (this.checked) {
@@ -730,7 +843,7 @@
 
         // محاسبه تعداد انتخاب‌ها
         function updateSelectionCount() {
-            var count = document.querySelectorAll('.customer-checkbox:checked').length;
+            var count = document.querySelectorAll('.row-checkbox:checked').length;
             var sendSmsBtn = document.getElementById('send-sms-btn');
             if (sendSmsBtn) {
                 sendSmsBtn.disabled = count === 0;
@@ -742,7 +855,7 @@
         }
 
         // اضافه کردن event listener به تمام چک‌باکس‌ها
-        var customerCheckboxes = document.querySelectorAll('.customer-checkbox');
+        var customerCheckboxes = document.querySelectorAll('.row-checkbox');
         customerCheckboxes.forEach(function(checkbox) {
             checkbox.addEventListener('change', function() {
                 console.log('Checkbox changed');
@@ -776,7 +889,7 @@
                 }
                 
                 console.log('Row clicked');
-                var checkbox = this.querySelector('.customer-checkbox');
+                var checkbox = this.querySelector('.row-checkbox');
                 if (checkbox) {
                     checkbox.checked = !checkbox.checked;
                     
