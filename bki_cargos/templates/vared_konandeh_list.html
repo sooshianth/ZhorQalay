@@ -293,44 +293,6 @@
             <span class="btn-icon"><i class="fas fa-plus"></i></span>
             ایجاد واردکننده جدید
         </a>
-        <div class="column-options">
-            <button class="column-options-btn" onclick="toggleColumnOptions()">
-                <i class="fas fa-columns btn-icon"></i>
-                تنظیم ستون‌ها
-            </button>
-            <div class="column-options-menu" id="columnOptions">
-                <div class="column-option">
-                    <label>
-                        <input type="checkbox" data-column="0" checked disabled> انتخاب
-                    </label>
-                </div>
-                <div class="column-option">
-                    <label>
-                        <input type="checkbox" data-column="1" checked> نام
-                    </label>
-                </div>
-                <div class="column-option">
-                    <label>
-                        <input type="checkbox" data-column="2" checked> شماره تماس
-                    </label>
-                </div>
-                <div class="column-option">
-                    <label>
-                        <input type="checkbox" data-column="3" checked> ایمیل
-                    </label>
-                </div>
-                <div class="column-option">
-                    <label>
-                        <input type="checkbox" data-column="4" checked> وبسایت
-                    </label>
-                </div>
-                <div class="column-option">
-                    <label>
-                        <input type="checkbox" data-column="5" checked> کیف پول
-                    </label>
-                </div>
-            </div>
-        </div>
         <a href="{% url 'cargo_product_list' %}" class="btn btn-primary" style="margin-right: 10px;">
             <span class="btn-icon"><i class="fas fa-box"></i></span>
             بازگشت به کوتاژها
@@ -367,14 +329,14 @@
                     <tbody>
                         {% for vared_konandeh in vared_konandehs %}
                             <tr onclick="toggleSelection(this, {{ vared_konandeh.id }});" class="animate-fade-in" style="animation-delay: {{ forloop.counter0|add:1|divisibleby:10 }}0ms">
-                                <td>
+                                <td class="column-select">
                                     <input type="checkbox" name="vared_konandeh_id" value="{{ vared_konandeh.id }}" class="row-checkbox" data-id="{{ vared_konandeh.id }}" onclick="event.stopPropagation();">
                                 </td>
-                                <td><strong>{{ vared_konandeh.name|default:"-" }}</strong></td>
-                                <td>{{ vared_konandeh.phone_number|default:"-" }}</td>
-                                <td>{{ vared_konandeh.email|default:"-" }}</td>
-                                <td>{{ vared_konandeh.website|default:"-" }}</td>
-                                <td>{{ vared_konandeh.balance|default:"0" }}</td>
+                                <td class="column-name"><strong>{{ vared_konandeh.name|default:"-" }}</strong></td>
+                                <td class="column-phone_number">{{ vared_konandeh.phone_number|default:"-" }}</td>
+                                <td class="column-email">{{ vared_konandeh.email|default:"-" }}</td>
+                                <td class="column-website">{{ vared_konandeh.website|default:"-" }}</td>
+                                <td class="column-balance">{{ vared_konandeh.balance|default:"0" }}</td>
                             </tr>
                         {% empty %}
                             <tr>
@@ -508,52 +470,6 @@
         }
     }
 
-    // تابع تغییر نمایش ستون‌ها
-    function toggleColumnVisibility() {
-        var checkboxes = document.querySelectorAll('#columnOptions input[type="checkbox"]');
-        var table = document.getElementById('varedKonandeTable');
-        
-        checkboxes.forEach(function(checkbox) {
-            var columnIndex = checkbox.getAttribute('data-column');
-            var isVisible = checkbox.checked;
-            
-            // تغییر نمایش ستون در جدول
-            if (table) {
-                var headerCells = table.querySelectorAll('th');
-                var rows = table.querySelectorAll('tr');
-                
-                // تغییر نمایش در سرصفحه
-                if (headerCells[columnIndex]) {
-                    headerCells[columnIndex].style.display = isVisible ? '' : 'none';
-                }
-                
-                // تغییر نمایش در ردیف‌ها
-                rows.forEach(function(row) {
-                    var cells = row.querySelectorAll('td');
-                    if (cells[columnIndex]) {
-                        cells[columnIndex].style.display = isVisible ? '' : 'none';
-                    }
-                });
-            }
-        });
-    }
-
-    // نمایش/پنهان کردن منوی تنظیمات ستون
-    function toggleColumnOptions() {
-        var menu = document.getElementById('columnOptions');
-        menu.classList.toggle('show');
-    }
-
-    // بستن منوی تنظیمات ستون با کلیک خارج از آن
-    document.addEventListener('click', function(event) {
-        var menu = document.getElementById('columnOptions');
-        var button = document.querySelector('.column-options-btn');
-        
-        if (!menu.contains(event.target) && !button.contains(event.target)) {
-            menu.classList.remove('show');
-        }
-    });
-    
     // اضافه کردن آیکون‌های Font Awesome
     document.addEventListener('DOMContentLoaded', function() {
         // اگر لینک Font Awesome قبلاً اضافه نشده باشد، آن را اضافه کن
@@ -563,11 +479,6 @@
             link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css';
             document.head.appendChild(link);
         }
-        
-        // افزودن event listener برای تغییر نمایش ستون‌ها
-        document.querySelectorAll('#columnOptions input[type="checkbox"]').forEach(function(checkbox) {
-            checkbox.addEventListener('change', toggleColumnVisibility);
-        });
     });
 </script>
 
@@ -583,18 +494,18 @@
             // Override the detectTableType function
             window.bulkEditManager.detectTableType = function() {
                 const url = window.location.pathname;
-                if (url.includes('vared_konandeh')) {
+                if (url.includes('vared-konandeh') || url.includes('vared_konandeh')) {
                     return 'vared_konandeh';
-                } else if (url.includes('barbary')) {
+                } else if (url.includes('barbary') || url.includes('barbaries')) {
                     return 'barbary';
-                } else if (url.includes('cargo_product')) {
+                } else if (url.includes('cargo-product') || url.includes('cargo_product')) {
                     return 'cargo_product';
                 } else if (url.includes('purchase')) {
                     return 'purchase';
                 } else if (url.includes('customer')) {
                     return 'customer';
                 }
-                return 'generic';
+                return 'vared_konandeh'; // Default to vared_konandeh instead of generic
             };
             
             // Override the getModelName function

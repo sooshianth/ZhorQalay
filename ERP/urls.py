@@ -24,6 +24,7 @@ urlpatterns = [
     path('purchases/update-field/', purchase_list_view.update_purchase_field, name='update_purchase_field'),
     path('purchases/revert-edit/', purchase_list_view.revert_purchase_edit, name='revert_purchase_edit'),
     path('purchases/<int:purchase_id>/edit-logs/', purchase_list_view.get_purchase_edit_logs, name='purchase_edit_logs'),
+    path('purchases/aggregated-stats/', purchase_list_view.get_purchase_aggregated_stats, name='purchase_aggregated_stats'),
     path('cargo-products/list/', purchase_list_view.cargo_products_list, name='cargo_products_list'),
     path('cargo-product/details/', purchase_list_view.cargo_product_details, name='cargo_product_details'),
     path('bulk-edit-cargo/', purchase_list_view.bulk_edit_cargo, name='bulk_edit_cargo'),

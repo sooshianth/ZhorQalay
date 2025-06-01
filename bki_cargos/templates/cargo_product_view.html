@@ -435,19 +435,19 @@
                     <tbody>
                         {% for product in cargo_products %}
                             <tr onclick="toggleSelection(this, '{{ product.id }}');" class="animate-fade-in">
-                                <td>
+                                <td class="column-select">
                                     <input type="checkbox" name="product_id" value="{{ product.id }}" class="row-checkbox" data-id="{{ product.id }}" onclick="event.stopPropagation();">
                                 </td>
-                                <td><strong>{{ product.cottage }}</strong></td>
-                                <td>{{ product.get_product_type_display }}</td>
-                                <td>{{ product.get_country_display }}</td>
-                                <td>{{ product.vared_konandeh.name|default:"-" }}</td>
-                                <td>{{ product.barbary.name|default:"-" }}</td>
-                                <td data-value="{{ product.customer_price }}">{{ product.customer_price }}</td>
-                                <td>{{ product.port }}</td>
-                                <td data-value="{{ product.loading_time }}">{{ product.loading_time }}</td>
-                                <td>{{ product.description }}</td>
-                                <td>
+                                <td class="column-cottage"><strong>{{ product.cottage }}</strong></td>
+                                <td class="column-product_type">{{ product.get_product_type_display }}</td>
+                                <td class="column-country">{{ product.get_country_display }}</td>
+                                <td class="column-vared_konandeh">{{ product.vared_konandeh.name|default:"-" }}</td>
+                                <td class="column-barbary">{{ product.barbary.name|default:"-" }}</td>
+                                <td class="column-customer_price" data-value="{{ product.customer_price }}">{{ product.customer_price }}</td>
+                                <td class="column-port">{{ product.port }}</td>
+                                <td class="column-loading_time" data-value="{{ product.loading_time }}">{{ product.loading_time }}</td>
+                                <td class="column-description">{{ product.description }}</td>
+                                <td class="column-status">
                                     <span class="badge badge-success">
                                         <i class="fas fa-check-circle" style="margin-left: 0.25rem;"></i>
                                         فعال
@@ -500,19 +500,19 @@
                     <tbody>
                         {% for product in deactive_cargo_products %}
                             <tr onclick="toggleSelection(this, '{{ product.id }}');">
-                                <td>
+                                <td class="column-select">
                                     <input type="checkbox" name="product_id" value="{{ product.id }}" class="row-checkbox" data-id="{{ product.id }}" onclick="event.stopPropagation();">
                                 </td>
-                                <td><strong>{{ product.cottage }}</strong></td>
-                                <td>{{ product.get_product_type_display }}</td>
-                                <td>{{ product.get_country_display }}</td>
-                                <td>{{ product.vared_konandeh.name|default:"-" }}</td>
-                                <td>{{ product.barbary.name|default:"-" }}</td>
-                                <td data-value="{{ product.customer_price }}">{{ product.customer_price }}</td>
-                                <td>{{ product.port }}</td>
-                                <td data-value="{{ product.loading_time }}">{{ product.loading_time }}</td>
-                                <td>{{ product.description }}</td>
-                                <td>
+                                <td class="column-cottage"><strong>{{ product.cottage }}</strong></td>
+                                <td class="column-product_type">{{ product.get_product_type_display }}</td>
+                                <td class="column-country">{{ product.get_country_display }}</td>
+                                <td class="column-vared_konandeh">{{ product.vared_konandeh.name|default:"-" }}</td>
+                                <td class="column-barbary">{{ product.barbary.name|default:"-" }}</td>
+                                <td class="column-customer_price" data-value="{{ product.customer_price }}">{{ product.customer_price }}</td>
+                                <td class="column-port">{{ product.port }}</td>
+                                <td class="column-loading_time" data-value="{{ product.loading_time }}">{{ product.loading_time }}</td>
+                                <td class="column-description">{{ product.description }}</td>
+                                <td class="column-status">
                                     <span class="badge badge-danger">
                                         <i class="fas fa-times-circle" style="margin-left: 0.25rem;"></i>
                                         غیرفعال
@@ -603,6 +603,65 @@
             link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css';
             document.head.appendChild(link);
         }
+        
+        // افزودن event listener برای تغییر نمایش ستون‌ها
+        document.querySelectorAll('#columnOptions input[type="checkbox"]').forEach(function(checkbox) {
+            checkbox.addEventListener('change', toggleColumnVisibility);
+        });
+    });
+
+    // تابع تغییر نمایش ستون‌ها
+    function toggleColumnVisibility() {
+        var checkboxes = document.querySelectorAll('#columnOptions input[type="checkbox"]');
+        var activeTable = document.getElementById('activeProductsTable');
+        var inactiveTable = document.getElementById('inactiveProductsTable');
+        
+        checkboxes.forEach(function(checkbox) {
+            var columnIndex = checkbox.getAttribute('data-column');
+            var isVisible = checkbox.checked;
+            
+            // تغییر نمایش ستون در جدول فعال
+            if (activeTable) {
+                var headerCell = activeTable.querySelector('thead tr th:nth-child(' + (parseInt(columnIndex) + 1) + ')');
+                if (headerCell) {
+                    headerCell.style.display = isVisible ? '' : 'none';
+                }
+                
+                var dataCells = activeTable.querySelectorAll('tbody tr td:nth-child(' + (parseInt(columnIndex) + 1) + ')');
+                dataCells.forEach(function(cell) {
+                    cell.style.display = isVisible ? '' : 'none';
+                });
+            }
+            
+            // تغییر نمایش ستون در جدول غیرفعال
+            if (inactiveTable) {
+                var headerCell = inactiveTable.querySelector('thead tr th:nth-child(' + (parseInt(columnIndex) + 1) + ')');
+                if (headerCell) {
+                    headerCell.style.display = isVisible ? '' : 'none';
+                }
+                
+                var dataCells = inactiveTable.querySelectorAll('tbody tr td:nth-child(' + (parseInt(columnIndex) + 1) + ')');
+                dataCells.forEach(function(cell) {
+                    cell.style.display = isVisible ? '' : 'none';
+                });
+            }
+        });
+    }
+
+    // نمایش/پنهان کردن منوی تنظیمات ستون
+    function toggleColumnOptions() {
+        var menu = document.getElementById('columnOptions');
+        menu.classList.toggle('show');
+    }
+
+    // بستن منوی تنظیمات ستون با کلیک خارج از آن
+    document.addEventListener('click', function(event) {
+        var menu = document.getElementById('columnOptions');
+        var button = document.querySelector('.column-options-btn');
+        
+        if (!menu.contains(event.target) && !button.contains(event.target)) {
+            menu.classList.remove('show');
+        }
     });
 </script>
 
@@ -618,18 +677,18 @@
             // Override the detectTableType function
             window.bulkEditManager.detectTableType = function() {
                 const url = window.location.pathname;
-                if (url.includes('cargo_product')) {
+                if (url.includes('cargo-product') || url.includes('cargo_product')) {
                     return 'cargo_product';
                 } else if (url.includes('purchase')) {
                     return 'purchase';
                 } else if (url.includes('customer')) {
                     return 'customer';
-                } else if (url.includes('barbary')) {
+                } else if (url.includes('barbary') || url.includes('barbaries')) {
                     return 'barbary';
-                } else if (url.includes('vared_konandeh')) {
+                } else if (url.includes('vared-konandeh') || url.includes('vared_konandeh')) {
                     return 'vared_konandeh';
                 }
-                return 'generic';
+                return 'cargo_product'; // Default to cargo_product instead of generic
             };
             
             // Override the getModelName function

@@ -961,3 +961,103 @@ def reset_column_order(request):
     except Exception as e:
         print(f"Error in reset_column_order: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@require_POST
+@login_required
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+def get_purchase_aggregated_stats(request):
+    """
+    API برای دریافت آمار اجماعی خریدهای انتخاب شده
+    """
+    try:
+        # دریافت لیست آیدی‌های خریدهای انتخاب شده
+        purchase_ids = request.POST.get('purchase_ids', '').split(',')
+        purchase_ids = [pid.strip() for pid in purchase_ids if pid.strip()]
+        
+        if not purchase_ids:
+            return JsonResponse({
+                'status': 'error', 
+                'message': 'هیچ خریدی انتخاب نشده است'
+            }, status=400)
+        
+        # دریافت خریدهای انتخاب شده
+        purchases = Purchase.objects.filter(id__in=purchase_ids).select_related('customer', 'cargo')
+        
+        if not purchases.exists():
+            return JsonResponse({
+                'status': 'error',
+                'message': 'خریدهای انتخاب شده یافت نشدند'
+            }, status=404)
+        
+        # محاسبه آمار
+        stats = {
+            'selected_count': purchases.count(),
+            'total_order_weight': 0,
+            'total_delivered_weight': 0,
+            'total_amount_paid': 0,
+            'urgent_purchases_count': 0,
+            'total_extelaf_weight': 0,
+            'total_extelaf_amount': 0,
+            'avg_company_price': 0,
+            'avg_customer_price': 0,
+            'company_price_sum': 0,
+            'customer_price_sum': 0,
+            'valid_company_price_count': 0,
+            'valid_customer_price_count': 0
+        }
+        
+        for purchase in purchases:
+            # جمع‌آوری وزن‌ها
+            if purchase.order_weight:
+                stats['total_order_weight'] += purchase.order_weight
+            
+            if purchase.delivered_weight:
+                stats['total_delivered_weight'] += purchase.delivered_weight
+                
+            if purchase.extelaf_weight:
+                stats['total_extelaf_weight'] += purchase.extelaf_weight
+            
+            # جمع‌آوری مبالغ
+            if purchase.amount_paid:
+                stats['total_amount_paid'] += purchase.amount_paid
+                
+            if purchase.extelaf_amount:
+                stats['total_extelaf_amount'] += purchase.extelaf_amount
+            
+            # جمع‌آوری قیمت‌ها برای محاسبه میانگین
+            if purchase.company_price and purchase.company_price > 0:
+                stats['company_price_sum'] += purchase.company_price
+                stats['valid_company_price_count'] += 1
+                
+            if purchase.customer_price and purchase.customer_price > 0:
+                stats['customer_price_sum'] += purchase.customer_price
+                stats['valid_customer_price_count'] += 1
+            
+            # شمارش خریدهای فوری
+            if purchase.is_urgent:
+                stats['urgent_purchases_count'] += 1
+        
+        # محاسبه میانگین قیمت‌ها
+        if stats['valid_company_price_count'] > 0:
+            stats['avg_company_price'] = stats['company_price_sum'] / stats['valid_company_price_count']
+        
+        if stats['valid_customer_price_count'] > 0:
+            stats['avg_customer_price'] = stats['customer_price_sum'] / stats['valid_customer_price_count']
+        
+        # حذف فیلدهای کمکی
+        del stats['company_price_sum']
+        del stats['customer_price_sum']
+        del stats['valid_company_price_count']
+        del stats['valid_customer_price_count']
+        
+        return JsonResponse({
+            'status': 'success',
+            'stats': stats
+        })
+        
+    except Exception as e:
+        print(f"Error in get_purchase_aggregated_stats: {str(e)}")
+        return JsonResponse({
+            'status': 'error', 
+            'message': f'خطا در محاسبه آمار: {str(e)}'
+        }, status=500)
