@@ -576,6 +576,15 @@ def general_customer_CRUD_view(request):
             new_purchase.company_price = new_purchase.cargo.company_price
             new_purchase.amount_paid = new_purchase.customer_price * new_purchase.order_weight
             new_purchase.save()
+            
+            # اضافه کردن کاربر فعلی به عنوان کارشناس فروش خرید
+            try:
+                sales_agent = SalesAgent.objects.get(user=request.user)
+                new_purchase.sales_agent.add(sales_agent)
+            except SalesAgent.DoesNotExist:
+                # اگر کاربر کارشناس فروش نیست، هیچ کارشناسی اضافه نمی‌شود
+                pass
+                
             messages.success(request, "خرید جدید ثبت شد")
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}&active_tab={active_tab}')
     elif request.method == "POST" and 'create_purchase_without_sms' in request.POST and customer:
@@ -606,6 +615,15 @@ def general_customer_CRUD_view(request):
             new_purchase.company_price = new_purchase.cargo.company_price
             new_purchase.amount_paid = new_purchase.customer_price * new_purchase.order_weight
             new_purchase.save()
+            
+            # اضافه کردن کاربر فعلی به عنوان کارشناس فروش خرید
+            try:
+                sales_agent = SalesAgent.objects.get(user=request.user)
+                new_purchase.sales_agent.add(sales_agent)
+            except SalesAgent.DoesNotExist:
+                # اگر کاربر کارشناس فروش نیست، هیچ کارشناسی اضافه نمی‌شود
+                pass
+                
             messages.success(request, "خرید جدید ثبت شد")
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}&active_tab={active_tab}')
 

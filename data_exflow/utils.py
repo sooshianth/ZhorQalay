@@ -77,147 +77,190 @@ def read_file_to_dataframe(file_path, file_extension):
 
 def get_all_registered_models():
     """Get all registered models in the project."""
-    content_types = ContentType.objects.all().order_by('app_label', 'model')
     result = {}
     
-    for ct in content_types:
-        model_class = ct.model_class()
-        if model_class is None:
-            continue  # Skip if model class couldn't be loaded
-        
-        # Skip certain built-in models
-        if ct.app_label in ['admin', 'auth', 'contenttypes', 'sessions', 'django_celery_beat']:
-            continue
-            
-        if ct.app_label not in result:
-            result[ct.app_label] = []
-            
-        result[ct.app_label].append({
-            'name': model_class.__name__,
-            'verbose_name': model_class._meta.verbose_name,
-            'content_type_id': ct.id,
-        })
+    # رویکرد بهتر: استفاده از apps برای دریافت مستقیم تمام مدل‌ها
+    from django.apps import apps
     
-    return result
+    # دریافت تمام مدل‌های ثبت شده در پروژه
+    for app_config in apps.get_app_configs():
+        app_label = app_config.label
+        
+        # حذف فیلتر برنامه‌های داخلی جنگو - اگر می‌خواهید آنها را هم ببینید، این شرط را بردارید
+        if app_label in ['admin', 'auth', 'contenttypes', 'sessions', 'django_celery_beat']:
+            continue
+        
+        if app_label not in result:
+            result[app_label] = []
+        
+        for model in app_config.get_models():
+            model_name = model.__name__
+            
+            # دریافت یا ایجاد ContentType برای این مدل
+            try:
+                from django.contrib.contenttypes.models import ContentType
+                content_type = ContentType.objects.get_for_model(model)
+                
+                result[app_label].append({
+                    'name': model_name,
+                    'verbose_name': model._meta.verbose_name,
+                    'content_type_id': content_type.id,
+                })
+            except Exception as e:
+                print(f"خطا در دریافت ContentType برای مدل {app_label}.{model_name}: {str(e)}")
+                # حتی اگر نتوانیم ContentType را دریافت کنیم، مدل را اضافه می‌کنیم
+                result[app_label].append({
+                    'name': model_name,
+                    'verbose_name': model._meta.verbose_name,
+                    'content_type_id': None,  # ContentType موجود نیست
+                })
+    
+    # مرتب‌سازی بر اساس نام برنامه
+    return dict(sorted(result.items()))
 
 
 def get_model_fields(app_label, model_name):
-    """Get fields for a specific model."""
+    """Get fields for a model."""
     try:
-        # Normalize app_label and model_name
-        app_label = app_label.lower().strip()
-        model_name = model_name.strip()
+        # Get model class
+        model = apps.get_model(app_label, model_name)
         
-        print(f"DEBUG: Looking up model: {app_label}.{model_name}")
-        print(f"DEBUG: Type of app_label: {type(app_label)}, Type of model_name: {type(model_name)}")
-        
-        # First try: Directly use ContentType to look up the model
-        try:
-            from django.contrib.contenttypes.models import ContentType
-            
-            print(f"DEBUG: All ContentTypes for this app_label:")
-            all_models = ContentType.objects.filter(app_label__iexact=app_label)
-            for ct in all_models:
-                print(f"  - {ct.app_label}.{ct.model} (ID: {ct.id})")
-            
-            # Try exact match first
-            content_type = ContentType.objects.filter(
-                app_label__iexact=app_label,
-                model__iexact=model_name
-            ).first()
-            
-            print(f"DEBUG: ContentType exact match result: {content_type}")
-            
-            # If not found, try case-insensitive match with model name only
-            if not content_type:
-                print(f"DEBUG: Exact match not found, trying case-insensitive with model name only")
-                content_type = ContentType.objects.filter(
-                    app_label__iexact=app_label,
-                    model__icontains=model_name.lower()
-                ).first()
-                print(f"DEBUG: ContentType case-insensitive result: {content_type}")
-            
-            # If still not found, try with any model containing the name
-            if not content_type:
-                print(f"DEBUG: Case-insensitive match not found, trying content type lookup with partial match")
-                content_type = ContentType.objects.filter(
-                    app_label__iexact=app_label
-                ).first()
-                print(f"DEBUG: ContentType partial match result: {content_type}")
-            
-            if content_type:
-                print(f"DEBUG: ContentType found: {content_type.app_label}.{content_type.model} (ID: {content_type.id})")
-                model = content_type.model_class()
-                print(f"DEBUG: Model class: {model.__name__}")
-            else:
-                print(f"DEBUG: No ContentType found for {app_label}.{model_name}")
-                # Fall back to standard lookup
-                print(f"DEBUG: Trying to get_model with: app_label='{app_label}', model_name='{model_name}'")
-                model = apps.get_model(app_label, model_name)
-                print(f"DEBUG: Model found via standard lookup: {model.__name__}")
-        except Exception as e:
-            print(f"DEBUG: ContentType lookup failed: {str(e)}")
-            # Fall back to the original approach
-            try:
-                print(f"DEBUG: Trying apps.get_model({app_label}, {model_name})")
-                model = apps.get_model(app_label, model_name)
-                print(f"DEBUG: Model found via standard lookup: {model.__name__}")
-            except Exception as inner_e:
-                print(f"DEBUG: apps.get_model failed: {str(inner_e)}")
-                print(f"DEBUG: Available apps and models:")
-                for app_config in apps.get_app_configs():
-                    print(f"  App: {app_config.label}")
-                    for model in app_config.get_models():
-                        print(f"    - {model.__name__}")
-                raise inner_e
-        
-        print(f"DEBUG: Getting fields for model: {model.__name__}")
         fields = []
-        
-        # تهیه لیست فیلدهای یونیک_توگذر
-        unique_together_fields = set()
-        if hasattr(model._meta, 'unique_together'):
-            for field_set in model._meta.unique_together:
-                for field_name in field_set:
-                    unique_together_fields.add(field_name)
-        
-        for field in model._meta.get_fields():
-            # Skip many-to-many fields and reverse relations
-            if field.is_relation and (field.many_to_many or field.one_to_many):
+        # Get model fields
+        for field in model._meta.fields:
+            # Skip hidden fields
+            if field.name.startswith('_'):
                 continue
                 
+            # Get basic field info
             field_info = {
                 'name': field.name,
-                'verbose_name': field.verbose_name if hasattr(field, 'verbose_name') else field.name,
-                'type': field.__class__.__name__,
-                'required': not field.blank if hasattr(field, 'blank') else False,
-                'primary_key': field.primary_key if hasattr(field, 'primary_key') else False,
-                'unique': field.unique if hasattr(field, 'unique') else False,
-                'in_unique_together': field.name in unique_together_fields,
+                'verbose_name': field.verbose_name,
+                'type': field.get_internal_type(),
+                'required': not field.null and not field.blank and not field.primary_key and not field.has_default(),
+                'primary_key': field.primary_key,
+                'unique': field.unique,
+                'has_choices': bool(field.choices),
+                'choices': [],
+                'has_default': field.has_default(),
+                'default_value': None,
             }
             
-            # Add choices if available
-            if hasattr(field, 'choices') and field.choices:
-                field_info['choices'] = [{'value': value, 'display': display} for value, display in field.choices]
-                
-            # Add foreign key information
-            if field.is_relation and hasattr(field, 'remote_field') and field.remote_field:
-                related_model = field.remote_field.model
+            # Handle default values
+            if field.has_default():
+                try:
+                    default_value = field.get_default()
+                    # Handle callables (like functions, etc)
+                    if callable(default_value):
+                        try:
+                            default_value = default_value()
+                        except:
+                            default_value = str(default_value)
+                    # Convert the default value to string representation
+                    field_info['default_value'] = str(default_value)
+                except Exception as e:
+                    field_info['default_value'] = f"(error getting default: {str(e)})"
+            
+            # Handle choices fields
+            if field.choices:
+                for key, display in field.choices:
+                    # Check if the choice is a tuple of tuples (for grouped choices)
+                    if isinstance(display, (list, tuple)):
+                        for subkey, subdisplay in display:
+                            field_info['choices'].append({
+                                'key': str(subkey),
+                                'display': str(subdisplay)
+                            })
+                    else:
+                        field_info['choices'].append({
+                            'key': str(key),
+                            'display': str(display)
+                        })
+            
+            # Handle ForeignKey fields
+            if field.get_internal_type() == 'ForeignKey' and field.related_model:
+                related_model_meta = field.related_model._meta
                 field_info['related_model'] = {
-                    'app_label': related_model._meta.app_label,
-                    'model_name': related_model.__name__,
-                    'verbose_name': related_model._meta.verbose_name,
+                    'app_label': related_model_meta.app_label,
+                    'model_name': related_model_meta.model_name,
+                    'verbose_name': str(related_model_meta.verbose_name),
                 }
                 
+                # If the related model has a __str__ method, get some sample values
+                try:
+                    sample_instances = field.related_model.objects.all()[:5]
+                    field_info['related_model']['sample_values'] = []
+                    for instance in sample_instances:
+                        field_info['related_model']['sample_values'].append({
+                            'id': instance.pk,
+                            'display': str(instance)
+                        })
+                except Exception as e:
+                    print(f"Error getting sample values for {field.name}: {e}")
+                
+                # If the related model has a choices attribute, add them
+                if hasattr(field.related_model, 'CHOICES') or hasattr(field.related_model, 'choices'):
+                    choices_attr = getattr(field.related_model, 'CHOICES', None) or getattr(field.related_model, 'choices', None)
+                    if choices_attr:
+                        field_info['choices'] = [{'key': str(key), 'display': str(display)} 
+                                               for key, display in choices_attr]
+            
+            # Special handling for specific model types like CargoProduct
+            if field.related_model and field.related_model.__name__ == 'CargoProduct':
+                try:
+                    # Check if model has PRODUCT_TYPES attribute
+                    if hasattr(field.related_model, 'PRODUCT_TYPES'):
+                        # Add product types
+                        product_types = field.related_model.PRODUCT_TYPES
+                        field_info['product_types'] = [{'key': str(key), 'display': str(display)} 
+                                                   for key, display in product_types]
+                    
+                    # Check if model has COUNTRIES attribute
+                    if hasattr(field.related_model, 'COUNTRIES'):
+                        # Add countries
+                        countries = field.related_model.COUNTRIES
+                        field_info['countries'] = [{'key': str(key), 'display': str(display)} 
+                                               for key, display in countries]
+                except Exception as e:
+                    print(f"Error getting CargoProduct info: {e}")
+            
             fields.append(field_info)
         
-        print(f"DEBUG: Found {len(fields)} fields for {model.__name__}")
-        print(f"DEBUG: First 3 fields: {fields[:3]}")
+        # Get many-to-many fields
+        for field in model._meta.many_to_many:
+            field_info = {
+                'name': field.name,
+                'verbose_name': field.verbose_name,
+                'type': 'ManyToManyField',
+                'required': False,  # M2M fields are never required
+                'primary_key': False,
+                'unique': False,
+                'has_choices': False,
+                'choices': [],
+                'related_model': {
+                    'app_label': field.related_model._meta.app_label,
+                    'model_name': field.related_model._meta.model_name,
+                    'verbose_name': str(field.related_model._meta.verbose_name),
+                }
+            }
+            
+            # If the related model has a __str__ method, get some sample values
+            try:
+                sample_instances = field.related_model.objects.all()[:5]
+                field_info['related_model']['sample_values'] = []
+                for instance in sample_instances:
+                    field_info['related_model']['sample_values'].append({
+                        'id': instance.pk,
+                        'display': str(instance)
+                    })
+            except Exception as e:
+                print(f"Error getting sample values for {field.name}: {e}")
+            
+            fields.append(field_info)
+        
         return fields
     except Exception as e:
-        print(f"DEBUG: Error getting fields for {app_label}.{model_name}: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        print(f"Error in get_model_fields: {e}")
         return []
 
 
@@ -565,6 +608,24 @@ def validate_import_data(session, dataframe, mapping):
     creates = 0
     updates = 0
     
+    # جمع‌آوری اطلاعات فیلدهای choices
+    fields_with_choices = {}
+    for field_name, field_mapping in mapping.items():
+        if not field_mapping.get('model_field'):
+            continue
+            
+        model_field_name = field_mapping['model_field']
+        try:
+            field_obj = model_class._meta.get_field(model_field_name)
+            if hasattr(field_obj, 'choices') and field_obj.choices:
+                fields_with_choices[field_name] = {
+                    'model_field': model_field_name,
+                    'choices': field_obj.choices,
+                    'valid_values': [str(key) for key, _ in field_obj.choices] + [str(display) for _, display in field_obj.choices]
+                }
+        except Exception:
+            pass
+    
     # Validate each row
     for index, row in dataframe.iterrows():
         row_number = index + 2  # +2 because pandas is 0-indexed and we have a header row
@@ -589,6 +650,30 @@ def validate_import_data(session, dataframe, mapping):
             updates += 1
         else:
             creates += 1
+        
+        # بررسی فیلدهای choices
+        for field_name, choice_info in fields_with_choices.items():
+            value = row.get(field_name)
+            if pd.notna(value):
+                str_value = str(value).strip()
+                # تست تطبیق اولیه - با استفاده از روش‌های مختلف تطبیق در تابع match_choice_value
+                matched_value = match_choice_value(str_value, choice_info['choices'])
+                
+                # اگر مقدار برگشتی همان مقدار اولیه باشد، یعنی تطبیقی پیدا نشده
+                if str(matched_value) == str_value and str_value not in choice_info['valid_values']:
+                    choices_text = ', '.join([f"{key} ({display})" for key, display in choice_info['choices']])
+                    row_errors.append({
+                        'field': field_name,
+                        'message': f'مقدار "{str_value}" برای فیلد {choice_info["model_field"]} مجاز نیست. مقادیر مجاز: {choices_text}'
+                    })
+                elif str(matched_value) != str_value:
+                    # تطبیق انجام شده اما دقیقاً یکسان نیست
+                    matched_display = next((display for key, display in choice_info['choices'] if str(key) == str(matched_value)), matched_value)
+                    warnings.append({
+                        'row': row_number,
+                        'field': field_name,
+                        'message': f'مقدار "{str_value}" به "{matched_value}" ({matched_display}) تبدیل شد'
+                    })
         
         # Check required fields
         for field_name, field_mapping in mapping.items():
@@ -711,7 +796,9 @@ def validate_import_data(session, dataframe, mapping):
         'creates': creates,
         'updates': updates,
         'existing_records': len(existing_records),
-        'duplicate_values': duplicate_values
+        'duplicate_values': duplicate_values,
+        'fields_with_choices': {k: {'model_field': v['model_field'], 'choices': [(str(key), str(display)) for key, display in v['choices']]} 
+                               for k, v in fields_with_choices.items()}
     }
 
 
@@ -1231,6 +1318,10 @@ def sanitize_value(value, field_obj):
         # For text fields, ensure we don't exceed max_length
         if isinstance(value, str) and hasattr(field_obj, 'max_length') and field_obj.max_length:
             value = value[:field_obj.max_length]
+            
+        # Handle choices fields
+        if hasattr(field_obj, 'choices') and field_obj.choices:
+            value = match_choice_value(value, field_obj.choices)
     
     elif isinstance(field_obj, models.IntegerField):
         # For integer fields, ensure we have a valid integer
@@ -1262,3 +1353,69 @@ def sanitize_value(value, field_obj):
                 return None
     
     return value 
+
+
+def match_choice_value(value, choices):
+    """
+    تطبیق مقدار ورودی با مقادیر مجاز در choices
+    این تابع سعی می‌کند با استفاده از روش‌های مختلف، مقدار ورودی را با یکی از مقادیر مجاز تطبیق دهد
+    """
+    if value is None or value == '':
+        return value
+        
+    # تبدیل به رشته برای مقایسه
+    str_value = str(value).strip()
+    
+    # اگر مقدار دقیقاً با یکی از کلیدها مطابقت داشت
+    for choice_key, choice_display in choices:
+        if str(choice_key) == str_value:
+            return choice_key
+    
+    # اگر مقدار با متن نمایشی مطابقت داشت
+    for choice_key, choice_display in choices:
+        if str(choice_display) == str_value:
+            return choice_key
+    
+    # تطبیق با حساسیت کمتر به حروف بزرگ/کوچک برای کلیدها
+    for choice_key, choice_display in choices:
+        if str(choice_key).lower() == str_value.lower():
+            return choice_key
+    
+    # تطبیق با حساسیت کمتر به حروف بزرگ/کوچک برای متن نمایشی
+    for choice_key, choice_display in choices:
+        if str(choice_display).lower() == str_value.lower():
+            return choice_key
+    
+    # تطبیق با شباهت زیاد (حاوی بودن)
+    for choice_key, choice_display in choices:
+        if str_value.lower() in str(choice_key).lower() or str_value.lower() in str(choice_display).lower():
+            return choice_key
+        if str(choice_key).lower() in str_value.lower() or str(choice_display).lower() in str_value.lower():
+            return choice_key
+    
+    # اگر هیچ تطبیقی پیدا نشد، مقدار اصلی را برگردان
+    return value
+
+
+def get_model_field_choices(model_class, field_name):
+    """
+    دریافت مقادیر مجاز برای یک فیلد با choices
+    """
+    try:
+        field = model_class._meta.get_field(field_name)
+        if hasattr(field, 'choices') and field.choices:
+            return [{'key': key, 'value': value} for key, value in field.choices]
+        return []
+    except Exception:
+        return [] 
+
+
+def get_column_letter(column_number):
+    """
+    Convert a column number to an Excel column letter (e.g., 1 -> A, 27 -> AA)
+    """
+    result = ""
+    while column_number > 0:
+        column_number, remainder = divmod(column_number - 1, 26)
+        result = chr(65 + remainder) + result
+    return result 

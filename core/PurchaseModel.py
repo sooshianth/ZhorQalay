@@ -563,12 +563,22 @@ class Purchase(models.Model):
                 
         super().save(*args, **kwargs)
         
-        sales_agents = self.customer.sales_agent.all()
+        # اضافه کردن کاربر فعلی به عنوان کارشناس فروش خرید
+        # این قسمت را در view هایی که خرید ایجاد می‌کنند استفاده می‌کنیم
+        # و کاربر فعلی را مشخص می‌کنیم
+        
+        # نکته: دیگر کارشناس فروش مشتری به خرید اضافه نمی‌شود
+        # sales_agents = self.customer.sales_agent.all()
+        # for agent in sales_agents:
+        #     self.sales_agent.add(agent)
+        
+        # بررسی اینکه آیا SMS ارسال شود
         has_non_admin = False
-        for agent in sales_agents:
-            if not agent.user.is_superuser:
-                has_non_admin = True
-                break
+        if hasattr(self, 'sales_agent'):
+            for agent in self.sales_agent.all():
+                if not agent.user.is_superuser:
+                    has_non_admin = True
+                    break
 
         # Send SMS notification for new purchase only on creation
         if is_new and self.customer.sms_preference and has_non_admin:
@@ -665,10 +675,16 @@ class PurchaseStateChange(models.Model):
         return f"تغییر از {self.get_previous_state_display()} به {self.get_new_state_display()} در {self.changed_at}"
 
 class ShenaseTakhsis(models.Model):
-    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='shenase_takhsis_set', verbose_name="خرید مرتبط")
+    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='shenase_takhsis_set', verbose_name="خرید مرتبط", null=True, blank=True)
+    purchase_number = models.CharField("شماره خرید", max_length=255, null=True, blank=True)
     code = models.CharField("شناسه تخصیص", max_length=255, unique=True)
     weight = models.PositiveIntegerField(verbose_name="وزن تخصیص", null=True, blank=True)
     created_at = jmodels.jDateTimeField("تاریخ ثبت", auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if not self.purchase and self.purchase_number:
+            self.purchase = Purchase.objects.get(purchase_number=self.purchase_number)
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = "شناسه تخصیص"
@@ -733,13 +749,22 @@ class PurchaseApproval(models.Model):
             )
 
 class PuchaseSalesAgent(models.Model):
-    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='purchase_sales_agents')
-    sales_agent = models.ForeignKey(SalesAgent, on_delete=models.CASCADE, related_name='purchase_relations')
+    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='purchase_sales_agents', null=True, blank=True)
+    sales_agent = models.ForeignKey(SalesAgent, on_delete=models.CASCADE, related_name='purchase_relations', null=True, blank=True)
+    purchase_number = models.CharField("شماره خرید", max_length=255, null=True, blank=True)
+    sales_agent_name = models.CharField("نام کارشناس فروش", max_length=255, null=True, blank=True)
     created_at = jmodels.jDateTimeField("تاریخ ثبت", auto_now_add=True)
     
     class Meta:
         verbose_name = "کارشناس فروش خرید"
         verbose_name_plural = "کارشناس فروش خریدها"
+
+    def save(self, *args, **kwargs):
+        if not self.purchase and self.purchase_number:
+            self.purchase = Purchase.objects.get(purchase_number=self.purchase_number)
+        if not self.sales_agent and self.sales_agent_name:
+            self.sales_agent = SalesAgent.objects.get(name=self.sales_agent_name)
+        super().save(*args, **kwargs)
 
 class PurchaseEditLog(models.Model):
     """

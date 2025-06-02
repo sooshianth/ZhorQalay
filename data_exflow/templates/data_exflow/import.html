@@ -112,7 +112,7 @@
 </div>
 
 <!-- Recent import sessions -->
-{% if recent_imports %}
+{% if import_sessions %}
 <div class="card mt-4">
     <div class="card-header">
         <h5 class="mb-0">واردسازی‌های اخیر</h5>
@@ -131,16 +131,16 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for session in recent_imports %}
+                    {% for session in import_sessions %}
                     <tr>
-                        <td>{{ session.content_type }}</td>
+                        <td>{{ session.content_type.model_verbose_name }}</td>
                         <td>{{ session.file_name }}</td>
                         <td>
                             <span class="badge badge-{{ session.status }}">
                                 {{ session.get_status_display }}
                             </span>
                         </td>
-                        <td>{{ session.processed_count }}/{{ session.row_count }}</td>
+                        <td>{{ session.row_count }}</td>
                         <td>{{ session.created_at|date:"Y/m/d - H:i" }}</td>
                         <td>
                             {% if session.status == 'completed' %}
@@ -158,6 +158,12 @@
                             {% endif %}
                         </td>
                     </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <div class="text-muted">هیچ سابقه‌ای وجود ندارد</div>
+                        </td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -165,12 +171,360 @@
     </div>
 </div>
 {% endif %}
+{% endblock %}
 
 {% block module_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Form validation
     const form = document.querySelector('.needs-validation');
+    const modelSelect = document.getElementById('content_type_id');
+    const modelFieldsContainer = document.getElementById('model-fields-container');
+    
+    // Fetch and display model fields when a model is selected
+    modelSelect.addEventListener('change', function() {
+        const contentTypeId = this.value;
+        const appLabel = this.options[this.selectedIndex].dataset.appLabel;
+        const modelName = this.options[this.selectedIndex].dataset.modelName;
+        
+        if (!contentTypeId) {
+            modelFieldsContainer.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    لطفاً ابتدا یک مدل انتخاب کنید تا فیلدهای آن نمایش داده شود.
+                </div>
+            `;
+            return;
+        }
+        
+        // Show loading indicator
+        modelFieldsContainer.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-spinner fa-spin me-2"></i>
+                در حال بارگذاری فیلدهای مدل...
+            </div>
+        `;
+        
+        // Fetch model fields using API
+        fetch(`/data-exflow/api/model-fields/${appLabel}/${modelName}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    modelFieldsContainer.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            خطا در بارگذاری فیلدها: ${data.error}
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Group fields by type
+                const requiredFields = [];
+                const choiceFields = [];
+                const foreignKeyFields = [];
+                const defaultFields = [];
+                const otherFields = [];
+                
+                data.fields.forEach(field => {
+                    // Skip some technical fields
+                    if (['id', 'pk', '_state'].includes(field.name)) {
+                        return;
+                    }
+                    
+                    // Group fields
+                    if (field.required && !field.primary_key) {
+                        requiredFields.push(field);
+                    }
+                    
+                    if (field.has_choices && field.choices.length > 0) {
+                        choiceFields.push(field);
+                    }
+                    
+                    if (field.type === 'ForeignKey' && field.related_model) {
+                        foreignKeyFields.push(field);
+                    }
+                    
+                    if (field.has_default) {
+                        defaultFields.push(field);
+                    }
+                    
+                    if (!field.required && !field.has_choices && field.type !== 'ForeignKey' && !field.has_default) {
+                        otherFields.push(field);
+                    }
+                });
+                
+                // Create HTML for fields display
+                let html = `
+                    <div class="card border-0 mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-list me-2"></i>اطلاعات فیلدهای مدل ${data.model.verbose_name}</h6>
+                        </div>
+                        <div class="card-body p-0">
+                `;
+                
+                // Required Fields
+                if (requiredFields.length > 0) {
+                    html += `
+                        <div class="mb-3">
+                            <h6 class="text-danger mb-2"><i class="fas fa-exclamation-triangle me-1"></i>فیلدهای الزامی:</h6>
+                            <ul class="list-group list-group-flush">
+                    `;
+                    
+                    requiredFields.forEach(field => {
+                        html += `
+                            <li class="list-group-item">
+                                <strong>${field.verbose_name}</strong>
+                                <small class="text-muted d-block">(${field.name})</small>
+                                <small class="badge bg-danger">الزامی</small>
+                            </li>
+                        `;
+                    });
+                    
+                    html += `
+                            </ul>
+                        </div>
+                    `;
+                }
+                
+                // Fields with default values
+                if (defaultFields.length > 0) {
+                    html += `
+                        <div class="mb-3">
+                            <h6 class="text-primary mb-2"><i class="fas fa-info-circle me-1"></i>فیلدهای با مقدار پیش‌فرض:</h6>
+                            <ul class="list-group list-group-flush">
+                    `;
+                    
+                    defaultFields.forEach(field => {
+                        html += `
+                            <li class="list-group-item">
+                                <strong>${field.verbose_name}</strong>
+                                <small class="text-muted d-block">(${field.name})</small>
+                                <small class="badge bg-primary">پیش‌فرض: ${field.default_value}</small>
+                            </li>
+                        `;
+                    });
+                    
+                    html += `
+                            </ul>
+                        </div>
+                    `;
+                }
+                
+                // Choice Fields
+                if (choiceFields.length > 0) {
+                    html += `
+                        <div class="mb-3">
+                            <h6 class="text-success mb-2"><i class="fas fa-check-circle me-1"></i>فیلدهای با مقادیر از پیش تعیین شده:</h6>
+                            <div class="alert alert-info mb-2">
+                                <i class="fas fa-info-circle me-2"></i>
+                                این فیلدها دارای مقادیر از پیش تعیین شده هستند. لطفاً فقط از مقادیر مجاز زیر استفاده کنید.
+                            </div>
+                    `;
+                    
+                    choiceFields.forEach(field => {
+                        html += `
+                            <div class="card mb-2">
+                                <div class="card-header bg-light py-2">
+                                    <strong>${field.verbose_name}</strong>
+                                    <small class="text-muted">(${field.name})</small>
+                                    ${field.has_default ? `<small class="badge bg-primary float-end">پیش‌فرض: ${field.default_value}</small>` : ''}
+                                </div>
+                                <div class="card-body py-2">
+                                    <h6 class="text-muted mb-1">مقادیر مجاز:</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>مقدار کلید</th>
+                                                    <th>شرح نمایشی</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                        `;
+                        
+                        field.choices.forEach(choice => {
+                            html += `
+                                <tr>
+                                    <td><code>${choice.key}</code></td>
+                                    <td>${choice.display}</td>
+                                </tr>
+                            `;
+                        });
+                        
+                        html += `
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `
+                        </div>
+                    `;
+                }
+                
+                // ForeignKey Fields
+                if (foreignKeyFields.length > 0) {
+                    html += `
+                        <div class="mb-3">
+                            <h6 class="text-info mb-2"><i class="fas fa-link me-1"></i>فیلدهای ارتباطی:</h6>
+                            <div class="alert alert-info mb-2">
+                                <i class="fas fa-info-circle me-2"></i>
+                                این فیلدها به مدل‌های دیگر مرتبط هستند. لطفاً از شناسه (ID) معتبر استفاده کنید.
+                            </div>
+                    `;
+                    
+                    foreignKeyFields.forEach(field => {
+                        html += `
+                            <div class="card mb-2">
+                                <div class="card-header bg-light py-2">
+                                    <strong>${field.verbose_name}</strong>
+                                    <small class="text-muted">(${field.name})</small>
+                                    ${field.has_default ? `<small class="badge bg-primary float-end">پیش‌فرض: ${field.default_value}</small>` : ''}
+                                    ${field.required ? `<small class="badge bg-danger float-end me-1">الزامی</small>` : ''}
+                                </div>
+                                <div class="card-body py-2">
+                                    <h6 class="text-muted mb-1">مدل مرتبط: ${field.related_model.verbose_name}</h6>
+                        `;
+                        
+                        // If model has special fields like PRODUCT_TYPES or COUNTRIES
+                        if (field.product_types) {
+                            html += `
+                                <div class="mb-3">
+                                    <h6 class="text-muted mb-1">انواع محصول:</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>کلید</th>
+                                                    <th>عنوان</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                            `;
+                            
+                            field.product_types.forEach(type => {
+                                html += `
+                                    <tr>
+                                        <td><code>${type.key}</code></td>
+                                        <td>${type.display}</td>
+                                    </tr>
+                                `;
+                            });
+                            
+                            html += `
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        
+                        if (field.countries) {
+                            html += `
+                                <div>
+                                    <h6 class="text-muted mb-1">کشورها:</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>کلید</th>
+                                                    <th>نام کشور</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                            `;
+                            
+                            field.countries.forEach(country => {
+                                html += `
+                                    <tr>
+                                        <td><code>${country.key}</code></td>
+                                        <td>${country.display}</td>
+                                    </tr>
+                                `;
+                            });
+                            
+                            html += `
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        
+                        // Sample values for reference
+                        if (field.related_model.sample_values && field.related_model.sample_values.length > 0) {
+                            html += `
+                                <div class="mt-2">
+                                    <h6 class="text-muted mb-1">نمونه موارد موجود:</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>شناسه</th>
+                                                    <th>عنوان</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                            `;
+                            
+                            field.related_model.sample_values.forEach(item => {
+                                html += `
+                                    <tr>
+                                        <td><code>${item.id}</code></td>
+                                        <td>${item.display}</td>
+                                    </tr>
+                                `;
+                            });
+                            
+                            html += `
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        
+                        html += `
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `
+                        </div>
+                    `;
+                }
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+                
+                // دکمه دانلود فایل نمونه
+                html += `
+                    <div class="mt-3 mb-3 text-center">
+                        <a href="/data-exflow/import/sample-file/?content_type_id=${contentTypeId}&format=csv" class="btn btn-outline-info">
+                            <i class="fas fa-download me-1"></i> دانلود فایل نمونه با مقادیر مجاز
+                        </a>
+                    </div>
+                `;
+                
+                modelFieldsContainer.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error fetching model fields:', error);
+                modelFieldsContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        خطا در برقراری ارتباط با سرور. لطفاً مجدداً تلاش کنید.
+                    </div>
+                `;
+            });
+    });
     
     form.addEventListener('submit', function(event) {
         if (!form.checkValidity()) {
@@ -180,8 +534,182 @@ document.addEventListener('DOMContentLoaded', function() {
         
         form.classList.add('was-validated');
     });
+    
+    // File upload UI enhancement
+    const fileInput = document.getElementById('file');
+    const fileLabel = document.querySelector('.custom-file-upload');
+    const fileInfo = document.querySelector('.file-upload-info');
+    
+    fileInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const file = this.files[0];
+            const fileSize = formatFileSize(file.size);
+            
+            fileLabel.classList.add('has-file');
+            fileInfo.style.display = 'block';
+            fileInfo.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>${file.name}</strong> (${fileSize}) انتخاب شد
+                    <button type="button" class="btn-close clear-file float-end" aria-label="حذف فایل"></button>
+                </div>
+            `;
+            
+            // Add event listener to the clear button
+            document.querySelector('.clear-file').addEventListener('click', function() {
+                fileInput.value = '';
+                fileLabel.classList.remove('has-file');
+                fileInfo.style.display = 'none';
+                fileInfo.innerHTML = '';
+            });
+        }
+    });
+    
+    // Format file size
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // File drag and drop
+    fileLabel.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.add('dragover');
+    });
+    
+    fileLabel.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.remove('dragover');
+    });
+    
+    fileLabel.addEventListener('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.remove('dragover');
+        
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            const event = new Event('change');
+            fileInput.dispatchEvent(event);
+        }
+    });
 });
 </script>
-{% endblock %}
 
+<style>
+.custom-file-upload {
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    padding: 30px;
+    text-align: center;
+    cursor: pointer;
+    background-color: #f9f9f9;
+    transition: all 0.3s;
+}
+
+.custom-file-upload:hover, .custom-file-upload.dragover {
+    background-color: #f2f7ff;
+    border-color: #3f80ea;
+}
+
+.custom-file-upload.has-file {
+    background-color: #e8f4f8;
+    border-color: #28a745;
+}
+
+.step-indicator {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.step-item {
+    flex: 1;
+    position: relative;
+    padding: 0 10px;
+    text-align: center;
+}
+
+.step-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 15px;
+    right: calc(50% + 15px);
+    width: calc(100% - 30px);
+    height: 2px;
+    background-color: #ddd;
+    z-index: 1;
+}
+
+.step-number {
+    width: 30px;
+    height: 30px;
+    margin: 0 auto 10px;
+    border-radius: 50%;
+    background-color: #e6e6e6;
+    color: #333;
+    line-height: 30px;
+    position: relative;
+    z-index: 2;
+}
+
+.step-title {
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.step-item.active .step-number {
+    background-color: #3f80ea;
+    color: white;
+}
+
+.step-item.active .step-title {
+    color: #3f80ea;
+    font-weight: bold;
+}
+
+.step-item.completed .step-number {
+    background-color: #28a745;
+    color: white;
+}
+
+.step-item.completed::after {
+    background-color: #28a745;
+}
+
+.badge-pending {
+    background-color: #6c757d;
+}
+
+.badge-validating {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.badge-validated {
+    background-color: #17a2b8;
+}
+
+.badge-processing {
+    background-color: #6f42c1;
+}
+
+.badge-completed {
+    background-color: #28a745;
+}
+
+.badge-failed {
+    background-color: #dc3545;
+}
+
+.badge-reverted {
+    background-color: #6c757d;
+}
+</style>
 {% endblock %} 

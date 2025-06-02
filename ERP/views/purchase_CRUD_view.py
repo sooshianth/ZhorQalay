@@ -116,9 +116,10 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         # 1. فیلدهای پایه از بعد تأیید پرداخت غیرقابل ویرایش می‌شوند
         payment_verified_states = ['PAYMENT_VERIFIED', 'ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 
                                    'VENDOR_SETTLED', 'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 
-                                   'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DELIVERED', 'DIFFERENCE_APPROVED', 
+                                   'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 
                                    'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
-                                   'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']
+                                   'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED', 'PAY_KASRI', 
+                                   'RECIEVE_SARAK', 'FULLY_SETTLED']
         
         if self.instance.state in payment_verified_states:
             read_only_fields_after_payment = ['order_weight', 'company_price', 'customer_price', 
@@ -132,7 +133,8 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         delivery_completed_states = ['PURCHASE_CLOSED', 'BARNAMEH_INCOMPLETE', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 
                                     'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
                                     'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
-                                    'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']
+                                    'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED', 'PAY_KASRI',
+                                    'RECIEVE_SARAK', 'FULLY_SETTLED']
         
         if self.instance.state in delivery_completed_states:
             read_only_fields_after_delivery = ['delivered_weight', 'code_melli_tahvil', 
@@ -151,6 +153,18 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         if self.instance.state in receipt_submitted_states:
             read_only_fields_after_receipt = ['extelaf_type', 'extelaf_weight', 'extelaf_amount']
             for field_name in read_only_fields_after_receipt:
+                if field_name in self.fields:
+                    self.fields[field_name].widget.attrs['readonly'] = True
+                    self.fields[field_name].widget.attrs['disabled'] = True
+        
+        # قفل کردن فیلدهای اختلاف پس از وضعیت بستن خرید
+        purchase_closed_states = ['PAY_KASRI', 'RECIEVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED', 
+                                'DIFFERENCE_APPROVED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 
+                                'FINANCIAL_APPROVED', 'COMPLETED']
+        
+        if self.instance.state in purchase_closed_states:
+            read_only_fields_after_closed = ['extelaf_type', 'extelaf_weight', 'extelaf_amount']
+            for field_name in read_only_fields_after_closed:
                 if field_name in self.fields:
                     self.fields[field_name].widget.attrs['readonly'] = True
                     self.fields[field_name].widget.attrs['disabled'] = True
@@ -213,9 +227,10 @@ class RoleBasedPurchaseForm(forms.ModelForm):
             instance = self.Meta.model.objects.get(pk=self.instance.pk)
             payment_verified_states = ['PAYMENT_VERIFIED', 'ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 
                                      'VENDOR_SETTLED', 'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 
-                                     'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DELIVERED', 'DIFFERENCE_APPROVED', 
+                                     'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 
                                      'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
-                                     'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']
+                                     'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED', 'PAY_KASRI', 
+                                     'RECIEVE_SARAK', 'FULLY_SETTLED']
             
             if instance.state in payment_verified_states:
                 read_only_fields_after_payment = ['order_weight', 'company_price', 'customer_price', 
@@ -227,7 +242,8 @@ class RoleBasedPurchaseForm(forms.ModelForm):
             delivery_completed_states = ['PURCHASE_CLOSED', 'BARNAMEH_INCOMPLETE', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 
                                         'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
                                         'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
-                                        'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']
+                                        'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED', 'PAY_KASRI',
+                                        'RECIEVE_SARAK', 'FULLY_SETTLED']
             
             if instance.state in delivery_completed_states:
                 read_only_fields_after_delivery = ['delivered_weight', 'code_melli_tahvil', 
@@ -250,6 +266,17 @@ class RoleBasedPurchaseForm(forms.ModelForm):
             if instance.state in receipt_submitted_states:
                 read_only_fields_after_receipt = ['extelaf_type', 'extelaf_weight', 'extelaf_amount']
                 for field_name in read_only_fields_after_receipt:
+                    if field_name in cleaned_data:
+                        cleaned_data[field_name] = getattr(instance, field_name)
+                        
+            # قفل کردن فیلدهای اختلاف پس از وضعیت بستن خرید
+            purchase_closed_states = ['PAY_KASRI', 'RECIEVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED', 
+                                    'DIFFERENCE_APPROVED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 
+                                    'FINANCIAL_APPROVED', 'COMPLETED']
+            
+            if instance.state in purchase_closed_states:
+                read_only_fields_after_closed = ['extelaf_type', 'extelaf_weight', 'extelaf_amount']
+                for field_name in read_only_fields_after_closed:
                     if field_name in cleaned_data:
                         cleaned_data[field_name] = getattr(instance, field_name)
         
@@ -410,16 +437,16 @@ def purchase_CRUD_view(request, purchase_id):
     progress_steps = [
         {'name': 'شروع شده', 'status': True},  # همیشه شروع شده
         {'name': 'پیامک ارسال شده', 'status': purchase.state != 'INITIATED'},
-        {'name': 'ثبت خرید در بازارگاه', 'status': purchase.state in ['PAYMENT_VERIFIED', 'ALLOCATION_APPROVED', 'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED']},
-        {'name': 'تایید تخصیص', 'status': purchase.state in ['ALLOCATION_APPROVED', 'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED']},
-        {'name': 'ارسال آدرس به واردکننده', 'status': purchase.state in ['ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED']},
-        {'name': 'در انتظار بارنامه', 'status': purchase.state in ['WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED']},
-        {'name': 'بارنامه صادر شده', 'status': purchase.state in ['BARNAMEH_ISSUED', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED']},
-        {'name': 'بارنامه ناقص', 'status': purchase.state in ['BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED']},
-        {'name': 'بستن خرید در بازارگاه', 'status': purchase.state in ['PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED']},
-        {'name': 'تایید اختلاف', 'status': purchase.state in ['DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED']},
+        {'name': 'ثبت خرید در بازارگاه', 'status': purchase.state in ['PAYMENT_VERIFIED', 'ALLOCATION_APPROVED', 'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED', 'PAY_KASRI', 'RECIEVE_SARAK']},
+        {'name': 'تایید تخصیص', 'status': purchase.state in ['ALLOCATION_APPROVED', 'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED', 'PAY_KASRI', 'RECIEVE_SARAK']},
+        {'name': 'ارسال آدرس به واردکننده', 'status': purchase.state in ['ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED', 'PAY_KASRI', 'RECIEVE_SARAK']},
+        {'name': 'در انتظار بارنامه', 'status': purchase.state in ['WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED', 'PAY_KASRI', 'RECIEVE_SARAK']},
+        {'name': 'بارنامه صادر شده', 'status': purchase.state in ['BARNAMEH_ISSUED', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED', 'PAY_KASRI', 'RECIEVE_SARAK']},
+        {'name': 'بارنامه ناقص', 'status': purchase.state in ['BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED', 'PAY_KASRI', 'RECIEVE_SARAK']},
+        {'name': 'بستن خرید در بازارگاه', 'status': purchase.state in ['PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED', 'PAY_KASRI', 'RECIEVE_SARAK']},
+        {'name': 'پرداخت کسری', 'status': purchase.state in ['PAY_KASRI', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED']},
+        {'name': 'دریافت سرک', 'status': purchase.state in ['RECIEVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED']},
         {'name': 'تسویه کامل', 'status': purchase.state in ['FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED']},
-        {'name': 'صدور فاکتور', 'status': purchase.state in ['INVOICE_ISSUED', 'CANCELED']},
     ]
     
     # برای خریدهای خارج از بازارگاه مراحل مرتبط با بازارگاه را حذف می‌کنیم
@@ -457,7 +484,7 @@ def purchase_CRUD_view(request, purchase_id):
                             'VENDOR_SETTLED', 'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 
                             'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
                             'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
-                            'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']:
+                            'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED', 'PAY_KASRI', 'RECIEVE_SARAK', 'FULLY_SETTLED']:
             # فیلدهای پایه بعد از تایید پرداخت غیرقابل ویرایش هستند
             readonly_fields_after_payment = ['order_weight', 'company_price', 'customer_price', 
                                           'amount_paid', 'purchase_number', 'tracking_number', 'cargo']
@@ -468,7 +495,7 @@ def purchase_CRUD_view(request, purchase_id):
         if purchase.state in ['PURCHASE_CLOSED', 'BARNAMEH_INCOMPLETE', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED',
                             'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
                             'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
-                            'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']:
+                            'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED', 'PAY_KASRI', 'RECIEVE_SARAK', 'FULLY_SETTLED']:
             # فیلدهای مربوط به تحویل بعد از تحویل غیرقابل ویرایش هستند
             readonly_fields_after_delivery = ['delivered_weight', 'code_melli_tahvil', 
                                            'bazaargah_phone_number', 'tahvil_phone_number', 'address',
@@ -483,6 +510,15 @@ def purchase_CRUD_view(request, purchase_id):
             # فیلدهای مربوط به اختلاف بعد از ثبت رسید غیرقابل ویرایش هستند
             readonly_fields_after_receipt = ['extelaf_type', 'extelaf_weight', 'extelaf_amount']
             for field in readonly_fields_after_receipt:
+                if field in post_data and hasattr(purchase, field):
+                    post_data[field] = getattr(purchase, field)
+        
+        # قفل کردن فیلدهای اختلاف پس از بستن خرید و در وضعیت‌های اختلاف
+        if purchase.state in ['PAY_KASRI', 'RECIEVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED', 
+                            'DIFFERENCE_APPROVED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 
+                            'FINANCIAL_APPROVED', 'COMPLETED']:
+            readonly_fields_after_closed = ['extelaf_type', 'extelaf_weight', 'extelaf_amount']
+            for field in readonly_fields_after_closed:
                 if field in post_data and hasattr(purchase, field):
                     post_data[field] = getattr(purchase, field)
                     
@@ -658,7 +694,7 @@ def delete_purchase_view(request, purchase_id):
     return render(request, 'confirm_delete.html', context)
 
 @login_required
-@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent')
 def generate_purchase_pdf(request, purchase_id):
     user_role = determine_user_role(request.user)
     if user_role == 'support_agent':
