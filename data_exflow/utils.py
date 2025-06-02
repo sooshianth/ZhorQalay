@@ -120,138 +120,147 @@ def get_all_registered_models():
 
 
 def get_model_fields(app_label, model_name):
-    """Get fields for a specific model."""
+    """Get fields for a model."""
     try:
-        # Normalize app_label and model_name
-        app_label = app_label.lower().strip()
-        model_name = model_name.strip()
+        # Get model class
+        model = apps.get_model(app_label, model_name)
         
-        print(f"DEBUG: Looking up model: {app_label}.{model_name}")
-        print(f"DEBUG: Type of app_label: {type(app_label)}, Type of model_name: {type(model_name)}")
-        
-        # First try: Directly use ContentType to look up the model
-        try:
-            from django.contrib.contenttypes.models import ContentType
-            
-            print(f"DEBUG: All ContentTypes for this app_label:")
-            all_models = ContentType.objects.filter(app_label__iexact=app_label)
-            for ct in all_models:
-                print(f"  - {ct.app_label}.{ct.model} (ID: {ct.id})")
-            
-            # Try exact match first
-            content_type = ContentType.objects.filter(
-                app_label__iexact=app_label,
-                model__iexact=model_name
-            ).first()
-            
-            print(f"DEBUG: ContentType exact match result: {content_type}")
-            
-            # If not found, try case-insensitive match with model name only
-            if not content_type:
-                print(f"DEBUG: Exact match not found, trying case-insensitive with model name only")
-                content_type = ContentType.objects.filter(
-                    app_label__iexact=app_label,
-                    model__icontains=model_name.lower()
-                ).first()
-                print(f"DEBUG: ContentType case-insensitive result: {content_type}")
-            
-            # If still not found, try with any model containing the name
-            if not content_type:
-                print(f"DEBUG: Case-insensitive match not found, trying content type lookup with partial match")
-                content_type = ContentType.objects.filter(
-                    app_label__iexact=app_label
-                ).first()
-                print(f"DEBUG: ContentType partial match result: {content_type}")
-            
-            if content_type:
-                print(f"DEBUG: ContentType found: {content_type.app_label}.{content_type.model} (ID: {content_type.id})")
-                model = content_type.model_class()
-                print(f"DEBUG: Model class: {model.__name__}")
-            else:
-                print(f"DEBUG: No ContentType found for {app_label}.{model_name}")
-                # Fall back to standard lookup
-                print(f"DEBUG: Trying to get_model with: app_label='{app_label}', model_name='{model_name}'")
-                model = apps.get_model(app_label, model_name)
-                print(f"DEBUG: Model found via standard lookup: {model.__name__}")
-        except Exception as e:
-            print(f"DEBUG: ContentType lookup failed: {str(e)}")
-            # Fall back to the original approach
-            try:
-                print(f"DEBUG: Trying apps.get_model({app_label}, {model_name})")
-                model = apps.get_model(app_label, model_name)
-                print(f"DEBUG: Model found via standard lookup: {model.__name__}")
-            except Exception as inner_e:
-                print(f"DEBUG: apps.get_model failed: {str(inner_e)}")
-                print(f"DEBUG: Available apps and models:")
-                for app_config in apps.get_app_configs():
-                    print(f"  App: {app_config.label}")
-                    for model in app_config.get_models():
-                        print(f"    - {model.__name__}")
-                raise inner_e
-        
-        print(f"DEBUG: Getting fields for model: {model.__name__}")
         fields = []
-        
-        # تهیه لیست فیلدهای یونیک_توگذر
-        unique_together_fields = set()
-        if hasattr(model._meta, 'unique_together'):
-            for field_set in model._meta.unique_together:
-                for field_name in field_set:
-                    unique_together_fields.add(field_name)
-        
-        for field in model._meta.get_fields():
-            # Skip many-to-many fields and reverse relations
-            if field.is_relation and (field.many_to_many or field.one_to_many):
+        # Get model fields
+        for field in model._meta.fields:
+            # Skip hidden fields
+            if field.name.startswith('_'):
                 continue
                 
+            # Get basic field info
             field_info = {
                 'name': field.name,
-                'verbose_name': field.verbose_name if hasattr(field, 'verbose_name') else field.name,
-                'type': field.__class__.__name__,
-                'required': not field.blank if hasattr(field, 'blank') else False,
-                'primary_key': field.primary_key if hasattr(field, 'primary_key') else False,
-                'unique': field.unique if hasattr(field, 'unique') else False,
-                'in_unique_together': field.name in unique_together_fields,
-                'has_choices': hasattr(field, 'choices') and bool(field.choices),
+                'verbose_name': field.verbose_name,
+                'type': field.get_internal_type(),
+                'required': not field.null and not field.blank and not field.primary_key and not field.has_default(),
+                'primary_key': field.primary_key,
+                'unique': field.unique,
+                'has_choices': bool(field.choices),
+                'choices': [],
+                'has_default': field.has_default(),
+                'default_value': None,
             }
             
-            # Add choices if available - improve this part to include more details
-            if hasattr(field, 'choices') and field.choices:
-                field_info['choices'] = [{'key': str(value), 'display': str(display)} for value, display in field.choices]
-                
-                # فایل‌هایی که مقادیر چند مرحله‌ای دارند
-                nested_choices = []
-                for choice_item in field.choices:
-                    if isinstance(choice_item[1], (list, tuple)):
-                        # این یک گروه از choices است
-                        group_name = choice_item[0]
-                        group_choices = [{'key': str(value), 'display': str(display)} for value, display in choice_item[1]]
-                        nested_choices.append({
-                            'group': group_name,
-                            'options': group_choices
+            # Handle default values
+            if field.has_default():
+                try:
+                    default_value = field.get_default()
+                    # Handle callables (like functions, etc)
+                    if callable(default_value):
+                        try:
+                            default_value = default_value()
+                        except:
+                            default_value = str(default_value)
+                    # Convert the default value to string representation
+                    field_info['default_value'] = str(default_value)
+                except Exception as e:
+                    field_info['default_value'] = f"(error getting default: {str(e)})"
+            
+            # Handle choices fields
+            if field.choices:
+                for key, display in field.choices:
+                    # Check if the choice is a tuple of tuples (for grouped choices)
+                    if isinstance(display, (list, tuple)):
+                        for subkey, subdisplay in display:
+                            field_info['choices'].append({
+                                'key': str(subkey),
+                                'display': str(subdisplay)
+                            })
+                    else:
+                        field_info['choices'].append({
+                            'key': str(key),
+                            'display': str(display)
                         })
-                
-                if nested_choices:
-                    field_info['grouped_choices'] = nested_choices
-                
-            # Add foreign key information
-            if field.is_relation and hasattr(field, 'remote_field') and field.remote_field:
-                related_model = field.remote_field.model
+            
+            # Handle ForeignKey fields
+            if field.get_internal_type() == 'ForeignKey' and field.related_model:
+                related_model_meta = field.related_model._meta
                 field_info['related_model'] = {
-                    'app_label': related_model._meta.app_label,
-                    'model_name': related_model.__name__,
-                    'verbose_name': related_model._meta.verbose_name,
+                    'app_label': related_model_meta.app_label,
+                    'model_name': related_model_meta.model_name,
+                    'verbose_name': str(related_model_meta.verbose_name),
                 }
                 
+                # If the related model has a __str__ method, get some sample values
+                try:
+                    sample_instances = field.related_model.objects.all()[:5]
+                    field_info['related_model']['sample_values'] = []
+                    for instance in sample_instances:
+                        field_info['related_model']['sample_values'].append({
+                            'id': instance.pk,
+                            'display': str(instance)
+                        })
+                except Exception as e:
+                    print(f"Error getting sample values for {field.name}: {e}")
+                
+                # If the related model has a choices attribute, add them
+                if hasattr(field.related_model, 'CHOICES') or hasattr(field.related_model, 'choices'):
+                    choices_attr = getattr(field.related_model, 'CHOICES', None) or getattr(field.related_model, 'choices', None)
+                    if choices_attr:
+                        field_info['choices'] = [{'key': str(key), 'display': str(display)} 
+                                               for key, display in choices_attr]
+            
+            # Special handling for specific model types like CargoProduct
+            if field.related_model and field.related_model.__name__ == 'CargoProduct':
+                try:
+                    # Check if model has PRODUCT_TYPES attribute
+                    if hasattr(field.related_model, 'PRODUCT_TYPES'):
+                        # Add product types
+                        product_types = field.related_model.PRODUCT_TYPES
+                        field_info['product_types'] = [{'key': str(key), 'display': str(display)} 
+                                                   for key, display in product_types]
+                    
+                    # Check if model has COUNTRIES attribute
+                    if hasattr(field.related_model, 'COUNTRIES'):
+                        # Add countries
+                        countries = field.related_model.COUNTRIES
+                        field_info['countries'] = [{'key': str(key), 'display': str(display)} 
+                                               for key, display in countries]
+                except Exception as e:
+                    print(f"Error getting CargoProduct info: {e}")
+            
             fields.append(field_info)
         
-        print(f"DEBUG: Found {len(fields)} fields for {model.__name__}")
-        print(f"DEBUG: First 3 fields: {fields[:3]}")
+        # Get many-to-many fields
+        for field in model._meta.many_to_many:
+            field_info = {
+                'name': field.name,
+                'verbose_name': field.verbose_name,
+                'type': 'ManyToManyField',
+                'required': False,  # M2M fields are never required
+                'primary_key': False,
+                'unique': False,
+                'has_choices': False,
+                'choices': [],
+                'related_model': {
+                    'app_label': field.related_model._meta.app_label,
+                    'model_name': field.related_model._meta.model_name,
+                    'verbose_name': str(field.related_model._meta.verbose_name),
+                }
+            }
+            
+            # If the related model has a __str__ method, get some sample values
+            try:
+                sample_instances = field.related_model.objects.all()[:5]
+                field_info['related_model']['sample_values'] = []
+                for instance in sample_instances:
+                    field_info['related_model']['sample_values'].append({
+                        'id': instance.pk,
+                        'display': str(instance)
+                    })
+            except Exception as e:
+                print(f"Error getting sample values for {field.name}: {e}")
+            
+            fields.append(field_info)
+        
         return fields
     except Exception as e:
-        print(f"DEBUG: Error getting fields for {app_label}.{model_name}: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        print(f"Error in get_model_fields: {e}")
         return []
 
 

@@ -22,6 +22,10 @@ from django.db.models.fields import Field
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 from urllib.parse import quote
+from django.utils.translation import gettext_lazy as _
+from django.utils.encoding import smart_str
+import csv
+from openpyxl.utils import get_column_letter
 
 from .models import ImportExportSession, ImportExportLog, ImportRecord
 from .utils import (
@@ -939,79 +943,179 @@ def api_get_models(request):
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
 def api_get_model_fields(request, app_label=None, model_name=None):
-    """API endpoint to get fields for a specific model."""
+    """API endpoint for getting model fields."""
+    # Get content type ID from URL or query param
+    content_type_id = request.GET.get('content_type_id')
+    
     try:
-        # Print request information for debugging
-        print(f"DEBUG API: Received API request for model fields")
-        print(f"DEBUG API: URL path: {request.path}")
-        print(f"DEBUG API: Method: {request.method}")
-        print(f"DEBUG API: GET params: {request.GET}")
-        print(f"DEBUG API: POST params: {request.POST}")
-        print(f"DEBUG API: URL params: app_label={app_label}, model_name={model_name}")
+        if content_type_id:
+            content_type = ContentType.objects.get(id=content_type_id)
+            app_label = content_type.app_label
+            model_name = content_type.model
+        elif not app_label or not model_name:
+            return JsonResponse({'error': 'Must provide app_label and model_name or content_type_id'}, status=400)
         
-        # Check if parameters are in URL or POST/GET
-        if not app_label:
-            app_label = request.POST.get('app_label') or request.GET.get('app_label')
-            print(f"DEBUG API: Got app_label from request params: {app_label}")
+        # Get model class
+        model = apps.get_model(app_label, model_name)
         
-        if not model_name:
-            model_name = request.POST.get('model_name') or request.GET.get('model_name')
-            print(f"DEBUG API: Got model_name from request params: {model_name}")
-            
-        # Check if we have content_type_id instead
-        content_type_id = request.POST.get('content_type_id') or request.GET.get('content_type_id')
-        print(f"DEBUG API: content_type_id from request: {content_type_id}")
-        
-        if content_type_id and not (app_label and model_name):
-            try:
-                from django.contrib.contenttypes.models import ContentType
-                print(f"DEBUG API: Looking up ContentType with ID: {content_type_id}")
-                content_type = ContentType.objects.get(id=content_type_id)
-                app_label = content_type.app_label
-                model_name = content_type.model
-                print(f"DEBUG API: Retrieved model info from content_type_id: {app_label}.{model_name} (ID: {content_type_id})")
-            except Exception as e:
-                print(f"DEBUG API: Error getting content type: {str(e)}")
-                
-        # Clean and normalize inputs if they exist
-        if app_label:
-            app_label_orig = app_label
-            app_label = app_label.strip().lower()
-            print(f"DEBUG API: Normalized app_label: '{app_label_orig}' -> '{app_label}'")
-            
-        if model_name:
-            model_name_orig = model_name
-            model_name = model_name.strip()
-            print(f"DEBUG API: Normalized model_name: '{model_name_orig}' -> '{model_name}'")
-        
-        print(f"DEBUG API: Final parameters - app_label: '{app_label}', model_name: '{model_name}'")
-        
-        if not app_label or not model_name:
-            print(f"DEBUG API: Missing required parameters")
-            return JsonResponse({
-                'error': 'Missing app_label or model_name parameters'
-            }, status=400)
-        
+        fields = []
         # Get model fields
-        print(f"DEBUG API: Calling get_model_fields({app_label}, {model_name})")
-        fields = get_model_fields(app_label, model_name)
-        
-        if not fields:
-            print(f"DEBUG API: No fields found for {app_label}.{model_name}")
-            return JsonResponse({
-                'error': f'Model {app_label}.{model_name} not found or has no accessible fields'
-            }, status=404)
+        for field in model._meta.fields:
+            # Skip hidden fields
+            if field.name.startswith('_'):
+                continue
+                
+            # Get basic field info
+            field_info = {
+                'name': field.name,
+                'verbose_name': field.verbose_name,
+                'type': field.get_internal_type(),
+                'required': not field.null and not field.blank and not field.primary_key and not field.has_default(),
+                'primary_key': field.primary_key,
+                'unique': field.unique,
+                'has_choices': bool(field.choices),
+                'choices': [],
+                'default': None,
+                'has_default': field.has_default(),
+                'default_value': None,
+            }
             
-        # Return fields as JSON
-        print(f"DEBUG API: Returning {len(fields)} fields for {app_label}.{model_name}")
-        return JsonResponse({'fields': fields})
-    except Exception as e:
-        print(f"DEBUG API: Exception in api_get_model_fields: {str(e)}")
-        import traceback
-        traceback.print_exc()
+            # Handle default values
+            if field.has_default():
+                try:
+                    default_value = field.get_default()
+                    # Handle callables (like functions, etc)
+                    if callable(default_value):
+                        try:
+                            default_value = default_value()
+                        except:
+                            default_value = str(default_value)
+                    # Convert the default value to string representation
+                    field_info['default_value'] = str(default_value)
+                except Exception as e:
+                    field_info['default_value'] = f"(error getting default: {str(e)})"
+            
+            # Handle choices fields
+            if field.choices:
+                for key, display in field.choices:
+                    # Check if the choice is a tuple of tuples (for grouped choices)
+                    if isinstance(display, (list, tuple)):
+                        for subkey, subdisplay in display:
+                            field_info['choices'].append({
+                                'key': str(subkey),
+                                'display': str(subdisplay)
+                            })
+                    else:
+                        field_info['choices'].append({
+                            'key': str(key),
+                            'display': str(display)
+                        })
+            
+            # Handle ForeignKey fields
+            if field.get_internal_type() == 'ForeignKey':
+                related_model_meta = field.related_model._meta
+                field_info['related_model'] = {
+                    'app_label': related_model_meta.app_label,
+                    'model_name': related_model_meta.model_name,
+                    'verbose_name': str(related_model_meta.verbose_name),
+                }
+                
+                # If the related model has a __str__ method, get some sample values
+                try:
+                    sample_instances = field.related_model.objects.all()[:10]
+                    field_info['related_model']['sample_values'] = []
+                    for instance in sample_instances:
+                        field_info['related_model']['sample_values'].append({
+                            'id': instance.pk,
+                            'display': str(instance)
+                        })
+                except Exception as e:
+                    print(f"Error getting sample values for {field.name}: {e}")
+                
+                # If the related model has a choices attribute, add them
+                if hasattr(field.related_model, 'CHOICES') or hasattr(field.related_model, 'choices'):
+                    choices_attr = getattr(field.related_model, 'CHOICES', None) or getattr(field.related_model, 'choices', None)
+                    if choices_attr:
+                        field_info['choices'] = [{'key': str(key), 'display': str(display)} 
+                                                for key, display in choices_attr]
+            
+            # Special handling for specific model types like CargoProduct
+            if field.related_model and field.related_model.__name__ == 'CargoProduct':
+                try:
+                    # Add product types
+                    product_types = field.related_model.PRODUCT_TYPES
+                    field_info['product_types'] = [{'key': str(key), 'display': str(display)} 
+                                               for key, display in product_types]
+                    
+                    # Add countries
+                    countries = field.related_model.COUNTRIES
+                    field_info['countries'] = [{'key': str(key), 'display': str(display)} 
+                                           for key, display in countries]
+                except Exception as e:
+                    print(f"Error getting CargoProduct info: {e}")
+            
+            fields.append(field_info)
+        
+        # Get many-to-many fields
+        for field in model._meta.many_to_many:
+            field_info = {
+                'name': field.name,
+                'verbose_name': field.verbose_name,
+                'type': 'ManyToManyField',
+                'required': False,  # M2M fields are never required
+                'primary_key': False,
+                'unique': False,
+                'has_choices': False,
+                'choices': [],
+                'related_model': {
+                    'app_label': field.related_model._meta.app_label,
+                    'model_name': field.related_model._meta.model_name,
+                    'verbose_name': str(field.related_model._meta.verbose_name),
+                }
+            }
+            
+            # If the related model has a __str__ method, get some sample values
+            try:
+                sample_instances = field.related_model.objects.all()[:10]
+                field_info['related_model']['sample_values'] = []
+                for instance in sample_instances:
+                    field_info['related_model']['sample_values'].append({
+                        'id': instance.pk,
+                        'display': str(instance)
+                    })
+            except Exception as e:
+                print(f"Error getting sample values for {field.name}: {e}")
+            
+            fields.append(field_info)
+            
+        # Add any model-level choices if they exist
+        model_choices = {}
+        for attr_name in dir(model):
+            if attr_name.endswith('_CHOICES') or attr_name.endswith('_TYPES'):
+                try:
+                    choices = getattr(model, attr_name)
+                    if isinstance(choices, (list, tuple)) and choices and isinstance(choices[0], (list, tuple)):
+                        model_choices[attr_name] = [{'key': str(key), 'display': str(display)} 
+                                                  for key, display in choices]
+                except:
+                    pass
+        
         return JsonResponse({
-            'error': f'Error retrieving model fields: {str(e)}'
-        }, status=500)
+            'model': {
+                'app_label': app_label,
+                'model_name': model_name,
+                'verbose_name': str(model._meta.verbose_name),
+            },
+            'fields': fields,
+            'model_choices': model_choices
+        })
+    
+    except ContentType.DoesNotExist:
+        return JsonResponse({'error': f'Content type not found: {content_type_id}'}, status=404)
+    except LookupError:
+        return JsonResponse({'error': f'Model not found: {app_label}.{model_name}'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 @login_required
@@ -1129,8 +1233,15 @@ def download_sample_file(request):
         content_type = ContentType.objects.get(id=content_type_id)
         model_class = content_type.model_class()
         
-        # Get fields for the model
-        fields = get_model_fields(content_type.app_label, model_class.__name__)
+        # Get fields info using the API directly
+        app_label = content_type.app_label
+        model_name = content_type.model
+        
+        # Capture API response for model fields
+        api_response = api_get_model_fields(request, app_label=app_label, model_name=model_name)
+        api_data = json.loads(api_response.content)
+        
+        fields = api_data.get('fields', [])
         
         # Create a DataFrame with sample data
         sample_data = {}
@@ -1139,6 +1250,10 @@ def download_sample_file(request):
             field_name = field['name']
             field_verbose_name = field.get('verbose_name', field_name)
             
+            # Skip some technical fields
+            if field_name in ['id', '_state', 'pk'] or field_name.startswith('_'):
+                continue
+                
             # Skip many-to-many fields and reverse relations
             if field.get('type') in ['ManyToManyField', 'OneToOneRel', 'ManyToOneRel']:
                 continue
@@ -1146,10 +1261,18 @@ def download_sample_file(request):
             # Handle different field types
             if field.get('has_choices', False) and field.get('choices'):
                 # Use the first choice as an example
-                choice = field['choices'][0]
-                sample_data[field_name] = f"{choice['key']}"  # Just use the key for simplicity
+                if field['choices']:
+                    choice = field['choices'][0]
+                    sample_data[field_name] = f"{choice['key']}"  # Just use the key for simplicity
+                else:
+                    sample_data[field_name] = ""
             elif field.get('type') == 'ForeignKey' and field.get('related_model'):
-                sample_data[field_name] = f"ID از {field['related_model']['verbose_name']}"
+                # For ForeignKey, suggest using ID of a sample instance if available
+                if field.get('related_model', {}).get('sample_values', []):
+                    sample_instance = field['related_model']['sample_values'][0]
+                    sample_data[field_name] = f"{sample_instance['id']}"
+                else:
+                    sample_data[field_name] = f"ID از {field['related_model']['verbose_name']}"
             elif field.get('type') == 'DateField':
                 sample_data[field_name] = "1402-01-01"
             elif field.get('type') == 'DateTimeField':
@@ -1159,9 +1282,18 @@ def download_sample_file(request):
             elif field.get('type') in ['DecimalField', 'FloatField']:
                 sample_data[field_name] = "123.45"
             elif field.get('type') == 'BooleanField':
-                sample_data[field_name] = "True"
+                # Check for default value
+                if field.get('has_default'):
+                    default_value = field.get('default_value', 'False')
+                    sample_data[field_name] = default_value
+                else:
+                    sample_data[field_name] = "True"
             else:
-                sample_data[field_name] = f"نمونه {field_verbose_name}"
+                # Add default value if available
+                if field.get('has_default') and field.get('default_value'):
+                    sample_data[field_name] = field['default_value']
+                else:
+                    sample_data[field_name] = f"نمونه {field_verbose_name}"
         
         # Create a DataFrame with the sample data
         df = pd.DataFrame([sample_data])
@@ -1173,6 +1305,9 @@ def download_sample_file(request):
         # Save based on format
         if file_format == 'xlsx':
             # For Excel, create a workbook and set RTL for the sheet
+            from openpyxl import Workbook
+            from openpyxl.utils.dataframe import dataframe_to_rows
+            
             wb = Workbook()
             ws = wb.active
             ws.sheet_properties.rightToLeft = True  # Enable RTL for Excel sheet
