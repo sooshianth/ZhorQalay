@@ -72,11 +72,8 @@
     <!-- نوبار سمت راست -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <img src="{% static 'images/3-min.webp' %}?v=1748703972" loading="lazy" alt="Logo" class="sidebar-logo">
+            <img src="{% static 'images/3-min.webp' %}?v=1748703972" loading="lazy" alt="Logo" class="sidebar-logo" style="filter: brightness(0) invert(1);">
             <h2 class="sidebar-title">سیمرغ افزار</h2>
-            <button class="sidebar-close" id="sidebarClose">
-                <i class="fas fa-times"></i>
-            </button>
         </div>
         
         <ul class="sidebar-menu">
@@ -192,10 +189,15 @@
                 </div>
             {% endif %}
         </ul>
+        
+        <!-- دکمه تغییر وضعیت نوبار -->
+        <button class="sidebar-toggle" id="sidebarToggle">
+            <i class="fas fa-angle-double-left"></i>
+        </button>
     </div>
 
     <div class="mobile-header" id="mobile-header">
-        <img src="{% static 'images/3-min.webp' %}?v=1748703972" loading="lazy" alt="Logo" class="mobile-header-logo">
+        <img src="{% static 'images/3-min.webp' %}?v=1748703972" loading="lazy" alt="Logo" class="mobile-header-logo" style="filter: brightness(0) invert(1);">
         <h2 class="mobile-header-title">سیمرغ افزار</h2>
     </div>
     
@@ -203,9 +205,6 @@
         <header>
             <div class="container">
                 <div class="header-top">
-                    <a href="{% url 'home_view' %}">
-                        <img src="{% static 'images/3-min.webp' %}?v=1748703972" loading="lazy" width='55px' alt="Logo" class="header-logo">
-                    </a>
                     <h1>سامانه جامع سیمرغ‌ افزار</h1>
                     <div class="mobile-controls">
                         <div class="toggle-container" id="dark-mode-toggle">
@@ -285,118 +284,105 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            // Dark mode functionality
-            const toggleBtn = document.getElementById("dark-mode-toggle");
-            if (localStorage.getItem("theme") === "dark") {
-                document.body.classList.add("dark-mode");
-            }
-            toggleBtn.addEventListener("click", function() {
-                document.body.classList.toggle("dark-mode");
-                if (document.body.classList.contains("dark-mode")) {
-                    localStorage.setItem("theme", "dark");
-                } else {
-                    localStorage.setItem("theme", "light");
-                }
-            });
-
             // اطمینان از حذف aria-hidden از body (با کمی تاخیر)
             setTimeout(() => {
                 document.body.removeAttribute('aria-hidden');
-                console.log('Attempted to remove aria-hidden from body.'); // لاگ برای تایید اجرا
-            }, 50); // تاخیر 50 میلی‌ثانیه
+            }, 50);
 
-            // Sidebar functionality
-            const menuToggleBtn = document.getElementById("menuToggleBtn");
+            // تنظیم کردن وضعیت اولیه نوبار
             const sidebar = document.getElementById("sidebar");
-            const sidebarClose = document.getElementById("sidebarClose");
+            const sidebarToggle = document.getElementById("sidebarToggle");
             const sidebarBackdrop = document.getElementById("sidebarBackdrop");
+            const menuToggleBtn = document.getElementById("menuToggleBtn");
             const mobileHeader = document.getElementById("mobile-header");
+            const mainContentWrapper = document.querySelector('.main-content-wrapper');
+            
+            // تنظیم دیفالت به باز بودن نوبار
+            sidebar.classList.remove("collapsed");
+            localStorage.setItem("sidebarCollapsed", "false");
+            
+            // اضافه کردن عملکرد دراپ‌داون‌ها
+            const categoryTitles = document.querySelectorAll('.category-title');
+            categoryTitles.forEach(title => {
+                title.addEventListener('click', function() {
+                    // پیدا کردن submenu مربوطه
+                    const submenu = this.nextElementSibling;
+                    
+                    // تغییر وضعیت فلش
+                    const arrow = this.querySelector('.category-arrow');
+                    if (arrow) {
+                        arrow.style.transform = submenu.classList.contains('collapsed') ? 'rotate(180deg)' : 'rotate(0)';
+                    }
+                    
+                    // تغییر وضعیت منو
+                    submenu.classList.toggle('collapsed');
+                    
+                    // بستن سایر منوها
+                    categoryTitles.forEach(otherTitle => {
+                        if (otherTitle !== title) {
+                            const otherSubmenu = otherTitle.nextElementSibling;
+                            const otherArrow = otherTitle.querySelector('.category-arrow');
+                            if (otherSubmenu && !otherSubmenu.classList.contains('collapsed')) {
+                                otherSubmenu.classList.add('collapsed');
+                                if (otherArrow) {
+                                    otherArrow.style.transform = 'rotate(0)';
+                                }
+                            }
+                        }
+                    });
+                });
+            });
 
-            // Open sidebar
-            menuToggleBtn.addEventListener("click", function() {
+            // تغییر وضعیت نوبار با کلیک روی دکمه تغییر وضعیت
+            sidebarToggle.addEventListener("click", function() {
+                sidebar.classList.toggle("collapsed");
+                localStorage.setItem("sidebarCollapsed", sidebar.classList.contains("collapsed"));
+                adjustContentMargin();
+            });
+
+            // باز کردن نوبار در موبایل
+            menuToggleBtn?.addEventListener("click", function() {
                 sidebar.classList.add("active");
                 sidebarBackdrop.style.display = "block";
                 setTimeout(() => {
                     sidebarBackdrop.classList.add("active");
                 }, 10);
-                document.body.style.overflow = "hidden"; // Prevent scrolling
+                document.body.style.overflow = "hidden";
             });
 
-            // Close sidebar
+            // بستن نوبار
             function closeSidebar() {
                 sidebar.classList.remove("active");
                 sidebarBackdrop.classList.remove("active");
                 setTimeout(() => {
                     sidebarBackdrop.style.display = "none";
                 }, 300);
-                document.body.style.overflow = ""; // Enable scrolling
+                document.body.style.overflow = "";
             }
 
-            sidebarClose.addEventListener("click", closeSidebar);
-            sidebarBackdrop.addEventListener("click", closeSidebar);
+            sidebarBackdrop?.addEventListener("click", closeSidebar);
 
-            // Collapsible menu functionality
-            const categoryTitles = document.querySelectorAll('.category-title[data-toggle="collapse"]');
-            categoryTitles.forEach(title => {
-                title.addEventListener('click', function() {
-                    const targetId = this.getAttribute('data-target');
-                    const targetElement = document.getElementById(targetId);
-                    
-                    // Toggle aria-expanded attribute
-                    const isExpanded = this.getAttribute('aria-expanded') === 'true';
-                    this.setAttribute('aria-expanded', !isExpanded);
-                    
-                    // Toggle the collapsed class
-                    targetElement.classList.toggle('collapsed');
-                    
-                    // Close other submenus when opening a new one
-                    if (!isExpanded) {
-                        document.querySelectorAll('.submenu-container:not(.collapsed)').forEach(submenu => {
-                            if (submenu.id !== targetId) {
-                                submenu.classList.add('collapsed');
-                                const relatedTitle = document.querySelector(`.category-title[data-target="${submenu.id}"]`);
-                                if (relatedTitle) {
-                                    relatedTitle.setAttribute('aria-expanded', 'false');
-                                }
-                            }
-                        });
-                    }
-                });
-                
-                // Set initial state
-                title.setAttribute('aria-expanded', 'false');
-            });
-
-            // Mobile header behavior on scroll
-            let lastScrollTop = 0;
-            const header = document.querySelector('header');
-            const headerHeight = header.offsetHeight;
-            
-            window.addEventListener("scroll", function() {
+            // تنظیم مارجین محتوای اصلی
+            function adjustContentMargin() {
                 if (window.innerWidth <= 768) {
-                    let currentScroll = window.pageYOffset || document.documentElement.scrollTop;
-                    if (currentScroll > headerHeight) {
-                        if (currentScroll < lastScrollTop) {
-                            mobileHeader.classList.add("visible");
-                        } else {
-                            mobileHeader.classList.remove("visible");
-                        }
+                    mainContentWrapper.style.marginRight = "0";
+                    mainContentWrapper.style.width = "100%";
+                } else {
+                    if (sidebar.classList.contains("collapsed")) {
+                        mainContentWrapper.style.marginRight = "80px";
+                        mainContentWrapper.style.width = "calc(100% - 80px)";
                     } else {
-                        mobileHeader.classList.remove("visible");
+                        mainContentWrapper.style.marginRight = "280px";
+                        mainContentWrapper.style.width = "calc(100% - 280px)";
                     }
-                    lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
                 }
-            });
+            }
+
+            // اجرای تنظیم مارجین در ابتدا
+            adjustContentMargin();
             
-            // Close sidebar when clicking menu items on mobile
-            const sidebarLinks = document.querySelectorAll(".sidebar-menu a");
-            sidebarLinks.forEach(link => {
-                link.addEventListener("click", function() {
-                    if (window.innerWidth <= 768) {
-                        closeSidebar();
-                    }
-                });
-            });
+            // اجرای تنظیم مارجین هنگام تغییر اندازه صفحه
+            window.addEventListener("resize", adjustContentMargin);
         });
     </script>
     <!-- Tabulator JS -->

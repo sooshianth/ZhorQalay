@@ -26,6 +26,7 @@ body {
   color: var(--text-color);
   line-height: 1.6;
   padding-top: 0;
+  overflow-x: hidden;
 }
 
 /* اطمینان از اعمال فونت به همه عناصر فرم، جداول و دکمه‌ها */
@@ -154,19 +155,19 @@ nav ul li:hover .dropdown-menu {
 
 /* استایل بخش اصلی (محتوا) */
 main.container {
-  max-width: 1200px;
-  margin: 30px auto; /* افزایش فاصله */
-  padding: 25px; /* افزایش padding */
+  max-width: 100%;
+  margin: 30px 0;
+  padding: 25px;
   background: white;
-  border-radius: 12px; /* افزایش border-radius */
+  border-radius: 12px;
   box-shadow: 0 2px 15px rgba(0, 0, 0, 0.2);
 }
 
 .container, .container-fluid {
   width: 100%;
   max-width: 100%;
-  padding-right: 15px;
-  padding-left: 15px;
+  padding-right: 0;
+  padding-left: 0;
   margin-right: auto;
   margin-left: auto;
 }
@@ -2291,11 +2292,11 @@ body {
 .sidebar {
   position: fixed;
   top: 0;
-  right: -320px;
-  width: 320px;
+  right: 0;
+  width: 280px;
   height: 100vh;
   background-color: var(--primary-color);
-  z-index: 2000;
+  z-index: 1500;
   transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
   box-shadow: -2px 0 20px rgba(0, 0, 0, 0.3);
   overflow-y: auto;
@@ -2305,7 +2306,7 @@ body {
   scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.1);
 }
 
-/* استایل اسکرول بار برای Chrome/Safari/Edge */
+/* اسکرول بار برای Chrome/Safari/Edge */
 .sidebar::-webkit-scrollbar {
   width: 8px;
 }
@@ -2325,279 +2326,400 @@ body {
   background: rgba(255, 255, 255, 0.5);
 }
 
-.sidebar.active {
-  right: 0;
-  transition: all 0.4s cubic-bezier(0.15, 1, 0.3, 1);
+/* نوبار در حالت جمع شده */
+.sidebar.collapsed {
+  width: 80px;
+  overflow: visible;
 }
 
-.sidebar-header {
-  display: flex;
-  align-items: center;
-  padding: 20px;
-  background-color: rgba(0, 0, 0, 0.2);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(5px);
+/* تغییر وضعیت محتوای اصلی */
+.main-content-wrapper {
+  margin-right: 280px;
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  width: calc(100% - 280px);
+  padding: 0;
 }
 
-.sidebar-logo {
-  width: 48px;
-  height: auto;
-  filter: brightness(0) invert(1);
-  margin-left: 15px;
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+/* تغییر مارجین محتوا وقتی نوبار جمع می‌شود */
+.sidebar.collapsed + .sidebar-backdrop + .main-content-wrapper {
+  margin-right: 80px;
+  width: calc(100% - 80px);
 }
 
-.sidebar-header:hover .sidebar-logo {
-  transform: scale(1.15) rotate(5deg);
-}
-
-.sidebar-title {
+/* افزودن دکمه تغییر وضعیت نوبار */
+.sidebar-toggle {
+  position: fixed;
+  bottom: 30px;
+  right: 250px;
+  background-color: var(--primary-color);
   color: white;
-  font-size: 1.3rem;
-  margin: 0;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.sidebar-close {
-  color: white;
-  background: transparent;
   border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  margin-right: auto;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   width: 40px;
   height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.sidebar-close:hover {
-  transform: rotate(90deg);
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.sidebar-menu {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.menu-category {
-  margin: 8px 0;
-  border-radius: 8px;
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  background-color: rgba(255, 255, 255, 0.05);
-  margin: 10px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.menu-category:hover {
-  background-color: rgba(255, 255, 255, 0.08);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.category-title {
-  padding: 15px 20px;
-  color: white;
-  font-size: 1.05rem;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  border-radius: 8px;
-  position: relative;
-}
-
-.category-title:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.category-icon {
-  margin-left: 15px;
   font-size: 1.2rem;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  padding: 12px;
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  z-index: 1600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
 }
 
-.category-title:hover .category-icon {
-  transform: scale(1.15);
-  background-color: rgba(255, 255, 255, 0.2);
+.sidebar-toggle:hover {
+  background-color: var(--button-color);
+  transform: scale(1.1);
 }
 
-.category-title span {
-  flex-grow: 1;
+/* تغییر موقعیت دکمه در حالت جمع شده */
+.sidebar.collapsed .sidebar-toggle {
+  right: 60px;
 }
 
-.category-arrow {
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  opacity: 0.7;
-  font-size: 0.9rem;
-}
-
-.category-title[aria-expanded="true"] .category-arrow {
+/* تغییر جهت آیکون در حالت جمع شده */
+.sidebar.collapsed .sidebar-toggle i {
   transform: rotate(180deg);
 }
 
-.submenu-container {
-  max-height: 1000px;
-  overflow: hidden;
-  transition: max-height 0.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease, transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-  opacity: 1;
-  padding-bottom: 10px;
-  transform: translateY(0);
-}
-
-.submenu-container.collapsed {
-  max-height: 0;
-  opacity: 0;
-  padding-bottom: 0;
-  transform: translateY(-10px);
-}
-
-.sidebar-menu li {
-  list-style: none;
-}
-
-.sidebar-menu li a {
-  display: flex;
-  align-items: center;
-  padding: 12px 20px 12px 15px;
-  color: rgba(255, 255, 255, 0.9);
-  text-decoration: none;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  border-right: 3px solid transparent;
-  margin: 2px 0;
-  border-radius: 0 4px 4px 0;
-  font-size: 0.95rem;
-}
-
-.sidebar-menu li a:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-right-color: var(--hover-color);
-  padding-right: 25px;
-  color: white;
-}
-
-.sidebar-menu li a i {
-  margin-left: 15px;
-  font-size: 1.1rem;
-  width: 20px;
-  text-align: center;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.sidebar-menu li a:hover i {
-  transform: translateX(-5px);
-}
-
-/* استایل دکمه همبرگری */
-.menu-toggle-btn {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  cursor: pointer;
-  z-index: 1999;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-.menu-toggle-btn:hover {
-  transform: scale(1.1);
-  background-color: var(--button-color);
-}
-
-/* استایل دسته خروج */
-.logout-category {
-  margin-top: 20px;
-  background-color: rgba(198, 14, 14, 0.1);
-}
-
-.logout-category a {
-  color: rgba(255, 255, 255, 0.9) !important;
-}
-
-.logout-category a:hover {
-  background-color: rgba(255, 0, 0, 0.923) !important;
-}
-
-/* استایل دسته مدیریت داده‌ها */
-.data-management-category {
-  background-color: rgba(255, 193, 7, 0.1);
-}
-
-.data-management-category .category-icon {
-  background-color: rgba(255, 193, 7, 0.2);
-}
-
-.data-management-category .category-title:hover .category-icon {
-  background-color: rgba(255, 193, 7, 0.3);
-}
-
-/* افزودن پس‌زمینه تاریک هنگام باز بودن نوبار */
+/* پس‌زمینه نوبار */
 .sidebar-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(3px);
-  z-index: 1998;
   display: none;
-  opacity: 0;
-  transition: opacity 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-.sidebar-backdrop.active {
-  opacity: 1;
-}
-
-/* بهینه‌سازی برای موبایل */
+/* تغییرات واکنش‌گرا برای موبایل */
 @media (max-width: 768px) {
   .sidebar {
-      width: 290px;
-      right: -290px;
+    right: -280px;
+    width: 280px;
+  }
+  
+  .sidebar.active {
+    right: 0;
+  }
+  
+  .main-content-wrapper {
+    margin-right: 0;
+    width: 100%;
   }
   
   .menu-toggle-btn {
-      top: 15px;
-      right: 15px;
-      width: 45px;
-      height: 45px;
-      font-size: 1.3rem;
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    cursor: pointer;
+    z-index: 1999;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   }
   
-  .category-title {
-      padding: 12px 15px;
+  .sidebar-backdrop {
+    display: block;
   }
   
-  .sidebar-menu li a {
-      padding: 10px 15px 10px 10px;
+  .sidebar.collapsed + .sidebar-backdrop + .main-content-wrapper {
+    margin-right: 0;
+    width: 100%;
   }
+  
+  .sidebar.collapsed {
+    right: -80px;
+  }
+  
+  .sidebar-toggle {
+    display: none;
+  }
+  
+  main.container {
+    margin: 20px 0;
+    padding: 15px;
+  }
+}
+
+/* حذف دکمه دارک مود */
+#dark-mode-toggle {
+  display: none;
+}
+
+/* اطمینان از نمایش درست آیکون‌ها در سایدبار کوچک */
+.sidebar.collapsed .sidebar-menu li a i {
+  margin: 0 auto;
+  font-size: 1.3rem;
+}
+
+/* زیرمنوهای باز در حالت عادی */
+.submenu-container:not(.collapsed) {
+  max-height: 1000px;
+  opacity: 1;
+}
+
+/* عنوان در حالت جمع شده پنهان می‌شود */
+.sidebar.collapsed .sidebar-title {
+  display: none;
+}
+
+/* لوگو در حالت جمع شده کوچکتر می‌شود */
+.sidebar.collapsed .sidebar-logo {
+  margin: 0 auto;
+  width: 40px;
+}
+
+/* استایل هدر سایدبار در حالت جمع شده */
+.sidebar.collapsed .sidebar-header {
+  justify-content: center;
+  padding: 15px 5px;
+}
+
+/* پنهان کردن دکمه بستن در حالت جمع شده */
+.sidebar.collapsed .sidebar-close {
+  display: none;
+}
+
+/* تغییر نمایش منوی دسته‌ها در حالت جمع شده */
+.sidebar.collapsed .category-title span {
+  display: none;
+}
+
+.sidebar.collapsed .category-arrow {
+  display: none;
+}
+
+.sidebar.collapsed .menu-category {
+  text-align: center;
+}
+
+.sidebar.collapsed .category-title {
+  justify-content: center;
+  padding: 15px 0;
+}
+
+.sidebar.collapsed .category-icon {
+  margin: 0 auto;
+}
+
+/* زیرمنوها در حالت جمع شده به صورت پاپ‌آپ نمایش داده می‌شوند */
+.sidebar.collapsed .submenu-container {
+  position: absolute;
+  right: 80px;
+  top: 0;
+  background-color: var(--primary-color);
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+  width: 220px;
+  border-radius: 0 0 0 8px;
+  z-index: 1600;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(20px);
+  transition: all 0.3s ease;
+}
+
+.sidebar.collapsed .menu-category:hover .submenu-container {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
+
+/* تغییر استایل آیتم‌های زیرمنو در حالت جمع شده */
+.sidebar.collapsed .submenu-container a {
+  padding: 10px 15px;
+}
+
+/* حذف دکمه همبرگر در دسکتاپ */
+.menu-toggle-btn {
+  display: none;
+}
+
+/* Sidebar Base Styles */
+.sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 280px;
+    height: 100vh;
+    background-color: var(--primary-color);
+    z-index: 1500;
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    box-shadow: -2px 0 20px rgba(0, 0, 0, 0.3);
+    overflow-y: auto;
+    padding-bottom: 50px;
+    font-family: 'Vazir', sans-serif !important;
+    color: white;
+    direction: rtl;
+}
+
+/* Sidebar Menu Styles */
+.sidebar-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* Menu Category Styles */
+.menu-category {
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Category Title Styles */
+.category-title {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Vazir', sans-serif !important;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.category-title:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.category-icon {
+    margin-left: 10px;
+    font-size: 16px;
+    color: white;
+}
+
+.category-arrow {
+    margin-right: auto;
+    transition: transform 0.3s ease;
+}
+
+/* Submenu Container Styles */
+.submenu-container {
+    max-height: 1000px;
+    opacity: 1;
+    transition: all 0.3s ease-in-out;
+    background-color: rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+.submenu-container.collapsed {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+/* Submenu Links Styles */
+.submenu-container li {
+    list-style: none;
+}
+
+.submenu-container a {
+    display: flex;
+    align-items: center;
+    padding: 12px 30px;
+    color: white !important;
+    text-decoration: none;
+    font-family: 'Vazir', sans-serif !important;
+    font-size: 13px;
+    transition: background-color 0.3s;
+}
+
+.submenu-container a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.submenu-container a i {
+    margin-left: 10px;
+    font-size: 14px;
+    color: white;
+}
+
+/* Logout Category Styles */
+.logout-category {
+    margin-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logout-category a {
+    color: #ff6b6b !important;
+}
+
+/* Ensure icons keep their font */
+.sidebar i.fas,
+.sidebar i.far,
+.sidebar i.fab,
+.sidebar i.fa {
+    font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+}
+
+/* Sidebar Header Styles */
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-logo {
+    width: 40px;
+    height: auto;
+    margin-left: 10px;
+}
+
+.sidebar-title {
+    color: white;
+    font-size: 16px;
+    font-weight: 500;
+    font-family: 'Vazir', sans-serif !important;
+    margin: 0;
+}
+
+.sidebar-close {
+    margin-right: auto;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 5px;
+}
+
+/* Collapsed State Styles */
+.sidebar.collapsed {
+    width: 80px;
+}
+
+.sidebar.collapsed .category-title span,
+.sidebar.collapsed .sidebar-title,
+.sidebar.collapsed .category-arrow {
+    display: none;
+}
+
+.sidebar.collapsed .category-icon {
+    margin: 0;
+}
+
+.sidebar.collapsed .submenu-container a {
+    padding: 12px;
+    justify-content: center;
+}
+
+.sidebar.collapsed .submenu-container a i {
+    margin: 0;
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+    .sidebar {
+        right: -280px;
+    }
+    
+    .sidebar.active {
+        right: 0;
+    }
 }

@@ -1057,6 +1057,10 @@
       <span class="badge bg-warning">بارنامه ناقص</span>
       {% elif purchase.state == 'PURCHASE_CLOSED' %}
       <span class="badge bg-info">بستن خرید</span>
+      {% elif purchase.state == 'PAY_KASRI' %}
+      <span class="badge bg-danger">پرداخت کسری</span>
+      {% elif purchase.state == 'RECIEVE_SARAK' %}
+      <span class="badge bg-success">دریافت سرک</span>
       {% elif purchase.state == 'DIFFERENCE_APPROVED' %}
       <span class="badge bg-primary">تایید اختلاف</span>
       {% elif purchase.state == 'FULLY_SETTLED' %}
@@ -1226,8 +1230,8 @@
 <td>{{ purchase.updated_at|date:"Y/m/d" }}</td>
 <td>{{ purchase.amount_paid|add_commas|default:"-" }} ریال</td>
 <td>{{ purchase.tracking_number|default:"-" }}</td>
-<td class="status-cell {% if purchase.state in 'PAYMENT_VERIFIED,ALLOCATION_APPROVED,ADDRESS_SENT,WAITING_FOR_BARNAMEH,BARNAMEH_ISSUED,BARNAMEH_INCOMPLETE,PURCHASE_CLOSED,DIFFERENCE_APPROVED,FULLY_SETTLED,INVOICE_ISSUED,CANCELED,ARCHIVED'|split:',' %}completed{% else %}pending{% endif %}">
-{% if purchase.state in 'PAYMENT_VERIFIED,ALLOCATION_APPROVED,ADDRESS_SENT,WAITING_FOR_BARNAMEH,BARNAMEH_ISSUED,BARNAMEH_INCOMPLETE,PURCHASE_CLOSED,DIFFERENCE_APPROVED,FULLY_SETTLED,INVOICE_ISSUED,CANCELED,ARCHIVED'|split:',' %}✔ پرداخت شده{% else %}⌛ در انتظار{% endif %}
+<td class="status-cell {% if purchase.state in 'PAYMENT_VERIFIED,ALLOCATION_APPROVED,ADDRESS_SENT,WAITING_FOR_BARNAMEH,BARNAMEH_ISSUED,BARNAMEH_INCOMPLETE,PURCHASE_CLOSED,DIFFERENCE_APPROVED,FULLY_SETTLED,INVOICE_ISSUED,CANCELED,ARCHIVED,PAY_KASRI,RECIEVE_SARAK'|split:',' %}completed{% else %}pending{% endif %}">
+{% if purchase.state in 'PAYMENT_VERIFIED,ALLOCATION_APPROVED,ADDRESS_SENT,WAITING_FOR_BARNAMEH,BARNAMEH_ISSUED,BARNAMEH_INCOMPLETE,PURCHASE_CLOSED,DIFFERENCE_APPROVED,FULLY_SETTLED,INVOICE_ISSUED,CANCELED,ARCHIVED,PAY_KASRI,RECIEVE_SARAK'|split:',' %}✔ پرداخت شده{% else %}⌛ در انتظار{% endif %}
 </td>
 </tr>
 </table>
@@ -1332,6 +1336,16 @@
     {% if purchase.state == 'PURCHASE_CLOSED' %}
         <button type="submit" name="approve_ekhtelaf" class="button approve-btn financial" formnovalidate>
             ⚖️ تایید اختلاف (مالی)
+        </button>
+    {% endif %}
+    {% if purchase.state == 'PAY_KASRI' %}
+        <button type="submit" name="approve_fully_settle" class="button approve-btn financial" formnovalidate>
+            💰 تایید پرداخت کسری
+        </button>
+    {% endif %}
+    {% if purchase.state == 'RECIEVE_SARAK' %}
+        <button type="submit" name="approve_fully_settle" class="button approve-btn financial" formnovalidate>
+            💰 تایید دریافت سرک
         </button>
     {% endif %}
     {% if purchase.state == 'DIFFERENCE_APPROVED' or purchase.state == 'PURCHASE_CLOSED' %}
