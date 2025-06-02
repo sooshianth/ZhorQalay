@@ -51,7 +51,7 @@ class Purchase(models.Model):
     factor_code = models.BooleanField("فاکتور کد", default=False)
     
     purchase_number = models.CharField("شماره خرید بازارگاه", max_length=7, blank=True, null=True, unique=True)
-    tracking_number = models.CharField("شماره پیگیری", max_length=6, blank=True, null=True, unique=True)
+    tracking_number = models.CharField("شماره پیگیری", max_length=6, blank=True, null=True)
     shenase_takhsis = models.CharField("شناسه تخصیص", max_length=255, blank=True, null=True, unique=False)
     code_melli_tahvil = models.CharField("کد ملی تحویل", max_length=255, blank=True, null=True)
     bazaargah_phone_number = models.CharField("شماره تلفن بازارگاه", max_length=11, blank=True, null=True)

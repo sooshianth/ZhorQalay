@@ -237,8 +237,9 @@ def purchase_list(request):
         'sales_agent': 5,
         'weight': 6,
         'cargo': 7,
-        'status': 8,
-        'actions': 9
+        'importer': 8,
+        'status': 9,
+        'actions': 10
     }
     
     # لیست همه ستون های ممکن با اطلاعات لازم
@@ -250,6 +251,7 @@ def purchase_list(request):
         {'id': 'sales_agent', 'name': 'نماینده فروش', 'field': 'customer.sales_agent.name', 'editable': False},
         {'id': 'weight', 'name': 'وزن (کیلوگرم)', 'field': 'order_weight', 'editable': True},
         {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage', 'editable': True},
+        {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name', 'editable': False},
         {'id': 'status', 'name': 'وضعیت‌ها', 'field': 'state', 'editable': True},
         {'id': 'actions', 'name': 'جزئیات', 'editable': False},
         # ستون‌های اضافی
@@ -327,8 +329,9 @@ def purchase_list(request):
             'sales_agent': 4,
             'weight': 5,
             'cargo': 6,
-            'status': 7,
-            'actions': 8
+            'importer': 7,
+            'status': 8,
+            'actions': 9
         },
         'column_indices': json.dumps(column_indices),
         'actions_column_index': column_indices['actions']
@@ -474,6 +477,7 @@ def export_to_excel(request):
             'purchase_number': ('شماره خرید', lambda p: p.purchase_number or "تعیین نشده"),
             'weight': ('وزن (کیلوگرم)', lambda p: f"{p.order_weight:,}" if p.order_weight else "0"),
             'cargo': ('کوتاژ', lambda p: p.cargo.cottage if p.cargo and hasattr(p.cargo, 'cottage') else "-"),
+            'importer': ('واردکننده', lambda p: p.cargo.vared_konandeh.name if p.cargo and p.cargo.vared_konandeh else "-"),
             'status': ('وضعیت', lambda p: dict(Purchase.STATUS_CHOICES).get(p.state, p.state) if p.state else "-"),
             'address': ('آدرس', lambda p: p.address or "-"),
             'description': ('توضیحات', lambda p: p.description or "-"),

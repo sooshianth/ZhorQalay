@@ -949,6 +949,8 @@
                     </td>
                     {% elif column.id == 'cargo' %}
                     <td class="column-{{ column.id }}">{% if purchase.cargo %}{{ purchase.cargo }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'importer' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.vared_konandeh %}{{ purchase.cargo.vared_konandeh.name }}{% else %}-{% endif %}</td>
                     {% elif column.id == 'address' %}
                     <td class="column-{{ column.id }}">{{ purchase.address|default:"-" }}</td>
                     {% elif column.id == 'description' %}
@@ -1175,7 +1177,9 @@
                     {% elif column.id == 'weight' %}
                     <td class="column-{{ column.id }}">{{ purchase.order_weight|add_commas }}</td>
                     {% elif column.id == 'cargo' %}
-                    <td class="column-{{ column.id }}">{% if purchase.cargo %}{{ purchase.cargo }} ({{ purchase.cargo.cottage }}){% else %}-{% endif %}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.cargo %}{{ purchase.cargo }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'importer' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.vared_konandeh %}{{ purchase.cargo.vared_konandeh.name }}{% else %}-{% endif %}</td>
                     {% elif column.id == 'address' %}
                     <td class="column-{{ column.id }}">{{ purchase.address|default:"-" }}</td>
                     {% elif column.id == 'description' %}
@@ -1631,7 +1635,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (resetColumnsBtn) {
         resetColumnsBtn.addEventListener('click', function() {
             // انتخاب ستون‌های پیش‌فرض
-            const defaultColumns = ['purchase_number', 'date', 'customer', 'invoice_id', 'sales_agent', 'weight', 'cargo', 'status', 'actions'];
+            const defaultColumns = ['purchase_number', 'date', 'customer', 'invoice_id', 'sales_agent', 'weight', 'cargo', 'importer', 'status', 'actions'];
             
             // بازنشانی همه چک‌باکس‌ها
             const checkboxes = document.querySelectorAll('input[name="columns[]"]');
