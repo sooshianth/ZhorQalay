@@ -565,18 +565,21 @@ class TableFilter {
         const table = document.getElementById(tableId);
         if (!table) return [];
         
-        const columnIndex = this.columnMappings[tableId][columnId];
-        if (columnIndex === undefined) return [];
+        const columnMapping = this.columnMappings[tableId][columnId];
+        if (!columnMapping) return [];
+        
+        const columnIndex = columnMapping.index;
         
         const values = new Set();
-        const rows = table.querySelectorAll('tbody tr:not(.filter-no-match)');
         
-        // استفاده از originalRows اگر موجود است
-        const rowsToCheck = this.originalRows[tableId] || rows;
+        // همیشه از originalRows استفاده کن تا همه مقادیر نمایش داده شوند
+        // حتی اگر در حال حاضر با فیلتر مخفی شده باشند
+        const rowsToCheck = this.originalRows[tableId] || table.querySelectorAll('tbody tr');
         
         rowsToCheck.forEach(row => {
-            // Skip rows that are hidden by filters or empty rows
-            if (row.style.display === 'none' || row.querySelector('td[colspan]')) {
+            // فقط ردیف‌های خالی یا colspan دار را رد کن
+            // ردیف‌های مخفی شده با فیلتر را رد نکن
+            if (row.querySelector('td[colspan]')) {
                 return;
             }
             
