@@ -178,6 +178,54 @@
                 </table>
             </div>
             
+            <!-- انتخاب فیلد شناسه برای تشخیص رکوردهای تکراری -->
+            <div class="card mt-4 border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-fingerprint me-2"></i>انتخاب فیلد شناسه</h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>مهم:</strong> فیلد شناسه برای تشخیص رکوردهای تکراری استفاده می‌شود. لطفاً فیلدی را انتخاب کنید که منحصر به فرد (یونیک) باشد.
+                    </div>
+                    
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <label for="identifier_field" class="form-label fw-bold">انتخاب فیلد شناسه:</label>
+                        </div>
+                        <div class="col-md-8">
+                            <select name="identifier_field" id="identifier_field" class="form-select" required>
+                                <option value="">-- انتخاب فیلد شناسه --</option>
+                                {% for column in preview.columns %}
+                                <option value="{{ column }}">{{ column }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text text-muted">
+                                فیلدهای توصیه شده: شماره خرید، کد، شناسه یکتا و غیره
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- نمایش فیلدهای یونیک مدل -->
+                    <div class="mt-3 pt-3 border-top">
+                        <h6 class="text-secondary"><i class="fas fa-info-circle me-2"></i>فیلدهای یونیک موجود در مدل:</h6>
+                        <ul class="list-group">
+                            {% for field in model_fields %}
+                                {% if field.primary_key or field.unique %}
+                                <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="fw-bold">{{ field.verbose_name }}</span>
+                                        <small class="text-muted d-block">({{ field.name }})</small>
+                                    </div>
+                                    <span class="badge bg-primary">{% if field.primary_key %}کلید اصلی{% else %}یونیک{% endif %}</span>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
             <div class="d-flex justify-content-between mt-4">
                 <a href="{% url 'data_exflow:import' %}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-right me-1"></i> بازگشت
@@ -322,6 +370,112 @@ document.addEventListener('DOMContentLoaded', function() {
     const tableBody = previewTable.querySelector('tbody');
     
     console.log('🚀 Edit system initialized');
+    
+    // انتخاب هوشمند فیلد شناسه
+    function suggestIdentifierField() {
+        const identifierField = document.getElementById('identifier_field');
+        if (!identifierField) return;
+
+        // فیلدهای شناسه معمول
+        const commonIdentifiers = ['id', 'code', 'number', 'شماره', 'کد', 'شناسه', 'شماره_خرید', 'purchase_number', 'tracking_number'];
+        
+        // بررسی ستون‌های فایل
+        const options = identifierField.options;
+        let bestMatch = null;
+        
+        // ابتدا جستجو برای فیلدهای با نام‌های متداول
+        for (let i = 0; i < options.length; i++) {
+            const option = options[i];
+            const columnName = option.value.toLowerCase();
+            
+            // بررسی اینکه آیا نام ستون با یکی از شناسه‌های معمول مطابقت دارد
+            for (const identifier of commonIdentifiers) {
+                if (columnName.includes(identifier)) {
+                    bestMatch = option.value;
+                    console.log(`Found identifier field match: ${columnName} matches pattern ${identifier}`);
+                    break;
+                }
+            }
+            
+            if (bestMatch) break;
+        }
+        
+        // اگر هیچ مطابقتی پیدا نشد، اولین ستون را انتخاب کنید
+        if (!bestMatch && options.length > 1) {
+            bestMatch = options[1].value;  // اولین ستون واقعی (نه گزینه خالی)
+        }
+        
+        // تنظیم مقدار انتخاب شده
+        if (bestMatch) {
+            identifierField.value = bestMatch;
+            console.log(`Auto-selected identifier field: ${bestMatch}`);
+        }
+    }
+    
+    // تغییر سبک فیلدهای نگاشت براساس وضعیت یونیک بودن
+    function highlightUniqueFields() {
+        const mappingSelects = document.querySelectorAll('select[name^="map_"]');
+        const uniqueFields = [];
+        
+        // جمع‌آوری فیلدهای یونیک
+        document.querySelectorAll('.list-group-item').forEach(item => {
+            const fieldName = item.querySelector('small').textContent.replace(/[\(\)]/g, '').trim();
+            uniqueFields.push(fieldName);
+        });
+        
+        console.log('Unique fields:', uniqueFields);
+        
+        // تغییر سبک کشویی‌های مپینگ
+        mappingSelects.forEach(select => {
+            select.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const fieldName = selectedOption.value;
+                
+                // بررسی اینکه آیا فیلد انتخاب شده یونیک است
+                if (uniqueFields.includes(fieldName)) {
+                    this.classList.add('border-primary');
+                    // اضافه کردن آیکون و هشدار
+                    const parentCell = this.closest('td');
+                    let warningSpan = parentCell.querySelector('.unique-field-warning');
+                    
+                    if (!warningSpan) {
+                        warningSpan = document.createElement('span');
+                        warningSpan.className = 'unique-field-warning text-primary d-block mt-1';
+                        warningSpan.innerHTML = '<i class="fas fa-key me-1"></i> فیلد یونیک - مناسب برای شناسه';
+                        parentCell.appendChild(warningSpan);
+                    }
+                } else {
+                    this.classList.remove('border-primary');
+                    const parentCell = this.closest('td');
+                    const warningSpan = parentCell.querySelector('.unique-field-warning');
+                    if (warningSpan) {
+                        parentCell.removeChild(warningSpan);
+                    }
+                }
+            });
+            
+            // بررسی اولیه
+            const selectedOption = select.options[select.selectedIndex];
+            if (selectedOption && uniqueFields.includes(selectedOption.value)) {
+                select.classList.add('border-primary');
+                const parentCell = select.closest('td');
+                let warningSpan = parentCell.querySelector('.unique-field-warning');
+                
+                if (!warningSpan) {
+                    warningSpan = document.createElement('span');
+                    warningSpan.className = 'unique-field-warning text-primary d-block mt-1';
+                    warningSpan.innerHTML = '<i class="fas fa-key me-1"></i> فیلد یونیک - مناسب برای شناسه';
+                    parentCell.appendChild(warningSpan);
+                }
+            }
+        });
+    }
+    
+    // اجرای توابع هنگام بارگذاری صفحه
+    setTimeout(function() {
+        suggestIdentifierField();
+        highlightUniqueFields();
+    }, 500);
     
     // Initialize original values
     initializeOriginalValues();

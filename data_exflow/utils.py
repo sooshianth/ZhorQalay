@@ -174,6 +174,13 @@ def get_model_fields(app_label, model_name):
         print(f"DEBUG: Getting fields for model: {model.__name__}")
         fields = []
         
+        # تهیه لیست فیلدهای یونیک_توگذر
+        unique_together_fields = set()
+        if hasattr(model._meta, 'unique_together'):
+            for field_set in model._meta.unique_together:
+                for field_name in field_set:
+                    unique_together_fields.add(field_name)
+        
         for field in model._meta.get_fields():
             # Skip many-to-many fields and reverse relations
             if field.is_relation and (field.many_to_many or field.one_to_many):
@@ -185,6 +192,8 @@ def get_model_fields(app_label, model_name):
                 'type': field.__class__.__name__,
                 'required': not field.blank if hasattr(field, 'blank') else False,
                 'primary_key': field.primary_key if hasattr(field, 'primary_key') else False,
+                'unique': field.unique if hasattr(field, 'unique') else False,
+                'in_unique_together': field.name in unique_together_fields,
             }
             
             # Add choices if available
@@ -463,24 +472,98 @@ def validate_import_data(session, dataframe, mapping):
     for field_name, field_mapping in mapping.items():
         if field_mapping.get('is_identifier', False):
             unique_identifier_field = field_name
+            model_field_name = field_mapping['model_field']
             break
     
+    # اگر فیلد شناسه‌گر تعیین نشده باشد، خطا برگردان
+    if not unique_identifier_field:
+        return {
+            'valid': False,
+            'errors': [{
+                'row': 0,
+                'field': '',
+                'errors': [{
+                    'message': 'فیلد شناسه‌گر برای تشخیص رکوردهای تکراری انتخاب نشده است.'
+                }]
+            }]
+        }
+    
+    # بررسی اعتبار فیلد شناسه‌گر
+    try:
+        field_obj = model_class._meta.get_field(model_field_name)
+        
+        # نمایش هشدار اگر فیلد شناسه‌گر یونیک نیست
+        is_unique = getattr(field_obj, 'unique', False) or getattr(field_obj, 'primary_key', False)
+        if not is_unique:
+            # بررسی unique_together
+            in_unique_together = False
+            if hasattr(model_class._meta, 'unique_together'):
+                for field_set in model_class._meta.unique_together:
+                    if model_field_name in field_set:
+                        in_unique_together = True
+                        break
+            
+            if not in_unique_together:
+                warnings.append({
+                    'row': 0,
+                    'message': f'فیلد انتخاب شده ({model_field_name}) به عنوان شناسه‌گر، در مدل یونیک نیست. این ممکن است باعث شناسایی اشتباه رکوردهای تکراری شود.'
+                })
+                
+    except Exception as e:
+        return {
+            'valid': False, 
+            'errors': [{
+                'row': 0,
+                'field': model_field_name,
+                'errors': [{
+                    'message': f'خطا در بررسی فیلد شناسه‌گر: {str(e)}'
+                }]
+            }]
+        }
+        
     # If we have a unique identifier field, check for existing records
     existing_records = {}
+    duplicate_values = {}
+    
     if unique_identifier_field:
         # Get all values of the identifier field
-        identifier_values = dataframe[unique_identifier_field].dropna().unique().tolist()
+        identifier_values = dataframe[unique_identifier_field].dropna().tolist()
         if identifier_values:
-            # For each identifier value, try to find an existing record
-            for value in identifier_values:
+            # بررسی مقادیر تکراری در فایل ورودی
+            value_counts = {}
+            for i, value in enumerate(identifier_values):
                 if pd.notna(value):
-                    model_field = mapping[unique_identifier_field]['model_field']
+                    str_value = str(value).strip()
+                    if str_value in value_counts:
+                        value_counts[str_value].append(i+2)  # +2 برای شروع از ردیف 2 (با در نظر گرفتن هدر)
+                    else:
+                        value_counts[str_value] = [i+2]
+            
+            # ثبت مقادیر تکراری در فایل ورودی
+            for value, rows in value_counts.items():
+                if len(rows) > 1:
+                    duplicate_values[value] = rows
+                    warnings.append({
+                        'row': rows[0],
+                        'message': f'مقدار "{value}" برای فیلد شناسه‌گر در ردیف‌های {", ".join(map(str, rows))} تکراری است.'
+                    })
+            
+            # For each unique identifier value, try to find an existing record
+            model_field = mapping[unique_identifier_field]['model_field']
+            unique_values = set(identifier_values)
+            
+            for value in unique_values:
+                if pd.notna(value):
                     instance, strategy = find_existing_instance(model_class, model_field, value)
                     if instance:
                         existing_records[str(value)] = {
                             'instance': instance,
                             'strategy': strategy
                         }
+    
+    # Count for creates and updates
+    creates = 0
+    updates = 0
     
     # Validate each row
     for index, row in dataframe.iterrows():
@@ -491,66 +574,154 @@ def validate_import_data(session, dataframe, mapping):
         is_update = False
         if unique_identifier_field:
             identifier_value = row.get(unique_identifier_field)
-            if pd.notna(identifier_value) and str(identifier_value) in existing_records:
-                is_update = True
-                match_info = existing_records[str(identifier_value)]
-                warnings.append({
-                    'row': row_number,
-                    'field': unique_identifier_field,
-                    'message': f"Found existing record using {match_info['strategy']}"
-                })
+            if pd.notna(identifier_value):
+                if str(identifier_value) in existing_records:
+                    is_update = True
+                    match_info = existing_records[str(identifier_value)]
+                    warnings.append({
+                        'row': row_number,
+                        'field': unique_identifier_field,
+                        'message': f"رکورد موجود با استفاده از {match_info['strategy']} یافت شد"
+                    })
+        
+        # Count updates and creates
+        if is_update:
+            updates += 1
+        else:
+            creates += 1
         
         # Check required fields
         for field_name, field_mapping in mapping.items():
-            if not field_mapping.get('model_field'):
-                continue  # Skip fields not mapped
-                
             model_field = field_mapping['model_field']
-            model_field_obj = next((f for f in model_class._meta.fields if f.name == model_field), None)
-            
-            if model_field_obj and not model_field_obj.blank and not model_field_obj.null:
-                if field_name not in row or pd.isna(row[field_name]):
-                    if is_update:
-                        warnings.append({
-                            'row': row_number,
-                            'field': field_name,
-                            'message': f"Field '{field_name}' is required but has no value. Will keep existing value for update."
-                        })
-                    else:
-                        row_errors.append({
-                            'field': field_name,
-                            'message': f"Field '{field_name}' is required but has no value."
-                        })
+            if model_field:
+                try:
+                    field_obj = model_class._meta.get_field(model_field)
+                    
+                    # Check if field is required
+                    if not field_obj.blank and not field_obj.null and not field_obj.primary_key:
+                        value = row.get(field_name)
+                        if pd.isna(value) or value == '':
+                            row_errors.append({
+                                'field': field_name,
+                                'message': f'فیلد {model_field} الزامی است'
+                            })
+                except Exception as e:
+                    row_errors.append({
+                        'field': field_name,
+                        'message': f'خطا در بررسی فیلد {model_field}: {str(e)}'
+                    })
         
+        # If there are errors in this row, add to errors list
         if row_errors:
             errors.append({
                 'row': row_number,
                 'errors': row_errors
             })
     
+    # Additional checks for unique constraint violations
+    unique_fields = {}
+    
+    # Get all unique fields in the model
+    for field in model_class._meta.fields:
+        if getattr(field, 'unique', False) and not getattr(field, 'primary_key', False):
+            unique_fields[field.name] = []
+    
+    # If we have unique fields, check for potential conflicts
+    if unique_fields:
+        for field_name, mapped_values in unique_fields.items():
+            # Find the file column mapped to this model field
+            mapped_column = None
+            for col, mapping_info in mapping.items():
+                if mapping_info.get('model_field') == field_name:
+                    mapped_column = col
+                    break
+            
+            if mapped_column:
+                # Get all values for this field from the database
+                existing_values = set(model_class.objects.values_list(field_name, flat=True))
+                
+                # Check each row for potential conflicts
+                for index, row in dataframe.iterrows():
+                    row_number = index + 2
+                    value = row.get(mapped_column)
+                    
+                    if pd.notna(value) and value != '':
+                        # بررسی فیلدهای یونیک از نوع عددی
+                        if isinstance(value, (int, float)):
+                            if value in existing_values:
+                                # بررسی کنیم که آیا این مقدار با فیلد شناسه‌گر مطابقت دارد
+                                identifier_value = row.get(unique_identifier_field)
+                                # اگر رکورد با این مقدار شناسه‌گر وجود نداشته باشد، یک خطا اضافه کنیم
+                                if not pd.notna(identifier_value) or str(identifier_value) not in existing_records:
+                                    errors.append({
+                                        'row': row_number,
+                                        'errors': [{
+                                            'field': mapped_column,
+                                            'message': f'مقدار {value} برای فیلد {field_name} در پایگاه داده وجود دارد و یک خطای یونیک رخ خواهد داد.'
+                                        }]
+                                    })
+                        # بررسی فیلدهای یونیک از نوع رشته
+                        elif isinstance(value, str) and value.strip() in existing_values:
+                            # بررسی کنیم که آیا این مقدار با فیلد شناسه‌گر مطابقت دارد
+                            identifier_value = row.get(unique_identifier_field)
+                            # اگر رکورد با این مقدار شناسه‌گر وجود نداشته باشد، یک خطا اضافه کنیم
+                            if not pd.notna(identifier_value) or str(identifier_value) not in existing_records:
+                                errors.append({
+                                    'row': row_number,
+                                    'errors': [{
+                                        'field': mapped_column,
+                                        'message': f'مقدار "{value}" برای فیلد {field_name} در پایگاه داده وجود دارد و یک خطای یونیک رخ خواهد داد.'
+                                    }]
+                                })
+    
+    # Check for duplicates in the imported data for unique fields
+    for field_name in unique_fields.keys():
+        # Find the file column mapped to this model field
+        mapped_column = None
+        for col, mapping_info in mapping.items():
+            if mapping_info.get('model_field') == field_name:
+                mapped_column = col
+                break
+        
+        if mapped_column and mapped_column in dataframe.columns:
+            # Count occurrences of each value
+            value_counts = dataframe[mapped_column].value_counts()
+            
+            # Check for duplicates
+            for value, count in value_counts.items():
+                if count > 1 and pd.notna(value) and value != '':
+                    # Find rows with this value
+                    rows = dataframe.index[dataframe[mapped_column] == value].tolist()
+                    rows = [r+2 for r in rows]  # +2 for header and 0-indexing
+                    
+                    # Add error for each row with this value
+                    for row in rows:
+                        errors.append({
+                            'row': row,
+                            'errors': [{
+                                'field': mapped_column,
+                                'message': f'مقدار "{value}" برای فیلد {field_name} در ردیف‌های {", ".join(map(str, rows))} تکراری است و نقض محدودیت یکتایی خواهد شد.'
+                            }]
+                        })
+    
     return {
         'valid': len(errors) == 0,
         'errors': errors,
         'warnings': warnings,
-        'updates': len(existing_records),
-        'creates': len(dataframe) - len(existing_records),
+        'creates': creates,
+        'updates': updates,
+        'existing_records': len(existing_records),
+        'duplicate_values': duplicate_values
     }
 
 
 def process_import(session):
-    """Process the import operation."""
-    # Check database connection first
-    test_database_connection()
-    
-    # Try to acquire a lock
+    """Process the import data and save to database."""
     if not acquire_lock(session):
-        raise ValueError("This session is already being processed by another request. Please try again later.")
-    
-    # Collect errors outside of transaction
-    processing_errors = []
+        raise Exception("این جلسه ایمپورت در حال پردازش توسط کاربر دیگری است")
     
     try:
-        # Get the session info
+        # Get the model and mapping
         model_class = session.get_model_class()
         mapping = session.mapping
         
@@ -559,221 +730,297 @@ def process_import(session):
         file_extension = get_file_extension(session.file_name)
         df = read_file_to_dataframe(file_path, file_extension)
         
-        # Update session status outside of atomic block first
-        session.status = ImportExportSession.PROCESSING
-        session.row_count = len(df)
-        session.save()
-        
-        # Log start of processing
-        ImportExportLog.objects.create(
-            session=session,
-            log_level=ImportExportLog.INFO,
-            message=f"Started processing {session.row_count} rows."
-        )
-        
-        # Find identifier field (for updates)
-        identifier_field = None
-        identifier_model_field = None
-        for field_name, field_config in mapping.items():
-            if field_config.get('is_identifier', False):
-                identifier_field = field_name
-                identifier_model_field = field_config['model_field']
+        # Find the identifier field
+        unique_identifier_field = None
+        for field_name, field_mapping in mapping.items():
+            if field_mapping.get('is_identifier', False):
+                unique_identifier_field = field_name
+                model_field = field_mapping['model_field']
                 break
         
-        # Process each row in separate atomic blocks
-        for index, row in df.iterrows():
-            row_number = index + 2  # +2 because pandas is 0-indexed and we have a header row
-            
-            try:
-                with transaction.atomic():
-                    # Check if this is an update
-                    existing_instance = None
-                    match_strategy = None
+        if not unique_identifier_field:
+            raise ValidationError("فیلد شناسه برای تشخیص رکوردهای موجود انتخاب نشده است")
+        
+        # Update session status
+        session.status = 'processing'
+        session.row_count = len(df)
+        session.processed_count = 0
+        session.save()
+        
+        # Process rows
+        create_count = 0
+        update_count = 0
+        error_count = 0
+        skipped_count = 0
+        
+        # تهیه لیست فیلدهای یونیک مدل
+        unique_fields = []
+        for field in model_class._meta.fields:
+            if getattr(field, 'unique', False) and not getattr(field, 'primary_key', False):
+                unique_fields.append(field.name)
+        
+        with transaction.atomic():
+            for index, row in df.iterrows():
+                try:
+                    row_number = index + 2  # +2 because pandas is 0-indexed and we have a header row
                     
-                    if identifier_field and pd.notna(row.get(identifier_field)):
-                        lookup_value = row[identifier_field]
-                        existing_instance, match_strategy = find_existing_instance(
-                            model_class, identifier_model_field, lookup_value
+                    # Get the unique identifier value
+                    identifier_value = row.get(unique_identifier_field)
+                    
+                    # Skip rows without an identifier
+                    if pd.isna(identifier_value):
+                        ImportExportLog.objects.create(
+                            session=session,
+                            log_level='warning',
+                            message=f"ردیف {row_number} بدون مقدار شناسه رد شد",
+                            row_number=row_number
                         )
+                        skipped_count += 1
+                        continue
                     
-                    # Create or update instance
-                    if existing_instance:
-                        # Update existing record
-                        previous_state = {
-                            field.name: getattr(existing_instance, field.name)
-                            for field in existing_instance._meta.fields
-                            if not field.primary_key
-                        }
+                    # Try to find an existing instance
+                    instance, strategy = find_existing_instance(model_class, model_field, identifier_value)
+                    
+                    # Prepare field values
+                    field_values = {}
+                    for field_name, field_mapping in mapping.items():
+                        if not field_mapping.get('model_field'):
+                            continue  # Skip unmapped fields
                         
-                        # Apply mapped fields
-                        for field_name, field_config in mapping.items():
-                            if not field_config.get('model_field'):
+                        model_field_name = field_mapping['model_field']
+                        value = row.get(field_name)
+                        
+                        # Skip null values for updates if field is not nullable
+                        if instance and pd.isna(value):
+                            field_obj = model_class._meta.get_field(model_field_name)
+                            if not field_obj.null and not field_obj.blank:
                                 continue
+                        
+                        # Skip empty foreign keys
+                        if pd.isna(value) or value == '':
+                            field_obj = model_class._meta.get_field(model_field_name)
+                            if field_obj.is_relation:
+                                continue
+                        
+                        # Process the value if it's not null
+                        if pd.notna(value):
+                            # Get the field object
+                            field_obj = model_class._meta.get_field(model_field_name)
                             
-                            model_field = field_config['model_field']
-                            if field_name in row and pd.notna(row[field_name]):
-                                value = row[field_name]
-                                
-                                # Sanitize the value based on field type
-                                field_obj = model_class._meta.get_field(model_field)
-                                value = sanitize_value(value, field_obj)
-                                
-                                # Handle ForeignKey fields
-                                if isinstance(field_obj, models.ForeignKey):
-                                    # Try to get or create the related object
+                            # Handle foreign key relations
+                            if field_obj.is_relation:
+                                if hasattr(field_obj, 'remote_field') and field_obj.remote_field:
                                     related_model = field_obj.remote_field.model
                                     related_obj = find_related_object(related_model, value)
                                     
                                     if related_obj:
-                                        setattr(existing_instance, model_field, related_obj)
+                                        field_values[model_field_name] = related_obj
                                     else:
-                                        # Collect warning for later logging
-                                        processing_errors.append({
-                                            'level': ImportExportLog.WARNING,
-                                            'message': f"Could not find related object for field {model_field} with value {value}",
-                                            'row_number': row_number
-                                        })
-                                else:
-                                    # For non-foreign key fields, set the value directly
-                                    setattr(existing_instance, model_field, value)
-                        
-                        # Save the instance
-                        existing_instance.save()
-                        
-                        # Record the update
-                        current_state = {
-                            field.name: getattr(existing_instance, field.name)
-                            for field in existing_instance._meta.fields
-                            if not field.primary_key
-                        }
-                        
-                        ImportRecord.objects.create(
-                            session=session,
-                            content_type=session.content_type,
-                            object_id=existing_instance.pk,
-                            row_number=row_number,
-                            action='update',
-                            previous_state=previous_state,
-                            current_state=current_state
-                        )
-                        
-                        # Log success outside of atomic block
-                        processing_errors.append({
-                            'level': ImportExportLog.SUCCESS,
-                            'message': f"Updated record with ID {existing_instance.pk} using {match_strategy}",
-                            'row_number': row_number
-                        })
-                    else:
-                        # Create new record
-                        instance_data = {}
-                        foreign_key_data = {}
-                        
-                        # First pass - handle regular fields
-                        for field_name, field_config in mapping.items():
-                            if not field_config.get('model_field'):
-                                continue
-                            
-                            model_field = field_config['model_field']
-                            if field_name in row and pd.notna(row[field_name]):
-                                value = row[field_name]
-                                
-                                # Sanitize the value based on field type
-                                field_obj = model_class._meta.get_field(model_field)
-                                value = sanitize_value(value, field_obj)
-                                
-                                # Check if this is a foreign key field
-                                if isinstance(field_obj, models.ForeignKey):
-                                    foreign_key_data[model_field] = value
-                                else:
-                                    instance_data[model_field] = value
-                        
-                        # Create the instance first with non-foreign key fields
-                        new_instance = model_class.objects.create(**instance_data)
-                        
-                        # Second pass - handle foreign keys now that we have an instance
-                        for model_field, value in foreign_key_data.items():
-                            field_obj = model_class._meta.get_field(model_field)
-                            related_model = field_obj.remote_field.model
-                            related_obj = find_related_object(related_model, value)
-                            
-                            if related_obj:
-                                setattr(new_instance, model_field, related_obj)
-                                new_instance.save()
+                                        # Log error and skip this field
+                                        ImportExportLog.objects.create(
+                                            session=session,
+                                            log_level='error',
+                                            message=f"ردیف {row_number}: مقدار {value} برای فیلد {model_field_name} پیدا نشد",
+                                            row_number=row_number
+                                        )
+                                        continue
+                            # Handle normal fields
                             else:
-                                # Collect warning for later logging
-                                processing_errors.append({
-                                    'level': ImportExportLog.WARNING,
-                                    'message': f"Could not find related object for field {model_field} with value {value}",
-                                    'row_number': row_number
-                                })
-                        
-                        # Record the creation
-                        current_state = {
-                            field.name: getattr(new_instance, field.name)
-                            for field in new_instance._meta.fields
-                            if not field.primary_key
-                        }
-                        
-                        ImportRecord.objects.create(
-                            session=session,
-                            content_type=session.content_type,
-                            object_id=new_instance.pk,
-                            row_number=row_number,
-                            action='create',
-                            previous_state=None,
-                            current_state=current_state
-                        )
-                        
-                        # Log success for later
-                        processing_errors.append({
-                            'level': ImportExportLog.SUCCESS,
-                            'message': f"Created new record with ID {new_instance.pk}",
-                            'row_number': row_number
-                        })
+                                # Sanitize and convert the value
+                                sanitized_value = sanitize_value(value, field_obj)
+                                field_values[model_field_name] = sanitized_value
                     
+                    # Handle create or update
+                    if instance:
+                        # Store the previous state for reversion
+                        previous_state = {}
+                        for field_name in field_values.keys():
+                            if hasattr(instance, field_name):
+                                previous_state[field_name] = getattr(instance, field_name)
+                        
+                        # بررسی تداخل با سایر رکوردها در فیلدهای یونیک
+                        for field_name in unique_fields:
+                            if field_name in field_values:
+                                value = field_values[field_name]
+                                # بررسی وجود رکورد دیگر با همین مقدار
+                                try:
+                                    existing = model_class.objects.exclude(pk=instance.pk).get(**{field_name: value})
+                                    if existing:
+                                        # خطا برای فیلد یونیک
+                                        raise ValidationError(f"مقدار {value} برای فیلد {field_name} قبلاً در دیتابیس ثبت شده و منحصر به فرد باید باشد")
+                                except model_class.DoesNotExist:
+                                    # مشکلی وجود ندارد
+                                    pass
+                        
+                        # Update the instance
+                        for field_name, value in field_values.items():
+                            setattr(instance, field_name, value)
+                        
+                        try:
+                            # Try to save the instance with validation
+                            instance.full_clean()
+                            instance.save()
+                            
+                            # Log update
+                            ImportExportLog.objects.create(
+                                session=session,
+                                log_level='success',
+                                message=f"ردیف {row_number}: رکورد با شناسه {identifier_value} بروزرسانی شد",
+                                row_number=row_number
+                            )
+                            
+                            # Create import record for reversion
+                            ImportRecord.objects.create(
+                                session=session,
+                                content_type=session.content_type,
+                                object_id=instance.pk,
+                                row_number=row_number,
+                                action='update',
+                                previous_state=previous_state,
+                                current_state=field_values
+                            )
+                            
+                            update_count += 1
+                            
+                        except Exception as e:
+                            # Log error
+                            ImportExportLog.objects.create(
+                                session=session,
+                                log_level='error',
+                                message=f"ردیف {row_number}: خطا در بروزرسانی رکورد: {str(e)}",
+                                row_number=row_number
+                            )
+                            error_count += 1
+                            raise  # Re-raise to rollback the transaction
+                            
+                    else:  # Create new instance
+                        try:
+                            # بررسی تداخل با سایر رکوردها در فیلدهای یونیک
+                            for field_name in unique_fields:
+                                if field_name in field_values:
+                                    value = field_values[field_name]
+                                    # بررسی وجود رکورد با همین مقدار
+                                    try:
+                                        existing = model_class.objects.get(**{field_name: value})
+                                        if existing:
+                                            # خطا برای فیلد یونیک
+                                            raise ValidationError(f"مقدار {value} برای فیلد {field_name} قبلاً در دیتابیس ثبت شده و منحصر به فرد باید باشد")
+                                    except model_class.DoesNotExist:
+                                        # مشکلی وجود ندارد
+                                        pass
+                            
+                            # Create a new instance
+                            instance = model_class(**field_values)
+                            
+                            # Validate and save the instance
+                            instance.full_clean()
+                            instance.save()
+                            
+                            # Log creation
+                            ImportExportLog.objects.create(
+                                session=session,
+                                log_level='success',
+                                message=f"ردیف {row_number}: رکورد جدید با شناسه {instance.pk} ایجاد شد",
+                                row_number=row_number
+                            )
+                            
+                            # Create import record for reversion
+                            ImportRecord.objects.create(
+                                session=session,
+                                content_type=session.content_type,
+                                object_id=instance.pk,
+                                row_number=row_number,
+                                action='create',
+                                previous_state=None,
+                                current_state=field_values
+                            )
+                            
+                            create_count += 1
+                            
+                        except Exception as e:
+                            # Check for unique constraint violation
+                            error_msg = str(e)
+                            if 'UNIQUE constraint failed' in error_msg or 'unique constraint' in error_msg.lower() or 'duplicate key' in error_msg.lower():
+                                field_name = error_msg.split(':')[-1].strip() if ':' in error_msg else 'unknown field'
+                                ImportExportLog.objects.create(
+                                    session=session,
+                                    log_level='error',
+                                    message=f"ردیف {row_number}: خطای تکراری بودن داده در فیلد {field_name}. مقدار باید منحصر به فرد باشد.",
+                                    row_number=row_number
+                                )
+                            else:
+                                ImportExportLog.objects.create(
+                                    session=session,
+                                    log_level='error',
+                                    message=f"ردیف {row_number}: خطا در ایجاد رکورد: {str(e)}",
+                                    row_number=row_number
+                                )
+                            error_count += 1
+                            raise  # Re-raise to rollback the transaction
+                    
+                    # Update processed count
                     session.processed_count += 1
                     
-            except Exception as e:
-                # Collect error for later logging
-                processing_errors.append({
-                    'level': ImportExportLog.ERROR,
-                    'message': f"Error processing row {row_number}: {str(e)}",
-                    'row_number': row_number
-                })
-                session.error_count += 1
+                except Exception as e:
+                    # Log general error
+                    ImportExportLog.objects.create(
+                        session=session,
+                        log_level='error',
+                        message=f"خطا در پردازش ردیف {row_number}: {str(e)}",
+                        row_number=row_number if 'row_number' in locals() else None
+                    )
+                    error_count += 1
+                    raise  # Re-raise to rollback the transaction
         
         # Update session status
-        session.status = ImportExportSession.COMPLETED
+        session.status = 'completed'
+        session.processed_count = create_count + update_count
+        session.error_count = error_count
         session.save()
         
-        # Log all collected messages
-        for error_info in processing_errors:
-            ImportExportLog.objects.create(
-                session=session,
-                log_level=error_info['level'],
-                message=error_info['message'],
-                row_number=error_info.get('row_number')
-            )
-        
-        # Log completion
+        # Log success
         ImportExportLog.objects.create(
             session=session,
-            log_level=ImportExportLog.INFO,
-            message=f"Import completed. {session.processed_count} records processed, {session.error_count} errors."
+            log_level='info',
+            message=f"ایمپورت با موفقیت انجام شد. {create_count} رکورد ایجاد شده، {update_count} رکورد بروزرسانی شده، {error_count} خطا، {skipped_count} رد شده."
         )
+        
+        return {
+            'success': True,
+            'creates': create_count,
+            'updates': update_count,
+            'errors': error_count,
+            'skipped': skipped_count
+        }
+        
     except Exception as e:
-        # Handle any unexpected errors
-        session.status = ImportExportSession.FAILED
+        # Update session status
+        session.status = 'failed'
+        session.error_count += 1 if 'error_count' in locals() else 1
         session.save()
         
+        # Log failure
         ImportExportLog.objects.create(
             session=session,
-            log_level=ImportExportLog.ERROR,
-            message=f"Import failed with error: {str(e)}"
+            log_level='error',
+            message=f"ایمپورت با خطا مواجه شد: {str(e)}"
         )
-        raise
+        
+        import traceback
+        error_trace = traceback.format_exc()
+        ImportExportLog.objects.create(
+            session=session,
+            log_level='error',
+            message=f"جزئیات خطا: {error_trace[:500]}..."
+        )
+        
+        return {
+            'success': False,
+            'error': str(e)
+        }
+        
     finally:
-        # Always release the lock
+        # Release the lock
         release_lock(session)
 
 
