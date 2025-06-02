@@ -16,6 +16,8 @@ class BulkEditManager {
         this.selectedIds = new Set();
         this.tables = [];
         this.controlPanels = [];
+        // اضافه کردن state برای تشخیص نوع انتخاب
+        this.selectionType = 'partial'; // 'partial', 'all-visible', 'all-data'
     }
 
     init() {
@@ -53,6 +55,7 @@ class BulkEditManager {
                 <div class="selected-count">
                     <i class="fas fa-check-square"></i>
                     <span class="count">0</span> مورد انتخاب شده
+                    <span class="selection-type"></span>
                 </div>
                 <div class="bulk-edit-actions">
                     <button class="btn btn-primary bulk-edit-btn" data-action="edit">
@@ -99,6 +102,11 @@ class BulkEditManager {
                 this.clearSelection();
             }
         });
+
+        // اضافه کردن listener برای تغییرات فیلتر
+        document.addEventListener('tableFilterApplied', () => {
+            this.updateSelectionAfterFilter();
+        });
     }
 
     handleRowSelection(checkbox) {
@@ -112,6 +120,8 @@ class BulkEditManager {
             checkbox.closest('tr').classList.remove(this.config.selectedClass);
         }
         
+        // تعیین نوع انتخاب
+        this.determineSelectionType();
         this.updateControlPanel();
     }
 
@@ -119,19 +129,171 @@ class BulkEditManager {
         const table = checkbox.closest('table');
         const rowCheckboxes = table.querySelectorAll('.row-checkbox');
         
-        rowCheckboxes.forEach(rowCheckbox => {
-            const rowId = rowCheckbox.getAttribute('data-id');
+        if (checkbox.checked) {
+            // بررسی وضعیت فیلتر
+            const hasActiveFilters = this.hasActiveFilters();
             
-            if (checkbox.checked) {
-                rowCheckbox.checked = true;
-                this.selectedIds.add(rowId);
-                rowCheckbox.closest('tr').classList.add(this.config.selectedClass);
+            if (hasActiveFilters) {
+                // نمایش پیام انتخاب و گزینه‌ها
+                this.showSelectAllOptions(table, checkbox);
+                return;
             } else {
-                rowCheckbox.checked = false;
-                this.selectedIds.delete(rowId);
-                rowCheckbox.closest('tr').classList.remove(this.config.selectedClass);
+                // انتخاب همه (بدون فیلتر)
+                this.selectAllRows(table, 'all-data');
+            }
+        } else {
+            // لغو انتخاب همه
+            this.deselectAllRows(table);
+        }
+        
+        this.updateControlPanel();
+    }
+
+    showSelectAllOptions(table, checkbox) {
+        // ایجاد مدال یا dropdown برای انتخاب نوع
+        const modal = document.createElement('div');
+        modal.className = 'select-all-modal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        `;
+
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = `
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            max-width: 400px;
+            text-align: center;
+        `;
+
+        modalContent.innerHTML = `
+            <h5 style="margin-bottom: 15px;">انتخاب همه موارد</h5>
+            <p style="margin-bottom: 20px;">میخواهید کدام موارد را انتخاب کنید؟</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="btn btn-primary select-visible-btn">
+                    فقط موارد نمایش داده شده (${this.getVisibleRowsCount(table)})
+                </button>
+                <button class="btn btn-success select-all-data-btn">
+                    همه موارد (${this.getAllRowsCount(table)})
+                </button>
+                <button class="btn btn-secondary cancel-btn">
+                    انصراف
+                </button>
+            </div>
+        `;
+
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+
+        // Event listeners برای دکمه‌ها
+        modalContent.querySelector('.select-visible-btn').addEventListener('click', () => {
+            this.selectAllRows(table, 'all-visible');
+            document.body.removeChild(modal);
+            this.updateControlPanel();
+        });
+
+        modalContent.querySelector('.select-all-data-btn').addEventListener('click', () => {
+            this.selectAllRows(table, 'all-data');
+            document.body.removeChild(modal);
+            this.updateControlPanel();
+        });
+
+        modalContent.querySelector('.cancel-btn').addEventListener('click', () => {
+            checkbox.checked = false;
+            document.body.removeChild(modal);
+        });
+
+        // بستن با کلیک روی backdrop
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                checkbox.checked = false;
+                document.body.removeChild(modal);
             }
         });
+    }
+
+    selectAllRows(table, type) {
+        let rowCheckboxes;
+        
+        if (type === 'all-visible') {
+            // فقط ردیف‌های نمایش داده شده
+            rowCheckboxes = table.querySelectorAll('tbody tr:not([style*="display: none"]) .row-checkbox');
+            this.selectionType = 'all-visible';
+        } else if (type === 'all-data') {
+            // همه ردیف‌ها (حتی فیلتر شده‌ها)
+            rowCheckboxes = table.querySelectorAll('.row-checkbox');
+            this.selectionType = 'all-data';
+        }
+
+        rowCheckboxes.forEach(rowCheckbox => {
+            const rowId = rowCheckbox.getAttribute('data-id');
+            rowCheckbox.checked = true;
+            this.selectedIds.add(rowId);
+            rowCheckbox.closest('tr').classList.add(this.config.selectedClass);
+        });
+
+        // تنظیم checkbox انتخاب همه
+        const selectAllCheckbox = table.querySelector('.select-all-checkbox, .select-all-checkbox-archived');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = true;
+        }
+    }
+
+    deselectAllRows(table) {
+        const rowCheckboxes = table.querySelectorAll('.row-checkbox');
+        
+        rowCheckboxes.forEach(rowCheckbox => {
+            const rowId = rowCheckbox.getAttribute('data-id');
+            rowCheckbox.checked = false;
+            this.selectedIds.delete(rowId);
+            rowCheckbox.closest('tr').classList.remove(this.config.selectedClass);
+        });
+
+        this.selectionType = 'partial';
+    }
+
+    determineSelectionType() {
+        // تعیین نوع انتخاب بر اساس موارد انتخاب شده
+        const allRowsCount = this.getAllRowsCount();
+        const visibleRowsCount = this.getVisibleRowsCount();
+        const selectedCount = this.selectedIds.size;
+
+        if (selectedCount === 0) {
+            this.selectionType = 'partial';
+        } else if (selectedCount === allRowsCount) {
+            this.selectionType = 'all-data';
+        } else if (selectedCount === visibleRowsCount && this.hasActiveFilters()) {
+            this.selectionType = 'all-visible';
+        } else {
+            this.selectionType = 'partial';
+        }
+    }
+
+    updateSelectionAfterFilter() {
+        // بعد از اعمال فیلتر، بررسی کنیم که آیا انتخاب‌ها هنوز معتبر هستند
+        if (this.selectionType === 'all-visible') {
+            // اگر قبلاً همه موارد نمایش داده شده انتخاب شده بودند،
+            // باید موارد جدید نمایش داده شده را هم انتخاب کنیم
+            this.tables.forEach(table => {
+                const visibleCheckboxes = table.querySelectorAll('tbody tr:not([style*="display: none"]) .row-checkbox');
+                visibleCheckboxes.forEach(checkbox => {
+                    const rowId = checkbox.getAttribute('data-id');
+                    checkbox.checked = true;
+                    this.selectedIds.add(rowId);
+                    checkbox.closest('tr').classList.add(this.config.selectedClass);
+                });
+            });
+        }
         
         this.updateControlPanel();
     }
@@ -141,16 +303,41 @@ class BulkEditManager {
         
         this.controlPanels.forEach(panel => {
             const countElement = panel.querySelector('.count');
+            const selectionTypeElement = panel.querySelector('.selection-type');
+            
             if (countElement) {
                 countElement.textContent = count;
             }
             
+            if (selectionTypeElement) {
+                let typeText = '';
+                if (this.selectionType === 'all-data') {
+                    typeText = '(همه موارد)';
+                } else if (this.selectionType === 'all-visible') {
+                    typeText = '(موارد نمایش داده شده)';
+                }
+                selectionTypeElement.textContent = typeText;
+            }
+            
             panel.style.display = count > 0 ? 'block' : 'none';
         });
+        
+        // همگام‌سازی با آمار اجماعی خریدها
+        this.syncWithAggregatedStats();
+    }
+
+    // متد جدید: همگام‌سازی با آمار اجماعی
+    syncWithAggregatedStats() {
+        if (window.purchaseAggregatedStats) {
+            // به‌روزرسانی لیست انتخاب‌ها در آمار اجماعی
+            window.purchaseAggregatedStats.selectedPurchases = new Set(this.selectedIds);
+            window.purchaseAggregatedStats.updateStats();
+        }
     }
 
     clearSelection() {
         this.selectedIds.clear();
+        this.selectionType = 'partial';
         
         document.querySelectorAll('.row-checkbox').forEach(checkbox => {
             checkbox.checked = false;
@@ -162,6 +349,42 @@ class BulkEditManager {
         });
         
         this.updateControlPanel();
+        
+        // همگام‌سازی با آمار اجماعی خریدها
+        if (window.purchaseAggregatedStats) {
+            window.purchaseAggregatedStats.clearAllSelections();
+        }
+    }
+
+    // متدهای کمکی
+    hasActiveFilters() {
+        // بررسی وجود فیلتر فعال
+        return document.querySelector('.active-filters-summary.show') !== null ||
+               document.querySelector('.filter-dropdown-btn.has-filters') !== null;
+    }
+
+    getVisibleRowsCount(table = null) {
+        if (table) {
+            return table.querySelectorAll('tbody tr:not([style*="display: none"])').length;
+        }
+        
+        let count = 0;
+        this.tables.forEach(table => {
+            count += table.querySelectorAll('tbody tr:not([style*="display: none"])').length;
+        });
+        return count;
+    }
+
+    getAllRowsCount(table = null) {
+        if (table) {
+            return table.querySelectorAll('tbody tr').length;
+        }
+        
+        let count = 0;
+        this.tables.forEach(table => {
+            count += table.querySelectorAll('tbody tr').length;
+        });
+        return count;
     }
 
     detectTableType() {
@@ -193,7 +416,8 @@ class BulkEditManager {
             ids: selectedIdsArray.join(','),
             table_type: tableType,
             model: this.getModelName(tableType),
-            app: this.getAppName(tableType)
+            app: this.getAppName(tableType),
+            selection_type: this.selectionType
         });
 
         window.open(`${this.config.bulkEditPageUrl}?${params.toString()}`, '_blank');
@@ -212,7 +436,8 @@ class BulkEditManager {
             ids: selectedIdsArray.join(','),
             table_type: tableType,
             model: this.getModelName(tableType),
-            app: this.getAppName(tableType)
+            app: this.getAppName(tableType),
+            selection_type: this.selectionType
         });
 
         window.open(`${this.config.excelEditPageUrl}?${params.toString()}`, '_blank');
@@ -231,7 +456,8 @@ class BulkEditManager {
             table_type: tableType,
             selected_ids: selectedIdsArray.join(','),
             model: this.getModelName(tableType),
-            app: this.getAppName(tableType)
+            app: this.getAppName(tableType),
+            selection_type: this.selectionType
         });
 
         // ایجاد لینک مخفی برای دانلود
@@ -317,6 +543,35 @@ style.textContent = `
         font-size: 1.2rem;
         margin-left: 10px;
         cursor: pointer;
+    }
+    
+    .select-all-modal .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+    
+    .select-all-modal .btn-primary {
+        background: #007bff;
+        color: white;
+    }
+    
+    .select-all-modal .btn-success {
+        background: #28a745;
+        color: white;
+    }
+    
+    .select-all-modal .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .select-all-modal .btn:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
     }
 `;
 document.head.appendChild(style);

@@ -390,6 +390,158 @@
             margin-right: 15px;
             margin-left: 15px !important;
         }
+        
+        /* استایل‌های فیلتر بهبود یافته */
+        .active-filter-tag {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 30px 5px 10px;
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 20px;
+            margin: 2px;
+            font-size: 0.85rem;
+            color: #1976d2;
+            cursor: default;
+        }
+        
+        .remove-filter-btn {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #1976d2;
+            cursor: pointer;
+            padding: 2px;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .remove-filter-btn:hover {
+            background: #f44336;
+            color: white;
+        }
+        
+        .remove-filter-btn i {
+            font-size: 10px;
+        }
+        
+        /* استایل مدال انتخاب همه */
+        .select-all-modal {
+            font-family: inherit;
+        }
+        
+        .select-all-modal h5 {
+            color: #333;
+            font-weight: bold;
+        }
+        
+        .select-all-modal p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .select-all-modal .btn {
+            font-family: inherit;
+            white-space: nowrap;
+            min-width: 120px;
+        }
+        
+        /* بهبود نمایش نوع انتخاب */
+        .selection-type {
+            font-size: 0.8rem;
+            color: #666;
+            font-style: italic;
+            margin-right: 5px;
+        }
+        
+        /* استایل بهتر برای دکمه‌های فیلتر */
+        .filter-dropdown-btn.has-filters {
+            background-color: #2196f3 !important;
+            color: white !important;
+            border-color: #2196f3 !important;
+        }
+        
+        .filter-dropdown-btn.has-filters:hover {
+            background-color: #1976d2 !important;
+        }
+        
+        /* بهبود استایل خلاصه فیلترهای فعال */
+        .active-filters-summary {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            display: none;
+        }
+        
+        .active-filters-summary.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+        
+        .active-filters-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .active-filters-count {
+            background: #007bff;
+            color: white;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 0.75rem;
+        }
+        
+        .active-filters-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* بهبود واکنش‌گرایی */
+        @media (max-width: 768px) {
+            .select-all-modal .btn {
+                display: block;
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            
+            .select-all-modal > div > div {
+                flex-direction: column !important;
+            }
+            
+            .active-filter-tag {
+                font-size: 0.8rem;
+                padding: 4px 25px 4px 8px;
+            }
+        }
     </style>
 {% endblock %}
 
@@ -404,15 +556,6 @@
 
 <div class="container py-4">
 <h1 class="mb-4 section-title">لیست خریدها</h1>
-
-{% if user_role == 'admin' or user_role == 'logistics_manager' %}
-<!-- دکمه ویرایش فله‌ای خریدها -->
-<div class="text-start mb-4">
-    <a href="{% url 'bulk_purchase_edit' %}" class="btn btn-primary">
-        <i class="fas fa-edit me-2"></i> پنل ویرایش گروهی خریدها
-    </a>
-</div>
-{% endif %}
 
 <div class="text-start mb-4 d-flex gap-3 flex-wrap">
     <!-- دکمه مدیریت ستون‌ها -->
@@ -1390,6 +1533,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // ایجاد instance آمار اجماعی خریدها
+    if (typeof PurchaseAggregatedStats !== 'undefined') {
+        window.purchaseAggregatedStats = new PurchaseAggregatedStats();
+        console.log('Purchase aggregated stats initialized');
+    } else {
+        console.warn('PurchaseAggregatedStats class not found');
+    }
+    
     // اضافه کردن event listener برای دکمه‌های تاریخچه
     document.querySelectorAll('.item-history-btn').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -1492,6 +1643,91 @@ document.addEventListener('DOMContentLoaded', function() {
             saveColumnsBtn.click();
         });
     }
+    
+    // بهبود UX برای فیلترها
+    const filterButtons = document.querySelectorAll('.filter-dropdown-btn');
+    filterButtons.forEach(button => {
+        // اضافه کردن tooltip
+        button.title = 'کلیک کنید تا فیلتر این ستون را باز کنید';
+        
+        // بهبود نمایش visual feedback
+        button.addEventListener('mouseenter', function() {
+            if (!this.classList.contains('has-filters')) {
+                this.style.backgroundColor = '#e3f2fd';
+                this.style.color = '#1976d2';
+            }
+        });
+        
+        button.addEventListener('mouseleave', function() {
+            if (!this.classList.contains('has-filters')) {
+                this.style.backgroundColor = '';
+                this.style.color = '';
+            }
+        });
+    });
+    
+    // بهبود عملکرد جستجوی سریع
+    const globalSearchInput = document.getElementById('globalSearch');
+    if (globalSearchInput) {
+        let searchTimeout;
+        
+        globalSearchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            
+            // جلوگیری از جستجوی زیاد
+            searchTimeout = setTimeout(() => {
+                const searchTerm = this.value.toLowerCase().trim();
+                
+                if (searchTerm.length >= 2) {
+                    // نمایش loading indicator
+                    showSearchLoading(true);
+                    
+                    // شبیه‌سازی جستجوی زنده
+                    setTimeout(() => {
+                        performQuickSearch(searchTerm);
+                        showSearchLoading(false);
+                    }, 300);
+                } else if (searchTerm.length === 0) {
+                    // پاک کردن نتایج جستجو
+                    clearQuickSearch();
+                }
+            }, 500);
+        });
+    }
+    
+    // اضافه کردن قابلیت ذخیره حالت فیلترها در localStorage
+    const saveFiltersState = function() {
+        if (window.tableFilter && window.tableFilter.activeFilters) {
+            localStorage.setItem('purchase_filters', JSON.stringify({
+                filters: window.tableFilter.activeFilters,
+                sorts: window.tableFilter.sortState,
+                timestamp: Date.now()
+            }));
+        }
+    };
+    
+    const loadFiltersState = function() {
+        const saved = localStorage.getItem('purchase_filters');
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                // فقط اگر کمتر از 1 ساعت پیش ذخیره شده باشد
+                if (Date.now() - data.timestamp < 3600000) {
+                    // بازگردانی فیلترها (اختیاری)
+                    console.log('فیلترهای ذخیره شده یافت شد:', data);
+                }
+            } catch (e) {
+                console.log('خطا در بارگیری فیلترهای ذخیره شده:', e);
+            }
+        }
+    };
+    
+    // ذخیره حالت هنگام اعمال فیلتر
+    document.addEventListener('tableFilterApplied', saveFiltersState);
+    document.addEventListener('tableFilterCleared', saveFiltersState);
+    
+    // بارگیری حالت ذخیره شده (اختیاری)
+    // loadFiltersState();
 });
 
 // تابع مشاهده تاریخچه تغییرات کلی
@@ -1528,6 +1764,262 @@ function showPurchaseHistory(purchaseId) {
         // تغییر عنوان مدال
         document.querySelector('#historyModal .modal-title').innerHTML = 
             `<i class="fas fa-history me-2"></i>تاریخچه تغییرات خرید شماره ${purchaseId}`;
+    }
+}
+
+// دکمه خروجی اکسل
+const exportBtn = document.getElementById('exportBtn');
+if (exportBtn) {
+    exportBtn.addEventListener('click', function() {
+        // دریافت آیتم‌های انتخاب شده از bulk edit manager
+        const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+        
+        if (selectedCheckboxes.length === 0) {
+            alert('لطفاً حداقل یک خرید را انتخاب کنید');
+            return;
+        }
+        
+        // جمع‌آوری ID های انتخاب شده
+        const selectedIds = Array.from(selectedCheckboxes).map(checkbox => 
+            checkbox.getAttribute('data-id')
+        ).filter(id => id);
+        
+        if (selectedIds.length === 0) {
+            alert('خطا در تشخیص موارد انتخاب شده');
+            return;
+        }
+        
+        // دریافت ستون‌های انتخاب شده از کوکی یا پیش‌فرض
+        let selectedColumns = '';
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith('selected_columns=')) {
+                selectedColumns = decodeURIComponent(cookie.substring('selected_columns='.length, cookie.length));
+                break;
+            }
+        }
+        
+        // اگر ستون‌ها از کوکی نیامد، از پیش‌فرض استفاده کن
+        if (!selectedColumns) {
+            selectedColumns = 'date,customer,invoice_id,sales_agent,purchase_number,weight,cargo,status';
+        }
+        
+        // حذف ستون actions از لیست ستون‌ها چون در اکسل نمی‌خواهیم
+        selectedColumns = selectedColumns.split(',').filter(col => col.trim() !== 'actions').join(',');
+        
+        // ساخت URL خروجی
+        const exportUrl = "{% url 'export_purchases' %}?ids=" + selectedIds.join(',') + "&columns=" + encodeURIComponent(selectedColumns);
+        
+        console.log("Export URL:", exportUrl);
+        console.log("Selected IDs:", selectedIds);
+        console.log("Selected Columns:", selectedColumns);
+        
+        // باز کردن لینک در تب جدید
+        window.open(exportUrl, '_blank');
+    });
+}
+
+// بهبود تعامل بین فیلتر و ویرایش گروهی
+document.addEventListener('DOMContentLoaded', function() {
+    // مدیریت رویدادهای فیلتر
+    document.addEventListener('tableFilterApplied', function(e) {
+        console.log('فیلتر اعمال شد:', e.detail);
+        
+        // بروزرسانی آمار انتخاب‌ها
+        if (window.bulkEditManager) {
+            window.bulkEditManager.updateSelectionAfterFilter();
+        }
+        
+        // بروزرسانی آمار جمع‌آوری شده
+        updateAggregatedStats();
+    });
+    
+    document.addEventListener('tableFilterCleared', function(e) {
+        console.log('فیلتر پاک شد:', e.detail);
+        
+        // بروزرسانی آمار انتخاب‌ها
+        if (window.bulkEditManager) {
+            window.bulkEditManager.updateSelectionAfterFilter();
+        }
+        
+        // بروزرسانی آمار جمع‌آوری شده
+        updateAggregatedStats();
+    });
+    
+    document.addEventListener('tableFiltersCleared', function(e) {
+        console.log('همه فیلترها پاک شدند:', e.detail);
+        
+        // بروزرسانی آمار انتخاب‌ها
+        if (window.bulkEditManager) {
+            window.bulkEditManager.clearSelection();
+        }
+        
+        // مخفی کردن آمار جمع‌آوری شده
+        const aggregatedStats = document.getElementById('aggregatedStats');
+        if (aggregatedStats) {
+            aggregatedStats.style.display = 'none';
+        }
+    });
+    
+    // بهبود عملکرد دکمه خروجی اکسل
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) {
+        // مدیریت فعال/غیرفعال بودن دکمه بر اساس انتخاب‌ها
+        const updateExportButton = function() {
+            const selectedRows = document.querySelectorAll('.row-checkbox:checked');
+            exportBtn.disabled = selectedRows.length === 0;
+            
+            if (selectedRows.length > 0) {
+                exportBtn.innerHTML = `<i class="fas fa-file-excel me-2"></i>خروجی اکسل (${selectedRows.length} مورد)`;
+            } else {
+                exportBtn.innerHTML = '<i class="fas fa-file-excel me-2"></i>خروجی اکسل';
+            }
+        };
+        
+        // بروزرسانی اولیه
+        updateExportButton();
+        
+        // Listener برای تغییرات انتخاب
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('row-checkbox') || 
+                e.target.classList.contains('select-all-checkbox') ||
+                e.target.classList.contains('select-all-checkbox-archived')) {
+                updateExportButton();
+            }
+        });
+    }
+});
+
+// توابع کمکی
+function showSearchLoading(show) {
+    const searchInput = document.getElementById('globalSearch');
+    if (!searchInput) return;
+    
+    if (show) {
+        searchInput.style.backgroundImage = 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTAiIGN5PSIxMCIgcj0iOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiLz4KPHBhdGggZD0iTTEwIDJhOCA4IDAgMCAxIDggOCIgc3Ryb2tlPSIjMDA3YmZmIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiPgogIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0icm90YXRlIiBkdXI9IjFzIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSIgdmFsdWVzPSIwIDEwIDEwOzM2MCAxMCAxMCIvPgo8L3BhdGg+Cjwvc3ZnPg==")';
+        searchInput.style.backgroundRepeat = 'no-repeat';
+        searchInput.style.backgroundPosition = 'left 10px center';
+        searchInput.style.paddingLeft = '40px';
+    } else {
+        searchInput.style.backgroundImage = '';
+        searchInput.style.paddingLeft = '';
+    }
+}
+
+// تابع کمکی برای دریافت CSRF token از کوکی
+function getCsrfTokenFromCookie() {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.startsWith('csrftoken=')) {
+            return cookie.substring('csrftoken='.length, cookie.length);
+        }
+    }
+    return '';
+}
+
+function performQuickSearch(searchTerm) {
+    const tables = document.querySelectorAll('.enable-filter');
+    
+    tables.forEach(table => {
+        const rows = table.querySelectorAll('tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            let found = false;
+            
+            cells.forEach(cell => {
+                if (cell.textContent.toLowerCase().includes(searchTerm)) {
+                    found = true;
+                }
+            });
+            
+            if (found) {
+                row.style.display = '';
+                visibleCount++;
+                // هایلایت کردن متن یافت شده
+                highlightSearchTerm(row, searchTerm);
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // نمایش تعداد نتایج
+        showSearchResults(visibleCount, searchTerm);
+    });
+}
+
+function highlightSearchTerm(row, searchTerm) {
+    const cells = row.querySelectorAll('td');
+    
+    cells.forEach(cell => {
+        const text = cell.textContent;
+        if (text.toLowerCase().includes(searchTerm)) {
+            const regex = new RegExp(`(${searchTerm})`, 'gi');
+            const highlightedText = text.replace(regex, '<mark>$1</mark>');
+            
+            // فقط اگر سلول شامل HTML ساده باشد
+            if (!cell.querySelector('input, button, a')) {
+                cell.innerHTML = highlightedText;
+            }
+        }
+    });
+}
+
+function clearQuickSearch() {
+    // حذف هایلایت‌ها
+    document.querySelectorAll('mark').forEach(mark => {
+        mark.outerHTML = mark.textContent;
+    });
+    
+    // نمایش همه ردیف‌ها
+    document.querySelectorAll('.enable-filter tbody tr').forEach(row => {
+        row.style.display = '';
+    });
+    
+    // مخفی کردن نتایج جستجو
+    const resultsDiv = document.getElementById('searchResults');
+    if (resultsDiv) {
+        resultsDiv.remove();
+    }
+}
+
+function showSearchResults(count, searchTerm) {
+    let resultsDiv = document.getElementById('searchResults');
+    
+    if (!resultsDiv) {
+        resultsDiv = document.createElement('div');
+        resultsDiv.id = 'searchResults';
+        resultsDiv.style.cssText = `
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #1976d2;
+        `;
+        
+        const searchPanel = document.querySelector('.search-panel');
+        if (searchPanel) {
+            searchPanel.appendChild(resultsDiv);
+        }
+    }
+    
+    resultsDiv.innerHTML = `
+        <i class="fas fa-search me-2"></i>
+        یافت شد: <strong>${count}</strong> نتیجه برای "<strong>${searchTerm}</strong>"
+        ${count === 0 ? '<span style="color: #f44336;">- هیچ نتیجه‌ای یافت نشد</span>' : ''}
+    `;
+}
+
+// تابع بروزرسانی آمار اجماعی
+function updateAggregatedStats() {
+    // همگام‌سازی با آمار اجماعی خریدها
+    if (window.purchaseAggregatedStats) {
+        window.purchaseAggregatedStats.syncWithBulkEditManager();
     }
 }
 </script>

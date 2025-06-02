@@ -562,85 +562,150 @@ class TableFilter {
     }
 
     getUniqueColumnValues(columnId, tableId) {
-        const columnIndex = this.columnMappings[tableId][columnId]?.index;
-        if (columnIndex === -1 || columnIndex === undefined) return [];
-
-        const values = new Set();
         const table = document.getElementById(tableId);
         if (!table) return [];
         
-        const tbody = table.querySelector('tbody');
-        const rows = tbody ? tbody.querySelectorAll('tr') : [];
+        const columnIndex = this.columnMappings[tableId][columnId];
+        if (columnIndex === undefined) return [];
         
-        rows.forEach(row => {
-            if (row.style.display !== 'none') {
-                const cell = row.children[columnIndex];
-                if (cell) {
-                    let value = this.extractCellValue(cell, columnId);
-                    if (value && value.toString().trim() !== '' && 
-                        value !== 'تعیین نشده' && value !== '-' && value !== null) {
-                        values.add(value.toString().trim());
-                    }
+        const values = new Set();
+        const rows = table.querySelectorAll('tbody tr:not(.filter-no-match)');
+        
+        // استفاده از originalRows اگر موجود است
+        const rowsToCheck = this.originalRows[tableId] || rows;
+        
+        rowsToCheck.forEach(row => {
+            // Skip rows that are hidden by filters or empty rows
+            if (row.style.display === 'none' || row.querySelector('td[colspan]')) {
+                return;
+            }
+            
+            const cell = row.cells[columnIndex];
+            if (!cell) return;
+            
+            let value = this.extractCellValue(cell, columnId);
+            
+            // پردازش بیشتر برای مقادیر خاص
+            if (value && value.trim() !== '') {
+                // تقسیم مقادیر جداشده با کاما
+                if (value.includes(',')) {
+                    value.split(',').forEach(v => {
+                        const trimmedValue = v.trim();
+                        if (trimmedValue) {
+                            values.add(trimmedValue);
+                        }
+                    });
+                } else {
+                    values.add(value.trim());
                 }
             }
         });
-
-        return Array.from(values).sort((a, b) => {
-            // مرتب‌سازی هوشمند
+        
+        // تبدیل Set به Array و مرتب‌سازی
+        const sortedValues = Array.from(values).sort((a, b) => {
+            // مرتب‌سازی بر اساس نوع ستون
             const columnType = this.getColumnTypeFromId(columnId);
             
             if (columnType === 'number') {
-                const numA = parseFloat(a.replace(/[,\s]/g, '')) || 0;
-                const numB = parseFloat(b.replace(/[,\s]/g, '')) || 0;
+                // برای اعداد، تبدیل به عدد و مقایسه
+                const numA = parseFloat(a.replace(/[^\d\.,\-]/g, '').replace(',', '')) || 0;
+                const numB = parseFloat(b.replace(/[^\d\.,\-]/g, '').replace(',', '')) || 0;
                 return numA - numB;
+            } else if (columnType === 'boolean') {
+                // برای boolean، بله قبل خیر
+                if (a === 'بله' && b === 'خیر') return -1;
+                if (a === 'خیر' && b === 'بله') return 1;
+                return 0;
+            } else {
+                // برای متن، مرتب‌سازی الفبایی
+                return a.localeCompare(b, 'fa', { numeric: true });
             }
-            
-            return a.localeCompare(b, 'fa');
         });
+        
+        console.log(`Unique values for column ${columnId}:`, sortedValues);
+        return sortedValues;
     }
 
     extractCellValue(cell, columnId) {
-        const columnType = this.getColumnTypeFromId(columnId);
+        let value = '';
         
-        // ابتدا بررسی badge ها و عناصر خاص
-        const badge = cell.querySelector('.badge, .status-badge, .table-status-badge, .label');
-        if (badge) {
-            return badge.textContent.trim();
-        }
-        
-        // بررسی لینک‌ها
-        const link = cell.querySelector('a');
-        if (link && link.textContent.trim()) {
-            return link.textContent.trim();
-        }
-        
-        // بررسی input ها
-        const input = cell.querySelector('input');
-        if (input) {
-            if (input.type === 'checkbox') {
-                return input.checked ? 'بله' : 'خیر';
+        try {
+            // برای ستون‌های boolean مانند علاقه‌مندی
+            if (this.getColumnTypeFromId(columnId) === 'boolean') {
+                // چک کردن آیکون ستاره برای علاقه‌مندی
+                const favoriteIcon = cell.querySelector('.favorite-icon');
+                if (favoriteIcon) {
+                    const isFavorite = favoriteIcon.getAttribute('data-is-favorite');
+                    return isFavorite === 'true' ? 'بله' : 'خیر';
+                }
+                
+                // چک کردن چک‌باکس‌ها
+                const checkbox = cell.querySelector('input[type="checkbox"]');
+                if (checkbox) {
+                    return checkbox.checked ? 'بله' : 'خیر';
+                }
+                
+                // بررسی آیکون‌های مختلف برای boolean
+                const starIcon = cell.querySelector('.fas.fa-star');
+                if (starIcon) {
+                    return 'بله';
+                }
+                const emptyStarIcon = cell.querySelector('.far.fa-star');
+                if (emptyStarIcon) {
+                    return 'خیر';
+                }
             }
-            return input.value || input.textContent;
-        }
-        
-        // متن ساده
-        let text = cell.textContent.trim();
-        
-        // پردازش بر اساس نوع
-        if (columnType === 'number') {
-            // حذف کاراکترهای غیرعددی به جز ممیز و نقطه
-            text = text.replace(/[^\d\.,\-]/g, '');
-        } else if (columnType === 'boolean') {
-            // تبدیل به فرمت استاندارد
-            const lowerText = text.toLowerCase();
-            if (['true', 'yes', 'بله', '1', 'فعال', 'تأیید شده'].includes(lowerText)) {
-                return 'بله';
-            } else if (['false', 'no', 'خیر', '0', 'غیرفعال', 'رد شده'].includes(lowerText)) {
-                return 'خیر';
+            
+            // اگر سلول دارای data-value است، از آن استفاده کن
+            if (cell.hasAttribute('data-value')) {
+                value = cell.getAttribute('data-value');
+                if (value !== null && value !== '') {
+                    return value;
+                }
             }
+            
+            // استخراج متن از span های تگ‌دار
+            const tagSpans = cell.querySelectorAll('.tag');
+            if (tagSpans.length > 0) {
+                value = Array.from(tagSpans).map(span => span.textContent.trim()).join(', ');
+                return value;
+            }
+            
+            // استخراج متن از لینک‌ها
+            const links = cell.querySelectorAll('a');
+            if (links.length > 0) {
+                value = Array.from(links).map(link => link.textContent.trim()).join(', ');
+                return value;
+            }
+            
+            // استخراج متن از span های رنگی (برای اعداد)
+            const colorSpans = cell.querySelectorAll('span[class*="bg-"]');
+            if (colorSpans.length > 0) {
+                value = Array.from(colorSpans).map(span => span.textContent.trim()).join(', ');
+                return value;
+            }
+            
+            // استخراج متن خام از سلول
+            value = cell.textContent || cell.innerText || '';
+            value = value.trim();
+            
+            // پاک کردن کاراکترهای اضافی
+            value = value.replace(/\s+/g, ' ');
+            value = value.replace(/[\n\r\t]/g, ' ');
+            
+            // تبدیل اعداد فارسی به انگلیسی
+            value = value.replace(/[۰-۹]/g, function(w) {
+                const persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+                const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+                return english[persian.indexOf(w)];
+            });
+            
+        } catch (error) {
+            console.warn('خطا در استخراج مقدار سلول:', error);
+            value = cell.textContent || '';
         }
         
-        return text;
+        return value.trim();
     }
 
     getColumnTypeFromId(columnId) {
@@ -838,6 +903,16 @@ class TableFilter {
         
         this.closeAllDropdowns();
         
+        // ارسال event برای اطلاع سایر کامپوننت‌ها
+        document.dispatchEvent(new CustomEvent('tableFilterApplied', {
+            detail: {
+                tableId: tableId,
+                columnId: columnId,
+                selectedValues: selectedValues,
+                activeFilters: this.activeFilters
+            }
+        }));
+        
         if (this.config.enableToast) {
             this.showToast('فیلتر اعمال شد');
         }
@@ -850,9 +925,9 @@ class TableFilter {
         delete this.activeFilters[filterKey];
         delete this.sortState[sortKey];
         
-        dropdown.querySelectorAll('.filter-values-container input[type="checkbox"]').forEach(checkbox => {
-            checkbox.checked = true;
-        });
+        // تغییر: بعد از پاک کردن فیلتر، مقادیر را دوباره بارگذاری کن
+        // تا همه گزینه‌ها نمایش داده شوند
+        this.loadColumnValues(columnId, tableId, dropdown);
         
         dropdown.querySelectorAll('.sort-option').forEach(option => {
             option.classList.remove('active');
@@ -871,6 +946,15 @@ class TableFilter {
         if (this.config.enableClearAll) {
             this.updateClearAllButton();
         }
+        
+        // ارسال event برای اطلاع سایر کامپوننت‌ها
+        document.dispatchEvent(new CustomEvent('tableFilterCleared', {
+            detail: {
+                tableId: tableId,
+                columnId: columnId,
+                activeFilters: this.activeFilters
+            }
+        }));
         
         if (this.config.enableToast) {
             const columnName = this.columnMappings[tableId][columnId]?.name;
@@ -1014,6 +1098,9 @@ class TableFilter {
                 <span class="active-filter-tag" data-filter-key="${filterKey}" data-type="filter">
                     <i class="fas fa-filter"></i>
                     ${columnName}: ${filter.values.length} مورد
+                    <button type="button" class="remove-filter-btn" data-filter-key="${filterKey}">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </span>
             `;
         });
@@ -1026,6 +1113,9 @@ class TableFilter {
                 <span class="active-filter-tag" data-sort-key="${sortKey}" data-type="sort">
                     <i class="fas fa-sort"></i>
                     ${columnName}: ${direction === 'asc' ? 'صعودی' : 'نزولی'}
+                    <button type="button" class="remove-filter-btn" data-sort-key="${sortKey}">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </span>
             `;
         });
@@ -1042,15 +1132,25 @@ class TableFilter {
         
         summary.classList.add('show');
         
-        content.querySelectorAll('.active-filter-tag').forEach(tag => {
-            tag.addEventListener('click', () => {
-                const filterKey = tag.getAttribute('data-filter-key');
-                const sortKey = tag.getAttribute('data-sort-key');
-                const type = tag.getAttribute('data-type');
+        // Event listeners برای حذف فیلترهای جداگانه
+        content.querySelectorAll('.remove-filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 
-                if (type === 'filter' && filterKey) {
+                const filterKey = btn.getAttribute('data-filter-key');
+                const sortKey = btn.getAttribute('data-sort-key');
+                
+                if (filterKey) {
+                    const filter = this.activeFilters[filterKey];
                     delete this.activeFilters[filterKey];
-                } else if (type === 'sort' && sortKey) {
+                    
+                    // اگر dropdown باز است، مقادیر را دوباره بارگذاری کن
+                    const openDropdown = document.querySelector(`.filter-dropdown[data-column-id="${filter.columnId}"][data-table-id="${filter.tableId}"]`);
+                    if (openDropdown) {
+                        this.loadColumnValues(filter.columnId, filter.tableId, openDropdown);
+                    }
+                } else if (sortKey) {
                     delete this.sortState[sortKey];
                 }
                 
@@ -1058,6 +1158,26 @@ class TableFilter {
                 this.updateFilterIndicators();
                 this.updateActiveFiltersSummary();
                 this.updateClearAllButton();
+                
+                // ارسال event
+                document.dispatchEvent(new CustomEvent('tableFilterRemoved', {
+                    detail: {
+                        filterKey: filterKey,
+                        sortKey: sortKey,
+                        activeFilters: this.activeFilters
+                    }
+                }));
+            });
+        });
+        
+        // حذف event listener قدیمی که کل tag را کلیک می‌کرد
+        content.querySelectorAll('.active-filter-tag').forEach(tag => {
+            tag.addEventListener('click', (e) => {
+                // فقط اگر روی دکمه حذف کلیک نشده باشد
+                if (!e.target.closest('.remove-filter-btn')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
             });
         });
     }
@@ -1096,14 +1216,26 @@ class TableFilter {
             this.updateClearAllButton();
         }
         
+        // بعد از پاک کردن همه فیلترها، اگر dropdown باز است، مقادیر را دوباره بارگذاری کن
         document.querySelectorAll('.filter-dropdown').forEach(dropdown => {
-            dropdown.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                checkbox.checked = true;
-            });
+            const columnId = dropdown.getAttribute('data-column-id');
+            const tableId = dropdown.getAttribute('data-table-id');
+            
+            if (columnId && tableId) {
+                this.loadColumnValues(columnId, tableId, dropdown);
+            }
+            
             dropdown.querySelectorAll('.sort-option').forEach(option => {
                 option.classList.remove('active');
             });
         });
+        
+        // ارسال event برای اطلاع سایر کامپوننت‌ها
+        document.dispatchEvent(new CustomEvent('tableFiltersCleared', {
+            detail: {
+                activeFilters: this.activeFilters
+            }
+        }));
         
         if (this.config.enableToast) {
             this.showToast('همه فیلترها پاک شدند');

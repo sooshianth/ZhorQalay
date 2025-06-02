@@ -527,26 +527,26 @@
             <table class="min-w-full table-hover enable-filter">
                 <thead>
                     <tr>
-                        <th width="40px" class="px-6 py-3 text-right">
+                        <th width="40px" class="px-6 py-3 text-right column-checkbox">
                             <input type="checkbox" id="select-all-checkbox" class="select-all-checkbox h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
                         </th>
-                        <th width="40px" class="px-6 py-3 text-right" data-column-type="boolean">
+                        <th width="40px" class="px-6 py-3 text-right column-favorite" data-column-type="boolean">
                             <span>علاقه</span>
                         </th>
-                        <th class="px-6 py-3 text-right" data-column-type="text">
+                        <th class="px-6 py-3 text-right column-name" data-column-type="text">
                             <span>نام</span>
                         </th>
-                        <th class="px-6 py-3 text-right" data-column-type="text">
+                        <th class="px-6 py-3 text-right column-phone" data-column-type="text">
                             <span>شماره موبایل</span>
                         </th>
-                        <th class="px-6 py-3 text-right" data-column-type="text">
+                        <th class="px-6 py-3 text-right column-city" data-column-type="text">
                             <span>شهر</span>
                         </th>
-                        <th class="px-6 py-3 text-right" data-column-type="text">حوزه فعالیت</th>
-                        <th class="px-6 py-3 text-right" data-column-type="number">
+                        <th class="px-6 py-3 text-right column-activity" data-column-type="text">حوزه فعالیت</th>
+                        <th class="px-6 py-3 text-right column-purchase_count" data-column-type="number">
                             <span>تعداد خرید</span>
                         </th>
-                        <th class="px-6 py-3 text-right" data-column-type="number">
+                        <th class="px-6 py-3 text-right column-total_weight" data-column-type="number">
                             <span>حجم خرید کل (کیلوگرم)</span>
                         </th>
                     </tr>
@@ -554,10 +554,10 @@
                 <tbody>
                     {% for customer in customers %}
                         <tr>
-                            <td class="px-6 py-4 text-right">
+                            <td class="px-6 py-4 text-right column-checkbox">
                                 <input type="checkbox" name="customer_ids" value="{{ customer.id }}" class="row-checkbox h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" data-id="{{ customer.id }}">
                             </td>
-                            <td class="px-6 py-4 text-right">
+                            <td class="px-6 py-4 text-right column-favorite">
                                 <span class="favorite-icon text-yellow-500 cursor-pointer hover:scale-125 transition-transform" data-customer-id="{{ customer.id }}" data-is-favorite="{{ customer.is_favorite|lower }}">
                                     {% if customer.is_favorite %}
                                         <i class="fas fa-star"></i>
@@ -566,17 +566,17 @@
                                     {% endif %}
                                 </span>
                             </td>
-                            <td class="px-6 py-4 text-right">
+                            <td class="px-6 py-4 text-right column-name">
                                 <a href="{% url 'general_customer_CRUD' %}?customer_id={{ customer.id }}" class="text-blue-600 hover:text-blue-900 font-medium">
                                     {{ customer.name }}
                                 </a>
                             </td>
-                            <td class="px-6 py-4 text-right font-mono">{{ customer.get_primary_phone }}</td>
-                            <td class="px-6 py-4 text-right">
+                            <td class="px-6 py-4 text-right font-mono column-phone">{{ customer.get_primary_phone }}</td>
+                            <td class="px-6 py-4 text-right column-city">
                                 <span class="tag">{{ customer.city }}</span>
                             </td>
-                            <td class="px-6 py-4 text-right">{{ customer.get_field_of_activity_display }}</td>
-                            <td class="px-6 py-4 text-right" data-value="{{ customer.purchases_made.count }}">
+                            <td class="px-6 py-4 text-right column-activity">{{ customer.get_field_of_activity_display }}</td>
+                            <td class="px-6 py-4 text-right column-purchase_count" data-value="{{ customer.purchases_made.count }}">
                                 <span class="bg-blue-100 text-blue-800 py-1 px-2 rounded-full text-xs font-medium">
                                 {% if customer.purchases_made.count %}
                                     {{ customer.purchases_made.count }}
@@ -585,7 +585,7 @@
                                 {% endif %}
                                 </span>
                             </td>
-                            <td class="px-6 py-4 text-right font-medium" data-value="{{ customer.total_purchase_weight }}">
+                            <td class="px-6 py-4 text-right font-medium column-total_weight" data-value="{{ customer.total_purchase_weight }}">
                                 <span class="bg-green-100 text-green-800 py-1 px-2 rounded-full text-xs">
                                     {{ customer.total_purchase_weight|floatformat:0|default:"0"|intcomma }}
                                 </span>
@@ -715,10 +715,23 @@
 
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8/dist/sweetalert2.all.min.js"></script>
+<script src="{% static 'table_filter/js/table_filter.js' %}"></script>
 <script src="{% static 'table_filter/js/bulk_edit.js' %}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         console.log('DOM fully loaded');
+        
+        // Initialize table filter first
+        const tableFilter = new TableFilter({
+            tableSelector: '.enable-filter',
+            enableToast: true,
+            enableIndicators: true,
+            enableSummary: true,
+            enableClearAll: true,
+            autoDetectColumns: true
+        });
+        tableFilter.init();
+        console.log('Table filter initialized');
         
         // Initialize the bulk edit manager
         const bulkEditManager = new BulkEditManager({

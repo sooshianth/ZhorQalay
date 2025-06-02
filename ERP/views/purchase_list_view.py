@@ -401,23 +401,44 @@ def update_columns(request):
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
 def export_to_excel(request):
+    print("=== EXPORT TO EXCEL CALLED ===")
+    print(f"Request method: {request.method}")
+    print(f"GET parameters: {dict(request.GET)}")
+    
     purchase_ids = request.GET.get('ids', '').split(',')
     selected_columns = request.GET.get('columns', '')
     
+    print(f"Raw purchase_ids: {purchase_ids}")
+    print(f"Raw selected_columns: '{selected_columns}'")
+    
     if selected_columns:
+        # حذف کوتیشن‌های اضافی و decode کردن کاراکترهای escape شده
+        selected_columns = selected_columns.strip('"').replace('\\054', ',').replace('\\\\', '\\')
         selected_columns = selected_columns.split(',')
+        # حذف actions از لیست ستون‌ها چون در اکسل نمی‌خواهیم
+        selected_columns = [col.strip() for col in selected_columns if col.strip() and col.strip() != 'actions']
     else:
         selected_columns = ['date', 'customer', 'invoice_id', 'sales_agent', 'purchase_number', 'weight', 'cargo', 'status']
     
+    print(f"Final selected_columns: {selected_columns}")
+    
     # فیلتر کردن آیدی‌های خالی
-    purchase_ids = [pid for pid in purchase_ids if pid]
+    purchase_ids = [pid.strip() for pid in purchase_ids if pid.strip()]
+    print(f"Filtered purchase_ids: {purchase_ids}")
     
     if not purchase_ids:
+        print("ERROR: No purchase IDs!")
         return JsonResponse({'status': 'error', 'message': 'هیچ خریدی انتخاب نشده است'}, status=400)
     
     try:
         # برای عملکرد بهتر، اگر تعداد خریدهای انتخاب شده زیاد است، در تکه‌های کوچکتر پردازش کنیم
         purchases = Purchase.objects.filter(id__in=purchase_ids).select_related('customer', 'cargo').prefetch_related('customer__sales_agent').order_by('-created_at')
+        
+        print(f"Found {purchases.count()} purchases")
+        
+        if purchases.count() == 0:
+            print("ERROR: No purchases found!")
+            return JsonResponse({'status': 'error', 'message': 'هیچ خریدی با شناسه‌های داده شده یافت نشد'}, status=400)
         
         wb = Workbook()
         ws = wb.active
@@ -518,6 +539,7 @@ def export_to_excel(request):
                         except Exception as e:
                             print(f"خطا در استخراج مقدار {col} برای خرید {purchase.id}: {str(e)}")
                             row.append("-")
+                
                 ws.append(row)
                 
                 # تنظیم استایل برای سطرهای داده

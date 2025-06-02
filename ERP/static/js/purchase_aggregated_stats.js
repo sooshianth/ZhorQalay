@@ -49,6 +49,19 @@ class PurchaseAggregatedStats {
                 this.clearAllSelections();
             }
         });
+        
+        // گوش دادن به تغییرات فیلتر
+        document.addEventListener('tableFilterApplied', () => {
+            this.updateStatsAfterFilter();
+        });
+        
+        document.addEventListener('tableFilterCleared', () => {
+            this.updateStatsAfterFilter();
+        });
+        
+        document.addEventListener('tableFiltersCleared', () => {
+            this.updateStatsAfterFilter();
+        });
     }
     
     handleRowSelection(checkbox) {
@@ -65,7 +78,7 @@ class PurchaseAggregatedStats {
     
     handleSelectAll(selectAllCheckbox) {
         const tableId = 'activePurchasesTable';
-        const checkboxes = document.querySelectorAll(`#${tableId} .row-checkbox`);
+        const checkboxes = document.querySelectorAll(`#${tableId} tbody tr:not([style*="display: none"]) .row-checkbox`);
         
         checkboxes.forEach(checkbox => {
             const purchaseId = checkbox.getAttribute('data-id');
@@ -83,7 +96,7 @@ class PurchaseAggregatedStats {
     
     handleSelectAllArchived(selectAllCheckbox) {
         const tableId = 'archivedPurchasesTable';
-        const checkboxes = document.querySelectorAll(`#${tableId} .row-checkbox`);
+        const checkboxes = document.querySelectorAll(`#${tableId} tbody tr:not([style*="display: none"]) .row-checkbox`);
         
         checkboxes.forEach(checkbox => {
             const purchaseId = checkbox.getAttribute('data-id');
@@ -445,6 +458,40 @@ class PurchaseAggregatedStats {
         });
         
         this.updateStats();
+    }
+    
+    // متد جدید: بروزرسانی آمار بعد از تغییر فیلتر
+    updateStatsAfterFilter() {
+        // بررسی کنیم که آیا خریدهای انتخاب شده هنوز نمایش داده می‌شوند یا خیر
+        const visibleSelectedPurchases = new Set();
+        
+        this.selectedPurchases.forEach(purchaseId => {
+            const row = document.querySelector(`tr[data-id="${purchaseId}"]`);
+            // اگر ردیف وجود دارد و نمایش داده می‌شود
+            if (row && row.style.display !== 'none') {
+                visibleSelectedPurchases.add(purchaseId);
+                // مطمئن شویم که checkbox هم چک شده باشد
+                const checkbox = row.querySelector('.row-checkbox');
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            }
+        });
+        
+        // بروزرسانی لیست انتخاب‌ها
+        this.selectedPurchases = visibleSelectedPurchases;
+        
+        // بروزرسانی آمار
+        this.updateStats();
+    }
+    
+    // متد جدید: همگام‌سازی با bulk edit manager
+    syncWithBulkEditManager() {
+        if (window.bulkEditManager) {
+            // همگام‌سازی انتخاب‌ها
+            this.selectedPurchases = new Set(window.bulkEditManager.selectedIds);
+            this.updateStats();
+        }
     }
 }
 
