@@ -10,7 +10,7 @@ from core.PurchaseModel import Purchase, ShenaseTakhsis
 from core.CustomerModel import Customer, PhoneNumber
 from core.CargoProductModel import CargoProduct
 from core.SalesAgentModel import SalesAgent
-from .helpers import clean_phone_number, determine_product_type
+from .helpers import clean_phone_number, determine_product_type, update_incorrect_phone_numbers
 from .location import get_province_name
 import jdatetime
 from django.utils import timezone
@@ -470,8 +470,20 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
             - created: True if a new purchase was created, False otherwise
             - error_message: An error message if the operation failed, None otherwise
     """
+    # Try to update any phone numbers that were previously incorrectly stored as "9000000000"
+    if isinstance(purchase_data, dict):
+        updated_count, error_count = update_incorrect_phone_numbers(purchase_data)
+        if updated_count > 0:
+            print(f"تعداد {updated_count} شماره تلفن نادرست به‌روزرسانی شد")
+    
     # If purchase_data is a list, process it as a group
     if isinstance(purchase_data, list):
+        # For each item in the list, try to update incorrect phone numbers
+        for item in purchase_data:
+            updated_count, error_count = update_incorrect_phone_numbers(item)
+            if updated_count > 0:
+                print(f"تعداد {updated_count} شماره تلفن نادرست به‌روزرسانی شد")
+        
         return process_grouped_purchase_data(purchase_data, create_if_not_exists)
     
     # Extract purchase ID

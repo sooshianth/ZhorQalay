@@ -22,11 +22,9 @@ def clean_phone_number(phone):
             - cleaned_number: A standardized phone number in the format '9XXXXXXXXX'
             - error_message: An error message if the phone number is invalid, None otherwise
     """
-    # Default number for cases where the input is invalid
-    default_number = "9000000000"
-    
+    # If input is empty, return error but don't default to a static number
     if not phone:
-        return default_number, "شماره تلفن خالی است"
+        return "", "شماره تلفن خالی است"
         
     # Convert Persian digits to English digits
     persian_digits = "۰۱۲۳۴۵۶۷۸۹"
@@ -35,11 +33,17 @@ def clean_phone_number(phone):
     phone = str(phone).strip().translate(translation_table)
     
     # Remove non-digit characters
+    original_phone = phone
     cleaned_number = ''.join(c for c in phone if c.isdigit())
     
-    # If no digits were extracted, return the default number
+    # If no digits were extracted, return the original number with an error
     if not cleaned_number:
-        return default_number, f"شماره تلفن {phone} فاقد عدد است"
+        return original_phone, f"شماره تلفن {phone} فاقد عدد است"
+    
+    # Handle special case: Check if the number was previously set to 9000000000
+    if cleaned_number == "9000000000" and original_phone != "9000000000":
+        # This is likely a previously incorrectly stored number, return original
+        return original_phone, f"شماره تلفن قبلا به صورت نادرست ذخیره شده بود"
     
     # Remove leading zero if present
     if cleaned_number.startswith('0'):
@@ -49,15 +53,80 @@ def clean_phone_number(phone):
     if cleaned_number.startswith('98'):
         cleaned_number = cleaned_number[2:]
     
+    # Save original for possible fallback
+    final_number = cleaned_number
+    
+    # Generate warning messages but still return a valid number
+    warning = None
+    
     # Check if the number is shorter than expected
     if len(cleaned_number) < 10:
-        return default_number, f"شماره {phone} ناقص یا غیرمعتبر است"
+        warning = f"شماره {phone} کوتاه تر از حد انتظار است اما حفظ می‌شود"
+    # Check if the number is longer than expected but keep it
+    elif len(cleaned_number) > 10:
+        warning = f"شماره {phone} طولانی تر از حد انتظار است اما حفظ می‌شود"
     
     # Check if the number is a mobile number (starts with 9)
     if not cleaned_number.startswith('9'):
-        return default_number, f"شماره {phone} یک شماره موبایل نیست"
+        # Still keep the number, but add a warning
+        warning = f"شماره {phone} یک شماره موبایل استاندارد نیست اما حفظ می‌شود"
     
-    return cleaned_number, None
+    return final_number, warning
+
+
+def update_incorrect_phone_numbers(purchase_data):
+    """
+    Update phone numbers that were previously stored as "9000000000" with correct values from new data.
+    
+    This function takes purchase data from the BKI API and checks if there are any customers with
+    phone numbers set to "9000000000". If found, it updates them with the correct phone numbers
+    from the purchase data.
+    
+    Args:
+        purchase_data (dict): Purchase data from the BKI API containing buyer information
+        
+    Returns:
+        tuple: (updated_count, error_count)
+            - updated_count: Number of phone numbers updated
+            - error_count: Number of errors encountered
+    """
+    from core.CustomerModel import Customer, PhoneNumber
+    
+    updated_count = 0
+    error_count = 0
+    
+    try:
+        # Get buyer information from purchase data
+        buyer_name = purchase_data.get('buyername')
+        buyer_phone = purchase_data.get('buyerphone')
+        
+        if not buyer_name or not buyer_phone:
+            return 0, 0  # No buyer information to process
+        
+        # Clean the phone number
+        clean_phone, error = clean_phone_number(buyer_phone)
+        if not clean_phone:
+            return 0, 1  # Could not clean phone number
+        
+        # Look for the customer by name
+        customers = Customer.objects.filter(name=buyer_name)
+        
+        for customer in customers:
+            # Check if any of the customer's phone numbers is "9000000000"
+            incorrect_phones = PhoneNumber.objects.filter(customer=customer, number="9000000000")
+            
+            for phone in incorrect_phones:
+                # Update with the correct phone number
+                phone.number = clean_phone
+                phone.save()
+                updated_count += 1
+                print(f"شماره تلفن مشتری {buyer_name} از 9000000000 به {clean_phone} به‌روزرسانی شد")
+        
+        return updated_count, error_count
+    
+    except Exception as e:
+        print(f"خطا در به‌روزرسانی شماره‌های تلفن نادرست: {str(e)}")
+        return updated_count, error_count + 1
 
 
 def convert_persian_date_to_gregorian(persian_date_str):

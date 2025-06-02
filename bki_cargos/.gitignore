@@ -3,4 +3,5 @@ API/__pycache__
 models/__pycache__
 excel_management/__pycache__
 views/__pycache__
-
+migrations/__pycache__
+templatetags/__pycache__

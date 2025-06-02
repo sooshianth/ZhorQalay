@@ -87,19 +87,34 @@ class PhoneNumber(models.Model):
         # پاکسازی شماره از کاراکترهای غیرعددی
         cleaned_number = ''.join(c for c in self.number if c.isdigit())
         
-        # اگر با صفر شروع می‌شود، آن را حذف می‌کنیم
-        if cleaned_number.startswith('0'):
-            cleaned_number = cleaned_number[1:]
-            
-        # بررسی معیارهای اصلی
-        if not cleaned_number.startswith('9'):
-            raise ValidationError(_('شماره تلفن باید با 9 شروع شود. مثال: 9123456789'))
-            
-        if len(cleaned_number) != 10:
-            raise ValidationError(_('شماره تلفن باید 10 رقم باشد. مثال: 9123456789'))
+        # اگر عددی وجود نداشت، خطا بده
+        if not cleaned_number:
+            raise ValidationError(_('شماره تلفن باید حداقل یک رقم داشته باشد.'))
         
-        # ذخیره شماره پاکسازی شده
-        self.number = cleaned_number
+        # Check for previously incorrectly stored numbers like 9000000000
+        if cleaned_number == "9000000000" and self.number != "9000000000":
+            # Don't modify the number, leave it as is
+            pass
+        else:
+            # اگر با صفر شروع می‌شود، آن را حذف می‌کنیم
+            if cleaned_number.startswith('0'):
+                cleaned_number = cleaned_number[1:]
+                
+            # حذف کد کشور ایران اگر وجود داشت
+            if cleaned_number.startswith('98'):
+                cleaned_number = cleaned_number[2:]
+            
+            # توصیه‌ها به جای اعتبارسنجی اجباری
+            if not cleaned_number.startswith('9'):
+                # تنها هشدار بده، اما خطا نده
+                print(f'توجه: شماره تلفن {cleaned_number} با 9 شروع نمی‌شود، اما پذیرفته می‌شود.')
+                
+            if len(cleaned_number) != 10:
+                # تنها هشدار بده، اما خطا نده
+                print(f'توجه: شماره تلفن {cleaned_number} دقیقاً 10 رقم نیست، اما پذیرفته می‌شود.')
+            
+            # ذخیره شماره پاکسازی شده
+            self.number = cleaned_number
         
         # If this is being set as primary, make sure no other numbers for this customer are primary
         if self.is_primary:
