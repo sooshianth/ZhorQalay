@@ -563,12 +563,22 @@ class Purchase(models.Model):
                 
         super().save(*args, **kwargs)
         
-        sales_agents = self.customer.sales_agent.all()
+        # اضافه کردن کاربر فعلی به عنوان کارشناس فروش خرید
+        # این قسمت را در view هایی که خرید ایجاد می‌کنند استفاده می‌کنیم
+        # و کاربر فعلی را مشخص می‌کنیم
+        
+        # نکته: دیگر کارشناس فروش مشتری به خرید اضافه نمی‌شود
+        # sales_agents = self.customer.sales_agent.all()
+        # for agent in sales_agents:
+        #     self.sales_agent.add(agent)
+        
+        # بررسی اینکه آیا SMS ارسال شود
         has_non_admin = False
-        for agent in sales_agents:
-            if not agent.user.is_superuser:
-                has_non_admin = True
-                break
+        if hasattr(self, 'sales_agent'):
+            for agent in self.sales_agent.all():
+                if not agent.user.is_superuser:
+                    has_non_admin = True
+                    break
 
         # Send SMS notification for new purchase only on creation
         if is_new and self.customer.sms_preference and has_non_admin:
