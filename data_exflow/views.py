@@ -17,12 +17,17 @@ import tempfile
 from django.db.models import Count, Q
 from datetime import datetime, timedelta
 from django.utils import timezone
+from django.db import models
+from django.db.models.fields import Field
+from openpyxl import Workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
+from urllib.parse import quote
 
 from .models import ImportExportSession, ImportExportLog, ImportRecord
 from .utils import (
     get_file_extension, is_valid_file_type, read_file_to_dataframe,
     get_all_registered_models, get_model_fields, validate_import_data,
-    process_import, revert_import, process_export, check_file_size
+    process_import, revert_import, process_export, check_file_size, get_column_letter
 )
 
 # Create your views here.
@@ -33,22 +38,17 @@ def validate_content_type(content_type_id):
         # Try to get the content type
         content_type = ContentType.objects.get(id=content_type_id)
         
-        # Get all allowed models
-        allowed_models = get_all_registered_models()
-        
-        # Check if this content type is in our allowed models
-        for app_label, models in allowed_models.items():
-            for model in models:
-                if model['content_type_id'] == content_type.id:
-                    return content_type
-                    
-        # If we get here, the content type wasn't in our allowed list
-        raise ValidationError("The selected model is not allowed for import/export operations")
+        # تلاش برای دریافت کلاس مدل
+        model_class = content_type.model_class()
+        if model_class is None:
+            raise ValidationError(f"مدل {content_type.app_label}.{content_type.model} پیدا نشد")
+            
+        return content_type
         
     except ContentType.DoesNotExist:
-        raise ValidationError("Invalid model selected")
+        raise ValidationError("مدل انتخابی نامعتبر است")
     except Exception as e:
-        raise ValidationError(f"Error validating model: {str(e)}")
+        raise ValidationError(f"خطا در اعتبارسنجی مدل: {str(e)}")
 
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
@@ -157,6 +157,34 @@ def import_view(request):
     """Main import view showing available models to import."""
     models = get_all_registered_models()
     
+    # تبدیل مدل‌ها به فرمت مناسب ContentType برای نمایش در صفحه
+    content_types = []
+    for app_label, model_list in models.items():
+        for model in model_list:
+            if model.get('content_type_id'):
+                try:
+                    ct = ContentType.objects.get(id=model['content_type_id'])
+                    content_types.append({
+                        'id': ct.id,
+                        'app_label': app_label,
+                        'model': ct.model,
+                        'model_verbose_name': model['verbose_name']
+                    })
+                except ContentType.DoesNotExist:
+                    # اگر ContentType وجود نداشت، آن را ایجاد می‌کنیم
+                    try:
+                        model_class = apps.get_model(app_label, model['name'])
+                        ct = ContentType.objects.get_for_model(model_class)
+                        content_types.append({
+                            'id': ct.id,
+                            'app_label': app_label,
+                            'model': ct.model,
+                            'model_verbose_name': model['verbose_name']
+                        })
+                    except Exception as e:
+                        print(f"خطا در دریافت مدل {app_label}.{model['name']}: {str(e)}")
+                        continue
+    
     # Get recent import sessions
     recent_imports = ImportExportSession.objects.filter(
         user=request.user,
@@ -166,7 +194,8 @@ def import_view(request):
     context = {
         'title': 'ورود داده',
         'models': models,
-        'recent_imports': recent_imports,
+        'content_types': content_types,
+        'import_sessions': recent_imports,
         'standalone': True,
     }
     
@@ -1082,3 +1111,121 @@ def api_list_contenttypes(request):
         return JsonResponse({
             'error': f'Error listing content types: {str(e)}'
         }, status=500)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def download_sample_file(request):
+    """Download a sample file with valid choices values."""
+    content_type_id = request.GET.get('content_type_id')
+    file_format = request.GET.get('format', 'csv')  # Default to CSV
+    
+    if not content_type_id:
+        messages.error(request, 'لطفاً مدل داده را انتخاب کنید')
+        return redirect('data_exflow:import')
+    
+    try:
+        # Get content type and model
+        content_type = ContentType.objects.get(id=content_type_id)
+        model_class = content_type.model_class()
+        
+        # Get fields for the model
+        fields = get_model_fields(content_type.app_label, model_class.__name__)
+        
+        # Create a DataFrame with sample data
+        sample_data = {}
+        
+        for field in fields:
+            field_name = field['name']
+            field_verbose_name = field.get('verbose_name', field_name)
+            
+            # Skip many-to-many fields and reverse relations
+            if field.get('type') in ['ManyToManyField', 'OneToOneRel', 'ManyToOneRel']:
+                continue
+            
+            # Handle different field types
+            if field.get('has_choices', False) and field.get('choices'):
+                # Use the first choice as an example
+                choice = field['choices'][0]
+                sample_data[field_name] = f"{choice['key']}"  # Just use the key for simplicity
+            elif field.get('type') == 'ForeignKey' and field.get('related_model'):
+                sample_data[field_name] = f"ID از {field['related_model']['verbose_name']}"
+            elif field.get('type') == 'DateField':
+                sample_data[field_name] = "1402-01-01"
+            elif field.get('type') == 'DateTimeField':
+                sample_data[field_name] = "1402-01-01 12:00:00"
+            elif field.get('type') in ['IntegerField', 'PositiveIntegerField', 'PositiveSmallIntegerField', 'BigIntegerField']:
+                sample_data[field_name] = "123"
+            elif field.get('type') in ['DecimalField', 'FloatField']:
+                sample_data[field_name] = "123.45"
+            elif field.get('type') == 'BooleanField':
+                sample_data[field_name] = "True"
+            else:
+                sample_data[field_name] = f"نمونه {field_verbose_name}"
+        
+        # Create a DataFrame with the sample data
+        df = pd.DataFrame([sample_data])
+        
+        # Create a temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f'.{file_format}') as tmp:
+            temp_path = tmp.name
+            
+        # Save based on format
+        if file_format == 'xlsx':
+            # For Excel, create a workbook and set RTL for the sheet
+            wb = Workbook()
+            ws = wb.active
+            ws.sheet_properties.rightToLeft = True  # Enable RTL for Excel sheet
+            
+            # Add headers first
+            headers = list(sample_data.keys())
+            ws.append(headers)
+            
+            # Add data row
+            ws.append(list(sample_data.values()))
+            
+            # Adjust column widths
+            for i, column in enumerate(ws.columns, 1):
+                max_length = 0
+                column_letter = get_column_letter(i)
+                
+                for cell in column:
+                    if cell.value:
+                        cell_length = len(str(cell.value))
+                        max_length = max(max_length, cell_length)
+                
+                adjusted_width = max_length + 4  # Add padding
+                ws.column_dimensions[column_letter].width = adjusted_width
+            
+            # Save to temporary file
+            wb.save(temp_path)
+        else:  # Default to CSV
+            # Add UTF-8 BOM for better Excel CSV support of Unicode
+            with open(temp_path, 'w', encoding='utf-8-sig', newline='') as f:
+                df.to_csv(f, index=False)
+            
+        # Create response
+        with open(temp_path, 'rb') as f:
+            file_data = f.read()
+            
+        # Clean up the temporary file
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
+        
+        # Set response headers
+        response = HttpResponse(
+            file_data,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' if file_format == 'xlsx' else 'text/csv'
+        )
+        
+        # Set filename with correct encoding for Persian characters
+        filename = f"نمونه_{model_class._meta.verbose_name}.{file_format}"
+        encoded_filename = quote(filename)
+        response['Content-Disposition'] = f'attachment; filename="{encoded_filename}"; filename*=UTF-8\'\'{encoded_filename}'
+        
+        return response
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        messages.error(request, f'خطا در ایجاد فایل نمونه: {str(e)}')
+        return redirect('data_exflow:import')

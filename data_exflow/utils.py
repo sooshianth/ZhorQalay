@@ -77,28 +77,46 @@ def read_file_to_dataframe(file_path, file_extension):
 
 def get_all_registered_models():
     """Get all registered models in the project."""
-    content_types = ContentType.objects.all().order_by('app_label', 'model')
     result = {}
     
-    for ct in content_types:
-        model_class = ct.model_class()
-        if model_class is None:
-            continue  # Skip if model class couldn't be loaded
-        
-        # Skip certain built-in models
-        if ct.app_label in ['admin', 'auth', 'contenttypes', 'sessions', 'django_celery_beat']:
-            continue
-            
-        if ct.app_label not in result:
-            result[ct.app_label] = []
-            
-        result[ct.app_label].append({
-            'name': model_class.__name__,
-            'verbose_name': model_class._meta.verbose_name,
-            'content_type_id': ct.id,
-        })
+    # رویکرد بهتر: استفاده از apps برای دریافت مستقیم تمام مدل‌ها
+    from django.apps import apps
     
-    return result
+    # دریافت تمام مدل‌های ثبت شده در پروژه
+    for app_config in apps.get_app_configs():
+        app_label = app_config.label
+        
+        # حذف فیلتر برنامه‌های داخلی جنگو - اگر می‌خواهید آنها را هم ببینید، این شرط را بردارید
+        if app_label in ['admin', 'auth', 'contenttypes', 'sessions', 'django_celery_beat']:
+            continue
+        
+        if app_label not in result:
+            result[app_label] = []
+        
+        for model in app_config.get_models():
+            model_name = model.__name__
+            
+            # دریافت یا ایجاد ContentType برای این مدل
+            try:
+                from django.contrib.contenttypes.models import ContentType
+                content_type = ContentType.objects.get_for_model(model)
+                
+                result[app_label].append({
+                    'name': model_name,
+                    'verbose_name': model._meta.verbose_name,
+                    'content_type_id': content_type.id,
+                })
+            except Exception as e:
+                print(f"خطا در دریافت ContentType برای مدل {app_label}.{model_name}: {str(e)}")
+                # حتی اگر نتوانیم ContentType را دریافت کنیم، مدل را اضافه می‌کنیم
+                result[app_label].append({
+                    'name': model_name,
+                    'verbose_name': model._meta.verbose_name,
+                    'content_type_id': None,  # ContentType موجود نیست
+                })
+    
+    # مرتب‌سازی بر اساس نام برنامه
+    return dict(sorted(result.items()))
 
 
 def get_model_fields(app_label, model_name):
@@ -194,11 +212,27 @@ def get_model_fields(app_label, model_name):
                 'primary_key': field.primary_key if hasattr(field, 'primary_key') else False,
                 'unique': field.unique if hasattr(field, 'unique') else False,
                 'in_unique_together': field.name in unique_together_fields,
+                'has_choices': hasattr(field, 'choices') and bool(field.choices),
             }
             
-            # Add choices if available
+            # Add choices if available - improve this part to include more details
             if hasattr(field, 'choices') and field.choices:
-                field_info['choices'] = [{'value': value, 'display': display} for value, display in field.choices]
+                field_info['choices'] = [{'key': str(value), 'display': str(display)} for value, display in field.choices]
+                
+                # فایل‌هایی که مقادیر چند مرحله‌ای دارند
+                nested_choices = []
+                for choice_item in field.choices:
+                    if isinstance(choice_item[1], (list, tuple)):
+                        # این یک گروه از choices است
+                        group_name = choice_item[0]
+                        group_choices = [{'key': str(value), 'display': str(display)} for value, display in choice_item[1]]
+                        nested_choices.append({
+                            'group': group_name,
+                            'options': group_choices
+                        })
+                
+                if nested_choices:
+                    field_info['grouped_choices'] = nested_choices
                 
             # Add foreign key information
             if field.is_relation and hasattr(field, 'remote_field') and field.remote_field:
@@ -565,6 +599,24 @@ def validate_import_data(session, dataframe, mapping):
     creates = 0
     updates = 0
     
+    # جمع‌آوری اطلاعات فیلدهای choices
+    fields_with_choices = {}
+    for field_name, field_mapping in mapping.items():
+        if not field_mapping.get('model_field'):
+            continue
+            
+        model_field_name = field_mapping['model_field']
+        try:
+            field_obj = model_class._meta.get_field(model_field_name)
+            if hasattr(field_obj, 'choices') and field_obj.choices:
+                fields_with_choices[field_name] = {
+                    'model_field': model_field_name,
+                    'choices': field_obj.choices,
+                    'valid_values': [str(key) for key, _ in field_obj.choices] + [str(display) for _, display in field_obj.choices]
+                }
+        except Exception:
+            pass
+    
     # Validate each row
     for index, row in dataframe.iterrows():
         row_number = index + 2  # +2 because pandas is 0-indexed and we have a header row
@@ -589,6 +641,30 @@ def validate_import_data(session, dataframe, mapping):
             updates += 1
         else:
             creates += 1
+        
+        # بررسی فیلدهای choices
+        for field_name, choice_info in fields_with_choices.items():
+            value = row.get(field_name)
+            if pd.notna(value):
+                str_value = str(value).strip()
+                # تست تطبیق اولیه - با استفاده از روش‌های مختلف تطبیق در تابع match_choice_value
+                matched_value = match_choice_value(str_value, choice_info['choices'])
+                
+                # اگر مقدار برگشتی همان مقدار اولیه باشد، یعنی تطبیقی پیدا نشده
+                if str(matched_value) == str_value and str_value not in choice_info['valid_values']:
+                    choices_text = ', '.join([f"{key} ({display})" for key, display in choice_info['choices']])
+                    row_errors.append({
+                        'field': field_name,
+                        'message': f'مقدار "{str_value}" برای فیلد {choice_info["model_field"]} مجاز نیست. مقادیر مجاز: {choices_text}'
+                    })
+                elif str(matched_value) != str_value:
+                    # تطبیق انجام شده اما دقیقاً یکسان نیست
+                    matched_display = next((display for key, display in choice_info['choices'] if str(key) == str(matched_value)), matched_value)
+                    warnings.append({
+                        'row': row_number,
+                        'field': field_name,
+                        'message': f'مقدار "{str_value}" به "{matched_value}" ({matched_display}) تبدیل شد'
+                    })
         
         # Check required fields
         for field_name, field_mapping in mapping.items():
@@ -711,7 +787,9 @@ def validate_import_data(session, dataframe, mapping):
         'creates': creates,
         'updates': updates,
         'existing_records': len(existing_records),
-        'duplicate_values': duplicate_values
+        'duplicate_values': duplicate_values,
+        'fields_with_choices': {k: {'model_field': v['model_field'], 'choices': [(str(key), str(display)) for key, display in v['choices']]} 
+                               for k, v in fields_with_choices.items()}
     }
 
 
@@ -1231,6 +1309,10 @@ def sanitize_value(value, field_obj):
         # For text fields, ensure we don't exceed max_length
         if isinstance(value, str) and hasattr(field_obj, 'max_length') and field_obj.max_length:
             value = value[:field_obj.max_length]
+            
+        # Handle choices fields
+        if hasattr(field_obj, 'choices') and field_obj.choices:
+            value = match_choice_value(value, field_obj.choices)
     
     elif isinstance(field_obj, models.IntegerField):
         # For integer fields, ensure we have a valid integer
@@ -1262,3 +1344,69 @@ def sanitize_value(value, field_obj):
                 return None
     
     return value 
+
+
+def match_choice_value(value, choices):
+    """
+    تطبیق مقدار ورودی با مقادیر مجاز در choices
+    این تابع سعی می‌کند با استفاده از روش‌های مختلف، مقدار ورودی را با یکی از مقادیر مجاز تطبیق دهد
+    """
+    if value is None or value == '':
+        return value
+        
+    # تبدیل به رشته برای مقایسه
+    str_value = str(value).strip()
+    
+    # اگر مقدار دقیقاً با یکی از کلیدها مطابقت داشت
+    for choice_key, choice_display in choices:
+        if str(choice_key) == str_value:
+            return choice_key
+    
+    # اگر مقدار با متن نمایشی مطابقت داشت
+    for choice_key, choice_display in choices:
+        if str(choice_display) == str_value:
+            return choice_key
+    
+    # تطبیق با حساسیت کمتر به حروف بزرگ/کوچک برای کلیدها
+    for choice_key, choice_display in choices:
+        if str(choice_key).lower() == str_value.lower():
+            return choice_key
+    
+    # تطبیق با حساسیت کمتر به حروف بزرگ/کوچک برای متن نمایشی
+    for choice_key, choice_display in choices:
+        if str(choice_display).lower() == str_value.lower():
+            return choice_key
+    
+    # تطبیق با شباهت زیاد (حاوی بودن)
+    for choice_key, choice_display in choices:
+        if str_value.lower() in str(choice_key).lower() or str_value.lower() in str(choice_display).lower():
+            return choice_key
+        if str(choice_key).lower() in str_value.lower() or str(choice_display).lower() in str_value.lower():
+            return choice_key
+    
+    # اگر هیچ تطبیقی پیدا نشد، مقدار اصلی را برگردان
+    return value
+
+
+def get_model_field_choices(model_class, field_name):
+    """
+    دریافت مقادیر مجاز برای یک فیلد با choices
+    """
+    try:
+        field = model_class._meta.get_field(field_name)
+        if hasattr(field, 'choices') and field.choices:
+            return [{'key': key, 'value': value} for key, value in field.choices]
+        return []
+    except Exception:
+        return [] 
+
+
+def get_column_letter(column_number):
+    """
+    Convert a column number to an Excel column letter (e.g., 1 -> A, 27 -> AA)
+    """
+    result = ""
+    while column_number > 0:
+        column_number, remainder = divmod(column_number - 1, 26)
+        result = chr(65 + remainder) + result
+    return result 
