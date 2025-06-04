@@ -10,6 +10,11 @@
             <div class="page-title-box d-flex align-items-center justify-content-between">
                 <h1 class="fw-bold text-primary mb-0">
                     <i class="fas fa-business-time me-2"></i>مدیریت ساعات کاری
+                    {% if edit_mode %}
+                        <span class="badge bg-warning text-dark ms-2">
+                            <i class="fas fa-edit me-1"></i>در حال ویرایش
+                        </span>
+                    {% endif %}
                 </h1>
                 <div class="page-actions">
                     <a href="{% url 'pending_approvals' %}" class="btn btn-info btn-sm text-white position-relative">
@@ -53,16 +58,27 @@
     </div>
     {% endif %}
 
-    <!-- بخش فرم ثبت - در بالای صفحه -->
+    <!-- بخش فرم ثبت/ویرایش -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow border-0 card-form">
-                <div class="card-header bg-gradient-primary text-white py-3">
-                    <h4 class="card-title m-0 fw-bold"><i class="fas fa-clock me-2"></i>ثبت ساعات روزانه</h4>
+                <div class="card-header {% if edit_mode %}bg-gradient-warning{% else %}bg-gradient-primary{% endif %} text-white py-3">
+                    <h4 class="card-title m-0 fw-bold">
+                        <i class="fas fa-{% if edit_mode %}edit{% else %}clock{% endif %} me-2"></i>
+                        {% if edit_mode %}ویرایش ساعات روزانه{% else %}ثبت ساعات روزانه{% endif %}
+                    </h4>
+                    {% if edit_mode %}
+                        <div class="mt-2">
+                            <a href="{% url 'weekly_attendance_view' %}" class="btn btn-sm btn-light text-dark">
+                                <i class="fas fa-times me-1"></i> لغو ویرایش
+                            </a>
+                        </div>
+                    {% endif %}
                 </div>
                 <div class="card-body">
                     <form id="daily-attendance-form" method="post" class="row" enctype="multipart/form-data">
                         {% csrf_token %}
+                        {{ form.attendance_id }}
                         
                         <div class="col-md-3 mb-3">
                             {{ form.date.label_tag }}
@@ -92,7 +108,7 @@
                             <label class="form-label">مجموع ساعات:</label>
                             <div class="alert alert-info py-2 mb-0 d-flex justify-content-between align-items-center">
                                 <span><i class="fas fa-calculator me-2"></i></span>
-                                <span class="fs-5 fw-bold" id="total-hours-display">0</span>
+                                <span class="fs-5 fw-bold" id="total-hours-display">{{ form.hours.value|default:0 }}</span>
                             </div>
                         </div>
                         
@@ -141,7 +157,6 @@
                                                 <span class="input-group-text"><i class="fas fa-user-check"></i></span>
                                                 {{ form.approved_by_user1 }}
                                             </div>
-                                            {% if form.approved_by_user1.help_text %}<small class="form-text text-muted">{{ form.approved_by_user1.help_text }}</small>{% endif %}
                                         </div>
                                         
                                         <div class="col-md-4 mb-2">
@@ -150,7 +165,6 @@
                                                 <span class="input-group-text"><i class="fas fa-user-check"></i></span>
                                                 {{ form.approved_by_user2 }}
                                             </div>
-                                            {% if form.approved_by_user2.help_text %}<small class="form-text text-muted">{{ form.approved_by_user2.help_text }}</small>{% endif %}
                                         </div>
                                         
                                         <div class="col-md-4 mb-2">
@@ -159,7 +173,6 @@
                                                 <span class="input-group-text"><i class="fas fa-user-check"></i></span>
                                                 {{ form.approved_by_user3 }}
                                             </div>
-                                            {% if form.approved_by_user3.help_text %}<small class="form-text text-muted">{{ form.approved_by_user3.help_text }}</small>{% endif %}
                                         </div>
                                     </div>
                                     <div class="alert alert-warning mt-2 py-2 mb-0 text-center">
@@ -204,8 +217,9 @@
                         </div>
                         
                         <div class="col-12">
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="fas fa-save me-1"></i> ثبت
+                            <button type="submit" class="btn {% if edit_mode %}btn-warning{% else %}btn-primary{% endif %} w-100">
+                                <i class="fas fa-{% if edit_mode %}edit{% else %}save{% endif %} me-1"></i>
+                                {% if edit_mode %}ثبت ویرایش{% else %}ثبت{% endif %}
                             </button>
                         </div>
                     </form>
@@ -252,6 +266,7 @@
                                     <option value="">همه وضعیت‌ها</option>
                                     <option value="approved" {% if request.GET.status == "approved" %}selected{% endif %}>تأیید نهایی</option>
                                     <option value="pending" {% if request.GET.status == "pending" %}selected{% endif %}>در انتظار تأیید</option>
+                                    <option value="rejected" {% if request.GET.status == "rejected" %}selected{% endif %}>رد شده</option>
                                 </select>
                             </div>
                         </div>
@@ -336,7 +351,7 @@
         </div>
     </div>
 
-    <!-- جدول نمایش رکوردها - در پایین صفحه -->
+    <!-- جدول نمایش رکوردها -->
     <div class="row">
         <div class="col-12">
             <div class="card shadow border-0">
@@ -354,14 +369,25 @@
                                     <th><i class="fas fa-align-left me-1"></i> توضیحات</th>
                                     <th><i class="fas fa-file-alt me-1"></i> مستندات</th>
                                     <th><i class="fas fa-user-check me-1"></i> تاییدها</th>
-                                    <th><i class="fas fa-user-shield me-1"></i> تأیید ادمین</th>
-                                    <th><i class="fas fa-info-circle me-1"></i> وضعیت کلی</th>
+                                    <th><i class="fas fa-info-circle me-1"></i> وضعیت</th>
+                                    <th><i class="fas fa-comments me-1"></i> نظرات تایید</th>
+                                    <th><i class="fas fa-cogs me-1"></i> عملیات</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for attendance in attendances %}
-                                <tr class="{% if attendance.is_fully_approved %}table-success bg-opacity-25{% endif %}">
-                                    <td>{{ attendance.week_start_date }}</td>
+                                <tr class="{% if attendance.is_fully_approved %}table-success bg-opacity-25{% elif attendance.can_be_edited %}table-warning bg-opacity-10{% endif %}">
+                                    <td>
+                                        <div class="d-flex flex-column">
+                                            <span class="fw-bold">{{ attendance.week_start_date }}</span>
+                                            <small class="text-muted">
+                                                <i class="fas fa-plus me-1"></i>{{ attendance.created_at|date:"H:i" }}
+                                                {% if attendance.edit_count > 0 %}
+                                                    <br><i class="fas fa-edit me-1"></i>{{ attendance.edit_count }} ویرایش
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    </td>
                                     <td>{{ attendance.day }}</td>
                                     <td>
                                         <div class="d-flex flex-column">
@@ -402,10 +428,6 @@
                                                     {% endif %}
                                                 {% endfor %}
                                             </div>
-                                            
-                                            {% if not attendance.is_fully_approved %}
-                                                <small class="d-block text-muted">در انتظار تأیید</small>
-                                            {% endif %}
                                         </div>
                                     </td>
                                     <td>
@@ -435,41 +457,105 @@
                                     </td>
                                     <td>
                                         <div class="d-flex flex-column gap-1">
-                                            <div class="progress" style="height: 20px;">
-                                                <div class="progress-bar {% if attendance.approval_count == 3 %}bg-success{% elif attendance.approval_count > 0 %}bg-warning{% else %}bg-danger{% endif %}" 
-                                                     role="progressbar" 
-                                                     style="width: {{ attendance.approval_count|mul:33.33 }}%;" 
-                                                     aria-valuenow="{{ attendance.approval_count }}" 
-                                                     aria-valuemin="0" 
-                                                     aria-valuemax="3">
-                                                    {{ attendance.approval_count }}/3
-                                                </div>
+                                            <!-- نوار پیشرفت دایره‌ای -->
+                                            <div class="progress-circle mx-auto mb-2" data-progress="{{ attendance.approval_progress }}">
+                                                <span class="progress-value">{{ attendance.approval_progress|floatformat:0 }}%</span>
                                             </div>
-                                            <small>
-                                                {% if attendance.enough_approvals %}
-                                                    <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> تاییدها کافی است</span>
-                                                {% else %}
-                                                    <span class="badge bg-warning text-dark"><i class="fas fa-exclamation-circle me-1"></i> نیاز به تایید بیشتر</span>
-                                                {% endif %}
-                                            </small>
+                                            
+                                            <div class="approval-badges">
+                                                <span class="badge {% if attendance.user1_approved %}bg-success{% else %}bg-secondary{% endif %} mb-1">
+                                                    کاربر ۱ {% if attendance.user1_approved %}✓{% else %}○{% endif %}
+                                                </span>
+                                                <span class="badge {% if attendance.user2_approved %}bg-success{% else %}bg-secondary{% endif %} mb-1">
+                                                    کاربر ۲ {% if attendance.user2_approved %}✓{% else %}○{% endif %}
+                                                </span>
+                                                <span class="badge {% if attendance.user3_approved %}bg-success{% else %}bg-secondary{% endif %} mb-1">
+                                                    کاربر ۳ {% if attendance.user3_approved %}✓{% else %}○{% endif %}
+                                                </span>
+                                                <span class="badge {% if attendance.approved_by_admin %}bg-success{% else %}bg-secondary{% endif %}">
+                                                    ادمین {% if attendance.approved_by_admin %}✓{% else %}○{% endif %}
+                                                </span>
+                                            </div>
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="badge {% if attendance.approved_by_admin %}bg-success{% else %}bg-warning text-dark{% endif %} p-2">
-                                            {% if attendance.approved_by_admin %}<i class="fas fa-check me-1"></i> تأیید شده{% else %}<i class="fas fa-hourglass-half me-1"></i> در انتظار{% endif %}
+                                        <span class="badge status-badge 
+                                            {% if attendance.status == 'تایید نهایی' %}bg-success
+                                            {% elif attendance.status == 'تایید جزئی' %}bg-info
+                                            {% elif attendance.status == 'در انتظار تایید' %}bg-warning text-dark
+                                            {% elif attendance.is_rejected %}bg-danger
+                                            {% else %}bg-secondary
+                                            {% endif %} p-2">
+                                            {% if attendance.is_rejected %}
+                                                <i class="fas fa-times-circle me-1"></i>رد شده
+                                            {% else %}
+                                                {{ attendance.status }}
+                                            {% endif %}
                                         </span>
+                                        {% if attendance.is_rejected %}
+                                            <div class="mt-2">
+                                                <small class="text-danger fw-bold">
+                                                    <i class="fas fa-user me-1"></i>رد شده توسط: {{ attendance.rejected_by }}
+                                                </small>
+                                                <br>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-clock me-1"></i>{{ attendance.rejected_at|date:"Y/m/d H:i" }}
+                                                </small>
+                                                {% if attendance.rejection_reason %}
+                                                <div class="mt-1">
+                                                    <button class="btn btn-sm btn-outline-danger" 
+                                                            onclick="showRejectionReason('{{ attendance.rejection_reason|escapejs }}', '{{ attendance.rejection_comments|default:""|escapejs }}')"
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#rejectionModal">
+                                                        <i class="fas fa-eye me-1"></i>مشاهده دلیل رد
+                                                    </button>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
                                     </td>
                                     <td>
-                                        {% if attendance.is_fully_approved %}
-                                            <span class="badge bg-success p-2"><i class="fas fa-check-circle me-1"></i> تأیید نهایی</span>
+                                        {% if attendance.approval_comments %}
+                                            <button class="btn btn-sm btn-outline-info view-comments-btn" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#commentsModal" 
+                                                    data-attendance-id="{{ attendance.id }}">
+                                                <i class="fas fa-comments me-1"></i>
+                                                {{ attendance.approval_comments|length }} نظر
+                                            </button>
+                                            <!-- داده‌های نظرات به صورت مخفی -->
+                                            <div class="comments-data d-none" data-attendance-id="{{ attendance.id }}">
+                                                {% for comment in attendance.approval_comments %}
+                                                <div class="comment-item" 
+                                                     data-approver="{{ comment.approver }}" 
+                                                     data-comment="{{ comment.comment }}" 
+                                                     data-date="{{ comment.date }}">
+                                                </div>
+                                                {% endfor %}
+                                            </div>
                                         {% else %}
-                                            <span class="badge bg-warning text-dark p-2"><i class="fas fa-hourglass-half me-1"></i> در انتظار تأیید</span>
+                                            <span class="text-muted fst-italic">-</span>
                                         {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group-vertical" role="group">
+                                            {% if attendance.can_be_edited %}
+                                                <a href="?edit={{ attendance.id }}" class="btn btn-sm btn-warning mb-1" title="ویرایش">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button class="btn btn-sm btn-danger" onclick="confirmDelete({{ attendance.id }})" title="حذف">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            {% endif %}
+                                            <a href="{% url 'attendance_history_view' attendance.id %}" class="btn btn-sm btn-info mt-1" title="تاریخچه">
+                                                <i class="fas fa-history"></i>
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-5">
+                                    <td colspan="9" class="text-center text-muted py-5">
                                         <i class="fas fa-info-circle fa-2x mb-3 d-block"></i>
                                         <p>هیچ اطلاعاتی ثبت نشده است.</p>
                                         <small>برای ثبت ساعات کاری از فرم بالا استفاده کنید.</small>
@@ -485,7 +571,7 @@
     </div>
 </div>
 
-<!-- مودال نمایش توضیحات کامل -->
+<!-- مودال نمایش توضیحات -->
 <div class="modal fade" id="descriptionModal" tabindex="-1" aria-labelledby="descriptionModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -495,6 +581,57 @@
             </div>
             <div class="modal-body">
                 <p id="fullDescription" class="mb-0 p-3 bg-light rounded"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">بستن</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- مودال نمایش نظرات تایید -->
+<div class="modal fade" id="commentsModal" tabindex="-1" aria-labelledby="commentsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="commentsModalLabel">
+                    <i class="fas fa-comments me-2"></i>نظرات و توضیحات تایید
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="commentsContainer" class="timeline">
+                    <!-- نظرات اینجا بارگذاری می‌شوند -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">بستن</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- مودال نمایش دلیل رد -->
+<div class="modal fade" id="rejectionModal" tabindex="-1" aria-labelledby="rejectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="rejectionModalLabel"><i class="fas fa-exclamation-circle me-2"></i>دلیل رد</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <h6 class="fw-bold text-danger mb-2">دلیل رد:</h6>
+                    <div id="rejectionReason" class="p-3 bg-light rounded border-start border-danger border-4">
+                        <!-- دلیل رد اینجا نمایش داده می‌شود -->
+                    </div>
+                </div>
+                <div class="mb-0" id="rejectionCommentsSection" style="display: none;">
+                    <h6 class="fw-bold text-info mb-2">نظرات اضافی:</h6>
+                    <div id="rejectionComments" class="p-3 bg-light rounded border-start border-info border-4">
+                        <!-- نظرات اضافی اینجا نمایش داده می‌شوند -->
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">بستن</button>
@@ -514,8 +651,64 @@
 <script src="https://unpkg.com/persian-date@latest/dist/persian-date.min.js"></script>
 <script src="https://unpkg.com/persian-datepicker@latest/dist/js/persian-datepicker.min.js"></script>
 
+<!-- فایل JavaScript سفارشی -->
+<script src="{% load static %}{% static 'js/weekly_attendance.js' %}"></script>
+
 <script>
 $(document).ready(function() {
+    // بارگذاری بازه‌های زمانی موجود در حالت ویرایش
+    var editMode = {% if edit_mode %}true{% else %}false{% endif %};
+    var existingTimeRanges = [
+        {% for time_range in existing_time_ranges %}
+        {
+            'start_time': '{{ time_range.start_time|time:"H:i" }}',
+            'end_time': '{{ time_range.end_time|time:"H:i" }}'
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    
+    if (editMode && existingTimeRanges.length > 0) {
+        loadExistingTimeRanges();
+    }
+    
+    function loadExistingTimeRanges() {
+        // پاک کردن بازه پیش‌فرض
+        $('#time-ranges-container').empty();
+        
+        // اضافه کردن بازه‌های موجود از سرور
+        for (var i = 0; i < existingTimeRanges.length; i++) {
+            addTimeRange(existingTimeRanges[i].start_time, existingTimeRanges[i].end_time);
+        }
+        
+        // محاسبه مجموع ساعات
+        calculateTotalHours();
+    }
+    
+    function addTimeRange(startTime = '', endTime = '') {
+        const newItem = `
+            <div class="time-range-item mb-2">
+                <div class="row g-2">
+                    <div class="col-md-5">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-hourglass-start"></i></span>
+                            <input type="time" name="start_times[]" class="form-control start-time" value="${startTime}" placeholder="شروع">
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-hourglass-end"></i></span>
+                            <input type="time" name="end_times[]" class="form-control end-time" value="${endTime}" placeholder="پایان">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-outline-danger remove-range w-100"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+                </div>
+            </div>
+        `;
+        $('#time-ranges-container').append(newItem);
+    }
+    
     // تنظیم تقویم جلالی برای فیلدهای تاریخ
     $('.persian-datepicker').persianDatepicker({
         format: 'YYYY/MM/DD',
@@ -824,11 +1017,103 @@ $(document).ready(function() {
         }
     });
     
+    // مدیریت نمایش دلیل رد
+    $('#rejectionModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget);
+        var reason = button.data('reason');
+        var comments = button.data('comments');
+        
+        $('#rejectionReason').text(reason || 'دلیل مشخص نشده است.');
+        
+        if (comments && comments.trim() !== '') {
+            $('#rejectionComments').text(comments);
+            $('#rejectionCommentsSection').show();
+        } else {
+            $('#rejectionCommentsSection').hide();
+        }
+    });
+    
     // نوتیفیکیشن پاپ آپ اطلاع رسانی
     setTimeout(function() {
         $('#pending-approvals-toast').toast('hide');
     }, 5000); // پنهان کردن بعد از 5 ثانیه
+
+    // مدیریت نمایش نظرات تایید
+    $('#commentsModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget);
+        var attendanceId = button.data('attendance-id');
+        
+        var container = $('#commentsContainer');
+        container.empty();
+        
+        // یافتن داده‌های نظرات مربوط به این رکورد
+        var commentsData = $('.comments-data[data-attendance-id="' + attendanceId + '"]');
+        var commentItems = commentsData.find('.comment-item');
+        
+        if (commentItems.length > 0) {
+            commentItems.each(function() {
+                var approver = $(this).data('approver');
+                var comment = $(this).data('comment');
+                var date = $(this).data('date');
+                
+                var timelineItem = `
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-info"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-header">
+                                <h6 class="timeline-title">${approver || 'نامشخص'}</h6>
+                                <small class="text-muted">${date || ''}</small>
+                            </div>
+                            <div class="timeline-body">
+                                <p class="mb-0">${comment || 'بدون نظر'}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.append(timelineItem);
+            });
+        } else {
+            container.html('<p class="text-center text-muted">هیچ نظری ثبت نشده است.</p>');
+        }
+    });
+    
+    // تابع فرمت کردن تاریخ
+    function formatDate(dateStr) {
+        if (!dateStr) return '';
+        return dateStr; // داده از سرور قبلاً فرمت شده است
+    }
+    
+    // نوار پیشرفت دایره‌ای
+    $('.progress-circle').each(function() {
+        var progress = $(this).data('progress');
+        var circle = $(this);
+        
+        circle.css({
+            'background': `conic-gradient(#28a745 ${progress * 3.6}deg, #e9ecef 0deg)`
+        });
+    });
 });
+
+// تابع تایید حذف
+function confirmDelete(attendanceId) {
+    // هدایت به صفحه تایید حذف
+    window.location.href = '/hr/attendance/delete/' + attendanceId + '/';
+}
+
+// تابع نمایش دلیل رد
+function showRejectionReason(reason, comments) {
+    document.getElementById('rejectionReason').textContent = reason || 'دلیل مشخص نشده است.';
+    
+    var commentsSection = document.getElementById('rejectionCommentsSection');
+    var commentsElement = document.getElementById('rejectionComments');
+    
+    if (comments && comments.trim() !== '') {
+        commentsElement.textContent = comments;
+        commentsSection.style.display = 'block';
+    } else {
+        commentsSection.style.display = 'none';
+    }
+}
 </script>
 
 {% block extra_styles %}
@@ -1102,6 +1387,108 @@ $(document).ready(function() {
     .card:nth-child(1) { animation-delay: 0.1s; }
     .card:nth-child(2) { animation-delay: 0.2s; }
     .card:nth-child(3) { animation-delay: 0.3s; }
+
+    /* استایل‌های اضافی */
+    .bg-gradient-warning {
+        background: linear-gradient(135deg, #ffc107 0%, #ff8f00 100%);
+    }
+    
+    .status-badge {
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    /* نوار پیشرفت دایره‌ای */
+    .progress-circle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 3px solid #e9ecef;
+    }
+    
+    .progress-value {
+        font-size: 0.7rem;
+        font-weight: bold;
+        color: #495057;
+    }
+    
+    /* بج‌های تایید */
+    .approval-badges .badge {
+        font-size: 0.65rem;
+        margin: 1px;
+    }
+    
+    /* تایم‌لاین برای نظرات */
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #dee2e6;
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: 20px;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        left: -37px;
+        top: 5px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 2px #dee2e6;
+    }
+    
+    .timeline-content {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 3px solid #17a2b8;
+    }
+    
+    .timeline-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    
+    .timeline-title {
+        margin: 0;
+        color: #495057;
+        font-weight: 600;
+    }
+    
+    .timeline-body p {
+        line-height: 1.6;
+        color: #6c757d;
+    }
+    
+    /* انیمیشن برای کارت‌های قابل ویرایش */
+    .table-warning.bg-opacity-10 {
+        animation: pulse-warning 2s infinite;
+    }
+    
+    @keyframes pulse-warning {
+        0% { background-color: rgba(255, 193, 7, 0.05); }
+        50% { background-color: rgba(255, 193, 7, 0.15); }
+        100% { background-color: rgba(255, 193, 7, 0.05); }
+    }
 </style>
 {% endblock %}
 {% endblock %}

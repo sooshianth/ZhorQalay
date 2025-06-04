@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block title %}تایید حذف ساعت کاری{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow border-0">
+                <div class="card-header bg-gradient-danger text-white py-3">
+                    <h4 class="card-title m-0 fw-bold">
+                        <i class="fas fa-exclamation-triangle me-2"></i>تایید حذف ساعت کاری
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning border-0">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-warning me-2"></i>هشدار!
+                        </h5>
+                        <p class="mb-0">آیا از حذف این ساعت کاری اطمینان دارید؟ این عملیات قابل بازگشت نیست.</p>
+                    </div>
+                    
+                    <!-- اطلاعات ساعت کاری -->
+                    <div class="card bg-light border-0 mb-4">
+                        <div class="card-header bg-secondary text-white py-2">
+                            <h6 class="m-0"><i class="fas fa-info-circle me-1"></i>اطلاعات ساعت کاری</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-2">
+                                        <strong>تاریخ:</strong>
+                                        <span class="ms-2">{{ attendance.week_start_date }}</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>روز:</strong>
+                                        <span class="ms-2">{{ attendance.day }}</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-2">
+                                        <strong>مجموع ساعات:</strong>
+                                        <span class="ms-2 fw-bold text-primary">{{ attendance.total_hours }} ساعت</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>وضعیت:</strong>
+                                        <span class="ms-2">
+                                            <span class="badge 
+                                                {% if attendance.is_fully_approved %}bg-success
+                                                {% elif attendance.is_enough_user_approvals %}bg-info
+                                                {% else %}bg-warning text-dark
+                                                {% endif %}">
+                                                {{ attendance.get_status_display }}
+                                            </span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if attendance.description %}
+                            <div class="mt-3">
+                                <strong>توضیحات:</strong>
+                                <p class="mb-0 mt-1 p-2 bg-white border rounded">{{ attendance.description }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-light">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <form method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger w-100">
+                                    <i class="fas fa-trash-alt me-1"></i> بله، حذف کن
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="{% url 'weekly_attendance_view' %}" class="btn btn-secondary w-100">
+                                <i class="fas fa-times me-1"></i> انصراف
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient-danger {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    }
+    
+    .card {
+        border-radius: 0.75rem;
+        overflow: hidden;
+    }
+    
+    .alert-warning {
+        background-color: rgba(255, 193, 7, 0.1);
+        border-left: 4px solid #ffc107;
+    }
+</style>
+{% endblock %} 

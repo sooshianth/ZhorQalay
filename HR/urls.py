@@ -8,5 +8,7 @@ urlpatterns = [
     path('attendance/approve/<int:attendance_id>/', weekly_attendance.approve_attendance, name='approve_attendance'),
     path('attendance/summary/', weekly_attendance.attendance_summary_view, name='attendance_summary'),
     path('attendance/clear-approvals/', weekly_attendance.clear_approval_references, name='clear_approval_references'),
+    path('attendance/delete/<int:attendance_id>/', weekly_attendance.delete_attendance, name='delete_attendance'),
+    path('attendance/history/<int:attendance_id>/', weekly_attendance.attendance_history_view, name='attendance_history_view'),
     path('employee/profile/', employee_profile.employee_profile_view, name='employee_profile'),
 ]

@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% block title %}تایید/رد ساعات کاری{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow border-0">
+                <div class="card-header bg-gradient-primary text-white py-3">
+                    <h4 class="card-title m-0 fw-bold">
+                        <i class="fas fa-user-check me-2"></i>تایید/رد ساعات کاری
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- اطلاعات ساعت کاری -->
+                    <div class="alert alert-info border-0 mb-4">
+                        <h6 class="alert-heading fw-bold mb-2">
+                            <i class="fas fa-info-circle me-2"></i>اطلاعات ساعت کاری
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>کارمند:</strong> {{ attendance.employee.get_full_name|default:attendance.employee.username }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>تاریخ:</strong> {{ attendance.week_start_date|date:"Y/m/d" }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>مجموع ساعات:</strong> {{ attendance.total_hours }} ساعت
+                            </div>
+                            <div class="col-md-6">
+                                <strong>وضعیت:</strong> {{ attendance.get_status_display }}
+                            </div>
+                        </div>
+                        {% if attendance.description %}
+                        <div class="mt-2">
+                            <strong>توضیحات:</strong>
+                            <p class="mb-0 mt-1 p-2 bg-white rounded">{{ attendance.description }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- فرم تایید/رد -->
+                    <form method="post" id="approvalForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">عملیات:</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="action" id="approve" value="approve" checked>
+                                    <label class="form-check-label text-success fw-bold" for="approve">
+                                        <i class="fas fa-check-circle me-1"></i> تایید
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="action" id="reject" value="reject">
+                                    <label class="form-check-label text-danger fw-bold" for="reject">
+                                        <i class="fas fa-times-circle me-1"></i> رد
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="approval_comment" class="form-label fw-bold">نظر و توضیحات:</label>
+                            <textarea class="form-control" id="approval_comment" name="approval_comment" rows="4" 
+                                      placeholder="نظر، توضیحات یا پیشنهادات خود را بنویسید..."></textarea>
+                            <div class="form-text">این فیلد اختیاری است ولی ارائه نظر به بهبود فرآیند کمک می‌کند.</div>
+                        </div>
+                        
+                        <!-- فیلد دلیل رد - فقط در صورت انتخاب رد نمایش داده می‌شود -->
+                        <div class="mb-3" id="rejection-reason-field" style="display: none;">
+                            <label for="rejection_reason" class="form-label fw-bold text-danger">دلیل رد:</label>
+                            <textarea class="form-control border-danger" id="rejection_reason" name="rejection_reason" rows="3" 
+                                      placeholder="دلیل رد کردن این ساعت کاری را بنویسید..."></textarea>
+                            <div class="form-text text-danger">ذکر دلیل رد الزامی است.</div>
+                        </div>
+
+                        <div class="d-flex gap-2 justify-content-between">
+                            <a href="{% url 'pending_approvals' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-right me-1"></i> بازگشت
+                            </a>
+                            <button type="submit" class="btn btn-success" id="confirmApprovalBtn">
+                                <i class="fas fa-check me-1"></i> تایید و ارسال
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script>
+$(document).ready(function() {
+    // مدیریت تغییر نوع عملیات
+    $('input[name="action"]').on('change', function() {
+        var action = $(this).val();
+        var btn = $('#confirmApprovalBtn');
+        var rejectionField = $('#rejection-reason-field');
+        var rejectionTextarea = $('#rejection_reason');
+        
+        if (action === 'approve') {
+            btn.removeClass('btn-danger').addClass('btn-success')
+               .html('<i class="fas fa-check me-1"></i> تایید و ارسال');
+            rejectionField.hide();
+            rejectionTextarea.prop('required', false);
+        } else {
+            btn.removeClass('btn-success').addClass('btn-danger')
+               .html('<i class="fas fa-times me-1"></i> رد و ارسال');
+            rejectionField.show();
+            rejectionTextarea.prop('required', true);
+        }
+    });
+    
+    // اعتبارسنجی فرم قبل از ارسال
+    $('#approvalForm').on('submit', function(e) {
+        var action = $('input[name="action"]:checked').val();
+        var rejectionReason = $('#rejection_reason').val().trim();
+        
+        if (action === 'reject' && !rejectionReason) {
+            e.preventDefault();
+            alert('لطفاً دلیل رد کردن را وارد کنید.');
+            $('#rejection_reason').focus();
+            return false;
+        }
+        
+        // تایید نهایی
+        var confirmMessage = action === 'approve' ? 
+            'آیا از تایید این ساعت کاری مطمئن هستید؟' : 
+            'آیا از رد کردن این ساعت کاری مطمئن هستید؟';
+            
+        if (!confirm(confirmMessage)) {
+            e.preventDefault();
+            return false;
+        }
+    });
+});
+</script>
+
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #065F46 0%, #047857 100%);
+}
+
+.card {
+    border-radius: 0.75rem;
+    box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.15);
+}
+
+.form-check-input:checked {
+    background-color: #065F46;
+    border-color: #065F46;
+}
+
+.btn-success {
+    background-color: #065F46;
+    border-color: #065F46;
+}
+
+.btn-success:hover {
+    background-color: #047857;
+    border-color: #047857;
+}
+
+.form-control:focus {
+    border-color: #065F46;
+    box-shadow: 0 0 0 0.25rem rgba(6, 95, 70, 0.25);
+}
+
+.border-danger:focus {
+    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+}
+</style>
+{% endblock %} 

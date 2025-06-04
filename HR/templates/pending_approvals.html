@@ -26,6 +26,7 @@
                 <div class="card-header bg-gradient-primary text-white py-3">
                     <h4 class="card-title m-0 fw-bold">
                         <i class="fas fa-list-ul me-2"></i>ساعات در انتظار تایید
+                        <span class="badge bg-warning text-dark ms-2">{{ pending_attendances|length }} مورد</span>
                     </h4>
                 </div>
                 <div class="card-body">
@@ -34,28 +35,44 @@
                             <thead class="table-dark">
                                 <tr>
                                     <th><i class="fas fa-user me-1"></i> کارمند</th>
-                                    <th><i class="fas fa-calendar-alt me-1"></i> تاریخ شروع هفته</th>
+                                    <th><i class="fas fa-calendar-alt me-1"></i> تاریخ</th>
                                     <th><i class="fas fa-calendar-day me-1"></i> روز</th>
                                     <th><i class="fas fa-clock me-1"></i> ساعات</th>
                                     <th><i class="fas fa-align-left me-1"></i> توضیحات</th>
                                     <th><i class="fas fa-file-alt me-1"></i> مستندات</th>
-                                    <th><i class="fas fa-check-double me-1"></i> تاییدها</th>
+                                    <th><i class="fas fa-check-double me-1"></i> وضعیت تاییدها</th>
+                                    <th><i class="fas fa-comments me-1"></i> نظرات قبلی</th>
                                     <th><i class="fas fa-cogs me-1"></i> عملیات</th>
                                 </tr>
                             </thead>
                             <tbody>
                             {% for attendance in pending_attendances %}
-                                <tr>
+                                <tr class="attendance-row" data-attendance-id="{{ attendance.id }}">
                                     <td>
                                         <div class="d-flex align-items-center">
                                             <div class="avatar-circle bg-gradient-primary text-white me-2">
                                                 {{ attendance.employee.username|first|upper }}
                                             </div>
-                                            <span class="fw-bold">{{ attendance.employee.username }}</span>
+                                            <div>
+                                                <span class="fw-bold">{{ attendance.employee.username }}</span>
+                                                <br><small class="text-muted">{{ attendance.employee.first_name }} {{ attendance.employee.last_name }}</small>
+                                            </div>
                                         </div>
                                     </td>
-                                    <td>{{ attendance.jalali_date }}</td>
-                                    <td>{{ attendance.persian_day }}</td>
+                                    <td>
+                                        <div class="d-flex flex-column">
+                                            <span class="fw-bold">{{ attendance.jalali_date }}</span>
+                                            <small class="text-muted">
+                                                <i class="fas fa-plus me-1"></i>{{ attendance.created_at|date:"H:i" }}
+                                                {% if attendance.edit_count > 0 %}
+                                                    <br><i class="fas fa-edit me-1"></i>{{ attendance.edit_count }} ویرایش
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">{{ attendance.persian_day }}</span>
+                                    </td>
                                     <td>
                                         <div class="d-flex flex-column">
                                             <span class="fw-bold text-primary">{{ attendance.total_hours }} ساعت</span>
@@ -128,60 +145,85 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <!-- نوار پیشرفت به صورت بج‌های متنی -->
-                                        <div class="approval-status mb-2">
-                                            <h5 class="mb-2 text-center">
-                                                {% if attendance.approval_count == 3 %}
-                                                    <span class="badge bg-success w-100 p-2">
-                                                        <i class="fas fa-check-circle me-1"></i> تأیید کامل ({{ attendance.approval_count }}/3)
-                                                    </span>
-                                                {% elif attendance.approval_count > 0 %}
-                                                    <span class="badge bg-warning text-dark w-100 p-2">
-                                                        <i class="fas fa-hourglass-half me-1"></i> در حال تأیید ({{ attendance.approval_count }}/3)
-                                                    </span>
-                                                {% else %}
-                                                    <span class="badge bg-danger w-100 p-2">
-                                                        <i class="fas fa-times-circle me-1"></i> بدون تأیید ({{ attendance.approval_count }}/3)
-                                                    </span>
-                                                {% endif %}
-                                            </h5>
-                                        </div>
-                                        <div class="d-flex flex-column gap-1">
-                                            <span class="badge {% if attendance.user1_approved %}bg-success{% else %}bg-warning text-dark{% endif %} mb-1">
-                                                <i class="fas {% if attendance.user1_approved %}fa-check-circle{% else %}fa-hourglass-half{% endif %} me-1"></i>
-                                                کاربر ۱: {% if attendance.user1_approved %}تایید شده{% else %}در انتظار{% endif %}
-                                            </span>
-                                            <span class="badge {% if attendance.user2_approved %}bg-success{% else %}bg-warning text-dark{% endif %} mb-1">
-                                                <i class="fas {% if attendance.user2_approved %}fa-check-circle{% else %}fa-hourglass-half{% endif %} me-1"></i>
-                                                کاربر ۲: {% if attendance.user2_approved %}تایید شده{% else %}در انتظار{% endif %}
-                                            </span>
-                                            <span class="badge {% if attendance.user3_approved %}bg-success{% else %}bg-warning text-dark{% endif %} mb-1">
-                                                <i class="fas {% if attendance.user3_approved %}fa-check-circle{% else %}fa-hourglass-half{% endif %} me-1"></i>
-                                                کاربر ۳: {% if attendance.user3_approved %}تایید شده{% else %}در انتظار{% endif %}
-                                            </span>
-                                            <span class="badge {% if attendance.approved_by_admin %}bg-success{% else %}bg-warning text-dark{% endif %}">
-                                                <i class="fas {% if attendance.approved_by_admin %}fa-check-circle{% else %}fa-hourglass-half{% endif %} me-1"></i>
-                                                ادمین: {% if attendance.approved_by_admin %}تایید شده{% else %}در انتظار{% endif %}
-                                            </span>
+                                        <div class="approval-status-container">
+                                            <!-- نوار پیشرفت -->
+                                            <div class="progress mb-2" style="height: 25px;">
+                                                <div class="progress-bar {% if attendance.approval_count >= 3 %}bg-success{% elif attendance.approval_count >= 2 %}bg-info{% elif attendance.approval_count >= 1 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                     role="progressbar" 
+                                                     style="width: {{ attendance.approval_count|mul:25 }}%;" 
+                                                     aria-valuenow="{{ attendance.approval_count }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="4">
+                                                    {{ attendance.approval_count }}/4
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- وضعیت تفصیلی -->
+                                            <div class="d-flex flex-column gap-1">
+                                                <span class="badge {% if attendance.user1_approved %}bg-success{% else %}bg-secondary{% endif %} mb-1">
+                                                    <i class="fas {% if attendance.user1_approved %}fa-check-circle{% else %}fa-clock{% endif %} me-1"></i>
+                                                    کاربر ۱
+                                                </span>
+                                                <span class="badge {% if attendance.user2_approved %}bg-success{% else %}bg-secondary{% endif %} mb-1">
+                                                    <i class="fas {% if attendance.user2_approved %}fa-check-circle{% else %}fa-clock{% endif %} me-1"></i>
+                                                    کاربر ۲
+                                                </span>
+                                                <span class="badge {% if attendance.user3_approved %}bg-success{% else %}bg-secondary{% endif %} mb-1">
+                                                    <i class="fas {% if attendance.user3_approved %}fa-check-circle{% else %}fa-clock{% endif %} me-1"></i>
+                                                    کاربر ۳
+                                                </span>
+                                                <span class="badge {% if attendance.approved_by_admin %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                                                    <i class="fas {% if attendance.approved_by_admin %}fa-check-circle{% else %}fa-hourglass-half{% endif %} me-1"></i>
+                                                    ادمین
+                                                </span>
+                                            </div>
                                         </div>
                                     </td>
                                     <td>
+                                        {% if attendance.approval_comments %}
+                                            <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#previousCommentsModal" 
+                                                    data-comments="{{ attendance.approval_comments|safe }}" 
+                                                    data-attendance-id="{{ attendance.id }}">
+                                                <i class="fas fa-comments me-1"></i>
+                                                {{ attendance.approval_comments|length }} نظر
+                                            </button>
+                                        {% else %}
+                                            <span class="text-muted fst-italic">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
                                         {% if attendance.approved_by_user1.user == request.user and not attendance.user1_approved %}
-                                            <a href="{% url 'approve_attendance' attendance.id %}" class="btn btn-success btn-sm">
-                                                <i class="fas fa-check me-1"></i> تایید توسط شما (کاربر ۱)
-                                            </a>
+                                            <button class="btn btn-success btn-sm approve-btn" 
+                                                    data-attendance-id="{{ attendance.id }}" 
+                                                    data-user-type="user1"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#approvalModal">
+                                                <i class="fas fa-check me-1"></i> تایید شما (کاربر ۱)
+                                            </button>
                                         {% elif attendance.approved_by_user2.user == request.user and not attendance.user2_approved %}
-                                            <a href="{% url 'approve_attendance' attendance.id %}" class="btn btn-success btn-sm">
-                                                <i class="fas fa-check me-1"></i> تایید توسط شما (کاربر ۲)
-                                            </a>
+                                            <button class="btn btn-success btn-sm approve-btn" 
+                                                    data-attendance-id="{{ attendance.id }}" 
+                                                    data-user-type="user2"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#approvalModal">
+                                                <i class="fas fa-check me-1"></i> تایید شما (کاربر ۲)
+                                            </button>
                                         {% elif attendance.approved_by_user3.user == request.user and not attendance.user3_approved %}
-                                            <a href="{% url 'approve_attendance' attendance.id %}" class="btn btn-success btn-sm">
-                                                <i class="fas fa-check me-1"></i> تایید توسط شما (کاربر ۳)
-                                            </a>
+                                            <button class="btn btn-success btn-sm approve-btn" 
+                                                    data-attendance-id="{{ attendance.id }}" 
+                                                    data-user-type="user3"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#approvalModal">
+                                                <i class="fas fa-check me-1"></i> تایید شما (کاربر ۳)
+                                            </button>
                                         {% elif request.user.is_superuser and not attendance.approved_by_admin %}
-                                            <a href="{% url 'approve_attendance' attendance.id %}" class="btn btn-primary btn-sm">
-                                                <i class="fas fa-check-double me-1"></i> تایید نهایی توسط ادمین
-                                            </a>
+                                            <button class="btn btn-primary btn-sm approve-btn" 
+                                                    data-attendance-id="{{ attendance.id }}" 
+                                                    data-user-type="admin"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#approvalModal">
+                                                <i class="fas fa-check-double me-1"></i> تایید نهایی ادمین
+                                            </button>
                                         {% elif attendance.approved_by_admin %}
                                             <span class="badge bg-success p-2">
                                                 <i class="fas fa-check-circle me-1"></i> تایید نهایی شده
@@ -191,11 +233,18 @@
                                                 <i class="fas fa-hourglass-half me-1"></i> در انتظار تایید دیگران
                                             </span>
                                         {% endif %}
+                                        
+                                        <!-- لینک مشاهده تاریخچه -->
+                                        <div class="mt-2">
+                                            <a href="{% url 'attendance_history_view' attendance.id %}" class="btn btn-sm btn-outline-secondary">
+                                                <i class="fas fa-history me-1"></i> تاریخچه
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                             {% empty %}
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-5">
+                                    <td colspan="9" class="text-center text-muted py-5">
                                         <i class="fas fa-check-circle fa-2x mb-3 d-block"></i>
                                         <p>رکوردی برای تایید وجود ندارد.</p>
                                         <small>تمام ساعات کاری تایید شده‌اند.</small>
@@ -216,16 +265,237 @@
     </div>
 </div>
 
+<!-- مودال تایید با کامنت -->
+<div class="modal fade" id="approvalModal" tabindex="-1" aria-labelledby="approvalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="approvalModalLabel">
+                    <i class="fas fa-check-circle me-2"></i>تایید ساعت کاری
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="approvalForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        شما در حال تایید ساعت کاری هستید. نظر شما برای کارمند قابل مشاهده خواهد بود.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="approval_comment" class="form-label fw-bold">نظر و توضیحات:</label>
+                        <textarea class="form-control" id="approval_comment" name="approval_comment" rows="4" 
+                                  placeholder="نظر، توضیحات یا پیشنهادات خود را بنویسید..."></textarea>
+                        <div class="form-text">این فیلد اختیاری است ولی ارائه نظر به بهبود فرآیند کمک می‌کند.</div>
+                    </div>
+                    
+                    <!-- فیلد دلیل رد - فقط در صورت انتخاب رد نمایش داده می‌شود -->
+                    <div class="mb-3" id="rejection-reason-field" style="display: none;">
+                        <label for="rejection_reason" class="form-label fw-bold text-danger">دلیل رد:</label>
+                        <textarea class="form-control border-danger" id="rejection_reason" name="rejection_reason" rows="3" 
+                                  placeholder="دلیل رد کردن این ساعت کاری را بنویسید..."></textarea>
+                        <div class="form-text text-danger">ذکر دلیل رد الزامی است.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">عملیات:</label>
+                        <div class="d-flex gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="action" id="approve" value="approve" checked>
+                                <label class="form-check-label text-success fw-bold" for="approve">
+                                    <i class="fas fa-check-circle me-1"></i> تایید
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="action" id="reject" value="reject">
+                                <label class="form-check-label text-danger fw-bold" for="reject">
+                                    <i class="fas fa-times-circle me-1"></i> رد
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> لغو
+                    </button>
+                    <button type="submit" class="btn btn-success" id="confirmApprovalBtn">
+                        <i class="fas fa-check me-1"></i> تایید و ارسال
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- مودال نمایش توضیحات -->
+<div class="modal fade" id="descriptionModal" tabindex="-1" aria-labelledby="descriptionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-primary text-white">
+                <h5 class="modal-title" id="descriptionModalLabel"><i class="fas fa-info-circle me-2"></i>توضیحات کامل</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="fullDescription" class="mb-0 p-3 bg-light rounded"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">بستن</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- مودال نمایش نظرات قبلی -->
+<div class="modal fade" id="previousCommentsModal" tabindex="-1" aria-labelledby="previousCommentsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="previousCommentsModalLabel">
+                    <i class="fas fa-comments me-2"></i>نظرات قبلی تایید
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="previousCommentsContainer" class="timeline">
+                    <!-- نظرات اینجا بارگذاری می‌شوند -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">بستن</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- کتابخانه‌ها -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+<script>
+$(document).ready(function() {
+    // مدیریت کلیک روی دکمه تایید
+    $('.approve-btn').on('click', function() {
+        var attendanceId = $(this).data('attendance-id');
+        var userType = $(this).data('user-type');
+        
+        $('#approvalForm').attr('action', '/hr/attendance/approve/' + attendanceId + '/');
+        
+        // تنظیم عنوان مودال بر اساس نوع کاربر
+        var title = 'تایید ساعت کاری';
+        if (userType === 'admin') {
+            title = 'تایید نهایی ادمین';
+            $('#approvalModalLabel').html('<i class="fas fa-check-double me-2"></i>' + title);
+            $('.modal-header').removeClass('bg-success').addClass('bg-primary');
+        } else {
+            $('#approvalModalLabel').html('<i class="fas fa-check-circle me-2"></i>' + title);
+            $('.modal-header').removeClass('bg-primary').addClass('bg-success');
+        }
+    });
+    
+    // مدیریت تغییر نوع عملیات
+    $('input[name="action"]').on('change', function() {
+        var action = $(this).val();
+        var btn = $('#confirmApprovalBtn');
+        var rejectionField = $('#rejection-reason-field');
+        var rejectionTextarea = $('#rejection_reason');
+        
+        if (action === 'approve') {
+            btn.removeClass('btn-danger').addClass('btn-success')
+               .html('<i class="fas fa-check me-1"></i> تایید و ارسال');
+            rejectionField.hide();
+            rejectionTextarea.prop('required', false);
+        } else {
+            btn.removeClass('btn-success').addClass('btn-danger')
+               .html('<i class="fas fa-times me-1"></i> رد و ارسال');
+            rejectionField.show();
+            rejectionTextarea.prop('required', true);
+        }
+    });
+    
+    // اعتبارسنجی فرم قبل از ارسال
+    $('#approvalForm').on('submit', function(e) {
+        var action = $('input[name="action"]:checked').val();
+        var rejectionReason = $('#rejection_reason').val().trim();
+        
+        if (action === 'reject' && !rejectionReason) {
+            e.preventDefault();
+            alert('لطفاً دلیل رد کردن را وارد کنید.');
+            $('#rejection_reason').focus();
+            return false;
+        }
+    });
+    
+    // مدیریت نمایش توضیحات
+    $('.show-description').on('click', function() {
+        var description = $(this).data('description');
+        $('#fullDescription').text(description);
+    });
+    
+    // مدیریت نمایش نظرات قبلی
+    $('#previousCommentsModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget);
+        var comments = button.data('comments');
+        var attendanceId = button.data('attendance-id');
+        
+        var container = $('#previousCommentsContainer');
+        container.empty();
+        
+        if (comments && comments.length > 0) {
+            comments.forEach(function(comment, index) {
+                var timelineItem = `
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-info"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-header">
+                                <h6 class="timeline-title">${comment.approver}</h6>
+                                <small class="text-muted">${formatDate(comment.date)}</small>
+                            </div>
+                            <div class="timeline-body">
+                                <p class="mb-0">${comment.comment}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.append(timelineItem);
+            });
+        } else {
+            container.html('<p class="text-center text-muted">هیچ نظری ثبت نشده است.</p>');
+        }
+    });
+    
+    // تابع فرمت کردن تاریخ
+    function formatDate(dateStr) {
+        if (!dateStr) return '';
+        var date = new Date(dateStr);
+        return date.toLocaleDateString('fa-IR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+    
+    // انیمیشن برای ردیف‌ها
+    $('.attendance-row').hover(
+        function() {
+            $(this).addClass('table-active');
+        },
+        function() {
+            $(this).removeClass('table-active');
+        }
+    );
+});
+</script>
+
 <style>
     /* متغیرهای رنگ و سایز */
     :root {
-        --primary-color: #065F46;  /* سبز زمردی تیره */
+        --primary-color: #065F46;
         --secondary-color: #6c757d;
         --success-color: #1cc88a;
         --info-color: #36b9cc;
@@ -264,13 +534,14 @@
     
     /* استایل آواتار دایره‌ای */
     .avatar-circle {
-        width: 35px;
-        height: 35px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: bold;
+        font-size: 1.1rem;
     }
     
     /* استایل جدول */
@@ -287,7 +558,7 @@
     
     .table-responsive {
         border-radius: 0.5rem;
-        max-height: 600px;
+        max-height: 800px;
         overflow-y: auto;
     }
     
@@ -300,7 +571,6 @@
     
     /* استایل نوار پیشرفت */
     .progress {
-        height: 1rem;
         border-radius: 1rem;
         background-color: #eaecf4;
     }
@@ -308,11 +578,6 @@
     .progress-bar {
         border-radius: 1rem;
         font-weight: bold;
-    }
-    
-    /* Fixed progress bar styling */
-    .progress-bar[aria-valuenow] {
-        border-radius: 1rem;
         text-align: center;
         white-space: nowrap;
         overflow: hidden;
@@ -320,9 +585,15 @@
     
     /* استایل بج‌ها */
     .badge {
-        padding: 0.5rem 0.75rem;
+        padding: 0.4rem 0.6rem;
         border-radius: 10rem;
         font-weight: 600;
+        font-size: 0.7rem;
+    }
+    
+    /* استایل وضعیت تاییدها */
+    .approval-status-container {
+        min-width: 150px;
     }
     
     /* استایل توضیحات */
@@ -344,6 +615,73 @@
         color: var(--primary-color);
     }
     
+    /* تایم‌لاین برای نظرات */
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #dee2e6;
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: 20px;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        left: -37px;
+        top: 5px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 2px #dee2e6;
+    }
+    
+    .timeline-content {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 3px solid #17a2b8;
+    }
+    
+    .timeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    
+    .timeline-title {
+        margin: 0;
+        color: #495057;
+        font-weight: 600;
+    }
+    
+    .timeline-body p {
+        line-height: 1.6;
+        color: #6c757d;
+    }
+    
+    /* انیمیشن برای ردیف‌های جدول */
+    .attendance-row {
+        transition: all 0.3s ease;
+    }
+    
+    .attendance-row:hover {
+        background-color: rgba(6, 95, 70, 0.05) !important;
+        transform: scale(1.01);
+    }
+    
     /* استایل مودال */
     .modal-content {
         border-radius: 0.75rem;
@@ -356,37 +694,21 @@
         border-top-right-radius: 0.75rem;
     }
     
-    #fullDescription {
-        line-height: 1.8;
-        max-height: 300px;
-        overflow-y: auto;
+    /* انیمیشن ظاهر شدن کارت‌ها */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .card {
+        animation: fadeInUp 0.6s ease-out;
     }
 </style>
-
-<!-- مودال نمایش توضیحات کامل -->
-<div class="modal fade" id="descriptionModal" tabindex="-1" aria-labelledby="descriptionModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-gradient-primary text-white">
-                <h5 class="modal-title" id="descriptionModalLabel"><i class="fas fa-info-circle me-2"></i>توضیحات کامل</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p id="fullDescription" class="mb-0 p-3 bg-light rounded"></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">بستن</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    // مدیریت نمایش توضیحات در مودال
-    $('.show-description').on('click', function() {
-        const description = $(this).data('description');
-        $('#fullDescription').text(description);
-    });
-</script>
 
 {% endblock %}

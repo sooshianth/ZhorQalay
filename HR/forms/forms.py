@@ -6,6 +6,51 @@ from django.utils.translation import gettext_lazy as _
 import jdatetime
 from datetime import datetime, timedelta
 
+# فرم جدید برای تایید با کامنت
+class ApprovalForm(forms.Form):
+    approval_comment = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 4,
+            'placeholder': 'نظر، توضیحات یا پیشنهادات خود را بنویسید...'
+        }),
+        required=False,
+        label="نظر و توضیحات تایید",
+        help_text="این نظر برای کارمند قابل مشاهده خواهد بود"
+    )
+    
+    rejection_reason = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'دلیل رد کردن این ساعت کاری را بنویسید...'
+        }),
+        required=False,
+        label="دلیل رد",
+        help_text="در صورت رد، ذکر دلیل الزامی است"
+    )
+    
+    action = forms.ChoiceField(
+        choices=[
+            ('approve', 'تایید'),
+            ('reject', 'رد')
+        ],
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
+        initial='approve',
+        label="عملیات"
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        action = cleaned_data.get('action')
+        rejection_reason = cleaned_data.get('rejection_reason')
+        
+        # اگر عملیات رد باشد، دلیل رد الزامی است
+        if action == 'reject' and not rejection_reason:
+            raise forms.ValidationError('برای رد کردن، ذکر دلیل الزامی است.')
+        
+        return cleaned_data
+
 # ویجت سفارشی برای آپلود چندین فایل
 class MultipleFileInput(forms.FileInput):
     def __init__(self, attrs=None):
@@ -71,6 +116,12 @@ class WeeklyAttendanceForm(forms.ModelForm):
         }
 
 class DailyAttendanceForm(forms.Form):
+    # فیلد مخفی برای شناسایی ویرایش
+    attendance_id = forms.IntegerField(
+        widget=forms.HiddenInput(),
+        required=False
+    )
+    
     date = forms.CharField(
         widget=forms.TextInput(attrs={
             'class': 'form-control persian-datepicker',
@@ -107,19 +158,19 @@ class DailyAttendanceForm(forms.Form):
     )
     approved_by_user1 = forms.ModelChoiceField(
         queryset=Employee.objects.all(),
-        required=True,
+        required=False,
         label=_("تأیید توسط کارمند ۱"),
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     approved_by_user2 = forms.ModelChoiceField(
         queryset=Employee.objects.all(),
-        required=True,
+        required=False,
         label=_("تأیید توسط کارمند ۲"),
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     approved_by_user3 = forms.ModelChoiceField(
         queryset=Employee.objects.all(),
-        required=True,
+        required=False,
         label=_("تأیید توسط کارمند ۳"),
         widget=forms.Select(attrs={'class': 'form-control'})
     )
@@ -136,7 +187,9 @@ class DailyAttendanceForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
+        attendance_instance = kwargs.pop('attendance_instance', None)
         super().__init__(*args, **kwargs)
+        
         if user:
             # حذف کارمند فعلی از لیست تاییدکنندگان
             try:
@@ -157,7 +210,29 @@ class DailyAttendanceForm(forms.Form):
             self.fields['approved_by_user2'].help_text = "افراد متفاوتی را انتخاب کنید"
             self.fields['approved_by_user3'].help_text = "تایید نهایی توسط ادمین انجام می‌شود"
 
-        # تنظیم روز هفته صورت نمی‌گیرد تا کاربر خودش تاریخ را انتخاب کند
+        # اگر در حالت ویرایش هستیم، فیلدها را پر کنیم
+        if attendance_instance:
+            self.fields['attendance_id'].initial = attendance_instance.id
+            self.fields['date'].initial = attendance_instance.week_start_date.strftime('%Y/%m/%d')
+            self.fields['hours'].initial = attendance_instance.total_hours
+            self.fields['description'].initial = attendance_instance.description
+            self.fields['approved_by_user1'].initial = attendance_instance.approved_by_user1
+            self.fields['approved_by_user2'].initial = attendance_instance.approved_by_user2
+            self.fields['approved_by_user3'].initial = attendance_instance.approved_by_user3
+            
+            # تنظیم روز هفته
+            day_translation = {
+                'Saturday': 'شنبه',
+                'Sunday': 'یکشنبه',
+                'Monday': 'دوشنبه',
+                'Tuesday': 'سه‌شنبه',
+                'Wednesday': 'چهارشنبه',
+                'Thursday': 'پنج‌شنبه',
+                'Friday': 'جمعه'
+            }
+            self.fields['day_of_week'].initial = day_translation.get(attendance_instance.day, attendance_instance.day)
+
+        # تنظیم تقویم جلالی برای فیلدهای تاریخ
         # مترجم روزهای هفته به فارسی - برای استفاده در بخش‌های مختلف
         # شنبه = 6, یکشنبه = 0, دوشنبه = 1, سه‌شنبه = 2, چهارشنبه = 3, پنج‌شنبه = 4, جمعه = 5
         self.weekday_names = {
@@ -196,19 +271,26 @@ class DailyAttendanceForm(forms.Form):
         if hours is None or hours <= 0:
             self.add_error('hours', "لطفاً ساعات کاری معتبری وارد کنید")
         
-        # اطمینان از انتخاب تاییدکنندگان متفاوت
+        # جمع‌آوری تاییدکنندگان انتخاب شده
         employee1 = cleaned_data.get('approved_by_user1')
         employee2 = cleaned_data.get('approved_by_user2')
         employee3 = cleaned_data.get('approved_by_user3')
         
-        if employee1 and employee2 and employee1.id == employee2.id:
-            self.add_error('approved_by_user2', "تاییدکنندگان باید افراد متفاوتی باشند")
+        selected_employees = []
+        if employee1:
+            selected_employees.append(employee1)
+        if employee2:
+            selected_employees.append(employee2)
+        if employee3:
+            selected_employees.append(employee3)
         
-        if employee1 and employee3 and employee1.id == employee3.id:
-            self.add_error('approved_by_user3', "تاییدکنندگان باید افراد متفاوتی باشند")
+        # بررسی حداقل 2 تاییدکننده
+        if len(selected_employees) < 2:
+            raise forms.ValidationError("لطفاً حداقل 2 تاییدکننده انتخاب کنید.")
         
-        if employee2 and employee3 and employee2.id == employee3.id:
-            self.add_error('approved_by_user3', "تاییدکنندگان باید افراد متفاوتی باشند")
+        # بررسی تکراری نبودن تاییدکنندگان
+        if len(selected_employees) != len(set(selected_employees)):
+            raise forms.ValidationError("تاییدکنندگان نباید تکراری باشند.")
             
         return cleaned_data
 

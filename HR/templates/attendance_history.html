@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+
+{% block title %}تاریخچه تغییرات ساعت کاری{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="page-title-box d-flex align-items-center justify-content-between">
+                <h1 class="fw-bold text-primary mb-0">
+                    <i class="fas fa-history me-2"></i>تاریخچه تغییرات ساعت کاری
+                </h1>
+                <a href="{% url 'weekly_attendance_view' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-right me-1"></i> بازگشت
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- اطلاعات اصلی ساعت کاری -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow border-0">
+                <div class="card-header bg-gradient-primary text-white py-3">
+                    <h4 class="card-title m-0 fw-bold">
+                        <i class="fas fa-info-circle me-2"></i>اطلاعات ساعت کاری
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>کارمند:</strong>
+                            <p>{{ attendance.employee.username }}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>تاریخ:</strong>
+                            <p>{{ attendance.week_start_date }}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>مجموع ساعات:</strong>
+                            <p>{{ attendance.total_hours }} ساعت</p>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>وضعیت فعلی:</strong>
+                            <p>
+                                <span class="badge 
+                                    {% if attendance.is_fully_approved %}bg-success
+                                    {% elif attendance.is_enough_user_approvals %}bg-info
+                                    {% else %}bg-warning text-dark
+                                    {% endif %} p-2">
+                                    {{ attendance.get_status_display }}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تاریخچه تغییرات -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow border-0">
+                <div class="card-header bg-gradient-secondary text-white py-3">
+                    <h4 class="card-title m-0 fw-bold">
+                        <i class="fas fa-clock me-2"></i>تاریخچه تغییرات
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if history %}
+                        <div class="timeline">
+                            {% for record in history %}
+                            <div class="timeline-item">
+                                <div class="timeline-marker 
+                                    {% if record.change_type == 'CREATE' %}bg-success
+                                    {% elif record.change_type == 'UPDATE' %}bg-warning
+                                    {% elif record.change_type == 'APPROVE' %}bg-info
+                                    {% elif record.change_type == 'DELETE' %}bg-danger
+                                    {% else %}bg-secondary
+                                    {% endif %}"></div>
+                                <div class="timeline-content">
+                                    <div class="timeline-header">
+                                        <h6 class="timeline-title">{{ record.get_change_type_display }}</h6>
+                                        <small class="text-muted">
+                                            {{ record.changed_at }} توسط {{ record.changed_by.username }}
+                                        </small>
+                                    </div>
+                                    <div class="timeline-body">
+                                        <p class="mb-2">{{ record.description }}</p>
+                                        
+                                        {% if record.old_data or record.new_data %}
+                                        <div class="row">
+                                            {% if record.old_data %}
+                                            <div class="col-md-6">
+                                                <div class="card bg-light">
+                                                    <div class="card-header bg-danger text-white py-2">
+                                                        <small class="fw-bold">مقادیر قبلی</small>
+                                                    </div>
+                                                    <div class="card-body p-2">
+                                                        <small>
+                                                            {% for key, value in record.old_data.items %}
+                                                                <div><strong>{{ key }}:</strong> {{ value }}</div>
+                                                            {% endfor %}
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                            
+                                            {% if record.new_data %}
+                                            <div class="col-md-6">
+                                                <div class="card bg-light">
+                                                    <div class="card-header bg-success text-white py-2">
+                                                        <small class="fw-bold">مقادیر جدید</small>
+                                                    </div>
+                                                    <div class="card-body p-2">
+                                                        <small>
+                                                            {% for key, value in record.new_data.items %}
+                                                                <div><strong>{{ key }}:</strong> {{ value }}</div>
+                                                            {% endfor %}
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-history fa-2x mb-3 d-block"></i>
+                            <p>هیچ تاریخچه‌ای برای این ساعت کاری ثبت نشده است.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #dee2e6;
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: 30px;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        left: -37px;
+        top: 5px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 2px #dee2e6;
+    }
+    
+    .timeline-content {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 3px solid #17a2b8;
+    }
+    
+    .timeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    
+    .timeline-title {
+        margin: 0;
+        color: #495057;
+        font-weight: 600;
+    }
+    
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #065F46 0%, #047857 100%);
+    }
+    
+    .bg-gradient-secondary {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+    }
+</style>
+{% endblock %} 
