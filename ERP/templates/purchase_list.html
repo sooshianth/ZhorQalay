@@ -964,7 +964,15 @@
                     {% elif column.id == 'tracking_number' %}
                     <td class="column-{{ column.id }}">{{ purchase.tracking_number|default:"-" }}</td>
                     {% elif column.id == 'shenase_takhsis' %}
-                    <td class="column-{{ column.id }}">{{ purchase.shenase_takhsis|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.shenase_takhsis_set.exists %}
+                            {% for shenase in purchase.shenase_takhsis_set.all %}
+                                <span class="badge bg-info text-white me-1 mb-1">{{ shenase.code }}</span>
+                            {% endfor %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
                     {% elif column.id == 'code_melli_tahvil' %}
                     <td class="column-{{ column.id }}">{{ purchase.code_melli_tahvil|default:"-" }}</td>
                     {% elif column.id == 'bazaargah_phone_number' %}
@@ -1193,7 +1201,15 @@
                     {% elif column.id == 'tracking_number' %}
                     <td class="column-{{ column.id }}">{{ purchase.tracking_number|default:"-" }}</td>
                     {% elif column.id == 'shenase_takhsis' %}
-                    <td class="column-{{ column.id }}">{{ purchase.shenase_takhsis|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.shenase_takhsis_set.exists %}
+                            {% for shenase in purchase.shenase_takhsis_set.all %}
+                                <span class="badge bg-info text-white me-1 mb-1">{{ shenase.code }}</span>
+                            {% endfor %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
                     {% elif column.id == 'code_melli_tahvil' %}
                     <td class="column-{{ column.id }}">{{ purchase.code_melli_tahvil|default:"-" }}</td>
                     {% elif column.id == 'bazaargah_phone_number' %}
