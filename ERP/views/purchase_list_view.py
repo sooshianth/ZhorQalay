@@ -49,8 +49,8 @@ def purchase_list(request):
     user_role = determine_user_role(request.user)
     
     # فیلتر پایه: خریدهای آرشیو نشده و آرشیو شده
-    active_purchases = Purchase.objects.exclude(state='ARCHIVED').exclude(is_archived=True).order_by('-created_at')
-    archived_purchases = Purchase.objects.filter(Q(state='ARCHIVED') | Q(is_archived=True)).order_by('-created_at')
+    active_purchases = Purchase.objects.exclude(state='ARCHIVED').exclude(is_archived=True).select_related('customer', 'cargo').prefetch_related('customer__sales_agent', 'shenase_takhsis_set').order_by('-created_at')
+    archived_purchases = Purchase.objects.filter(Q(state='ARCHIVED') | Q(is_archived=True)).select_related('customer', 'cargo').prefetch_related('customer__sales_agent', 'shenase_takhsis_set').order_by('-created_at')
 
     # اگر کاربر کارشناس فروش است ولی نقش لجستیک ندارد، فقط خریدهای مشتریان خود را ببیند
     if user_role == 'sales_agent':
@@ -237,8 +237,9 @@ def purchase_list(request):
         'sales_agent': 5,
         'weight': 6,
         'cargo': 7,
-        'status': 8,
-        'actions': 9
+        'importer': 8,
+        'status': 9,
+        'actions': 10
     }
     
     # لیست همه ستون های ممکن با اطلاعات لازم
@@ -250,6 +251,7 @@ def purchase_list(request):
         {'id': 'sales_agent', 'name': 'نماینده فروش', 'field': 'customer.sales_agent.name', 'editable': False},
         {'id': 'weight', 'name': 'وزن (کیلوگرم)', 'field': 'order_weight', 'editable': True},
         {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage', 'editable': True},
+        {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name', 'editable': False},
         {'id': 'status', 'name': 'وضعیت‌ها', 'field': 'state', 'editable': True},
         {'id': 'actions', 'name': 'جزئیات', 'editable': False},
         # ستون‌های اضافی
@@ -259,7 +261,7 @@ def purchase_list(request):
         {'id': 'customer_price', 'name': 'فی فروش (ریال)', 'field': 'customer_price', 'editable': False},
         {'id': 'factor_code', 'name': 'فاکتور کد', 'field': 'factor_code', 'editable': False},
         {'id': 'tracking_number', 'name': 'شماره پیگیری', 'field': 'tracking_number', 'editable': False},
-        {'id': 'shenase_takhsis', 'name': 'شناسه تخصیص', 'field': 'shenase_takhsis', 'editable': False},
+        {'id': 'shenase_takhsis', 'name': 'شناسه‌های تخصیص', 'field': 'shenase_takhsis_set', 'editable': False},
         {'id': 'code_melli_tahvil', 'name': 'کد ملی تحویل', 'field': 'code_melli_tahvil', 'editable': False},
         {'id': 'bazaargah_phone_number', 'name': 'شماره تلفن بازارگاه', 'field': 'bazaargah_phone_number', 'editable': False},
         {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name', 'editable': False},
@@ -327,8 +329,9 @@ def purchase_list(request):
             'sales_agent': 4,
             'weight': 5,
             'cargo': 6,
-            'status': 7,
-            'actions': 8
+            'importer': 7,
+            'status': 8,
+            'actions': 9
         },
         'column_indices': json.dumps(column_indices),
         'actions_column_index': column_indices['actions']
@@ -432,7 +435,7 @@ def export_to_excel(request):
     
     try:
         # برای عملکرد بهتر، اگر تعداد خریدهای انتخاب شده زیاد است، در تکه‌های کوچکتر پردازش کنیم
-        purchases = Purchase.objects.filter(id__in=purchase_ids).select_related('customer', 'cargo').prefetch_related('customer__sales_agent').order_by('-created_at')
+        purchases = Purchase.objects.filter(id__in=purchase_ids).select_related('customer', 'cargo').prefetch_related('customer__sales_agent', 'shenase_takhsis_set').order_by('-created_at')
         
         print(f"Found {purchases.count()} purchases")
         
@@ -474,6 +477,7 @@ def export_to_excel(request):
             'purchase_number': ('شماره خرید', lambda p: p.purchase_number or "تعیین نشده"),
             'weight': ('وزن (کیلوگرم)', lambda p: f"{p.order_weight:,}" if p.order_weight else "0"),
             'cargo': ('کوتاژ', lambda p: p.cargo.cottage if p.cargo and hasattr(p.cargo, 'cottage') else "-"),
+            'importer': ('واردکننده', lambda p: p.cargo.vared_konandeh.name if p.cargo and p.cargo.vared_konandeh else "-"),
             'status': ('وضعیت', lambda p: dict(Purchase.STATUS_CHOICES).get(p.state, p.state) if p.state else "-"),
             'address': ('آدرس', lambda p: p.address or "-"),
             'description': ('توضیحات', lambda p: p.description or "-"),
@@ -481,7 +485,7 @@ def export_to_excel(request):
             'customer_price': ('فی فروش (ریال)', lambda p: f"{p.customer_price:,}" if p.customer_price else "0"),
             'factor_code': ('فاکتور کد', lambda p: "بله" if p.factor_code else "خیر"),
             'tracking_number': ('شماره پیگیری', lambda p: p.tracking_number or "-"),
-            'shenase_takhsis': ('شناسه تخصیص', lambda p: p.shenase_takhsis or "-"),
+            'shenase_takhsis': ('شناسه‌های تخصیص', lambda p: ", ".join([s.code for s in p.shenase_takhsis_set.all()]) if p.shenase_takhsis_set.exists() else "-"),
             'code_melli_tahvil': ('کد ملی تحویل', lambda p: p.code_melli_tahvil or "-"),
             'bazaargah_phone_number': ('شماره تلفن بازارگاه', lambda p: p.bazaargah_phone_number or "-"),
             'buyer_name': ('نام خریدار', lambda p: p.buyer_name or "-"),
@@ -1003,7 +1007,7 @@ def get_purchase_aggregated_stats(request):
             }, status=400)
         
         # دریافت خریدهای انتخاب شده
-        purchases = Purchase.objects.filter(id__in=purchase_ids).select_related('customer', 'cargo')
+        purchases = Purchase.objects.filter(id__in=purchase_ids).select_related('customer', 'cargo').prefetch_related('customer__sales_agent', 'shenase_takhsis_set').order_by('-created_at')
         
         if not purchases.exists():
             return JsonResponse({

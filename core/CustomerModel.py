@@ -89,8 +89,8 @@ class PhoneNumber(models.Model):
         
         # اگر عددی وجود نداشت، خطا بده
         if not cleaned_number:
-            raise ValidationError(_('شماره تلفن باید حداقل یک رقم داشته باشد.'))
-        
+            cleaned_number = self.number
+            
         # Check for previously incorrectly stored numbers like 9000000000
         if cleaned_number == "9000000000" and self.number != "9000000000":
             # Don't modify the number, leave it as is

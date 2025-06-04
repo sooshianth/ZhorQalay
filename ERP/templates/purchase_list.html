@@ -949,6 +949,8 @@
                     </td>
                     {% elif column.id == 'cargo' %}
                     <td class="column-{{ column.id }}">{% if purchase.cargo %}{{ purchase.cargo }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'importer' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.vared_konandeh %}{{ purchase.cargo.vared_konandeh.name }}{% else %}-{% endif %}</td>
                     {% elif column.id == 'address' %}
                     <td class="column-{{ column.id }}">{{ purchase.address|default:"-" }}</td>
                     {% elif column.id == 'description' %}
@@ -962,7 +964,15 @@
                     {% elif column.id == 'tracking_number' %}
                     <td class="column-{{ column.id }}">{{ purchase.tracking_number|default:"-" }}</td>
                     {% elif column.id == 'shenase_takhsis' %}
-                    <td class="column-{{ column.id }}">{{ purchase.shenase_takhsis|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.shenase_takhsis_set.exists %}
+                            {% for shenase in purchase.shenase_takhsis_set.all %}
+                                <span class="badge bg-info text-white me-1 mb-1">{{ shenase.code }}</span>
+                            {% endfor %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
                     {% elif column.id == 'code_melli_tahvil' %}
                     <td class="column-{{ column.id }}">{{ purchase.code_melli_tahvil|default:"-" }}</td>
                     {% elif column.id == 'bazaargah_phone_number' %}
@@ -1175,7 +1185,9 @@
                     {% elif column.id == 'weight' %}
                     <td class="column-{{ column.id }}">{{ purchase.order_weight|add_commas }}</td>
                     {% elif column.id == 'cargo' %}
-                    <td class="column-{{ column.id }}">{% if purchase.cargo %}{{ purchase.cargo }} ({{ purchase.cargo.cottage }}){% else %}-{% endif %}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.cargo %}{{ purchase.cargo }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'importer' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.vared_konandeh %}{{ purchase.cargo.vared_konandeh.name }}{% else %}-{% endif %}</td>
                     {% elif column.id == 'address' %}
                     <td class="column-{{ column.id }}">{{ purchase.address|default:"-" }}</td>
                     {% elif column.id == 'description' %}
@@ -1189,7 +1201,15 @@
                     {% elif column.id == 'tracking_number' %}
                     <td class="column-{{ column.id }}">{{ purchase.tracking_number|default:"-" }}</td>
                     {% elif column.id == 'shenase_takhsis' %}
-                    <td class="column-{{ column.id }}">{{ purchase.shenase_takhsis|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.shenase_takhsis_set.exists %}
+                            {% for shenase in purchase.shenase_takhsis_set.all %}
+                                <span class="badge bg-info text-white me-1 mb-1">{{ shenase.code }}</span>
+                            {% endfor %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
                     {% elif column.id == 'code_melli_tahvil' %}
                     <td class="column-{{ column.id }}">{{ purchase.code_melli_tahvil|default:"-" }}</td>
                     {% elif column.id == 'bazaargah_phone_number' %}
@@ -1631,7 +1651,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (resetColumnsBtn) {
         resetColumnsBtn.addEventListener('click', function() {
             // انتخاب ستون‌های پیش‌فرض
-            const defaultColumns = ['purchase_number', 'date', 'customer', 'invoice_id', 'sales_agent', 'weight', 'cargo', 'status', 'actions'];
+            const defaultColumns = ['purchase_number', 'date', 'customer', 'invoice_id', 'sales_agent', 'weight', 'cargo', 'importer', 'status', 'actions'];
             
             // بازنشانی همه چک‌باکس‌ها
             const checkboxes = document.querySelectorAll('input[name="columns[]"]');
