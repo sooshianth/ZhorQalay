@@ -4,174 +4,6 @@
 {% block title %}صف پیامک ها{% endblock %}
 
 {% block content %}
-<div class="sms-queue-container">
-    <div class="page-header">
-        <h1>صف پیامک ها</h1>
-        <div class="header-actions">
-            <a href="{% url 'sms_api:create_sms' %}" class="action-button create">
-                <i class="fas fa-plus"></i>
-                ایجاد پیامک جدید
-            </a>
-            <form action="{% url 'sms_api:process_queue' %}" method="post" style="display: inline-block;">
-                {% csrf_token %}
-                <button type="submit" class="action-button process" onclick="return confirm('آیا از اجرای پردازش صف اطمینان دارید؟')">
-                    <i class="fas fa-play-circle"></i>
-                    پردازش صف
-                </button>
-            </form>
-            <a href="{% url 'sms_api:sms_dashboard' %}" class="action-button back">
-                <i class="fas fa-home"></i>
-                داشبورد
-            </a>
-        </div>
-    </div>
-
-    <div class="filter-section">
-        <form method="get" class="filter-form">
-            <div class="filter-group">
-                <label for="status">وضعیت:</label>
-                <select id="status" name="status" class="filter-control">
-                    <option value="">همه</option>
-                    <option value="pending" {% if status == 'pending' %}selected{% endif %}>در انتظار ارسال</option>
-                    <option value="sent" {% if status == 'sent' %}selected{% endif %}>ارسال شده</option>
-                    <option value="failed" {% if status == 'failed' %}selected{% endif %}>ارسال ناموفق</option>
-                    <option value="suspended" {% if status == 'suspended' %}selected{% endif %}>معلق</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="notification_type">نوع اطلاع رسانی:</label>
-                <select id="notification_type" name="notification_type" class="filter-control">
-                    <option value="">همه</option>
-                    {% for id, name in notification_types %}
-                        <option value="{{ id }}" {% if notification_type == id %}selected{% endif %}>{{ name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="search">جستجو:</label>
-                <input type="text" id="search" name="search" class="filter-control" placeholder="شماره موبایل یا متن پیام" value="{{ search }}">
-            </div>
-            <button type="submit" class="filter-button">
-                <i class="fas fa-filter"></i>
-                اعمال فیلتر
-            </button>
-        </form>
-    </div>
-
-    <div class="queue-cards">
-        <div class="status-nav">
-            <a href="?status=pending" class="status-tab {% if status == 'pending' or not status %}active{% endif %}">
-                در انتظار ارسال
-                <span class="count">{{ pending_count }}</span>
-            </a>
-            <a href="?status=sent" class="status-tab {% if status == 'sent' %}active{% endif %}">
-                ارسال شده
-                <span class="count">{{ sent_count }}</span>
-            </a>
-            <a href="?status=failed" class="status-tab {% if status == 'failed' %}active{% endif %}">
-                ارسال ناموفق
-                <span class="count">{{ failed_count }}</span>
-            </a>
-            <a href="?status=suspended" class="status-tab {% if status == 'suspended' %}active{% endif %}">
-                معلق
-                <span class="count">{{ suspended_count }}</span>
-            </a>
-        </div>
-
-        <div class="queue-list">
-            {% for sms in queue_items %}
-            <div class="sms-card status-{{ sms.status }}">
-                <div class="card-header">
-                    <div class="recipient">
-                        <i class="fas fa-user"></i>
-                        <span class="number">{{ sms.recipient_number }}</span>
-                    </div>
-                    <div class="status-badge status-{{ sms.status }}">
-                        {{ sms.get_status_display }}
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="message-content">{{ sms.message }}</div>
-                    <div class="sms-meta">
-                        <div class="meta-item">
-                            <i class="fas fa-tag"></i>
-                            <span>{{ sms.get_notification_type_display }}</span>
-                        </div>
-                        <div class="meta-item">
-                            <i class="fas fa-calendar-alt"></i>
-                            <span>{{ sms.scheduled_for|date:"Y/m/d H:i" }}</span>
-                        </div>
-                        {% if sms.sent_at %}
-                        <div class="meta-item">
-                            <i class="fas fa-paper-plane"></i>
-                            <span>{{ sms.sent_at|date:"Y/m/d H:i" }}</span>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="card-actions">
-                    <a href="{% url 'sms_api:sms_detail' sms.id %}" class="card-action view">
-                        <i class="fas fa-eye"></i>
-                        مشاهده
-                    </a>
-                    {% if sms.status == 'pending' or sms.status == 'suspended' %}
-                    <a href="{% url 'sms_api:edit_sms' sms.id %}" class="card-action edit">
-                        <i class="fas fa-edit"></i>
-                        ویرایش
-                    </a>
-                    {% endif %}
-                    {% if sms.status == 'pending' %}
-                    <a href="{% url 'sms_api:suspend_sms' sms.id %}" class="card-action suspend">
-                        <i class="fas fa-pause"></i>
-                        تعلیق
-                    </a>
-                    {% elif sms.status == 'suspended' %}
-                    <a href="{% url 'sms_api:resume_sms' sms.id %}" class="card-action resume">
-                        <i class="fas fa-play"></i>
-                        از سرگیری
-                    </a>
-                    {% endif %}
-                    {% if sms.status == 'pending' or sms.status == 'suspended' %}
-                    <a href="{% url 'sms_api:delete_sms' sms.id %}" class="card-action delete" onclick="return confirm('آیا از حذف این پیام اطمینان دارید؟')">
-                        <i class="fas fa-trash"></i>
-                        حذف
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
-            {% empty %}
-            <div class="empty-state">
-                <i class="fas fa-inbox empty-icon"></i>
-                <p>هیچ پیامکی یافت نشد</p>
-                <a href="{% url 'sms_api:create_sms' %}" class="empty-action">ایجاد پیامک جدید</a>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-
-    {% if queue_items.has_other_pages %}
-    <div class="pagination">
-        {% if queue_items.has_previous %}
-        <a href="?page={{ queue_items.previous_page_number }}{% if status %}&status={{ status }}{% endif %}{% if notification_type %}&notification_type={{ notification_type }}{% endif %}{% if search %}&search={{ search }}{% endif %}" class="pagination-link">
-            <i class="fas fa-chevron-right"></i>
-        </a>
-        {% endif %}
-        
-        <span class="pagination-info">
-            صفحه {{ queue_items.number }} از {{ queue_items.paginator.num_pages }}
-        </span>
-        
-        {% if queue_items.has_next %}
-        <a href="?page={{ queue_items.next_page_number }}{% if status %}&status={{ status }}{% endif %}{% if notification_type %}&notification_type={{ notification_type }}{% endif %}{% if search %}&search={{ search }}{% endif %}" class="pagination-link">
-            <i class="fas fa-chevron-left"></i>
-        </a>
-        {% endif %}
-    </div>
-    {% endif %}
-</div>
-{% endblock %}
-
-{% block extra_css %}
 <style>
     /* تم رنگی سبزآبی (Teal) */
     :root {
@@ -594,4 +426,170 @@
         }
     }
 </style>
+
+<div class="sms-queue-container">
+    <div class="page-header">
+        <h1>صف پیامک ها</h1>
+        <div class="header-actions">
+            <a href="{% url 'sms_api:create_sms' %}" class="action-button create">
+                <i class="fas fa-plus"></i>
+                ایجاد پیامک جدید
+            </a>
+            <form action="{% url 'sms_api:process_queue' %}" method="post" style="display: inline-block;">
+                {% csrf_token %}
+                <button type="submit" class="action-button process" onclick="return confirm('آیا از اجرای پردازش صف اطمینان دارید؟')">
+                    <i class="fas fa-play-circle"></i>
+                    پردازش صف
+                </button>
+            </form>
+            <a href="{% url 'sms_api:sms_dashboard' %}" class="action-button back">
+                <i class="fas fa-home"></i>
+                داشبورد
+            </a>
+        </div>
+    </div>
+
+    <div class="filter-section">
+        <form method="get" class="filter-form">
+            <div class="filter-group">
+                <label for="status">وضعیت:</label>
+                <select id="status" name="status" class="filter-control">
+                    <option value="">همه</option>
+                    <option value="pending" {% if status == 'pending' %}selected{% endif %}>در انتظار ارسال</option>
+                    <option value="sent" {% if status == 'sent' %}selected{% endif %}>ارسال شده</option>
+                    <option value="failed" {% if status == 'failed' %}selected{% endif %}>ارسال ناموفق</option>
+                    <option value="suspended" {% if status == 'suspended' %}selected{% endif %}>معلق</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="notification_type">نوع اطلاع رسانی:</label>
+                <select id="notification_type" name="notification_type" class="filter-control">
+                    <option value="">همه</option>
+                    {% for id, name in notification_types %}
+                        <option value="{{ id }}" {% if notification_type == id %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="search">جستجو:</label>
+                <input type="text" id="search" name="search" class="filter-control" placeholder="شماره موبایل یا متن پیام" value="{{ search }}">
+            </div>
+            <button type="submit" class="filter-button">
+                <i class="fas fa-filter"></i>
+                اعمال فیلتر
+            </button>
+        </form>
+    </div>
+
+    <div class="queue-cards">
+        <div class="status-nav">
+            <a href="?status=pending" class="status-tab {% if status == 'pending' or not status %}active{% endif %}">
+                در انتظار ارسال
+                <span class="count">{{ pending_count }}</span>
+            </a>
+            <a href="?status=sent" class="status-tab {% if status == 'sent' %}active{% endif %}">
+                ارسال شده
+                <span class="count">{{ sent_count }}</span>
+            </a>
+            <a href="?status=failed" class="status-tab {% if status == 'failed' %}active{% endif %}">
+                ارسال ناموفق
+                <span class="count">{{ failed_count }}</span>
+            </a>
+            <a href="?status=suspended" class="status-tab {% if status == 'suspended' %}active{% endif %}">
+                معلق
+                <span class="count">{{ suspended_count }}</span>
+            </a>
+        </div>
+
+        <div class="queue-list">
+            {% for sms in queue_items %}
+            <div class="sms-card status-{{ sms.status }}">
+                <div class="card-header">
+                    <div class="recipient">
+                        <i class="fas fa-user"></i>
+                        <span class="number">{{ sms.recipient_number }}</span>
+                    </div>
+                    <div class="status-badge status-{{ sms.status }}">
+                        {{ sms.get_status_display }}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="message-content">{{ sms.message }}</div>
+                    <div class="sms-meta">
+                        <div class="meta-item">
+                            <i class="fas fa-tag"></i>
+                            <span>{{ sms.get_notification_type_display }}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>{{ sms.scheduled_for|date:"Y/m/d H:i" }}</span>
+                        </div>
+                        {% if sms.sent_at %}
+                        <div class="meta-item">
+                            <i class="fas fa-paper-plane"></i>
+                            <span>{{ sms.sent_at|date:"Y/m/d H:i" }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <a href="{% url 'sms_api:sms_detail' sms.id %}" class="card-action view">
+                        <i class="fas fa-eye"></i>
+                        مشاهده
+                    </a>
+                    {% if sms.status == 'pending' or sms.status == 'suspended' %}
+                    <a href="{% url 'sms_api:edit_sms' sms.id %}" class="card-action edit">
+                        <i class="fas fa-edit"></i>
+                        ویرایش
+                    </a>
+                    {% endif %}
+                    {% if sms.status == 'pending' %}
+                    <a href="{% url 'sms_api:suspend_sms' sms.id %}" class="card-action suspend">
+                        <i class="fas fa-pause"></i>
+                        تعلیق
+                    </a>
+                    {% elif sms.status == 'suspended' %}
+                    <a href="{% url 'sms_api:resume_sms' sms.id %}" class="card-action resume">
+                        <i class="fas fa-play"></i>
+                        از سرگیری
+                    </a>
+                    {% endif %}
+                    {% if sms.status == 'pending' or sms.status == 'suspended' %}
+                    <a href="{% url 'sms_api:delete_sms' sms.id %}" class="card-action delete" onclick="return confirm('آیا از حذف این پیام اطمینان دارید؟')">
+                        <i class="fas fa-trash"></i>
+                        حذف
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <i class="fas fa-inbox empty-icon"></i>
+                <p>هیچ پیامکی یافت نشد</p>
+                <a href="{% url 'sms_api:create_sms' %}" class="empty-action">ایجاد پیامک جدید</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if queue_items.has_other_pages %}
+    <div class="pagination">
+        {% if queue_items.has_previous %}
+        <a href="?page={{ queue_items.previous_page_number }}{% if status %}&status={{ status }}{% endif %}{% if notification_type %}&notification_type={{ notification_type }}{% endif %}{% if search %}&search={{ search }}{% endif %}" class="pagination-link">
+            <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+        
+        <span class="pagination-info">
+            صفحه {{ queue_items.number }} از {{ queue_items.paginator.num_pages }}
+        </span>
+        
+        {% if queue_items.has_next %}
+        <a href="?page={{ queue_items.next_page_number }}{% if status %}&status={{ status }}{% endif %}{% if notification_type %}&notification_type={{ notification_type }}{% endif %}{% if search %}&search={{ search }}{% endif %}" class="pagination-link">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
 {% endblock %} 

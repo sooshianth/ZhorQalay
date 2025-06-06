@@ -18,7 +18,6 @@ DEBUG = True
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.100.56']
 
 # Session timeout configuration
-# User will be logged out after 2 hours of inactivity
 SESSION_COOKIE_AGE = 1200  # 20 minutes in seconds
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
@@ -152,7 +151,7 @@ STATICFILES_DIRS = [
     BASE_DIR / "authentication/static",
     BASE_DIR / "table_filter/static",
     # BASE_DIR / "excel_manager/static",
-    # BASE_DIR / "sms_api/static",
+    BASE_DIR / "sms_api/static",
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

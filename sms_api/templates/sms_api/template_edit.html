@@ -3,66 +3,412 @@
 
 {% block title %}ویرایش قالب پیامک{% endblock %}
 
-{% block styles %}
-<style>
-    .btn-placeholder {
-        margin: 5px;
-    }
-    .template-editor {
-        position: relative;
-    }
-    .placeholders-toolbar {
-        margin-bottom: 10px;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 10px;
-    }
-    .content-textarea {
-        min-height: 200px;
-        direction: rtl;
-        font-family: tahoma, arial, sans-serif;
-    }
-    .preview-box {
-        min-height: 200px;
-        background-color: #f8f9fa;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        padding: 10px;
-        direction: rtl;
-        font-family: tahoma, arial, sans-serif;
-        white-space: pre-wrap;
-    }
-    .character-counter {
-        position: absolute;
-        bottom: 5px;
-        right: 10px;
-        background: rgba(255,255,255,0.7);
-        padding: 2px 8px;
-        border-radius: 10px;
-        font-size: 12px;
-    }
-    .btn-load-default {
-        margin-bottom: 10px;
-    }
-    .is-active-container {
-        background-color: #f8f9fa;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        padding: 15px;
-        margin-bottom: 20px;
-    }
-    .is-active-title {
-        font-weight: bold;
-        color: #007bff;
-        margin-bottom: 10px;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
+<style>
+/* همان استایل‌های template_create.html */
+:root {
+    --sms-primary: #00695c;
+    --sms-secondary: #00897b;
+    --sms-accent: #26a69a;
+    --sms-light: #b2dfdb;
+    --sms-danger: #d32f2f;
+    --sms-warning: #f57c00;
+    --sms-success: #2e7d32;
+    --sms-info: #1565c0;
+    --sms-border-radius: 8px;
+    --sms-box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    --sms-transition: all 0.3s ease;
+    --sms-font-family: 'Vazir', sans-serif;
+}
+
+.container-fluid {
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: -15px;
+    margin-left: -15px;
+}
+
+.col-md-1, .col-md-2, .col-md-3, .col-md-4, .col-md-5, .col-md-6,
+.col-md-7, .col-md-8, .col-md-9, .col-md-10, .col-md-11, .col-md-12 {
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.col-md-1 { flex: 0 0 8.333333%; max-width: 8.333333%; }
+.col-md-2 { flex: 0 0 16.666667%; max-width: 16.666667%; }
+.col-md-3 { flex: 0 0 25%; max-width: 25%; }
+.col-md-4 { flex: 0 0 33.333333%; max-width: 33.333333%; }
+.col-md-5 { flex: 0 0 41.666667%; max-width: 41.666667%; }
+.col-md-6 { flex: 0 0 50%; max-width: 50%; }
+.col-md-7 { flex: 0 0 58.333333%; max-width: 58.333333%; }
+.col-md-8 { flex: 0 0 66.666667%; max-width: 66.666667%; }
+.col-md-9 { flex: 0 0 75%; max-width: 75%; }
+.col-md-10 { flex: 0 0 83.333333%; max-width: 83.333333%; }
+.col-md-11 { flex: 0 0 91.666667%; max-width: 91.666667%; }
+.col-md-12 { flex: 0 0 100%; max-width: 100%; }
+
+.mt-4 { margin-top: 1.5rem !important; }
+.mb-4 { margin-bottom: 1.5rem !important; }
+.mb-3 { margin-bottom: 1rem !important; }
+.mb-2 { margin-bottom: 0.5rem !important; }
+.mb-0 { margin-bottom: 0 !important; }
+.text-end { text-align: left !important; }
+.text-center { text-align: center !important; }
+.text-muted { color: #6c757d !important; }
+.text-danger { color: var(--sms-danger) !important; }
+.text-success { color: var(--sms-success) !important; }
+.text-warning { color: var(--sms-warning) !important; }
+.text-info { color: var(--sms-info) !important; }
+.text-white { color: white !important; }
+
+.d-flex { display: flex !important; }
+.flex-wrap { flex-wrap: wrap !important; }
+.justify-content-between { justify-content: space-between !important; }
+.justify-content-center { justify-content: center !important; }
+.align-items-center { align-items: center !important; }
+.align-items-end { align-items: flex-end !important; }
+.w-100 { width: 100% !important; }
+.h-100 { height: 100% !important; }
+.position-relative { position: relative !important; }
+.position-absolute { position: absolute !important; }
+.position-fixed { position: fixed !important; }
+
+.card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    word-wrap: break-word;
+    background-color: white;
+    background-clip: border-box;
+    border: 1px solid rgba(0, 0, 0, 0.125);
+    border-radius: var(--sms-border-radius);
+    box-shadow: var(--sms-box-shadow);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    border-top-left-radius: calc(var(--sms-border-radius) - 1px);
+    border-top-right-radius: calc(var(--sms-border-radius) - 1px);
+}
+
+.card-body {
+    flex: 1 1 auto;
+    padding: 1.25rem;
+}
+
+.bg-primary {
+    background-color: var(--sms-primary) !important;
+    color: white;
+}
+
+.btn {
+    display: inline-block;
+    font-weight: 400;
+    color: #212529;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    background-color: transparent;
+    border: 1px solid transparent;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    border-radius: var(--sms-border-radius);
+    transition: var(--sms-transition);
+    text-decoration: none;
+    font-family: var(--sms-font-family);
+}
+
+.btn:hover {
+    text-decoration: none;
+}
+
+.btn-primary {
+    color: white;
+    background-color: var(--sms-primary);
+    border-color: var(--sms-primary);
+}
+
+.btn-primary:hover {
+    background-color: var(--sms-secondary);
+    border-color: var(--sms-secondary);
+}
+
+.btn-secondary {
+    color: white;
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+}
+
+.btn-success {
+    color: white;
+    background-color: var(--sms-success);
+    border-color: var(--sms-success);
+}
+
+.btn-success:hover {
+    background-color: #1e5c23;
+    border-color: #1a5520;
+}
+
+.btn-info {
+    color: white;
+    background-color: var(--sms-info);
+    border-color: var(--sms-info);
+}
+
+.btn-info:hover {
+    background-color: #0d4c8c;
+    border-color: #0c4080;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    border-radius: 0.2rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-control {
+    display: block;
+    width: 100%;
+    height: calc(1.5em + 0.75rem + 2px);
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #495057;
+    background-color: white;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: var(--sms-border-radius);
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    font-family: var(--sms-font-family);
+}
+
+.form-control:focus {
+    color: #495057;
+    background-color: white;
+    border-color: var(--sms-accent);
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(38, 166, 154, 0.25);
+}
+
+.form-check {
+    position: relative;
+    display: block;
+    padding-right: 1.25rem;
+}
+
+.form-check-input {
+    position: absolute;
+    margin-top: 0.3rem;
+    margin-right: -1.25rem;
+}
+
+.form-check-label {
+    margin-bottom: 0;
+}
+
+.alert {
+    position: relative;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: var(--sms-border-radius);
+}
+
+.alert-info {
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+}
+
+.btn-placeholder {
+    margin: 5px;
+    background-color: var(--sms-light);
+    border: 1px solid var(--sms-accent);
+    color: var(--sms-primary);
+    padding: 8px 16px;
+    border-radius: var(--sms-border-radius);
+    font-family: var(--sms-font-family);
+    transition: var(--sms-transition);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-placeholder:hover {
+    background-color: var(--sms-accent);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-placeholder:active {
+    transform: scale(0.95);
+}
+
+.btn-placeholder::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.6s;
+}
+
+.btn-placeholder:hover::before {
+    left: 100%;
+}
+
+.template-editor {
+    position: relative;
+}
+
+.placeholders-toolbar {
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.content-textarea {
+    min-height: 350px;
+    direction: rtl;
+    font-family: tahoma, arial, sans-serif;
+    resize: vertical;
+    border: 2px solid #e2e8f0;
+    border-radius: var(--sms-border-radius);
+    padding: 15px;
+}
+
+.content-textarea:focus {
+    border-color: var(--sms-accent);
+    box-shadow: 0 0 0 3px rgba(38, 166, 154, 0.1);
+}
+
+.preview-box {
+    min-height: 250px;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    direction: rtl;
+    font-family: tahoma, arial, sans-serif;
+    white-space: pre-wrap;
+}
+
+.character-counter {
+    position: absolute;
+    bottom: 5px;
+    right: 10px;
+    background: rgba(255,255,255,0.7);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+}
+
+.btn-load-default {
+    margin-bottom: 10px;
+}
+
+.is-active-container {
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.is-active-title {
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 10px;
+}
+
+.variable-hint-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--sms-primary);
+    color: white;
+    padding: 15px 20px;
+    border-radius: var(--sms-border-radius);
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    font-family: var(--sms-font-family);
+    animation: slideInRight 0.3s ease-out;
+    max-width: 350px;
+    direction: rtl;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.variable-label {
+    font-weight: bold;
+    color: var(--sms-accent);
+}
+
+.variable-code {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    direction: ltr;
+    display: inline-block;
+}
+
+@media (max-width: 768px) {
+    .col-md-1, .col-md-2, .col-md-3, .col-md-4, .col-md-5, .col-md-6,
+    .col-md-7, .col-md-8, .col-md-9, .col-md-10, .col-md-11, .col-md-12 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    .content-textarea {
+        min-height: 250px;
+    }
+}
+</style>
+
 <div class="container-fluid mt-4">
     <div class="row mb-4">
         <div class="col-md-8">
-            <h2>ویرایش قالب پیامک</h2>
+            <h2>ویرایش قالب پیامک: {{ template.name }}</h2>
         </div>
         <div class="col-md-4 text-end">
             <a href="{% url 'sms_api:template_list' %}" class="btn btn-secondary">
@@ -73,7 +419,7 @@
 
     <div class="card">
         <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">ویرایش قالب "{{ template.name }}"</h5>
+            <h5 class="mb-0">ویرایش اطلاعات قالب</h5>
         </div>
         <div class="card-body">
             <form method="post" action="{% url 'sms_api:template_edit' template.id %}">
@@ -83,7 +429,7 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="name">نام قالب <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="name" name="name" value="{{ template.name }}" required>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ template.name }}" required placeholder="مثال: قالب اطلاع‌رسانی ثبت خرید">
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -92,7 +438,7 @@
                             <select class="form-control" id="status" name="status" required>
                                 <option value="">-- انتخاب کنید --</option>
                                 {% for key, label in status_choices %}
-                                <option value="{{ key }}" {% if template.status == key %}selected{% endif %}>{{ label }}</option>
+                                <option value="{{ key }}" {% if key == template.status %}selected{% endif %}>{{ label }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -101,7 +447,7 @@
                 
                 <div class="form-group mb-3">
                     <label for="description">توضیحات</label>
-                    <textarea class="form-control" id="description" name="description" rows="2">{{ template.description }}</textarea>
+                    <textarea class="form-control" id="description" name="description" rows="2" placeholder="توضیح کوتاهی درباره کاربرد این قالب...">{{ template.description }}</textarea>
                 </div>
                 
                 <div class="is-active-container">
@@ -117,14 +463,15 @@
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i> 
                         اگر این گزینه را انتخاب کنید، این قالب به عنوان پیش‌فرض برای وضعیت خرید انتخاب شده تنظیم می‌شود و 
-                        سایر قالب‌های پیش‌فرض برای این وضعیت غیرفعال می‌شوند. همواره فقط یک قالب پیش‌فرض برای هر وضعیت می‌تواند وجود داشته باشد.
+                        سایر قالب‌های پیش‌فرض برای این وضعیت غیرفعال می‌شوند.
                     </div>
                 </div>
                 
                 <div class="form-group mb-3">
                     <label for="content">متن قالب <span class="text-danger">*</span></label>
                     <div class="alert alert-info">
-                        متغیرها را با کلیک روی دکمه‌های زیر به متن قالب اضافه کنید. هر متغیر با فرمت &#123;&#123; متغیر &#125;&#125; در متن قرار می‌گیرد.
+                        <i class="fas fa-lightbulb"></i>
+                        متغیرها را با کلیک روی دکمه‌های زیر به متن قالب اضافه کنید. هر متغیر با فرمت <code>{{متغیر}}</code> در متن قرار می‌گیرد.
                     </div>
                     
                     <button type="button" id="btnLoadDefault" class="btn btn-sm btn-info btn-load-default">
@@ -132,212 +479,89 @@
                     </button>
                     
                     <div class="placeholders-toolbar">
+                        <h6 class="mb-3"><i class="fas fa-tags"></i> متغیرهای قابل استفاده:</h6>
                         <div class="d-flex flex-wrap">
-                            {% for key, label in placeholders.items %}
-                            <button type="button" class="btn btn-sm btn-outline-secondary btn-placeholder" data-placeholder="{{ key }}">
-                                {{ label }}
+                            <button type="button" class="btn btn-placeholder" data-placeholder="customer_name" data-label="نام مشتری">
+                                <i class="fas fa-user"></i> نام مشتری
                             </button>
-                            {% endfor %}
+                            <button type="button" class="btn btn-placeholder" data-placeholder="customer_phone" data-label="شماره تلفن مشتری">
+                                <i class="fas fa-phone"></i> شماره تلفن
+                            </button>
+                            <button type="button" class="btn btn-placeholder" data-placeholder="purchase_number" data-label="شماره خرید">
+                                <i class="fas fa-receipt"></i> شماره خرید
+                            </button>
+                            <button type="button" class="btn btn-placeholder" data-placeholder="invoice_id" data-label="کد فاکتور">
+                                <i class="fas fa-file-invoice"></i> کد فاکتور
+                            </button>
+                            <button type="button" class="btn btn-placeholder" data-placeholder="order_weight" data-label="وزن سفارش">
+                                <i class="fas fa-weight"></i> وزن سفارش
+                            </button>
+                            <button type="button" class="btn btn-placeholder" data-placeholder="product_type" data-label="نوع محصول">
+                                <i class="fas fa-box"></i> نوع محصول
+                            </button>
+                            <button type="button" class="btn btn-placeholder" data-placeholder="product_country" data-label="کشور محصول">
+                                <i class="fas fa-flag"></i> کشور محصول
+                            </button>
+                            <button type="button" class="btn btn-placeholder" data-placeholder="cottage" data-label="کوتاژ">
+                                <i class="fas fa-warehouse"></i> کوتاژ
+                            </button>
+                            <button type="button" class="btn btn-placeholder" data-placeholder="amount_paid" data-label="مبلغ پرداختی">
+                                <i class="fas fa-money-bill"></i> مبلغ پرداختی
+                            </button>
+                            <button type="button" class="btn btn-placeholder" data-placeholder="customer_price" data-label="فی فروش">
+                                <i class="fas fa-tag"></i> فی فروش
+                            </button>
+                            <button type="button" class="btn btn-placeholder" data-placeholder="sales_agent_name" data-label="نام کارشناس فروش">
+                                <i class="fas fa-user-tie"></i> نام کارشناس
+                            </button>
+                            <button type="button" class="btn btn-placeholder" data-placeholder="status_display" data-label="وضعیت خرید">
+                                <i class="fas fa-info-circle"></i> وضعیت خرید
+                            </button>
+                            <button type="button" class="btn btn-placeholder" data-placeholder="created_at" data-label="تاریخ ثبت">
+                                <i class="fas fa-calendar"></i> تاریخ ثبت
+                            </button>
                         </div>
                     </div>
                     
                     <div class="template-editor">
-                        <textarea class="form-control content-textarea" id="content" name="content" required>{{ template.content }}</textarea>
-                        <div class="character-counter">
-                            <span id="charCount">0</span> / <span id="smsCount">1</span> پیامک
+                        <textarea class="form-control content-textarea" id="content" name="content" required placeholder="متن قالب پیامک را در اینجا بنویسید...">{{ template.content }}</textarea>
+                        <div class="character-counter" id="charCounter">
+                            <span id="charCount">0</span> کاراکتر | <span id="smsCount">0</span> پیامک
                         </div>
                     </div>
                 </div>
                 
-                <div class="row mb-3 mt-4">
-                    <div class="col-md-12">
-                        <label>پیش‌نمایش:</label>
-                        <div class="preview-box" id="preview"></div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>پیش‌نمایش متن:</label>
+                            <div class="preview-box" id="previewBox">
+                                پیش‌نمایش متن در اینجا نمایش داده می‌شود...
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>پیش‌نمایش با داده‌های نمونه:</label>
+                            <div class="preview-box" id="samplePreviewBox">
+                                پیش‌نمایش با داده‌های نمونه در اینجا نمایش داده می‌شود...
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="text-end">
-                    <button type="submit" class="btn btn-primary">
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
                         <i class="fas fa-save"></i> ذخیره تغییرات
                     </button>
-                    <a href="{% url 'sms_api:template_preview' template.id %}" class="btn btn-success" target="_blank">
-                        <i class="fas fa-search"></i> پیش‌نمایش کامل
-                    </a>
-                    <a href="{% url 'sms_api:template_list' %}" class="btn btn-secondary">
-                        انصراف
+                    <a href="{% url 'sms_api:template_list' %}" class="btn btn-secondary btn-lg">
+                        <i class="fas fa-times"></i> انصراف
                     </a>
                 </div>
             </form>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_scripts %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const contentTextarea = document.getElementById('content');
-        const previewBox = document.getElementById('preview');
-        const charCount = document.getElementById('charCount');
-        const smsCount = document.getElementById('smsCount');
-        const placeholderButtons = document.querySelectorAll('.btn-placeholder');
-        const statusSelect = document.getElementById('status');
-        const btnLoadDefault = document.getElementById('btnLoadDefault');
-        
-        // قالب‌های پیش‌فرض
-        const defaultTemplates = JSON.parse('{{ default_templates|escapejs }}');
-        
-        // تعریف مسیرهای دسترسی کامل به فیلدها و مقادیر نمونه برای پیش‌نمایش
-        const placeholderPaths = {
-            'customer_name': 'customer.name',
-            'purchase_number': 'purchase.purchase_number',
-            'invoice_id': 'purchase.invoice_id',
-            'order_weight': 'purchase.order_weight',
-            'customer_price': 'purchase.customer_price',
-            'amount_paid': 'purchase.amount_paid',
-            'barnameh': 'purchase.barnameh',
-            'extelaf_weight': 'purchase.extelaf_weight',
-            'extelaf_amount': 'purchase.extelaf_amount',
-            'cottage': 'cargo.cottage',
-            'product_type': 'cargo.product_type',
-            'product_country': 'cargo.country',
-            'sales_agent_phone': 'customer.sales_agent.phone_number',
-            'sales_agent_name': 'customer.sales_agent.name',
-            'shenase_takhsis': 'purchase.shenase_takhsis'
-        };
-        
-        // مقادیر نمونه برای پیش‌نمایش
-        const sampleData = {
-            'customer.name': 'مشتری نمونه',
-            'purchase.purchase_number': '1234567',
-            'purchase.invoice_id': '12345',
-            'purchase.order_weight': '25000',
-            'purchase.customer_price': '150000',
-            'purchase.amount_paid': '3750000000',
-            'purchase.barnameh': 'B-987654',
-            'purchase.extelaf_weight': '500',
-            'purchase.extelaf_amount': '75000000',
-            'cargo.cottage': '12345678',
-            'cargo.product_type': 'ذرت',
-            'cargo.country': 'برزیل',
-            'customer.sales_agent.phone_number': '09123456789',
-            'customer.sales_agent.name': 'کارشناس فروش نمونه',
-            'purchase.shenase_takhsis': 'ABC123456789'
-        };
-        
-        // بارگذاری قالب پیش‌فرض با کلیک روی دکمه
-        btnLoadDefault.addEventListener('click', function() {
-            const selectedStatus = statusSelect.value;
-            if (selectedStatus && defaultTemplates[selectedStatus]) {
-                if (contentTextarea.value && contentTextarea.value !== defaultTemplates[selectedStatus]) {
-                    if (confirm('آیا مطمئن هستید که می‌خواهید متن فعلی را با متن پیش‌فرض جایگزین کنید؟')) {
-                        contentTextarea.value = defaultTemplates[selectedStatus];
-                        updatePreview();
-                    }
-                } else {
-                    contentTextarea.value = defaultTemplates[selectedStatus];
-                    updatePreview();
-                }
-            } else {
-                alert('برای وضعیت انتخاب شده قالب پیش‌فرضی تعریف نشده است.');
-            }
-        });
-        
-        // تغییر وضعیت قالب و پیشنهاد بارگذاری قالب پیش‌فرض
-        statusSelect.addEventListener('change', function() {
-            const selectedStatus = this.value;
-            if (selectedStatus && defaultTemplates[selectedStatus] && (confirm('آیا می‌خواهید متن پیش‌فرض وضعیت جدید را بارگذاری کنید؟'))) {
-                contentTextarea.value = defaultTemplates[selectedStatus];
-                updatePreview();
-            }
-        });
-        
-        // افزودن متغیر به متن قالب با کلیک روی دکمه
-        placeholderButtons.forEach(function(button) {
-            button.addEventListener('click', function() {
-                // دریافت کلید از دکمه
-                const key = this.getAttribute('data-placeholder');
-                const label = this.textContent.trim();
-                
-                // ایجاد فرمت متغیر برای قالب - استفاده از کلید مستقیم
-                const placeholder = '{{' + key + '}}';
-                
-                // نمایش اطلاعات متغیر در یک پیام موقت
-                const toast = document.createElement('div');
-                toast.className = 'alert alert-info position-fixed';
-                toast.style.top = '20px';
-                toast.style.right = '20px';
-                toast.style.zIndex = '9999';
-                toast.style.maxWidth = '300px';
-                toast.innerHTML = 'متغیر <strong>' + label + '</strong> با کد <code>{{' + key + '}}</code> به متن اضافه شد';
-                document.body.appendChild(toast);
-                
-                // حذف پیام بعد از 3 ثانیه
-                setTimeout(() => {
-                    toast.remove();
-                }, 3000);
-                
-                // درج در موقعیت کرسر
-                insertAtCursor(contentTextarea, placeholder);
-                
-                // بروزرسانی پیش‌نمایش
-                updatePreview();
-                
-                // تمرکز مجدد روی کادر متن
-                contentTextarea.focus();
-            });
-        });
-        
-        // بروزرسانی پیش‌نمایش و شمارنده کاراکترها
-        contentTextarea.addEventListener('input', updatePreview);
-        
-        // درج متن در موقعیت کرسر در textarea
-        function insertAtCursor(textArea, text) {
-            // ذخیره نقاط شروع و پایان انتخاب
-            const start = textArea.selectionStart;
-            const end = textArea.selectionEnd;
-            
-            // بروزرسانی فیلد متن
-            textArea.value = textArea.value.substring(0, start) + text + textArea.value.substring(end);
-            
-            // بروزرسانی موقعیت کرسر
-            textArea.selectionStart = start + text.length;
-            textArea.selectionEnd = start + text.length;
-        }
-        
-        function updatePreview() {
-            // برای پیش‌نمایش، متغیرها را با مقادیر نمونه جایگزین می‌کنیم
-            let previewText = contentTextarea.value;
-            
-            // جایگزینی متغیرهای ساده با مقادیر نمونه
-            for (let key in placeholderPaths) {
-                const path = placeholderPaths[key];
-                const value = sampleData[path] || '';
-                // ایجاد یک regex که می‌تواند هر دو فرمت {{key}} و {{ key }} را تشخیص دهد
-                const searchPattern = new RegExp('\\{\\{\\s*' + key + '\\s*\\}\\}', 'g');
-                previewText = previewText.replace(searchPattern, value);
-            }
-            
-            // همچنین جایگزینی متغیرهای مدل (فرمت قدیمی) برای سازگاری با قالب‌های قدیمی
-            for (let path in sampleData) {
-                const value = sampleData[path];
-                const searchPattern = new RegExp('\\{\\{\\s*' + path.replace('.', '\\.') + '\\s*\\}\\}', 'g');
-                previewText = previewText.replace(searchPattern, value);
-            }
-            
-            // نمایش در پیش‌نمایش
-            previewBox.textContent = previewText;
-            
-            // بروزرسانی شمارنده کاراکترها
-            const chars = contentTextarea.value.length;
-            charCount.textContent = chars;
-            
-            // محاسبه تعداد پیامک (هر پیامک حداکثر 70 کاراکتر)
-            smsCount.textContent = Math.ceil(chars / 70);
-        }
-        
-        // بروزرسانی اولیه
-        updatePreview();
-    });
-</script>
+<script src="{% static 'js/template_edit.js' %}"></script>
 {% endblock %} 
