@@ -1,15 +1,15 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}ارسال پیام واتساپ{% endblock %}
+{% block title %}ایجاد پیام واتساپ جدید{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'css/template_selector.css' %}">
+<link rel="stylesheet" href="{% static 'css/whatsapp_styles.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="create-wa-container">
-    <h1 class="page-title">ارسال پیام واتساپ جدید</h1>
+<div class="create-sms-container">
+    <h1 class="page-title">ایجاد پیام واتساپ جدید</h1>
     
     <div class="form-container">
         {% if messages %}
@@ -28,9 +28,9 @@
         <!-- Hidden purchase statuses -->
         <script type="application/json" id="purchase-statuses">{{ purchase_statuses|safe }}</script>
 
-        <!-- حالت‌های مختلف ارسال پیامک -->
-        <div class="wa-modes">
-            <h3>انتخاب حالت ارسال پیام</h3>
+        <!-- حالت‌های مختلف ارسال واتساپ -->
+        <div class="sms-modes">
+            <h3>انتخاب حالت ارسال واتساپ</h3>
             <div class="mode-buttons">
                 <button type="button" id="customer-search-btn" class="mode-btn selected" onclick="showCustomerSearch()">
                     <i class="fas fa-user"></i> جستجوی مشتری
@@ -75,17 +75,17 @@
                     {% endif %}
                 {% endif %}
             </div>
-        
-            <!-- فرم ارسال پیام واتساپ به مشتری -->
+
+            <!-- فرم ارسال واتساپ به مشتری -->
             {% if selected_customer_id %}
             <div class="sms-section">
-                <h3>ارسال پیام واتساپ به مشتری</h3>
+                <h3>ارسال واتساپ به مشتری</h3>
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle"></i> 
-                    قالب‌های پیام فقط از بخش <a href="{% url 'whatsapp_api:template_list' %}" target="_blank" class="alert-link">مدیریت قالب‌های واتساپ</a> قابل ایجاد و ویرایش هستند.
+                    قالب‌های واتساپ فقط از بخش <a href="{% url 'whatsapp_api:template_list' %}" target="_blank" class="alert-link">مدیریت قالب‌های واتساپ</a> قابل ایجاد و ویرایش هستند.
                     اگر برای وضعیت خرید قالبی تعریف نشده باشد، نیاز است ابتدا آن را ایجاد کنید.
                 </div>
-                <form method="post" class="wa-form">
+                <form method="post" class="sms-form">
                     {% csrf_token %}
                     <input type="hidden" name="customer_id" value="{{ selected_customer_id }}">
                     <input type="hidden" name="whatsapp_type" value="customer">
@@ -220,6 +220,60 @@
                         <input type="hidden" id="selected_products_data" name="selected_products_data">
                     </div>
                     
+                    <!-- Modal انتخاب محصول -->
+                    <div id="product-selector-modal" class="product-modal">
+                        <div class="product-modal-content">
+                            <div class="product-modal-header">
+                                <h3>انتخاب محصولات</h3>
+                                <span class="close-modal" onclick="closeProductSelector()">&times;</span>
+                            </div>
+                            <div class="product-modal-body">
+                                <div class="product-search-container">
+                                    <input type="text" id="product-search" class="form-control" placeholder="جستجوی محصول...">
+                                </div>
+                                
+                                <div class="select-all-container">
+                                    <button type="button" class="action-button light-teal" onclick="selectAllProducts()">
+                                        <i class="fas fa-check-double"></i>
+                                        انتخاب همه
+                                    </button>
+                                    <button type="button" class="action-button" onclick="deselectAllProducts()">
+                                        <i class="fas fa-times"></i>
+                                        حذف همه
+                                    </button>
+                                </div>
+                                
+                                <div class="product-list">
+                                    {% if cargo_products %}
+                                        {% for product in cargo_products %}
+                                            <div class="product-item" data-product-id="{{ product.id }}" data-product-name="{{ product.get_product_type_display }} {{ product.get_country_display }}" data-cottage="{{ product.cottage }}" data-product-type="{{ product.get_product_type_display }}" data-product-country="{{ product.get_country_display }}" data-port="{{ product.port }}" data-weight="{{ product.weight }}">
+                                                <label class="product-checkbox-label">
+                                                    <input type="checkbox" class="product-checkbox" onchange="toggleProductSelection(this)">
+                                                    <div class="product-info">
+                                                        <span class="product-name">{{ product.get_product_type_display }} {{ product.get_country_display }}</span>
+                                                        <span class="product-details">کوتاژ: {{ product.cottage }} | وزن: {{ product.weight }} کیلوگرم | محل بارگیری: {{ product.port }}</span>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="no-products">محصول فعالی یافت نشد.</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="product-modal-footer">
+                                <button type="button" class="action-button teal" onclick="confirmProductSelection()">
+                                    <i class="fas fa-check"></i>
+                                    تایید انتخاب
+                                </button>
+                                <button type="button" class="action-button light-teal" onclick="closeProductSelector()">
+                                    <i class="fas fa-times"></i>
+                                    انصراف
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div id="marketing-fields" style="display: none;">
                         <div class="template-buttons">
                             <h4>قالب‌های تبلیغاتی</h4>
@@ -257,8 +311,8 @@
                     
                     <div class="form-actions">
                         <button type="submit" class="action-button teal">
-                            <i class="fab fa-whatsapp"></i>
-                            ارسال پیام واتساپ
+                            <i class="fas fa-paper-plane"></i>
+                            ارسال واتساپ
                         </button>
                         <a href="{% url 'whatsapp_api:whatsapp-dashboard' %}" class="action-button light-teal">
                             <i class="fas fa-arrow-right"></i>
@@ -274,11 +328,11 @@
             {% endif %}
         </div>
 
-        <!-- فرم ارسال پیامک تبلیغاتی -->
+        <!-- فرم ارسال واتساپ تبلیغاتی -->
         <div class="mode-section" id="direct-number-section" style="display: none;">
             <div class="sms-section">
-                <h3>ارسال پیام واتساپ تبلیغاتی</h3>
-                <form method="post" class="wa-form">
+                <h3>ارسال واتساپ تبلیغاتی</h3>
+                <form method="post" class="sms-form">
                     {% csrf_token %}
                     <input type="hidden" name="whatsapp_type" value="marketing">
                     
@@ -291,19 +345,9 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="template_type">نوع قالب</label>
-                        <select id="template_type" name="template_type" class="form-control" required>
-                            <option value="">انتخاب کنید...</option>
-                            {% for tpl in templates %}
-                            <option value="{{ tpl.template_type }}">{{ tpl.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="marketing_message">متن پیام</label>
+                        <label for="marketing_message">متن پیام تبلیغاتی</label>
                         <textarea id="marketing_message" name="message" class="form-control" rows="5" 
-                                placeholder="متن پیام خود را وارد کنید..." required maxlength="255"></textarea>
+                                placeholder="متن پیام تبلیغاتی خود را وارد کنید..." required maxlength="255"></textarea>
                         <div class="character-counter">
                             <span id="marketing-char-count">0</span>/255
                         </div>
@@ -326,8 +370,8 @@
                     
                     <div class="form-actions">
                         <button type="submit" class="action-button teal">
-                            <i class="fab fa-whatsapp"></i>
-                            ارسال پیام واتساپ
+                            <i class="fas fa-paper-plane"></i>
+                            ارسال واتساپ
                         </button>
                         <a href="{% url 'whatsapp_api:whatsapp-dashboard' %}" class="action-button light-teal">
                             <i class="fas fa-arrow-right"></i>
@@ -340,1081 +384,7 @@
     </div>
 </div>
 
-<!-- Modal انتخاب محصول -->
-<div id="product-selector-modal" class="product-modal">
-    <div class="product-modal-content">
-        <div class="product-modal-header">
-            <h3>انتخاب محصولات</h3>
-            <span class="close-modal" onclick="closeProductSelector()">&times;</span>
-        </div>
-        <div class="product-modal-body">
-            <div class="product-search-container">
-                <input type="text" id="product-search" class="form-control" placeholder="جستجوی محصول...">
-            </div>
-            
-            <div class="select-all-container">
-                <button type="button" class="action-button light-teal" onclick="selectAllProducts()">
-                    <i class="fas fa-check-double"></i>
-                    انتخاب همه
-                </button>
-                <button type="button" class="action-button" onclick="deselectAllProducts()">
-                    <i class="fas fa-times"></i>
-                    حذف همه
-                </button>
-            </div>
-            
-            <div class="product-list">
-                {% if cargo_products %}
-                    {% for product in cargo_products %}
-                        <div class="product-item" data-product-id="{{ product.id }}" data-product-name="{{ product.get_product_type_display }} {{ product.get_country_display }}" data-cottage="{{ product.cottage }}" data-product-type="{{ product.get_product_type_display }}" data-product-country="{{ product.get_country_display }}" data-port="{{ product.port }}" data-weight="{{ product.weight }}">
-                            <label class="product-checkbox-label">
-                                <input type="checkbox" class="product-checkbox" onchange="toggleProductSelection(this)">
-                                <div class="product-info">
-                                    <span class="product-name">{{ product.get_product_type_display }} {{ product.get_country_display }}</span>
-                                    <span class="product-details">کوتاژ: {{ product.cottage }} | وزن: {{ product.weight }} کیلوگرم | محل بارگیری: {{ product.port }}</span>
-                                </div>
-                            </label>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="no-products">محصول فعالی یافت نشد.</div>
-                {% endif %}
-            </div>
-        </div>
-        <div class="product-modal-footer">
-            <button type="button" class="action-button teal" onclick="confirmProductSelection()">
-                <i class="fas fa-check"></i>
-                تایید انتخاب
-            </button>
-            <button type="button" class="action-button light-teal" onclick="closeProductSelector()">
-                <i class="fas fa-times"></i>
-                انصراف
-            </button>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_css %}
-<style>
-    /* تم رنگی واتساپ */
-    :root {
-        --wa-teal: #25d366;
-        --wa-dark: #075e54;
-        --wa-light: #e9f7ef;
-        --wa-gray: #ece5dd;
-        --wa-border: #bdbdbd;
-        --wa-shadow: 0 2px 12px rgba(37, 211, 102, 0.08);
-    }
-
-    .create-wa-container {
-        padding: 2rem 0;
-        max-width: 800px;
-        margin: 0 auto;
-    }
-
-    .page-title {
-        color: var(--wa-dark);
-        text-align: center;
-        margin-bottom: 2rem;
-        font-size: 2rem;
-        border-bottom: 2px solid var(--wa-teal);
-        padding-bottom: 1rem;
-        letter-spacing: 1px;
-    }
-
-    .form-container {
-        background-color: var(--wa-light);
-        border-radius: 12px;
-        box-shadow: var(--wa-shadow);
-        padding: 2rem;
-        border: 1px solid var(--wa-border);
-    }
-
-    .search-section, .sms-section {
-        margin-bottom: 2rem;
-        padding-bottom: 2rem;
-        border-bottom: 1px solid #eee;
-    }
-
-    .search-section h3, .sms-section h3 {
-        color: var(--wa-dark);
-        margin-bottom: 1.5rem;
-        font-size: 1.5rem;
-    }
-
-    .search-form {
-        margin-bottom: 1.5rem;
-    }
-
-    .search-input-group {
-        display: flex;
-    }
-
-    .search-input-group input {
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
-    }
-
-    .search-button {
-        background-color: var(--wa-teal);
-        color: white;
-        border: none;
-        border-top-right-radius: 4px;
-        border-bottom-right-radius: 4px;
-        padding: 0 1rem;
-        cursor: pointer;
-    }
-
-    .customer-list {
-        margin-bottom: 2rem;
-    }
-
-    .customer-list h4 {
-        color: var(--wa-dark);
-        margin-bottom: 1rem;
-    }
-
-    .customer-item {
-        padding: 0.5rem 1rem;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        margin-bottom: 0.5rem;
-        transition: all 0.2s;
-    }
-
-    .customer-item:hover {
-        background-color: #f5f5f5;
-    }
-
-    .customer-item.selected {
-        background-color: var(--wa-light);
-        border-color: var(--wa-teal);
-    }
-
-    .customer-item a {
-        color: #333;
-        text-decoration: none;
-        display: block;
-    }
-
-    .form-group {
-        margin-bottom: 1.5rem;
-    }
-
-    .form-group label {
-        display: block;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-        color: var(--wa-dark);
-    }
-
-    .form-control {
-        width: 100%;
-        padding: 0.8rem;
-        border: 1px solid var(--wa-border);
-        border-radius: 6px;
-        font-size: 1rem;
-        background: white;
-        transition: border-color 0.3s;
-    }
-
-    .form-control:focus {
-        border-color: var(--wa-teal);
-        outline: none;
-        box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.15);
-    }
-
-    .character-counter {
-        text-align: left;
-        font-size: 0.8rem;
-        margin-top: 0.3rem;
-        color: #666;
-    }
-
-    .messages-container {
-        margin-bottom: 1.5rem;
-    }
-
-    .alert {
-        padding: 1rem;
-        border-radius: 4px;
-        margin-bottom: 1rem;
-    }
-
-    .alert-danger {
-        background-color: #FFEBEE;
-        color: #D32F2F;
-        border: 1px solid #FFCDD2;
-    }
-
-    .alert-success {
-        background-color: #E8F5E9;
-        color: #2E7D32;
-        border: 1px solid #C8E6C9;
-    }
-
-    .alert-info {
-        background-color: #E3F2FD;
-        color: #1565C0;
-        border: 1px solid #BBDEFB;
-    }
-
-    .template-buttons {
-        margin: 2rem 0;
-    }
-
-    .template-buttons h4 {
-        color: var(--wa-dark);
-        margin-bottom: 1rem;
-        border-right: 4px solid var(--wa-teal);
-        padding-right: 0.7rem;
-    }
-
-    .template-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        margin-bottom: 1rem;
-    }
-
-    .template-btn, .marketing-template-btn {
-        padding: 0.5rem 1rem;
-        border: none;
-        border-radius: 4px;
-        color: white;
-        cursor: pointer;
-        font-size: 0.9rem;
-        transition: all 0.3s;
-    }
-
-    .template-btn:hover, .marketing-template-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    }
-
-    .template-btn.teal, .marketing-template-btn.teal {
-        background-color: var(--wa-teal);
-    }
-
-    .template-btn.light-teal, .marketing-template-btn.light-teal {
-        background-color: var(--wa-dark);
-    }
-
-    .template-btn.dark-teal, .marketing-template-btn.dark-teal {
-        background-color: var(--wa-dark);
-    }
-
-    .template-btn.cyan, .marketing-template-btn.cyan {
-        background-color: var(--wa-dark);
-    }
-
-    .form-actions {
-        display: flex;
-        gap: 1rem;
-        margin-top: 2rem;
-        justify-content: flex-end;
-    }
-
-    .action-button {
-        display: flex;
-        align-items: center;
-        padding: 0.8rem 1.5rem;
-        border-radius: 6px;
-        color: white;
-        text-decoration: none;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        border: none;
-        cursor: pointer;
-    }
-
-    .action-button i {
-        margin-left: 0.5rem;
-    }
-
-    .action-button.teal {
-        background-color: var(--wa-teal);
-    }
-
-    .action-button.light-teal {
-        background-color: var(--wa-dark);
-    }
-    
-    .action-button.cyan {
-        background-color: var(--wa-dark);
-    }
-
-    .action-button:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    }
-
-    /* دکمه های حالت */
-    .wa-modes {
-        margin-bottom: 2rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid #eee;
-    }
-
-    .wa-modes h3 {
-        color: var(--wa-dark);
-        margin-bottom: 1rem;
-    }
-
-    .mode-buttons {
-        display: flex;
-        gap: 1rem;
-    }
-
-    .mode-btn {
-        padding: 0.8rem 1.5rem;
-        border: 2px solid var(--wa-teal);
-        background-color: white;
-        color: var(--wa-teal);
-        border-radius: 6px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-        display: flex;
-        align-items: center;
-    }
-
-    .mode-btn i {
-        margin-left: 0.5rem;
-    }
-
-    .mode-btn:hover {
-        background-color: var(--wa-light);
-    }
-
-    .mode-btn.selected {
-        background-color: var(--wa-teal);
-        color: white;
-    }
-
-    /* رادیو باتن ها */
-    .message-type-selector {
-        margin-bottom: 1.5rem;
-        padding: 1rem;
-        background-color: #f9f9f9;
-        border-radius: 4px;
-    }
-
-    .radio-group {
-        display: flex;
-        gap: 2rem;
-        margin-top: 0.5rem;
-    }
-
-    .radio-label {
-        display: flex;
-        align-items: center;
-        cursor: pointer;
-    }
-
-    .radio-label input[type="radio"] {
-        margin-left: 0.5rem;
-    }
-
-    /* Template status info */
-    .template-status-info {
-        margin-top: 0.5rem;
-        margin-bottom: 1rem;
-        padding: 0.5rem 1rem;
-        font-weight: 600;
-    }
-
-    /* استایل‌های مربوط به انتخاب محصول */
-    .product-modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        overflow: auto;
-        background-color: rgba(0, 0, 0, 0.4);
-    }
-
-    .product-modal-content {
-        background-color: #fefefe;
-        margin: 5% auto;
-        padding: 0;
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        width: 80%;
-        max-width: 800px;
-        max-height: 80vh;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .product-modal-header {
-        padding: 1rem;
-        border-bottom: 1px solid #eee;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background-color: var(--wa-teal);
-        color: white;
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
-    }
-
-    .product-modal-header h3 {
-        margin: 0;
-        color: white;
-    }
-
-    .close-modal {
-        color: white;
-        font-size: 24px;
-        font-weight: bold;
-        cursor: pointer;
-    }
-
-    .product-modal-body {
-        padding: 1rem;
-        overflow-y: auto;
-        max-height: calc(80vh - 130px);
-    }
-
-    .product-modal-footer {
-        padding: 1rem;
-        border-top: 1px solid #eee;
-        display: flex;
-        justify-content: flex-end;
-        gap: 1rem;
-    }
-
-    .product-search-container {
-        margin-bottom: 1rem;
-    }
-
-    .select-all-container {
-        margin-bottom: 1rem;
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .product-list {
-        margin-top: 1rem;
-    }
-
-    .product-item {
-        padding: 1rem;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        margin-bottom: 0.5rem;
-        transition: all 0.2s;
-    }
-
-    .product-item:hover {
-        background-color: #f9f9f9;
-    }
-
-    .product-checkbox-label {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        cursor: pointer;
-        width: 100%;
-    }
-
-    .product-checkbox {
-        height: 18px;
-        width: 18px;
-    }
-
-    .product-info {
-        display: flex;
-        flex-direction: column;
-        flex-grow: 1;
-    }
-
-    .product-name {
-        font-weight: 600;
-        color: var(--wa-dark);
-    }
-
-    .product-details {
-        font-size: 0.9rem;
-        color: #666;
-        margin-top: 0.3rem;
-    }
-
-    .no-products {
-        padding: 2rem;
-        text-align: center;
-        color: #666;
-        border: 1px dashed #ddd;
-        border-radius: 4px;
-    }
-
-    .selected-products {
-        margin-top: 1rem;
-        padding: 1rem;
-        background-color: #f9f9f9;
-        border-radius: 4px;
-        border: 1px solid #eee;
-    }
-
-    .selected-products h4 {
-        color: var(--wa-dark);
-        margin-bottom: 1rem;
-        font-size: 1.1rem;
-    }
-
-    .selected-products-list {
-        max-height: 200px;
-        overflow-y: auto;
-    }
-
-    .selected-product-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.7rem;
-        border-bottom: 1px solid #eee;
-    }
-
-    .selected-product-item:last-child {
-        border-bottom: none;
-    }
-
-    .remove-product {
-        background-color: transparent;
-        border: none;
-        color: var(--wa-teal);
-        cursor: pointer;
-        font-size: 1rem;
-    }
-
-    .remove-product:hover {
-        color: #e74c3c;
-    }
-
-    /* استایل‌های مربوط به قالب‌های پیام خرید */
-    .purchase-selector-container {
-        margin-bottom: 1.5rem;
-    }
-
-    .purchase-info-card {
-        background-color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        margin-bottom: 1.5rem;
-        overflow: hidden;
-        border: 1px solid #e9e9e9;
-        transition: all 0.3s ease;
-    }
-
-    .purchase-info-card:hover {
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-    }
-
-    .purchase-info-header {
-        background-color: var(--wa-light);
-        padding: 1rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    }
-
-    .purchase-status-badge {
-        display: flex;
-        align-items: center;
-        font-weight: 600;
-        color: var(--wa-dark);
-    }
-
-    .purchase-status-badge i {
-        margin-left: 0.5rem;
-        font-size: 1.1rem;
-    }
-
-    .purchase-status-badge.status-success {
-        color: #2E7D32;
-    }
-    
-    .purchase-status-badge.status-danger {
-        color: #D32F2F;
-    }
-    
-    .purchase-status-badge.status-warning {
-        color: #F57C00;
-    }
-    
-    .purchase-status-badge.status-info {
-        color: #1565C0;
-    }
-    
-    .purchase-template-actions {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .refresh-template-btn {
-        background-color: transparent;
-        border: none;
-        color: var(--wa-dark);
-        cursor: pointer;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s;
-    }
-
-    .refresh-template-btn:hover {
-        background-color: rgba(0, 0, 0, 0.05);
-        transform: rotate(180deg);
-    }
-
-    .purchase-info-body {
-        padding: 1rem;
-        min-height: 100px;
-    }
-
-    .purchase-template-preview {
-        white-space: pre-line;
-        line-height: 1.7;
-        color: #333;
-    }
-
-    .purchase-info-footer {
-        padding: 1rem;
-        background-color: #f9f9f9;
-        border-top: 1px solid #eee;
-    }
-
-    .template-variables {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        align-items: center;
-    }
-
-    .more-variables {
-        margin-top: 0.7rem;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        padding-top: 0.7rem;
-        border-top: 1px dashed #ddd;
-    }
-
-    .variable-tag {
-        background-color: var(--wa-light);
-        color: var(--wa-dark);
-        font-size: 0.8rem;
-        padding: 0.3rem 0.5rem;
-        border-radius: 4px;
-        font-family: monospace;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s;
-        direction: ltr;
-        display: inline-block;
-    }
-
-    .variable-tag:hover {
-        background-color: var(--wa-teal);
-        color: white;
-    }
-
-    .more-variables-btn {
-        background-color: transparent;
-        border: none;
-        color: var(--wa-dark);
-        cursor: pointer;
-        padding: 0.3rem 0.5rem;
-        border-radius: 4px;
-        transition: all 0.2s;
-    }
-
-    .more-variables-btn:hover {
-        background-color: rgba(0, 0, 0, 0.05);
-    }
-
-    .template-selector {
-        margin-top: 1.5rem;
-        background-color: white;
-        border-radius: 8px;
-        border: 1px solid #eee;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        overflow: hidden;
-        transition: all 0.3s ease;
-    }
-
-    .template-selector-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem;
-        background-color: var(--wa-light);
-        cursor: pointer;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    }
-
-    .template-selector-header h4 {
-        margin: 0;
-        color: var(--wa-dark);
-        font-size: 1.1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .template-selector-header h4::before {
-        content: "\f15c";
-        font-family: "Font Awesome 5 Free";
-        font-weight: 900;
-    }
-
-    .template-selector-controls {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .template-control-btn {
-        background-color: transparent;
-        border: none;
-        color: var(--wa-dark);
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .template-control-btn:hover {
-        background-color: rgba(37, 211, 102, 0.1);
-    }
-
-    .template-selector-body {
-        max-height: 500px;
-        overflow-y: auto;
-        transition: max-height 0.3s ease;
-    }
-
-    .template-selector-body.collapsed {
-        max-height: 0;
-        overflow: hidden;
-    }
-
-    .template-filter {
-        padding: 1rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid #f0f0f0;
-        background-color: #fbfbfb;
-    }
-
-    .template-view-options {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .view-option-btn {
-        background-color: transparent;
-        border: none;
-        color: #777;
-        padding: 0.5rem;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .view-option-btn:hover {
-        background-color: rgba(0, 0, 0, 0.05);
-    }
-
-    .view-option-btn.active {
-        color: var(--wa-teal);
-        background-color: rgba(37, 211, 102, 0.1);
-    }
-
-    .template-search {
-        position: relative;
-        width: 200px;
-    }
-
-    .template-search input {
-        padding-left: 2rem;
-        font-size: 0.9rem;
-        border-radius: 20px;
-        border: 1px solid #ddd;
-    }
-
-    .template-search i {
-        position: absolute;
-        left: 0.7rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #999;
-        pointer-events: none;
-    }
-
-    .template-cards {
-        padding: 1rem;
-    }
-
-    .template-cards.grid-view {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 1rem;
-    }
-
-    .template-cards.list-view {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .template-card {
-        background-color: white;
-        border-radius: 8px;
-        border: 1px solid #eee;
-        transition: all 0.2s ease;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .grid-view .template-card {
-        padding: 1rem;
-        cursor: pointer;
-    }
-
-    .list-view .template-card {
-        padding: 0.7rem 1rem;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    .template-card:hover {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        transform: translateY(-2px);
-    }
-
-    .template-card.selected {
-        border-color: var(--wa-teal);
-        box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.2);
-    }
-
-    .template-card-header {
-        font-weight: 600;
-        color: var(--wa-dark);
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    .grid-view .template-card-header {
-        margin-bottom: 0.7rem;
-    }
-    
-    .list-view .template-card-header {
-        margin-bottom: 0;
-    }
-    
-    .template-card-body {
-        font-size: 0.9rem;
-        color: #666;
-        line-height: 1.5;
-    }
-    
-    .grid-view .template-card-body {
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-    
-    .list-view .template-card-body {
-        display: none;
-    }
-    
-    .template-card-badge {
-        position: absolute;
-        top: 0;
-        left: 0;
-        background-color: var(--wa-teal);
-        color: white;
-        font-size: 0.7rem;
-        padding: 0.2rem 0.5rem;
-        border-bottom-right-radius: 8px;
-        z-index: 5;
-    }
-    
-    .template-card.selected {
-        border: 2px solid var(--wa-teal);
-        box-shadow: 0 0 10px rgba(37, 211, 102, 0.2);
-    }
-    
-    .list-view .template-card-actions {
-        display: flex;
-        gap: 0.5rem;
-    }
-    
-    .grid-view .template-card-actions {
-        display: none;
-    }
-    
-    .template-card-btn {
-        background-color: transparent;
-        border: none;
-        color: var(--wa-teal);
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    
-    .template-card-btn:hover {
-        background-color: rgba(37, 211, 102, 0.1);
-    }
-    
-    .no-templates-message {
-        padding: 2rem;
-        text-align: center;
-        color: #777;
-        font-style: italic;
-    }
-
-    /* Empty template placeholder */
-    .empty-template-placeholder {
-        text-align: center;
-        padding: 1.5rem;
-        color: #777;
-    }
-    
-    .empty-template-placeholder .template-icon {
-        font-size: 2.5rem;
-        color: var(--wa-light);
-        margin-bottom: 1rem;
-    }
-    
-    .empty-template-placeholder p {
-        margin-bottom: 0.5rem;
-    }
-
-    .mt-4 {
-        margin-top: 1.5rem;
-    }
-
-    /* پاسخگویی موبایل */
-    @media (max-width: 768px) {
-        .create-wa-container {
-            padding: 1rem;
-        }
-        
-        .form-container {
-            padding: 1.5rem;
-        }
-        
-        .form-actions {
-            flex-direction: column;
-        }
-        
-        .action-button {
-            width: 100%;
-            justify-content: center;
-        }
-
-        .mode-buttons {
-            flex-direction: column;
-        }
-
-        .radio-group {
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        
-        .template-cards.grid-view {
-            grid-template-columns: 1fr;
-        }
-        
-        .template-filter {
-            flex-direction: column-reverse;
-            align-items: flex-start;
-            gap: 1rem;
-        }
-        
-        .template-search {
-            width: 100%;
-        }
-        
-        .purchase-info-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.5rem;
-        }
-        
-        .purchase-template-actions {
-            align-self: flex-end;
-        }
-        
-        .product-modal-content {
-            width: 95%;
-            margin: 10% auto;
-        }
-        
-        .product-checkbox-label {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-        
-        .product-checkbox {
-            margin-bottom: 0.5rem;
-        }
-    }
-</style>
-{% endblock %}
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const phoneInput = document.getElementById('phone_number');
-    const customerSelect = document.getElementById('customer_id');
-
-    function toggleFields() {
-        if (phoneInput.value.trim()) {
-            customerSelect.disabled = true;
-        } else {
-            customerSelect.disabled = false;
-        }
-    }
-
-    phoneInput.addEventListener('input', toggleFields);
-    customerSelect.addEventListener('change', function() {
-        if (customerSelect.value) {
-            phoneInput.disabled = true;
-        } else {
-            phoneInput.disabled = false;
-        }
-    });
-
-    // مقدار اولیه
-    toggleFields();
-});
-</script>
-
-{% block extra_js %}
+<!-- Inline JavaScript for immediate functionality -->
 <script>
     // Marketing templates
     const marketingTemplates = {
@@ -1429,686 +399,229 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Show customer search section
     function showCustomerSearch() {
-        document.getElementById('customer-search-btn').classList.add('selected');
-        document.getElementById('direct-number-btn').classList.remove('selected');
         document.getElementById('customer-search-section').style.display = 'block';
         document.getElementById('direct-number-section').style.display = 'none';
+        document.getElementById('customer-search-btn').classList.add('selected');
+        document.getElementById('direct-number-btn').classList.remove('selected');
     }
 
     // Show direct marketing section
     function showDirectMarketing() {
-        document.getElementById('direct-number-btn').classList.add('selected');
-        document.getElementById('customer-search-btn').classList.remove('selected');
         document.getElementById('customer-search-section').style.display = 'none';
         document.getElementById('direct-number-section').style.display = 'block';
+        document.getElementById('customer-search-btn').classList.remove('selected');
+        document.getElementById('direct-number-btn').classList.add('selected');
     }
 
     // Toggle message fields based on message type
-    function toggleMessageFields(value) {
-        document.getElementById('purchase-fields').style.display = 'none';
-        document.getElementById('cottage-fields').style.display = 'none';
-        document.getElementById('marketing-fields').style.display = 'none';
+    function toggleMessageFields(type) {
+        const purchaseFields = document.getElementById('purchase-fields');
+        const cottageFields = document.getElementById('cottage-fields');
+        const marketingFields = document.getElementById('marketing-fields');
         
-        if (value === 'purchase') {
-            document.getElementById('purchase-fields').style.display = 'block';
-        } else if (value === 'cottage') {
-            document.getElementById('cottage-fields').style.display = 'block';
-        } else if (value === 'marketing') {
-            document.getElementById('marketing-fields').style.display = 'block';
+        if (type === 'purchase') {
+            purchaseFields.style.display = 'block';
+            cottageFields.style.display = 'none';
+            marketingFields.style.display = 'none';
+        } else if (type === 'cottage') {
+            purchaseFields.style.display = 'none';
+            cottageFields.style.display = 'block';
+            marketingFields.style.display = 'none';
+        } else if (type === 'marketing') {
+            purchaseFields.style.display = 'none';
+            cottageFields.style.display = 'none';
+            marketingFields.style.display = 'block';
         }
     }
 
-    // Apply marketing template
-    function useMarketingTemplate(templateKey) {
-        const textarea = document.getElementById('marketing_message') || document.getElementById('message');
-        const counter = document.getElementById('marketing-char-count') || document.getElementById('char-count');
-        if (textarea && marketingTemplates[templateKey]) {
-            textarea.value = marketingTemplates[templateKey];
-            if (counter) {
-                counter.textContent = textarea.value.length;
-            }
-        }
-    }
-    
-    // Load template based on purchase status
-    function loadPurchaseTemplate(refresh = false) {
+    // Load purchase template based on selected purchase
+    function loadPurchaseTemplate(force = false) {
         const purchaseSelector = document.getElementById('purchase-selector');
-        const messageField = document.getElementById('message');
-        const charCount = document.getElementById('char-count');
-        const infoCard = document.getElementById('purchase-info-card');
-        const statusDisplay = document.getElementById('purchase-status-display');
-        const templatePreview = document.getElementById('purchase-template-preview');
-        const templateSelector = document.getElementById('template-selector');
-        
-        if (!purchaseSelector || !messageField) return;
-        
-        // Reset form if no purchase is selected
-        if (!purchaseSelector.value) {
-            messageField.value = '';
-            charCount.textContent = '0';
-            infoCard.style.display = 'none';
-            templateSelector.style.display = 'none';
-            return;
-        }
-        
-        // Get selected option
         const selectedOption = purchaseSelector.options[purchaseSelector.selectedIndex];
-        const status = selectedOption.getAttribute('data-status');
         
-        // Display the info card
-        infoCard.style.display = 'block';
-        
-        // Display the current status
-        if (statusDisplay && purchaseStatuses[status]) {
-            statusDisplay.textContent = purchaseStatuses[status];
+        if (selectedOption && selectedOption.value) {
+            const status = selectedOption.dataset.status;
+            const statusDisplay = selectedOption.text.split('(')[1]?.split(')')[0] || status;
             
-            // Update status badge color based on status
-            const statusBadge = document.getElementById('purchase-status-badge');
-            if (statusBadge) {
-                // Remove previous status classes
-                statusBadge.className = 'purchase-status-badge';
-                
-                // Add appropriate class based on status
-                if (['CANCELED', 'ARCHIVED'].includes(status)) {
-                    statusBadge.classList.add('status-danger');
-                } else if (['FULLY_SETTLED', 'PURCHASE_CLOSED', 'INVOICE_ISSUED'].includes(status)) {
-                    statusBadge.classList.add('status-success');
-                } else if (['WAITING_FOR_BARNAMEH', 'BARNAMEH_INCOMPLETE'].includes(status)) {
-                    statusBadge.classList.add('status-warning');
-                } else {
-                    statusBadge.classList.add('status-info');
-                }
-            }
-        }
-        
-        // Check if template exists for this status
-        if (templateData[status] && templateData[status].trim() !== '') {
-            // Template exists
-            // Only update the message field if it's empty or refresh is requested
-            if (messageField.value === '' || refresh) {
-                messageField.value = templateData[status];
-                charCount.textContent = messageField.value.length;
+            // Show purchase info card
+            const infoCard = document.getElementById('purchase-info-card');
+            const statusBadge = document.getElementById('purchase-status-display');
+            const templatePreview = document.getElementById('purchase-template-preview');
+            
+            infoCard.style.display = 'block';
+            statusBadge.textContent = statusDisplay;
+            
+            // Load template for this status
+            const template = templateData[status];
+            if (template) {
+                templatePreview.innerHTML = '<pre class="template-content">' + template + '</pre>';
+                document.getElementById('message').value = template;
+            } else {
+                templatePreview.innerHTML = '<div class="no-template-message"><i class="fas fa-exclamation-triangle"></i>قالبی برای این وضعیت یافت نشد. لطفاً از بخش مدیریت قالب‌ها، قالب جدیدی ایجاد کنید.</div>';
+                document.getElementById('message').value = '';
             }
             
-            // Update template preview
-            if (templatePreview) {
-                templatePreview.textContent = messageField.value || templateData[status];
-            }
-            
-            // Fetch all templates for this status and show them
-            fetchTemplatesForStatus(status);
-            templateSelector.style.display = 'block';
+            // Show template selector
+            document.getElementById('template-selector').style.display = 'block';
+            generateTemplateCards(status);
         } else {
-            // No template exists for this status
-            // Clear message field if refresh is requested
-            if (refresh) {
-                messageField.value = '';
-                charCount.textContent = '0';
-            }
-            
-            if (templatePreview) {
-                templatePreview.innerHTML = '<p class="no-template-message">قالب پیامی برای این وضعیت تعریف نشده است.</p>';
-                
-                // Add a button to create new template
-                templatePreview.innerHTML += `
-                    <div class="mt-3">
-                        <a href="{% url 'whatsapp_api:template_create' %}?status=${status}" class="btn btn-primary" target="_blank">
-                            <i class="fas fa-plus"></i> ایجاد قالب جدید
-                        </a>
-                        <p class="mt-2 small text-muted">برای این وضعیت خرید نیاز به ایجاد قالب واتساپ دارید.</p>
-                    </div>
-                `;
-            }
-            
-            // Hide template selector since there are no templates
-            templateSelector.style.display = 'none';
+            document.getElementById('purchase-info-card').style.display = 'none';
+            document.getElementById('template-selector').style.display = 'none';
         }
     }
 
-    // Toggle more variables
-    function toggleMoreVariables() {
-        const moreVars = document.getElementById('more-variables');
-        if (moreVars) {
-            if (moreVars.style.display === 'none') {
-                moreVars.style.display = 'flex';
-            } else {
-                moreVars.style.display = 'none';
-            }
-        }
-    }
-    
-    // Insert template variable into message
-    function insertVariable(variable) {
-        const messageField = document.getElementById('message');
-        const cursorPos = messageField.selectionStart;
-        
-        const textBefore = messageField.value.substring(0, cursorPos);
-        const textAfter = messageField.value.substring(cursorPos);
-        
-        messageField.value = textBefore + variable + textAfter;
-        
-        // Update character count
-        const charCount = document.getElementById('char-count');
-        charCount.textContent = messageField.value.length;
-        
-        // Update preview
-        const templatePreview = document.getElementById('purchase-template-preview');
-        if (templatePreview) {
-            templatePreview.textContent = messageField.value;
-        }
-        
-        // Set cursor position after inserted variable
-        messageField.focus();
-        messageField.setSelectionRange(cursorPos + variable.length, cursorPos + variable.length);
-    }
-
-    // Initialize character counters
-    document.addEventListener('DOMContentLoaded', function() {
-        // Setup standard message counter
-        const messageTextarea = document.getElementById('message');
-        const charCount = document.getElementById('char-count');
-        
-        if (messageTextarea && charCount) {
-            charCount.textContent = messageTextarea.value.length;
-            messageTextarea.addEventListener('input', function() {
-                charCount.textContent = this.value.length;
-            });
-        }
-        
-        // Setup marketing message counter
-        const marketingTextarea = document.getElementById('marketing_message');
-        const marketingCharCount = document.getElementById('marketing-char-count');
-        
-        if (marketingTextarea && marketingCharCount) {
-            marketingCharCount.textContent = marketingTextarea.value.length;
-            marketingTextarea.addEventListener('input', function() {
-                marketingCharCount.textContent = this.value.length;
-            });
-        }
-        
-        // Add click handler to variable tags
-        const variableTags = document.querySelectorAll('.variable-tag');
-        variableTags.forEach(tag => {
-            tag.addEventListener('click', function() {
-                insertVariable(this.textContent);
-            });
-        });
-        
-        // Toggle fields based on phone number
-        const phoneInput = document.getElementById('phone_number');
-        const customerSelect = document.getElementById('customer_id');
-
-        function toggleFields() {
-            if (phoneInput && phoneInput.value.trim()) {
-                if (customerSelect) customerSelect.disabled = true;
-            } else {
-                if (customerSelect) customerSelect.disabled = false;
-            }
-        }
-
-        if (phoneInput) {
-            phoneInput.addEventListener('input', toggleFields);
-        }
-        
-        if (customerSelect) {
-            customerSelect.addEventListener('change', function() {
-                if (customerSelect.value && phoneInput) {
-                    phoneInput.disabled = true;
-                } else if (phoneInput) {
-                    phoneInput.disabled = false;
-                }
-            });
-        }
-
-        // Initial toggle
-        toggleFields();
-    });
-    
-    // Change template view (grid or list)
-    function changeTemplateView(viewType) {
+    // Generate template cards for status
+    function generateTemplateCards(status) {
         const container = document.getElementById('template-status-cards');
-        const gridBtn = document.getElementById('grid-view-btn');
-        const listBtn = document.getElementById('list-view-btn');
+        container.innerHTML = '';
         
-        if (viewType === 'grid') {
-            container.classList.remove('list-view');
-            container.classList.add('grid-view');
-            gridBtn.classList.add('active');
-            listBtn.classList.remove('active');
-        } else {
-            container.classList.remove('grid-view');
-            container.classList.add('list-view');
-            listBtn.classList.add('active');
-            gridBtn.classList.remove('active');
+        // For now, just show the current template
+        if (templateData[status]) {
+            const card = document.createElement('div');
+            card.className = 'template-card';
+            card.innerHTML = `
+                <div class="template-card-header">
+                    <h5>قالب پیش‌فرض</h5>
+                </div>
+                <div class="template-card-body">
+                    <p class="template-preview">${templateData[status].substring(0, 100)}...</p>
+                </div>
+                <div class="template-card-footer">
+                    <button type="button" class="btn btn-sm btn-primary" onclick="useTemplate('${status}')">انتخاب قالب</button>
+                </div>
+            `;
+            container.appendChild(card);
         }
-        
-        // Recreate the template cards to apply the proper layout
-        const currentStatus = getCurrentSelectedStatus();
-        if (currentStatus) {
-            fetchTemplatesForStatus(currentStatus);
-        }
-    }
-    
-    // Get current selected status
-    function getCurrentSelectedStatus() {
-        const purchaseSelector = document.getElementById('purchase-selector');
-        if (!purchaseSelector || !purchaseSelector.value) return null;
-        
-        const selectedOption = purchaseSelector.options[purchaseSelector.selectedIndex];
-        return selectedOption.getAttribute('data-status');
-    }
-    
-    // Filter template cards based on search input
-    function filterTemplateCards() {
-        const searchText = document.getElementById('template-search').value.toLowerCase();
-        const cards = document.querySelectorAll('.template-card');
-        
-        cards.forEach(card => {
-            const header = card.querySelector('.template-card-header').textContent.toLowerCase();
-            const body = card.querySelector('.template-card-body').textContent.toLowerCase();
-            
-            if (header.includes(searchText) || body.includes(searchText)) {
-                card.style.display = '';
-            } else {
-                card.style.display = 'none';
-            }
-        });
     }
 
-    // --------- توابع مربوط به انتخاب محصول ---------
-    
-    // آرایه‌ای برای نگهداری محصولات انتخاب شده
-    let selectedProducts = [];
-    
-    // باز کردن مودال انتخاب محصول
+    // Use template
+    function useTemplate(status) {
+        if (templateData[status]) {
+            document.getElementById('message').value = templateData[status];
+            updateCharCount();
+        }
+    }
+
+    // Use marketing template
+    function useMarketingTemplate(templateKey) {
+        const template = marketingTemplates[templateKey];
+        if (template) {
+            const messageField = document.getElementById('marketing_message') || document.getElementById('message');
+            messageField.value = template;
+            updateCharCount();
+        }
+    }
+
+    // Character count update
+    function updateCharCount() {
+        const messageField = document.getElementById('message');
+        const charCount = document.getElementById('char-count');
+        if (messageField && charCount) {
+            charCount.textContent = messageField.value.length;
+        }
+        
+        const marketingField = document.getElementById('marketing_message');
+        const marketingCharCount = document.getElementById('marketing-char-count');
+        if (marketingField && marketingCharCount) {
+            marketingCharCount.textContent = marketingField.value.length;
+        }
+    }
+
+    // Product selector functions
     function openProductSelector() {
         document.getElementById('product-selector-modal').style.display = 'block';
-        // فیلتر کردن محصولات براساس جستجو
-        document.getElementById('product-search').addEventListener('input', filterProducts);
     }
-    
-    // بستن مودال انتخاب محصول
+
     function closeProductSelector() {
         document.getElementById('product-selector-modal').style.display = 'none';
     }
-    
-    // فیلتر کردن محصولات براساس متن جستجو
-    function filterProducts() {
-        const searchText = document.getElementById('product-search').value.toLowerCase();
-        const productItems = document.querySelectorAll('.product-item');
-        
-        productItems.forEach(item => {
-            const productName = item.getAttribute('data-product-name').toLowerCase();
-            const cottage = item.getAttribute('data-cottage').toLowerCase();
-            
-            if (productName.includes(searchText) || cottage.includes(searchText)) {
-                item.style.display = 'block';
-            } else {
-                item.style.display = 'none';
-            }
-        });
-    }
-    
-    // انتخاب/لغو انتخاب یک محصول
-    function toggleProductSelection(checkbox) {
-        const productItem = checkbox.closest('.product-item');
-        const productId = productItem.getAttribute('data-product-id');
-        const productName = productItem.getAttribute('data-product-name');
-        const cottage = productItem.getAttribute('data-cottage');
-        const productType = productItem.getAttribute('data-product-type');
-        const productCountry = productItem.getAttribute('data-product-country');
-        const port = productItem.getAttribute('data-port');
-        const weight = productItem.getAttribute('data-weight');
-        
-        if (checkbox.checked) {
-            // اضافه کردن به محصولات انتخاب شده
-            selectedProducts.push({
-                id: productId,
-                name: productName,
-                cottage: cottage,
-                productType: productType,
-                productCountry: productCountry,
-                port: port,
-                weight: weight
-            });
-        } else {
-            // حذف از محصولات انتخاب شده
-            selectedProducts = selectedProducts.filter(product => product.id !== productId);
-        }
-    }
-    
-    // انتخاب همه محصولات
+
     function selectAllProducts() {
         const checkboxes = document.querySelectorAll('.product-checkbox');
-        selectedProducts = [];
-        
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = true;
-            const productItem = checkbox.closest('.product-item');
-            const productId = productItem.getAttribute('data-product-id');
-            const productName = productItem.getAttribute('data-product-name');
-            const cottage = productItem.getAttribute('data-cottage');
-            const productType = productItem.getAttribute('data-product-type');
-            const productCountry = productItem.getAttribute('data-product-country');
-            const port = productItem.getAttribute('data-port');
-            const weight = productItem.getAttribute('data-weight');
-            
-            selectedProducts.push({
-                id: productId,
-                name: productName,
-                cottage: cottage,
-                productType: productType,
-                productCountry: productCountry,
-                port: port,
-                weight: weight
-            });
+        checkboxes.forEach(cb => {
+            cb.checked = true;
+            cb.dispatchEvent(new Event('change'));
         });
-    }
-    
-    // لغو انتخاب همه محصولات
-    function deselectAllProducts() {
-        const checkboxes = document.querySelectorAll('.product-checkbox');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = false;
-        });
-        selectedProducts = [];
-    }
-    
-    // تایید انتخاب محصولات
-    function confirmProductSelection() {
-        // ذخیره اطلاعات محصولات انتخاب شده در فیلد مخفی
-        document.getElementById('selected_products_data').value = JSON.stringify(selectedProducts);
-        
-        // نمایش محصولات انتخاب شده
-        displaySelectedProducts();
-        
-        // بستن مودال
-        closeProductSelector();
-        
-        // اگر محصولی انتخاب شده، متن پیام را پر کنیم
-        if (selectedProducts.length > 0) {
-            generateCottageMessage();
-        }
-    }
-    
-    // نمایش محصولات انتخاب شده
-    function displaySelectedProducts() {
-        const container = document.getElementById('selected-products-container');
-        const list = document.getElementById('selected-products-list');
-        
-        if (selectedProducts.length === 0) {
-            container.style.display = 'none';
-            return;
-        }
-        
-        // نمایش container
-        container.style.display = 'block';
-        
-        // خالی کردن لیست قبلی
-        list.innerHTML = '';
-        
-        // اضافه کردن محصولات انتخاب شده به لیست
-        selectedProducts.forEach(product => {
-            const productElement = document.createElement('div');
-            productElement.className = 'selected-product-item';
-            productElement.innerHTML = `
-                <div class="product-info">
-                    <span class="product-name">${product.name}</span>
-                    <span class="product-details">کوتاژ: ${product.cottage} | وزن: ${product.weight} کیلوگرم</span>
-                </div>
-                <button type="button" class="remove-product" onclick="removeSelectedProduct('${product.id}')">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-            list.appendChild(productElement);
-        });
-        
-        // پر کردن فیلدهای مخفی برای نوع و کشور محصول (برای پشتیبانی از کد قبلی)
-        if (selectedProducts.length > 0) {
-            document.getElementById('product_type').value = selectedProducts[0].productType;
-            document.getElementById('product_country').value = selectedProducts[0].productCountry;
-            document.getElementById('cottage_number').value = selectedProducts[0].cottage;
-        }
-    }
-    
-    // حذف یک محصول از لیست انتخاب شده‌ها
-    function removeSelectedProduct(productId) {
-        selectedProducts = selectedProducts.filter(product => product.id !== productId);
-        
-        // به‌روزرسانی نمایش محصولات
-        displaySelectedProducts();
-        
-        // به‌روزرسانی متن پیام
-        generateCottageMessage();
-    }
-    
-    // تولید متن پیام برای محصولات انتخاب شده
-    function generateCottageMessage() {
-        const messageField = document.getElementById('message');
-        const charCount = document.getElementById('char-count');
-        
-        if (selectedProducts.length === 0) {
-            messageField.value = '';
-            charCount.textContent = '0';
-            return;
-        }
-        
-        // تولید متن پیام
-        let message = 'مشتری گرامی،\n';
-        
-        if (selectedProducts.length === 1) {
-            // اگر فقط یک محصول انتخاب شده باشد
-            const product = selectedProducts[0];
-            message += `اطلاعات محصول به شرح زیر است:\n`;
-            message += `نوع محصول: ${product.productType} ${product.productCountry}\n`;
-            message += `کوتاژ: ${product.cottage}\n`;
-            message += `محل بارگیری: ${product.port}\n`;
-            message += `وزن: ${product.weight} کیلوگرم`;
-        } else {
-            // اگر چند محصول انتخاب شده باشد
-            message += `${selectedProducts.length} محصول به شرح زیر موجود می‌باشد:\n`;
-            
-            selectedProducts.forEach((product, index) => {
-                message += `${index + 1}. ${product.productType} ${product.productCountry} (کوتاژ: ${product.cottage}) - ${product.weight} کیلوگرم\n`;
-            });
-            
-            message = message.trim(); // حذف خط خالی آخر
-        }
-        
-        // به‌روزرسانی متن پیام و شمارنده کاراکترها
-        messageField.value = message;
-        charCount.textContent = message.length;
     }
 
-    // Toggle template selector collapse/expand
-    function toggleTemplateSelector() {
-        const body = document.getElementById('template-selector-body');
-        const button = document.getElementById('template-collapse-btn');
-        
-        if (body.classList.contains('collapsed')) {
-            // Expand
-            body.classList.remove('collapsed');
-            button.innerHTML = '<i class="fas fa-chevron-up"></i>';
-        } else {
-            // Collapse
-            body.classList.add('collapsed');
-            button.innerHTML = '<i class="fas fa-chevron-down"></i>';
-        }
-    }
-    
-    // Preview template in a tooltip
-    function previewTemplate(event, card) {
-        event.stopPropagation(); // Prevent card click
-        
-        // Get template content
-        const templateContent = card.getAttribute('data-template');
-        const statusName = card.querySelector('.template-card-header').textContent.trim();
-        
-        // Create tooltip
-        let tooltip = document.getElementById('template-preview-tooltip');
-        if (!tooltip) {
-            tooltip = document.createElement('div');
-            tooltip.id = 'template-preview-tooltip';
-            tooltip.className = 'template-preview-tooltip';
-            document.body.appendChild(tooltip);
-        }
-        
-        // Set tooltip content
-        tooltip.innerHTML = `
-            <div class="tooltip-header">
-                ${statusName}
-                <button class="tooltip-close" onclick="closeTooltip()">×</button>
-            </div>
-            <div class="tooltip-body">
-                ${templateContent}
-            </div>
-        `;
-        
-        // Position tooltip
-        const rect = card.getBoundingClientRect();
-        tooltip.style.top = `${rect.top + window.scrollY}px`;
-        tooltip.style.left = `${rect.left + rect.width + 10 + window.scrollX}px`;
-        tooltip.style.display = 'block';
-        
-        // Close when clicking outside
-        document.addEventListener('click', closeTooltipOnClickOutside);
-    }
-    
-    // Close tooltip on click outside
-    function closeTooltipOnClickOutside(event) {
-        const tooltip = document.getElementById('template-preview-tooltip');
-        if (tooltip && !tooltip.contains(event.target)) {
-            closeTooltip();
-        }
-    }
-    
-    // Close tooltip
-    function closeTooltip() {
-        const tooltip = document.getElementById('template-preview-tooltip');
-        if (tooltip) {
-            tooltip.style.display = 'none';
-            document.removeEventListener('click', closeTooltipOnClickOutside);
-        }
-    }
-    
-    // Fetch all templates for a specific status
-    function fetchTemplatesForStatus(status) {
-        // API URL
-        const apiUrl = `/whatsapp/api/templates/status/?status=${status}`;
-        
-        // Clear existing templates
-        const templateCards = document.getElementById('template-status-cards');
-        if (templateCards) {
-            templateCards.innerHTML = '<div class="loading-spinner">در حال بارگذاری...</div>';
-        }
-        
-        // Fetch templates from API
-        fetch(apiUrl)
-            .then(response => response.json())
-            .then(data => {
-                if (data.templates && data.templates.length > 0) {
-                    // Display templates
-                    displayTemplateCards(data.templates, data.status_display);
-                } else {
-                    // No templates found
-                    if (templateCards) {
-                        templateCards.innerHTML = '<p class="no-templates-message">قالبی برای این وضعیت یافت نشد.</p>';
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching templates:', error);
-                if (templateCards) {
-                    templateCards.innerHTML = '<p class="error-message">خطا در بارگذاری قالب‌ها.</p>';
-                }
-            });
-    }
-    
-    // Display template cards based on fetched data
-    function displayTemplateCards(templates, statusDisplay) {
-        const container = document.getElementById('template-status-cards');
-        if (!container) return;
-        
-        // Clear existing cards
-        container.innerHTML = '';
-        
-        // Update title in template selector
-        const selectorHeader = document.querySelector('.template-selector-header h4');
-        if (selectorHeader) {
-            selectorHeader.textContent = `قالب‌های پیام برای "${statusDisplay}" (${templates.length})`;
-        }
-        
-        // Create a card for each template
-        templates.forEach(template => {
-            // Create card
-            const card = document.createElement('div');
-            card.className = 'template-card';
-            card.setAttribute('data-id', template.id);
-            card.setAttribute('data-template', template.content);
-            card.onclick = function() { selectTemplateCard(this); };
-            
-            // Check if this is the default template
-            const isDefault = template.is_active;
-            if (isDefault) {
-                card.classList.add('selected');
-            }
-            
-            // Create badge for default template
-            let badge = '';
-            if (isDefault) {
-                badge = '<div class="template-card-badge">پیش‌فرض</div>';
-            }
-            
-            // Create card content
-            card.innerHTML = `
-                ${badge}
-                <div class="template-card-header">
-                    <i class="fas fa-file-alt"></i>
-                    ${template.name}
-                </div>
-                <div class="template-card-body">
-                    ${template.content.substring(0, 120)}${template.content.length > 120 ? '...' : ''}
-                </div>
-                <div class="template-card-actions">
-                    <button type="button" class="template-card-btn" title="استفاده از قالب" onclick="selectTemplateCard(this.closest('.template-card'))">
-                        <i class="fas fa-check"></i>
-                    </button>
-                    <button type="button" class="template-card-btn" title="پیش‌نمایش" onclick="previewTemplate(event, this.closest('.template-card'))">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                </div>
-            `;
-            
-            // Add card to container
-            container.appendChild(card);
+    function deselectAllProducts() {
+        const checkboxes = document.querySelectorAll('.product-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = false;
+            cb.dispatchEvent(new Event('change'));
         });
     }
-    
-    // Select a template card and update the message field
-    function selectTemplateCard(card) {
-        // Get all cards and remove selected class
-        const allCards = document.querySelectorAll('.template-card');
-        allCards.forEach(c => c.classList.remove('selected'));
+
+    function toggleProductSelection(checkbox) {
+        // Handle product selection logic here
+    }
+
+    function confirmProductSelection() {
+        // Handle product selection confirmation here
+        closeProductSelector();
+    }
+
+    function toggleMoreVariables() {
+        const moreVariables = document.getElementById('more-variables');
+        moreVariables.style.display = moreVariables.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function toggleTemplateSelector() {
+        const body = document.getElementById('template-selector-body');
+        const btn = document.getElementById('template-collapse-btn');
+        const icon = btn.querySelector('i');
         
-        // Add selected class to clicked card
-        card.classList.add('selected');
-        
-        // Get template content
-        const templateContent = card.getAttribute('data-template');
-        
-        // Update message field
-        const messageField = document.getElementById('message');
-        const charCount = document.getElementById('char-count');
-        const templatePreview = document.getElementById('purchase-template-preview');
-        
-        if (messageField && templateContent) {
-            messageField.value = templateContent;
-            charCount.textContent = templateContent.length;
-            
-            if (templatePreview) {
-                templatePreview.textContent = templateContent;
-            }
+        if (body.style.display === 'none') {
+            body.style.display = 'block';
+            icon.className = 'fas fa-chevron-up';
+        } else {
+            body.style.display = 'none';
+            icon.className = 'fas fa-chevron-down';
         }
     }
+
+    function changeTemplateView(view) {
+        const gridBtn = document.getElementById('grid-view-btn');
+        const listBtn = document.getElementById('list-view-btn');
+        const container = document.getElementById('template-status-cards');
+        
+        if (view === 'grid') {
+            gridBtn.classList.add('active');
+            listBtn.classList.remove('active');
+            container.className = 'template-cards grid-view';
+        } else {
+            listBtn.classList.add('active');
+            gridBtn.classList.remove('active');
+            container.className = 'template-cards list-view';
+        }
+    }
+
+    function filterTemplateCards() {
+        const searchTerm = document.getElementById('template-search').value.toLowerCase();
+        const cards = document.querySelectorAll('.template-card');
+        
+        cards.forEach(card => {
+            const text = card.textContent.toLowerCase();
+            card.style.display = text.includes(searchTerm) ? 'block' : 'none';
+        });
+    }
+
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        // Character count events
+        const messageField = document.getElementById('message');
+        const marketingField = document.getElementById('marketing_message');
+        
+        if (messageField) {
+            messageField.addEventListener('input', updateCharCount);
+        }
+        
+        if (marketingField) {
+            marketingField.addEventListener('input', updateCharCount);
+        }
+        
+        // Initialize character counts
+        updateCharCount();
+    });
 </script>
 {% endblock %}

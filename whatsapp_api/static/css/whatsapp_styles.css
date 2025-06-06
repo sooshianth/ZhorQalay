@@ -1,0 +1,1134 @@
+/* تم رنگی سبز واتساپ */
+:root {
+    --whatsapp-primary: #25D366;
+    --whatsapp-secondary: #128C7E;
+    --whatsapp-dark: #075E54;
+    --whatsapp-light: #DCF8C6;
+    --whatsapp-chat: #128C7E;
+    --whatsapp-hover: #34B7F1;
+}
+
+.create-sms-container {
+    padding: 2rem 0;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.page-title {
+    color: var(--whatsapp-dark);
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 2rem;
+    border-bottom: 2px solid var(--whatsapp-light);
+    padding-bottom: 1rem;
+}
+
+.form-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+}
+
+.search-section, .sms-section {
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #eee;
+}
+
+.search-section h3, .sms-section h3 {
+    color: var(--whatsapp-dark);
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+}
+
+.search-form {
+    margin-bottom: 1.5rem;
+}
+
+.search-input-group {
+    display: flex;
+}
+
+.search-input-group input {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.search-button {
+    background-color: var(--whatsapp-primary);
+    color: white;
+    border: none;
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    padding: 0 1rem;
+    cursor: pointer;
+}
+
+.customer-list {
+    margin-bottom: 2rem;
+}
+
+.customer-list h4 {
+    color: var(--whatsapp-dark);
+    margin-bottom: 1rem;
+}
+
+.customer-item {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s;
+}
+
+.customer-item:hover {
+    background-color: #f5f5f5;
+}
+
+.customer-item.selected {
+    background-color: var(--whatsapp-light);
+    border-color: var(--whatsapp-primary);
+}
+
+.customer-item a {
+    color: #333;
+    text-decoration: none;
+    display: block;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--whatsapp-dark);
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.form-control:focus {
+    border-color: var(--whatsapp-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.2);
+}
+
+.character-counter {
+    text-align: left;
+    font-size: 0.8rem;
+    margin-top: 0.3rem;
+    color: #666;
+}
+
+.messages-container {
+    margin-bottom: 1.5rem;
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.alert-danger {
+    background-color: #FFEBEE;
+    color: #D32F2F;
+    border: 1px solid #FFCDD2;
+}
+
+.alert-success {
+    background-color: #E8F5E9;
+    color: #2E7D32;
+    border: 1px solid #C8E6C9;
+}
+
+.alert-info {
+    background-color: #E3F2FD;
+    color: #1565C0;
+    border: 1px solid #BBDEFB;
+}
+
+.alert-link {
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+.template-buttons {
+    margin: 2rem 0;
+}
+
+.template-buttons h4 {
+    color: var(--whatsapp-dark);
+    margin-bottom: 1rem;
+    border-right: 4px solid var(--whatsapp-primary);
+    padding-right: 0.7rem;
+}
+
+.template-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.template-btn, .marketing-template-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+}
+
+.template-btn:hover, .marketing-template-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.template-btn.teal, .marketing-template-btn.teal {
+    background-color: var(--whatsapp-primary);
+}
+
+.template-btn.light-teal, .marketing-template-btn.light-teal {
+    background-color: var(--whatsapp-secondary);
+}
+
+.template-btn.dark-teal, .marketing-template-btn.dark-teal {
+    background-color: var(--whatsapp-dark);
+}
+
+.template-btn.cyan, .marketing-template-btn.cyan {
+    background-color: var(--whatsapp-chat);
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.action-button {
+    display: flex;
+    align-items: center;
+    padding: 0.8rem 1.5rem;
+    border-radius: 6px;
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.action-button i {
+    margin-left: 0.5rem;
+}
+
+.action-button.teal {
+    background-color: var(--whatsapp-primary);
+}
+
+.action-button.light-teal {
+    background-color: var(--whatsapp-secondary);
+}
+
+.action-button.cyan {
+    background-color: var(--whatsapp-chat);
+}
+
+.action-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* دکمه های حالت */
+.sms-modes {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.sms-modes h3 {
+    color: var(--whatsapp-dark);
+    margin-bottom: 1rem;
+}
+
+.mode-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+.mode-btn {
+    padding: 0.8rem 1.5rem;
+    border: 2px solid var(--whatsapp-primary);
+    background-color: white;
+    color: var(--whatsapp-primary);
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+}
+
+.mode-btn i {
+    margin-left: 0.5rem;
+}
+
+.mode-btn:hover {
+    background-color: var(--whatsapp-light);
+}
+
+.mode-btn.selected {
+    background-color: var(--whatsapp-primary);
+    color: white;
+}
+
+/* رادیو باتن ها */
+.message-type-selector {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+}
+
+.radio-group {
+    display: flex;
+    gap: 2rem;
+    margin-top: 0.5rem;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.radio-label input[type="radio"] {
+    margin-left: 0.5rem;
+}
+
+/* Template status info */
+.template-status-info {
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+}
+
+/* استایل‌های مربوط به انتخاب محصول */
+.product-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.product-modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    width: 80%;
+    max-width: 800px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.product-modal-header {
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--whatsapp-primary);
+    color: white;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.product-modal-header h3 {
+    margin: 0;
+    color: white;
+}
+
+.close-modal {
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.product-modal-body {
+    padding: 1rem;
+    overflow-y: auto;
+    max-height: calc(80vh - 130px);
+}
+
+.product-modal-footer {
+    padding: 1rem;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.product-search-container {
+    margin-bottom: 1rem;
+}
+
+.select-all-container {
+    margin-bottom: 1rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.product-list {
+    margin-top: 1rem;
+}
+
+.product-item {
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s;
+}
+
+.product-item:hover {
+    background-color: #f9f9f9;
+}
+
+.product-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    width: 100%;
+}
+
+.product-checkbox {
+    height: 18px;
+    width: 18px;
+}
+
+.product-info {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.product-name {
+    font-weight: 600;
+    color: var(--whatsapp-dark);
+}
+
+.product-details {
+    font-size: 0.9rem;
+    color: #666;
+    margin-top: 0.3rem;
+}
+
+.no-products {
+    padding: 2rem;
+    text-align: center;
+    color: #666;
+    border: 1px dashed #ddd;
+    border-radius: 4px;
+}
+
+.selected-products {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    border: 1px solid #eee;
+}
+
+.selected-products h4 {
+    color: var(--whatsapp-dark);
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.selected-products-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.selected-product-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.7rem;
+    border-bottom: 1px solid #eee;
+}
+
+.selected-product-item:last-child {
+    border-bottom: none;
+}
+
+.remove-product {
+    background-color: transparent;
+    border: none;
+    color: var(--whatsapp-primary);
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.remove-product:hover {
+    color: #e74c3c;
+}
+
+/* استایل‌های مربوط به قالب‌های پیام خرید */
+.purchase-selector-container {
+    margin-bottom: 1.5rem;
+}
+
+.purchase-info-card {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    border: 1px solid #e9e9e9;
+    transition: all 0.3s ease;
+}
+
+.purchase-info-card:hover {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.purchase-info-header {
+    background-color: var(--whatsapp-light);
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.purchase-status-badge {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    color: var(--whatsapp-dark);
+}
+
+.purchase-status-badge i {
+    margin-left: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.purchase-status-badge.status-success {
+    color: #2E7D32;
+}
+
+.purchase-status-badge.status-danger {
+    color: #D32F2F;
+}
+
+.purchase-status-badge.status-warning {
+    color: #F57C00;
+}
+
+.purchase-status-badge.status-info {
+    color: #1565C0;
+}
+
+.purchase-template-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.refresh-template-btn {
+    background-color: transparent;
+    border: none;
+    color: var(--whatsapp-dark);
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.refresh-template-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    transform: rotate(180deg);
+}
+
+.purchase-info-body {
+    padding: 1rem;
+    min-height: 100px;
+}
+
+.purchase-template-preview {
+    white-space: pre-line;
+    line-height: 1.7;
+    color: #333;
+}
+
+.template-content {
+    margin: 0;
+    font-family: inherit;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.no-template-message {
+    text-align: center;
+    padding: 2rem;
+    color: #999;
+    font-style: italic;
+}
+
+.no-template-message i {
+    display: block;
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: #ddd;
+}
+
+.purchase-info-footer {
+    padding: 1rem;
+    background-color: #f9f9f9;
+    border-top: 1px solid #eee;
+}
+
+.template-variables {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.more-variables {
+    margin-top: 0.7rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-top: 0.7rem;
+    border-top: 1px dashed #ddd;
+}
+
+.variable-tag {
+    background-color: var(--whatsapp-light);
+    color: var(--whatsapp-dark);
+    font-size: 0.8rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    direction: ltr;
+    display: inline-block;
+}
+
+.variable-tag:hover {
+    background-color: var(--whatsapp-primary);
+    color: white;
+}
+
+.more-variables-btn {
+    background-color: transparent;
+    border: none;
+    color: var(--whatsapp-dark);
+    cursor: pointer;
+    padding: 0.3rem 0.5rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.more-variables-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.template-selector {
+    margin-top: 1.5rem;
+    background-color: white;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.template-selector-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: var(--whatsapp-light);
+    cursor: pointer;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.template-selector-header h4 {
+    margin: 0;
+    color: var(--whatsapp-dark);
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.template-selector-header h4::before {
+    content: "\f15c";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+}
+
+.template-selector-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.template-control-btn {
+    background-color: transparent;
+    border: none;
+    color: var(--whatsapp-dark);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.template-control-btn:hover {
+    background-color: rgba(37, 211, 102, 0.1);
+}
+
+.template-selector-body {
+    max-height: 500px;
+    overflow-y: auto;
+    transition: max-height 0.3s ease;
+}
+
+.template-selector-body.collapsed {
+    max-height: 0;
+    overflow: hidden;
+}
+
+.template-filter {
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f0f0f0;
+    background-color: #fbfbfb;
+}
+
+.template-view-options {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.view-option-btn {
+    background-color: transparent;
+    border: none;
+    color: #777;
+    padding: 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.view-option-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.view-option-btn.active {
+    color: var(--whatsapp-primary);
+    background-color: rgba(37, 211, 102, 0.1);
+}
+
+.template-search {
+    position: relative;
+    width: 200px;
+}
+
+.template-search input {
+    padding-left: 2rem;
+    font-size: 0.9rem;
+    border-radius: 20px;
+    border: 1px solid #ddd;
+}
+
+.template-search i {
+    position: absolute;
+    left: 0.7rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+    pointer-events: none;
+}
+
+.template-cards {
+    padding: 1rem;
+}
+
+.template-cards.grid-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.template-cards.list-view {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.template-card {
+    background-color: white;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.grid-view .template-card {
+    padding: 1rem;
+    cursor: pointer;
+}
+
+.list-view .template-card {
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.template-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.template-card.selected {
+    border-color: var(--whatsapp-primary);
+    box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.2);
+}
+
+.template-card-header {
+    font-weight: 600;
+    color: var(--whatsapp-dark);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.grid-view .template-card-header {
+    margin-bottom: 0.7rem;
+}
+
+.list-view .template-card-header {
+    margin-bottom: 0;
+}
+
+.template-card-body {
+    font-size: 0.9rem;
+    color: #666;
+    line-height: 1.5;
+}
+
+.grid-view .template-card-body {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.list-view .template-card-body {
+    display: none;
+}
+
+.template-card-badge {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-color: var(--whatsapp-primary);
+    color: white;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    border-bottom-right-radius: 8px;
+    z-index: 5;
+}
+
+.template-card.selected {
+    border: 2px solid var(--whatsapp-primary);
+    box-shadow: 0 0 10px rgba(37, 211, 102, 0.2);
+}
+
+.list-view .template-card-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.grid-view .template-card-actions {
+    display: none;
+}
+
+.template-card-btn {
+    background-color: transparent;
+    border: none;
+    color: var(--whatsapp-primary);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.template-card-btn:hover {
+    background-color: rgba(37, 211, 102, 0.1);
+}
+
+.template-card-footer {
+    margin-top: 1rem;
+}
+
+.template-card-footer button {
+    background-color: var(--whatsapp-primary);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease;
+}
+
+.template-card-footer button:hover {
+    background-color: var(--whatsapp-dark);
+}
+
+.no-templates-message {
+    padding: 2rem;
+    text-align: center;
+    color: #777;
+    font-style: italic;
+}
+
+/* Empty template placeholder */
+.empty-template-placeholder {
+    text-align: center;
+    padding: 1.5rem;
+    color: #777;
+}
+
+.empty-template-placeholder .template-icon {
+    font-size: 2.5rem;
+    color: var(--whatsapp-light);
+    margin-bottom: 1rem;
+}
+
+.empty-template-placeholder p {
+    margin-bottom: 0.5rem;
+}
+
+/* Tooltip for template preview */
+.template-preview-tooltip {
+    position: absolute;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    width: 300px;
+    max-width: 90vw;
+    z-index: 1000;
+    display: none;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.tooltip-header {
+    background-color: var(--whatsapp-primary);
+    color: white;
+    padding: 0.7rem 1rem;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tooltip-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+}
+
+.tooltip-body {
+    padding: 1rem;
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-line;
+    line-height: 1.6;
+}
+
+/* Template placeholder */
+.no-template-message {
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    background-color: #f5f5f5;
+    border-left: 4px solid var(--whatsapp-primary);
+    color: #555;
+    text-align: center;
+    font-weight: 500;
+}
+
+/* Loading spinner */
+.loading-spinner {
+    text-align: center;
+    padding: 2rem;
+    color: var(--whatsapp-primary);
+}
+
+.loading-spinner:after {
+    content: "";
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    border: 3px solid var(--whatsapp-light);
+    border-radius: 50%;
+    border-top-color: var(--whatsapp-primary);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.error-message {
+    padding: 1rem;
+    text-align: center;
+    color: #d9534f;
+    font-style: italic;
+}
+
+.mt-4 {
+    margin-top: 1.5rem;
+}
+
+.small {
+    font-size: 0.85rem;
+}
+
+.text-muted {
+    color: #6c757d;
+}
+
+/* پاسخگویی موبایل */
+@media (max-width: 768px) {
+    .create-sms-container {
+        padding: 1rem;
+    }
+    
+    .form-container {
+        padding: 1.5rem;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .action-button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .mode-buttons {
+        flex-direction: column;
+    }
+
+    .radio-group {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .template-cards.grid-view {
+        grid-template-columns: 1fr;
+    }
+    
+    .template-filter {
+        flex-direction: column-reverse;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .template-search {
+        width: 100%;
+    }
+    
+    .purchase-info-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .purchase-template-actions {
+        align-self: flex-end;
+    }
+    
+    .product-modal-content {
+        width: 95%;
+        margin: 10% auto;
+    }
+    
+    .product-checkbox-label {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .product-checkbox {
+        margin-bottom: 0.5rem;
+    }
+    
+    .template-preview-tooltip {
+        position: fixed;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%);
+        width: 90vw;
+        max-height: 80vh;
+    }
+    
+    .tooltip-body {
+        max-height: 50vh;
+    }
+} 

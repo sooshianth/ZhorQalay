@@ -55,6 +55,12 @@
         color: #25d366;
         margin-bottom: 10px;
     }
+    .status-field {
+        transition: all 0.3s ease;
+    }
+    .status-field.hidden {
+        display: none;
+    }
 </style>
 {% endblock %}
 
@@ -88,22 +94,22 @@
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="status">وضعیت خرید <span class="text-danger">*</span></label>
-                            <select class="form-control" id="status" name="status" required>
+                            <label for="template_type">نوع قالب <span class="text-danger">*</span></label>
+                            <select class="form-control" id="template_type" name="template_type" required onchange="toggleStatusField()">
                                 <option value="">-- انتخاب کنید --</option>
-                                {% for key, label in status_choices %}
-                                <option value="{{ key }}" {% if key == preselected_status %}selected{% endif %}>{{ label }}</option>
+                                {% for key, label in template_types %}
+                                <option value="{{ key }}" {% if key == preselected_type %}selected{% endif %}>{{ label }}</option>
                                 {% endfor %}
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-4 status-field" id="status-field">
                         <div class="form-group">
-                            <label for="template_type">نوع پیام <span class="text-danger">*</span></label>
-                            <select class="form-control" id="template_type" name="template_type" required>
+                            <label for="status">وضعیت خرید <span class="text-danger">*</span></label>
+                            <select class="form-control" id="status" name="status">
                                 <option value="">-- انتخاب کنید --</option>
-                                {% for key, label in template_types %}
-                                <option value="{{ key }}">{{ label }}</option>
+                                {% for key, label in status_choices %}
+                                <option value="{{ key }}" {% if key == preselected_status %}selected{% endif %}>{{ label }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -122,13 +128,13 @@
                     <div class="form-check mb-2">
                         <input class="form-check-input" type="checkbox" id="is_active" name="is_active">
                         <label class="form-check-label" for="is_active">
-                            استفاده به عنوان قالب پیش‌فرض برای وضعیت انتخاب شده
+                            استفاده به عنوان قالب پیش‌فرض
                         </label>
                     </div>
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i> 
-                        اگر این گزینه را انتخاب کنید، این قالب به عنوان پیش‌فرض برای وضعیت خرید انتخاب شده تنظیم می‌شود و 
-                        سایر قالب‌های پیش‌فرض برای این وضعیت غیرفعال می‌شوند. همواره فقط یک قالب پیش‌فرض برای هر وضعیت می‌تواند وجود داشته باشد.
+                        اگر این گزینه را انتخاب کنید، این قالب به عنوان پیش‌فرض تنظیم می‌شود و 
+                        سایر قالب‌های پیش‌فرض غیرفعال می‌شوند.
                     </div>
                 </div>
                 
@@ -137,6 +143,10 @@
                     <div class="alert alert-info">
                         متغیرها را با کلیک روی دکمه‌های زیر به متن قالب اضافه کنید. هر متغیر با فرمت &#123;&#123; متغیر &#125;&#125; در متن قرار می‌گیرد.
                     </div>
+                    
+                    <button type="button" id="btnLoadDefault" class="btn btn-sm btn-info btn-load-default">
+                        <i class="fas fa-sync-alt"></i> بارگذاری متن پیش‌فرض
+                    </button>
                     
                     <div class="placeholders-toolbar">
                         <div class="d-flex flex-wrap">
@@ -179,37 +189,18 @@
 
 {% block extra_scripts %}
 <script>
-{% verbatim %}
 document.addEventListener('DOMContentLoaded', function() {
     const contentTextarea = document.getElementById('content');
     const previewBox = document.getElementById('preview');
     const charCount = document.getElementById('charCount');
     const smsCount = document.getElementById('smsCount');
     const placeholderButtons = document.querySelectorAll('.btn-placeholder');
+    const templateTypeSelect = document.getElementById('template_type');
+    const statusSelect = document.getElementById('status');
+    const btnLoadDefault = document.getElementById('btnLoadDefault');
     
-    // تعریف مسیرهای دسترسی کامل به فیلدها و مقادیر نمونه برای پیش‌نمایش
-    const placeholderPaths = {
-        'customer_name': 'customer.name',
-        'purchase_number': 'purchase.purchase_number',
-        'invoice_id': 'purchase.invoice_id',
-        'order_weight': 'purchase.order_weight',
-        'customer_price': 'purchase.customer_price',
-        'amount_paid': 'purchase.amount_paid',
-        'barnameh': 'purchase.barnameh',
-        'barnameh_date': 'purchase.barnameh_date',
-        'driver_name': 'purchase.driver_name',
-        'driver_phone': 'purchase.driver_phone',
-        'extelaf_type': 'purchase.extelaf_type',
-        'extelaf_weight': 'purchase.extelaf_weight',
-        'extelaf_amount': 'purchase.extelaf_amount',
-        'cottage': 'cargo.cottage',
-        'product_type': 'cargo.product_type',
-        'product_country': 'cargo.country',
-        'sales_agent_phone': 'customer.sales_agent.phone_number',
-        'sales_agent_name': 'customer.sales_agent.name',
-        'dakheli_number': 'customer.sales_agent.dakheli_number',
-        'shenase_takhsis': 'purchase.shenase_takhsis'
-    };
+    // Parse default templates from server
+    const defaultTemplates = JSON.parse('{{ default_templates|safe }}');
     
     // مقادیر نمونه برای پیش‌نمایش
     const sampleData = {
@@ -220,20 +211,36 @@ document.addEventListener('DOMContentLoaded', function() {
         'customer_price': '150000',
         'amount_paid': '3750000000',
         'barnameh': 'B-987654',
-        'barnameh_date': '1402/05/01',
-        'driver_name': 'علی محمدی',
+        'barnameh_date': '1402/06/15',
+        'driver_name': 'راننده نمونه',
         'driver_phone': '09123456789',
-        'extelaf_type': 'سرک',
+        'extelaf_type': 'کسری',
         'extelaf_weight': '500',
         'extelaf_amount': '75000000',
         'cottage': '12345678',
         'product_type': 'ذرت',
         'product_country': 'برزیل',
-        'sales_agent_phone': '09123456789',
         'sales_agent_name': 'کارشناس فروش نمونه',
-        'dakheli_number': '۳',
+        'sales_agent_phone': '09123456789',
+        'dakheli_number': '3',
         'shenase_takhsis': 'ABC123456789'
     };
+    
+    // تابع نمایش/مخفی کردن فیلد وضعیت بر اساس نوع قالب
+    function toggleStatusField() {
+        const templateType = templateTypeSelect.value;
+        const statusField = document.getElementById('status-field');
+        const statusSelect = document.getElementById('status');
+        
+        if (templateType === 'purchase') {
+            statusField.classList.remove('hidden');
+            statusSelect.required = true;
+        } else {
+            statusField.classList.add('hidden');
+            statusSelect.required = false;
+            statusSelect.value = '';
+        }
+    }
     
     // افزودن متغیر به متن
     placeholderButtons.forEach(btn => {
@@ -243,14 +250,44 @@ document.addEventListener('DOMContentLoaded', function() {
             const textBefore = contentTextarea.value.substring(0, cursorPos);
             const textAfter = contentTextarea.value.substring(cursorPos);
             
-            contentTextarea.value = textBefore + '{{ ' + placeholder + ' }}' + textAfter;
+            contentTextarea.value = textBefore + '{{' + placeholder + '}}' + textAfter;
             updatePreview();
             
-            // قرار دادن کرسر بعد از متغیر اضافه شده
-            const newCursorPos = cursorPos + placeholder.length + 6; // 6 برای علامت‌های آکولاد و فاصله‌ها
+            // قرار دادن کرسور بعد از متغیر اضافه شده
+            const newCursorPos = cursorPos + placeholder.length + 4;
             contentTextarea.focus();
             contentTextarea.setSelectionRange(newCursorPos, newCursorPos);
         });
+    });
+    
+    // بارگذاری قالب پیش‌فرض
+    btnLoadDefault.addEventListener('click', function() {
+        const templateType = templateTypeSelect.value;
+        const status = statusSelect.value;
+        
+        if (!templateType) {
+            alert('لطفاً ابتدا نوع قالب را انتخاب کنید.');
+            return;
+        }
+        
+        let defaultContent = '';
+        
+        if (templateType === 'purchase') {
+            if (!status) {
+                alert('لطفاً ابتدا وضعیت خرید را انتخاب کنید.');
+                return;
+            }
+            defaultContent = defaultTemplates.purchase[status] || '';
+        } else {
+            defaultContent = defaultTemplates[templateType] || '';
+        }
+        
+        if (defaultContent) {
+            contentTextarea.value = defaultContent;
+            updatePreview();
+        } else {
+            alert('قالب پیش‌فرضی برای این انتخاب یافت نشد.');
+        }
     });
     
     // به‌روزرسانی پیش‌نمایش
@@ -259,8 +296,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // جایگزینی متغیرها با مقادیر نمونه
         for (const [key, value] of Object.entries(sampleData)) {
-            // Safer approach for handling regex in Django templates
-            const regex = new RegExp('{{\\s*' + key + '\\s*}}', 'g');
+            const regex = new RegExp('\\{\\{\\s*' + key + '\\s*\\}\\}', 'g');
             previewText = previewText.replace(regex, value);
         }
         
@@ -270,17 +306,34 @@ document.addEventListener('DOMContentLoaded', function() {
         const charLength = contentTextarea.value.length;
         charCount.textContent = charLength;
         
-        // محاسبه تعداد پیامک - هر پیامک حداکثر 160 کاراکتر
+        // محاسبه تعداد پیام - هر پیام حداکثر 160 کاراکتر
         const msgCount = Math.ceil(charLength / 160);
         smsCount.textContent = msgCount;
     }
     
     // به‌روزرسانی اولیه
+    toggleStatusField();
     updatePreview();
     
     // رویداد تغییر محتوا
     contentTextarea.addEventListener('input', updatePreview);
+    templateTypeSelect.addEventListener('change', toggleStatusField);
 });
-{% endverbatim %}
+
+// تابع global برای تغییر فیلد وضعیت
+function toggleStatusField() {
+    const templateTypeSelect = document.getElementById('template_type');
+    const statusField = document.getElementById('status-field');
+    const statusSelect = document.getElementById('status');
+    
+    if (templateTypeSelect.value === 'purchase') {
+        statusField.classList.remove('hidden');
+        statusSelect.required = true;
+    } else {
+        statusField.classList.add('hidden');
+        statusSelect.required = false;
+        statusSelect.value = '';
+    }
+}
 </script>
 {% endblock %} 
