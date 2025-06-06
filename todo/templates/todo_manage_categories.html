@@ -27,7 +27,7 @@
 }
 
 /* Sidebar */
-.sidebar {
+.todo-sidebar {
     background-color: white;
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
@@ -38,7 +38,7 @@
     overflow-y: auto;
 }
 
-.sidebar-title {
+.todo-sidebar-title {
     font-size: 1.2rem;
     font-weight: bold;
     margin-bottom: 20px;
@@ -47,7 +47,7 @@
     align-items: center;
 }
 
-.sidebar-title i {
+.todo-sidebar-title i {
     margin-left: 8px;
 }
 
@@ -308,7 +308,7 @@
         grid-template-columns: 1fr;
     }
     
-    .sidebar {
+    .todo-sidebar {
         position: relative;
         height: auto;
         top: 0;
@@ -324,8 +324,8 @@
 {% block content %}
 <div class="dashboard-container">
     <!-- Sidebar -->
-    <div class="sidebar">
-        <h3 class="sidebar-title"><i class="fas fa-tasks"></i> تسک‌های من</h3>
+    <div class="todo-sidebar">
+        <h3 class="todo-sidebar-title"><i class="fas fa-folder"></i> مدیریت دسته‌بندی‌ها</h3>
         
         <nav class="sidebar-nav">
             <a href="{% url 'todo_dashboard' %}" class="nav-link">

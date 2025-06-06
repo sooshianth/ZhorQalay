@@ -1,77 +1,111 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}ویرایش تسک{% endblock %}
 
+{% block extra_css %}
+{% include 'todo_styles.html' %}
+{% endblock %}
+
 {% block content %}
-<div class="todo-container">
-    <a href="{% url 'todo_dashboard' %}" class="back-link">
-        <i class="fas fa-arrow-right"></i> بازگشت به داشبورد
-    </a>
+<div class="dashboard-container">
+    <!-- Sidebar -->
+    <div class="todo-sidebar">
+        <h3 class="todo-sidebar-title"><i class="fas fa-edit"></i> ویرایش تسک</h3>
+        
+        <nav class="sidebar-nav">
+            <a href="{% url 'todo_dashboard' %}" class="nav-link">
+                <i class="fas fa-home"></i> داشبورد
+            </a>
+            <a href="{% url 'create_todo' %}" class="nav-link">
+                <i class="fas fa-plus"></i> تسک جدید
+            </a>
+            <a href="{% url 'todo_list' %}" class="nav-link">
+                <i class="fas fa-list"></i> همه تسک‌ها
+            </a>
+            <a href="{% url 'completed_todos' %}" class="nav-link">
+                <i class="fas fa-check-double"></i> تکمیل شده
+            </a>
+            <a href="{% url 'todo_analytics' %}" class="nav-link">
+                <i class="fas fa-chart-bar"></i> آمار و تحلیل
+            </a>
+            <a href="{% url 'manage_categories' %}" class="nav-link">
+                <i class="fas fa-folder"></i> مدیریت دسته‌بندی‌ها
+            </a>
+        </nav>
+    </div>
     
-    <h1 class="todo-title">
-        <i class="fas fa-edit"></i> ویرایش تسک
-    </h1>
-    
-    <div class="todo-form">
-        <form method="post">
-            {% csrf_token %}
-            
-            <div class="form-group">
-                <label for="title">عنوان:</label>
-                <input type="text" id="title" name="title" value="{{ task.title }}" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="description">توضیحات:</label>
-                <textarea id="description" name="description">{{ task.description }}</textarea>
-            </div>
-            
-            <div class="form-row">
-                <!-- <div class="form-group">
-                    <label for="due_date">تاریخ سررسید:</label>
-                    <input type="text" id="due_date" name="due_date" class="persian-datepicker" value="{{ task.due_date_jalali }}">
-                </div> -->
+    <!-- Main Content -->
+    <div class="todo-container">
+        <a href="{% url 'todo_dashboard' %}" class="back-link">
+            <i class="fas fa-arrow-right"></i> بازگشت به داشبورد
+        </a>
+        
+        <h1 class="todo-title">
+            <i class="fas fa-edit"></i> ویرایش تسک
+        </h1>
+        
+        <div class="todo-form">
+            <form method="post">
+                {% csrf_token %}
                 
                 <div class="form-group">
-                    <label for="priority">اولویت:</label>
-                    <select id="priority" name="priority">
-                        <option value="low" {% if task.priority == 'low' %}selected{% endif %}>کم</option>
-                        <option value="medium" {% if task.priority == 'medium' %}selected{% endif %}>متوسط</option>
-                        <option value="high" {% if task.priority == 'high' %}selected{% endif %}>زیاد</option>
-                        <option value="urgent" {% if task.priority == 'urgent' %}selected{% endif %}>فوری</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="status">وضعیت:</label>
-                    <select id="status" name="status">
-                        <option value="pending" {% if task.status == 'pending' %}selected{% endif %}>در انتظار</option>
-                        <option value="in_progress" {% if task.status == 'in_progress' %}selected{% endif %}>در حال انجام</option>
-                        <option value="completed" {% if task.status == 'completed' %}selected{% endif %}>تکمیل شده</option>
-                        <option value="deferred" {% if task.status == 'deferred' %}selected{% endif %}>به تعویق افتاده</option>
-                        <option value="canceled" {% if task.status == 'canceled' %}selected{% endif %}>لغو شده</option>
-                    </select>
+                    <label for="title">عنوان:</label>
+                    <input type="text" id="title" name="title" value="{{ task.title }}" required>
                 </div>
                 
                 <div class="form-group">
-                    <label for="category">دسته‌بندی:</label>
-                    <select id="category" name="category">
-                        {% for category in categories %}
-                        <option value="{{ category.id }}" {% if task.category.id == category.id %}selected{% endif %}>{{ category.name }}</option>
-                        {% endfor %}
-                    </select>
+                    <label for="description">توضیحات:</label>
+                    <textarea id="description" name="description">{{ task.description }}</textarea>
                 </div>
-            </div>
-            
-            <div class="form-group">
-                <label for="tags">برچسب‌ها (با کاما جدا کنید):</label>
-                <input type="text" id="tags" name="tags" value="{{ task_tags }}">
-            </div>
-            
-            <button type="submit">ذخیره تغییرات</button>
-        </form>
+                
+                <div class="form-row">
+                    <!-- <div class="form-group">
+                        <label for="due_date">تاریخ سررسید:</label>
+                        <input type="text" id="due_date" name="due_date" class="persian-datepicker" value="{{ task.due_date_jalali }}">
+                    </div> -->
+                    
+                    <div class="form-group">
+                        <label for="priority">اولویت:</label>
+                        <select id="priority" name="priority">
+                            <option value="low" {% if task.priority == 'low' %}selected{% endif %}>کم</option>
+                            <option value="medium" {% if task.priority == 'medium' %}selected{% endif %}>متوسط</option>
+                            <option value="high" {% if task.priority == 'high' %}selected{% endif %}>زیاد</option>
+                            <option value="urgent" {% if task.priority == 'urgent' %}selected{% endif %}>فوری</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="status">وضعیت:</label>
+                        <select id="status" name="status">
+                            <option value="pending" {% if task.status == 'pending' %}selected{% endif %}>در انتظار</option>
+                            <option value="in_progress" {% if task.status == 'in_progress' %}selected{% endif %}>در حال انجام</option>
+                            <option value="completed" {% if task.status == 'completed' %}selected{% endif %}>تکمیل شده</option>
+                            <option value="deferred" {% if task.status == 'deferred' %}selected{% endif %}>به تعویق افتاده</option>
+                            <option value="canceled" {% if task.status == 'canceled' %}selected{% endif %}>لغو شده</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="category">دسته‌بندی:</label>
+                        <select id="category" name="category">
+                            {% for category in categories %}
+                            <option value="{{ category.id }}" {% if task.category.id == category.id %}selected{% endif %}>{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="tags">برچسب‌ها (با کاما جدا کنید):</label>
+                    <input type="text" id="tags" name="tags" value="{{ task_tags }}">
+                </div>
+                
+                <button type="submit">ذخیره تغییرات</button>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -91,6 +125,4 @@ $(document).ready(function() {
     });
 });
 </script>
-
-{% include 'todo_styles.html' %}
 {% endblock %} 

@@ -1,0 +1,384 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}جزئیات تسک{% endblock %}
+
+{% block extra_css %}
+{% include 'todo_styles.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Sidebar -->
+    <div class="todo-sidebar">
+        <h3 class="todo-sidebar-title"><i class="fas fa-eye"></i> جزئیات تسک</h3>
+        
+        <nav class="sidebar-nav">
+            <a href="{% url 'todo_dashboard' %}" class="nav-link">
+                <i class="fas fa-home"></i> داشبورد
+            </a>
+            <a href="{% url 'create_todo' %}" class="nav-link">
+                <i class="fas fa-plus"></i> تسک جدید
+            </a>
+            <a href="{% url 'todo_list' %}" class="nav-link">
+                <i class="fas fa-list"></i> همه تسک‌ها
+            </a>
+            <a href="{% url 'completed_todos' %}" class="nav-link">
+                <i class="fas fa-check-double"></i> تکمیل شده
+            </a>
+            <a href="{% url 'todo_analytics' %}" class="nav-link">
+                <i class="fas fa-chart-bar"></i> آمار و تحلیل
+            </a>
+            <a href="{% url 'manage_categories' %}" class="nav-link">
+                <i class="fas fa-folder"></i> مدیریت دسته‌بندی‌ها
+            </a>
+        </nav>
+        
+        <div class="filter-section">
+            <h4 class="filter-title">عملیات سریع</h4>
+            
+            <a href="{% url 'edit_todo' task.id %}" class="filter-item">
+                <i class="fas fa-edit filter-icon"></i>
+                ویرایش تسک
+            </a>
+            
+            <a href="{% url 'change_todo_status' task.id %}?redirect_url={{ request.get_full_path|urlencode }}" class="filter-item">
+                <i class="fas {% if task.is_completed %}fa-undo{% else %}fa-check{% endif %} filter-icon"></i>
+                {% if task.is_completed %}برگشت به حالت باز{% else %}علامت‌گذاری به عنوان تکمیل شده{% endif %}
+            </a>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-tasks"></i> {{ task.title }}
+                </h2>
+                <div class="section-actions">
+                    <a href="{% url 'todo_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-right"></i> بازگشت به لیست
+                    </a>
+                    <a href="{% url 'edit_todo' task.id %}" class="btn btn-primary">
+                        <i class="fas fa-edit"></i> ویرایش
+                    </a>
+                </div>
+            </div>
+            
+            <div class="task-detail-container">
+                <div class="task-detail-card">
+                    <div class="task-meta-info">
+                        <div class="meta-item">
+                            <span class="meta-label">وضعیت:</span>
+                            <span class="task-status task-status-{{ task.status }}">{{ task.get_status_display }}</span>
+                        </div>
+                        
+                        <div class="meta-item">
+                            <span class="meta-label">اولویت:</span>
+                            <span class="task-priority task-priority-{{ task.priority }}">{{ task.get_priority_display }}</span>
+                        </div>
+                        
+                        {% if task.category %}
+                        <div class="meta-item">
+                            <span class="meta-label">دسته‌بندی:</span>
+                            <span class="task-category">
+                                <span class="task-category-color" style="background-color: {{ task.category.color }};"></span>
+                                {{ task.category.name }}
+                            </span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if task.due_date %}
+                        <div class="meta-item">
+                            <span class="meta-label">تاریخ سررسید:</span>
+                            <span class="task-due-date {% if task.is_overdue %}text-danger{% endif %}">
+                                <i class="fas fa-calendar"></i>
+                                {{ task.due_date }}
+                                {% if task.due_time %}
+                                <i class="fas fa-clock ml-2"></i> {{ task.due_time|time:"H:i" }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="meta-item">
+                            <span class="meta-label">تاریخ ایجاد:</span>
+                            <span class="task-created">
+                                <i class="fas fa-plus-circle"></i>
+                                {{ task.created_at|date:"Y-m-d H:i" }}
+                            </span>
+                        </div>
+                        
+                        {% if task.completed_at %}
+                        <div class="meta-item">
+                            <span class="meta-label">تاریخ تکمیل:</span>
+                            <span class="task-completed">
+                                <i class="fas fa-check-circle"></i>
+                                {{ task.completed_at|date:"Y-m-d H:i" }}
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if task.description %}
+                    <div class="task-description-section">
+                        <h4><i class="fas fa-align-left"></i> توضیحات</h4>
+                        <div class="task-description">{{ task.description|linebreaks }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if task.notes %}
+                    <div class="task-notes-section">
+                        <h4><i class="fas fa-sticky-note"></i> یادداشت‌ها</h4>
+                        <div class="task-notes">{{ task.notes|linebreaks }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if tags %}
+                    <div class="task-tags-section">
+                        <h4><i class="fas fa-tags"></i> برچسب‌ها</h4>
+                        <div class="tag-list">
+                            {% for tag in tags %}
+                            <span class="tag-item">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="quick-actions-card">
+                    <h4><i class="fas fa-bolt"></i> عملیات سریع</h4>
+                    
+                    <!-- Status Update Form -->
+                    <form method="post" class="quick-action-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_status">
+                        <div class="form-group">
+                            <label for="status">تغییر وضعیت:</label>
+                            <select name="status" id="status" class="form-control">
+                                {% for value, label in status_choices %}
+                                <option value="{{ value }}" {% if task.status == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> بروزرسانی وضعیت
+                        </button>
+                    </form>
+                    
+                    <!-- Priority Update Form -->
+                    <form method="post" class="quick-action-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_priority">
+                        <div class="form-group">
+                            <label for="priority">تغییر اولویت:</label>
+                            <select name="priority" id="priority" class="form-control">
+                                {% for value, label in priority_choices %}
+                                <option value="{{ value }}" {% if task.priority == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-flag"></i> بروزرسانی اولویت
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.task-detail-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 25px;
+    margin-top: 20px;
+}
+
+.task-detail-card, .quick-actions-card {
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    padding: 25px;
+}
+
+.task-meta-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.meta-label {
+    font-weight: 600;
+    color: var(--dark-color);
+    margin-left: 10px;
+    min-width: 80px;
+}
+
+.task-status {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.task-status-pending { background-color: #fff3cd; color: #856404; }
+.task-status-in_progress { background-color: #d1ecf1; color: #0c5460; }
+.task-status-completed { background-color: #d4edda; color: #155724; }
+.task-status-deferred { background-color: #f8d7da; color: #721c24; }
+.task-status-canceled { background-color: #e2e3e5; color: #383d41; }
+
+.task-priority {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.task-priority-urgent { background-color: #f8d7da; color: #721c24; }
+.task-priority-high { background-color: #fff3cd; color: #856404; }
+.task-priority-medium { background-color: #d1ecf1; color: #0c5460; }
+.task-priority-low { background-color: #e2e3e5; color: #383d41; }
+
+.task-category {
+    display: flex;
+    align-items: center;
+}
+
+.task-category-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-left: 8px;
+}
+
+.task-description-section, .task-notes-section, .task-tags-section {
+    margin-bottom: 25px;
+}
+
+.task-description-section h4, .task-notes-section h4, .task-tags-section h4 {
+    color: var(--dark-color);
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+}
+
+.task-description-section h4 i, .task-notes-section h4 i, .task-tags-section h4 i {
+    margin-left: 8px;
+    color: var(--primary-color);
+}
+
+.task-description, .task-notes {
+    background-color: var(--light-color);
+    border-radius: var(--small-radius);
+    padding: 15px;
+    line-height: 1.6;
+}
+
+.quick-actions-card h4 {
+    color: var(--dark-color);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+}
+
+.quick-actions-card h4 i {
+    margin-left: 8px;
+    color: var(--primary-color);
+}
+
+.quick-action-form {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: var(--light-color);
+    border-radius: var(--small-radius);
+}
+
+.quick-action-form:last-child {
+    margin-bottom: 0;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: var(--dark-color);
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--small-radius);
+    font-family: 'Vazir', sans-serif;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 16px;
+    border: none;
+    border-radius: var(--small-radius);
+    text-decoration: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn i {
+    margin-left: 8px;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-secondary {
+    background-color: var(--gray-color);
+    color: white;
+}
+
+.btn-success {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.btn-warning {
+    background-color: var(--warning-color);
+    color: white;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--hover-shadow);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .task-detail-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .task-meta-info {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %} 

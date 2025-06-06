@@ -4,14 +4,14 @@
 
 <style>
 :root {
-    --primary-color: #065F46;  /* سبز زمردی تیره */
+    --primary-color: #065F46;  /* سبز زمردی تیره - همرنگ با تم اصلی */
     --primary-light: #eef7fc; /* Light blue background */
     --secondary-color: #2ecc71; /* Vibrant green */
     --secondary-light: #edfcf3; /* Light green background */
     --accent-color: #9b59b6; /* Purple accent */
     --danger-color: #e74c3c;
     --warning-color: #f39c12;
-    --dark-color: #86EFAC; /* Deep navy blue */
+    --dark-color: #065F46; /* تغییر به سبز زمردی مطابق با تم اصلی */
     --light-color: #f9f9f9;
     --gray-color: #7f8c8d;
     --gray-light: #ecf0f1;
@@ -33,9 +33,9 @@
     background-color: var(--light-color);
 }
 
-/* ----- Sidebar ----- */
-.sidebar {
-    background-color: white;
+/* ----- Sidebar ----- تغییر نام کلاس */
+.todo-sidebar {
+    background-color: var(--primary-color);
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
     padding: 24px;
@@ -47,24 +47,24 @@
     border: 1px solid var(--border-color);
 }
 
-.sidebar:hover {
+.todo-sidebar:hover {
     box-shadow: var(--hover-shadow);
 }
 
-.sidebar-title {
+.todo-sidebar-title {
     font-size: 1.25rem;
     font-weight: 700;
     margin-bottom: 25px;
-    color: var(--dark-color);
+    color: white;
     display: flex;
     align-items: center;
     padding-bottom: 12px;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.sidebar-title i {
+.todo-sidebar-title i {
     margin-left: 10px;
-    color: var(--primary-color);
+    color: white;
     font-size: 1.3rem;
 }
 
@@ -73,7 +73,7 @@
     align-items: center;
     padding: 12px 16px;
     border-radius: var(--small-radius);
-    color: var(--dark-color);
+    color: white;
     margin-bottom: 6px;
     transition: var(--transition);
     text-decoration: none;
@@ -86,11 +86,12 @@
     width: 22px;
     text-align: center;
     transition: var(--transition);
+    color: white;
 }
 
 .nav-link:hover {
-    background-color: var(--primary-light);
-    color: var(--primary-color);
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
     transform: translateX(-5px);
 }
 
@@ -99,23 +100,27 @@
 }
 
 .nav-link.active {
-    background-color: var(--primary-color);
-    color: white;
-    box-shadow: 0 3px 8px rgba(52, 152, 219, 0.25);
+    background-color: white;
+    color: var(--primary-color);
+    box-shadow: 0 3px 8px rgba(6, 95, 70, 0.25);
+}
+
+.nav-link.active i {
+    color: var(--primary-color);
 }
 
 /* ----- Filters ----- */
 .filter-section {
     margin-top: 25px;
     padding-top: 18px;
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .filter-title {
     font-size: 1.05rem;
     font-weight: 600;
     margin-bottom: 14px;
-    color: var(--dark-color);
+    color: white;
 }
 
 .filter-item {
@@ -127,19 +132,19 @@
     cursor: pointer;
     transition: var(--transition);
     text-decoration: none;
-    color: var(--dark-color);
+    color: white;
 }
 
 .filter-item:hover {
-    background-color: var(--primary-light);
+    background-color: rgba(255, 255, 255, 0.2);
     transform: translateX(-5px);
 }
 
 .filter-item.active {
-    background-color: var(--primary-light);
-    color: var(--primary-color);
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
     font-weight: 600;
-    box-shadow: 0 2px 6px rgba(52, 152, 219, 0.15);
+    box-shadow: 0 2px 6px rgba(6, 95, 70, 0.15);
 }
 
 .filter-icon {
@@ -147,6 +152,7 @@
     width: 18px;
     text-align: center;
     transition: var(--transition);
+    color: white;
 }
 
 .filter-item:hover .filter-icon {
@@ -155,16 +161,17 @@
 
 .filter-count {
     margin-right: auto;
-    background-color: var(--gray-light);
+    background-color: rgba(255, 255, 255, 0.2);
     padding: 3px 10px;
     border-radius: 20px;
     font-size: 0.75rem;
     transition: var(--transition);
+    color: white;
 }
 
 .filter-count.active {
-    background-color: var(--primary-color);
-    color: white;
+    background-color: white;
+    color: var(--primary-color);
 }
 
 .filter-item:hover .filter-count {
@@ -176,14 +183,14 @@
     align-items: center;
     margin-bottom: 6px;
     text-decoration: none;
-    color: var(--dark-color);
+    color: white;
     border-radius: var(--small-radius);
     padding: 10px 14px;
     transition: var(--transition);
 }
 
 .category-item:hover {
-    background-color: var(--primary-light);
+    background-color: rgba(255, 255, 255, 0.2);
     transform: translateX(-5px);
 }
 
@@ -201,11 +208,12 @@
 
 .category-count {
     margin-right: auto;
-    background-color: var(--gray-light);
+    background-color: rgba(255, 255, 255, 0.2);
     border-radius: 20px;
     padding: 3px 10px;
     font-size: 0.8rem;
     transition: var(--transition);
+    color: white;
 }
 
 .category-item:hover .category-count {
@@ -220,21 +228,21 @@
 }
 
 .tag-item {
-    background-color: var(--gray-light);
+    background-color: rgba(255, 255, 255, 0.2);
     border-radius: 20px;
     padding: 5px 12px;
     font-size: 0.8rem;
-    color: var(--dark-color);
+    color: white;
     text-decoration: none;
     transition: var(--transition);
     border: 1px solid transparent;
 }
 
 .tag-item:hover {
-    background-color: var(--primary-light);
-    color: var(--primary-color);
+    background-color: rgba(255, 255, 255, 0.3);
+    color: white;
     transform: translateY(-2px);
-    border-color: rgba(52, 152, 219, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
 }
 
 /* ----- Main Content ----- */
@@ -929,14 +937,14 @@ button[type="submit"]:hover {
         padding: 15px;
     }
     
-    .sidebar {
+    .todo-sidebar {
         position: relative;
         height: auto;
         top: 0;
         margin-bottom: 20px;
     }
     
-    .section, .search-section, .sidebar {
+    .section, .search-section, .todo-sidebar {
         border-radius: var(--small-radius);
     }
 }
