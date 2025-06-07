@@ -13,6 +13,7 @@ from django.core.exceptions import ValidationError
 from core.decorators.decorators import role_required
 from core.decorators.det_user_role import determine_user_role
 from datetime import datetime
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
@@ -202,6 +203,37 @@ def purchase_list(request):
             Q(created_at__contains=global_search)
         )
     
+    # تنظیمات پیجینیشن
+    per_page = request.GET.get('per_page', '50')  # پیش‌فرض 50 رکورد در هر صفحه
+    try:
+        per_page = int(per_page)
+        if per_page not in [10, 25, 50, 100, 200]:  # محدود کردن به گزینه‌های مجاز
+            per_page = 50
+    except (ValueError, TypeError):
+        per_page = 50
+    
+    # صفحه خریدهای فعال
+    active_page = request.GET.get('active_page', 1)
+    active_paginator = Paginator(active_purchases, per_page)
+    
+    try:
+        active_purchases_page = active_paginator.page(active_page)
+    except PageNotAnInteger:
+        active_purchases_page = active_paginator.page(1)
+    except EmptyPage:
+        active_purchases_page = active_paginator.page(active_paginator.num_pages)
+    
+    # صفحه خریدهای آرشیو شده
+    archived_page = request.GET.get('archived_page', 1)
+    archived_paginator = Paginator(archived_purchases, per_page)
+    
+    try:
+        archived_purchases_page = archived_paginator.page(archived_page)
+    except PageNotAnInteger:
+        archived_purchases_page = archived_paginator.page(1)
+    except EmptyPage:
+        archived_purchases_page = archived_paginator.page(archived_paginator.num_pages)
+    
     # فهرست وضعیت‌ها برای فیلتر
     all_states = dict(Purchase.STATUS_CHOICES)
 
@@ -288,10 +320,17 @@ def purchase_list(request):
     ]
 
     context = {
-        'active_purchases': active_purchases,
-        'archived_purchases': archived_purchases,
+        'active_purchases': active_purchases_page,
+        'archived_purchases': archived_purchases_page,
         'all_states': all_states,
         'user_role': user_role,  # افزودن نقش کاربر به context
+        # اطلاعات پیجینیشن
+        'active_paginator': active_paginator,
+        'archived_paginator': archived_paginator,
+        'per_page': per_page,
+        'per_page_options': [10, 25, 50, 100, 200],
+        'active_page_number': active_purchases_page.number,
+        'archived_page_number': archived_purchases_page.number,
         # پارامترهای جستجو برای حفظ وضعیت در فرم
         'search_params': {
             'global_search': global_search,
@@ -318,6 +357,9 @@ def purchase_list(request):
             'payment_method': payment_method,
             'extelaf_type': extelaf_type,
             'send_cottage_sms': send_cottage_sms,
+            'per_page': per_page,
+            'active_page': active_page,
+            'archived_page': archived_page,
         },
         'selected_columns': selected_columns,
         'all_columns': all_columns,

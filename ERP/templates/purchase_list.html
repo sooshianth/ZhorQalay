@@ -525,6 +525,71 @@
             }
         }
         
+        /* استایل‌های پیجینیشن */
+        .pagination {
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .pagination .page-item .page-link {
+            border: none;
+            padding: 10px 15px;
+            margin: 0 2px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            color: #495057;
+            font-weight: 500;
+        }
+        
+        .pagination .page-item.active .page-link {
+            background-color: #007bff;
+            border-color: #007bff;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,123,255,0.3);
+        }
+        
+        .pagination .page-item:not(.active) .page-link:hover {
+            background-color: #e9ecef;
+            color: #007bff;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+        
+        .pagination .page-item.disabled .page-link {
+            color: #6c757d;
+            background-color: #fff;
+            border-color: #dee2e6;
+            cursor: not-allowed;
+        }
+        
+        /* اطلاعات پیجینیشن */
+        .pagination-info {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+        
+        .pagination-info .badge {
+            font-size: 0.9rem;
+            padding: 8px 12px;
+        }
+        
+        /* انتخاب تعداد رکورد */
+        #perPageSelect {
+            transition: all 0.2s ease;
+            border-radius: 6px;
+        }
+        
+        #perPageSelect:focus {
+            border-color: #86b7fe;
+            outline: 0;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+        
         /* بهبود واکنش‌گرایی */
         @media (max-width: 768px) {
             .select-all-modal .btn {
@@ -540,6 +605,41 @@
             .active-filter-tag {
                 font-size: 0.8rem;
                 padding: 4px 25px 4px 8px;
+            }
+            
+            /* پیجینیشن responsive */
+            .pagination {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .pagination .page-item .page-link {
+                padding: 8px 12px;
+                margin: 1px;
+                font-size: 0.875rem;
+            }
+            
+            /* مخفی کردن شماره صفحات زیاد در موبایل */
+            .pagination .page-item:not(.active):not(:first-child):not(:last-child):not(.disabled) {
+                display: none;
+            }
+            
+            .pagination .page-item.active,
+            .pagination .page-item:first-child,
+            .pagination .page-item:last-child,
+            .pagination .page-item.disabled {
+                display: block;
+            }
+            
+            /* اطلاعات پیجینیشن در موبایل */
+            .pagination-info {
+                text-align: center;
+                padding: 10px;
+            }
+            
+            .pagination-info .d-flex {
+                flex-direction: column;
+                gap: 10px;
             }
         }
     </style>
@@ -780,10 +880,20 @@
 <div class="search-panel mb-4 shadow-sm">
     <form id="searchForm" method="GET" action="">
         <div class="row">
-            <div class="col-md-8">
+            <div class="col-md-6">
                 <label for="globalSearch" class="form-label fw-bold"><i class="fas fa-search me-2"></i>جستجوی سریع:</label>
                 <input type="text" id="globalSearch" name="global_search" class="form-control" 
                        placeholder="جستجوی سریع در تمام فیلدها..." value="{{ search_params.global_search }}">
+            </div>
+            <div class="col-md-2">
+                <label for="perPageSelect" class="form-label fw-bold"><i class="fas fa-list me-2"></i>تعداد نمایش:</label>
+                <select id="perPageSelect" name="per_page" class="form-select" onchange="updatePerPage()">
+                    {% for option in per_page_options %}
+                    <option value="{{ option }}" {% if option == per_page %}selected{% endif %}>
+                        {{ option }} رکورد
+                    </option>
+                    {% endfor %}
+                </select>
             </div>
             <div class="col-md-2 d-flex align-items-end">
                 <button type="submit" class="btn btn-success w-100 text-white shadow-sm">
@@ -796,6 +906,12 @@
                 </a>
             </div>
         </div>
+        <!-- Hidden inputs to preserve other search parameters -->
+        {% for key, value in search_params.items %}
+            {% if key != 'global_search' and key != 'per_page' and key != 'active_page' and key != 'archived_page' and value %}
+                <input type="hidden" name="{{ key }}" value="{{ value }}">
+            {% endif %}
+        {% endfor %}
     </form>
 </div>
 
@@ -870,6 +986,76 @@
 </div>
 
 {% if active_purchases %}
+
+<!-- Pagination Info and Controls for Active Purchases -->
+<div class="row align-items-center mb-3">
+    <div class="col-md-6">
+        <div class="d-flex align-items-center">
+            <span class="text-muted me-3">
+                <i class="fas fa-info-circle me-1"></i>
+                نمایش {{ active_purchases.start_index }} تا {{ active_purchases.end_index }} از {{ active_paginator.count }} خرید فعال
+            </span>
+            {% if active_paginator.num_pages > 1 %}
+            <span class="badge bg-primary">
+                صفحه {{ active_purchases.number }} از {{ active_paginator.num_pages }}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+    {% if active_paginator.num_pages > 1 %}
+    <div class="col-md-6">
+        <nav aria-label="صفحه‌بندی خریدهای فعال">
+            <ul class="pagination justify-content-end mb-0">
+                {% if active_purchases.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in search_params.items %}{% if key != 'active_page' and value %}{{ key }}={{ value }}&{% endif %}{% endfor %}active_page=1" aria-label="اولین صفحه">
+                        <span aria-hidden="true">&laquo;&laquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in search_params.items %}{% if key != 'active_page' and value %}{{ key }}={{ value }}&{% endif %}{% endfor %}active_page={{ active_purchases.previous_page_number }}" aria-label="صفحه قبلی">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% for num in active_paginator.page_range %}
+                    {% if num == active_purchases.number %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num >= active_purchases.number|add:'-2' and num <= active_purchases.number|add:'2' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in search_params.items %}{% if key != 'active_page' and value %}{{ key }}={{ value }}&{% endif %}{% endfor %}active_page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% elif num == 1 or num == active_paginator.num_pages %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in search_params.items %}{% if key != 'active_page' and value %}{{ key }}={{ value }}&{% endif %}{% endfor %}active_page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% elif num == active_purchases.number|add:'-3' or num == active_purchases.number|add:'3' %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if active_purchases.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in search_params.items %}{% if key != 'active_page' and value %}{{ key }}={{ value }}&{% endif %}{% endfor %}active_page={{ active_purchases.next_page_number }}" aria-label="صفحه بعدی">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in search_params.items %}{% if key != 'active_page' and value %}{{ key }}={{ value }}&{% endif %}{% endfor %}active_page={{ active_paginator.num_pages }}" aria-label="آخرین صفحه">
+                        <span aria-hidden="true">&raquo;&raquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
 
 <!-- Bulk Edit Controls Panel -->
 <div class="bulk-edit-controls" style="display: none;">
@@ -1144,6 +1330,77 @@
 </div>
 <div id="archivedContent" style="display: none;">
 {% if archived_purchases %}
+
+<!-- Pagination Info and Controls for Archived Purchases -->
+<div class="row align-items-center mb-3">
+    <div class="col-md-6">
+        <div class="d-flex align-items-center">
+            <span class="text-muted me-3">
+                <i class="fas fa-info-circle me-1"></i>
+                نمایش {{ archived_purchases.start_index }} تا {{ archived_purchases.end_index }} از {{ archived_paginator.count }} خرید آرشیو شده
+            </span>
+            {% if archived_paginator.num_pages > 1 %}
+            <span class="badge bg-secondary">
+                صفحه {{ archived_purchases.number }} از {{ archived_paginator.num_pages }}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+    {% if archived_paginator.num_pages > 1 %}
+    <div class="col-md-6">
+        <nav aria-label="صفحه‌بندی خریدهای آرشیو شده">
+            <ul class="pagination justify-content-end mb-0">
+                {% if archived_purchases.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in search_params.items %}{% if key != 'archived_page' and value %}{{ key }}={{ value }}&{% endif %}{% endfor %}archived_page=1" aria-label="اولین صفحه">
+                        <span aria-hidden="true">&laquo;&laquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in search_params.items %}{% if key != 'archived_page' and value %}{{ key }}={{ value }}&{% endif %}{% endfor %}archived_page={{ archived_purchases.previous_page_number }}" aria-label="صفحه قبلی">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% for num in archived_paginator.page_range %}
+                    {% if num == archived_purchases.number %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num >= archived_purchases.number|add:'-2' and num <= archived_purchases.number|add:'2' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in search_params.items %}{% if key != 'archived_page' and value %}{{ key }}={{ value }}&{% endif %}{% endfor %}archived_page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% elif num == 1 or num == archived_paginator.num_pages %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in search_params.items %}{% if key != 'archived_page' and value %}{{ key }}={{ value }}&{% endif %}{% endfor %}archived_page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% elif num == archived_purchases.number|add:'-3' or num == archived_purchases.number|add:'3' %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if archived_purchases.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in search_params.items %}{% if key != 'archived_page' and value %}{{ key }}={{ value }}&{% endif %}{% endfor %}archived_page={{ archived_purchases.next_page_number }}" aria-label="صفحه بعدی">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in search_params.items %}{% if key != 'archived_page' and value %}{{ key }}={{ value }}&{% endif %}{% endfor %}archived_page={{ archived_paginator.num_pages }}" aria-label="آخرین صفحه">
+                        <span aria-hidden="true">&raquo;&raquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
 <div class="table-responsive shadow-sm rounded">
 <table class="table table-bordered table-striped align-middle text-center enable-filter" id="archivedPurchasesTable">
     <thead class="table-light sticky-header">
@@ -1566,6 +1823,20 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', function() {
             const purchaseId = this.getAttribute('data-id');
             showPurchaseHistory(purchaseId);
+        });
+    });
+    
+    // اضافه کردن event listeners برای pagination links
+    document.addEventListener('click', handlePaginationClick);
+    
+    // بهبود UX برای pagination
+    document.querySelectorAll('.pagination').forEach(pagination => {
+        pagination.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+        });
+        
+        pagination.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
         });
     });
     
@@ -2041,6 +2312,64 @@ function updateAggregatedStats() {
     if (window.purchaseAggregatedStats) {
         window.purchaseAggregatedStats.syncWithBulkEditManager();
     }
+}
+
+// تابع تغییر تعداد رکورد در هر صفحه
+function updatePerPage() {
+    const perPageSelect = document.getElementById('perPageSelect');
+    const searchForm = document.getElementById('searchForm');
+    
+    if (perPageSelect && searchForm) {
+        // بازنشانی صفحه به 1 هنگام تغییر تعداد رکورد
+        const activePageInput = searchForm.querySelector('input[name="active_page"]');
+        const archivedPageInput = searchForm.querySelector('input[name="archived_page"]');
+        
+        if (activePageInput) {
+            activePageInput.value = '1';
+        } else {
+            // اگر input وجود نداره، یکی بسازیم
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'active_page';
+            hiddenInput.value = '1';
+            searchForm.appendChild(hiddenInput);
+        }
+        
+        if (archivedPageInput) {
+            archivedPageInput.value = '1';
+        } else {
+            // اگر input وجود نداره، یکی بسازیم
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'archived_page';
+            hiddenInput.value = '1';
+            searchForm.appendChild(hiddenInput);
+        }
+        
+        // ارسال فرم برای اعمال تغییرات
+        searchForm.submit();
+    }
+}
+
+// تابع مدیریت pagination links
+function handlePaginationClick(event) {
+    const target = event.target.closest('a.page-link');
+    if (!target) return;
+    
+    event.preventDefault();
+    
+    // استخراج URL و پارامترها
+    const url = new URL(target.href, window.location.origin);
+    const params = new URLSearchParams(url.search);
+    
+    // حفظ تعداد رکورد انتخاب شده
+    const perPageSelect = document.getElementById('perPageSelect');
+    if (perPageSelect) {
+        params.set('per_page', perPageSelect.value);
+    }
+    
+    // هدایت به صفحه جدید
+    window.location.href = url.pathname + '?' + params.toString();
 }
 </script>
 
