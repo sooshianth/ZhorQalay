@@ -85,6 +85,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
+        
+        // بروزرسانی فیلترها بعد از جابجایی ستون‌ها
+        if (typeof window.tableFilter !== 'undefined' && window.tableFilter) {
+            // اعمال مجدد فیلترهای فعال
+            setTimeout(() => {
+                window.tableFilter.applyAllFilters();
+                // بروزرسانی نشانگرهای فیلتر
+                if (window.tableFilter.config.enableIndicators) {
+                    window.tableFilter.updateFilterIndicators();
+                }
+            }, 100);
+        }
+        
+        // بعد از جابجایی، واحدها را دوباره اضافه کن
+        setTimeout(() => {
+            if (typeof addUnitsToHeaders === 'function') {
+                addUnitsToHeaders();
+            }
+        }, 150);
     }
 
     // تابع برای ذخیره ترتیب جدید ستون‌ها
@@ -104,11 +123,14 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.setItem('purchaseListColumnOrder', JSON.stringify(columnOrder));
         
         // ارسال به سرور برای ذخیره دائمی
-        fetch("{% url 'update_column_order' %}", {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || 
+                         document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
+        
+        fetch('/purchase/update_column_order/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
+                'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({
                 column_order: columnOrder
@@ -194,6 +216,12 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // مرتب‌سازی هدرها بر اساس ترتیب ذخیره شده
             headerRow.innerHTML = '';
+            // ابتدا ستون چک‌باکس را اضافه کن (اگر وجود دارد)
+            const checkboxColumn = headers.find(h => h.querySelector('input[type="checkbox"]'));
+            if (checkboxColumn) {
+                headerRow.appendChild(checkboxColumn);
+            }
+            
             columnOrder.forEach(columnId => {
                 if (headerMap[columnId]) {
                     headerRow.appendChild(headerMap[columnId]);
@@ -215,6 +243,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // پاک کردن و اضافه کردن مجدد سلول‌ها با ترتیب جدید
                 row.innerHTML = '';
+                // ابتدا ستون چک‌باکس را اضافه کن (اگر وجود دارد)
+                const checkboxCell = cells.find(c => c.querySelector('input[type="checkbox"]'));
+                if (checkboxCell) {
+                    row.appendChild(checkboxCell);
+                }
+                
                 columnOrder.forEach(columnId => {
                     if (cellMap[columnId]) {
                         row.appendChild(cellMap[columnId]);
@@ -222,6 +256,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
         });
+        
+        // بعد از اعمال ترتیب، واحدها را دوباره اضافه کن
+        setTimeout(() => {
+            if (typeof addUnitsToHeaders === 'function') {
+                addUnitsToHeaders();
+            }
+        }, 100);
     }
 
     // استایل‌های CSS برای Drag and Drop

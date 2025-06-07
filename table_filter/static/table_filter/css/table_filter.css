@@ -149,328 +149,271 @@ th {
 
 /* استایل بهبود یافته فیلتر */
 .filter-dropdown {
-    position: absolute;
+    position: fixed;
     background: white;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.1);
-    z-index: 110;
+    border: 2px solid #065F46;
+    border-radius: 10px;
+    box-shadow: 0 8px 30px rgba(6, 95, 70, 0.15);
+    padding: 0;
     min-width: 320px;
-    max-width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
+    max-width: 400px;
+    z-index: 10000;
     opacity: 0;
-    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    pointer-events: none;
-    direction: rtl;
-    text-align: right;
-    transform: scale(0.95) translateY(-10px);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    backdrop-filter: blur(10px);
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    font-family: 'Vazir', sans-serif;
+    overflow: hidden;
 }
 
 .filter-dropdown.show {
     opacity: 1;
-    pointer-events: all;
-    transform: scale(1) translateY(0);
-    animation: fadeInScale 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform: translateY(0);
 }
 
 /* Column title in modal */
 .filter-modal-title {
+    background: linear-gradient(135deg, #065F46 0%, #047857 100%);
+    color: white;
+    padding: 15px 20px;
+    font-weight: 600;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
-    background: linear-gradient(120deg, #f0f9ff, #e0f2fe, #bae6fd);
-    background-size: 200% 200%;
-    animation: gradientShift 6s ease infinite;
-    border-bottom: 1px solid #e9ecef;
-    border-radius: 12px 12px 0 0;
-    font-weight: bold;
-    color: #0f172a;
-    font-size: 1.1rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border-bottom: 2px solid #064e3b;
 }
 
 .filter-modal-title .close-btn {
-    background: #f1f5f9;
+    background: rgba(255, 255, 255, 0.2);
     border: none;
-    font-size: 16px;
-    cursor: pointer;
+    color: white;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0;
-    margin: 0;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
+    font-size: 14px;
+    cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .filter-modal-title .close-btn:hover {
-    background-color: #fee2e2;
-    color: #dc3545;
-    transform: rotate(90deg);
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
 }
 
 /* Filter actions fixed at the bottom */
 .filter-actions {
     display: flex;
-    justify-content: flex-end;
-    padding: 16px 20px;
-    gap: 12px;
-    background-color: #f8fafc;
-    border-top: 1px solid #e9ecef;
-    border-radius: 0 0 12px 12px;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #e6fffa;
 }
 
 /* Action buttons */
 .filter-action-btn {
-    padding: 12px 20px;
-    border-radius: 10px;
-    cursor: pointer;
+    flex: 1;
+    padding: 10px 15px;
     border: none;
-    font-size: 15px;
+    border-radius: 6px;
     font-weight: 500;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    position: relative;
-    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
 }
 
-.filter-action-btn::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    background-color: rgba(255, 255, 255, 0.2);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    transition: width 0.6s ease, height 0.6s ease;
-    z-index: 0;
+.filter-action-btn.btn-outline-secondary {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #d1d5db;
+    color: #6b7280;
 }
 
-.filter-action-btn:hover::before {
-    width: 200px;
-    height: 200px;
+.filter-action-btn.btn-outline-secondary:hover {
+    background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+    transform: translateY(-1px);
 }
 
-.filter-action-btn span {
-    position: relative;
-    z-index: 1;
-}
-
-.btn-outline-secondary {
-    background-color: #f1f5f9;
-    border: 1px solid #cbd5e1;
-    color: #475569;
-}
-
-.btn-outline-secondary:hover {
-    background-color: #e2e8f0;
-    color: #1e293b;
-    transform: translateY(-3px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, #059669, #047857);
+.filter-action-btn.btn-primary {
+    background: linear-gradient(135deg, #065F46 0%, #047857 100%);
     color: white;
-    box-shadow: 0 4px 6px rgba(6, 95, 70, 0.2);
 }
 
-.btn-primary:hover {
-    background: linear-gradient(135deg, #047857, #065f46);
-    transform: translateY(-3px);
-    box-shadow: 0 8px 15px rgba(6, 95, 70, 0.3);
+.filter-action-btn.btn-primary:hover {
+    background: linear-gradient(135deg, #064e3b 0%, #065F46 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(6, 95, 70, 0.3);
 }
 
+/* Filter Dropdown Content */
+.filter-dropdown-content {
+    padding: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Filter Sections */
 .filter-section {
-    padding: 16px 20px;
-    border-bottom: 1px solid #e9ecef;
-    transition: background-color 0.2s ease;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #e6fffa;
+    padding-bottom: 15px;
 }
 
-.filter-section:hover {
-    background-color: #f8fafc;
+.filter-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
 }
 
 .filter-section-title {
-    font-weight: bold;
-    margin-bottom: 12px;
+    font-weight: 600;
     color: #065F46;
+    margin-bottom: 12px;
     display: flex;
     align-items: center;
-    font-size: 1rem;
-    position: relative;
-    padding-right: 18px;
+    gap: 8px;
+    font-size: 0.95rem;
 }
 
 .filter-section-title i {
-    margin-left: 10px;
-    color: #10b981;
-    position: absolute;
-    right: 0;
-    transition: transform 0.3s ease;
+    color: #047857;
 }
 
-.filter-section:hover .filter-section-title i {
-    transform: translateX(-5px);
-}
-
+/* Sort Options */
 .sort-option {
-    padding: 12px 15px;
-    margin: 6px 0;
-    cursor: pointer;
+    padding: 10px 15px;
+    border: 1px solid #d1fae5;
     border-radius: 8px;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    margin: 5px 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    background-color: #f1f5f9;
-    border: 1px solid transparent;
-    position: relative;
-    overflow: hidden;
-}
-
-.sort-option::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 0;
-    height: 100%;
-    background-color: rgba(14, 165, 233, 0.1);
-    transition: width 0.3s ease;
-    z-index: 0;
-}
-
-.sort-option:hover::before {
-    width: 100%;
-}
-
-.sort-option i {
-    margin-left: 10px;
-    color: #64748b;
-    transition: all 0.3s ease;
-    position: relative;
-    z-index: 1;
-}
-
-.sort-option span {
-    position: relative;
-    z-index: 1;
+    gap: 10px;
+    background: linear-gradient(135deg, #fafffe 0%, #f0fdf4 100%);
 }
 
 .sort-option:hover {
-    background-color: #e0f2fe;
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
-    border-color: #bae6fd;
-}
-
-.sort-option:hover i {
-    transform: translateX(-5px);
-    color: #0284c7;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border-color: #065F46;
+    transform: translateX(3px);
 }
 
 .sort-option.active {
-    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+    background: linear-gradient(135deg, #065F46 0%, #047857 100%);
     color: white;
-    box-shadow: 0 6px 12px rgba(2, 132, 199, 0.2);
-    transform: translateY(-2px) scale(1.02);
+    border-color: #064e3b;
+}
+
+.sort-option i {
+    color: #047857;
+    width: 16px;
 }
 
 .sort-option.active i {
     color: white;
 }
 
+/* Filter Search */
 .filter-search {
     width: 100%;
-    padding: 12px 15px;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    margin: 8px 0 12px;
-    direction: rtl;
-    background-color: #f8fafc;
+    padding: 8px 12px;
+    border: 2px solid #d1fae5;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
     transition: all 0.2s ease;
+    background: linear-gradient(135deg, #fafffe 0%, #f0fdf4 100%);
 }
 
 .filter-search:focus {
-    border-color: #0ea5e9;
     outline: none;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
-    background-color: white;
+    border-color: #065F46;
+    box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.1);
+    background: white;
 }
 
+.filter-search::placeholder {
+    color: #6b7280;
+}
+
+/* Select All Filters */
 .select-all-filters {
-    display: flex;
-    align-items: center;
-    padding: 12px;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border: 1px solid #065F46;
+    border-radius: 6px;
     cursor: pointer;
+    margin-bottom: 10px;
+    font-weight: 500;
+    color: #065F46;
+    transition: all 0.2s ease;
     user-select: none;
-    background-color: #f1f5f9;
-    border-radius: 8px;
-    margin: 8px 0;
-    transition: background-color 0.2s ease;
 }
 
 .select-all-filters:hover {
-    background-color: #e0f2fe;
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    transform: scale(1.02);
 }
 
-.select-all-filters input[type="checkbox"] {
-    margin-left: 10px;
-    width: 18px;
-    height: 18px;
-    accent-color: #0ea5e9;
-}
-
+/* Filter Values Container */
 .filter-values-container {
-    max-height: 250px;
+    max-height: 200px;
     overflow-y: auto;
-    margin-top: 10px;
-    padding: 8px;
-    background-color: #f8fafc;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #d1fae5;
+    border-radius: 6px;
+    background: white;
 }
 
 .filter-value-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid #f0fdf4;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    padding: 8px;
-    border-radius: 6px;
-    margin: 4px 0;
-    transition: background-color 0.2s ease;
+    gap: 8px;
+}
+
+.filter-value-item:last-child {
+    border-bottom: none;
 }
 
 .filter-value-item:hover {
-    background-color: #e0f2fe;
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
 }
 
 .filter-value-item input[type="checkbox"] {
-    margin-left: 10px;
     width: 16px;
     height: 16px;
-    accent-color: #0ea5e9;
+    accent-color: #065F46;
 }
 
+.filter-value-item label {
+    cursor: pointer;
+    margin: 0;
+    flex: 1;
+    font-size: 0.9rem;
+    color: #374151;
+}
+
+/* Filter Loading */
 .filter-loading {
     text-align: center;
     padding: 20px;
-    color: #64748b;
+    color: #6b7280;
+    font-style: italic;
 }
 
 .filter-loading i {
-    margin-left: 10px;
-    animation: spin 1.5s infinite linear;
+    color: #065F46;
+    margin-right: 8px;
 }
 
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+/* No Filter Values */
+.no-filter-values {
+    text-align: center;
+    padding: 20px;
+    color: #9ca3af;
+    font-style: italic;
 }
 
 /* Active filter indicator */
@@ -605,8 +548,8 @@ th {
 
 /* حالت تاریک برای فیلتر */
 .dark-mode .filter-dropdown {
-    background: #2c3e50;
-    color: white;
+    background: #2e4e2e;
+    border-color: rgba(76, 175, 80, 0.3);
 }
 
 .dark-mode .filter-dropdown-btn {
@@ -633,7 +576,7 @@ th {
 }
 
 .dark-mode .filter-modal-title {
-    background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+    background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
     color: white;
     border-bottom-color: #34495e;
 }
@@ -647,9 +590,9 @@ th {
 }
 
 .dark-mode .filter-search {
-    background: #34495e;
+    background: #1e3e1e;
     color: white;
-    border-color: #4a5f7a;
+    border-color: rgba(76, 175, 80, 0.3);
 }
 
 .dark-mode .filter-search:focus {
@@ -707,61 +650,57 @@ th {
 /* Responsive Design */
 @media (max-width: 768px) {
     .filter-dropdown {
-        width: 350px;
-        max-width: 95vw;
-    }
-    
-    .filter-header {
-        padding: 6px 8px;
-    }
-    
-    .filter-dropdown-btn {
-        font-size: 12px;
-        padding: 4px 8px;
-        min-width: 28px;
-        height: 28px;
+        min-width: 280px;
+        max-width: 90vw;
+        left: 5vw !important;
+        right: 5vw !important;
+        transform: none !important;
     }
     
     .filter-modal-title {
-        padding: 15px 20px;
-        font-size: 16px;
+        padding: 12px 15px;
+        font-size: 0.9rem;
     }
     
-    .filter-section {
-        padding: 15px 20px;
+    .filter-dropdown-content {
+        padding: 15px;
+    }
+    
+    .filter-actions {
+        flex-direction: column;
     }
     
     .filter-action-btn {
-        padding: 12px 0;
-        font-size: 14px;
-    }
-    
-    th {
-        padding-left: 38px !important;
+        padding: 12px 15px;
     }
 }
 
-/* Custom Scrollbar */
-.filter-dropdown::-webkit-scrollbar,
-.filter-values-container::-webkit-scrollbar {
+/* حذف یا کم کردن Toast Messages */
+.simple-toast {
+    display: none !important;
+}
+
+/* بهبود scrollbar */
+.filter-values-container::-webkit-scrollbar,
+.filter-dropdown-content::-webkit-scrollbar {
     width: 6px;
 }
 
-.filter-dropdown::-webkit-scrollbar-track,
-.filter-values-container::-webkit-scrollbar-track {
-    background: #f1f1f1;
+.filter-values-container::-webkit-scrollbar-track,
+.filter-dropdown-content::-webkit-scrollbar-track {
+    background: #f0fdf4;
     border-radius: 3px;
 }
 
-.filter-dropdown::-webkit-scrollbar-thumb,
-.filter-values-container::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
+.filter-values-container::-webkit-scrollbar-thumb,
+.filter-dropdown-content::-webkit-scrollbar-thumb {
+    background: #065F46;
     border-radius: 3px;
 }
 
-.filter-dropdown::-webkit-scrollbar-thumb:hover,
-.filter-values-container::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
+.filter-values-container::-webkit-scrollbar-thumb:hover,
+.filter-dropdown-content::-webkit-scrollbar-thumb:hover {
+    background: #064e3b;
 }
 
 /* تمام جداول و محتوای آنها */
@@ -800,31 +739,25 @@ th {
 
 /* Column visibility button & dropdown */
 .column-visibility-btn {
-    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
-    border: 1px solid #cbd5e1;
-    color: #475569;
+    background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
+    border: 1px solid rgba(76, 175, 80, 0.2);
+    color: #2e7d32;
     border-radius: 10px;
-    padding: 10px 16px;
-    font-size: 14px;
-    font-weight: 500;
+    padding: 10px 15px;
+    font-size: 0.9rem;
     cursor: pointer;
+    transition: all 0.3s ease;
     display: flex;
     align-items: center;
-    gap: 10px;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.column-visibility-btn i {
-    color: #64748b;
-    transition: transform 0.3s ease;
+    gap: 8px;
+    font-weight: 500;
 }
 
 .column-visibility-btn:hover {
-    background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
-    color: #1e293b;
-    transform: translateY(-3px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #c8e6c9 0%, #a5d6a7 100%);
+    border-color: #4caf50;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.2);
 }
 
 .column-visibility-btn:hover i {
@@ -833,16 +766,14 @@ th {
 }
 
 .column-visibility-dropdown {
-    background: linear-gradient(to bottom, #ffffff, #f8fafc);
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
-    padding: 16px;
+    background: white;
+    border: 2px solid rgba(76, 175, 80, 0.2);
+    border-radius: 16px;
     min-width: 280px;
-    max-height: 80vh;
-    overflow-y: auto;
-    direction: rtl;
-    animation: fadeInScale 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    z-index: 9999;
+    box-shadow: 0 10px 40px rgba(46, 125, 50, 0.15);
+    font-family: 'Vazir', sans-serif;
+    overflow: hidden;
 }
 
 /* اضافه کردن انیمیشن به آیتم‌های dropdown */
@@ -870,57 +801,6 @@ th {
 
 .sort-option:nth-child(1) { animation-delay: 0.05s; }
 .sort-option:nth-child(2) { animation-delay: 0.1s; }
-
-/* Scrollbar styles */
-.filter-dropdown::-webkit-scrollbar,
-.filter-values-container::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-.filter-dropdown::-webkit-scrollbar-track,
-.filter-values-container::-webkit-scrollbar-track {
-    background: #f8f9fa;
-    border-radius: 10px;
-}
-
-.filter-dropdown::-webkit-scrollbar-thumb,
-.filter-values-container::-webkit-scrollbar-thumb {
-    background: #cfd4da;
-    border-radius: 10px;
-    transition: all 0.3s ease;
-}
-
-.filter-dropdown::-webkit-scrollbar-thumb:hover,
-.filter-values-container::-webkit-scrollbar-thumb:hover {
-    background: #adb5bd;
-}
-
-/* Responsive styles */
-@media (max-width: 768px) {
-    .filter-dropdown {
-        width: 95vw;
-        max-height: 90vh;
-    }
-    
-    .filter-modal-title {
-        padding: 18px 20px;
-        font-size: 18px;
-    }
-    
-    .filter-section {
-        padding: 18px 20px;
-    }
-    
-    .filter-action-btn {
-        padding: 16px 0;
-        font-size: 15px;
-    }
-    
-    th {
-        padding-left: 40px !important;
-    }
-}
 
 /* استایل کلی برای جداول دارای قابلیت فیلتر */
 .enable-filter {
@@ -982,4 +862,11 @@ th {
     padding: 15px;
     color: #6c757d;
     font-style: italic;
+}
+
+/* حالت تاریک */
+@media (prefers-color-scheme: dark) {
+    .filter-overlay {
+        background: rgba(0, 0, 0, 0.5);
+    }
 } 

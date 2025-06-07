@@ -265,7 +265,7 @@ def purchase_list(request):
         {'id': 'customer', 'name': 'مشتری', 'field': 'customer.name', 'editable': False},
         {'id': 'invoice_id', 'name': 'کد درون سازمانی', 'field': 'invoice_id', 'editable': True},
         {'id': 'sales_agent', 'name': 'نماینده فروش', 'field': 'customer.sales_agent.name', 'editable': False},
-        {'id': 'weight', 'name': 'وزن (کیلوگرم)', 'field': 'order_weight', 'editable': True},
+        {'id': 'weight', 'name': 'وزن', 'field': 'order_weight', 'editable': True, 'unit': 'کیلوگرم'},
         {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage', 'editable': True},
         {'id': 'status', 'name': 'وضعیت‌ها', 'field': 'state', 'editable': True},
         {'id': 'actions', 'name': 'جزئیات', 'editable': False},
@@ -280,16 +280,16 @@ def purchase_list(request):
         {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name', 'editable': False},
         {'id': 'tahvil_phone_number', 'name': 'شماره تلفن تحویل', 'field': 'tahvil_phone_number', 'editable': False},
         {'id': 'send_cottage_sms', 'name': 'ارسال پیامک کوتاژ', 'field': 'send_cottage_sms', 'editable': False},
-        {'id': 'total_weight', 'name': 'وزن کل (کیلوگرم)', 'field': 'total_weight', 'editable': False},
-        {'id': 'delivered_weight', 'name': 'وزن بارنامه شده (کیلوگرم)', 'field': 'delivered_weight', 'editable': False},
+        {'id': 'total_weight', 'name': 'وزن کل', 'field': 'total_weight', 'editable': False, 'unit': 'کیلوگرم'},
+        {'id': 'delivered_weight', 'name': 'وزن بارنامه شده', 'field': 'delivered_weight', 'editable': False, 'unit': 'کیلوگرم'},
         {'id': 'type', 'name': 'نوع خرید', 'field': 'type', 'editable': False},
         {'id': 'payment_method', 'name': 'شیوه پرداخت', 'field': 'payment_method', 'editable': False},
         {'id': 'updated_at', 'name': 'تاریخ بروزرسانی', 'field': 'updated_at', 'editable': False},
         {'id': 'is_weight_costed', 'name': 'کسر از وزن موجود', 'field': 'is_weight_costed', 'editable': False},
         {'id': 'is_ap_af', 'name': 'اتوکامپلیت شده', 'field': 'is_ap_af', 'editable': False},
         {'id': 'extelaf_type', 'name': 'نوع اختلاف', 'field': 'extelaf_type', 'editable': False},
-        {'id': 'extelaf_weight', 'name': 'وزن اختلاف (کیلوگرم)', 'field': 'extelaf_weight', 'editable': False},
-        {'id': 'extelaf_amount', 'name': 'مبلغ اختلاف (ریال)', 'field': 'extelaf_amount', 'editable': False},
+        {'id': 'extelaf_weight', 'name': 'وزن اختلاف', 'field': 'extelaf_weight', 'editable': False, 'unit': 'کیلوگرم'},
+        {'id': 'extelaf_amount', 'name': 'مبلغ اختلاف', 'field': 'extelaf_amount', 'editable': False, 'unit': 'ریال'},
         {'id': 'is_urgent', 'name': 'فوری', 'field': 'is_urgent', 'editable': False},
         {'id': 'is_canceled', 'name': 'لغو شده', 'field': 'is_canceled', 'editable': False},
         {'id': 'is_archived', 'name': 'آرشیو شده', 'field': 'is_archived', 'editable': False},
@@ -303,14 +303,14 @@ def purchase_list(request):
     if not hide_sensitive_info:
         all_columns.extend([
             {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name', 'editable': False},
-            {'id': 'company_price', 'name': 'فی خرید (ریال)', 'field': 'company_price', 'editable': False},
-            {'id': 'customer_price', 'name': 'فی فروش (ریال)', 'field': 'customer_price', 'editable': False},
-            {'id': 'amount_paid', 'name': 'مبلغ پرداختی (ریال)', 'field': 'amount_paid', 'editable': False},
+                    {'id': 'company_price', 'name': 'فی خرید', 'field': 'company_price', 'editable': False, 'unit': 'ریال'},
+        {'id': 'customer_price', 'name': 'فی فروش', 'field': 'customer_price', 'editable': False, 'unit': 'ریال'},
+        {'id': 'amount_paid', 'name': 'مبلغ پرداختی', 'field': 'amount_paid', 'editable': False, 'unit': 'ریال'},
         ])
     else:
         # برای کارشناسان فروش و پیگیری فقط فی فروش قابل مشاهده است
         all_columns.extend([
-            {'id': 'customer_price', 'name': 'فی فروش (ریال)', 'field': 'customer_price', 'editable': False},
+            {'id': 'customer_price', 'name': 'فی فروش', 'field': 'customer_price', 'editable': False, 'unit': 'ریال'},
         ])
 
     context = {

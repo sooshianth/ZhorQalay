@@ -1058,7 +1058,7 @@
                         {{ purchase.purchase_number|default:"تعیین نشده" }}
                     </td>
                     {% elif column.id == 'weight' %}
-                    <td class="column-{{ column.id }} {% if user_role != 'sales_agent' %}editable{% endif %}" data-field="order_weight">
+                    <td class="column-{{ column.id }} {% if user_role != 'sales_agent' %}editable{% endif %}" data-field="order_weight" data-unit="کیلوگرم">
                         {{ purchase.order_weight|add_commas }}
                     </td>
                     {% elif column.id == 'cargo' %}
@@ -1300,7 +1300,7 @@
                     {% elif column.id == 'purchase_number' %}
                     <td class="column-{{ column.id }}">{{ purchase.purchase_number|default:"تعیین نشده" }}</td>
                     {% elif column.id == 'weight' %}
-                    <td class="column-{{ column.id }}">{{ purchase.order_weight|add_commas }}</td>
+                    <td class="column-{{ column.id }}" data-unit="کیلوگرم">{{ purchase.order_weight|add_commas }}</td>
                     {% elif column.id == 'cargo' %}
                     <td class="column-{{ column.id }}">{% if purchase.cargo %}{{ purchase.cargo }}{% else %}-{% endif %}</td>
                     {% elif column.id == 'importer' %}
@@ -1603,6 +1603,56 @@
 {% enable_edit_history "core" "Purchase" %}
 
 <script>
+// ذخیره tableFilter به صورت global برای استفاده در drag_and_drop_columns.js
+// تابع برای اضافه کردن واحدها به هدرهای جدول
+function addUnitsToHeaders() {
+    const unitsMap = {
+        'weight': 'کیلوگرم',
+        'total_weight': 'کیلوگرم', 
+        'delivered_weight': 'کیلوگرم',
+        'extelaf_weight': 'کیلوگرم',
+        'company_price': 'ریال',
+        'customer_price': 'ریال',
+        'amount_paid': 'ریال',
+        'extelaf_amount': 'ریال'
+    };
+    
+    Object.keys(unitsMap).forEach(columnId => {
+        const headers = document.querySelectorAll(`.column-${columnId}`);
+        headers.forEach(header => {
+            const currentText = header.textContent.trim();
+            const unit = unitsMap[columnId];
+            
+            // اگر واحد قبلاً اضافه نشده باشد
+            if (!header.querySelector('.header-unit')) {
+                header.innerHTML = `
+                    <span class="header-text">${currentText}</span>
+                    <span class="header-unit">(${unit})</span>
+                `;
+            }
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // اضافه کردن واحدها به هدرهای جدول
+    addUnitsToHeaders();
+    
+    // انتظار کوتاه برای اطمینان از بارگیری table filter
+    setTimeout(() => {
+        if (typeof window.tableFilter === 'undefined' && typeof TableFilter !== 'undefined') {
+            // ایجاد instance جدید اگر هنوز ایجاد نشده
+            window.tableFilter = new TableFilter({
+                tableSelector: 'table',
+                enableToast: true,
+                enableIndicators: true,
+                enableSummary: true,
+                enableClearAll: true
+            });
+        }
+    }, 100);
+});
+
 // تنظیم URL های صحیح bulk edit manager بعد از لود شدن صفحه
 document.addEventListener('DOMContentLoaded', function() {
     // تنظیم URL های مناسب برای bulk edit manager
@@ -1671,14 +1721,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // ایجاد instance آمار اجماعی خریدها فقط برای نقش‌های مجاز
-    {% if not hide_sensitive_info %}
-    if (typeof PurchaseAggregatedStats !== 'undefined') {
+    var hideSensitiveInfo = {% if hide_sensitive_info %}true{% else %}false{% endif %};
+    if (!hideSensitiveInfo && typeof PurchaseAggregatedStats !== 'undefined') {
         window.purchaseAggregatedStats = new PurchaseAggregatedStats();
         console.log('Purchase aggregated stats initialized');
-    } else {
+    } else if (!hideSensitiveInfo) {
         console.warn('PurchaseAggregatedStats class not found');
     }
-    {% endif %}
     
     // اضافه کردن event listener برای دکمه‌های تاریخچه
     document.querySelectorAll('.item-history-btn').forEach(btn => {
@@ -2198,6 +2247,27 @@ function handlePaginationClick(event) {
     // این تابع دیگر استفاده نمی‌شود چون pagination جاوااسکریپتی خودش کلیک‌ها را مدیریت می‌کند
     console.log('handlePaginationClick called - now handled by JavaScript pagination');
 }
+
+// مدیریت toggle آرشیو
+document.addEventListener('DOMContentLoaded', function() {
+    const archiveToggle = document.getElementById('toggleArchived');
+    const archivedContent = document.getElementById('archivedContent');
+    const archiveIcon = document.getElementById('archiveIcon');
+    
+    if (archiveToggle && archivedContent && archiveIcon) {
+        archiveToggle.addEventListener('click', function() {
+            if (archivedContent.style.display === 'none') {
+                archivedContent.style.display = 'block';
+                archiveIcon.classList.remove('fa-chevron-down');
+                archiveIcon.classList.add('fa-chevron-up');
+            } else {
+                archivedContent.style.display = 'none';
+                archiveIcon.classList.remove('fa-chevron-up');
+                archiveIcon.classList.add('fa-chevron-down');
+            }
+        });
+    }
+});
 </script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>

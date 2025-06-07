@@ -7,7 +7,7 @@ class TableFilter {
     constructor(config = {}) {
         this.config = {
             tableSelector: config.tableSelector || 'table',
-            enableToast: config.enableToast !== false,
+            enableToast: config.enableToast === true,
             enableIndicators: config.enableIndicators !== false,
             enableSummary: config.enableSummary !== false,
             enableClearAll: config.enableClearAll !== false,
@@ -565,11 +565,6 @@ class TableFilter {
         const table = document.getElementById(tableId);
         if (!table) return [];
         
-        const columnMapping = this.columnMappings[tableId][columnId];
-        if (!columnMapping) return [];
-        
-        const columnIndex = columnMapping.index;
-        
         const values = new Set();
         
         // همیشه از originalRows استفاده کن تا همه مقادیر نمایش داده شوند
@@ -583,9 +578,10 @@ class TableFilter {
                 return;
             }
             
-            const cell = row.cells[columnIndex];
+            // استفاده از کلاس column-X به جای ایندکس
+            const cell = row.querySelector(`.column-${columnId}`);
             if (!cell) return;
-            
+
             let value = this.extractCellValue(cell, columnId);
             
             // پردازش بیشتر برای مقادیر خاص
@@ -609,7 +605,7 @@ class TableFilter {
             // مرتب‌سازی بر اساس نوع ستون
             const columnType = this.getColumnTypeFromId(columnId);
             
-            if (columnType === 'number') {
+            if (columnType === 'number' || columnId.includes('weight') || columnId.includes('price') || columnId.includes('amount')) {
                 // برای اعداد، تبدیل به عدد و مقایسه
                 const numA = parseFloat(a.replace(/[^\d\.,\-]/g, '').replace(',', '')) || 0;
                 const numB = parseFloat(b.replace(/[^\d\.,\-]/g, '').replace(',', '')) || 0;
@@ -695,6 +691,31 @@ class TableFilter {
             // پاک کردن کاراکترهای اضافی
             value = value.replace(/\s+/g, ' ');
             value = value.replace(/[\n\r\t]/g, ' ');
+            
+            // اگر این یک ستون عددی است (مخصوصاً ستون‌های وزن)، پردازش ویژه
+            if (this.getColumnTypeFromId(columnId) === 'number' || 
+                columnId.includes('weight') || 
+                columnId.includes('price') || 
+                columnId.includes('amount')) {
+                
+                // حذف کاراکترهای غیرعددی جز اعداد، کاما، نقطه و منها
+                let numericValue = value.replace(/[^\d\u06F0-\u06F9\u06F4\u06F5\u06F6،,.\-\+]/g, '');
+                
+                // تبدیل اعداد فارسی به انگلیسی
+                numericValue = numericValue.replace(/[۰-۹]/g, function(w) {
+                    const persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+                    const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+                    return english[persian.indexOf(w)];
+                });
+                
+                // حذف کاماها و تبدیل به عدد
+                numericValue = numericValue.replace(/[,،]/g, '');
+                
+                // اگر مقدار عددی معتبر است، آن را برگردان
+                if (numericValue && !isNaN(parseFloat(numericValue))) {
+                    return numericValue;
+                }
+            }
             
             // تبدیل اعداد فارسی به انگلیسی
             value = value.replace(/[۰-۹]/g, function(w) {
@@ -834,8 +855,9 @@ class TableFilter {
         const rows = Array.from(tbody.querySelectorAll('tr'));
         
         rows.sort((a, b) => {
-            const cellA = a.children[columnIndex];
-            const cellB = b.children[columnIndex];
+            // استفاده از کلاس column-X به جای ایندکس
+            const cellA = a.querySelector(`.column-${columnId}`);
+            const cellB = b.querySelector(`.column-${columnId}`);
             
             if (!cellA || !cellB) return 0;
 
@@ -844,7 +866,7 @@ class TableFilter {
 
             const columnType = this.getColumnTypeFromId(columnId);
             
-            if (columnType === 'number') {
+            if (columnType === 'number' || columnId.includes('weight') || columnId.includes('price') || columnId.includes('amount')) {
                 valueA = parseFloat(valueA.replace(/[,\s]/g, '')) || 0;
                 valueB = parseFloat(valueB.replace(/[,\s]/g, '')) || 0;
             } else if (columnType === 'date') {
@@ -987,22 +1009,8 @@ class TableFilter {
                     
                     if (filter.tableId !== tableId) return;
                     
-                    // اولویت با پیدا کردن سلول با کلاس column-X
-                    let cell = null;
-                    
-                    // 1. ابتدا با کلاس ستون جستجو کنیم که پایدارتر است
-                    cell = row.querySelector(`.column-${filter.columnId}`);
-                    
-                    // 2. اگر با کلاس پیدا نشد، از ایندکس استفاده کنیم (به عنوان پشتیبان)
-                    if (!cell) {
-                        const columnIndex = this.columnMappings[tableId][filter.columnId]?.index;
-                        if (columnIndex !== undefined && columnIndex !== -1) {
-                            cell = row.children[columnIndex];
-                            console.log(`Using fallback index ${columnIndex} for column ${filter.columnId}`);
-                        } else {
-                            console.warn(`Column ${filter.columnId} not found by class or index`);
-                        }
-                    }
+                    // همیشه از کلاس column-X استفاده کن
+                    let cell = row.querySelector(`.column-${filter.columnId}`);
                     
                     if (cell) {
                         const cellValue = this.extractCellValue(cell, filter.columnId);
@@ -1012,6 +1020,8 @@ class TableFilter {
                         }
                     } else {
                         console.warn(`Could not find cell for column ${filter.columnId} in row`, row);
+                        // اگر سلول با کلاس پیدا نشد، این ردیف را مخفی کن تا مشکلی ایجاد نشود
+                        shouldShow = false;
                     }
                 });
                 
@@ -1288,6 +1298,9 @@ class TableFilter {
     }
 
     showToast(message) {
+        // پیام‌های Toast را غیرفعال کردیم
+        return;
+        
         if (!this.config.enableToast) return;
         
         // بررسی وجود Bootstrap Toast
