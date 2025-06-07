@@ -3,553 +3,134 @@
 
 {% block title %}ایجاد پیامک جدید{% endblock %}
 
-{% block content %}
-<link rel="stylesheet" href="{% static 'css/template_selector.css' %}">
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/create_sms.css' %}">
 <style>
-    :root {
-        --primary-color: #00695c;
-        --secondary-color: #00897b;
-        --accent-color: #26a69a;
-        --light-teal: #b2dfdb;
-        --danger-color: #d32f2f;
-        --warning-color: #f57c00;
-        --success-color: #2e7d32;
-        --info-color: #1565c0;
-        --border-radius: 8px;
-        --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        --transition: all 0.3s ease;
-    }
-
-    .create-sms-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 2rem;
-    }
-
-    .page-title {
-        color: var(--primary-color);
-        margin-bottom: 2rem;
-        font-size: 2rem;
-        text-align: center;
-    }
-
-    .form-container {
-        background: white;
-        border-radius: var(--border-radius);
-        box-shadow: var(--box-shadow);
-        padding: 2rem;
-    }
-
-    /* Message Styles */
-    .messages-container {
-        margin-bottom: 1.5rem;
-    }
-
-    .alert {
-        padding: 0.75rem 1rem;
-        border-radius: var(--border-radius);
-        margin-bottom: 0.5rem;
-    }
-
-    .alert-success {
-        background-color: #d4edda;
-        border: 1px solid #c3e6cb;
-        color: #155724;
-    }
-
-    .alert-danger {
-        background-color: #f8d7da;
-        border: 1px solid #f1aeb5;
-        color: #721c24;
-    }
-
-    .alert-info {
-        background-color: #cce7ff;
-        border: 1px solid #b6d7ff;
-        color: #0c5460;
-    }
-
-    /* Mode Selection */
-    .sms-modes {
-        margin-bottom: 2rem;
-        text-align: center;
-    }
-
-    .sms-modes h3 {
-        color: var(--primary-color);
-        margin-bottom: 1rem;
-    }
-
-    .mode-buttons {
-        display: flex;
-        justify-content: center;
-        gap: 1rem;
-        flex-wrap: wrap;
-    }
-
-    .mode-btn {
-        background: white;
-        border: 2px solid var(--light-teal);
-        color: var(--primary-color);
-        padding: 1rem 2rem;
-        border-radius: var(--border-radius);
-        cursor: pointer;
-        transition: var(--transition);
-        font-size: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .mode-btn:hover {
-        background: var(--light-teal);
-    }
-
-    .mode-btn.selected {
-        background: var(--primary-color);
-        color: white;
-        border-color: var(--primary-color);
-    }
-
-    /* Form Sections */
-    .mode-section {
-        margin-top: 2rem;
-    }
-
-    .search-section {
-        margin-bottom: 2rem;
-        padding: 1.5rem;
-        background: #f8f9fa;
-        border-radius: var(--border-radius);
-    }
-
-    .search-section h3 {
-        color: var(--primary-color);
-        margin-bottom: 1rem;
-    }
-
-    .search-input-group {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .search-input-group input {
-        flex: 1;
-        padding: 0.75rem;
-        border: 1px solid #ddd;
-        border-radius: var(--border-radius);
-        font-size: 1rem;
-    }
-
-    .search-button {
-        background: var(--primary-color);
-        color: white;
-        border: none;
-        padding: 0.75rem 1.5rem;
-        border-radius: var(--border-radius);
-        cursor: pointer;
-        transition: var(--transition);
-    }
-
-    .search-button:hover {
-        background: var(--secondary-color);
-    }
-
-    /* Customer List */
-    .customer-list {
-        margin-top: 1rem;
-    }
-
-    .customer-list h4 {
-        color: var(--primary-color);
-        margin-bottom: 0.5rem;
-    }
-
-    .customer-item {
-        margin-bottom: 0.5rem;
-    }
-
-    .customer-item a {
-        display: block;
-        padding: 1rem;
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: var(--border-radius);
-        text-decoration: none;
-        color: #333;
-        transition: var(--transition);
-    }
-
-    .customer-item a:hover,
-    .customer-item.selected a {
-        background: var(--light-teal);
-        border-color: var(--primary-color);
-    }
-
-    /* SMS Form */
-    .sms-section {
-        background: white;
-        border-radius: var(--border-radius);
-        padding: 1.5rem;
-        border: 1px solid #e9e9e9;
-    }
-
-    .sms-section h3 {
-        color: var(--primary-color);
-        margin-bottom: 1.5rem;
-    }
-
-    .form-group {
-        margin-bottom: 1.5rem;
-    }
-
-    .form-group label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 600;
-        color: #333;
-    }
-
-    .form-control {
-        width: 100%;
-        padding: 0.75rem;
-        border: 1px solid #ddd;
-        border-radius: var(--border-radius);
-        font-size: 1rem;
-        transition: var(--transition);
-    }
-
-    .form-control:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 2px rgba(0, 105, 92, 0.2);
-    }
-
-    .form-text {
-        font-size: 0.875rem;
-        color: #666;
-        margin-top: 0.25rem;
-    }
-
-    /* Message Type Selector */
-    .message-type-selector {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: var(--border-radius);
-        margin-bottom: 1.5rem;
-    }
-
-    .radio-group {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-    }
-
-    .radio-label {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        cursor: pointer;
-        font-weight: normal;
-    }
-
-    /* Purchase Info Card */
-    .purchase-info-card {
-        background: white;
-        border: 1px solid #e9e9e9;
-        border-radius: var(--border-radius);
-        margin-bottom: 1.5rem;
-        overflow: hidden;
-        box-shadow: var(--box-shadow);
-    }
-
-    .purchase-info-header {
-        background: var(--light-teal);
-        padding: 1rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .purchase-status-badge {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-weight: 600;
-        color: var(--primary-color);
-    }
-
-    .purchase-status-badge.status-success {
-        color: var(--success-color);
-    }
-
-    .purchase-status-badge.status-danger {
-        color: var(--danger-color);
-    }
-
-    .purchase-status-badge.status-warning {
-        color: var(--warning-color);
-    }
-
-    .purchase-status-badge.status-info {
-        color: var(--info-color);
-    }
-
-    .refresh-template-btn {
-        background: none;
-        border: none;
-        color: var(--primary-color);
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        cursor: pointer;
-        transition: var(--transition);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .refresh-template-btn:hover {
-        background: rgba(0, 0, 0, 0.1);
-    }
-
-    .purchase-info-body {
-        padding: 1rem;
-        min-height: 100px;
-    }
-
-    .purchase-template-preview {
-        white-space: pre-line;
-        line-height: 1.6;
-        color: #333;
-        font-family: 'Vazirmatn', sans-serif;
-    }
-
-    .empty-template-placeholder {
-        text-align: center;
-        padding: 2rem;
-        color: #666;
-    }
-
-    .template-icon {
-        font-size: 3rem;
-        color: var(--light-teal);
-        margin-bottom: 1rem;
-    }
-
-    /* Template Variables */
-    .purchase-info-footer {
-        padding: 1rem;
-        background: #f8f9fa;
-        border-top: 1px solid #e9e9e9;
-    }
-
-    .template-variables {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        align-items: center;
-    }
-
-    .variable-tag {
-        background: var(--light-teal);
-        color: var(--primary-color);
-        font-family: monospace;
-        font-size: 0.8rem;
-        padding: 0.3rem 0.6rem;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: var(--transition);
-        direction: ltr;
-        display: inline-block;
-    }
-
-    .variable-tag:hover {
-        background: var(--primary-color);
-        color: white;
-    }
-
-    .more-variables {
-        margin-top: 0.5rem;
-        padding-top: 0.5rem;
-        border-top: 1px dashed #ddd;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-    }
-
-    .more-variables-btn {
-        background: none;
-        border: none;
-        color: var(--primary-color);
-        cursor: pointer;
-        padding: 0.3rem 0.6rem;
-        border-radius: 4px;
-        transition: var(--transition);
-    }
-
-    .more-variables-btn:hover {
-        background: rgba(0, 0, 0, 0.05);
-    }
-
-    /* Character Counter */
-    .character-counter {
-        text-align: left;
-        font-size: 0.875rem;
-        color: #666;
-        margin-top: 0.5rem;
-        direction: ltr;
-    }
-
-    /* Action Buttons */
-    .form-actions {
-        display: flex;
-        gap: 1rem;
-        justify-content: center;
-        margin-top: 2rem;
-        flex-wrap: wrap;
-    }
-
-    .action-button {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.75rem 1.5rem;
-        border: none;
-        border-radius: var(--border-radius);
-        cursor: pointer;
-        text-decoration: none;
-        font-size: 1rem;
-        transition: var(--transition);
-        font-weight: 500;
-    }
-
-    .action-button.teal {
-        background: var(--primary-color);
-        color: white;
-    }
-
-    .action-button.teal:hover {
-        background: var(--secondary-color);
-    }
-
-    .action-button.light-teal {
-        background: var(--light-teal);
-        color: var(--primary-color);
-    }
-
-    .action-button.light-teal:hover {
-        background: var(--accent-color);
-        color: white;
-    }
-
-    /* Template Buttons */
-    .template-buttons {
-        margin-bottom: 1.5rem;
-    }
-
-    .template-buttons h4 {
-        color: var(--primary-color);
-        margin-bottom: 1rem;
-    }
-
-    .template-container {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-    }
-
-    .marketing-template-btn {
-        background: var(--light-teal);
-        color: var(--primary-color);
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: var(--border-radius);
-        cursor: pointer;
-        transition: var(--transition);
-    }
-
-    .marketing-template-btn:hover {
-        background: var(--primary-color);
-        color: white;
-    }
-
-    /* Responsive Design */
-    @media (max-width: 768px) {
-        .create-sms-container {
-            padding: 1rem;
-        }
-
-        .form-container {
-            padding: 1rem;
-        }
-
-        .mode-buttons {
-            flex-direction: column;
-        }
-
-        .search-input-group {
-            flex-direction: column;
-        }
-
-        .form-actions {
-            flex-direction: column;
-        }
-
-        .radio-group {
-            flex-direction: column;
-        }
-
-        .template-container {
-            flex-direction: column;
-        }
-    }
-
-    /* Loading Spinner */
-    .loading-spinner {
-        text-align: center;
-        padding: 2rem;
-        color: var(--primary-color);
-    }
-
-    .loading-spinner::after {
-        content: "";
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        margin-right: 10px;
-        border: 3px solid var(--light-teal);
-        border-radius: 50%;
-        border-top-color: var(--primary-color);
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        to { 
-            transform: rotate(360deg); 
-        }
-    }
-
-    /* Error States */
-    .error-message {
-        padding: 1rem;
-        text-align: center;
-        color: var(--danger-color);
-        background: #ffebee;
-        border-radius: var(--border-radius);
-        border: 1px solid #ffcdd2;
-    }
-
-    .no-template-message {
-        padding: 1.5rem;
-        background: #fff3e0;
-        border: 1px solid #ffcc02;
-        border-radius: var(--border-radius);
-        color: var(--warning-color);
-        text-align: center;
-        margin-bottom: 1rem;
-    }
+/* Product Variables Toolbar Styles */
+.message-editor {
+    position: relative;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.product-variables-toolbar {
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.variables-toolbar-header h5 {
+    margin: 0 0 8px 0;
+    font-size: 0.9rem;
+    color: #495057;
+    font-weight: bold;
+}
+
+.product-variables-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.product-variable-btn {
+    background-color: #e0f7fa;
+    border: 1px solid #80deea;
+    color: #00838f;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.product-variable-btn:hover {
+    background-color: #80deea;
+    border-color: #00bcd4;
+    color: #006064;
+    transform: translateY(-1px);
+}
+
+.message-editor textarea.form-control {
+    border: none;
+    border-radius: 0;
+}
+
+.message-editor .character-counter {
+    position: absolute;
+    bottom: 5px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+}
+
+/* Product Selection Toolbar Styles */
+.product-selection-toolbar {
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-bottom: 1px solid #e9ecef;
+    margin-bottom: 5px;
+}
+
+.selection-toolbar-header h5 {
+    margin: 0 0 8px 0;
+    font-size: 0.9rem;
+    color: #495057;
+    font-weight: bold;
+}
+
+.products-clickable-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    max-height: 120px;
+    overflow-y: auto;
+    padding: 5px;
+}
+
+.product-item-clickable {
+    background-color: #e0f7fa;
+    border: 1px solid #80deea;
+    color: #00838f;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.product-item-clickable:hover {
+    background-color: #80deea;
+    border-color: #00bcd4;
+    color: #006064;
+    transform: translateY(-1px);
+}
+
+.product-item-clickable .product-item-name {
+    font-weight: bold;
+    margin-left: 5px;
+}
+
+.product-item-clickable .product-item-cottage {
+    color: #0097a7;
+    font-size: 0.8rem;
+    margin-left: 8px;
+}
+
+.message-editor textarea.form-control {
+    border: none;
+    border-radius: 0;
+}
 </style>
+{% endblock %}
+
+{% block content %}
 
 <div class="create-sms-container">
     <h1 class="page-title">ایجاد پیامک جدید</h1>
@@ -565,17 +146,27 @@
         </div>
         {% endif %}
 
+        <!-- Hidden templates data -->
+        <script type="application/json" id="templates-data">{{ default_templates|safe }}</script>
+        
+        <!-- Hidden marketing templates -->
+        <script type="application/json" id="marketing-templates">{{ marketing_templates|safe }}</script>
+        
+        <!-- Hidden product templates -->
+        <script type="application/json" id="product-templates">{{ product_templates|safe }}</script>
+        
+        <!-- Hidden purchase statuses -->
+        <script type="application/json" id="purchase-statuses">{{ purchase_statuses|safe }}</script>
+
         <!-- حالت‌های مختلف ارسال پیامک -->
         <div class="sms-modes">
             <h3>انتخاب حالت ارسال پیامک</h3>
             <div class="mode-buttons">
                 <button type="button" id="customer-search-btn" class="mode-btn selected" onclick="showCustomerSearch()">
-                    <i class="fas fa-user"></i> 
-                    جستجوی مشتری
+                    <i class="fas fa-user"></i> جستجوی مشتری
                 </button>
                 <button type="button" id="direct-number-btn" class="mode-btn" onclick="showDirectMarketing()">
-                    <i class="fas fa-bullhorn"></i> 
-                    ارسال تبلیغاتی
+                    <i class="fas fa-bullhorn"></i> ارسال تبلیغاتی
                 </button>
             </div>
         </div>
@@ -591,8 +182,7 @@
                             <input type="text" id="search" name="search" class="form-control" 
                                 placeholder="نام مشتری یا شماره تلفن" value="{{ search_query }}">
                             <button type="submit" class="search-button">
-                                <i class="fas fa-search"></i> 
-                                جستجو
+                                <i class="fas fa-search"></i> جستجو
                             </button>
                         </div>
                     </div>
@@ -620,7 +210,11 @@
             {% if selected_customer_id %}
             <div class="sms-section">
                 <h3>ارسال پیامک به مشتری</h3>
-                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> 
+                    قالب‌های پیامک فقط از بخش <a href="{% url 'sms_api:template_list' %}" target="_blank" class="alert-link">مدیریت قالب‌های پیامک</a> قابل ایجاد و ویرایش هستند.
+                    اگر برای وضعیت خرید قالبی تعریف نشده باشد، نیاز است ابتدا آن را ایجاد کنید.
+                </div>
                 <form method="post" class="sms-form">
                     {% csrf_token %}
                     <input type="hidden" name="customer_id" value="{{ selected_customer_id }}">
@@ -631,21 +225,19 @@
                         <label>نوع پیام:</label>
                         <div class="radio-group">
                             <label class="radio-label">
-                                <input type="radio" name="message_type" value="purchase" checked> 
-                                پیام مرتبط با خرید
+                                <input type="radio" name="message_type" value="purchase" checked onclick="toggleMessageFields('purchase')"> پیام مرتبط با خرید
                             </label>
                             <label class="radio-label">
-                                <input type="radio" name="message_type" value="marketing"> 
-                                پیام تبلیغاتی
+                                <input type="radio" name="message_type" value="cottage" onclick="toggleMessageFields('cottage')"> پیام اطلاع‌رسانی کوتاژ و محصولات
                             </label>
                         </div>
                     </div>
                     
-                    <!-- فیلدهای مربوط به خرید -->
                     <div id="purchase-fields">
+                        <div class="purchase-selector-container">
                         <div class="form-group">
-                            <label for="purchase-selector">انتخاب خرید مشتری</label>
-                            <select name="purchase_id" id="purchase-selector" class="form-control">
+                                <label for="purchase-selector">انتخاب خرید مشتری</label>
+                            <select name="purchase_id" id="purchase-selector" class="form-control" onchange="loadPurchaseTemplate()">
                                 <option value="">-- انتخاب خرید --</option>
                                 {% for purchase in purchases %}
                                     <option value="{{ purchase.id }}" data-status="{{ purchase.state }}">
@@ -653,25 +245,27 @@
                                     </option>
                                 {% endfor %}
                             </select>
+                            </div>
                         </div>
                         
-                        <!-- کارت اطلاعات خرید -->
                         <div class="purchase-info-card" id="purchase-info-card" style="display: none;">
                             <div class="purchase-info-header">
                                 <div class="purchase-status-badge" id="purchase-status-badge">
                                     <i class="fas fa-info-circle"></i>
                                     <span id="purchase-status-display">وضعیت خرید</span>
                                 </div>
-                                <button type="button" class="refresh-template-btn" onclick="loadPurchaseTemplate(true)" title="بازنشانی قالب">
-                                    <i class="fas fa-sync-alt"></i>
-                                </button>
+                                <div class="purchase-template-actions">
+                                    <button type="button" class="refresh-template-btn" onclick="loadPurchaseTemplate(true)" title="بازنشانی قالب">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="purchase-info-body">
                                 <div class="purchase-template-preview" id="purchase-template-preview">
                                     <div class="empty-template-placeholder">
                                         <i class="fas fa-clipboard-list template-icon"></i>
                                         <p>پس از انتخاب خرید، قالب پیام متناسب با وضعیت خرید نمایش داده می‌شود.</p>
-                                        <p class="form-text">اگر قالبی یافت نشد، می‌توانید از بخش مدیریت قالب‌ها، قالب جدیدی ایجاد کنید.</p>
+                                        <p class="small text-muted">اگر قالبی یافت نشد، می‌توانید از بخش مدیریت قالب‌ها، قالب جدیدی ایجاد کنید.</p>
                                     </div>
                                 </div>
                             </div>
@@ -680,37 +274,151 @@
                                     <span class="variable-tag" title="نام مشتری">{{customer_name}}</span>
                                     <span class="variable-tag" title="شماره خرید">{{purchase_number}}</span>
                                     <span class="variable-tag" title="نوع محصول">{{product_type}}</span>
+                                    <span class="variable-tag" title="کشور مبدا">{{product_country}}</span>
                                     <span class="variable-tag" title="وزن سفارش">{{order_weight}}</span>
                                     <span class="variable-tag" title="قیمت مشتری">{{customer_price}}</span>
+                                    <span class="variable-tag" title="کوتاژ">{{cottage}}</span>
                                     <button type="button" class="more-variables-btn" onclick="toggleMoreVariables()">
                                         <i class="fas fa-ellipsis-h"></i>
                                     </button>
                                 </div>
                                 <div class="more-variables" id="more-variables" style="display: none;">
-                                    <span class="variable-tag">{{cottage}}</span>
                                     <span class="variable-tag">{{barnameh}}</span>
                                     <span class="variable-tag">{{extelaf_weight}}</span>
+                                    <span class="variable-tag">{{extelaf_amount}}</span>
                                     <span class="variable-tag">{{sales_agent_name}}</span>
                                     <span class="variable-tag">{{sales_agent_phone}}</span>
                                 </div>
                             </div>
                         </div>
+                        
+                        <div class="template-selector" id="template-selector" style="display: none;">
+                            <div class="template-selector-header">
+                                <h4>قالب‌های پیام اطلاع‌رسانی</h4>
+                                <div class="template-selector-controls">
+                                    <button type="button" class="template-control-btn" id="template-collapse-btn" onclick="toggleTemplateSelector()" title="بستن/بازکردن">
+                                        <i class="fas fa-chevron-up"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="template-selector-body" id="template-selector-body">
+                                <div class="template-filter">
+                                    <div class="template-view-options">
+                                        <button type="button" class="view-option-btn active" id="grid-view-btn" onclick="changeTemplateView('grid')" title="نمایش کارتی">
+                                            <i class="fas fa-th-large"></i>
+                                        </button>
+                                        <button type="button" class="view-option-btn" id="list-view-btn" onclick="changeTemplateView('list')" title="نمایش لیستی">
+                                            <i class="fas fa-list"></i>
+                                        </button>
+                                    </div>
+                                    <div class="template-search">
+                                        <input type="text" id="template-search" class="form-control" placeholder="جستجو در قالب‌ها..." onkeyup="filterTemplateCards()">
+                                        <i class="fas fa-search"></i>
+                                    </div>
+                                </div>
+                                <div class="template-cards grid-view" id="template-status-cards">
+                                    <!-- Template cards will be generated dynamically by JS -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
-                    <!-- فیلدهای مربوط به پیام تبلیغاتی -->
+                    <div id="cottage-fields" style="display: none;">
+                        <!-- قالب‌های محصولات -->
+                        <div class="template-buttons">
+                            <h4>قالب‌های ارسال محصولات</h4>
+                            <div class="template-container" id="product-templates-container">
+                                <!-- Product templates will be loaded here by JavaScript -->
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="cottage_number">شماره کوتاژ</label>
+                            <input type="text" id="cottage_number" name="cottage_number" class="form-control" placeholder="شماره کوتاژ را وارد کنید">
+                        </div>
+                        
+                        <!-- دکمه انتخاب محصولات -->
+                        <div class="form-group" style="position: relative; z-index: 9000;">
+                            <button type="button" class="action-button cyan" id="product-selector-btn" onclick="openProductSelector()">
+                                <i class="fas fa-box"></i>
+                                انتخاب محصولات
+                            </button>
+                            <small class="form-text text-muted">از اینجا می‌توانید محصولات را انتخاب کنید تا اطلاعات آنها در پیام گنجانده شود.</small>
+                            
+                            <!-- Modal انتخاب محصول -->
+                            <div id="product-selector-modal" class="product-modal">
+                                <div class="product-modal-content">
+                                    <div class="product-modal-header">
+                                        <h3>انتخاب محصولات</h3>
+                                        <span class="close-modal" onclick="closeProductSelector()">&times;</span>
+                                    </div>
+                                    <div class="product-modal-body">
+                                        <div class="product-search-container">
+                                            <input type="text" id="product-search" class="form-control" placeholder="جستجوی محصول...">
+                                        </div>
+                                        
+                                        <div class="select-all-container">
+                                            <button type="button" class="action-button light-teal" onclick="selectAllProducts()" style="padding: 0.5rem; font-size: 0.85rem;">
+                                                <i class="fas fa-check-double"></i>
+                                                انتخاب همه
+                                            </button>
+                                            <button type="button" class="action-button" onclick="deselectAllProducts()" style="padding: 0.5rem; font-size: 0.85rem;">
+                                                <i class="fas fa-times"></i>
+                                                حذف همه
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="product-list">
+                                            {% if cargo_products %}
+                                                {% for product in cargo_products %}
+                                                    <div class="product-item" data-product-id="{{ product.id }}" data-product-name="{{ product.get_product_type_display }} {{ product.get_country_display }}" data-cottage="{{ product.cottage }}" data-product-type="{{ product.get_product_type_display }}" data-product-country="{{ product.get_country_display }}" data-port="{{ product.port }}" data-weight="{{ product.weight }}">
+                                                        <label class="product-checkbox-label">
+                                                            <input type="checkbox" class="product-checkbox" onchange="toggleProductSelection(this)">
+                                                            <div class="product-info">
+                                                                <span class="product-name">{{ product.get_product_type_display }} {{ product.get_country_display }}</span>
+                                                                <span class="product-details">کوتاژ: {{ product.cottage }} | وزن: {{ product.weight }} کیلوگرم</span>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                {% endfor %}
+                                            {% else %}
+                                                <div class="no-products">محصول فعالی یافت نشد.</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="product-modal-footer">
+                                        <button type="button" class="action-button" onclick="closeProductSelector()" style="padding: 0.5rem; font-size: 0.85rem;">
+                                            <i class="fas fa-times"></i>
+                                            انصراف
+                                        </button>
+                                        <button type="button" class="action-button teal" onclick="confirmProductSelection()" style="padding: 0.5rem; font-size: 0.85rem;">
+                                            <i class="fas fa-check"></i>
+                                            تایید انتخاب
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- نمایش محصولات انتخاب شده -->
+                        <div id="selected-products-container" class="selected-products" style="display: none;">
+                            <h4>محصولات انتخاب شده</h4>
+                            <div id="selected-products-list" class="selected-products-list"></div>
+                        </div>
+                        
+                        <!-- فیلدهای مخفی برای نگهداری اطلاعات محصولات -->
+                        <input type="hidden" id="product_type" name="product_type">
+                        <input type="hidden" id="product_country" name="product_country">
+                        <input type="hidden" id="selected_products_data" name="selected_products_data">
+                    </div>
+                    
                     <div id="marketing-fields" style="display: none;">
                         <div class="template-buttons">
                             <h4>قالب‌های تبلیغاتی</h4>
                             <div class="template-container">
-                                <button type="button" class="marketing-template-btn" onclick="useMarketingTemplate('company')">
-                                    معرفی شرکت
-                                </button>
-                                <button type="button" class="marketing-template-btn" onclick="useMarketingTemplate('products')">
-                                    اطلاع محصولات جدید
-                                </button>
-                                <button type="button" class="marketing-template-btn" onclick="useMarketingTemplate('discount')">
-                                    تخفیف ویژه
-                                </button>
+                                <button type="button" class="marketing-template-btn cyan" onclick="useMarketingTemplate('promo_1')">معرفی شرکت</button>
+                                <button type="button" class="marketing-template-btn teal" onclick="useMarketingTemplate('promo_2')">اطلاع محصولات جدید</button>
+                                <button type="button" class="marketing-template-btn light-teal" onclick="useMarketingTemplate('promo_3')">تخفیف ویژه</button>
                             </div>
                         </div>
                     </div>
@@ -726,17 +434,28 @@
                     
                     <div class="form-group">
                         <label for="message">متن پیام</label>
-                        <textarea id="message" name="message" class="form-control" rows="6" 
+                        <div class="message-editor">
+                            <!-- نوار انتخاب محصولات -->
+                            <div class="product-selection-toolbar" id="product-selection-toolbar" style="display: none;">
+                                <div class="selection-toolbar-header">
+                                    <h5>انتخاب محصول برای افزودن به متن:</h5>
+                                </div>
+                                <div class="products-clickable-list" id="products-clickable-list">
+                                    <!-- محصولات انتخاب شده اینجا نمایش داده می‌شوند -->
+                                </div>
+                            </div>
+                            <textarea id="message" name="message" class="form-control" rows="5" 
                                 placeholder="متن پیام خود را وارد کنید..." required maxlength="255"></textarea>
-                        <div class="character-counter">
-                            <span id="char-count">0</span>/255
+                            <div class="character-counter">
+                                <span id="char-count">0</span>/255
+                            </div>
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label for="scheduled_for">زمان ارسال</label>
                         <input type="datetime-local" id="scheduled_for" name="scheduled_for" class="form-control">
-                        <small class="form-text">اگر خالی باشد، بلافاصله ارسال می‌شود</small>
+                        <small class="form-text text-muted">اگر خالی باشد، بلافاصله ارسال می‌شود</small>
                     </div>
                     
                     <div class="form-actions">
@@ -752,7 +471,7 @@
                 </form>
             </div>
             {% else %}
-            <div class="alert alert-info">
+            <div class="alert alert-info mt-4">
                 لطفاً یک مشتری را جستجو و انتخاب کنید.
             </div>
             {% endif %}
@@ -771,27 +490,12 @@
                         <input type="text" id="recipient_number" name="recipient_number" class="form-control" 
                                placeholder="شماره تلفن را وارد کنید (مثال: 09123456789)" required 
                                pattern="^(0|0098|\+98)?9\d{9}$">
-                        <small class="form-text">شماره تلفن را با فرمت صحیح وارد کنید.</small>
-                    </div>
-                    
-                    <div class="template-buttons">
-                        <h4>قالب‌های تبلیغاتی</h4>
-                        <div class="template-container">
-                            <button type="button" class="marketing-template-btn" onclick="useMarketingTemplate('company')">
-                                معرفی شرکت
-                            </button>
-                            <button type="button" class="marketing-template-btn" onclick="useMarketingTemplate('products')">
-                                اطلاع محصولات جدید
-                            </button>
-                            <button type="button" class="marketing-template-btn" onclick="useMarketingTemplate('discount')">
-                                تخفیف ویژه
-                            </button>
-                        </div>
+                        <small class="form-text text-muted">شماره تلفن را با فرمت صحیح وارد کنید.</small>
                     </div>
                     
                     <div class="form-group">
                         <label for="marketing_message">متن پیام تبلیغاتی</label>
-                        <textarea id="marketing_message" name="message" class="form-control" rows="6" 
+                        <textarea id="marketing_message" name="message" class="form-control" rows="5" 
                                 placeholder="متن پیام تبلیغاتی خود را وارد کنید..." required maxlength="255"></textarea>
                         <div class="character-counter">
                             <span id="marketing-char-count">0</span>/255
@@ -801,7 +505,14 @@
                     <div class="form-group">
                         <label for="marketing_scheduled_for">زمان ارسال</label>
                         <input type="datetime-local" id="marketing_scheduled_for" name="scheduled_for" class="form-control">
-                        <small class="form-text">اگر خالی باشد، بلافاصله ارسال می‌شود</small>
+                        <small class="form-text text-muted">اگر خالی باشد، بلافاصله ارسال می‌شود</small>
+                    </div>
+                    
+                    <div class="template-buttons">
+                        <h4>قالب‌های تبلیغاتی</h4>
+                        <div class="template-container" id="marketing-templates-container">
+                            <!-- Marketing templates will be loaded here by JavaScript -->
+                        </div>
                     </div>
                     
                     <div class="form-actions">
@@ -820,212 +531,1110 @@
     </div>
 </div>
 
-<!-- Hidden data for JavaScript -->
-<script type="application/json" id="templates-data">{{ default_templates|safe }}</script>
-<script type="application/json" id="purchase-statuses">{{ purchase_statuses|safe }}</script>
-{% endblock %}
-
-{% block extra_js %}
+<!-- Inline JavaScript for immediate functionality -->
 <script>
-// Parse data from JSON
-const templateData = JSON.parse(document.getElementById('templates-data')?.textContent || '{}');
-const purchaseStatuses = JSON.parse(document.getElementById('purchase-statuses')?.textContent || '{}');
 
-// Marketing templates
-const marketingTemplates = {
-    'company': 'شرکت تامین نهاده سیمرغ با بیش از 10 سال تجربه در واردات و تأمین نهاده‌های دامی، همراه شما در مسیر موفقیت است. برای مشاوره رایگان تماس بگیرید.\n۰۲۱-۶۶۵۶۲۲۱۶',
-    'products': 'مشتری گرامی، محصولات جدید وارداتی شامل ذرت، جو و کنجاله سویا به انبار ما رسیده است. برای اطلاع از قیمت‌ها با ما تماس بگیرید.\n۰۲۱-۶۶۵۶۲۲۱ۆ',
-    'discount': 'پیشنهاد ویژه! با هر سفارش بیش از ۲۰ تن، ۵٪ تخفیف ویژه دریافت کنید. این فرصت محدود است.\nبرای ثبت سفارش: ۰۲۱-۶۶۵۶۲۲۱۶'
-};
-
-// Mode switching functions
-function showCustomerSearch() {
-    document.getElementById('customer-search-btn').classList.add('selected');
-    document.getElementById('direct-number-btn').classList.remove('selected');
-    document.getElementById('customer-search-section').style.display = 'block';
-    document.getElementById('direct-number-section').style.display = 'none';
-}
-
-function showDirectMarketing() {
-    document.getElementById('direct-number-btn').classList.add('selected');
-    document.getElementById('customer-search-btn').classList.remove('selected');
-    document.getElementById('customer-search-section').style.display = 'none';
-    document.getElementById('direct-number-section').style.display = 'block';
-}
-
-// Message type toggling
-document.addEventListener('DOMContentLoaded', function() {
-    const messageTypeRadios = document.querySelectorAll('input[name="message_type"]');
-    messageTypeRadios.forEach(radio => {
-        radio.addEventListener('change', function() {
-            toggleMessageFields(this.value);
-        });
-    });
-});
-
-function toggleMessageFields(value) {
-    document.getElementById('purchase-fields').style.display = value === 'purchase' ? 'block' : 'none';
-    document.getElementById('marketing-fields').style.display = value === 'marketing' ? 'block' : 'none';
-}
-
-// Template loading for purchase
-document.addEventListener('DOMContentLoaded', function() {
-    const purchaseSelector = document.getElementById('purchase-selector');
-    if (purchaseSelector) {
-        purchaseSelector.addEventListener('change', loadPurchaseTemplate);
-    }
-});
-
-function loadPurchaseTemplate(refresh = false) {
-    const purchaseSelector = document.getElementById('purchase-selector');
-    const messageField = document.getElementById('message');
-    const charCount = document.getElementById('char-count');
-    const infoCard = document.getElementById('purchase-info-card');
-    const statusDisplay = document.getElementById('purchase-status-display');
-    const templatePreview = document.getElementById('purchase-template-preview');
+    // پارس کردن داده‌های قالب‌ها از JSON
+    const templateData = JSON.parse(document.getElementById('templates-data')?.textContent || '{}');
+    const marketingTemplates = JSON.parse(document.getElementById('marketing-templates')?.textContent || '[]');
+    const productTemplates = JSON.parse(document.getElementById('product-templates')?.textContent || '[]');
+    const purchaseStatuses = JSON.parse(document.getElementById('purchase-statuses')?.textContent || '{}');
     
-    if (!purchaseSelector || !messageField) return;
-    
-    // Reset if no purchase selected
-    if (!purchaseSelector.value) {
-        messageField.value = '';
-        if (charCount) charCount.textContent = '0';
-        if (infoCard) infoCard.style.display = 'none';
-        return;
-    }
-    
-    // Get selected option
-    const selectedOption = purchaseSelector.options[purchaseSelector.selectedIndex];
-    const status = selectedOption.getAttribute('data-status');
-    
-    // Show info card
-    if (infoCard) infoCard.style.display = 'block';
-    
-    // Update status display
-    if (statusDisplay && purchaseStatuses[status]) {
-        statusDisplay.textContent = purchaseStatuses[status];
+    // نمایش پیام نوتیفیکیشن
+    function showNotification(message, duration = 3000) {
+        // حذف نوتیفیکیشن قبلی اگر وجود دارد
+        const existingNotification = document.querySelector('.notification');
+        if (existingNotification) {
+            existingNotification.remove();
+        }
         
-        // Update status badge color
-        const statusBadge = document.getElementById('purchase-status-badge');
-        if (statusBadge) {
-            statusBadge.className = 'purchase-status-badge';
+        // ایجاد نوتیفیکیشن جدید
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        notification.textContent = message;
+        
+        // اضافه کردن به صفحه
+        document.body.appendChild(notification);
+        
+        // نمایش با تاخیر برای ایجاد انیمیشن
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 10);
+        
+        // مخفی کردن بعد از مدت معین
+        setTimeout(() => {
+            notification.style.animation = 'fadeOut 0.3s forwards';
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        }, duration);
+    }
+    
+    // Show customer search section
+    function showCustomerSearch() {
+        document.getElementById('customer-search-btn').classList.add('selected');
+        document.getElementById('direct-number-btn').classList.remove('selected');
+        document.getElementById('customer-search-section').style.display = 'block';
+        document.getElementById('direct-number-section').style.display = 'none';
+    }
+
+    // Show direct marketing section
+    function showDirectMarketing() {
+        document.getElementById('direct-number-btn').classList.add('selected');
+        document.getElementById('customer-search-btn').classList.remove('selected');
+        document.getElementById('customer-search-section').style.display = 'none';
+        document.getElementById('direct-number-section').style.display = 'block';
+    }
+
+    // Toggle message fields based on message type
+    function toggleMessageFields(value) {
+        document.getElementById('purchase-fields').style.display = 'none';
+        document.getElementById('cottage-fields').style.display = 'none';
+        document.getElementById('marketing-fields').style.display = 'none';
+        
+        // Hide product selection toolbar by default
+        hideProductSelectionToolbar();
+        
+        if (value === 'purchase') {
+            document.getElementById('purchase-fields').style.display = 'block';
+        } else if (value === 'cottage') {
+            document.getElementById('cottage-fields').style.display = 'block';
+            // Show product selection toolbar for cottage messages if products are selected
+            if (selectedProducts && selectedProducts.length > 0) {
+                showProductSelectionToolbar();
+            }
+        } else if (value === 'marketing') {
+            document.getElementById('marketing-fields').style.display = 'block';
+        }
+    }
+
+    // Apply marketing template
+    function useMarketingTemplate(templateId) {
+        const template = marketingTemplates.find(t => t.id == templateId);
+        if (!template) return;
+        
+        const textarea = document.getElementById('marketing_message') || document.getElementById('message');
+        const counter = document.getElementById('marketing-char-count') || document.getElementById('char-count');
+        if (textarea) {
+            textarea.value = template.content;
+            if (counter) {
+                counter.textContent = textarea.value.length;
+            }
             
-            if (['CANCELED', 'ARCHIVED'].includes(status)) {
-                statusBadge.classList.add('status-danger');
-            } else if (['FULLY_SETTLED', 'PURCHASE_CLOSED', 'INVOICE_ISSUED'].includes(status)) {
-                statusBadge.classList.add('status-success');
-            } else if (['WAITING_FOR_BARNAMEH', 'BARNAMEH_INCOMPLETE'].includes(status)) {
-                statusBadge.classList.add('status-warning');
+            // اعلام انتخاب قالب
+            const templateName = template.name;
+            showNotification(`قالب "${templateName}" انتخاب شد`);
+        }
+    }
+    
+    // تولید متن پیام برای محصولات انتخاب شده
+    function generateCottageMessage() {
+        console.log("generateCottageMessage called with", selectedProducts.length, "products");
+        
+        const messageField = document.getElementById('message');
+        const charCount = document.getElementById('char-count');
+        
+        if (!messageField) {
+            console.error("Message field not found!");
+            return;
+        }
+        
+        if (selectedProducts.length === 0) {
+            // اگر محصولی انتخاب نشده، به قالب اصلی برگردیم
+            const originalTemplate = messageField.getAttribute('data-original-template');
+            if (originalTemplate) {
+                messageField.value = originalTemplate;
+                charCount.textContent = originalTemplate.length;
             } else {
-                statusBadge.classList.add('status-info');
+                messageField.value = '';
+                charCount.textContent = '0';
+            }
+            return;
+        }
+        
+        try {
+            // اگر قالب اصلی وجود دارد، فقط از آن استفاده می‌کنیم
+            const originalTemplate = messageField.getAttribute('data-original-template');
+            
+            if (originalTemplate) {
+                // فقط قالب را نمایش دهیم - محصولات با کلیک روی آنها اضافه می‌شوند
+                messageField.value = originalTemplate;
+                if (charCount) {
+                    charCount.textContent = originalTemplate.length;
+                }
+            } else if (!messageField.value) {
+                // اگر قالبی انتخاب نشده و متن خالی است، یک متن پیش‌فرض قرار دهیم
+                messageField.value = 'مشتری گرامی،\n';
+                if (charCount) {
+                    charCount.textContent = messageField.value.length;
+                }
+            }
+            
+            console.log("Final message template:", messageField.value);
+            
+            // نمایش نوار انتخاب محصول
+            showProductSelectionToolbar();
+            
+            // نمایش تعداد محصولات انتخاب شده در لیست
+            const productsContainer = document.getElementById('selected-products-container');
+            if (productsContainer) {
+                productsContainer.style.display = 'block';
+                const productsHeader = productsContainer.querySelector('h4');
+                if (productsHeader) {
+                    productsHeader.textContent = `محصولات انتخاب شده (${selectedProducts.length})`;
+                }
+            }
+        } catch (error) {
+            console.error("Error in generateCottageMessage:", error);
+            showNotification('خطا در تولید متن پیام. لطفا دوباره تلاش کنید.', 3000);
+        }
+    }
+    
+    // Apply product template
+    function useProductTemplate(templateId) {
+        try {
+            const template = productTemplates.find(t => t.id == templateId);
+            if (!template) {
+                console.error("Template not found:", templateId);
+                return;
+            }
+            
+            const textarea = document.getElementById('message');
+            const counter = document.getElementById('char-count');
+            if (textarea) {
+                // Store the original template content for later use with product insertion
+                textarea.setAttribute('data-original-template', template.content);
+                
+                // Set the template content
+                textarea.value = template.content;
+                if (counter) {
+                    counter.textContent = textarea.value.length;
+                }
+                
+                console.log("Applied template:", template.name, "with content:", template.content);
+                
+                // اگر محصولاتی انتخاب شده‌اند، نوار انتخاب محصول را نمایش دهیم
+                if (selectedProducts && selectedProducts.length > 0) {
+                    // نمایش نوار انتخاب محصول
+                    showProductSelectionToolbar();
+                    
+                    // به‌روزرسانی متن پیام
+                    setTimeout(() => {
+                        generateCottageMessage();
+                    }, 100);
+                }
+                
+                // اعلام انتخاب قالب
+                const templateName = template.name;
+                showNotification(`قالب "${templateName}" انتخاب شد` + 
+                    (selectedProducts.length > 0 ? ". برای افزودن محصول به متن، روی آن کلیک کنید" : ""));
+                
+                // Highlight product variables in the template
+                highlightProductVariables();
+            }
+        } catch (error) {
+            console.error("Error in useProductTemplate:", error);
+            showNotification('خطا در اعمال قالب. لطفا دوباره تلاش کنید.', 3000);
+        }
+    }
+    
+    // Highlight product variables in the message
+    function highlightProductVariables() {
+        // This is just to draw user's attention to variables in the template
+        const messageField = document.getElementById('message');
+        if (!messageField) return;
+        
+        // Save current selection/cursor position
+        const start = messageField.selectionStart;
+        const end = messageField.selectionEnd;
+        
+        // Flash background to highlight the variables
+        messageField.style.transition = 'background-color 0.3s ease';
+        messageField.style.backgroundColor = '#e3f2fd';
+        
+        setTimeout(() => {
+            messageField.style.backgroundColor = '';
+            
+            // Restore selection/cursor position
+            messageField.focus();
+            messageField.setSelectionRange(start, end);
+        }, 500);
+    }
+    
+    // Load template based on purchase status
+    function loadPurchaseTemplate(refresh = false) {
+        const purchaseSelector = document.getElementById('purchase-selector');
+        const messageField = document.getElementById('message');
+        const charCount = document.getElementById('char-count');
+        const infoCard = document.getElementById('purchase-info-card');
+        const statusDisplay = document.getElementById('purchase-status-display');
+        const templatePreview = document.getElementById('purchase-template-preview');
+        const templateSelector = document.getElementById('template-selector');
+        
+        if (!purchaseSelector || !messageField) return;
+        
+        // Reset form if no purchase is selected
+        if (!purchaseSelector.value) {
+            messageField.value = '';
+            charCount.textContent = '0';
+            infoCard.style.display = 'none';
+            templateSelector.style.display = 'none';
+            return;
+        }
+        
+        // Get selected option
+        const selectedOption = purchaseSelector.options[purchaseSelector.selectedIndex];
+        const status = selectedOption.getAttribute('data-status');
+        
+        // Display the info card
+        infoCard.style.display = 'block';
+        
+        // Display the current status
+        if (statusDisplay && purchaseStatuses[status]) {
+            statusDisplay.textContent = purchaseStatuses[status];
+            
+            // Update status badge color based on status
+            const statusBadge = document.getElementById('purchase-status-badge');
+            if (statusBadge) {
+                // Remove previous status classes
+                statusBadge.className = 'purchase-status-badge';
+                
+                // Add appropriate class based on status
+                if (['CANCELED', 'ARCHIVED'].includes(status)) {
+                    statusBadge.classList.add('status-danger');
+                } else if (['FULLY_SETTLED', 'PURCHASE_CLOSED', 'INVOICE_ISSUED'].includes(status)) {
+                    statusBadge.classList.add('status-success');
+                } else if (['WAITING_FOR_BARNAMEH', 'BARNAMEH_INCOMPLETE'].includes(status)) {
+                    statusBadge.classList.add('status-warning');
+                } else {
+                    statusBadge.classList.add('status-info');
+                }
+            }
+        }
+        
+        // Check if template exists for this status
+        if (templateData[status] && templateData[status].trim() !== '') {
+            // Template exists
+            // Only update the message field if it's empty or refresh is requested
+            if (messageField.value === '' || refresh) {
+                messageField.value = templateData[status];
+                charCount.textContent = messageField.value.length;
+            }
+            
+            // Update template preview
+            if (templatePreview) {
+                templatePreview.textContent = messageField.value || templateData[status];
+            }
+            
+            // Fetch all templates for this status and show them
+            fetchTemplatesForStatus(status);
+            templateSelector.style.display = 'block';
+        } else {
+            // No template exists for this status
+            // Clear message field if refresh is requested
+            if (refresh) {
+                messageField.value = '';
+                charCount.textContent = '0';
+            }
+            
+            if (templatePreview) {
+                templatePreview.innerHTML = '<p class="no-template-message">قالب پیامی برای این وضعیت تعریف نشده است.</p>';
+                
+                // Add a button to create new template
+                templatePreview.innerHTML += `
+                    <div class="mt-3">
+                        <a href="{% url 'sms_api:template_create' %}?status=${status}" class="btn btn-primary" target="_blank">
+                            <i class="fas fa-plus"></i> ایجاد قالب جدید
+                        </a>
+                        <p class="mt-2 small text-muted">برای این وضعیت خرید نیاز به ایجاد قالب پیامک دارید.</p>
+                    </div>
+                `;
+            }
+            
+            // Hide template selector since there are no templates
+            templateSelector.style.display = 'none';
+        }
+    }
+
+    // Toggle more variables
+    function toggleMoreVariables() {
+        const moreVars = document.getElementById('more-variables');
+        if (moreVars) {
+            if (moreVars.style.display === 'none') {
+                moreVars.style.display = 'flex';
+            } else {
+                moreVars.style.display = 'none';
             }
         }
     }
     
-    // Check if template exists
-    if (templateData[status] && templateData[status].trim() !== '') {
-        // Template exists
-        if (messageField.value === '' || refresh) {
-            messageField.value = templateData[status];
-            if (charCount) charCount.textContent = messageField.value.length;
+    // Insert template variable into message
+    function insertVariable(variable) {
+        const messageField = document.getElementById('message');
+        const cursorPos = messageField.selectionStart;
+        
+        const textBefore = messageField.value.substring(0, cursorPos);
+        const textAfter = messageField.value.substring(cursorPos);
+        
+        messageField.value = textBefore + variable + textAfter;
+        
+        // Update character count
+        const charCount = document.getElementById('char-count');
+        charCount.textContent = messageField.value.length;
+        
+        // Update preview
+        const templatePreview = document.getElementById('purchase-template-preview');
+        if (templatePreview) {
+            templatePreview.textContent = messageField.value;
         }
         
-        if (templatePreview) {
-            templatePreview.textContent = templateData[status];
-        }
-    } else {
-        // No template exists
-        if (refresh) {
-            messageField.value = '';
-            if (charCount) charCount.textContent = '0';
+        // Set cursor position after inserted variable
+        messageField.focus();
+        messageField.setSelectionRange(cursorPos + variable.length, cursorPos + variable.length);
+    }
+
+    // Load marketing templates
+    function loadMarketingTemplates() {
+        const container = document.getElementById('marketing-templates-container');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        if (marketingTemplates.length === 0) {
+            container.innerHTML = '<p class="no-templates-message">هیچ قالب تبلیغاتی یافت نشد. <a href="/sms/templates/create/?type=marketing" target="_blank" class="action-button teal"><i class="fas fa-plus"></i> ایجاد قالب جدید</a></p>';
+            return;
         }
         
-        if (templatePreview) {
-            templatePreview.innerHTML = `
-                <div class="no-template-message">
-                    <p>قالب پیامی برای این وضعیت تعریف نشده است.</p>
-                    <div style="margin-top: 1rem;">
-                        <a href="{% url 'sms_api:template_create' %}?status=${status}" class="action-button light-teal" target="_blank">
-                            <i class="fas fa-plus"></i> ایجاد قالب جدید
-                        </a>
+        // نمایش همه قالب‌های تبلیغاتی (نه فقط پیش‌فرض)
+        marketingTemplates.forEach((template, index) => {
+            const colorClasses = ['teal', 'light-teal', 'cyan'];
+            const colorClass = colorClasses[index % colorClasses.length];
+            
+            const templateCard = document.createElement('div');
+            templateCard.className = `template-preview-card ${colorClass}`;
+            
+            // نمایش نام قالب و وضعیت آن
+            let templateHeader = `<div class="template-card-header"><i class="fas fa-bullhorn"></i> ${template.name}`;
+            if (template.is_default) {
+                templateHeader += ' <span class="template-badge">پیش‌فرض</span>';
+            }
+            templateHeader += '</div>';
+            
+            // نمایش متن قالب
+            let templateContent = '';
+            if (template.content) {
+                templateContent = `<div class="template-card-content">${template.content.substring(0, 120)}${template.content.length > 120 ? '...' : ''}</div>`;
+            }
+            
+            // دکمه انتخاب قالب
+            const selectButton = `<button type="button" class="template-select-btn" onclick="useMarketingTemplate(${template.id})"><i class="fas fa-check"></i> انتخاب</button>`;
+            
+            templateCard.innerHTML = templateHeader + templateContent + selectButton;
+            container.appendChild(templateCard);
+        });
+    }
+    
+    // Load product templates
+    function loadProductTemplates() {
+        const container = document.getElementById('product-templates-container');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        if (productTemplates.length === 0) {
+            container.innerHTML = '<p class="no-templates-message">هیچ قالب محصولات یافت نشد. <a href="/sms/templates/create/?type=product" target="_blank" class="action-button teal"><i class="fas fa-plus"></i> ایجاد قالب جدید</a></p>';
+            return;
+        }
+        
+        // نمایش همه قالب‌های محصولات (نه فقط پیش‌فرض)
+        productTemplates.forEach((template, index) => {
+            const colorClasses = ['teal', 'light-teal', 'cyan'];
+            const colorClass = colorClasses[index % colorClasses.length];
+            
+            const templateCard = document.createElement('div');
+            templateCard.className = `template-preview-card ${colorClass}`;
+            templateCard.setAttribute('data-template-id', template.id);
+            
+            // نمایش نام قالب و وضعیت آن
+            let templateHeader = `<div class="template-card-header">`;
+            templateHeader += `<i class="fas fa-box"></i> ${template.name}`;
+            
+            if (template.is_default) {
+                templateHeader += ' <span class="template-badge">پیش‌فرض</span>';
+            }
+            if (!template.is_active) {
+                templateHeader += ' <span class="template-badge inactive">غیرفعال</span>';
+            }
+            templateHeader += '</div>';
+            
+            // نمایش متن قالب با فرمت بهتر
+            let templateContent = '';
+            if (template.content) {
+                // پیدا کردن متغیرهای قالب
+                const templateVars = template.content.match(/\{\{[^}]+\}\}/g) || [];
+                const varsList = templateVars.length > 0 ? 
+                    `<div class="template-vars">${templateVars.map(v => `<span>${v}</span>`).join('')}</div>` : '';
+                
+                // نمایش قسمتی از متن قالب
+                const truncatedContent = template.content.length > 140 ? 
+                    template.content.substring(0, 140) + '...' : template.content;
+                
+                templateContent = `
+                    <div class="template-card-content">
+                        <div class="template-text">${truncatedContent.replace(/\n/g, '<br>')}</div>
+                        ${varsList}
                     </div>
+                `;
+            }
+            
+            // دکمه انتخاب قالب
+            const selectButton = `<button type="button" class="template-select-btn" onclick="useProductTemplate(${template.id})"><i class="fas fa-check"></i> انتخاب</button>`;
+            
+            templateCard.innerHTML = templateHeader + templateContent + selectButton;
+            container.appendChild(templateCard);
+        });
+    }
+
+    // Initialize character counters
+    document.addEventListener('DOMContentLoaded', function() {
+        // Setup standard message counter
+        const messageTextarea = document.getElementById('message');
+        const charCount = document.getElementById('char-count');
+        
+        if (messageTextarea && charCount) {
+            charCount.textContent = messageTextarea.value.length;
+            messageTextarea.addEventListener('input', function() {
+                charCount.textContent = this.value.length;
+            });
+        }
+        
+        // Setup marketing message counter
+        const marketingTextarea = document.getElementById('marketing_message');
+        const marketingCharCount = document.getElementById('marketing-char-count');
+        
+        if (marketingTextarea && marketingCharCount) {
+            marketingCharCount.textContent = marketingTextarea.value.length;
+            marketingTextarea.addEventListener('input', function() {
+                marketingCharCount.textContent = this.value.length;
+            });
+        }
+        
+        // Add click handler to variable tags
+        const variableTags = document.querySelectorAll('.variable-tag');
+        variableTags.forEach(tag => {
+            tag.addEventListener('click', function() {
+                insertVariable(this.textContent);
+            });
+        });
+        
+        // Hide product selection toolbar by default
+        hideProductSelectionToolbar();
+        
+        // Load templates
+        loadMarketingTemplates();
+        loadProductTemplates();
+    });
+    
+    // Change template view (grid or list)
+    function changeTemplateView(viewType) {
+        const container = document.getElementById('template-status-cards');
+        const gridBtn = document.getElementById('grid-view-btn');
+        const listBtn = document.getElementById('list-view-btn');
+        
+        if (viewType === 'grid') {
+            container.classList.remove('list-view');
+            container.classList.add('grid-view');
+            gridBtn.classList.add('active');
+            listBtn.classList.remove('active');
+        } else {
+            container.classList.remove('grid-view');
+            container.classList.add('list-view');
+            listBtn.classList.add('active');
+            gridBtn.classList.remove('active');
+        }
+        
+        // Recreate the template cards to apply the proper layout
+        const currentStatus = getCurrentSelectedStatus();
+        if (currentStatus) {
+            generateTemplateCards(currentStatus);
+        }
+    }
+    
+    // Get current selected status
+    function getCurrentSelectedStatus() {
+        const purchaseSelector = document.getElementById('purchase-selector');
+        if (!purchaseSelector || !purchaseSelector.value) return null;
+        
+        const selectedOption = purchaseSelector.options[purchaseSelector.selectedIndex];
+        return selectedOption.getAttribute('data-status');
+    }
+    
+    // Filter template cards based on search input
+    function filterTemplateCards() {
+        const searchText = document.getElementById('template-search').value.toLowerCase();
+        const cards = document.querySelectorAll('.template-card');
+        
+        cards.forEach(card => {
+            const header = card.querySelector('.template-card-header').textContent.toLowerCase();
+            const body = card.querySelector('.template-card-body').textContent.toLowerCase();
+            
+            if (header.includes(searchText) || body.includes(searchText)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    // --------- توابع مربوط به انتخاب محصول ---------
+    
+    // آرایه‌ای برای نگهداری محصولات انتخاب شده
+    let selectedProducts = [];
+    
+    // باز کردن مودال انتخاب محصول
+    function openProductSelector() {
+        const modal = document.getElementById('product-selector-modal');
+        const button = document.getElementById('product-selector-btn');
+        
+        // موقعیت دکمه را محاسبه می‌کنیم
+        const buttonRect = button.getBoundingClientRect();
+        
+        // قرار دادن مودال زیر دکمه - اینجا نیازی به محاسبه نیست چون در CSS مشخص شده
+        modal.style.display = 'block';
+        
+        // اطمینان از نمایش مودال در بالای همه عناصر
+        modal.style.zIndex = 9999;
+        
+        // به‌روزرسانی نمایش محصولات انتخاب شده
+        updateSelectedProductsVisual();
+        
+        // اضافه کردن تعداد محصولات به عنوان مودال
+        const modalHeader = modal.querySelector('.product-modal-header h3');
+        if (modalHeader) {
+            const totalProducts = document.querySelectorAll('.product-item').length;
+            modalHeader.textContent = `انتخاب محصولات (${totalProducts})`;
+        }
+        
+        // فیلتر کردن محصولات براساس جستجو
+        document.getElementById('product-search').addEventListener('input', filterProducts);
+        
+        // بستن مودال با کلیک خارج از آن - با کمی تاخیر برای جلوگیری از بسته شدن فوری
+        setTimeout(() => {
+            document.addEventListener('click', closeModalOnClickOutside);
+        }, 100);
+    }
+    
+    // بستن مودال انتخاب محصول
+    function closeProductSelector() {
+        const modal = document.getElementById('product-selector-modal');
+        modal.style.display = 'none';
+        document.removeEventListener('click', closeModalOnClickOutside);
+    }
+    
+    // بستن مودال با کلیک خارج از آن
+    function closeModalOnClickOutside(event) {
+        const modal = document.getElementById('product-selector-modal');
+        const button = document.getElementById('product-selector-btn');
+        
+        // اگر کلیک روی مودال یا دکمه نبود، مودال را ببندیم
+        if (modal && button && 
+            !modal.contains(event.target) && 
+            event.target !== button && 
+            !button.contains(event.target)) {
+            closeProductSelector();
+            
+            // حذف اونت لیسنر بعد از بستن مودال
+            document.removeEventListener('click', closeModalOnClickOutside);
+        }
+    }
+    
+    // فیلتر کردن محصولات براساس متن جستجو
+    function filterProducts() {
+        const searchText = document.getElementById('product-search').value.toLowerCase();
+        const productItems = document.querySelectorAll('.product-item');
+        
+        productItems.forEach(item => {
+            const productName = item.getAttribute('data-product-name').toLowerCase();
+            const cottage = item.getAttribute('data-cottage').toLowerCase();
+            
+            if (productName.includes(searchText) || cottage.includes(searchText)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+    
+    // به‌روزرسانی نمایش بصری محصولات انتخاب شده
+    function updateSelectedProductsVisual() {
+        const selectedIds = selectedProducts.map(p => p.id);
+        
+        // به‌روزرسانی نمایش محصولات در مودال
+        document.querySelectorAll('.product-item').forEach(item => {
+            const productId = item.getAttribute('data-product-id');
+            const checkbox = item.querySelector('.product-checkbox');
+            
+            if (selectedIds.includes(productId)) {
+                checkbox.checked = true;
+                item.classList.add('selected');
+            } else {
+                checkbox.checked = false;
+                item.classList.remove('selected');
+            }
+        });
+    }
+    
+    // انتخاب/لغو انتخاب یک محصول
+    function toggleProductSelection(checkbox) {
+        const productItem = checkbox.closest('.product-item');
+        const productId = productItem.getAttribute('data-product-id');
+        const productName = productItem.getAttribute('data-product-name');
+        const cottage = productItem.getAttribute('data-cottage');
+        const productType = productItem.getAttribute('data-product-type');
+        const productCountry = productItem.getAttribute('data-product-country');
+        const port = productItem.getAttribute('data-port');
+        const weight = productItem.getAttribute('data-weight');
+        
+        if (checkbox.checked) {
+            // اضافه کردن به محصولات انتخاب شده
+            selectedProducts.push({
+                id: productId,
+                name: productName,
+                cottage: cottage,
+                productType: productType,
+                productCountry: productCountry,
+                port: port,
+                weight: weight
+            });
+            
+            // اضافه کردن کلاس به المان برای نمایش انتخاب شده
+            productItem.classList.add('selected');
+        } else {
+            // حذف از محصولات انتخاب شده
+            selectedProducts = selectedProducts.filter(product => product.id !== productId);
+            
+            // حذف کلاس از المان
+            productItem.classList.remove('selected');
+        }
+    }
+    
+    // انتخاب همه محصولات
+    function selectAllProducts() {
+        const checkboxes = document.querySelectorAll('.product-checkbox:not(:checked)');
+        
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = true;
+            toggleProductSelection(checkbox);
+        });
+        
+        showNotification('همه محصولات انتخاب شدند', 1500);
+    }
+    
+    // حذف انتخاب همه محصولات
+    function deselectAllProducts() {
+        const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+        
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+            toggleProductSelection(checkbox);
+        });
+        
+        showNotification('انتخاب همه محصولات لغو شد', 1500);
+    }
+    
+    // تایید انتخاب محصولات
+    function confirmProductSelection() {
+        console.log("Confirming selection of", selectedProducts.length, "products");
+        
+        // ذخیره اطلاعات محصولات انتخاب شده در فیلد مخفی
+        document.getElementById('selected_products_data').value = JSON.stringify(selectedProducts);
+        
+        // نمایش محصولات انتخاب شده
+        displaySelectedProducts();
+        
+        // بستن مودال
+        closeProductSelector();
+        
+        // اگر محصولی انتخاب شده، نوار انتخاب محصول را نمایش دهیم
+        if (selectedProducts.length > 0) {
+            try {
+                // پر کردن فیلدهای مخفی برای نوع و کشور محصول (برای پشتیبانی از کد قبلی)
+                document.getElementById('product_type').value = selectedProducts[0].productType;
+                document.getElementById('product_country').value = selectedProducts[0].productCountry;
+                document.getElementById('cottage_number').value = selectedProducts[0].cottage;
+                
+                // نمایش نوار انتخاب محصول
+                showProductSelectionToolbar();
+                
+                // تولید متن پیام
+                generateCottageMessage();
+                
+                // نمایش تعداد محصولات انتخاب شده
+                showNotification(`${selectedProducts.length} محصول انتخاب شد. برای افزودن به متن روی هر محصول کلیک کنید.`);
+            } catch(error) {
+                console.error("Error in confirmProductSelection:", error);
+                showNotification('خطا در اضافه کردن محصولات به متن پیام. لطفا دوباره تلاش کنید.', 3000);
+            }
+        } else {
+            hideProductSelectionToolbar();
+            showNotification('هیچ محصولی انتخاب نشده است.', 2000);
+        }
+    }
+    
+    // نمایش محصولات انتخاب شده
+    function displaySelectedProducts() {
+        const container = document.getElementById('selected-products-container');
+        const list = document.getElementById('selected-products-list');
+        
+        if (selectedProducts.length === 0) {
+            container.style.display = 'none';
+            hideProductSelectionToolbar();
+            return;
+        }
+        
+        // نمایش container
+        container.style.display = 'block';
+        
+        // خالی کردن لیست قبلی
+        list.innerHTML = '';
+        
+        // اضافه کردن محصولات انتخاب شده به لیست
+        selectedProducts.forEach(product => {
+            const productElement = document.createElement('div');
+            productElement.className = 'selected-product-item';
+            productElement.innerHTML = `
+                <div class="product-info">
+                    <span class="product-name">${product.name}</span>
+                    <span class="product-details">کوتاژ: ${product.cottage} | وزن: ${product.weight} کیلوگرم</span>
+                </div>
+                <button type="button" class="remove-product" onclick="removeSelectedProduct(${product.id})">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            list.appendChild(productElement);
+        });
+        
+        // به‌روزرسانی نوار انتخاب محصول
+        updateClickableProductsList();
+        
+        // پر کردن فیلدهای مخفی برای نوع و کشور محصول (برای پشتیبانی از کد قبلی)
+        if (selectedProducts.length > 0) {
+            document.getElementById('product_type').value = selectedProducts[0].productType;
+            document.getElementById('product_country').value = selectedProducts[0].productCountry;
+            document.getElementById('cottage_number').value = selectedProducts[0].cottage;
+        }
+        
+        // به‌روزرسانی متن پیام
+        generateCottageMessage();
+    }
+    
+    // حذف یک محصول از لیست انتخاب شده‌ها
+    function removeSelectedProduct(productId) {
+        productId = productId.toString();
+        const removedProduct = selectedProducts.find(product => product.id === productId);
+        selectedProducts = selectedProducts.filter(product => product.id !== productId);
+        
+        // به‌روزرسانی فیلد مخفی
+        document.getElementById('selected_products_data').value = JSON.stringify(selectedProducts);
+        
+        // به‌روزرسانی نمایش محصولات
+        displaySelectedProducts();
+        
+        // به‌روزرسانی فیلدهای مخفی
+        if (selectedProducts.length > 0) {
+            document.getElementById('product_type').value = selectedProducts[0].productType;
+            document.getElementById('product_country').value = selectedProducts[0].productCountry;
+            document.getElementById('cottage_number').value = selectedProducts[0].cottage;
+            
+            // به‌روزرسانی نوار انتخاب محصول
+            updateClickableProductsList();
+        } else {
+            document.getElementById('product_type').value = '';
+            document.getElementById('product_country').value = '';
+            document.getElementById('cottage_number').value = '';
+            
+            // مخفی کردن نوار انتخاب محصول
+            hideProductSelectionToolbar();
+        }
+        
+        // به‌روزرسانی متن پیام
+        generateCottageMessage();
+        
+        // نمایش اعلان
+        if (removedProduct) {
+            showNotification(`محصول "${removedProduct.productType} ${removedProduct.productCountry}" حذف شد`);
+        }
+    }
+    
+    // Toggle template selector collapse/expand
+    function toggleTemplateSelector() {
+        const body = document.getElementById('template-selector-body');
+        const button = document.getElementById('template-collapse-btn');
+        
+        if (body.classList.contains('collapsed')) {
+            // Expand
+            body.classList.remove('collapsed');
+            button.innerHTML = '<i class="fas fa-chevron-up"></i>';
+        } else {
+            // Collapse
+            body.classList.add('collapsed');
+            button.innerHTML = '<i class="fas fa-chevron-down"></i>';
+        }
+    }
+    
+    // Preview template in a tooltip
+    function previewTemplate(event, card) {
+        event.stopPropagation(); // Prevent card click
+        
+        // Get template content
+        const templateContent = card.getAttribute('data-template');
+        const statusName = card.querySelector('.template-card-header').textContent.trim();
+        
+        // Create tooltip
+        let tooltip = document.getElementById('template-preview-tooltip');
+        if (!tooltip) {
+            tooltip = document.createElement('div');
+            tooltip.id = 'template-preview-tooltip';
+            tooltip.className = 'template-preview-tooltip';
+            document.body.appendChild(tooltip);
+        }
+        
+        // Set tooltip content
+        tooltip.innerHTML = `
+            <div class="tooltip-header">
+                ${statusName}
+                <button class="tooltip-close" onclick="closeTooltip()">×</button>
+            </div>
+            <div class="tooltip-body">
+                ${templateContent}
+            </div>
+        `;
+        
+        // Position tooltip
+        const rect = card.getBoundingClientRect();
+        tooltip.style.top = `${rect.top + window.scrollY}px`;
+        tooltip.style.left = `${rect.left + rect.width + 10 + window.scrollX}px`;
+        tooltip.style.display = 'block';
+        
+        // Close when clicking outside
+        document.addEventListener('click', closeTooltipOnClickOutside);
+    }
+    
+    // Close tooltip on click outside
+    function closeTooltipOnClickOutside(event) {
+        const tooltip = document.getElementById('template-preview-tooltip');
+        if (tooltip && !tooltip.contains(event.target)) {
+            closeTooltip();
+        }
+    }
+    
+    // Close tooltip
+    function closeTooltip() {
+        const tooltip = document.getElementById('template-preview-tooltip');
+        if (tooltip) {
+            tooltip.style.display = 'none';
+            document.removeEventListener('click', closeTooltipOnClickOutside);
+        }
+    }
+    
+    // Fetch all templates for a specific status
+    function fetchTemplatesForStatus(status) {
+        // API URL
+        const apiUrl = `/sms/api/templates/status/?status=${status}`;
+        
+        // Clear existing templates
+        const templateCards = document.getElementById('template-status-cards');
+        if (templateCards) {
+            templateCards.innerHTML = '<div class="loading-spinner">در حال بارگذاری...</div>';
+        }
+        
+        // Fetch templates from API
+        fetch(apiUrl)
+            .then(response => response.json())
+            .then(data => {
+                if (data.templates && data.templates.length > 0) {
+                    // Display templates
+                    displayTemplateCards(data.templates, data.status_display);
+                } else {
+                    // No templates found
+                    if (templateCards) {
+                        templateCards.innerHTML = '<p class="no-templates-message">قالبی برای این وضعیت یافت نشد.</p>';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching templates:', error);
+                if (templateCards) {
+                    templateCards.innerHTML = '<p class="error-message">خطا در بارگذاری قالب‌ها.</p>';
+                }
+            });
+    }
+    
+    // Display template cards based on fetched data
+    function displayTemplateCards(templates, statusDisplay) {
+        const container = document.getElementById('template-status-cards');
+        if (!container) return;
+        
+        // Clear existing cards
+        container.innerHTML = '';
+        
+        // Update title in template selector
+        const selectorHeader = document.querySelector('.template-selector-header h4');
+        if (selectorHeader) {
+            selectorHeader.textContent = `قالب‌های پیام برای "${statusDisplay}" (${templates.length})`;
+        }
+        
+        // Create a card for each template
+        templates.forEach(template => {
+            // Create card
+            const card = document.createElement('div');
+            card.className = 'template-card';
+            card.setAttribute('data-id', template.id);
+            card.setAttribute('data-template', template.content);
+            card.onclick = function() { selectTemplateCard(this); };
+            
+            // Check if this is the default template
+            const isDefault = template.is_active;
+            if (isDefault) {
+                card.classList.add('selected');
+            }
+            
+            // Create badge for default template
+            let badge = '';
+            if (isDefault) {
+                badge = '<div class="template-card-badge">پیش‌فرض</div>';
+            }
+            
+            // Create card content
+            card.innerHTML = `
+                ${badge}
+                <div class="template-card-header">
+                    <i class="fas fa-file-alt"></i>
+                    ${template.name}
+                </div>
+                <div class="template-card-body">
+                    ${template.content.substring(0, 120)}${template.content.length > 120 ? '...' : ''}
+                </div>
+                <div class="template-card-actions">
+                    <button type="button" class="template-card-btn" title="استفاده از قالب" onclick="selectTemplateCard(this.closest('.template-card'))">
+                        <i class="fas fa-check"></i>
+                    </button>
+                    <button type="button" class="template-card-btn" title="پیش‌نمایش" onclick="previewTemplate(event, this.closest('.template-card'))">
+                        <i class="fas fa-eye"></i>
+                    </button>
                 </div>
             `;
+            
+            // Add card to container
+            container.appendChild(card);
+        });
+    }
+    
+    // Select a template card and update the message field
+    function selectTemplateCard(card) {
+        // Get all cards and remove selected class
+        const allCards = document.querySelectorAll('.template-card');
+        allCards.forEach(c => c.classList.remove('selected'));
+        
+        // Add selected class to clicked card
+        card.classList.add('selected');
+        
+        // Get template content
+        const templateContent = card.getAttribute('data-template');
+        
+        // Update message field
+        const messageField = document.getElementById('message');
+        const charCount = document.getElementById('char-count');
+        const templatePreview = document.getElementById('purchase-template-preview');
+        
+        if (messageField && templateContent) {
+            messageField.value = templateContent;
+            charCount.textContent = templateContent.length;
+            
+            if (templatePreview) {
+                templatePreview.textContent = templateContent;
+            }
         }
     }
-}
 
-// Template variables
-function toggleMoreVariables() {
-    const moreVars = document.getElementById('more-variables');
-    if (moreVars) {
-        moreVars.style.display = moreVars.style.display === 'none' ? 'flex' : 'none';
-    }
-}
-
-function insertVariable(variable) {
-    const messageField = document.getElementById('message');
-    if (!messageField) return;
-    
-    const cursorPos = messageField.selectionStart;
-    const textBefore = messageField.value.substring(0, cursorPos);
-    const textAfter = messageField.value.substring(cursorPos);
-    
-    messageField.value = textBefore + variable + textAfter;
-    
-    // Update character count
-    const charCount = document.getElementById('char-count');
-    if (charCount) charCount.textContent = messageField.value.length;
-    
-    // Set cursor position
-    messageField.focus();
-    messageField.setSelectionRange(cursorPos + variable.length, cursorPos + variable.length);
-}
-
-// Marketing templates
-function useMarketingTemplate(templateKey) {
-    const textarea = document.getElementById('marketing_message') || document.getElementById('message');
-    const counter = document.getElementById('marketing-char-count') || document.getElementById('char-count');
-    
-    if (textarea && marketingTemplates[templateKey]) {
-        textarea.value = marketingTemplates[templateKey];
-        if (counter) {
-            counter.textContent = textarea.value.length;
+    // Show product selection toolbar
+    function showProductSelectionToolbar() {
+        const toolbar = document.getElementById('product-selection-toolbar');
+        if (toolbar) {
+            toolbar.style.display = 'block';
+            
+            // Update the clickable products list
+            updateClickableProductsList();
         }
     }
-}
-
-// Character counters
-document.addEventListener('DOMContentLoaded', function() {
-    // Standard message counter
-    const messageTextarea = document.getElementById('message');
-    const charCount = document.getElementById('char-count');
     
-    if (messageTextarea && charCount) {
-        charCount.textContent = messageTextarea.value.length;
-        messageTextarea.addEventListener('input', function() {
-            charCount.textContent = this.value.length;
+    // Hide product selection toolbar
+    function hideProductSelectionToolbar() {
+        const toolbar = document.getElementById('product-selection-toolbar');
+        if (toolbar) {
+            toolbar.style.display = 'none';
+        }
+    }
+    
+    // Update the clickable products list
+    function updateClickableProductsList() {
+        const productsList = document.getElementById('products-clickable-list');
+        if (!productsList || selectedProducts.length === 0) return;
+        
+        // Clear existing items
+        productsList.innerHTML = '';
+        
+        // Add a clickable item for each product
+        selectedProducts.forEach(product => {
+            const productItem = document.createElement('div');
+            productItem.className = 'product-item-clickable';
+            productItem.setAttribute('data-product-id', product.id);
+            productItem.onclick = function() { insertProductDetails(product); };
+            
+            productItem.innerHTML = `
+                <span class="product-item-name">${product.productType} ${product.productCountry}</span>
+                <span class="product-item-cottage">کوتاژ: ${product.cottage}</span>
+            `;
+            
+            productsList.appendChild(productItem);
         });
     }
     
-    // Marketing message counter
-    const marketingTextarea = document.getElementById('marketing_message');
-    const marketingCharCount = document.getElementById('marketing-char-count');
-    
-    if (marketingTextarea && marketingCharCount) {
-        marketingCharCount.textContent = marketingTextarea.value.length;
-        marketingTextarea.addEventListener('input', function() {
-            marketingCharCount.textContent = this.value.length;
-        });
+    // Insert product details into the message at cursor position
+    function insertProductDetails(product) {
+        const messageField = document.getElementById('message');
+        if (!messageField) return;
+        
+        const cursorPos = messageField.selectionStart;
+        const textBefore = messageField.value.substring(0, cursorPos);
+        const textAfter = messageField.value.substring(cursorPos);
+        
+        // Format product details
+        const productDetails = `${product.productType} ${product.productCountry} (کوتاژ: ${product.cottage}) - ${product.weight} کیلوگرم`;
+        
+        // Insert at cursor position
+        messageField.value = textBefore + productDetails + textAfter;
+        
+        // Update character count
+        const charCount = document.getElementById('char-count');
+        if (charCount) {
+            charCount.textContent = messageField.value.length;
+        }
+        
+        // Set cursor position after inserted text
+        messageField.focus();
+        const newCursorPos = cursorPos + productDetails.length;
+        messageField.setSelectionRange(newCursorPos, newCursorPos);
+        
+        // Show notification
+        showNotification(`جزئیات محصول "${product.productType} ${product.productCountry}" به متن اضافه شد`);
     }
-    
-    // Variable tag click handlers
-    const variableTags = document.querySelectorAll('.variable-tag');
-    variableTags.forEach(tag => {
-        tag.addEventListener('click', function() {
-            insertVariable(this.textContent);
-        });
-    });
-});
 </script>
+{% endblock %}
+
+
+
+{% block extra_js %}
+<script src="{% static 'js/sms_form.js' %}"></script>
+<script src="{% static 'js/template_management.js' %}"></script>
 {% endblock %}

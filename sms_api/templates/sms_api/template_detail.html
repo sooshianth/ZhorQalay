@@ -535,8 +535,13 @@
                 </div>
                 <div>
                     <span class="badge bg-light text-dark" style="font-size: 0.9rem; padding: 8px 12px;">
-                        {{ template.get_status_display|default:"عمومی" }}
+                        {{ template.get_template_type_display }}
                     </span>
+                    {% if template.template_type == 'purchase' and template.status %}
+                    <span class="badge bg-info text-white" style="font-size: 0.8rem; padding: 6px 10px; margin-right: 5px;">
+                        {{ template.get_status_display }}
+                    </span>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -595,7 +600,12 @@
                             <dd class="col-sm-7">#{{ template.id }}</dd>
                             
                             <dt class="col-sm-5">نوع قالب:</dt>
-                            <dd class="col-sm-7">{{ template.get_status_display|default:"عمومی" }}</dd>
+                            <dd class="col-sm-7">{{ template.get_template_type_display }}</dd>
+                            
+                            {% if template.template_type == 'purchase' %}
+                            <dt class="col-sm-5">وضعیت خرید:</dt>
+                            <dd class="col-sm-7">{{ template.get_status_display|default:"تعریف نشده" }}</dd>
+                            {% endif %}
                             
                             <dt class="col-sm-5">قالب پیش‌فرض:</dt>
                             <dd class="col-sm-7">

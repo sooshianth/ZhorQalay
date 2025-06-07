@@ -201,18 +201,19 @@ def get_default_templates():
 def create_sms(request):
     notification_types = dict(SmsQueue.NOTIFICATION_TYPES)
     
-    # Get templates from SmsTemplate model only
+    # Get purchase templates from SmsTemplate model
     templates_dict = {}
     
-    # Get all templates for each status from the database
+    # Get all purchase templates for each status from the database
     status_templates = {}
-    all_templates = SmsTemplate.objects.all()
+    purchase_templates = SmsTemplate.objects.filter(template_type='purchase')
     
     # Group templates by status
-    for template in all_templates:
-        if template.status not in status_templates:
+    for template in purchase_templates:
+        if template.status and template.status not in status_templates:
             status_templates[template.status] = []
-        status_templates[template.status].append(template)
+        if template.status:
+            status_templates[template.status].append(template)
     
     # For each status, use the active template if available
     for status, templates in status_templates.items():
@@ -236,11 +237,43 @@ def create_sms(request):
     # Convert templates to JSON for JavaScript
     templates_json = json.dumps(templates_dict)
     
+    # Get marketing templates (all templates, not just active ones)
+    marketing_templates = SmsTemplate.objects.filter(template_type='marketing').order_by('-is_default', '-updated_at')
+    marketing_templates_list = []
+    for template in marketing_templates:
+        marketing_templates_list.append({
+            'id': template.id,
+            'name': template.name,
+            'content': template.content,
+            'description': template.description or '',
+            'is_default': template.is_default,
+            'is_active': template.is_active
+        })
+    marketing_templates_json = json.dumps(marketing_templates_list)
+    
+    # Get product templates (all templates, not just active ones)
+    product_templates = SmsTemplate.objects.filter(template_type='product').order_by('-is_default', '-updated_at')
+    product_templates_list = []
+    for template in product_templates:
+        product_templates_list.append({
+            'id': template.id,
+            'name': template.name,
+            'content': template.content,
+            'description': template.description or '',
+            'is_default': template.is_default,
+            'is_active': template.is_active
+        })
+    product_templates_json = json.dumps(product_templates_list)
+    
     # Create a dictionary of status display names
     purchase_statuses = {}
     for status_code, status_name in Purchase.STATUS_CHOICES:
         purchase_statuses[status_code] = status_name
     purchase_statuses_json = json.dumps(purchase_statuses)
+    
+    # Get all active cargo products for product selection modal
+    from core._models import CargoProduct
+    cargo_products = CargoProduct.objects.all().order_by('-created_at')
     
     # Handle customer search
     search_query = request.GET.get('search', '')
@@ -338,8 +371,35 @@ def create_sms(request):
                     cottage_number = request.POST.get('cottage_number')
                     product_type = request.POST.get('product_type')
                     product_country = request.POST.get('product_country')
+                    selected_products_data = request.POST.get('selected_products_data')
                     
-                    # اگر این فیلدها در پیام استفاده شده‌اند، جایگزین می‌کنیم
+                    # پردازش محصولات انتخاب شده
+                    if selected_products_data:
+                        try:
+                            selected_products = json.loads(selected_products_data)
+                            
+                            # اگر محصولاتی انتخاب شده‌اند، آن‌ها را به پیام اضافه کنیم
+                            if selected_products:
+                                # جایگزینی متغیرهای اولین محصول (برای سازگاری با قالب‌های قدیمی)
+                                first_product = selected_products[0]
+                                message = message.replace('{{cottage}}', first_product.get('cottage', ''))
+                                message = message.replace('{{product_type}}', first_product.get('productType', ''))
+                                message = message.replace('{{product_country}}', first_product.get('productCountry', ''))
+                                message = message.replace('{{port}}', first_product.get('port', ''))
+                                message = message.replace('{{weight}}', first_product.get('weight', ''))
+                                
+                                # اگر در پیام {{products}} وجود دارد، لیست محصولات را جایگزین کنیم
+                                if '{{products}}' in message:
+                                    products_text = ''
+                                    for i, product in enumerate(selected_products, 1):
+                                        products_text += f"{i}. {product.get('productType', '')} {product.get('productCountry', '')} "
+                                        products_text += f"(کوتاژ: {product.get('cottage', '')}) - {product.get('weight', '')} کیلوگرم\n"
+                                    
+                                    message = message.replace('{{products}}', products_text.strip())
+                        except (json.JSONDecodeError, KeyError) as e:
+                            logger.error(f"خطا در پردازش محصولات انتخاب شده: {str(e)}")
+                    
+                    # اگر این فیلدها در پیام استفاده شده‌اند، جایگزین می‌کنیم (برای سازگاری با قالب‌های قدیمی)
                     if cottage_number:
                         message = message.replace('{{cottage}}', cottage_number)
                         
@@ -430,12 +490,14 @@ def create_sms(request):
     context = {
         'notification_types': notification_types,
         'default_templates': templates_json,
+        'marketing_templates': marketing_templates_json,
+        'product_templates': product_templates_json,
         'purchase_statuses': purchase_statuses_json,
         'search_query': search_query,
         'customers': customers,
         'purchases': purchases,
         'selected_customer_id': selected_customer_id,
-        'cargo_products': CargoProduct.get_active_products(),
+        'cargo_products': cargo_products,
     }
     
     return render(request, 'sms_api/create_sms.html', context)
@@ -868,12 +930,16 @@ def process_sms_queue_manually(request):
 def template_list(request):
     """نمایش لیست قالب‌های پیامک"""
     # پارامترهای فیلتر
+    template_type = request.GET.get('template_type', '')
     status = request.GET.get('status', '')
     search = request.GET.get('search', '')
     is_active = request.GET.get('is_active', '')
     
     # فیلتر کردن داده‌ها
     templates = SmsTemplate.objects.all()
+    
+    if template_type:
+        templates = templates.filter(template_type=template_type)
     
     if status:
         templates = templates.filter(status=status)
@@ -899,15 +965,23 @@ def template_list(request):
     
     # آمار
     total_count = SmsTemplate.objects.count()
+    purchase_count = SmsTemplate.objects.filter(template_type='purchase').count()
+    marketing_count = SmsTemplate.objects.filter(template_type='marketing').count()
+    product_count = SmsTemplate.objects.filter(template_type='product').count()
     default_count = SmsTemplate.objects.filter(is_active=True).count()
     
     context = {
         'templates': templates,
+        'template_type_filter': template_type,
         'status_filter': status,
         'search': search,
         'is_active': is_active,
         'total_count': total_count,
+        'purchase_count': purchase_count,
+        'marketing_count': marketing_count,
+        'product_count': product_count,
         'default_count': default_count,
+        'template_type_choices': SmsTemplate.TEMPLATE_TYPE_CHOICES,
         'status_choices': SmsTemplate.STATUS_CHOICES,
         'placeholders': SmsTemplate.get_available_placeholders()
     }
@@ -923,6 +997,7 @@ def template_create(request):
     
     # دریافت مقدار پیش‌فرض برای وضعیت انتخاب شده
     preselected_status = request.GET.get('status', '')
+    preselected_type = request.GET.get('type', 'purchase')
     default_content = ''
     
     # اگر وضعیتی در پارامترهای URL ارسال شده، محتوای پیش‌فرض آن را دریافت می‌کنیم
@@ -931,27 +1006,37 @@ def template_create(request):
     
     if request.method == 'POST':
         name = request.POST.get('name')
+        template_type = request.POST.get('template_type', 'purchase')
         status = request.POST.get('status')
         content = request.POST.get('content')
         description = request.POST.get('description', '')
         is_active = request.POST.get('is_active') == 'on'
         
-        if not name or not status or not content:
-            messages.error(request, 'لطفاً تمام فیلدهای ضروری را پر کنید.')
+        # اعتبارسنجی
+        if not name or not content:
+            messages.error(request, 'لطفاً نام قالب و متن قالب را پر کنید.')
+            return redirect('sms_api:template_create')
+        
+        if template_type == 'purchase' and not status:
+            messages.error(request, 'برای قالب‌های مربوط به خرید، انتخاب وضعیت الزامی است.')
             return redirect('sms_api:template_create')
         
         try:
             template = SmsTemplate.objects.create(
                 name=name,
-                status=status,
+                template_type=template_type,
+                status=status if template_type == 'purchase' else None,
                 content=content,
                 description=description,
                 is_active=is_active
             )
             
-            # اگر این قالب به عنوان پیش‌فرض تنظیم شده، قالب‌های پیش‌فرض دیگر را برای این وضعیت غیرفعال می‌کنیم
+            # اگر این قالب به عنوان پیش‌فرض تنظیم شده، قالب‌های پیش‌فرض دیگر را غیرفعال می‌کنیم
             if is_active:
-                SmsTemplate.objects.filter(status=status, is_active=True).exclude(id=template.id).update(is_active=False)
+                if template_type == 'purchase' and status:
+                    SmsTemplate.objects.filter(template_type='purchase', status=status, is_active=True).exclude(id=template.id).update(is_active=False)
+                else:
+                    SmsTemplate.objects.filter(template_type=template_type, is_active=True).exclude(id=template.id).update(is_active=False)
                 
             messages.success(request, f'قالب "{template.name}" با موفقیت ایجاد شد.')
             return redirect('sms_api:template_list')
@@ -959,10 +1044,12 @@ def template_create(request):
             messages.error(request, f'خطا در ایجاد قالب: {str(e)}')
             
     context = {
+        'template_type_choices': SmsTemplate.TEMPLATE_TYPE_CHOICES,
         'status_choices': SmsTemplate.STATUS_CHOICES,
         'placeholders': SmsTemplate.get_available_placeholders(),
         'default_templates': json.dumps(default_templates_dict),
         'preselected_status': preselected_status,
+        'preselected_type': preselected_type,
         'default_content': default_content
     }
     
@@ -977,30 +1064,37 @@ def template_edit(request, template_id):
     
     if request.method == 'POST':
         name = request.POST.get('name')
+        template_type = request.POST.get('template_type', template.template_type)
         status = request.POST.get('status')
         content = request.POST.get('content')
         description = request.POST.get('description', '')
         is_active = request.POST.get('is_active') == 'on'
         
-        if not name or not status or not content:
-            messages.error(request, 'لطفاً تمام فیلدهای ضروری را پر کنید.')
+        # اعتبارسنجی
+        if not name or not content:
+            messages.error(request, 'لطفاً نام قالب و متن قالب را پر کنید.')
+            return redirect('sms_api:template_edit', template_id=template_id)
+        
+        if template_type == 'purchase' and not status:
+            messages.error(request, 'برای قالب‌های مربوط به خرید، انتخاب وضعیت الزامی است.')
             return redirect('sms_api:template_edit', template_id=template_id)
         
         try:
-            # بررسی تغییر وضعیت
-            status_changed = template.status != status
-            
             # ذخیره مقادیر جدید
             template.name = name
-            template.status = status
+            template.template_type = template_type
+            template.status = status if template_type == 'purchase' else None
             template.content = content
             template.description = description
             template.is_active = is_active
             template.save()
             
-            # اگر این قالب به عنوان پیش‌فرض تنظیم شده، قالب‌های پیش‌فرض دیگر را برای این وضعیت غیرفعال می‌کنیم
+            # اگر این قالب به عنوان پیش‌فرض تنظیم شده، قالب‌های پیش‌فرض دیگر را غیرفعال می‌کنیم
             if is_active:
-                SmsTemplate.objects.filter(status=status, is_active=True).exclude(id=template.id).update(is_active=False)
+                if template_type == 'purchase' and status:
+                    SmsTemplate.objects.filter(template_type='purchase', status=status, is_active=True).exclude(id=template.id).update(is_active=False)
+                else:
+                    SmsTemplate.objects.filter(template_type=template_type, is_active=True).exclude(id=template.id).update(is_active=False)
             
             messages.success(request, f'قالب "{template.name}" با موفقیت بروزرسانی شد.')
             return redirect('sms_api:template_list')
@@ -1008,10 +1102,11 @@ def template_edit(request, template_id):
             messages.error(request, f'خطا در بروزرسانی قالب: {str(e)}')
     
     # پیدا کردن متن پیش‌فرض برای این وضعیت (اگر موجود باشد)
-    default_content = default_templates_dict.get(template.status, '')
+    default_content = default_templates_dict.get(template.status, '') if template.status else ''
     
     context = {
         'template': template,
+        'template_type_choices': SmsTemplate.TEMPLATE_TYPE_CHOICES,
         'status_choices': SmsTemplate.STATUS_CHOICES,
         'placeholders': SmsTemplate.get_available_placeholders(),
         'default_templates': json.dumps(default_templates_dict),
@@ -1062,14 +1157,20 @@ def set_template_default(request, template_id):
     template = get_object_or_404(SmsTemplate, id=template_id)
     
     try:
-        # قالب‌های پیش‌فرض دیگر از همین وضعیت را غیرفعال می‌کنیم
-        SmsTemplate.objects.filter(status=template.status, is_active=True).update(is_active=False)
+        # قالب‌های پیش‌فرض دیگر را غیرفعال می‌کنیم
+        if template.template_type == 'purchase' and template.status:
+            SmsTemplate.objects.filter(template_type='purchase', status=template.status, is_active=True).update(is_active=False)
+        else:
+            SmsTemplate.objects.filter(template_type=template.template_type, is_active=True).update(is_active=False)
         
         # این قالب را پیش‌فرض می‌کنیم
         template.is_active = True
         template.save()
         
-        messages.success(request, f'قالب "{template.name}" به عنوان پیش‌فرض برای وضعیت "{template.get_status_display()}" تنظیم شد.')
+        if template.template_type == 'purchase' and template.status:
+            messages.success(request, f'قالب "{template.name}" به عنوان پیش‌فرض برای وضعیت "{template.get_status_display()}" تنظیم شد.')
+        else:
+            messages.success(request, f'قالب "{template.name}" به عنوان پیش‌فرض برای نوع "{template.get_template_type_display()}" تنظیم شد.')
     except Exception as e:
         messages.error(request, f'خطا در تنظیم قالب پیش‌فرض: {str(e)}')
     
@@ -1208,8 +1309,8 @@ def get_templates_for_status(request):
     if not status:
         return JsonResponse({'error': 'Status parameter is required'}, status=400)
     
-    # Get all templates for the specified status
-    templates = SmsTemplate.objects.filter(status=status).order_by('-is_active', '-updated_at')
+    # Get all purchase templates for the specified status
+    templates = SmsTemplate.objects.filter(template_type='purchase', status=status).order_by('-is_active', '-updated_at')
     
     # Convert templates to a list of dicts for JSON serialization
     templates_list = []
@@ -1227,6 +1328,56 @@ def get_templates_for_status(request):
     return JsonResponse({
         'status': status,
         'status_display': dict(Purchase.STATUS_CHOICES).get(status, status),
+        'templates': templates_list,
+        'count': len(templates_list)
+    })
+
+@role_required('admin', 'support_agent')
+@login_required
+def get_marketing_templates(request):
+    """Returns all marketing templates as JSON"""
+    # Get all marketing templates
+    templates = SmsTemplate.objects.filter(template_type='marketing').order_by('-is_active', '-updated_at')
+    
+    # Convert templates to a list of dicts for JSON serialization
+    templates_list = []
+    for template in templates:
+        templates_list.append({
+            'id': template.id,
+            'name': template.name,
+            'content': template.content,
+            'description': template.description or '',
+            'is_active': template.is_active,
+            'created_at': template.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'updated_at': template.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+        })
+    
+    return JsonResponse({
+        'templates': templates_list,
+        'count': len(templates_list)
+    })
+
+@role_required('admin', 'support_agent')
+@login_required
+def get_product_templates(request):
+    """Returns all product templates as JSON"""
+    # Get all product templates
+    templates = SmsTemplate.objects.filter(template_type='product').order_by('-is_active', '-updated_at')
+    
+    # Convert templates to a list of dicts for JSON serialization
+    templates_list = []
+    for template in templates:
+        templates_list.append({
+            'id': template.id,
+            'name': template.name,
+            'content': template.content,
+            'description': template.description or '',
+            'is_active': template.is_active,
+            'created_at': template.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'updated_at': template.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+        })
+    
+    return JsonResponse({
         'templates': templates_list,
         'count': len(templates_list)
     })
