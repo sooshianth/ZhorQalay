@@ -12,6 +12,7 @@ from .bki_api_utils.api_client import analyze_api_response
 from .bki_kharid_list_by_date import send_kharid_list_by_date_request, get_all_purchases_by_date_range
 from .bki_kharid_list_by_date import get_purchases_last_24_hours, get_purchases_last_week
 from core.PurchaseModel import Purchase
+from core.SalesAgentModel import SalesAgent
 from jdatetime import datetime as jdatetime
 from django.db import transaction
 from django.utils import timezone
@@ -428,8 +429,24 @@ def merge_purchases_view(request):
             invoice_id = agent_purchase.invoice_id
             sales_agents = list(agent_purchase.purchase_sales_agents.all())
             
+            # ذخیره مشتری قبلی خرید API در bazaargah_customer
+            api_purchase.bazaargah_customer = api_purchase.customer
+            
             # تنظیم مشتری و شناسه فاکتور در خرید API
             api_purchase.customer = customer
+            
+            # یافتن کارشناس فروش فعلی (کاربری که درخواست ادغام را فرستاده)
+            try:
+                current_sales_agent = request.user.sales_agent
+                # تنظیم کارشناس فروش یکتا
+                api_purchase.unique_sales_agent = current_sales_agent
+                api_purchase.unique_sales_agent_name = current_sales_agent.name
+            except:
+                # اگر کاربر فعلی کارشناس فروش نیست، از اولین کارشناس فروش موجود استفاده می‌کنیم
+                if sales_agents:
+                    first_agent = sales_agents[0].sales_agent
+                    api_purchase.unique_sales_agent = first_agent
+                    api_purchase.unique_sales_agent_name = first_agent.name
             
             # برای جلوگیری از مشکل UNIQUE constraint در invoice_id:
             # ابتدا invoice_id خرید API را به یک مقدار موقت تغییر می‌دهیم
@@ -459,10 +476,16 @@ def merge_purchases_view(request):
             
             # ثبت تغییرات در تاریخچه خرید
             from core.PurchaseModel import PurchaseHistory
+            history_message = f"ادغام با خرید دستی شماره {agent_purchase_id} - مشتری: {customer.name if customer else 'نامعلوم'}"
+            if api_purchase.unique_sales_agent_name:
+                history_message += f" - کارشناس فروش: {api_purchase.unique_sales_agent_name}"
+            if api_purchase.bazaargah_customer:
+                history_message += f" - مشتری قبلی بازارگاه: {api_purchase.bazaargah_customer.name}"
+            
             PurchaseHistory.objects.create(
                 purchase=api_purchase,
                 user=request.user,
-                changes=f"ادغام با خرید دستی شماره {agent_purchase_id} - مشتری: {customer.name if customer else 'نامعلوم'}"
+                changes=history_message
             )
             
             return JsonResponse({

@@ -312,9 +312,32 @@ class RoleBasedPurchaseForm(forms.ModelForm):
 @login_required
 def purchase_CRUD_view(request, purchase_id):
     purchase = get_object_or_404(Purchase, id=purchase_id)
+    user_role = determine_user_role(request.user)
+    
+    # بررسی دسترسی کارشناس فروش - فقط به خریدهای خودش دسترسی دارد
+    if user_role == 'sales_agent':
+        has_access = False
+        
+        # بررسی کارشناس فروش یکتا
+        if purchase.unique_sales_agent and purchase.unique_sales_agent.user == request.user:
+            has_access = True
+        
+        # بررسی کارشناس فروش از طریق رابطه Many-to-Many قدیمی
+        if not has_access and hasattr(request.user, 'sales_agent'):
+            if purchase.sales_agent.filter(id=request.user.sales_agent.id).exists():
+                has_access = True
+        
+        # بررسی کارشناس فروش مشتری (برای سازگاری با خریدهای قدیمی)
+        if not has_access and purchase.customer and hasattr(request.user, 'sales_agent'):
+            if purchase.customer.sales_agent.filter(id=request.user.sales_agent.id).exists():
+                has_access = True
+        
+        if not has_access:
+            messages.error(request, 'شما اجازه دسترسی به این خرید را ندارید.')
+            return redirect('purchase_list')
+    
     history_logs = PurchaseHistory.objects.filter(purchase=purchase).order_by('-timestamp')
     state_changes = PurchaseStateChange.objects.filter(purchase=purchase).order_by('-changed_at')
-    user_role = determine_user_role(request.user)
     
     # دریافت شناسه‌های تخصیص مرتبط با خرید
     shenase_takhsis_list = ShenaseTakhsis.objects.filter(purchase=purchase)

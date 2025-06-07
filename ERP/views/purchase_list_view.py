@@ -53,13 +53,19 @@ def purchase_list(request):
     hide_sensitive_info = user_role in ['sales_agent', 'support_agent']
     
     # فیلتر پایه: خریدهای آرشیو نشده و آرشیو شده
-    active_purchases = Purchase.objects.exclude(state='ARCHIVED').exclude(is_archived=True).select_related('customer', 'cargo').prefetch_related('customer__sales_agent', 'shenase_takhsis_set').order_by('-created_at')
-    archived_purchases = Purchase.objects.filter(Q(state='ARCHIVED') | Q(is_archived=True)).select_related('customer', 'cargo').prefetch_related('customer__sales_agent', 'shenase_takhsis_set').order_by('-created_at')
+    active_purchases = Purchase.objects.exclude(state='ARCHIVED').exclude(is_archived=True).select_related('customer', 'cargo', 'unique_sales_agent').prefetch_related('customer__sales_agent', 'sales_agent', 'shenase_takhsis_set').order_by('-created_at')
+    archived_purchases = Purchase.objects.filter(Q(state='ARCHIVED') | Q(is_archived=True)).select_related('customer', 'cargo', 'unique_sales_agent').prefetch_related('customer__sales_agent', 'sales_agent', 'shenase_takhsis_set').order_by('-created_at')
 
-    # اگر کاربر کارشناس فروش یا پیگیری است، فقط خریدهای مشتریان مربوطه را ببیند
+    # اگر کاربر کارشناس فروش یا پیگیری است، فقط خریدهای مربوطه را ببیند
     if user_role == 'sales_agent':
-        active_purchases = active_purchases.filter(customer__sales_agent=request.user.sales_agent)
-        archived_purchases = archived_purchases.filter(customer__sales_agent=request.user.sales_agent)
+        # فیلتر بر اساس کارشناس فروش یکتا یا کارشناس فروش مشتری
+        sales_agent_filter = Q(unique_sales_agent=request.user.sales_agent) | Q(customer__sales_agent=request.user.sales_agent)
+        
+        # همچنین برای خریدهایی که از طریق رابطه Many-to-Many کارشناس فروش دارند
+        sales_agent_filter |= Q(sales_agent=request.user.sales_agent)
+        
+        active_purchases = active_purchases.filter(sales_agent_filter)
+        archived_purchases = archived_purchases.filter(sales_agent_filter)
     elif user_role == 'support_agent':
         # کارشناس پیگیری همه خریدها را می‌بیند اما با محدودیت اطلاعات
         pass
@@ -77,8 +83,10 @@ def purchase_list(request):
         archived_purchases = archived_purchases.filter(customer__name__icontains=customer)
     
     if sales_agent:
-        active_purchases = active_purchases.filter(customer__sales_agent__name__icontains=sales_agent)
-        archived_purchases = archived_purchases.filter(customer__sales_agent__name__icontains=sales_agent)
+        # جستجو در کارشناس فروش یکتا، کارشناس فروش مشتری، و رابطه Many-to-Many
+        sales_agent_search = Q(unique_sales_agent__name__icontains=sales_agent) | Q(customer__sales_agent__name__icontains=sales_agent) | Q(sales_agent__name__icontains=sales_agent)
+        active_purchases = active_purchases.filter(sales_agent_search)
+        archived_purchases = archived_purchases.filter(sales_agent_search)
     
     if invoice_id:
         active_purchases = active_purchases.filter(invoice_id__icontains=invoice_id)
@@ -186,9 +194,12 @@ def purchase_list(request):
     
     # اعمال فیلتر جستجوی سریع در آخر
     if global_search:
-        active_purchases = active_purchases.filter(
+        global_search_filter = (
             Q(customer__name__icontains=global_search) |
             Q(customer__sales_agent__name__icontains=global_search) |
+            Q(unique_sales_agent__name__icontains=global_search) |
+            Q(unique_sales_agent_name__icontains=global_search) |
+            Q(sales_agent__name__icontains=global_search) |
             Q(purchase_number__icontains=global_search) |
             Q(order_weight__icontains=global_search) |
             Q(invoice_id__icontains=global_search) |
@@ -197,17 +208,8 @@ def purchase_list(request):
             Q(cargo__country__icontains=global_search) |
             Q(created_at__contains=global_search)
         )
-        archived_purchases = archived_purchases.filter(
-            Q(customer__name__icontains=global_search) |
-            Q(customer__sales_agent__name__icontains=global_search) |
-            Q(purchase_number__icontains=global_search) |
-            Q(order_weight__icontains=global_search) |
-            Q(invoice_id__icontains=global_search) |
-            Q(cargo__cottage__icontains=global_search) |
-            Q(cargo__product_type__icontains=global_search) |
-            Q(cargo__country__icontains=global_search) |
-            Q(created_at__contains=global_search)
-        )
+        active_purchases = active_purchases.filter(global_search_filter)
+        archived_purchases = archived_purchases.filter(global_search_filter)
     
     # تنظیمات پیجینیشن جاوااسکریپتی
     per_page = request.GET.get('per_page', '50')  # پیش‌فرض 50 رکورد در هر صفحه
@@ -468,7 +470,7 @@ def export_to_excel(request):
     
     try:
         # برای عملکرد بهتر، اگر تعداد خریدهای انتخاب شده زیاد است، در تکه‌های کوچکتر پردازش کنیم
-        purchases = Purchase.objects.filter(id__in=purchase_ids).select_related('customer', 'cargo').prefetch_related('customer__sales_agent', 'shenase_takhsis_set').order_by('-created_at')
+        purchases = Purchase.objects.filter(id__in=purchase_ids).select_related('customer', 'cargo', 'unique_sales_agent').prefetch_related('customer__sales_agent', 'sales_agent', 'shenase_takhsis_set').order_by('-created_at')
         
         print(f"Found {purchases.count()} purchases")
         
@@ -506,7 +508,7 @@ def export_to_excel(request):
             'date': ('تاریخ', lambda p: p.created_at.strftime("%Y/%m/%d") if p.created_at else "-"),
             'customer': ('مشتری', lambda p: p.customer.name if p.customer else "نامشخص"),
             'invoice_id': ('کد درون سازمانی', lambda p: p.invoice_id or "تعیین نشده"),
-            'sales_agent': ('نماینده فروش', lambda p: ", ".join([agent.name for agent in p.customer.sales_agent.all()]) if p.customer and p.customer.sales_agent.exists() else "-"),
+            'sales_agent': ('نماینده فروش', lambda p: p.unique_sales_agent_name if p.unique_sales_agent_name else (", ".join([agent.name for agent in p.customer.sales_agent.all()]) if p.customer and p.customer.sales_agent.exists() else "-")),
             'purchase_number': ('شماره خرید', lambda p: p.purchase_number or "تعیین نشده"),
             'weight': ('وزن (کیلوگرم)', lambda p: f"{p.order_weight:,}" if p.order_weight else "0"),
             'cargo': ('کوتاژ', lambda p: p.cargo.cottage if p.cargo and hasattr(p.cargo, 'cottage') else "-"),
