@@ -1052,7 +1052,13 @@
                         {{ purchase.invoice_id|default:"تعیین نشده" }}
                     </td>
                     {% elif column.id == 'sales_agent' %}
-                    <td class="column-{{ column.id }}">{% for agent in purchase.customer.sales_agent.all %}{{ agent.name }}{% if not forloop.last %}، {% endif %}{% empty %}-{% endfor %}</td>
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.unique_sales_agent_name %}
+                            {{ purchase.unique_sales_agent_name }}
+                        {% else %}
+                            {% for agent in purchase.customer.sales_agent.all %}{{ agent.name }}{% if not forloop.last %}، {% endif %}{% empty %}-{% endfor %}
+                        {% endif %}
+                    </td>
                     {% elif column.id == 'purchase_number' %}
                     <td class="column-{{ column.id }} {% if user_role != 'sales_agent' %}editable{% endif %}" data-field="purchase_number">
                         {{ purchase.purchase_number|default:"تعیین نشده" }}
@@ -1296,7 +1302,13 @@
                     {% elif column.id == 'invoice_id' %}
                     <td class="column-{{ column.id }}">{{ purchase.invoice_id|default:"تعیین نشده" }}</td>
                     {% elif column.id == 'sales_agent' %}
-                    <td class="column-{{ column.id }}">{% for agent in purchase.customer.sales_agent.all %}{{ agent.name }}{% if not forloop.last %}، {% endif %}{% empty %}-{% endfor %}</td>
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.unique_sales_agent_name %}
+                            {{ purchase.unique_sales_agent_name }}
+                        {% else %}
+                            {% for agent in purchase.customer.sales_agent.all %}{{ agent.name }}{% if not forloop.last %}، {% endif %}{% empty %}-{% endfor %}
+                        {% endif %}
+                    </td>
                     {% elif column.id == 'purchase_number' %}
                     <td class="column-{{ column.id }}">{{ purchase.purchase_number|default:"تعیین نشده" }}</td>
                     {% elif column.id == 'weight' %}

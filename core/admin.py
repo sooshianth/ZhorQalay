@@ -88,6 +88,7 @@ class PhoneNumberInline(admin.TabularInline):
 
 class PurchaseInline(admin.TabularInline):
     model = Purchase
+    fk_name = 'customer'  # مشخص کردن کدام ForeignKey استفاده شود
     fields = ( 'purchase_number', 'order_weight', 'delivered_weight', 'amount_paid', 'state', 'created_at')
     extra = 0
 

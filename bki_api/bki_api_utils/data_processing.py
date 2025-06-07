@@ -251,6 +251,25 @@ def update_purchase(purchase, purchase_data):
             except Exception as e:
                 print(f"خطا در تبدیل تاریخ: {str(e)}")
         
+        # اگر کارشناس فروش یکتا تنظیم نشده، آن را به مدیریت تنظیم کن
+        if not purchase.unique_sales_agent:
+            try:
+                # یافتن اولین کاربر مدیر
+                admin_user = User.objects.filter(is_superuser=True).first()
+                if admin_user:
+                    # یافتن یا ایجاد کارشناس فروش مدیریت
+                    admin_sales_agent, created = SalesAgent.objects.get_or_create(
+                        user=admin_user,
+                        defaults={
+                            'name': 'مدیریت',
+                            'factor_code': '99'
+                        }
+                    )
+                    purchase.unique_sales_agent = admin_sales_agent
+                    purchase.unique_sales_agent_name = admin_sales_agent.name
+            except Exception as e:
+                print(f"خطا در تنظیم کارشناس فروش مدیریت برای خرید موجود: {str(e)}")
+
         # Save changes
         purchase.save()
         
@@ -349,6 +368,25 @@ def create_purchase(purchase_data):
         if error:
             return None, error
         
+        # پیدا کردن کارشناس فروش مدیریت
+        admin_sales_agent = None
+        admin_sales_agent_name = None
+        try:
+            # یافتن اولین کاربر مدیر
+            admin_user = User.objects.filter(is_superuser=True).first()
+            if admin_user:
+                # یافتن یا ایجاد کارشناس فروش مدیریت
+                admin_sales_agent, created = SalesAgent.objects.get_or_create(
+                    user=admin_user,
+                    defaults={
+                        'name': 'مدیریت',
+                        'factor_code': '99'
+                    }
+                )
+                admin_sales_agent_name = admin_sales_agent.name
+        except Exception as e:
+            print(f"خطا در پیدا کردن کارشناس فروش مدیریت: {str(e)}")
+
         # تنظیم پارامترهای پایه برای ایجاد خرید - بدون تنظیم وزن‌ها
         purchase_params = {
             'purchase_number': purchase_number,
@@ -370,6 +408,9 @@ def create_purchase(purchase_data):
             'tahvil_phone_number': receiver_phone,
             'tracking_number': trace_code,
             'code_melli_tahvil': receiver_id,
+            # تنظیم کارشناس فروش یکتا به مدیریت به صورت پیش‌فرض
+            'unique_sales_agent': admin_sales_agent,
+            'unique_sales_agent_name': admin_sales_agent_name,
         }
         
         # تبدیل تاریخ جلالی به فرمت مناسب

@@ -54,10 +54,13 @@ class Purchase(models.Model):
     tracking_number = models.CharField("شماره پیگیری", max_length=6, blank=True, null=True)
     shenase_takhsis = models.CharField("شناسه تخصیص", max_length=255, blank=True, null=True, unique=False)
     code_melli_tahvil = models.CharField("کد ملی تحویل", max_length=255, blank=True, null=True)
-    bazaargah_phone_number = models.CharField("شماره تلفن بازارگاه", max_length=11, blank=True, null=True)
+    bazaargah_phone_number = models.CharField("شماره تلفن بازارگاه", max_length=15, blank=True, null=True)
     buyer_name = models.CharField("نام خریدار", max_length=255, blank=True, null=True)
-    tahvil_phone_number = models.CharField("شماره تلفن تحویل", max_length=11, blank=True, null=True)
-    
+    tahvil_phone_number = models.CharField("شماره تلفن تحویل", max_length=15, blank=True, null=True)
+    bazaargah_customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, verbose_name="مشتری بازارگاه", null=True, blank=True, related_name='bazaargah_purchases')
+    unique_sales_agent_name = models.CharField("کارشناس فروش", max_length=255, blank=True, null=True)
+    unique_sales_agent = models.ForeignKey(SalesAgent, on_delete=models.SET_NULL, verbose_name="کارشناس فروش", null=True, blank=True, related_name='unique_sales_agent_purchases')
+
     send_cottage_sms = models.BooleanField('ارسال پیامک کوتاژ', default=True)
     total_weight = models.PositiveIntegerField("وزن کل (کیلوگرم)", default=0, null=True, blank=True)
     order_weight = models.PositiveIntegerField("وزن سفارش (کیلوگرم)", default=0)
@@ -528,6 +531,25 @@ class Purchase(models.Model):
             
     def save(self, *args, **kwargs):
         is_new = not self.pk  # Check if this is a new instance
+        
+        # مکانیزم خودکار همگام‌سازی کارشناس فروش و نام
+        try:
+            # حالت اول: نام موجود است اما آبجکت موجود نیست
+            if self.unique_sales_agent_name and not self.unique_sales_agent:
+                sales_agent = SalesAgent.objects.filter(name__iexact=self.unique_sales_agent_name.strip()).first()
+                if sales_agent:
+                    self.unique_sales_agent = sales_agent
+                    print(f"✅ کارشناس فروش {sales_agent.name} برای خرید {self.pk or 'جدید'} تنظیم شد")
+                else:
+                    print(f"⚠️ کارشناس فروش با نام '{self.unique_sales_agent_name}' یافت نشد")
+                    
+            # حالت دوم: آبجکت موجود است اما نام موجود نیست یا خالی است
+            elif self.unique_sales_agent and not self.unique_sales_agent_name:
+                self.unique_sales_agent_name = self.unique_sales_agent.name
+                print(f"✅ نام کارشناس فروش '{self.unique_sales_agent.name}' از آبجکت تنظیم شد")
+                
+        except Exception as e:
+            print(f"❌ خطا در همگام‌سازی کارشناس فروش: {str(e)}")
                 
         if not self.invoice_id:
             factor_code = '99'  # Código por defecto para administrador
