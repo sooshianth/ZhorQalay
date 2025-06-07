@@ -5,6 +5,7 @@ from core.decorators.decorators import role_required
 from django.http import JsonResponse
 from django.db.models import Q
 from django.db import connection
+from core.decorators.det_user_role import determine_user_role
 
 @role_required('admin', 'logistics_manager')
 @login_required
@@ -319,17 +320,18 @@ def get_cargo_product_details(request):
     try:
         cargo = CargoProduct.objects.select_related('vared_konandeh', 'barbary').get(cottage=cottage)
         
+        # تشخیص نقش کاربر
+        user_role = determine_user_role(request.user)
+        hide_supplier_info = user_role in ['sales_agent', 'support_agent']
+        
         # ساخت دیکشنری از داده‌های کوتاژ
         cargo_data = {
             'id': cargo.id,
             'cottage': cargo.cottage,
             'type': cargo.type,
-            'company_price': cargo.company_price,
             'customer_price': cargo.customer_price,
             'product_type': cargo.product_type,
             'country': cargo.country,
-            'vared_konandeh_id': cargo.vared_konandeh_id if cargo.vared_konandeh else None,
-            'vared_konandeh_name': cargo.vared_konandeh.name if cargo.vared_konandeh else None,
             'barbary_id': cargo.barbary_id if cargo.barbary else None,
             'barbary_name': cargo.barbary.name if cargo.barbary else None,
             'port': cargo.port,
@@ -338,6 +340,14 @@ def get_cargo_product_details(request):
             'status': cargo.status,
             'description': cargo.description
         }
+        
+        # اضافه کردن اطلاعات حساس فقط برای نقش‌های مجاز
+        if not hide_supplier_info:
+            cargo_data.update({
+                'company_price': cargo.company_price,
+                'vared_konandeh_id': cargo.vared_konandeh_id if cargo.vared_konandeh else None,
+                'vared_konandeh_name': cargo.vared_konandeh.name if cargo.vared_konandeh else None,
+            })
         
         return JsonResponse({'status': 'success', 'cargo': cargo_data})
     
@@ -356,18 +366,25 @@ def list_cargo_products(request):
         # فیلتر جستجو
         search_term = request.GET.get('q', '')
         
-        # دریافت کوتاژهای فعال
-        query = CargoProduct.objects.filter(status=True).select_related('vared_konandeh', 'barbary')
+        # تشخیص نقش کاربر
+        user_role = determine_user_role(request.user)
+        hide_supplier_info = user_role in ['sales_agent', 'support_agent']
+        
+        # دریافت کوتاژهای فعال با یا بدون اطلاعات واردکننده
+        if hide_supplier_info:
+            query = CargoProduct.objects.filter(status=True).select_related('barbary')
+        else:
+            query = CargoProduct.objects.filter(status=True).select_related('vared_konandeh', 'barbary')
         
         # اعمال جستجو اگر عبارت جستجو ارسال شده باشد
         if search_term:
-            query = query.filter(
-                Q(cottage__icontains=search_term) |
-                Q(product_type__icontains=search_term) |
-                Q(country__icontains=search_term) |
-                Q(vared_konandeh__name__icontains=search_term) |
-                Q(barbary__name__icontains=search_term)
-            )
+            search_filters = Q(cottage__icontains=search_term) | Q(product_type__icontains=search_term) | Q(country__icontains=search_term) | Q(barbary__name__icontains=search_term)
+            
+            # اضافه کردن جستجو در نام واردکننده فقط برای نقش‌های مجاز
+            if not hide_supplier_info:
+                search_filters |= Q(vared_konandeh__name__icontains=search_term)
+                
+            query = query.filter(search_filters)
         
         # محدود کردن تعداد نتایج برای بهبود کارایی
         cargos = query.order_by('-created_at')[:100]
@@ -375,15 +392,20 @@ def list_cargo_products(request):
         # ساخت لیست از داده‌های کوتاژها
         cargos_data = []
         for cargo in cargos:
-            cargos_data.append({
+            cargo_info = {
                 'id': cargo.id,
                 'cottage': cargo.cottage,
                 'product_type': cargo.get_product_type_display(),
                 'country': cargo.get_country_display(),
-                'vared_konandeh': cargo.vared_konandeh.name if cargo.vared_konandeh else '',
                 'barbary': cargo.barbary.name if cargo.barbary else '',
                 'weight': cargo.weight
-            })
+            }
+            
+            # اضافه کردن اطلاعات واردکننده فقط برای نقش‌های مجاز
+            if not hide_supplier_info:
+                cargo_info['vared_konandeh'] = cargo.vared_konandeh.name if cargo.vared_konandeh else ''
+            
+            cargos_data.append(cargo_info)
         
         return JsonResponse({'status': 'success', 'cargos': cargos_data})
     

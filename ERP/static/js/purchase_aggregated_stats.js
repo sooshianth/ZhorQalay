@@ -156,12 +156,9 @@ class PurchaseAggregatedStats {
             this.selectedRowsCountElement.textContent = this.selectedPurchases.size;
         }
         
-        // اگر تعداد خریدهای انتخاب شده زیاد است، از API سرور استفاده کن
-        if (this.selectedPurchases.size > 10) {
-            this.calculateStatsFromServer();
-        } else {
-            this.calculateStatsFromDOM();
-        }
+        // همیشه از API سرور استفاده کن برای محاسبه دقیق‌تر آمار
+        // تا مشکل ستون‌های مخفی شده برای نقش‌های مختلف حل شود
+        this.calculateStatsFromServer();
     }
     
     calculateStatsFromServer() {
@@ -185,7 +182,7 @@ class PurchaseAggregatedStats {
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                this.displayStatsFromServer(data.stats);
+                this.displayStatsFromServer(data.stats, data.hide_sensitive_info);
             } else {
                 console.error('خطا در دریافت آمار از سرور:', data.message);
                 // در صورت خطا از محاسبه محلی استفاده کن
@@ -258,18 +255,29 @@ class PurchaseAggregatedStats {
         });
     }
     
-    displayStatsFromServer(serverStats) {
+    displayStatsFromServer(serverStats, hideSensitiveInfo = false) {
         // نمایش آمار دریافت شده از سرور
-        this.displayStats({
+        const stats = {
             totalOrderWeight: serverStats.total_order_weight,
             totalDeliveredWeight: serverStats.total_delivered_weight,
-            avgCompanyPrice: serverStats.avg_company_price,
             avgCustomerPrice: serverStats.avg_customer_price,
-            totalAmountPaid: serverStats.total_amount_paid,
             urgentCount: serverStats.urgent_purchases_count,
-            totalExtelafWeight: serverStats.total_extelaf_weight,
-            totalExtelafAmount: serverStats.total_extelaf_amount
-        });
+            totalExtelafWeight: serverStats.total_extelaf_weight
+        };
+        
+        // آمار حساس فقط برای نقش‌های مجاز
+        if (!hideSensitiveInfo) {
+            stats.avgCompanyPrice = serverStats.avg_company_price || 0;
+            stats.totalAmountPaid = serverStats.total_amount_paid || 0;
+            stats.totalExtelafAmount = serverStats.total_extelaf_amount || 0;
+        } else {
+            // برای کارشناسان فروش و پیگیری
+            stats.avgCompanyPrice = 0;
+            stats.totalAmountPaid = 0;
+            stats.totalExtelafAmount = 0;
+        }
+        
+        this.displayStats(stats);
     }
     
     showLoadingStats() {
@@ -401,7 +409,8 @@ class PurchaseAggregatedStats {
             this.totalDeliveredWeightElement.innerHTML = `${this.formatNumber(stats.totalDeliveredWeight)} <small>کیلوگرم</small>`;
         }
         
-        if (this.avgCompanyPriceElement) {
+        // نمایش قیمت خرید فقط اگر مجاز باشد
+        if (this.avgCompanyPriceElement && stats.avgCompanyPrice !== undefined) {
             this.avgCompanyPriceElement.innerHTML = `${this.formatNumber(Math.round(stats.avgCompanyPrice))} <small>ریال</small>`;
         }
         
@@ -409,7 +418,8 @@ class PurchaseAggregatedStats {
             this.avgCustomerPriceElement.innerHTML = `${this.formatNumber(Math.round(stats.avgCustomerPrice))} <small>ریال</small>`;
         }
         
-        if (this.totalAmountPaidElement) {
+        // نمایش مبلغ پرداختی فقط اگر مجاز باشد
+        if (this.totalAmountPaidElement && stats.totalAmountPaid !== undefined) {
             this.totalAmountPaidElement.innerHTML = `${this.formatNumber(stats.totalAmountPaid)} <small>ریال</small>`;
         }
         
@@ -421,7 +431,8 @@ class PurchaseAggregatedStats {
             this.totalExtelafWeightElement.innerHTML = `${this.formatNumber(stats.totalExtelafWeight)} <small>کیلوگرم</small>`;
         }
         
-        if (this.totalExtelafAmountElement) {
+        // نمایش مبلغ اختلاف فقط اگر مجاز باشد
+        if (this.totalExtelafAmountElement && stats.totalExtelafAmount !== undefined) {
             this.totalExtelafAmountElement.innerHTML = `${this.formatNumber(stats.totalExtelafAmount)} <small>ریال</small>`;
         }
     }

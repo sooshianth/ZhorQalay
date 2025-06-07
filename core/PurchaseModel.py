@@ -31,7 +31,7 @@ class Purchase(models.Model):
         ('BARNAMEH_ISSUED', 'صدور بارنامه'), # system
         ('PURCHASE_CLOSED', 'بستن خرید در بازارگاه'), # system #sms
         ('PAY_KASRI', 'پرداخت کسری'), # financial_manager
-        ('RECIEVE_SARAK', 'دریافت سرک'), # financial_manager
+        ('RECIEIVE_SARAK', 'دریافت سرک'), # financial_manager
         ('FULLY_SETTLED', 'تسویه کامل'), # financial_manager
         ('INVOICE_ISSUED', 'صدور فاکتور'), # financial_manager
 
@@ -604,10 +604,20 @@ class Purchase(models.Model):
             if self.extelaf_type == 'کسری':
                 self.state = 'PAY_KASRI'
             elif self.extelaf_type == 'سرک':
-                self.state = 'RECIEVE_SARAK'
+                self.state = 'RECIEIVE_SARAK'
             if self.extelaf_weight == 0:
                 self.state = 'FULLY_SETTLED'
             super().save(update_fields=['state'])
+
+        # محاسبه خودکار amount_paid فقط در صورتی که مقدار تنظیم نشده باشد
+        # یا در حالت‌های خاص که نیاز به بازمحاسبه داریم
+        if not self.amount_paid or self.amount_paid == 0:
+            if self.is_factored and self.delivered_weight and self.customer_price:
+                self.amount_paid = self.customer_price * self.delivered_weight
+                super().save(update_fields=['amount_paid'])
+            elif not self.is_factored and self.order_weight and self.customer_price:
+                self.amount_paid = self.customer_price * self.order_weight
+                super().save(update_fields=['amount_paid'])
 
     def send_notification(self, user, title, message, notification_type='purchase', priority='medium'):
         """ارسال نوتیفیکیشن برای کاربر"""

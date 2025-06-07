@@ -49,14 +49,20 @@ def purchase_list(request):
     # تشخیص نقش کاربر
     user_role = determine_user_role(request.user)
     
+    # تشخیص محدودیت‌های نمایش بر اساس نقش کاربر
+    hide_sensitive_info = user_role in ['sales_agent', 'support_agent']
+    
     # فیلتر پایه: خریدهای آرشیو نشده و آرشیو شده
     active_purchases = Purchase.objects.exclude(state='ARCHIVED').exclude(is_archived=True).select_related('customer', 'cargo').prefetch_related('customer__sales_agent', 'shenase_takhsis_set').order_by('-created_at')
     archived_purchases = Purchase.objects.filter(Q(state='ARCHIVED') | Q(is_archived=True)).select_related('customer', 'cargo').prefetch_related('customer__sales_agent', 'shenase_takhsis_set').order_by('-created_at')
 
-    # اگر کاربر کارشناس فروش است ولی نقش لجستیک ندارد، فقط خریدهای مشتریان خود را ببیند
+    # اگر کاربر کارشناس فروش یا پیگیری است، فقط خریدهای مشتریان مربوطه را ببیند
     if user_role == 'sales_agent':
         active_purchases = active_purchases.filter(customer__sales_agent=request.user.sales_agent)
         archived_purchases = archived_purchases.filter(customer__sales_agent=request.user.sales_agent)
+    elif user_role == 'support_agent':
+        # کارشناس پیگیری همه خریدها را می‌بیند اما با محدودیت اطلاعات
+        pass
 
     # اگر فیلتر وضعیت آرشیو انتخاب شده است
     if is_archived != '':
@@ -261,14 +267,11 @@ def purchase_list(request):
         {'id': 'sales_agent', 'name': 'نماینده فروش', 'field': 'customer.sales_agent.name', 'editable': False},
         {'id': 'weight', 'name': 'وزن (کیلوگرم)', 'field': 'order_weight', 'editable': True},
         {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage', 'editable': True},
-        {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name', 'editable': False},
         {'id': 'status', 'name': 'وضعیت‌ها', 'field': 'state', 'editable': True},
         {'id': 'actions', 'name': 'جزئیات', 'editable': False},
         # ستون‌های اضافی
         {'id': 'address', 'name': 'آدرس', 'field': 'address', 'editable': False},
         {'id': 'description', 'name': 'توضیحات', 'field': 'description', 'editable': False},
-        {'id': 'company_price', 'name': 'فی خرید (ریال)', 'field': 'company_price', 'editable': False},
-        {'id': 'customer_price', 'name': 'فی فروش (ریال)', 'field': 'customer_price', 'editable': False},
         {'id': 'factor_code', 'name': 'فاکتور کد', 'field': 'factor_code', 'editable': False},
         {'id': 'tracking_number', 'name': 'شماره پیگیری', 'field': 'tracking_number', 'editable': False},
         {'id': 'shenase_takhsis', 'name': 'شناسه‌های تخصیص', 'field': 'shenase_takhsis_set', 'editable': False},
@@ -280,7 +283,6 @@ def purchase_list(request):
         {'id': 'total_weight', 'name': 'وزن کل (کیلوگرم)', 'field': 'total_weight', 'editable': False},
         {'id': 'delivered_weight', 'name': 'وزن بارنامه شده (کیلوگرم)', 'field': 'delivered_weight', 'editable': False},
         {'id': 'type', 'name': 'نوع خرید', 'field': 'type', 'editable': False},
-        {'id': 'amount_paid', 'name': 'مبلغ پرداختی (ریال)', 'field': 'amount_paid', 'editable': False},
         {'id': 'payment_method', 'name': 'شیوه پرداخت', 'field': 'payment_method', 'editable': False},
         {'id': 'updated_at', 'name': 'تاریخ بروزرسانی', 'field': 'updated_at', 'editable': False},
         {'id': 'is_weight_costed', 'name': 'کسر از وزن موجود', 'field': 'is_weight_costed', 'editable': False},
@@ -296,12 +298,27 @@ def purchase_list(request):
         {'id': 'priority', 'name': 'اولویت', 'field': 'priority', 'editable': False},
         {'id': 'priority_reason', 'name': 'دلیل اولویت', 'field': 'priority_reason', 'editable': False},
     ]
+    
+    # اضافه کردن ستون‌های حساس فقط برای نقش‌های مجاز
+    if not hide_sensitive_info:
+        all_columns.extend([
+            {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name', 'editable': False},
+            {'id': 'company_price', 'name': 'فی خرید (ریال)', 'field': 'company_price', 'editable': False},
+            {'id': 'customer_price', 'name': 'فی فروش (ریال)', 'field': 'customer_price', 'editable': False},
+            {'id': 'amount_paid', 'name': 'مبلغ پرداختی (ریال)', 'field': 'amount_paid', 'editable': False},
+        ])
+    else:
+        # برای کارشناسان فروش و پیگیری فقط فی فروش قابل مشاهده است
+        all_columns.extend([
+            {'id': 'customer_price', 'name': 'فی فروش (ریال)', 'field': 'customer_price', 'editable': False},
+        ])
 
     context = {
         'active_purchases': active_purchases,  # تمام داده‌ها بدون pagination
         'archived_purchases': archived_purchases,  # تمام داده‌ها بدون pagination
         'all_states': all_states,
         'user_role': user_role,  # افزودن نقش کاربر به context
+        'hide_sensitive_info': hide_sensitive_info,  # افزودن فلگ مخفی کردن اطلاعات حساس
         # تنظیمات پیجینیشن جاوااسکریپتی
         'per_page': per_page,
         'per_page_options': [10, 25, 50, 100, 200],
@@ -1012,6 +1029,10 @@ def get_purchase_aggregated_stats(request):
     API برای دریافت آمار اجماعی خریدهای انتخاب شده
     """
     try:
+        # تشخیص نقش کاربر
+        user_role = determine_user_role(request.user)
+        hide_sensitive_info = user_role in ['sales_agent', 'support_agent']
+        
         # دریافت لیست آیدی‌های خریدهای انتخاب شده
         purchase_ids = request.POST.get('purchase_ids', '').split(',')
         purchase_ids = [pid.strip() for pid in purchase_ids if pid.strip()]
@@ -1036,17 +1057,22 @@ def get_purchase_aggregated_stats(request):
             'selected_count': purchases.count(),
             'total_order_weight': 0,
             'total_delivered_weight': 0,
-            'total_amount_paid': 0,
             'urgent_purchases_count': 0,
             'total_extelaf_weight': 0,
-            'total_extelaf_amount': 0,
-            'avg_company_price': 0,
             'avg_customer_price': 0,
-            'company_price_sum': 0,
             'customer_price_sum': 0,
-            'valid_company_price_count': 0,
             'valid_customer_price_count': 0
         }
+        
+        # اضافه کردن آمار حساس فقط برای نقش‌های مجاز
+        if not hide_sensitive_info:
+            stats.update({
+                'total_amount_paid': 0,
+                'total_extelaf_amount': 0,
+                'avg_company_price': 0,
+                'company_price_sum': 0,
+                'valid_company_price_count': 0
+            })
         
         for purchase in purchases:
             # جمع‌آوری وزن‌ها
@@ -1059,42 +1085,47 @@ def get_purchase_aggregated_stats(request):
             if purchase.extelaf_weight:
                 stats['total_extelaf_weight'] += purchase.extelaf_weight
             
-            # جمع‌آوری مبالغ
-            if purchase.amount_paid:
-                stats['total_amount_paid'] += purchase.amount_paid
-                
-            if purchase.extelaf_amount:
-                stats['total_extelaf_amount'] += purchase.extelaf_amount
-            
             # جمع‌آوری قیمت‌ها برای محاسبه میانگین
-            if purchase.company_price and purchase.company_price > 0:
-                stats['company_price_sum'] += purchase.company_price
-                stats['valid_company_price_count'] += 1
-                
             if purchase.customer_price and purchase.customer_price > 0:
                 stats['customer_price_sum'] += purchase.customer_price
                 stats['valid_customer_price_count'] += 1
+            
+            # آمار حساس فقط برای نقش‌های مجاز
+            if not hide_sensitive_info:
+                # جمع‌آوری مبالغ
+                if purchase.amount_paid:
+                    stats['total_amount_paid'] += purchase.amount_paid
+                    
+                if purchase.extelaf_amount:
+                    stats['total_extelaf_amount'] += purchase.extelaf_amount
+                
+                if purchase.company_price and purchase.company_price > 0:
+                    stats['company_price_sum'] += purchase.company_price
+                    stats['valid_company_price_count'] += 1
             
             # شمارش خریدهای فوری
             if purchase.is_urgent:
                 stats['urgent_purchases_count'] += 1
         
         # محاسبه میانگین قیمت‌ها
-        if stats['valid_company_price_count'] > 0:
-            stats['avg_company_price'] = stats['company_price_sum'] / stats['valid_company_price_count']
-        
         if stats['valid_customer_price_count'] > 0:
             stats['avg_customer_price'] = stats['customer_price_sum'] / stats['valid_customer_price_count']
         
+        if not hide_sensitive_info and stats['valid_company_price_count'] > 0:
+            stats['avg_company_price'] = stats['company_price_sum'] / stats['valid_company_price_count']
+        
         # حذف فیلدهای کمکی
-        del stats['company_price_sum']
         del stats['customer_price_sum']
-        del stats['valid_company_price_count']
         del stats['valid_customer_price_count']
+        
+        if not hide_sensitive_info:
+            del stats['company_price_sum']
+            del stats['valid_company_price_count']
         
         return JsonResponse({
             'status': 'success',
-            'stats': stats
+            'stats': stats,
+            'hide_sensitive_info': hide_sensitive_info
         })
         
     except Exception as e:

@@ -423,7 +423,9 @@
                             <th class="column-cottage" data-column-type="text">کوتاژ</th>
                             <th class="column-product_type" data-column-type="text">نوع محصول</th>
                             <th class="column-country" data-column-type="text">کشور</th>
+                            {% if not hide_supplier_info %}
                             <th class="column-vared_konandeh" data-column-type="text">واردکننده</th>
+                            {% endif %}
                             <th class="column-barbary" data-column-type="text">باربری</th>
                             <th class="column-customer_price" data-column-type="number">قیمت فروش</th>
                             <th class="column-port" data-column-type="text">محل بارگیری</th>
@@ -441,7 +443,9 @@
                                 <td class="column-cottage"><strong>{{ product.cottage }}</strong></td>
                                 <td class="column-product_type">{{ product.get_product_type_display }}</td>
                                 <td class="column-country">{{ product.get_country_display }}</td>
+                                {% if not hide_supplier_info %}
                                 <td class="column-vared_konandeh">{{ product.vared_konandeh.name|default:"-" }}</td>
+                                {% endif %}
                                 <td class="column-barbary">{{ product.barbary.name|default:"-" }}</td>
                                 <td class="column-customer_price" data-value="{{ product.customer_price }}">{{ product.customer_price }}</td>
                                 <td class="column-port">{{ product.port }}</td>
@@ -456,7 +460,7 @@
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="11" style="text-align: center; padding: 3rem;">
+                                <td colspan="{% if hide_supplier_info %}10{% else %}11{% endif %}" style="text-align: center; padding: 3rem;">
                                     <div style="display: flex; flex-direction: column; align-items: center;">
                                         <i class="fas fa-box-open" style="font-size: 2.5rem; margin-bottom: 1rem; color: #ccc;"></i>
                                         <p style="color: #666;">هیچ محصول فعالی یافت نشد</p>
@@ -488,7 +492,9 @@
                             <th class="column-cottage" data-column-type="text">کوتاژ</th>
                             <th class="column-product_type" data-column-type="text">نوع محصول</th>
                             <th class="column-country" data-column-type="text">کشور</th>
+                            {% if not hide_supplier_info %}
                             <th class="column-vared_konandeh" data-column-type="text">واردکننده</th>
+                            {% endif %}
                             <th class="column-barbary" data-column-type="text">باربری</th>
                             <th class="column-customer_price" data-column-type="number">قیمت فروش</th>
                             <th class="column-port" data-column-type="text">محل بارگیری</th>
@@ -506,7 +512,9 @@
                                 <td class="column-cottage"><strong>{{ product.cottage }}</strong></td>
                                 <td class="column-product_type">{{ product.get_product_type_display }}</td>
                                 <td class="column-country">{{ product.get_country_display }}</td>
+                                {% if not hide_supplier_info %}
                                 <td class="column-vared_konandeh">{{ product.vared_konandeh.name|default:"-" }}</td>
+                                {% endif %}
                                 <td class="column-barbary">{{ product.barbary.name|default:"-" }}</td>
                                 <td class="column-customer_price" data-value="{{ product.customer_price }}">{{ product.customer_price }}</td>
                                 <td class="column-port">{{ product.port }}</td>
@@ -521,7 +529,7 @@
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="11" style="text-align: center; padding: 3rem;">
+                                <td colspan="{% if hide_supplier_info %}10{% else %}11{% endif %}" style="text-align: center; padding: 3rem;">
                                     <p style="color: #666;">هیچ محصول غیرفعالی یافت نشد</p>
                                 </td>
                             </tr>

@@ -8,9 +8,26 @@ from core.decorators.det_user_role import determine_user_role
 @login_required
 def cargo_product_list(request):
     user_role = determine_user_role(request.user)
-    cargo_products = CargoProduct.objects.filter(status=True).select_related('vared_konandeh', 'barbary')
-    deactive_cargo_products = CargoProduct.objects.filter(status=False).select_related('vared_konandeh', 'barbary')
-    return render(request, 'cargo_product_view.html', {'cargo_products': cargo_products, 'deactive_cargo_products': deactive_cargo_products, 'user_role': user_role})
+    
+    # تشخیص محدودیت‌های نمایش بر اساس نقش کاربر
+    hide_supplier_info = user_role in ['sales_agent', 'support_agent']
+    
+    # برای کارشناسان فروش و پیگیری، اطلاعات واردکننده را مخفی می‌کنیم
+    if hide_supplier_info:
+        # برای کارشناس فروش و پیگیری، صرفا محصولات را بدون اطلاعات واردکننده ارسال می‌کنیم
+        cargo_products = CargoProduct.objects.filter(status=True).select_related('barbary')
+        deactive_cargo_products = CargoProduct.objects.filter(status=False).select_related('barbary')
+    else:
+        # برای سایر نقش‌ها، اطلاعات کامل شامل واردکننده ارسال می‌شود
+        cargo_products = CargoProduct.objects.filter(status=True).select_related('vared_konandeh', 'barbary')
+        deactive_cargo_products = CargoProduct.objects.filter(status=False).select_related('vared_konandeh', 'barbary')
+    
+    return render(request, 'cargo_product_view.html', {
+        'cargo_products': cargo_products, 
+        'deactive_cargo_products': deactive_cargo_products, 
+        'user_role': user_role,
+        'hide_supplier_info': hide_supplier_info  # متغیر برای مخفی کردن اطلاعات واردکننده
+    })
 
 
 

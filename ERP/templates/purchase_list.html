@@ -913,6 +913,7 @@
 <h3 class="mb-4 fw-bold text-primary"><i class="fas fa-shopping-cart me-2"></i>خریدهای فعال</h3>
 
 <!-- Sección de estadísticas agregadas -->
+{% if not hide_sensitive_info %}
 <div id="aggregatedStats" class="card mb-4 shadow-sm" style="display: none;">
     <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center">
         <h5 class="mb-0 fw-bold text-primary">
@@ -978,6 +979,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 {% if active_purchases %}
 
@@ -1668,13 +1670,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // ایجاد instance آمار اجماعی خریدها
+    // ایجاد instance آمار اجماعی خریدها فقط برای نقش‌های مجاز
+    {% if not hide_sensitive_info %}
     if (typeof PurchaseAggregatedStats !== 'undefined') {
         window.purchaseAggregatedStats = new PurchaseAggregatedStats();
         console.log('Purchase aggregated stats initialized');
     } else {
         console.warn('PurchaseAggregatedStats class not found');
     }
+    {% endif %}
     
     // اضافه کردن event listener برای دکمه‌های تاریخچه
     document.querySelectorAll('.item-history-btn').forEach(btn => {
@@ -2012,10 +2016,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // مخفی کردن آمار جمع‌آوری شده
+        {% if not hide_sensitive_info %}
         const aggregatedStats = document.getElementById('aggregatedStats');
         if (aggregatedStats) {
             aggregatedStats.style.display = 'none';
         }
+        {% endif %}
     });
     
     // بهبود عملکرد دکمه خروجی اکسل
@@ -2173,10 +2179,12 @@ function showSearchResults(count, searchTerm) {
 
 // تابع بروزرسانی آمار اجماعی
 function updateAggregatedStats() {
-    // همگام‌سازی با آمار اجماعی خریدها
+    // همگام‌سازی با آمار اجماعی خریدها فقط برای نقش‌های مجاز
+    {% if not hide_sensitive_info %}
     if (window.purchaseAggregatedStats) {
         window.purchaseAggregatedStats.syncWithBulkEditManager();
     }
+    {% endif %}
 }
 
 // تابع تغییر تعداد رکورد در هر صفحه (حالا توسط pagination مدیریت می‌شود)
