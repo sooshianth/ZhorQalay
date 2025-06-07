@@ -79,19 +79,30 @@ class SmsLog(models.Model):
         ordering = ['-sent_at']
 
 class SmsTemplate(models.Model):
+    TEMPLATE_TYPE_CHOICES = [
+        ('purchase', 'مربوط به خرید'),
+        ('marketing', 'تبلیغاتی'),
+        ('product', 'ارسال محصولات'),
+    ]
+    
     STATUS_CHOICES = Purchase.STATUS_CHOICES
-    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='custom', verbose_name="بعد از چه وضعیتی ارسال شود؟")
+    
+    template_type = models.CharField(max_length=30, choices=TEMPLATE_TYPE_CHOICES, default='purchase', verbose_name="نوع قالب")
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, null=True, blank=True, verbose_name="بعد از چه وضعیتی ارسال شود؟")
     name = models.CharField(max_length=100, verbose_name="نام قالب")
-    template_type = models.CharField(max_length=30, default='custom', verbose_name="نوع قالب")
     content = models.TextField(verbose_name="متن قالب")
     description = models.TextField(blank=True, null=True, verbose_name="توضیحات")
     is_active = models.BooleanField(default=True, verbose_name="فعال")
+    is_default = models.BooleanField(default=False, verbose_name="پیش‌فرض")  
     created_at = jmodels.jDateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
     updated_at = jmodels.jDateTimeField(auto_now=True, verbose_name="تاریخ بروزرسانی")
     is_for_salesmen = models.BooleanField(default=False, verbose_name="برای کارشناس فروش")
 
     def __str__(self):
-        return f"{self.name} ({self.get_status_display()})"
+        if self.template_type == 'purchase' and self.status:
+            return f"{self.name} ({self.get_status_display()})"
+        else:
+            return f"{self.name} ({self.get_template_type_display()})"
         
     class Meta:
         verbose_name = "قالب پیامک"
@@ -134,6 +145,10 @@ class SmsTemplate(models.Model):
         }
 
     def save(self, *args, **kwargs):
-        # Make sure template_type matches status for backward compatibility
-        self.template_type = self.status
+        # For purchase templates, status is required
+        if self.template_type == 'purchase' and not self.status:
+            raise ValueError("برای قالب‌های مربوط به خرید، انتخاب وضعیت الزامی است.")
+        # For non-purchase templates, status should be null
+        elif self.template_type != 'purchase':
+            self.status = None
         super().save(*args, **kwargs)

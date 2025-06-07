@@ -440,16 +440,26 @@
                 {% csrf_token %}
                 
                 <div class="row mb-3">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label for="name">نام قالب <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="name" name="name" required placeholder="مثال: قالب اطلاع‌رسانی ثبت خرید">
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="form-group">
-                            <label for="status">وضعیت خرید <span class="text-danger">*</span></label>
-                            <select class="form-control" id="status" name="status" required>
+                            <label for="template_type">نوع قالب <span class="text-danger">*</span></label>
+                            <select class="form-control" id="template_type" name="template_type" required onchange="toggleStatusField()">
+                                {% for key, label in template_type_choices %}
+                                <option value="{{ key }}" {% if key == preselected_type %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group" id="status-field">
+                            <label for="status">وضعیت خرید <span class="text-danger" id="status-required">*</span></label>
+                            <select class="form-control" id="status" name="status">
                                 <option value="">-- انتخاب کنید --</option>
                                 {% for key, label in status_choices %}
                                 <option value="{{ key }}" {% if key == preselected_status %}selected{% endif %}>{{ label }}</option>
@@ -579,4 +589,30 @@
 
 <script src="{% static 'js/template_management.js' %}"></script>
 <script src="{% static 'js/template_create.js' %}"></script>
+
+<script>
+// Toggle status field based on template type
+function toggleStatusField() {
+    const templateType = document.getElementById('template_type').value;
+    const statusField = document.getElementById('status-field');
+    const statusSelect = document.getElementById('status');
+    const statusRequired = document.getElementById('status-required');
+    
+    if (templateType === 'purchase') {
+        statusField.style.display = 'block';
+        statusSelect.required = true;
+        statusRequired.style.display = 'inline';
+    } else {
+        statusField.style.display = 'none';
+        statusSelect.required = false;
+        statusRequired.style.display = 'none';
+        statusSelect.value = '';
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleStatusField();
+});
+</script>
 {% endblock %} 
