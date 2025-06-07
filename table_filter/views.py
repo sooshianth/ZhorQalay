@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-
+from core.decorators.decorators import role_required
 import json
 import openpyxl
 from io import BytesIO
@@ -24,6 +24,7 @@ def table_filter_demo(request):
     """
     return render(request, 'table_filter/demo.html')
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 def bulk_edit_page(request):
     """نمایش صفحه ویرایش گروهی"""
@@ -249,6 +250,7 @@ def get_editable_fields(model, table_type, selected_ids=None):
     print(f"DEBUG - Final editable fields: {[f['name'] for f in fields]}")
     return fields
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 def bulk_edit_excel_page(request):
     """نمایش صفحه ویرایش با اکسل"""
@@ -313,6 +315,7 @@ def bulk_edit_excel_page(request):
     
     return render(request, 'table_filter/bulk_edit_excel.html', context)
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 @require_http_methods(["POST"])
 def bulk_edit_view(request):
@@ -562,6 +565,7 @@ def bulk_edit_view(request):
             else:
                 return redirect('/')
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 @require_http_methods(["POST"])
 def bulk_edit_excel_view(request):
@@ -752,6 +756,7 @@ def bulk_edit_excel_view(request):
         # بازگشت به صفحه قبلی
         return redirect(request.META.get('HTTP_REFERER', '/'))
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 def download_excel_template_view(request):
     """دانلود قالب اکسل برای ویرایش گروهی"""
