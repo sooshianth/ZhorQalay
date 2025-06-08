@@ -493,28 +493,23 @@ class Purchase(models.Model):
     def clean(self):
         errors = {}
         if self.purchase_number:
-            if len(str(self.purchase_number)) != 7 or not self.purchase_number.isdigit():
-                errors['purchase_number'] = 'شماره خرید باید دقیقاً 7 رقم عددی باشد'
+            if len(str(self.purchase_number)) < 7 or not self.purchase_number.isdigit():
+                errors['purchase_number'] = 'شماره خرید باید 7 رقم یا بیشتر باشد'
 
         if self.tracking_number:
             if len(str(self.tracking_number)) <= 4:
                 errors['tracking_number'] = 'شماره پیگیری باید بیشتر از 5 رقم عددی باشد'
         
-        if self.amount_paid and (len(str(self.amount_paid)) > 12 or len(str(self.amount_paid)) < 7):
-            errors['amount_paid'] = 'مبلغ پرداختی باید بین 7 و 11 رقم باشد'
             
         if self.state == 'PAYMENT_VERIFIED' and not self.amount_paid:
             errors['amount_paid'] = 'برای خریدهای پرداخت شده مبلغ الزامی است'
-        elif self.state == 'PAYMENT_VERIFIED' and self.amount_paid <= 100000000:
-            errors['amount_paid'] = 'مبلغ پرداختی باید بزرگتر از صد میلیون تومان باشد'
+        elif self.state == 'PAYMENT_VERIFIED' and self.amount_paid <= 400000000:
+            errors['amount_paid'] = 'مبلغ پرداختی باید بزرگتر از 40 میلیون تومان باشد'
 
         # وزن را فقط در مواردی که کمتر از 10000 است بررسی کن، تا مقادیر پیش‌فرض بایپس اعتبارسنجی قبول شوند
-        if self.order_weight and self.order_weight <= 10000:
+        if self.order_weight and self.order_weight <= 5000:
             errors['order_weight'] = 'وزن باید بزرگتر از 10 تن باشد'
-        
-        if not self.customer:
-            errors['customer'] = 'انتخاب مشتری الزامی است'
-        
+                
         if self.state == 'ARCHIVED':
             if self.state in ['PAYMENT_VERIFIED', 'BARNAMEH_ISSUED', 'PURCHASE_CLOSED', 'CANCELED']:
                 errors['state'] = 'خرید آرشیو شده نمی‌تواند پرداخت شده، ارسال شده، بسته شده یا لغو شده باشد.'

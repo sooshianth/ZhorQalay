@@ -653,7 +653,7 @@
 
 <div class="text-start mb-4 d-flex gap-3 flex-wrap">
     <!-- دکمه مدیریت ستون‌ها -->
-    {% if request.user.is_superuser or request.user.is_staff %}
+    {% if request.user.is_superuser or user_role == 'logistics_manager' or user_role == 'financial_manager' %}
     <button class="btn btn-info text-white shadow-sm" data-bs-toggle="modal" data-bs-target="#columnsModal">
         <i class="fas fa-columns me-2"></i> مدیریت ستون‌های جدول</button>
     <button id="resetColumnOrderBtn" class="btn btn-warning text-white shadow-sm ms-2">
