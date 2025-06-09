@@ -45,18 +45,19 @@ def whatsapp_dashboard(request):
 def send_whatsapp(request):
     notification_types = dict(WhatsappQueue.NOTIFICATION_TYPES)
     
-    # Get templates from WhatsappTemplate model only
+    # Get purchase templates from WhatsappTemplate model
     templates_dict = {}
     
-    # Get all templates for each status from the database
+    # Get all purchase templates for each status from the database
     status_templates = {}
-    all_templates = WhatsappTemplate.objects.filter(template_type='purchase')
+    purchase_templates = WhatsappTemplate.objects.filter(template_type='purchase')
     
     # Group templates by status
-    for template in all_templates:
-        if template.status not in status_templates:
+    for template in purchase_templates:
+        if template.status and template.status not in status_templates:
             status_templates[template.status] = []
-        status_templates[template.status].append(template)
+        if template.status:
+            status_templates[template.status].append(template)
     
     # For each status, use the active template if available
     for status, templates in status_templates.items():
@@ -80,11 +81,42 @@ def send_whatsapp(request):
     # Convert templates to JSON for JavaScript
     templates_json = json.dumps(templates_dict)
     
+    # Get marketing templates (all templates, not just active ones)
+    marketing_templates = WhatsappTemplate.objects.filter(template_type='marketing').order_by('-is_active', '-updated_at')
+    marketing_templates_list = []
+    for template in marketing_templates:
+        marketing_templates_list.append({
+            'id': template.id,
+            'name': template.name,
+            'content': template.content,
+            'description': template.description or '',
+            'is_default': template.is_active,
+            'is_active': template.is_active
+        })
+    marketing_templates_json = json.dumps(marketing_templates_list)
+    
+    # Get product templates (all templates, not just active ones)
+    product_templates = WhatsappTemplate.objects.filter(template_type='product_notification').order_by('-is_active', '-updated_at')
+    product_templates_list = []
+    for template in product_templates:
+        product_templates_list.append({
+            'id': template.id,
+            'name': template.name,
+            'content': template.content,
+            'description': template.description or '',
+            'is_default': template.is_active,
+            'is_active': template.is_active
+        })
+    product_templates_json = json.dumps(product_templates_list)
+    
     # Create a dictionary of status display names
     purchase_statuses = {}
     for status_code, status_name in Purchase.STATUS_CHOICES:
         purchase_statuses[status_code] = status_name
     purchase_statuses_json = json.dumps(purchase_statuses)
+    
+    # Get all active cargo products for product selection modal
+    cargo_products = CargoProduct.objects.all().order_by('-created_at')
     
     # Handle customer search
     search_query = request.GET.get('search', '')
@@ -190,8 +222,35 @@ def send_whatsapp(request):
                     cottage_number = request.POST.get('cottage_number')
                     product_type = request.POST.get('product_type')
                     product_country = request.POST.get('product_country')
+                    selected_products_data = request.POST.get('selected_products_data')
                     
-                    # اگر این فیلدها در پیام استفاده شده‌اند، جایگزین می‌کنیم
+                    # پردازش محصولات انتخاب شده
+                    if selected_products_data:
+                        try:
+                            selected_products = json.loads(selected_products_data)
+                            
+                            # اگر محصولاتی انتخاب شده‌اند، آن‌ها را به پیام اضافه کنیم
+                            if selected_products:
+                                # جایگزینی متغیرهای اولین محصول (برای سازگاری با قالب‌های قدیمی)
+                                first_product = selected_products[0]
+                                message = message.replace('{{cottage}}', first_product.get('cottage', ''))
+                                message = message.replace('{{product_type}}', first_product.get('productType', ''))
+                                message = message.replace('{{product_country}}', first_product.get('productCountry', ''))
+                                message = message.replace('{{port}}', first_product.get('port', ''))
+                                message = message.replace('{{weight}}', first_product.get('weight', ''))
+                                
+                                # اگر در پیام {{products}} وجود دارد، لیست محصولات را جایگزین کنیم
+                                if '{{products}}' in message:
+                                    products_text = ''
+                                    for i, product in enumerate(selected_products, 1):
+                                        products_text += f"{i}. {product.get('productType', '')} {product.get('productCountry', '')} "
+                                        products_text += f"(کوتاژ: {product.get('cottage', '')}) - {product.get('weight', '')} کیلوگرم\n"
+                                    
+                                    message = message.replace('{{products}}', products_text.strip())
+                        except (json.JSONDecodeError, KeyError) as e:
+                            logger.error(f"خطا در پردازش محصولات انتخاب شده: {str(e)}")
+                    
+                    # اگر این فیلدها در پیام استفاده شده‌اند، جایگزین می‌کنیم (برای سازگاری با قالب‌های قدیمی)
                     if cottage_number:
                         message = message.replace('{{cottage}}', cottage_number)
                         
@@ -302,12 +361,14 @@ def send_whatsapp(request):
     context = {
         'notification_types': notification_types,
         'default_templates': templates_json,
+        'marketing_templates': marketing_templates_json,
+        'product_templates': product_templates_json,
         'purchase_statuses': purchase_statuses_json,
         'search_query': search_query,
         'customers': customers,
         'purchases': purchases,
         'selected_customer_id': selected_customer_id,
-        'cargo_products': CargoProduct.get_active_products(),
+        'cargo_products': cargo_products,
     }
     
     return render(request, 'whatsapp_api/send_whatsapp.html', context)
@@ -483,7 +544,8 @@ def template_list(request):
         'product_count': product_count,
         'marketing_count': marketing_count,
         'status_choices': WhatsappTemplate.STATUS_CHOICES,
-        'template_types': WhatsappTemplate.TEMPLATE_TYPES,
+        'template_type_choices': WhatsappTemplate.TEMPLATE_TYPES,
+        'template_types': WhatsappTemplate.TEMPLATE_TYPES,  # برای سازگاری
         'placeholders': WhatsappTemplate.get_available_placeholders()
     }
     
@@ -563,7 +625,8 @@ def template_create(request):
     
     context = {
         'status_choices': WhatsappTemplate.STATUS_CHOICES,
-        'template_types': WhatsappTemplate.TEMPLATE_TYPES,
+        'template_type_choices': WhatsappTemplate.TEMPLATE_TYPES,
+        'template_types': WhatsappTemplate.TEMPLATE_TYPES,  # برای سازگاری
         'placeholders': WhatsappTemplate.get_available_placeholders(),
         'preselected_status': preselected_status,
         'preselected_type': preselected_type,
@@ -587,17 +650,20 @@ def template_edit(request, template_id):
         description = request.POST.get('description', '')
         is_active = request.POST.get('is_active') == 'on'
         
-        if not name or not status or not content or not template_type:
+        # بررسی فیلدهای ضروری
+        if not name or not content or not template_type:
             messages.error(request, 'لطفاً تمام فیلدهای ضروری را پر کنید.')
             return redirect('whatsapp_api:template_edit', template_id=template_id)
         
+        # برای قالب‌های خرید، وضعیت ضروری است
+        if template_type == 'purchase' and not status:
+            messages.error(request, 'برای قالب‌های مربوط به خرید، انتخاب وضعیت ضروری است.')
+            return redirect('whatsapp_api:template_edit', template_id=template_id)
+        
         try:
-            # بررسی تغییر وضعیت
-            status_changed = template.status != status
-            
             # ذخیره مقادیر جدید
             template.name = name
-            template.status = status
+            template.status = status if template_type == 'purchase' else None
             template.template_type = template_type
             template.content = content
             template.description = description
@@ -628,7 +694,8 @@ def template_edit(request, template_id):
     context = {
         'template': template,
         'status_choices': WhatsappTemplate.STATUS_CHOICES,
-        'template_types': WhatsappTemplate.TEMPLATE_TYPES,
+        'template_type_choices': WhatsappTemplate.TEMPLATE_TYPES,
+        'template_types': WhatsappTemplate.TEMPLATE_TYPES,  # برای سازگاری
         'placeholders': WhatsappTemplate.get_available_placeholders(),
     }
     
@@ -1166,7 +1233,7 @@ def get_templates_for_status(request):
     return JsonResponse({
         'status': status,
         'template_type': template_type,
-        'status_display': dict(WhatsappTemplate.STATUS_CHOICES).get(status, status) if status else '',
+        'status_display': dict(Purchase.STATUS_CHOICES).get(status, status) if status else '',
         'templates': templates_list,
         'count': len(templates_list)
     })
@@ -1192,7 +1259,7 @@ def get_templates_by_type(request):
             'template_type': template.template_type,
             'template_type_display': template.get_template_type_display(),
             'status': template.status,
-            'status_display': dict(WhatsappTemplate.STATUS_CHOICES).get(template.status, template.status) if template.status else '',
+            'status_display': dict(Purchase.STATUS_CHOICES).get(template.status, template.status) if template.status else '',
             'description': template.description or '',
             'is_active': template.is_active,
             'created_at': template.created_at.strftime('%Y-%m-%d %H:%M:%S'),

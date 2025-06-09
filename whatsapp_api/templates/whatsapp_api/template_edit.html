@@ -3,63 +3,370 @@
 
 {% block title %}ویرایش قالب واتساپ{% endblock %}
 
-{% block styles %}
-<style>
-    .btn-placeholder {
-        margin: 5px;
-    }
-    .template-editor {
-        position: relative;
-    }
-    .placeholders-toolbar {
-        margin-bottom: 10px;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 10px;
-    }
-    .content-textarea {
-        min-height: 200px;
-        direction: rtl;
-        font-family: tahoma, arial, sans-serif;
-    }
-    .preview-box {
-        min-height: 200px;
-        background-color: #f8f9fa;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        padding: 10px;
-        direction: rtl;
-        font-family: tahoma, arial, sans-serif;
-        white-space: pre-wrap;
-    }
-    .character-counter {
-        position: absolute;
-        bottom: 5px;
-        right: 10px;
-        background: rgba(255,255,255,0.7);
-        padding: 2px 8px;
-        border-radius: 10px;
-        font-size: 12px;
-    }
-    .is-active-container {
-        background-color: #f8f9fa;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        padding: 15px;
-        margin-bottom: 20px;
-    }
-    .is-active-title {
-        font-weight: bold;
-        color: #25d366;
-        margin-bottom: 10px;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
+<style>
+/* WhatsApp API Comprehensive Styles */
+:root {
+    --whatsapp-primary: #25d366;
+    --whatsapp-secondary: #128c7e;
+    --whatsapp-accent: #dcf8c6;
+    --whatsapp-light: #e8f5e8;
+    --whatsapp-danger: #d32f2f;
+    --whatsapp-warning: #f57c00;
+    --whatsapp-success: #2e7d32;
+    --whatsapp-info: #1565c0;
+    --whatsapp-border-radius: 8px;
+    --whatsapp-box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    --whatsapp-transition: all 0.3s ease;
+    --whatsapp-font-family: 'Vazir', sans-serif;
+}
+
+.container-fluid {
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: -15px;
+    margin-left: -15px;
+}
+
+.col-md-1, .col-md-2, .col-md-3, .col-md-4, .col-md-5, .col-md-6,
+.col-md-7, .col-md-8, .col-md-9, .col-md-10, .col-md-11, .col-md-12 {
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.col-md-1 { flex: 0 0 8.333333%; max-width: 8.333333%; }
+.col-md-2 { flex: 0 0 16.666667%; max-width: 16.666667%; }
+.col-md-3 { flex: 0 0 25%; max-width: 25%; }
+.col-md-4 { flex: 0 0 33.333333%; max-width: 33.333333%; }
+.col-md-5 { flex: 0 0 41.666667%; max-width: 41.666667%; }
+.col-md-6 { flex: 0 0 50%; max-width: 50%; }
+.col-md-7 { flex: 0 0 58.333333%; max-width: 58.333333%; }
+.col-md-8 { flex: 0 0 66.666667%; max-width: 66.666667%; }
+.col-md-9 { flex: 0 0 75%; max-width: 75%; }
+.col-md-10 { flex: 0 0 83.333333%; max-width: 83.333333%; }
+.col-md-11 { flex: 0 0 91.666667%; max-width: 91.666667%; }
+.col-md-12 { flex: 0 0 100%; max-width: 100%; }
+
+.mt-4 { margin-top: 1.5rem !important; }
+.mb-4 { margin-bottom: 1.5rem !important; }
+.mb-3 { margin-bottom: 1rem !important; }
+.mb-2 { margin-bottom: 0.5rem !important; }
+.mb-0 { margin-bottom: 0 !important; }
+.text-end { text-align: left !important; }
+.text-center { text-align: center !important; }
+.text-muted { color: #6c757d !important; }
+.text-danger { color: var(--whatsapp-danger) !important; }
+.text-success { color: var(--whatsapp-success) !important; }
+.text-warning { color: var(--whatsapp-warning) !important; }
+.text-info { color: var(--whatsapp-info) !important; }
+.text-white { color: white !important; }
+
+.d-flex { display: flex !important; }
+.flex-wrap { flex-wrap: wrap !important; }
+.justify-content-between { justify-content: space-between !important; }
+.justify-content-center { justify-content: center !important; }
+.align-items-center { align-items: center !important; }
+.align-items-end { align-items: flex-end !important; }
+.w-100 { width: 100% !important; }
+.h-100 { height: 100% !important; }
+.position-relative { position: relative !important; }
+.position-absolute { position: absolute !important; }
+.position-fixed { position: fixed !important; }
+
+.card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    word-wrap: break-word;
+    background-color: white;
+    background-clip: border-box;
+    border: 1px solid rgba(0, 0, 0, 0.125);
+    border-radius: var(--whatsapp-border-radius);
+    box-shadow: var(--whatsapp-box-shadow);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    border-top-left-radius: calc(var(--whatsapp-border-radius) - 1px);
+    border-top-right-radius: calc(var(--whatsapp-border-radius) - 1px);
+}
+
+.card-body {
+    flex: 1 1 auto;
+    padding: 1.25rem;
+}
+
+.bg-primary {
+    background-color: var(--whatsapp-primary) !important;
+    color: white;
+}
+
+.btn {
+    display: inline-block;
+    font-weight: 400;
+    color: #212529;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    background-color: transparent;
+    border: 1px solid transparent;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    border-radius: var(--whatsapp-border-radius);
+    transition: var(--whatsapp-transition);
+    text-decoration: none;
+    font-family: var(--whatsapp-font-family);
+}
+
+.btn:hover {
+    text-decoration: none;
+}
+
+.btn-primary {
+    color: white;
+    background-color: var(--whatsapp-primary);
+    border-color: var(--whatsapp-primary);
+}
+
+.btn-primary:hover {
+    background-color: var(--whatsapp-secondary);
+    border-color: var(--whatsapp-secondary);
+}
+
+.btn-secondary {
+    color: white;
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+}
+
+.btn-success {
+    color: white;
+    background-color: var(--whatsapp-success);
+    border-color: var(--whatsapp-success);
+}
+
+.btn-success:hover {
+    background-color: #1e5c23;
+    border-color: #1a5520;
+}
+
+.btn-info {
+    color: white;
+    background-color: var(--whatsapp-info);
+    border-color: var(--whatsapp-info);
+}
+
+.btn-info:hover {
+    background-color: #0d4c8c;
+    border-color: #0c4080;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    border-radius: 0.2rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-control {
+    display: block;
+    width: 100%;
+    height: calc(1.5em + 0.75rem + 2px);
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #495057;
+    background-color: white;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: var(--whatsapp-border-radius);
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    font-family: var(--whatsapp-font-family);
+}
+
+.form-control:focus {
+    color: #495057;
+    background-color: white;
+    border-color: var(--whatsapp-accent);
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(37, 211, 102, 0.25);
+}
+
+.form-check {
+    position: relative;
+    display: block;
+    padding-right: 1.25rem;
+}
+
+.form-check-input {
+    position: absolute;
+    margin-top: 0.3rem;
+    margin-right: -1.25rem;
+}
+
+.form-check-label {
+    margin-bottom: 0;
+}
+
+.alert {
+    position: relative;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: var(--whatsapp-border-radius);
+}
+
+.alert-info {
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+}
+
+.btn-placeholder {
+    margin: 5px;
+    background-color: var(--whatsapp-light);
+    border: 1px solid var(--whatsapp-accent);
+    color: var(--whatsapp-primary);
+    padding: 8px 16px;
+    border-radius: var(--whatsapp-border-radius);
+    font-family: var(--whatsapp-font-family);
+    transition: var(--whatsapp-transition);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-placeholder:hover {
+    background-color: var(--whatsapp-accent);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-placeholder:active {
+    transform: scale(0.95);
+}
+
+.btn-placeholder::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.6s;
+}
+
+.btn-placeholder:hover::before {
+    left: 100%;
+}
+
+.template-editor {
+    position: relative;
+}
+
+.placeholders-toolbar {
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.content-textarea {
+    min-height: 350px;
+    direction: rtl;
+    font-family: tahoma, arial, sans-serif;
+    resize: vertical;
+    border: 2px solid #e2e8f0;
+    border-radius: var(--whatsapp-border-radius);
+    padding: 15px;
+}
+
+.content-textarea:focus {
+    border-color: var(--whatsapp-accent);
+    box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+}
+
+.preview-box {
+    min-height: 250px;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    direction: rtl;
+    font-family: tahoma, arial, sans-serif;
+    white-space: pre-wrap;
+}
+
+.character-counter {
+    position: absolute;
+    bottom: 5px;
+    right: 10px;
+    background: rgba(255,255,255,0.7);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+}
+
+.is-active-container {
+    background: linear-gradient(135deg, var(--whatsapp-light), var(--whatsapp-accent));
+    border: 2px solid var(--whatsapp-primary);
+    border-radius: var(--whatsapp-border-radius);
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--whatsapp-box-shadow);
+}
+
+.is-active-title {
+    font-weight: bold;
+    color: var(--whatsapp-primary);
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+    .col-md-1, .col-md-2, .col-md-3, .col-md-4, .col-md-5, .col-md-6,
+    .col-md-7, .col-md-8, .col-md-9, .col-md-10, .col-md-11, .col-md-12 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    .content-textarea {
+        min-height: 250px;
+    }
+}
+</style>
+
 <div class="container-fluid mt-4">
     <div class="row mb-4">
         <div class="col-md-8">
-            <h2>ویرایش قالب واتساپ</h2>
+            <h2><i class="fab fa-whatsapp"></i> ویرایش قالب واتساپ</h2>
+            <p class="text-muted">ویرایش قالب "{{ template.name }}"</p>
         </div>
         <div class="col-md-4 text-end">
             <a href="{% url 'whatsapp_api:template_list' %}" class="btn btn-secondary">
@@ -69,7 +376,7 @@
     </div>
 
     <div class="card">
-        <div class="card-header bg-success text-white">
+        <div class="card-header bg-primary text-white">
             <h5 class="mb-0">ویرایش قالب "{{ template.name }}"</h5>
         </div>
         <div class="card-body">
@@ -85,22 +392,21 @@
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="status">وضعیت خرید <span class="text-danger">*</span></label>
-                            <select class="form-control" id="status" name="status" required>
-                                <option value="">-- انتخاب کنید --</option>
-                                {% for key, label in status_choices %}
-                                <option value="{{ key }}" {% if template.status == key %}selected{% endif %}>{{ label }}</option>
+                            <label for="template_type">نوع قالب <span class="text-danger">*</span></label>
+                            <select class="form-control" id="template_type" name="template_type" required onchange="toggleStatusField()">
+                                {% for key, label in template_type_choices %}
+                                <option value="{{ key }}" {% if template.template_type == key %}selected{% endif %}>{{ label }}</option>
                                 {% endfor %}
                             </select>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="form-group">
-                            <label for="template_type">نوع پیام <span class="text-danger">*</span></label>
-                            <select class="form-control" id="template_type" name="template_type" required>
+                        <div class="form-group" id="status-field">
+                            <label for="status">وضعیت خرید <span class="text-danger" id="status-required">*</span></label>
+                            <select class="form-control" id="status" name="status">
                                 <option value="">-- انتخاب کنید --</option>
-                                {% for key, label in template_types %}
-                                <option value="{{ key }}" {% if template.template_type == key %}selected{% endif %}>{{ label }}</option>
+                                {% for key, label in status_choices %}
+                                <option value="{{ key }}" {% if template.status == key %}selected{% endif %}>{{ label }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -132,14 +438,16 @@
                 <div class="form-group mb-3">
                     <label for="content">متن قالب <span class="text-danger">*</span></label>
                     <div class="alert alert-info">
-                        متغیرها را با کلیک روی دکمه‌های زیر به متن قالب اضافه کنید. هر متغیر با فرمت &#123;&#123; متغیر &#125;&#125; در متن قرار می‌گیرد.
+                        <i class="fas fa-lightbulb"></i>
+                        متغیرها را با کلیک روی دکمه‌های زیر به متن قالب اضافه کنید. هر متغیر با فرمت <code>{{متغیر}}</code> در متن قرار می‌گیرد.
                     </div>
                     
                     <div class="placeholders-toolbar">
+                        <h6 class="mb-3"><i class="fas fa-tags"></i> متغیرهای قابل استفاده:</h6>
                         <div class="d-flex flex-wrap">
                             {% for key, label in placeholders.items %}
-                            <button type="button" class="btn btn-sm btn-outline-secondary btn-placeholder" data-placeholder="{{ key }}">
-                                {{ label }}
+                            <button type="button" class="btn btn-placeholder" data-placeholder="{{ key }}">
+                                <i class="fas fa-tag"></i> {{ label }}
                             </button>
                             {% endfor %}
                         </div>
@@ -148,7 +456,7 @@
                     <div class="template-editor">
                         <textarea class="form-control content-textarea" id="content" name="content" required>{{ template.content }}</textarea>
                         <div class="character-counter">
-                            <span id="charCount">0</span> / <span id="smsCount">1</span> پیام
+                            <span id="charCount">0</span> کاراکتر | <span id="smsCount">1</span> پیام
                         </div>
                     </div>
                 </div>
@@ -160,124 +468,123 @@
                     </div>
                 </div>
                 
-                <div class="text-end">
-                    <button type="submit" class="btn btn-success">
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary btn-lg">
                         <i class="fas fa-save"></i> ذخیره تغییرات
                     </button>
-                    <a href="{% url 'whatsapp_api:template_preview' template.id %}" class="btn btn-info" target="_blank">
+                    <a href="{% url 'whatsapp_api:template_preview' template.id %}" class="btn btn-info btn-lg" target="_blank">
                         <i class="fas fa-search"></i> پیش‌نمایش کامل
                     </a>
-                    <a href="{% url 'whatsapp_api:template_list' %}" class="btn btn-secondary">
-                        انصراف
+                    <a href="{% url 'whatsapp_api:template_list' %}" class="btn btn-secondary btn-lg">
+                        <i class="fas fa-times"></i> انصراف
                     </a>
                 </div>
             </form>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const contentTextarea = document.getElementById('content');
-        const previewBox = document.getElementById('preview');
-        const charCount = document.getElementById('charCount');
-        const smsCount = document.getElementById('smsCount');
-        const placeholderButtons = document.querySelectorAll('.btn-placeholder');
+document.addEventListener('DOMContentLoaded', function() {
+    const contentTextarea = document.getElementById('content');
+    const previewBox = document.getElementById('preview');
+    const charCount = document.getElementById('charCount');
+    const smsCount = document.getElementById('smsCount');
+    const placeholderButtons = document.querySelectorAll('.btn-placeholder');
+    
+    // تعریف مقادیر نمونه برای پیش‌نمایش
+    const sampleData = {
+        'customer_name': 'مشتری نمونه',
+        'purchase_number': '1234567',
+        'invoice_id': '12345',
+        'order_weight': '25000',
+        'customer_price': '150000',
+        'amount_paid': '3750000000',
+        'barnameh': 'B-987654',
+        'barnameh_date': '1402/05/01',
+        'driver_name': 'علی محمدی',
+        'driver_phone': '09123456789',
+        'extelaf_type': 'سرک',
+        'extelaf_weight': '500',
+        'extelaf_amount': '75000000',
+        'cottage': '12345678',
+        'product_type': 'ذرت',
+        'product_country': 'برزیل',
+        'sales_agent_phone': '09123456789',
+        'sales_agent_name': 'کارشناس فروش نمونه',
+        'dakheli_number': '۳',
+        'shenase_takhsis': 'ABC123456789'
+    };
+    
+    // Toggle status field based on template type
+    function toggleStatusField() {
+        const templateType = document.getElementById('template_type').value;
+        const statusField = document.getElementById('status-field');
+        const statusSelect = document.getElementById('status');
+        const statusRequired = document.getElementById('status-required');
         
-        // تعریف مسیرهای دسترسی کامل به فیلدها و مقادیر نمونه برای پیش‌نمایش
-        const placeholderPaths = {
-            'customer_name': 'customer.name',
-            'purchase_number': 'purchase.purchase_number',
-            'invoice_id': 'purchase.invoice_id',
-            'order_weight': 'purchase.order_weight',
-            'customer_price': 'purchase.customer_price',
-            'amount_paid': 'purchase.amount_paid',
-            'barnameh': 'purchase.barnameh',
-            'barnameh_date': 'purchase.barnameh_date',
-            'driver_name': 'purchase.driver_name',
-            'driver_phone': 'purchase.driver_phone',
-            'extelaf_type': 'purchase.extelaf_type',
-            'extelaf_weight': 'purchase.extelaf_weight',
-            'extelaf_amount': 'purchase.extelaf_amount',
-            'cottage': 'cargo.cottage',
-            'product_type': 'cargo.product_type',
-            'product_country': 'cargo.country',
-            'sales_agent_phone': 'customer.sales_agent.phone_number',
-            'sales_agent_name': 'customer.sales_agent.name',
-            'dakheli_number': 'customer.sales_agent.dakheli_number',
-            'shenase_takhsis': 'purchase.shenase_takhsis'
-        };
-        
-        // مقادیر نمونه برای پیش‌نمایش
-        const sampleData = {
-            'customer_name': 'مشتری نمونه',
-            'purchase_number': '1234567',
-            'invoice_id': '12345',
-            'order_weight': '25000',
-            'customer_price': '150000',
-            'amount_paid': '3750000000',
-            'barnameh': 'B-987654',
-            'barnameh_date': '1402/05/01',
-            'driver_name': 'علی محمدی',
-            'driver_phone': '09123456789',
-            'extelaf_type': 'سرک',
-            'extelaf_weight': '500',
-            'extelaf_amount': '75000000',
-            'cottage': '12345678',
-            'product_type': 'ذرت',
-            'product_country': 'برزیل',
-            'sales_agent_phone': '09123456789',
-            'sales_agent_name': 'کارشناس فروش نمونه',
-            'dakheli_number': '۳',
-            'shenase_takhsis': 'ABC123456789'
-        };
-        
-        // افزودن متغیر به متن
-        placeholderButtons.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const placeholder = this.dataset.placeholder;
-                const cursorPos = contentTextarea.selectionStart;
-                const textBefore = contentTextarea.value.substring(0, cursorPos);
-                const textAfter = contentTextarea.value.substring(cursorPos);
-                
-                contentTextarea.value = textBefore + '{{ ' + placeholder + ' }}' + textAfter;
-                updatePreview();
-                
-                // قرار دادن کرسر بعد از متغیر اضافه شده
-                const newCursorPos = cursorPos + placeholder.length + 6; // 6 برای علامت‌های آکولاد و فاصله‌ها
-                contentTextarea.focus();
-                contentTextarea.setSelectionRange(newCursorPos, newCursorPos);
-            });
+        if (templateType === 'purchase') {
+            statusField.style.display = 'block';
+            statusSelect.required = true;
+            statusRequired.style.display = 'inline';
+        } else {
+            statusField.style.display = 'none';
+            statusSelect.required = false;
+            statusRequired.style.display = 'none';
+            statusSelect.value = '';
+        }
+    }
+    
+    // Initialize toggle on page load
+    toggleStatusField();
+    
+    // افزودن متغیر به متن
+    placeholderButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const placeholder = this.dataset.placeholder;
+            const cursorPos = contentTextarea.selectionStart;
+            const textBefore = contentTextarea.value.substring(0, cursorPos);
+            const textAfter = contentTextarea.value.substring(cursorPos);
+            
+            contentTextarea.value = textBefore + '{{ ' + placeholder + ' }}' + textAfter;
+            updatePreview();
+            
+            // قرار دادن کرسر بعد از متغیر اضافه شده
+            const newCursorPos = cursorPos + placeholder.length + 6; // 6 برای علامت‌های آکولاد و فاصله‌ها
+            contentTextarea.focus();
+            contentTextarea.setSelectionRange(newCursorPos, newCursorPos);
         });
+    });
+    
+    // به‌روزرسانی پیش‌نمایش
+    function updatePreview() {
+        let previewText = contentTextarea.value;
         
-        // به‌روزرسانی پیش‌نمایش
-        function updatePreview() {
-            let previewText = contentTextarea.value;
-            
-            // جایگزینی متغیرها با مقادیر نمونه
-            for (const [key, value] of Object.entries(sampleData)) {
-                const regex = new RegExp('{{\\s*' + key + '\\s*}}', 'g');
-                previewText = previewText.replace(regex, value);
-            }
-            
-            previewBox.textContent = previewText;
-            
-            // شمارش کاراکترها
-            const charLength = contentTextarea.value.length;
-            charCount.textContent = charLength;
-            
-            // محاسبه تعداد پیامک - هر پیامک حداکثر 160 کاراکتر
-            const msgCount = Math.ceil(charLength / 160);
-            smsCount.textContent = msgCount;
+        // جایگزینی متغیرها با مقادیر نمونه
+        for (const [key, value] of Object.entries(sampleData)) {
+            const regex = new RegExp('\\{\\{\\s*' + key + '\\s*\\}\\}', 'g');
+            previewText = previewText.replace(regex, value);
         }
         
-        // به‌روزرسانی اولیه
-        updatePreview();
+        previewBox.textContent = previewText;
         
-        // رویداد تغییر محتوا
-        contentTextarea.addEventListener('input', updatePreview);
-    });
+        // شمارش کاراکترها
+        const charLength = contentTextarea.value.length;
+        charCount.textContent = charLength;
+        
+        // محاسبه تعداد پیامک - هر پیامک حداکثر 160 کاراکتر
+        const msgCount = Math.ceil(charLength / 160);
+        smsCount.textContent = msgCount;
+    }
+    
+    // به‌روزرسانی اولیه
+    updatePreview();
+    
+    // رویداد تغییر محتوا
+    contentTextarea.addEventListener('input', updatePreview);
+    
+    // Add global function for template type toggle
+    window.toggleStatusField = toggleStatusField;
+});
 </script>
 {% endblock %} 

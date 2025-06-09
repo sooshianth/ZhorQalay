@@ -3,294 +3,1055 @@
 
 {% block title %}مدیریت قالب‌های واتساپ{% endblock %}
 
-{% block styles %}
+{% block content %}
 <style>
-    .placeholder-badge {
-        margin: 3px;
-        cursor: pointer;
-        transition: all 0.3s;
+/* همان استایل‌های قبلی */
+:root {
+    --whatsapp-primary: #25d366;
+    --whatsapp-secondary: #128c7e;
+    --whatsapp-accent: #dcf8c6;
+    --whatsapp-light: #e8f5e8;
+    --whatsapp-danger: #d32f2f;
+    --whatsapp-warning: #f57c00;
+    --whatsapp-success: #2e7d32;
+    --whatsapp-info: #1565c0;
+    --whatsapp-border-radius: 8px;
+    --whatsapp-box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    --whatsapp-transition: all 0.3s ease;
+    --whatsapp-font-family: 'Vazir', sans-serif;
+}
+
+.container-fluid {
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: -15px;
+    margin-left: -15px;
+}
+
+.col-md-1, .col-md-2, .col-md-3, .col-md-4, .col-md-5, .col-md-6,
+.col-md-7, .col-md-8, .col-md-9, .col-md-10, .col-md-11, .col-md-12 {
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.col-md-1 { flex: 0 0 8.333333%; max-width: 8.333333%; }
+.col-md-2 { flex: 0 0 16.666667%; max-width: 16.666667%; }
+.col-md-3 { flex: 0 0 25%; max-width: 25%; }
+.col-md-4 { flex: 0 0 33.333333%; max-width: 33.333333%; }
+.col-md-5 { flex: 0 0 41.666667%; max-width: 41.666667%; }
+.col-md-6 { flex: 0 0 50%; max-width: 50%; }
+.col-md-7 { flex: 0 0 58.333333%; max-width: 58.333333%; }
+.col-md-8 { flex: 0 0 66.666667%; max-width: 66.666667%; }
+.col-md-9 { flex: 0 0 75%; max-width: 75%; }
+.col-md-10 { flex: 0 0 83.333333%; max-width: 83.333333%; }
+.col-md-11 { flex: 0 0 91.666667%; max-width: 91.666667%; }
+.col-md-12 { flex: 0 0 100%; max-width: 100%; }
+
+.mt-4 { margin-top: 1.5rem !important; }
+.mb-4 { margin-bottom: 1.5rem !important; }
+.mb-3 { margin-bottom: 1rem !important; }
+.mb-2 { margin-bottom: 0.5rem !important; }
+.mb-0 { margin-bottom: 0 !important; }
+.text-end { text-align: left !important; }
+.text-center { text-align: center !important; }
+.text-muted { color: #6c757d !important; }
+.text-danger { color: var(--whatsapp-danger) !important; }
+.text-success { color: var(--whatsapp-success) !important; }
+.text-warning { color: var(--whatsapp-warning) !important; }
+.text-info { color: var(--whatsapp-info) !important; }
+.text-white { color: white !important; }
+
+.d-flex { display: flex !important; }
+.flex-wrap { flex-wrap: wrap !important; }
+.justify-content-between { justify-content: space-between !important; }
+.justify-content-center { justify-content: center !important; }
+.align-items-center { align-items: center !important; }
+.align-items-end { align-items: flex-end !important; }
+.w-100 { width: 100% !important; }
+.h-100 { height: 100% !important; }
+.position-relative { position: relative !important; }
+.position-absolute { position: absolute !important; }
+.position-fixed { position: fixed !important; }
+
+.card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    word-wrap: break-word;
+    background-color: white;
+    background-clip: border-box;
+    border: 1px solid rgba(0, 0, 0, 0.125);
+    border-radius: var(--whatsapp-border-radius);
+    box-shadow: var(--whatsapp-box-shadow);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    border-top-left-radius: calc(var(--whatsapp-border-radius) - 1px);
+    border-top-right-radius: calc(var(--whatsapp-border-radius) - 1px);
+}
+
+.card-body {
+    flex: 1 1 auto;
+    padding: 1.25rem;
+}
+
+.bg-primary {
+    background-color: var(--whatsapp-primary) !important;
+    color: white;
+}
+
+.btn {
+    display: inline-block;
+    font-weight: 400;
+    color: #212529;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    background-color: transparent;
+    border: 1px solid transparent;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    border-radius: var(--whatsapp-border-radius);
+    transition: var(--whatsapp-transition);
+    text-decoration: none;
+    font-family: var(--whatsapp-font-family);
+}
+
+.btn:hover {
+    text-decoration: none;
+}
+
+.btn-primary {
+    color: white;
+    background-color: var(--whatsapp-primary);
+    border-color: var(--whatsapp-primary);
+}
+
+.btn-primary:hover {
+    background-color: var(--whatsapp-secondary);
+    border-color: var(--whatsapp-secondary);
+}
+
+.btn-secondary {
+    color: white;
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+}
+
+.btn-success {
+    color: white;
+    background-color: var(--whatsapp-success);
+    border-color: var(--whatsapp-success);
+}
+
+.btn-success:hover {
+    background-color: #1e5c23;
+    border-color: #1a5520;
+}
+
+.btn-info {
+    color: white;
+    background-color: var(--whatsapp-info);
+    border-color: var(--whatsapp-info);
+}
+
+.btn-info:hover {
+    background-color: #0d4c8c;
+    border-color: #0c4080;
+}
+
+.btn-warning {
+    color: white;
+    background-color: var(--whatsapp-warning);
+    border-color: var(--whatsapp-warning);
+}
+
+.btn-warning:hover {
+    background-color: #e56a00;
+    border-color: #d16200;
+}
+
+.btn-danger {
+    color: white;
+    background-color: var(--whatsapp-danger);
+    border-color: var(--whatsapp-danger);
+}
+
+.btn-danger:hover {
+    background-color: #b71d1d;
+    border-color: #a61a1a;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    border-radius: 0.2rem;
+}
+
+.btn-group {
+    position: relative;
+    display: inline-flex;
+    vertical-align: middle;
+}
+
+.btn-group > .btn {
+    position: relative;
+    flex: 1 1 auto;
+}
+
+.btn-group > .btn:not(:first-child) {
+    margin-right: -1px;
+}
+
+.btn-group > .btn:not(:last-child):not(.dropdown-toggle) {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.btn-group > .btn:not(:first-child) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-control {
+    display: block;
+    width: 100%;
+    height: calc(1.5em + 0.75rem + 2px);
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #495057;
+    background-color: white;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: var(--whatsapp-border-radius);
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    font-family: var(--whatsapp-font-family);
+}
+
+.form-control:focus {
+    color: #495057;
+    background-color: white;
+    border-color: var(--whatsapp-accent);
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(37, 211, 102, 0.25);
+}
+
+.alert {
+    position: relative;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: var(--whatsapp-border-radius);
+}
+
+.alert-info {
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25em 0.4em;
+    font-size: 75%;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+}
+
+.bg-success.badge {
+    background-color: var(--whatsapp-success) !important;
+}
+
+.template-status-group {
+    margin-bottom: 25px;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--whatsapp-border-radius);
+    background-color: white;
+    box-shadow: var(--whatsapp-box-shadow);
+}
+
+.status-header {
+    background: linear-gradient(135deg, var(--whatsapp-primary), var(--whatsapp-secondary));
+    color: white;
+    padding: 15px 20px;
+    border-radius: var(--whatsapp-border-radius) var(--whatsapp-border-radius) 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status-templates {
+    padding: 20px;
+}
+
+.template-count-badge {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 0.85em;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.default-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: linear-gradient(45deg, #ffd700, #ffed4e);
+    color: #333;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7em;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    border: 1px solid #e6c200;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.default-star {
+    color: #ff6b00;
+    font-size: 0.8em;
+    text-shadow: 0 0 3px rgba(255, 107, 0, 0.5);
+}
+
+.template-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--whatsapp-border-radius);
+    padding: 20px;
+    margin-bottom: 15px;
+    position: relative;
+    transition: var(--whatsapp-transition);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.template-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--whatsapp-box-shadow);
+}
+
+.template-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.template-name {
+    font-weight: 600;
+    font-size: 1.1em;
+    color: var(--whatsapp-primary);
+    margin: 0;
+}
+
+.template-badge {
+    background: var(--whatsapp-light);
+    color: var(--whatsapp-primary);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8em;
+    font-weight: 500;
+}
+
+.template-badge.default {
+    background: linear-gradient(45deg, #ffd700, #ffed4e);
+    color: #333;
+}
+
+/* استایل‌های بهبود یافته برای دکمه‌های عملیات */
+.template-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 15px;
+    border-top: 1px solid #f1f5f9;
+    margin-top: 15px;
+}
+
+.template-meta {
+    font-size: 0.85em;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-group-enhanced {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.btn-enhanced {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    line-height: 1.2;
+    text-decoration: none;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+    min-width: 36px;
+    height: 36px;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-enhanced:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.btn-enhanced:hover:before {
+    left: 100%;
+}
+
+.btn-enhanced:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    text-decoration: none;
+}
+
+.btn-enhanced:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-outline-info {
+    color: var(--whatsapp-info);
+    border-color: var(--whatsapp-info);
+    background-color: transparent;
+}
+
+.btn-outline-info:hover {
+    color: white;
+    background-color: var(--whatsapp-info);
+    border-color: var(--whatsapp-info);
+}
+
+.btn-outline-primary {
+    color: var(--whatsapp-primary);
+    border-color: var(--whatsapp-primary);
+    background-color: transparent;
+}
+
+.btn-outline-primary:hover {
+    color: white;
+    background-color: var(--whatsapp-primary);
+    border-color: var(--whatsapp-primary);
+}
+
+.btn-outline-success {
+    color: var(--whatsapp-success);
+    border-color: var(--whatsapp-success);
+    background-color: transparent;
+}
+
+.btn-outline-success:hover {
+    color: white;
+    background-color: var(--whatsapp-success);
+    border-color: var(--whatsapp-success);
+}
+
+.btn-outline-warning {
+    color: var(--whatsapp-warning);
+    border-color: var(--whatsapp-warning);
+    background-color: transparent;
+}
+
+.btn-outline-warning:hover {
+    color: white;
+    background-color: var(--whatsapp-warning);
+    border-color: var(--whatsapp-warning);
+}
+
+.btn-outline-danger {
+    color: var(--whatsapp-danger);
+    border-color: var(--whatsapp-danger);
+    background-color: transparent;
+}
+
+.btn-outline-danger:hover {
+    color: white;
+    background-color: var(--whatsapp-danger);
+    border-color: var(--whatsapp-danger);
+}
+
+/* تأثیرات بصری بهبود یافته */
+.btn-enhanced i {
+    font-size: 0.9em;
+}
+
+.btn-enhanced[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 120%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    z-index: 1000;
+    opacity: 0;
+    animation: tooltipFadeIn 0.2s ease-in-out forwards;
+}
+
+@keyframes tooltipFadeIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(5px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* بهبود کیفیت نمایش کارت‌ها */
+.template-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-left: 4px solid transparent;
+}
+
+.template-card:hover {
+    border-left-color: var(--whatsapp-primary);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.template-card.default {
+    border-left-color: #ffd700;
+}
+
+/* بهبود نمایش محتوای قالب */
+.template-content {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 0.9em;
+    line-height: 1.5;
+    max-height: 100px;
+    overflow-y: auto;
+}
+
+.template-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.template-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 2px;
+}
+
+.template-content::-webkit-scrollbar-thumb {
+    background: var(--whatsapp-accent);
+    border-radius: 2px;
+}
+
+.template-content::-webkit-scrollbar-thumb:hover {
+    background: var(--whatsapp-primary);
+}
+
+.template-card-body {
+    margin-bottom: 15px;
+}
+
+.template-preview {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px;
+    margin: 10px 0;
+    font-size: 0.9em;
+    line-height: 1.5;
+    color: #4a5568;
+    direction: rtl;
+    font-family: tahoma, arial, sans-serif;
+}
+
+.template-content {
+    max-height: 80px;
+    overflow: hidden;
+    position: relative;
+}
+
+.template-content::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 20px;
+    background: linear-gradient(transparent, #f8fafc);
+    pointer-events: none;
+}
+
+@media (max-width: 768px) {
+    .col-md-1, .col-md-2, .col-md-3, .col-md-4, .col-md-5, .col-md-6,
+    .col-md-7, .col-md-8, .col-md-9, .col-md-10, .col-md-11, .col-md-12 {
+        flex: 0 0 100%;
+        max-width: 100%;
     }
-    .placeholder-badge:hover {
-        transform: scale(1.05);
-    }
+
     .template-card {
-        transition: all 0.3s;
-        position: relative;
+        padding: 15px;
+        margin-bottom: 10px;
     }
-    .template-card:hover {
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        transform: translateY(-3px);
+}
+
+    .btn-enhanced:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
-    .template-content {
-        max-height: 100px;
-        overflow: hidden;
-        position: relative;
+
+    /* Action Buttons in Footer */
+    .template-card-footer {
+        background: #f8f9fa;
+        border-top: 1px solid #e9ecef;
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
-    .template-content::after {
-        content: "";
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        height: 20px;
-        background: linear-gradient(transparent, white);
+
+    .template-meta {
+        font-size: 0.8rem;
+        color: #6c757d;
     }
-    .default-badge {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 10;
-        background-color: #25d366;
+
+    /* Info Alert Enhancement */
+    .info-alert {
+        background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+        border: 1px solid #90caf9;
+        border-radius: var(--whatsapp-border-radius);
+        padding: 1rem;
+        margin-bottom: 2rem;
+        color: #0d47a1;
+    }
+
+    .info-alert i {
+        color: var(--whatsapp-info);
+        margin-left: 0.5rem;
+    }
+
+    .success-badge-template {
+        background: var(--whatsapp-success);
         color: white;
         padding: 3px 8px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: bold;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
     }
-    .default-star {
-        color: gold;
-        margin-right: 5px;
+
+    /* Responsive Improvements */
+    @media (max-width: 768px) {
+        .template-list-container {
+            padding: 0.5rem;
+        }
+
+        .stats-cards {
+            grid-template-columns: 1fr;
+        }
+
+        .btn-group-enhanced {
+            flex-direction: column;
+        }
+
+        .template-card-footer {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: stretch;
+        }
     }
-    .template-status-group {
-        margin-bottom: 30px;
-        border: 1px solid #eee;
-        border-radius: 8px;
+
+    /* Stats Cards Grid */
+    .stats-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stats-card {
+        background: linear-gradient(135deg, var(--whatsapp-primary), var(--whatsapp-secondary));
+        color: white;
+        padding: 2rem;
+        border-radius: var(--whatsapp-border-radius);
+        box-shadow: var(--whatsapp-box-shadow);
+        position: relative;
         overflow: hidden;
     }
-    .status-header {
-        background-color: #f8f9fa;
-        padding: 10px 15px;
-        border-bottom: 1px solid #eee;
-        font-weight: bold;
+
+    .stats-card h5 {
+        margin: 0 0 1rem 0;
+        font-size: 0.9rem;
+        opacity: 0.9;
+        font-weight: 500;
     }
-    .status-templates {
-        padding: 15px;
+
+    .stats-card h2 {
+        margin: 0;
+        font-size: 2.5rem;
+        font-weight: 700;
     }
-    .template-count-badge {
-        background-color: #6c757d;
-        color: white;
-        border-radius: 20px;
-        padding: 2px 8px;
-        font-size: 0.8rem;
-        margin-right: 10px;
+
+    .stats-card.bg-success {
+        background: linear-gradient(135deg, var(--whatsapp-success), #1e5c23);
+    }
+
+    .stats-card.bg-info {
+        background: linear-gradient(135deg, var(--whatsapp-info), #0d4c8c);
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: var(--whatsapp-border-radius);
+        box-shadow: var(--whatsapp-box-shadow);
+        margin-bottom: 2rem;
+    }
+
+    .filter-card .card-header {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        border-bottom: 1px solid #e2e8f0;
+        padding: 1rem 1.25rem;
     }
 </style>
-{% endblock %}
-
-{% block content %}
-<div class="container-fluid mt-4">
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <h2>مدیریت قالب‌های واتساپ</h2>
+<div class="template-list-container">
+    <div class="container-fluid mt-4">
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h2 style="color: var(--whatsapp-primary);"><i class="fab fa-whatsapp"></i> مدیریت قالب‌های واتساپ</h2>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{% url 'whatsapp_api:template_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> ایجاد قالب جدید
+                </a>
+                <a href="{% url 'whatsapp_api:template_check' %}" class="btn btn-info">
+                    <i class="fas fa-check-circle"></i> بررسی قالب‌ها
+                </a>
+            </div>
         </div>
-        <div class="col-md-4 text-end">
-            <a href="{% url 'whatsapp_api:template_create' %}" class="btn btn-success">
+
+        <!-- کارت‌های آمار بهبود یافته -->
+        <div class="stats-cards">
+            <div class="stats-card">
+                <h5>کل قالب‌ها</h5>
+                <h2>{{ total_count }}</h2>
+                <i class="fas fa-file-alt" style="position: absolute; bottom: 1rem; left: 1rem; font-size: 2rem; opacity: 0.3;"></i>
+            </div>
+            <div class="stats-card bg-success">
+                <h5>قالب‌های پیش‌فرض</h5>
+                <h2>{{ default_count }}</h2>
+                <i class="fas fa-star" style="position: absolute; bottom: 1rem; left: 1rem; font-size: 2rem; opacity: 0.3;"></i>
+            </div>
+            <div class="stats-card bg-info">
+                <h5>متغیرهای قالب</h5>
+                <h2>{{ placeholders|length }}</h2>
+                <i class="fas fa-tags" style="position: absolute; bottom: 1rem; left: 1rem; font-size: 2rem; opacity: 0.3;"></i>
+            </div>
+        </div>
+
+        <!-- فیلترها بهبود یافته -->
+        <div class="filter-card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-filter"></i> جستجو و فیلتر قالب‌ها</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" action="{% url 'whatsapp_api:template_list' %}">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="search"><i class="fas fa-search"></i> جستجو:</label>
+                                <input type="text" class="form-control" id="search" name="search" value="{{ search }}" placeholder="جستجو در نام، محتوا و توضیحات">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="template_type"><i class="fas fa-tags"></i> نوع قالب:</label>
+                                <select class="form-control" id="template_type" name="template_type">
+                                    <option value="">-- همه --</option>
+                                    {% for key, label in template_type_choices %}
+                                    <option value="{{ key }}" {% if template_type_filter == key %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="status"><i class="fas fa-layer-group"></i> وضعیت خرید:</label>
+                                <select class="form-control" id="status" name="status">
+                                    <option value="">-- همه --</option>
+                                    {% for key, label in status_choices %}
+                                    <option value="{{ key }}" {% if status_filter == key %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="is_active"><i class="fas fa-star"></i> قالب پیش‌فرض:</label>
+                                <select class="form-control" id="is_active" name="is_active">
+                                    <option value="">-- همه --</option>
+                                    <option value="true" {% if is_active == 'true' %}selected{% endif %}>بله</option>
+                                    <option value="false" {% if is_active == 'false' %}selected{% endif %}>خیر</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-filter"></i> فیلتر
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- توضیحات چند قالبی بهبود یافته -->
+        <div class="info-alert">
+            <i class="fas fa-info-circle"></i> 
+            برای هر وضعیت خرید می‌توانید چندین قالب ایجاد کنید و یکی را به عنوان پیش‌فرض انتخاب نمایید.
+            قالب پیش‌فرض با نشان <span class="success-badge-template"><i class="fas fa-star"></i> پیش‌فرض</span> مشخص شده است.
+        </div>
+
+        <!-- لیست قالب‌ها - نمایش گروه‌بندی‌شده بر اساس نوع قالب -->
+        {% regroup templates by template_type as type_list %}
+        
+        {% for type_group in type_list %}
+        <div class="template-status-group">
+            <div class="status-header">
+                <div style="display: flex; align-items: center;">
+                    <i class="fas fa-layer-group"></i>
+                    {% if type_group.grouper == 'purchase' %}
+                        قالب‌های مربوط به خرید
+                    {% elif type_group.grouper == 'marketing' %}
+                        قالب‌های تبلیغاتی
+                    {% elif type_group.grouper == 'product' %}
+                        قالب‌های ارسال محصولات
+                    {% else %}
+                        سایر قالب‌ها
+                    {% endif %}
+                </div>
+                <div class="template-count-badge">
+                    <i class="fas fa-file-alt"></i>
+                    {{ type_group.list|length }} قالب
+                </div>
+            </div>
+            <div class="status-templates">
+                <div class="row">
+                    {% for template in type_group.list %}
+                    <div class="col-md-6 mb-3">
+                        <div class="template-card h-100">
+                            {% if template.is_active %}
+                            <div class="default-badge">
+                                <i class="fas fa-star default-star"></i> پیش‌فرض
+                            </div>
+                            {% endif %}
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0" style="color: var(--whatsapp-primary);"><i class="fab fa-whatsapp"></i> {{ template.name }}</h5>
+                                <small class="text-muted">{{ template.updated_at|date:"Y/m/d" }}</small>
+                                {% if template.template_type == 'purchase' and template.status %}
+                                <span class="badge bg-info">{{ template.get_status_display }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="card-body">
+                                <div class="template-content mb-3">
+                                    <pre style="white-space: pre-wrap; font-family: var(--whatsapp-font-family); color: #555; margin: 0;">{{ template.content }}</pre>
+                                </div>
+                                {% if template.description %}
+                                <div class="text-muted small">
+                                    <i class="fas fa-comment-alt"></i> <strong>توضیحات:</strong> {{ template.description }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="template-card-footer">
+                                <div class="template-meta">
+                                    <i class="fas fa-clock"></i> بروزرسانی: {{ template.updated_at|date:"Y/m/d H:i" }}
+                                </div>
+                                <div class="btn-group-enhanced">
+                                    <a href="{% url 'whatsapp_api:template_detail' template.id %}" class="btn-enhanced btn-outline-info" title="مشاهده جزئیات">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'whatsapp_api:template_edit' template.id %}" class="btn-enhanced btn-outline-primary" title="ویرایش">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'whatsapp_api:template_preview' template.id %}" class="btn-enhanced btn-outline-success" title="پیش‌نمایش">
+                                        <i class="fas fa-search"></i>
+                                    </a>
+                                    <a href="{% url 'whatsapp_api:template_test' template.id %}" class="btn-enhanced btn-outline-warning" title="تست ارسال">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </a>
+                                    {% if not template.is_active %}
+                                    <form method="post" action="{% url 'whatsapp_api:set_template_default' template.id %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn-enhanced btn-outline-success" title="تنظیم به عنوان پیش‌فرض">
+                                            <i class="fas fa-star"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                    <form method="post" action="{% url 'whatsapp_api:template_delete' template.id %}" class="d-inline" onsubmit="return confirm('آیا از حذف این قالب اطمینان دارید؟');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn-enhanced btn-outline-danger" title="حذف">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="alert alert-info text-center">
+            <i class="fab fa-whatsapp" style="font-size: 3rem; margin-bottom: 1rem; color: var(--whatsapp-info);"></i>
+            <h4>هیچ قالبی یافت نشد</h4>
+            <p>برای شروع، اولین قالب خود را ایجاد کنید.</p>
+            <a href="{% url 'whatsapp_api:template_create' %}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> ایجاد قالب جدید
             </a>
         </div>
-    </div>
+        {% endfor %}
 
-    <!-- کارت‌های آمار -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <h5 class="card-title">کل قالب‌ها</h5>
-                    <h2 class="display-4">{{ total_count }}</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <h5 class="card-title">قالب‌های پیش‌فرض</h5>
-                    <h2 class="display-4">{{ default_count }}</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <h5 class="card-title">متغیرهای قالب</h5>
-                    <h2 class="display-4">{{ placeholders|length }}</h2>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- فیلترها -->
-    <div class="card mb-4">
-        <div class="card-header bg-light">
-            <h5 class="mb-0">جستجو و فیلتر</h5>
-        </div>
-        <div class="card-body">
-            <form method="get" action="{% url 'whatsapp_api:template_list' %}">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label for="search">جستجو:</label>
-                            <input type="text" class="form-control" id="search" name="search" value="{{ search }}" placeholder="جستجو در نام، محتوا و توضیحات">
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label for="status">وضعیت خرید:</label>
-                            <select class="form-control" id="status" name="status">
-                                <option value="">-- همه --</option>
-                                {% for key, label in status_choices %}
-                                <option value="{{ key }}" {% if status_filter == key %}selected{% endif %}>{{ label }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label for="is_active">قالب پیش‌فرض:</label>
-                            <select class="form-control" id="is_active" name="is_active">
-                                <option value="">-- همه --</option>
-                                <option value="true" {% if is_active == 'true' %}selected{% endif %}>بله</option>
-                                <option value="false" {% if is_active == 'false' %}selected{% endif %}>خیر</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-1 d-flex align-items-end">
-                        <button type="submit" class="btn btn-success w-100">فیلتر</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- توضیحات چند قالبی -->
-    <div class="alert alert-info mb-4">
-        <i class="fas fa-info-circle"></i> 
-        برای هر وضعیت خرید می‌توانید چندین قالب ایجاد کنید و یکی را به عنوان پیش‌فرض انتخاب نمایید.
-        قالب پیش‌فرض با نشان <span class="badge bg-success"><i class="fas fa-star"></i> پیش‌فرض</span> مشخص شده است.
-    </div>
-
-    <!-- لیست قالب‌ها - نمایش گروه‌بندی‌شده بر اساس وضعیت -->
-    {% regroup templates by status as status_list %}
-    
-    {% for status_group in status_list %}
-    <div class="template-status-group">
-        <div class="status-header">
-            <i class="fas fa-layer-group"></i>
-            {{ status_group.grouper|default:"بدون وضعیت" }}
-            <span class="template-count-badge">{{ status_group.list|length }} قالب</span>
-        </div>
-        <div class="status-templates">
-            <div class="row">
-                {% for template in status_group.list %}
-                <div class="col-md-6 mb-3">
-                    <div class="card template-card h-100">
-                        {% if template.is_active %}
-                        <div class="default-badge">
-                            <i class="fas fa-star default-star"></i> پیش‌فرض
-                        </div>
-                        {% endif %}
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">{{ template.name }}</h5>
-                            <small class="text-muted">بروزرسانی: {{ template.updated_at|date:"Y/m/d" }}</small>
-                        </div>
-                        <div class="card-body">
-                            <div class="template-content mb-3">
-                                <pre class="text-muted">{{ template.content }}</pre>
-                            </div>
-                            <div class="text-muted small">
-                                <strong>نوع پیام:</strong> {{ template.get_template_type_display }}
-                            </div>
-                            {% if template.description %}
-                            <div class="text-muted small">
-                                <strong>توضیحات:</strong> {{ template.description }}
-                            </div>
-                            {% endif %}
-                        </div>
-                        <div class="card-footer d-flex justify-content-between bg-light">
-                            <div class="btn-group btn-group-sm">
-                                <a href="{% url 'whatsapp_api:template_detail' template.id %}" class="btn btn-outline-info" title="مشاهده">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="{% url 'whatsapp_api:template_edit' template.id %}" class="btn btn-outline-primary" title="ویرایش">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <a href="{% url 'whatsapp_api:template_preview' template.id %}" class="btn btn-outline-success" title="پیش‌نمایش">
-                                    <i class="fas fa-search"></i>
-                                </a>
-                                <a href="{% url 'whatsapp_api:template_test' template.id %}" class="btn btn-outline-warning" title="تست ارسال">
-                                    <i class="fas fa-paper-plane"></i>
-                                </a>
-                            </div>
-                            <div class="btn-group btn-group-sm">
-                                {% if not template.is_active %}
-                                <form method="post" action="{% url 'whatsapp_api:set_template_default' template.id %}" class="d-inline">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-outline-success" title="تنظیم به عنوان پیش‌فرض">
-                                        <i class="fas fa-star"></i>
-                                    </button>
-                                </form>
-                                {% endif %}
-                                <form method="post" action="{% url 'whatsapp_api:template_delete' template.id %}" class="d-inline" onsubmit="return confirm('آیا از حذف این قالب اطمینان دارید؟');">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-outline-danger" title="حذف">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-    {% empty %}
-    <div class="alert alert-info">
-        هیچ قالبی یافت نشد. <a href="{% url 'whatsapp_api:template_create' %}">ایجاد قالب جدید</a>
-    </div>
-    {% endfor %}
-    
-    <!-- پیجینیشن -->
-    {% if templates.has_other_pages %}
-    <nav aria-label="Page navigation">
-        <ul class="pagination justify-content-center">
-            {% if templates.has_previous %}
-            <li class="page-item">
-                <a class="page-link" href="?page=1{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}" aria-label="First">
-                    <span aria-hidden="true">&laquo;&laquo;</span>
-                </a>
-            </li>
-            <li class="page-item">
-                <a class="page-link" href="?page={{ templates.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}" aria-label="Previous">
-                    <span aria-hidden="true">&laquo;</span>
-                </a>
-            </li>
-            {% endif %}
-            
-            {% for i in templates.paginator.page_range %}
-                {% if templates.number == i %}
-                <li class="page-item active"><span class="page-link">{{ i }}</span></li>
-                {% elif i > templates.number|add:'-3' and i < templates.number|add:'3' %}
+        <!-- صفحه‌بندی بهبود یافته -->
+        {% if templates.has_other_pages %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if templates.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ i }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">{{ i }}</a>
+                    <a class="page-link" href="?page={{ templates.previous_page_number }}&search={{ search }}&status={{ status_filter }}&is_active={{ is_active }}">
+                        <i class="fas fa-chevron-right"></i> صفحه قبل
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="fas fa-chevron-right"></i> صفحه قبل</span>
                 </li>
                 {% endif %}
-            {% endfor %}
-            
-            {% if templates.has_next %}
-            <li class="page-item">
-                <a class="page-link" href="?page={{ templates.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}" aria-label="Next">
-                    <span aria-hidden="true">&raquo;</span>
-                </a>
-            </li>
-            <li class="page-item">
-                <a class="page-link" href="?page={{ templates.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}" aria-label="Last">
-                    <span aria-hidden="true">&raquo;&raquo;</span>
-                </a>
-            </li>
-            {% endif %}
-        </ul>
-    </nav>
-    {% endif %}
+
+                {% for i in templates.paginator.page_range %}
+                {% if templates.number == i %}
+                <li class="page-item active">
+                    <span class="page-link">{{ i }}</span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ i }}&search={{ search }}&status={{ status_filter }}&is_active={{ is_active }}">{{ i }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+
+                {% if templates.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ templates.next_page_number }}&search={{ search }}&status={{ status_filter }}&is_active={{ is_active }}">
+                        صفحه بعد <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">صفحه بعد <i class="fas fa-chevron-left"></i></span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.8/clipboard.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // افکت انیمیشن برای کارت‌های قالب
+        const templateCards = document.querySelectorAll('.template-card');
+        templateCards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                card.style.transition = 'all 0.5s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+
+        // کپی کلیپ‌بورد (اگر نیاز باشد)
+        var clipboard = new ClipboardJS('.btn-secondary');
+        
+        clipboard.on('success', function(e) {
+            const originalText = e.trigger.innerHTML;
+            e.trigger.innerHTML = '<i class="fas fa-check"></i> کپی شد!';
+            setTimeout(function() {
+                e.trigger.innerHTML = originalText;
+            }, 2000);
+            e.clearSelection();
+        });
+
+        // افکت hover بهبود یافته برای دکمه‌ها
+        const buttons = document.querySelectorAll('.btn-enhanced');
+        buttons.forEach(button => {
+            button.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px)';
+            });
+            
+            button.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+    });
+</script>
 {% endblock %} 

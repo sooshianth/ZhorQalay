@@ -60,24 +60,130 @@ class WhatsappTemplate(models.Model):
     ]
     
     STATUS_CHOICES = Purchase.STATUS_CHOICES
-    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='INITIATED', verbose_name="بعد از چه وضعیتی ارسال شود؟", blank=True, null=True)
-    name = models.CharField(max_length=100, verbose_name="نام تمپلیت")
-    template_type = models.CharField(max_length=30, choices=TEMPLATE_TYPES, default='purchase', verbose_name="نوع تمپلیت")
-    content = models.TextField(verbose_name="محتوا")
-    description = models.TextField(blank=True, null=True, verbose_name="توضیحات")
-    variables = models.JSONField(default=dict, verbose_name="متغیرهای قابل استفاده")
-    is_active = models.BooleanField(default=True, verbose_name="فعال")
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    is_for_salesmen = models.BooleanField(default=False, verbose_name="برای کارشناس فروش")
+    status = models.CharField(
+        max_length=30, 
+        choices=STATUS_CHOICES, 
+        blank=True, 
+        null=True, 
+        verbose_name="وضعیت خرید (برای قالب‌های خرید)",
+        help_text="این فیلد فقط برای قالب‌های مربوط به خرید ضروری است"
+    )
+    name = models.CharField(max_length=100, verbose_name="نام قالب")
+    template_type = models.CharField(
+        max_length=30, 
+        choices=TEMPLATE_TYPES, 
+        default='purchase', 
+        verbose_name="نوع قالب"
+    )
+    content = models.TextField(verbose_name="محتوای قالب")
+    description = models.TextField(
+        blank=True, 
+        null=True, 
+        verbose_name="توضیحات",
+        help_text="توضیح کوتاهی درباره کاربرد این قالب"
+    )
+    variables = models.JSONField(
+        default=dict, 
+        verbose_name="متغیرهای قابل استفاده",
+        help_text="متغیرهای استخراج شده از محتوای قالب"
+    )
+    is_active = models.BooleanField(
+        default=False, 
+        verbose_name="قالب پیش‌فرض",
+        help_text="آیا این قالب به عنوان پیش‌فرض استفاده شود؟"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین بروزرسانی")
+    is_for_salesmen = models.BooleanField(
+        default=False, 
+        verbose_name="برای کارشناس فروش",
+        help_text="آیا این قالب برای کارشناسان فروش قابل استفاده است؟"
+    )
 
     def __str__(self):
-        return f"{self.name} ({self.get_template_type_display()})"
+        status_part = f" - {self.get_status_display()}" if self.status else ""
+        active_part = " (پیش‌فرض)" if self.is_active else ""
+        return f"{self.name} ({self.get_template_type_display()}){status_part}{active_part}"
+
+    def clean(self):
+        """اعتبارسنجی قالب"""
+        from django.core.exceptions import ValidationError
+        
+        # برای قالب‌های خرید، وضعیت ضروری است
+        if self.template_type == 'purchase' and not self.status:
+            raise ValidationError({
+                'status': 'برای قالب‌های مربوط به خرید، انتخاب وضعیت ضروری است.'
+            })
+        
+        # برای قالب‌های غیر خرید، وضعیت نباید تنظیم شود
+        if self.template_type != 'purchase' and self.status:
+            self.status = None
+
+    def save(self, *args, **kwargs):
+        """ذخیره قالب با اعمال قوانین تجاری"""
+        # اجرای اعتبارسنجی
+        self.clean()
+        
+        # اگر این قالب پیش‌فرض می‌شود، بقیه قالب‌های مشابه را غیرفعال کن
+        if self.is_active:
+            if self.template_type == 'purchase' and self.status:
+                # برای قالب‌های خرید، بر اساس وضعیت
+                WhatsappTemplate.objects.filter(
+                    status=self.status, 
+                    template_type='purchase', 
+                    is_active=True
+                ).exclude(pk=self.pk).update(is_active=False)
+            else:
+                # برای قالب‌های دیگر، بر اساس نوع
+                WhatsappTemplate.objects.filter(
+                    template_type=self.template_type, 
+                    is_active=True
+                ).exclude(pk=self.pk).update(is_active=False)
+        
+        # استخراج متغیرها از محتوا
+        import re
+        variables = []
+        for match in re.finditer(r'{{(.+?)}}', self.content):
+            var_name = match.group(1).strip()
+            if var_name not in variables:
+                variables.append(var_name)
+        self.variables = {'used_variables': variables}
+        
+        super().save(*args, **kwargs)
+
+    @property
+    def character_count(self):
+        """تعداد کاراکترهای قالب"""
+        return len(self.content)
+    
+    @property
+    def message_count(self):
+        """تعداد پیام‌های مورد نیاز (بر اساس 160 کاراکتر)"""
+        return max(1, (self.character_count + 159) // 160)
+    
+    @property
+    def used_variables(self):
+        """لیست متغیرهای استفاده شده در قالب"""
+        return self.variables.get('used_variables', [])
 
     class Meta:
-        verbose_name = "تمپلیت واتساپ"
-        verbose_name_plural = "تمپلیت‌های واتساپ"
-        ordering = ['template_type', 'name']
+        verbose_name = "قالب واتساپ"
+        verbose_name_plural = "قالب‌های واتساپ"
+        ordering = ['template_type', '-is_active', 'name']
+        
+        # محدودیت یکتایی: فقط یک قالب پیش‌فرض برای هر نوع و وضعیت
+        constraints = [
+            models.UniqueConstraint(
+                fields=['template_type', 'status'],
+                condition=models.Q(is_active=True, template_type='purchase'),
+                name='unique_active_purchase_template_per_status'
+            ),
+            models.UniqueConstraint(
+                fields=['template_type'],
+                condition=models.Q(is_active=True) & ~models.Q(template_type='purchase'),
+                name='unique_active_template_per_type'
+            ),
+        ]
         
     @staticmethod
     def get_available_placeholders():
@@ -107,9 +213,7 @@ class WhatsappTemplate(models.Model):
             'shenase_takhsis': 'شناسه تخصیص',
         }
 
-    def save(self, *args, **kwargs):
-        # Make sure template_type matches status for backward compatibility
-        super().save(*args, **kwargs)
+
 
 
 class WhatsappQueue(models.Model):

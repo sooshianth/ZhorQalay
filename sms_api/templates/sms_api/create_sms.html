@@ -1609,8 +1609,13 @@
         const textBefore = messageField.value.substring(0, cursorPos);
         const textAfter = messageField.value.substring(cursorPos);
         
-        // Format product details
-        const productDetails = `${product.productType} ${product.productCountry} (کوتاژ: ${product.cottage}) - ${product.weight} کیلوگرم`;
+        // Format comprehensive product details
+        const productDetails = `
+محصول: ${product.productType} ${product.productCountry}
+کوتاژ: ${product.cottage}
+محل بارگیری: ${product.port || 'تعیین نشده'}
+قیمت فروش: ${product.customerPrice || 'تعیین نشده'}
+زمان بارگیری: ${product.loadingTime || 'تعیین نشده'}`;
         
         // Insert at cursor position
         messageField.value = textBefore + productDetails + textAfter;
@@ -1627,7 +1632,7 @@
         messageField.setSelectionRange(newCursorPos, newCursorPos);
         
         // Show notification
-        showNotification(`جزئیات محصول "${product.productType} ${product.productCountry}" به متن اضافه شد`);
+        showNotification(`اطلاعات کامل محصول "${product.productType} ${product.productCountry}" به متن اضافه شد`);
     }
 </script>
 {% endblock %}

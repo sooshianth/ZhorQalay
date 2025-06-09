@@ -120,6 +120,62 @@
             background-color: #0d6efd;
             border-color: #0d6efd;
         }
+        
+        /* استایل برای سطرهای انتخاب شده */
+        .table tbody tr.selected-row {
+            background-color: #e3f2fd !important; /* آبی روشن */
+            border-left: 4px solid #2196f3 !important; /* آبی */
+            box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2) !important;
+        }
+        
+        .table tbody tr.selected-row td {
+            background-color: inherit !important;
+            color: #1976d2 !important;
+            font-weight: 500 !important;
+        }
+        
+        .table tbody tr.selected-row:hover {
+            background-color: #bbdefb !important;
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3) !important;
+        }
+        
+        /* تست manual - اگر کلاس test-selected اضافه شود */
+        .table tbody tr.test-selected {
+            background-color: #f44336 !important; /* قرمز برای تست */
+            color: white !important;
+        }
+        
+        /* انیمیشن نرم برای تغییرات */
+        .table tbody tr {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* نمایش تعداد انتخاب شده */
+        .selection-indicator {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: linear-gradient(135deg, #0d6efd, #0a58ca);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+            font-weight: 500;
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .selection-indicator.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .selection-indicator i {
+            margin-left: 8px;
+        }
 
         .modal-body {
             max-height: 70vh;
@@ -1044,7 +1100,7 @@
             data-factor-code="{% if purchase.factor_code %}1{% else %}0{% endif %}">
             <!-- Celda para checkbox de selección -->
             <td class="text-center">
-                <input type="checkbox" class="row-checkbox" data-id="{{ purchase.id }}" style="width: 18px; height: 18px; cursor: pointer;">
+                <input type="checkbox" class="row-checkbox" data-id="{{ purchase.id }}" style="width: 18px; height: 18px; cursor: pointer;" onchange="toggleRowSelection(this)">
             </td>
             {% for column in all_columns %}
                 {% if column.id in selected_columns %}
@@ -1306,7 +1362,7 @@
             data-factor-code="{% if purchase.factor_code %}1{% else %}0{% endif %}">
             <!-- Celda para checkbox de selección -->
             <td class="text-center">
-                <input type="checkbox" class="row-checkbox" data-id="{{ purchase.id }}" style="width: 18px; height: 18px; cursor: pointer;">
+                <input type="checkbox" class="row-checkbox" data-id="{{ purchase.id }}" style="width: 18px; height: 18px; cursor: pointer;" onchange="toggleRowSelection(this)">
             </td>
             {% for column in all_columns %}
                 {% if column.id in selected_columns %}
@@ -1622,6 +1678,12 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- نمایش تعداد انتخاب شده -->
+<div class="selection-indicator" id="selectionIndicator">
+    <i class="fas fa-check-square"></i>
+    <span id="selectionCount">0</span> مورد انتخاب شده
 </div>
 
 <!-- Aqui vai o script para ativar os filtros de tabela -->
@@ -2275,7 +2337,7 @@ function handlePaginationClick(event) {
     console.log('handlePaginationClick called - now handled by JavaScript pagination');
 }
 
-// مدیریت toggle آرشیو
+    // مدیریت toggle آرشیو
 document.addEventListener('DOMContentLoaded', function() {
     const archiveToggle = document.getElementById('toggleArchived');
     const archivedContent = document.getElementById('archivedContent');
@@ -2294,7 +2356,68 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // تست ساده برای مطمئن شدن از کارکرد CSS
+    console.log('Testing CSS...');
+    
+    // پیدا کردن اولین سطر جدول و اضافه کردن کلاس تست
+    setTimeout(function() {
+        const firstRow = document.querySelector('.table tbody tr');
+        if (firstRow) {
+            firstRow.classList.add('test-selected');
+            console.log('Added test-selected to first row');
+        }
+    }, 1000);
+    
+    // Event listener مستقیم برای چک‌باکس‌ها
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.classList.contains('row-checkbox')) {
+            console.log('Direct event listener triggered');
+            
+            const checkbox = e.target;
+            const row = checkbox.closest('tr');
+            
+            if (row) {
+                if (checkbox.checked) {
+                    row.classList.add('selected-row');
+                    row.style.backgroundColor = '#e3f2fd !important';
+                    row.style.borderLeft = '4px solid #2196f3';
+                    console.log('Row selected via direct listener');
+                } else {
+                    row.classList.remove('selected-row');
+                    row.style.backgroundColor = '';
+                    row.style.borderLeft = '';
+                    console.log('Row deselected via direct listener');
+                }
+            }
+        }
+    });
 });
+
+// تابع ساده برای تغییر رنگ سطر انتخاب شده
+function toggleRowSelection(checkbox) {
+    console.log('toggleRowSelection called:', checkbox.checked);
+    alert('تابع فراخوانی شد! چک‌باکس: ' + (checkbox.checked ? 'انتخاب شده' : 'انتخاب نشده'));
+    
+    const row = checkbox.closest('tr');
+    if (row) {
+        if (checkbox.checked) {
+            row.classList.add('selected-row');
+            row.style.backgroundColor = '#e3f2fd';
+            row.style.borderLeft = '4px solid #2196f3';
+            console.log('Row selected - added class and style');
+            alert('سطر انتخاب شد!');
+        } else {
+            row.classList.remove('selected-row');
+            row.style.backgroundColor = '';
+            row.style.borderLeft = '';
+            console.log('Row deselected - removed class and style');
+            alert('انتخاب سطر لغو شد!');
+        }
+    } else {
+        alert('سطر پیدا نشد!');
+    }
+}
 </script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>

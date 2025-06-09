@@ -152,6 +152,7 @@ STATICFILES_DIRS = [
     BASE_DIR / "table_filter/static",
     # BASE_DIR / "excel_manager/static",
     BASE_DIR / "sms_api/static",
+    BASE_DIR / "whatsapp_api/static",
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
