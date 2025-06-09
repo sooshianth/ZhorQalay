@@ -272,6 +272,7 @@ class TableFilter {
             if (table) {
                 const tbody = table.querySelector('tbody');
                 this.originalRows[tableId] = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
+                console.log(`Stored ${this.originalRows[tableId].length} original rows for table ${tableId}`);
             }
         });
     }
@@ -838,10 +839,26 @@ class TableFilter {
         if (columnIndex === -1 || columnIndex === undefined) return;
 
         this.sortTableByColumn(tableId, columnIndex, direction, columnId);
+        
+        // بستن تمام dropdown ها بعد از sorting
+        this.closeAllDropdowns();
 
         if (this.config.enableToast) {
             const columnName = this.columnMappings[tableId][columnId].name;
             this.showToast(`ستون "${columnName}" ${direction === 'asc' ? 'صعودی' : 'نزولی'} مرتب شد`);
+        }
+        
+        // بروزرسانی indicators و summary
+        if (this.config.enableIndicators) {
+            this.updateFilterIndicators();
+        }
+        
+        if (this.config.enableSummary) {
+            this.updateActiveFiltersSummary();
+        }
+        
+        if (this.config.enableClearAll) {
+            this.updateClearAllButton();
         }
     }
 
@@ -852,7 +869,23 @@ class TableFilter {
         const tbody = table.querySelector('tbody');
         if (!tbody) return;
 
-        const rows = Array.from(tbody.querySelectorAll('tr'));
+        // استفاده از originalRows به جای ردیف‌های مرئی فعلی
+        // تا تمام داده‌ها مرتب شوند نه فقط صفحه جاری
+        const rows = [...this.originalRows[tableId]];
+        
+        if (!rows || rows.length === 0) {
+            console.warn(`No original rows found for table ${tableId}`);
+            // فال بک: استفاده از ردیف‌های موجود در جدول
+            const fallbackRows = Array.from(tbody.querySelectorAll('tr'));
+            if (fallbackRows.length === 0) {
+                console.error(`No rows found at all in table ${tableId}`);
+                return;
+            }
+            rows.splice(0, rows.length, ...fallbackRows);
+            console.log(`Using fallback: ${rows.length} rows`);
+        }
+        
+        console.log(`Sorting ${rows.length} total rows for column ${columnId} in ${direction} order`);
         
         rows.sort((a, b) => {
             // استفاده از کلاس column-X به جای ایندکس
@@ -881,7 +914,27 @@ class TableFilter {
             }
         });
 
+        // پاک کردن tbody و اضافه کردن ردیف‌های مرتب شده
+        tbody.innerHTML = '';
         rows.forEach(row => tbody.appendChild(row));
+        
+        // بروزرسانی originalRows با ترتیب جدید
+        this.originalRows[tableId] = [...rows];
+        
+        // اعمال مجدد فیلترهای فعال
+        this.applyAllFilters();
+        
+        // اطلاع دادن به pagination که داده‌ها تغییر کرده‌اند
+        document.dispatchEvent(new CustomEvent('tableSorted', {
+            detail: {
+                tableId: tableId,
+                columnId: columnId,
+                direction: direction,
+                totalRows: rows.length
+            }
+        }));
+        
+        console.log(`Table ${tableId} sorted by column ${columnId} (${direction}). Total rows: ${rows.length}`);
     }
 
     updateSortVisuals(dropdown, activeOption) {
@@ -991,6 +1044,13 @@ class TableFilter {
         this.restoreAllRows();
         
         if (Object.keys(this.activeFilters).length === 0) {
+            // اگر فیلتری نیست، اطلاع دادن به pagination که همه ردیف‌ها قابل نمایش هستند
+            document.dispatchEvent(new CustomEvent('tableFilterApplied', {
+                detail: {
+                    activeFilters: this.activeFilters,
+                    hasActiveFilters: false
+                }
+            }));
             return;
         }
 
@@ -1028,6 +1088,14 @@ class TableFilter {
                 row.style.display = shouldShow ? '' : 'none';
             });
         });
+        
+        // اطلاع دادن به pagination که فیلتر اعمال شده
+        document.dispatchEvent(new CustomEvent('tableFilterApplied', {
+            detail: {
+                activeFilters: this.activeFilters,
+                hasActiveFilters: true
+            }
+        }));
     }
 
     restoreAllRows() {
