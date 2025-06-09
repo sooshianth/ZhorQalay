@@ -16,9 +16,9 @@ class PurchaseAggregatedStats {
         this.avgCompanyPriceElement = document.getElementById('avgCompanyPrice');
         this.avgCustomerPriceElement = document.getElementById('avgCustomerPrice');
         this.totalAmountPaidElement = document.getElementById('totalAmountPaid');
-        this.urgentPurchasesCountElement = document.getElementById('urgentPurchasesCount');
-        this.totalExtelafWeightElement = document.getElementById('totalExtelafWeight');
-        this.totalExtelafAmountElement = document.getElementById('totalExtelafAmount');
+        this.purchaseBaseInvoiceElement = document.getElementById('purchaseBaseInvoice');
+        this.salesBaseInvoiceElement = document.getElementById('salesBaseInvoice');
+        this.profitElement = document.getElementById('profit');
         
         this.init();
     }
@@ -202,9 +202,8 @@ class PurchaseAggregatedStats {
         let totalCompanyPrice = 0;
         let totalCustomerPrice = 0;
         let totalAmountPaid = 0;
-        let urgentCount = 0;
-        let totalExtelafWeight = 0;
-        let totalExtelafAmount = 0;
+        let purchaseBaseInvoice = 0;
+        let salesBaseInvoice = 0;
         let validCompanyPriceCount = 0;
         let validCustomerPriceCount = 0;
         
@@ -220,8 +219,6 @@ class PurchaseAggregatedStats {
             totalOrderWeight += data.orderWeight || 0;
             totalDeliveredWeight += data.deliveredWeight || 0;
             totalAmountPaid += data.amountPaid || 0;
-            totalExtelafWeight += data.extelafWeight || 0;
-            totalExtelafAmount += data.extelafAmount || 0;
             
             if (data.companyPrice > 0) {
                 totalCompanyPrice += data.companyPrice;
@@ -233,14 +230,28 @@ class PurchaseAggregatedStats {
                 validCustomerPriceCount++;
             }
             
-            if (data.isUrgent) {
-                urgentCount++;
+            // محاسبه فاکتور خرید و فروش مبنا بر اساس فرمول جدید
+            if (data.companyPrice > 0 && data.customerPrice > 0) {
+                // تعیین n بر اساس factor_code (که برابر با صدور فاکتور است)
+                const factorCode = data.isFactored; // فاکتور مبنا = صدور فاکتور
+                const n = factorCode ? 1 : 0;
+                
+                // محاسبه فاکتور خرید مبنا
+                const purchaseBase = (n * data.companyPrice * data.deliveredWeight) + ((1 - n) * data.companyPrice * data.orderWeight);
+                purchaseBaseInvoice += purchaseBase;
+                
+                // محاسبه فاکتور فروش مبنا
+                const salesBase = (n * data.customerPrice * data.deliveredWeight) + ((1 - n) * data.customerPrice * data.orderWeight);
+                salesBaseInvoice += salesBase;
             }
         });
         
         // محاسبه میانگین‌ها
         const avgCompanyPrice = validCompanyPriceCount > 0 ? totalCompanyPrice / validCompanyPriceCount : 0;
         const avgCustomerPrice = validCustomerPriceCount > 0 ? totalCustomerPrice / validCustomerPriceCount : 0;
+        
+        // محاسبه سود
+        const profit = salesBaseInvoice - purchaseBaseInvoice;
         
         // نمایش آمار
         this.displayStats({
@@ -249,9 +260,9 @@ class PurchaseAggregatedStats {
             avgCompanyPrice,
             avgCustomerPrice,
             totalAmountPaid,
-            urgentCount,
-            totalExtelafWeight,
-            totalExtelafAmount
+            purchaseBaseInvoice,
+            salesBaseInvoice,
+            profit
         });
     }
     
@@ -260,21 +271,23 @@ class PurchaseAggregatedStats {
         const stats = {
             totalOrderWeight: serverStats.total_order_weight,
             totalDeliveredWeight: serverStats.total_delivered_weight,
-            avgCustomerPrice: serverStats.avg_customer_price,
-            urgentCount: serverStats.urgent_purchases_count,
-            totalExtelafWeight: serverStats.total_extelaf_weight
+            avgCustomerPrice: serverStats.avg_customer_price
         };
         
         // آمار حساس فقط برای نقش‌های مجاز
         if (!hideSensitiveInfo) {
             stats.avgCompanyPrice = serverStats.avg_company_price || 0;
             stats.totalAmountPaid = serverStats.total_amount_paid || 0;
-            stats.totalExtelafAmount = serverStats.total_extelaf_amount || 0;
+            stats.purchaseBaseInvoice = serverStats.purchase_base_invoice || 0;
+            stats.salesBaseInvoice = serverStats.sales_base_invoice || 0;
+            stats.profit = serverStats.profit || 0;
         } else {
             // برای کارشناسان فروش و پیگیری
             stats.avgCompanyPrice = 0;
             stats.totalAmountPaid = 0;
-            stats.totalExtelafAmount = 0;
+            stats.purchaseBaseInvoice = 0;
+            stats.salesBaseInvoice = 0;
+            stats.profit = 0;
         }
         
         this.displayStats(stats);
@@ -299,14 +312,14 @@ class PurchaseAggregatedStats {
         if (this.totalAmountPaidElement) {
             this.totalAmountPaidElement.innerHTML = loadingText;
         }
-        if (this.urgentPurchasesCountElement) {
-            this.urgentPurchasesCountElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        if (this.purchaseBaseInvoiceElement) {
+            this.purchaseBaseInvoiceElement.innerHTML = loadingText;
         }
-        if (this.totalExtelafWeightElement) {
-            this.totalExtelafWeightElement.innerHTML = loadingText;
+        if (this.salesBaseInvoiceElement) {
+            this.salesBaseInvoiceElement.innerHTML = loadingText;
         }
-        if (this.totalExtelafAmountElement) {
-            this.totalExtelafAmountElement.innerHTML = loadingText;
+        if (this.profitElement) {
+            this.profitElement.innerHTML = loadingText;
         }
     }
     
@@ -333,64 +346,55 @@ class PurchaseAggregatedStats {
             companyPrice: 0,
             customerPrice: 0,
             amountPaid: 0,
-            extelafWeight: 0,
-            extelafAmount: 0,
-            isUrgent: false
+            isFactored: false
         };
         
         try {
+            // استفاده اولویت‌دار از data attributes که قابل اطمینان‌ترند
+            
             // استخراج وزن سفارش
-            const weightCell = row.querySelector('.column-weight');
-            if (weightCell) {
-                const weightText = weightCell.textContent.trim().replace(/,/g, '');
-                data.orderWeight = parseFloat(weightText) || 0;
+            const orderWeightAttr = row.getAttribute('data-order-weight');
+            if (orderWeightAttr && orderWeightAttr !== 'None') {
+                data.orderWeight = parseFloat(orderWeightAttr) || 0;
             }
             
             // استخراج وزن بارنامه شده
-            const deliveredWeightCell = row.querySelector('.column-delivered_weight');
-            if (deliveredWeightCell) {
-                const deliveredWeightText = deliveredWeightCell.textContent.trim().replace(/,/g, '');
-                data.deliveredWeight = parseFloat(deliveredWeightText) || 0;
+            const deliveredWeightAttr = row.getAttribute('data-delivered-weight');
+            if (deliveredWeightAttr && deliveredWeightAttr !== 'None') {
+                data.deliveredWeight = parseFloat(deliveredWeightAttr) || 0;
             }
             
             // استخراج قیمت خرید
-            const companyPriceCell = row.querySelector('.column-company_price');
-            if (companyPriceCell) {
-                const companyPriceText = companyPriceCell.textContent.trim().replace(/,/g, '').replace(/-/g, '0');
-                data.companyPrice = parseFloat(companyPriceText) || 0;
+            const companyPriceAttr = row.getAttribute('data-company-price');
+            if (companyPriceAttr && companyPriceAttr !== 'None') {
+                data.companyPrice = parseFloat(companyPriceAttr) || 0;
             }
             
             // استخراج قیمت فروش
-            const customerPriceCell = row.querySelector('.column-customer_price');
-            if (customerPriceCell) {
-                const customerPriceText = customerPriceCell.textContent.trim().replace(/,/g, '').replace(/-/g, '0');
-                data.customerPrice = parseFloat(customerPriceText) || 0;
+            const customerPriceAttr = row.getAttribute('data-customer-price');
+            if (customerPriceAttr && customerPriceAttr !== 'None') {
+                data.customerPrice = parseFloat(customerPriceAttr) || 0;
             }
             
             // استخراج مبلغ پرداختی
-            const amountPaidCell = row.querySelector('.column-amount_paid');
-            if (amountPaidCell) {
-                const amountPaidText = amountPaidCell.textContent.trim().replace(/,/g, '').replace(/-/g, '0');
-                data.amountPaid = parseFloat(amountPaidText) || 0;
+            const amountPaidAttr = row.getAttribute('data-amount-paid');
+            if (amountPaidAttr && amountPaidAttr !== 'None') {
+                data.amountPaid = parseFloat(amountPaidAttr) || 0;
             }
             
-            // استخراج وزن اختلاف
-            const extelafWeightCell = row.querySelector('.column-extelaf_weight');
-            if (extelafWeightCell) {
-                const extelafWeightText = extelafWeightCell.textContent.trim().replace(/,/g, '').replace(/-/g, '0');
-                data.extelafWeight = parseFloat(extelafWeightText) || 0;
+            // استخراج factor_code (فاکتور مبنا)
+            const factorCodeAttr = row.getAttribute('data-factor-code');
+            if (factorCodeAttr) {
+                data.isFactored = factorCodeAttr === '1';
+            } else {
+                // fallback: استخراج از data-is-factored
+                const isFactoredAttr = row.getAttribute('data-is-factored');
+                if (isFactoredAttr) {
+                    data.isFactored = isFactoredAttr === 'true';
+                }
             }
             
-            // استخراج مبلغ اختلاف
-            const extelafAmountCell = row.querySelector('.column-extelaf_amount');
-            if (extelafAmountCell) {
-                const extelafAmountText = extelafAmountCell.textContent.trim().replace(/,/g, '').replace(/-/g, '0');
-                data.extelafAmount = parseFloat(extelafAmountText) || 0;
-            }
-            
-            // بررسی وضعیت فوری
-            data.isUrgent = row.classList.contains('urgent-row') || 
-                           row.querySelector('.urgent-badge') !== null;
+            console.log(`استخراج داده برای ردیف ${row.getAttribute('data-id')}:`, data);
             
         } catch (error) {
             console.error('خطا در استخراج داده‌ها از سطر:', error);
@@ -423,17 +427,22 @@ class PurchaseAggregatedStats {
             this.totalAmountPaidElement.innerHTML = `${this.formatNumber(stats.totalAmountPaid)} <small>ریال</small>`;
         }
         
-        if (this.urgentPurchasesCountElement) {
-            this.urgentPurchasesCountElement.textContent = stats.urgentCount;
+        // نمایش فاکتور خرید مبنا فقط اگر مجاز باشد
+        if (this.purchaseBaseInvoiceElement && stats.purchaseBaseInvoice !== undefined) {
+            this.purchaseBaseInvoiceElement.innerHTML = `${this.formatNumber(stats.purchaseBaseInvoice)} <small>ریال</small>`;
         }
         
-        if (this.totalExtelafWeightElement) {
-            this.totalExtelafWeightElement.innerHTML = `${this.formatNumber(stats.totalExtelafWeight)} <small>کیلوگرم</small>`;
+        // نمایش فاکتور فروش مبنا فقط اگر مجاز باشد
+        if (this.salesBaseInvoiceElement && stats.salesBaseInvoice !== undefined) {
+            this.salesBaseInvoiceElement.innerHTML = `${this.formatNumber(stats.salesBaseInvoice)} <small>ریال</small>`;
         }
         
-        // نمایش مبلغ اختلاف فقط اگر مجاز باشد
-        if (this.totalExtelafAmountElement && stats.totalExtelafAmount !== undefined) {
-            this.totalExtelafAmountElement.innerHTML = `${this.formatNumber(stats.totalExtelafAmount)} <small>ریال</small>`;
+        // نمایش سود فقط اگر مجاز باشد
+        if (this.profitElement && stats.profit !== undefined) {
+            // تغییر رنگ بر اساس مثبت یا منفی بودن سود
+            const profitClass = stats.profit >= 0 ? 'text-success' : 'text-danger';
+            this.profitElement.innerHTML = `${this.formatNumber(stats.profit)} <small>ریال</small>`;
+            this.profitElement.className = `fw-bold ${profitClass}`;
         }
     }
     

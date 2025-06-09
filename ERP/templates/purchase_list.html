@@ -960,20 +960,20 @@
             </div>
             <div class="col-md-3 mb-3">
                 <div class="border rounded p-3 h-100 bg-light">
-                    <h6 class="text-muted mb-2">تعداد خریدهای فوری</h6>
-                    <h4 class="fw-bold text-danger" id="urgentPurchasesCount">0</h4>
+                    <h6 class="text-muted mb-2">فاکتور خرید مبنا</h6>
+                    <h4 class="fw-bold text-danger" id="purchaseBaseInvoice">0 <small>ریال</small></h4>
                 </div>
             </div>
             <div class="col-md-3 mb-3">
                 <div class="border rounded p-3 h-100 bg-light">
-                    <h6 class="text-muted mb-2">مجموع اختلاف وزن</h6>
-                    <h4 class="fw-bold text-warning" id="totalExtelafWeight">0 <small>کیلوگرم</small></h4>
+                    <h6 class="text-muted mb-2">فاکتور فروش مبنا</h6>
+                    <h4 class="fw-bold text-success" id="salesBaseInvoice">0 <small>ریال</small></h4>
                 </div>
             </div>
             <div class="col-md-3 mb-3">
                 <div class="border rounded p-3 h-100 bg-light">
-                    <h6 class="text-muted mb-2">مجموع مبلغ اختلاف</h6>
-                    <h4 class="fw-bold text-danger" id="totalExtelafAmount">0 <small>ریال</small></h4>
+                    <h6 class="text-muted mb-2">سود</h6>
+                    <h4 class="fw-bold text-info" id="profit">0 <small>ریال</small></h4>
                 </div>
             </div>
         </div>
@@ -1033,7 +1033,15 @@
     </thead>
     <tbody>
     {% for purchase in active_purchases %}
-        <tr class="{% if purchase.is_urgent %}urgent-row{% elif purchase.state == 'CANCELED' or purchase.is_canceled %}canceled-row{% endif %}" data-id="{{ purchase.id }}">
+        <tr class="{% if purchase.is_urgent %}urgent-row{% elif purchase.state == 'CANCELED' or purchase.is_canceled %}canceled-row{% endif %}" 
+            data-id="{{ purchase.id }}"
+            data-order-weight="{{ purchase.order_weight|default:0 }}"
+            data-delivered-weight="{{ purchase.delivered_weight|default:0 }}"
+            data-company-price="{{ purchase.company_price|default:0 }}"
+            data-customer-price="{{ purchase.customer_price|default:0 }}"
+            data-amount-paid="{{ purchase.amount_paid|default:0 }}"
+            data-is-factored="{% if purchase.is_factored %}true{% else %}false{% endif %}"
+            data-factor-code="{% if purchase.factor_code %}1{% else %}0{% endif %}">
             <!-- Celda para checkbox de selección -->
             <td class="text-center">
                 <input type="checkbox" class="row-checkbox" data-id="{{ purchase.id }}" style="width: 18px; height: 18px; cursor: pointer;">
@@ -1080,7 +1088,7 @@
                     {% elif column.id == 'customer_price' %}
                     <td class="column-{{ column.id }}">{{ purchase.customer_price|default:"-"|add_commas }}</td>
                     {% elif column.id == 'factor_code' %}
-                    <td class="column-{{ column.id }}">{{ purchase.factor_code|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.factor_code %}1{% else %}0{% endif %}</td>
                     {% elif column.id == 'tracking_number' %}
                     <td class="column-{{ column.id }}">{{ purchase.tracking_number|default:"-" }}</td>
                     {% elif column.id == 'shenase_takhsis' %}
@@ -1288,7 +1296,14 @@
     </thead>
     <tbody>
     {% for purchase in archived_purchases %}
-        <tr data-id="{{ purchase.id }}">
+        <tr data-id="{{ purchase.id }}"
+            data-order-weight="{{ purchase.order_weight|default:0 }}"
+            data-delivered-weight="{{ purchase.delivered_weight|default:0 }}"
+            data-company-price="{{ purchase.company_price|default:0 }}"
+            data-customer-price="{{ purchase.customer_price|default:0 }}"
+            data-amount-paid="{{ purchase.amount_paid|default:0 }}"
+            data-is-factored="{% if purchase.is_factored %}true{% else %}false{% endif %}"
+            data-factor-code="{% if purchase.factor_code %}1{% else %}0{% endif %}">
             <!-- Celda para checkbox de selección -->
             <td class="text-center">
                 <input type="checkbox" class="row-checkbox" data-id="{{ purchase.id }}" style="width: 18px; height: 18px; cursor: pointer;">
@@ -1326,7 +1341,7 @@
                     {% elif column.id == 'customer_price' %}
                     <td class="column-{{ column.id }}">{{ purchase.customer_price|default:"-"|add_commas }}</td>
                     {% elif column.id == 'factor_code' %}
-                    <td class="column-{{ column.id }}">{{ purchase.factor_code|default:"-" }}</td>
+                    <td class="column-{{ column.id }}">{% if purchase.factor_code %}1{% else %}0{% endif %}</td>
                     {% elif column.id == 'tracking_number' %}
                     <td class="column-{{ column.id }}">{{ purchase.tracking_number|default:"-" }}</td>
                     {% elif column.id == 'shenase_takhsis' %}

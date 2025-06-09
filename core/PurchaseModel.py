@@ -441,8 +441,10 @@ class Purchase(models.Model):
             priority='medium'
         )
         
+        # تنظیم is_factored روی True که خودکار factor_code را هم True می‌کند
         self.is_factored = True
-        self.save(update_fields=['is_factored'])
+        # factor_code خودکار در save method تنظیم می‌شود
+        self.save(update_fields=['is_factored', 'factor_code'])
         
         return self.change_state('INVOICE_ISSUED', user, 'فاکتور صادر شد')
         
@@ -526,6 +528,10 @@ class Purchase(models.Model):
             
     def save(self, *args, **kwargs):
         is_new = not self.pk  # Check if this is a new instance
+        
+        # 🔄 همگام‌سازی خودکار factor_code با is_factored
+        # وقتی is_factored تغییر کند، factor_code هم باید متناظر با آن تغییر کند
+        self.factor_code = self.is_factored
         
         # مکانیزم خودکار همگام‌سازی کارشناس فروش و نام
         try:

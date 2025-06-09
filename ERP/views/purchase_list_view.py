@@ -264,7 +264,7 @@ def purchase_list(request):
     all_columns = [
         {'id': 'purchase_number', 'name': 'شماره خرید', 'field': 'purchase_number', 'editable': True},
         {'id': 'date', 'name': 'تاریخ', 'field': 'created_at', 'format': 'date'},
-        {'id': 'customer', 'name': 'مشتری', 'field': 'customer.name', 'editable': False},
+        {'id': 'customer', 'name': 'نام مشتری', 'field': 'customer.name', 'editable': False},
         {'id': 'invoice_id', 'name': 'کد درون سازمانی', 'field': 'invoice_id', 'editable': True},
         {'id': 'sales_agent', 'name': 'نماینده فروش', 'field': 'customer.sales_agent.name', 'editable': False},
         {'id': 'weight', 'name': 'وزن', 'field': 'order_weight', 'editable': True, 'unit': 'کیلوگرم'},
@@ -274,7 +274,7 @@ def purchase_list(request):
         # ستون‌های اضافی
         {'id': 'address', 'name': 'آدرس', 'field': 'address', 'editable': False},
         {'id': 'description', 'name': 'توضیحات', 'field': 'description', 'editable': False},
-        {'id': 'factor_code', 'name': 'فاکتور کد', 'field': 'factor_code', 'editable': False},
+        {'id': 'factor_code', 'name': 'فاکتور مبنا', 'field': 'factor_code', 'editable': False},
         {'id': 'tracking_number', 'name': 'شماره پیگیری', 'field': 'tracking_number', 'editable': False},
         {'id': 'shenase_takhsis', 'name': 'شناسه‌های تخصیص', 'field': 'shenase_takhsis_set', 'editable': False},
         {'id': 'code_melli_tahvil', 'name': 'کد ملی تحویل', 'field': 'code_melli_tahvil', 'editable': False},
@@ -518,7 +518,7 @@ def export_to_excel(request):
             'description': ('توضیحات', lambda p: p.description or "-"),
             'company_price': ('فی خرید (ریال)', lambda p: f"{p.company_price:,}" if p.company_price else "0"),
             'customer_price': ('فی فروش (ریال)', lambda p: f"{p.customer_price:,}" if p.customer_price else "0"),
-            'factor_code': ('فاکتور کد', lambda p: "بله" if p.factor_code else "خیر"),
+            'factor_code': ('فاکتور مبنا', lambda p: "1" if p.factor_code else "0"),
             'tracking_number': ('شماره پیگیری', lambda p: p.tracking_number or "-"),
             'shenase_takhsis': ('شناسه‌های تخصیص', lambda p: ", ".join([s.code for s in p.shenase_takhsis_set.all()]) if p.shenase_takhsis_set.exists() else "-"),
             'code_melli_tahvil': ('کد ملی تحویل', lambda p: p.code_melli_tahvil or "-"),
@@ -1059,8 +1059,6 @@ def get_purchase_aggregated_stats(request):
             'selected_count': purchases.count(),
             'total_order_weight': 0,
             'total_delivered_weight': 0,
-            'urgent_purchases_count': 0,
-            'total_extelaf_weight': 0,
             'avg_customer_price': 0,
             'customer_price_sum': 0,
             'valid_customer_price_count': 0
@@ -1070,10 +1068,12 @@ def get_purchase_aggregated_stats(request):
         if not hide_sensitive_info:
             stats.update({
                 'total_amount_paid': 0,
-                'total_extelaf_amount': 0,
                 'avg_company_price': 0,
                 'company_price_sum': 0,
-                'valid_company_price_count': 0
+                'valid_company_price_count': 0,
+                'purchase_base_invoice': 0,  # فاکتور خرید مبنا
+                'sales_base_invoice': 0,     # فاکتور فروش مبنا
+                'profit': 0                  # سود
             })
         
         for purchase in purchases:
@@ -1083,9 +1083,6 @@ def get_purchase_aggregated_stats(request):
             
             if purchase.delivered_weight:
                 stats['total_delivered_weight'] += purchase.delivered_weight
-                
-            if purchase.extelaf_weight:
-                stats['total_extelaf_weight'] += purchase.extelaf_weight
             
             # جمع‌آوری قیمت‌ها برای محاسبه میانگین
             if purchase.customer_price and purchase.customer_price > 0:
@@ -1097,24 +1094,40 @@ def get_purchase_aggregated_stats(request):
                 # جمع‌آوری مبالغ
                 if purchase.amount_paid:
                     stats['total_amount_paid'] += purchase.amount_paid
-                    
-                if purchase.extelaf_amount:
-                    stats['total_extelaf_amount'] += purchase.extelaf_amount
                 
                 if purchase.company_price and purchase.company_price > 0:
                     stats['company_price_sum'] += purchase.company_price
                     stats['valid_company_price_count'] += 1
-            
-            # شمارش خریدهای فوری
-            if purchase.is_urgent:
-                stats['urgent_purchases_count'] += 1
+                
+                # محاسبه فاکتور خرید و فروش مبنا بر اساس فرمول جدید
+                if purchase.company_price and purchase.customer_price:
+                    # تعیین n بر اساس factor_code (که برابر با صدور فاکتور است)
+                    # factor_code برابر با is_factored تنظیم می‌شود
+                    factor_code = purchase.is_factored  # فاکتور مبنا = صدور فاکتور
+                    n = 1 if factor_code else 0
+                    
+                    # وزن‌ها با مقدار پیش‌فرض 0 اگر None باشند
+                    delivered_weight = purchase.delivered_weight or 0
+                    order_weight = purchase.order_weight or 0
+                    
+                    # محاسبه فاکتور خرید مبنا
+                    purchase_base = (n * purchase.company_price * delivered_weight) + ((1 - n) * purchase.company_price * order_weight)
+                    stats['purchase_base_invoice'] += purchase_base
+                    
+                    # محاسبه فاکتور فروش مبنا
+                    sales_base = (n * purchase.customer_price * delivered_weight) + ((1 - n) * purchase.customer_price * order_weight)
+                    stats['sales_base_invoice'] += sales_base
         
         # محاسبه میانگین قیمت‌ها
         if stats['valid_customer_price_count'] > 0:
             stats['avg_customer_price'] = stats['customer_price_sum'] / stats['valid_customer_price_count']
         
-        if not hide_sensitive_info and stats['valid_company_price_count'] > 0:
-            stats['avg_company_price'] = stats['company_price_sum'] / stats['valid_company_price_count']
+        if not hide_sensitive_info:
+            if stats['valid_company_price_count'] > 0:
+                stats['avg_company_price'] = stats['company_price_sum'] / stats['valid_company_price_count']
+            
+            # محاسبه سود
+            stats['profit'] = stats['sales_base_invoice'] - stats['purchase_base_invoice']
         
         # حذف فیلدهای کمکی
         del stats['customer_price_sum']
