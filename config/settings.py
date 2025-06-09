@@ -75,7 +75,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'config.middleware.SessionTimeoutMiddleware',
-    # 'config.middleware.RestrictAdminAccessMiddleware',
+    'config.middleware.RestrictAdminAccessMiddleware',
     'HR.middleware.DebugMiddleware',  # دیباگ میدلور
 
 ]

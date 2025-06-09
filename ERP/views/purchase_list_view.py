@@ -890,7 +890,7 @@ def cargo_product_details(request):
 
 @require_POST
 @login_required
-@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@role_required('admin', 'logistics_manager', 'financial_manager')
 def bulk_edit_cargo(request):
     """
     API برای ویرایش گروهی کوتاژ
@@ -974,7 +974,7 @@ def bulk_edit_cargo(request):
 
 @require_POST
 @login_required
-@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@role_required('admin', 'logistics_manager', 'financial_manager')
 def update_column_order(request):
     """
     ذخیره ترتیب جدید ستون‌ها
@@ -996,7 +996,7 @@ def update_column_order(request):
 
 @require_POST
 @login_required
-@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@role_required('admin', 'logistics_manager', 'financial_manager')
 def reset_column_order(request):
     """
     بازگرداندن ترتیب ستون‌ها به حالت پیش‌فرض
@@ -1025,7 +1025,7 @@ def reset_column_order(request):
 
 @require_POST
 @login_required
-@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@role_required('admin', 'logistics_manager', 'financial_manager')
 def get_purchase_aggregated_stats(request):
     """
     API برای دریافت آمار اجماعی خریدهای انتخاب شده

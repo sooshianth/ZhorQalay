@@ -969,6 +969,7 @@ def get_excel_headers_fields(table_type, selected_ids=None):
         traceback.print_exc()
         return []
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 def edit_history_view(request):
     """نمایش تاریخچه تغییرات"""
@@ -1056,6 +1057,7 @@ def edit_history_view(request):
     
     return render(request, 'table_filter/edit_history.html', context)
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 def object_edit_history_view(request, app_name, model_name, object_id):
     """نمایش تاریخچه تغییرات یک آبجکت خاص"""
@@ -1159,6 +1161,7 @@ def restore_field_view(request, log_id):
             'message': f'خطا در بازگرداندن مقدار: {str(e)}'
         })
 
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 def edit_history_api(request):
     """API برای دریافت تاریخچه تغییرات"""
