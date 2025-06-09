@@ -7,13 +7,14 @@ class TablePagination {
         this.config = {
             tableSelector: config.tableSelector || 'table',
             perPage: config.perPage || 50,
-            perPageOptions: config.perPageOptions || [10, 25, 50, 100, 200],
+            perPageOptions: config.perPageOptions || [5, 10, 25, 50, 100, 200],
             paginationContainer: config.paginationContainer || null,
             infoContainer: config.infoContainer || null,
             perPageSelector: config.perPageSelector || '#perPageSelect',
             showFirstLast: config.showFirstLast !== false,
             showPrevNext: config.showPrevNext !== false,
             maxVisiblePages: config.maxVisiblePages || 5,
+            debug: config.debug || false,
             ...config
         };
         
@@ -25,6 +26,13 @@ class TablePagination {
         this.filteredRowsCache = [];
         this.table = null;
         this.tbody = null;
+        this.isUpdating = false;
+        this.updateTimeout = null;
+        this.observer = null;
+        
+        if (this.config.debug) {
+            console.log('TablePagination config:', this.config);
+        }
         
         this.init();
     }
@@ -47,6 +55,10 @@ class TablePagination {
         this.totalRows = this.allRows.length;
         this.filteredRowsCache = [...this.allRows];
         this.filteredRows = this.totalRows;
+        
+        if (this.config.debug) {
+            console.log(`TablePagination init: Found ${this.totalRows} rows in table ${this.config.tableSelector}`);
+        }
         
         // ایجاد المان‌های UI
         this.createPaginationUI();
@@ -128,6 +140,11 @@ class TablePagination {
             this.onAllFiltersCleared();
         });
         
+        // گوش دادن به رویداد مرتب‌سازی
+        document.addEventListener('tableSorted', (e) => {
+            this.onTableSorted(e.detail);
+        });
+        
         // گوش دادن به تغییرات DOM برای تشخیص فیلترها
         this.observeTableChanges();
     }
@@ -135,62 +152,174 @@ class TablePagination {
     observeTableChanges() {
         if (!this.tbody) return;
         
-        const observer = new MutationObserver((mutations) => {
+        this.observer = new MutationObserver((mutations) => {
             let shouldUpdate = false;
+            let hasFilterChanges = false;
             
             mutations.forEach((mutation) => {
                 if (mutation.type === 'attributes' && 
                     mutation.attributeName === 'style' &&
-                    mutation.target.tagName === 'TR') {
-                    shouldUpdate = true;
+                    mutation.target.tagName === 'TR' &&
+                    !mutation.target.classList.contains('pagination-updating')) {
+                    
+                    // بررسی که آیا این تغییر مربوط به فیلتر است یا pagination
+                    const newDisplay = mutation.target.style.display;
+                    const oldDisplay = mutation.oldValue ? 
+                        (mutation.oldValue.includes('display: none') ? 'none' : '') : '';
+                    
+                    if (newDisplay !== oldDisplay) {
+                        shouldUpdate = true;
+                        hasFilterChanges = true;
+                    }
                 }
             });
             
-            if (shouldUpdate) {
+            if (shouldUpdate && !this.isUpdating) {
+                this.isUpdating = true;
+                
+                if (this.config.debug) {
+                    console.log('TablePagination: Table changes detected, updating...');
+                }
+                
                 // کمی تاخیر برای اطمینان از اتمام فیلترها
-                setTimeout(() => {
+                clearTimeout(this.updateTimeout);
+                this.updateTimeout = setTimeout(() => {
                     this.updateFilteredRows();
                     this.updatePagination();
-                    this.showPage(1);
-                }, 100);
+                    
+                    // اگر فیلتر جدید اعمال شده، برو به صفحه اول
+                    if (hasFilterChanges) {
+                        this.currentPage = 1;
+                    }
+                    
+                    // اطمینان از صحت شماره صفحه
+                    if (this.currentPage > this.totalPages && this.totalPages > 0) {
+                        this.showPage(this.totalPages);
+                    } else {
+                        this.showPage(this.currentPage);
+                    }
+                    this.isUpdating = false;
+                }, 150);
             }
         });
         
-        observer.observe(this.tbody, {
+        this.observer.observe(this.tbody, {
             attributes: true,
             subtree: true,
-            attributeFilter: ['style']
+            attributeFilter: ['style'],
+            attributeOldValue: true
         });
     }
     
     onFilterApplied() {
+        if (this.config.debug) {
+            console.log('TablePagination: Filter applied');
+        }
+        this.isUpdating = true;
+        
+        // بروزرسانی ردیف‌های فیلتر شده
         this.updateFilteredRows();
+        
+        // بازگشت به صفحه اول بعد از اعمال فیلتر
         this.currentPage = 1;
         this.updatePagination();
         this.showPage(1);
+        
+        setTimeout(() => {
+            this.isUpdating = false;
+        }, 100);
+        
+        if (this.config.debug) {
+            console.log(`TablePagination: Filter applied. Showing ${this.filteredRows} of ${this.totalRows} rows`);
+        }
     }
     
     onFilterCleared() {
+        if (this.config.debug) {
+            console.log('TablePagination: Filter cleared');
+        }
+        this.isUpdating = true;
         this.updateFilteredRows();
         this.currentPage = 1;
         this.updatePagination();
         this.showPage(1);
+        setTimeout(() => {
+            this.isUpdating = false;
+        }, 100);
     }
     
     onAllFiltersCleared() {
+        if (this.config.debug) {
+            console.log('TablePagination: All filters cleared');
+        }
+        this.isUpdating = true;
         this.filteredRowsCache = [...this.allRows];
         this.filteredRows = this.totalRows;
         this.currentPage = 1;
         this.updatePagination();
         this.showPage(1);
+        setTimeout(() => {
+            this.isUpdating = false;
+        }, 100);
+    }
+    
+    onTableSorted(detail) {
+        if (this.config.debug) {
+            console.log('TablePagination: Table sorted', detail);
+        }
+        
+        // بررسی اینکه آیا این sorting مربوط به همین جدول است
+        const tableElement = this.table;
+        if (!tableElement || tableElement.id !== detail.tableId) {
+            return;
+        }
+        
+        this.isUpdating = true;
+        
+        // بروزرسانی لیست تمام ردیف‌ها با ترتیب جدید
+        this.allRows = Array.from(this.tbody.querySelectorAll('tr'));
+        this.totalRows = this.allRows.length;
+        
+        // بروزرسانی ردیف‌های فیلتر شده
+        this.updateFilteredRows();
+        
+        // اگر فیلتری فعال نیست، همه ردیف‌ها باید در نظر گرفته شوند
+        if (this.filteredRowsCache.length === 0 || this.filteredRowsCache.length === this.totalRows) {
+            this.filteredRowsCache = [...this.allRows];
+            this.filteredRows = this.totalRows;
+        }
+        
+        // بازگشت به صفحه اول بعد از sorting
+        this.currentPage = 1;
+        this.updatePagination();
+        this.showPage(1);
+        
+        setTimeout(() => {
+            this.isUpdating = false;
+        }, 100);
+        
+        if (this.config.debug) {
+            console.log(`TablePagination: Updated after sorting. Total rows: ${this.totalRows}, Filtered rows: ${this.filteredRows}`);
+        }
     }
     
     updateFilteredRows() {
         // پیدا کردن ردیف‌های نمایش داده شده (غیر مخفی)
         this.filteredRowsCache = this.allRows.filter(row => {
+            // نادیده گرفتن ردیف‌هایی که توسط pagination مخفی شده‌اند
+            if (row.classList.contains('pagination-updating')) {
+                return true; // فرض کن که این ردیف قابل نمایش است
+            }
+            
+            // فقط ردیف‌هایی که توسط فیلتر مخفی نشده‌اند
             return row.style.display !== 'none';
         });
+        
         this.filteredRows = this.filteredRowsCache.length;
+        
+        if (this.config.debug) {
+            console.log(`TablePagination: Filtered rows updated: ${this.filteredRows} of ${this.totalRows} total rows`);
+        }
     }
     
     updatePagination() {
@@ -372,12 +501,27 @@ class TablePagination {
     
     showPage(pageNumber) {
         if (pageNumber < 1 || pageNumber > this.totalPages) {
+            if (this.config.debug) {
+                console.log(`TablePagination: Invalid page number ${pageNumber}. Total pages: ${this.totalPages}`);
+            }
             return;
         }
         
         this.currentPage = pageNumber;
         
-        // مخفی کردن همه ردیف‌ها
+        if (this.config.debug) {
+            console.log(`TablePagination: Showing page ${pageNumber} of ${this.totalPages}`);
+        }
+        
+        // جلوگیری از infinite loop
+        this.isUpdating = true;
+        
+        // اضافه کردن class برای جلوگیری از تشخیص توسط observer
+        this.allRows.forEach(row => {
+            row.classList.add('pagination-updating');
+        });
+        
+        // ابتدا همه ردیف‌ها را مخفی کن
         this.allRows.forEach(row => {
             row.style.display = 'none';
         });
@@ -386,18 +530,32 @@ class TablePagination {
         const startIndex = (pageNumber - 1) * this.config.perPage;
         const endIndex = startIndex + this.config.perPage;
         
-        // نمایش ردیف‌های مربوط به این صفحه
+        // فقط ردیف‌های فیلتر شده را در نظر بگیر
         const rowsToShow = this.filteredRowsCache.slice(startIndex, endIndex);
+        
+        if (this.config.debug) {
+            console.log(`TablePagination: Showing ${rowsToShow.length} rows (${startIndex}-${endIndex-1}) from ${this.filteredRowsCache.length} filtered rows`);
+        }
+        
+        // نمایش ردیف‌های مربوط به این صفحه
         rowsToShow.forEach(row => {
-            row.style.display = '';
+            // اطمینان از اینکه این ردیف باید نمایش داده شود
+            if (this.filteredRowsCache.includes(row)) {
+                row.style.display = '';
+            }
         });
+        
+        // حذف class و flag
+        setTimeout(() => {
+            this.allRows.forEach(row => {
+                row.classList.remove('pagination-updating');
+            });
+            this.isUpdating = false;
+        }, 50);
         
         // بروزرسانی UI
         this.updatePaginationInfo();
         this.updatePaginationControls();
-        
-        // اسکرول به بالای جدول
-        this.table.scrollIntoView({ behavior: 'smooth', block: 'start' });
         
         // ارسال رویداد
         this.dispatchEvent('pageChanged', {
@@ -443,15 +601,42 @@ class TablePagination {
         // بروزرسانی لیست ردیف‌ها
         this.allRows = Array.from(this.tbody.querySelectorAll('tr'));
         this.totalRows = this.allRows.length;
+        
+        // بروزرسانی ردیف‌های فیلتر شده
         this.updateFilteredRows();
+        
+        // اگر فیلتری فعال نیست، همه ردیف‌ها قابل نمایش هستند
+        if (this.filteredRowsCache.length === 0) {
+            this.filteredRowsCache = [...this.allRows];
+            this.filteredRows = this.totalRows;
+        }
+        
+        // بروزرسانی pagination
         this.updatePagination();
+        
+        // اطمینان از صحت شماره صفحه
+        if (this.currentPage > this.totalPages && this.totalPages > 0) {
+            this.currentPage = this.totalPages;
+        } else if (this.currentPage < 1) {
+            this.currentPage = 1;
+        }
+        
         this.showPage(this.currentPage);
+        
+        if (this.config.debug) {
+            console.log(`TablePagination refreshed: ${this.totalRows} total rows, ${this.filteredRows} filtered rows, showing page ${this.currentPage} of ${this.totalPages}`);
+        }
     }
     
     destroy() {
         // حذف event listener ها
         if (this.observer) {
             this.observer.disconnect();
+        }
+        
+        // حذف timeout ها
+        if (this.updateTimeout) {
+            clearTimeout(this.updateTimeout);
         }
         
         // حذف المان‌های UI ایجاد شده
@@ -466,7 +651,12 @@ class TablePagination {
         // نمایش همه ردیف‌ها
         this.allRows.forEach(row => {
             row.style.display = '';
+            row.classList.remove('pagination-updating');
         });
+        
+        if (this.config.debug) {
+            console.log('TablePagination destroyed');
+        }
     }
     
     dispatchEvent(eventName, detail) {

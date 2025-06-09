@@ -6,13 +6,13 @@
 {% block head_styles %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}?v=1748703972">
     <link rel="stylesheet" href="{% static 'css_files/purchase_list_style.css' %}?v=1748703972">
-    <link rel="stylesheet" href="{% static 'css/table_pagination.css' %}?v=1748703972">
+    <link rel="stylesheet" href="{% static 'css_files/table_pagination.css' %}?v=1748703972">
     {% table_filter_scripts %}
     {% bulk_edit_scripts %}
     {% edit_history_scripts %}
     <script src="{% static 'js/drag_and_drop_columns.js' %}?v=1748703972"></script>
     <script src="{% static 'js/purchase_aggregated_stats.js' %}?v=1748703972"></script>
-    <script src="{% static 'js/table_pagination.js' %}?v=1748703972"></script>
+    <script src="/static/table_filter/js/table_pagination.js?v=1748703972"></script>
     <!-- CSRF Token for AJAX requests -->
     <meta name="csrf-token" content="{{ csrf_token }}">
     <!-- Force refresh meta tags for production -->
@@ -1829,11 +1829,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // راه‌اندازی pagination جاوااسکریپتی
     setTimeout(() => {
         // اطمینان از بارگیری کامل table filter قبل از راه‌اندازی pagination
+        console.log('Initializing pagination with debug mode...');
+        
         window.activePurchasesPagination = new TablePagination({
             tableSelector: '#activePurchasesTable',
             perPage: {{ per_page }},
             perPageOptions: {{ per_page_options|safe }},
-            perPageSelector: '#perPageSelect'
+            perPageSelector: '#perPageSelect',
+            debug: true  // فعال کردن debug mode
         });
         
         // راه‌اندازی pagination برای جدول آرشیو شده
@@ -1841,11 +1844,16 @@ document.addEventListener('DOMContentLoaded', function() {
             tableSelector: '#archivedPurchasesTable',
             perPage: {{ per_page }},
             perPageOptions: {{ per_page_options|safe }},
-            perPageSelector: null  // از همان select box استفاده نمی‌کند
+            perPageSelector: null,  // از همان select box استفاده نمی‌کند
+            debug: true  // فعال کردن debug mode
         });
         
-        console.log('JavaScript pagination initialized for both tables');
-    }, 500); // تأخیر کوتاه برای اطمینان از بارگیری کامل table filter
+        console.log('Pagination instances created:', {
+            active: window.activePurchasesPagination,
+            archived: window.archivedPurchasesPagination
+        });
+        
+    }, 1000); // تأخیر کافی برای اطمینان از بارگیری کامل
     
     // مدیریت ستون‌ها - افزودن event listener برای دکمه ذخیره تغییرات
     const saveColumnsBtn = document.getElementById('saveColumnsBtn');
@@ -2357,37 +2365,25 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // تست ساده برای مطمئن شدن از کارکرد CSS
-    console.log('Testing CSS...');
-    
-    // پیدا کردن اولین سطر جدول و اضافه کردن کلاس تست
+    // حذف کلاس تست از سطر اول
     setTimeout(function() {
         const firstRow = document.querySelector('.table tbody tr');
         if (firstRow) {
-            firstRow.classList.add('test-selected');
-            console.log('Added test-selected to first row');
+            firstRow.classList.remove('test-selected');
         }
-    }, 1000);
+    }, 100);
     
     // Event listener مستقیم برای چک‌باکس‌ها
     document.addEventListener('change', function(e) {
         if (e.target && e.target.classList.contains('row-checkbox')) {
-            console.log('Direct event listener triggered');
-            
             const checkbox = e.target;
             const row = checkbox.closest('tr');
             
             if (row) {
                 if (checkbox.checked) {
                     row.classList.add('selected-row');
-                    row.style.backgroundColor = '#e3f2fd !important';
-                    row.style.borderLeft = '4px solid #2196f3';
-                    console.log('Row selected via direct listener');
                 } else {
                     row.classList.remove('selected-row');
-                    row.style.backgroundColor = '';
-                    row.style.borderLeft = '';
-                    console.log('Row deselected via direct listener');
                 }
             }
         }
@@ -2396,26 +2392,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // تابع ساده برای تغییر رنگ سطر انتخاب شده
 function toggleRowSelection(checkbox) {
-    console.log('toggleRowSelection called:', checkbox.checked);
-    alert('تابع فراخوانی شد! چک‌باکس: ' + (checkbox.checked ? 'انتخاب شده' : 'انتخاب نشده'));
-    
     const row = checkbox.closest('tr');
     if (row) {
         if (checkbox.checked) {
             row.classList.add('selected-row');
-            row.style.backgroundColor = '#e3f2fd';
-            row.style.borderLeft = '4px solid #2196f3';
-            console.log('Row selected - added class and style');
-            alert('سطر انتخاب شد!');
         } else {
             row.classList.remove('selected-row');
-            row.style.backgroundColor = '';
-            row.style.borderLeft = '';
-            console.log('Row deselected - removed class and style');
-            alert('انتخاب سطر لغو شد!');
         }
-    } else {
-        alert('سطر پیدا نشد!');
     }
 }
 </script>

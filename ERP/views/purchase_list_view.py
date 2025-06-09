@@ -323,7 +323,7 @@ def purchase_list(request):
         'hide_sensitive_info': hide_sensitive_info,  # افزودن فلگ مخفی کردن اطلاعات حساس
         # تنظیمات پیجینیشن جاوااسکریپتی
         'per_page': per_page,
-        'per_page_options': [10, 25, 50, 100, 200],
+        'per_page_options': [5, 10, 25, 50, 100, 200],
         'total_active_purchases': active_purchases.count(),
         'total_archived_purchases': archived_purchases.count(),
         # پارامترهای جستجو برای حفظ وضعیت در فرم
