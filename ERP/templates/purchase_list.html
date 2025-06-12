@@ -6,13 +6,13 @@
 {% block head_styles %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}?v=1748703972">
     <link rel="stylesheet" href="{% static 'css_files/purchase_list_style.css' %}?v=1748703972">
-    <link rel="stylesheet" href="{% static 'css_files/table_pagination.css' %}?v=1748703972">
+    <link rel="stylesheet" href="{% static 'css/table_pagination.css' %}?v=1748703972">
     {% table_filter_scripts %}
     {% bulk_edit_scripts %}
     {% edit_history_scripts %}
     <script src="{% static 'js/drag_and_drop_columns.js' %}?v=1748703972"></script>
     <script src="{% static 'js/purchase_aggregated_stats.js' %}?v=1748703972"></script>
-    <script src="/static/table_filter/js/table_pagination.js?v=1748703972"></script>
+    <script src="{% static 'js/table_pagination.js' %}?v=1748703972"></script>
     <!-- CSRF Token for AJAX requests -->
     <meta name="csrf-token" content="{{ csrf_token }}">
     <!-- Force refresh meta tags for production -->
@@ -1723,6 +1723,207 @@ function addUnitsToHeaders() {
     });
 }
 
+// تابع مشاهده تاریخچه تغییرات کلی
+function viewEditHistory() {
+    // باز کردن مدال تاریخچه تغییرات
+    const historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
+    historyModal.show();
+    
+    // پاک کردن فیلتر شناسه آبجکت اگر تنظیم شده باشد
+    if (typeof editHistoryManager !== 'undefined') {
+        editHistoryManager.filters.object_id = '';
+        editHistoryManager.loadHistoryData();
+        
+        // تغییر عنوان مدال
+        document.querySelector('#historyModal .modal-title').innerHTML = 
+            '<i class="fas fa-history me-2"></i>تاریخچه تغییرات';
+    }
+}
+
+// تابع نمایش تاریخچه تغییرات یک خرید خاص
+function showPurchaseHistory(purchaseId) {
+    // باز کردن مدال تاریخچه
+    const historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
+    historyModal.show();
+    
+    // تنظیم فیلترها
+    if (typeof editHistoryManager !== 'undefined') {
+        // تنظیم فیلترها برای نمایش تاریخچه خرید خاص
+        editHistoryManager.filters.object_id = purchaseId;
+        
+        // بارگیری داده‌ها
+        editHistoryManager.loadHistoryData();
+        
+        // تغییر عنوان مدال
+        document.querySelector('#historyModal .modal-title').innerHTML = 
+            '<i class="fas fa-history me-2"></i>تاریخچه تغییرات خرید شماره ' + purchaseId;
+    }
+}
+
+// تابع بروزرسانی آمار اجماعی
+function updateAggregatedStats() {
+    // همگام‌سازی با آمار اجماعی خریدها فقط برای نقش‌های مجاز
+    if (!{% if hide_sensitive_info %}true{% else %}false{% endif %} && window.purchaseAggregatedStats) {
+        window.purchaseAggregatedStats.syncWithBulkEditManager();
+    }
+}
+
+// تابع ساده برای تغییر رنگ سطر انتخاب شده
+function toggleRowSelection(checkbox) {
+    console.log('toggleRowSelection called:', checkbox.checked);
+    
+    const row = checkbox.closest('tr');
+    if (row) {
+        if (checkbox.checked) {
+            row.classList.add('selected-row');
+            row.style.backgroundColor = '#e3f2fd';
+            row.style.borderLeft = '4px solid #2196f3';
+            console.log('Row selected - added class and style');
+        } else {
+            row.classList.remove('selected-row');
+            row.style.backgroundColor = '';
+            row.style.borderLeft = '';
+            console.log('Row deselected - removed class and style');
+        }
+    }
+}
+
+// توابع کمکی
+function showSearchLoading(show) {
+    const searchInput = document.getElementById('globalSearch');
+    if (!searchInput) return;
+    
+    if (show) {
+        searchInput.style.backgroundImage = 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTAiIGN5PSIxMCIgcj0iOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiLz4KPHBhdGggZD0iTTEwIDJhOCA4IDAgMCAxIDggOCIgc3Ryb2tlPSIjMDA3YmZmIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiPgogIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0icm90YXRlIiBkdXI9IjFzIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSIgdmFsdWVzPSIwIDEwIDEwOzM2MCAxMCAxMCIvPgo8L3BhdGg+Cjwvc3ZnPg==")';
+        searchInput.style.backgroundRepeat = 'no-repeat';
+        searchInput.style.backgroundPosition = 'left 10px center';
+        searchInput.style.paddingLeft = '40px';
+    } else {
+        searchInput.style.backgroundImage = '';
+        searchInput.style.paddingLeft = '';
+    }
+}
+
+function performQuickSearch(searchTerm) {
+    const tables = document.querySelectorAll('.enable-filter');
+    
+    tables.forEach(table => {
+        const rows = table.querySelectorAll('tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            let found = false;
+            
+            cells.forEach(cell => {
+                if (cell.textContent.toLowerCase().includes(searchTerm)) {
+                    found = true;
+                }
+            });
+            
+            if (found) {
+                row.style.display = '';
+                visibleCount++;
+                // هایلایت کردن متن یافت شده
+                highlightSearchTerm(row, searchTerm);
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // نمایش تعداد نتایج
+        showSearchResults(visibleCount, searchTerm);
+    });
+}
+
+function highlightSearchTerm(row, searchTerm) {
+    const cells = row.querySelectorAll('td');
+    
+    cells.forEach(cell => {
+        const text = cell.textContent;
+        if (text.toLowerCase().includes(searchTerm)) {
+            const regex = new RegExp(`(${searchTerm})`, 'gi');
+            const highlightedText = text.replace(regex, '<mark>$1</mark>');
+            
+            // فقط اگر سلول شامل HTML ساده باشد
+            if (!cell.querySelector('input, button, a')) {
+                cell.innerHTML = highlightedText;
+            }
+        }
+    });
+}
+
+function clearQuickSearch() {
+    // حذف هایلایت‌ها
+    document.querySelectorAll('mark').forEach(mark => {
+        mark.outerHTML = mark.textContent;
+    });
+    
+    // نمایش همه ردیف‌ها
+    document.querySelectorAll('.enable-filter tbody tr').forEach(row => {
+        row.style.display = '';
+    });
+    
+    // مخفی کردن نتایج جستجو
+    const resultsDiv = document.getElementById('searchResults');
+    if (resultsDiv) {
+        resultsDiv.remove();
+    }
+}
+
+function showSearchResults(count, searchTerm) {
+    let resultsDiv = document.getElementById('searchResults');
+    
+    if (!resultsDiv) {
+        resultsDiv = document.createElement('div');
+        resultsDiv.id = 'searchResults';
+        resultsDiv.style.cssText = `
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #1976d2;
+        `;
+        
+        const searchPanel = document.querySelector('.search-panel');
+        if (searchPanel) {
+            searchPanel.appendChild(resultsDiv);
+        }
+    }
+    
+    resultsDiv.innerHTML = `
+        <i class="fas fa-search me-2"></i>
+        یافت شد: <strong>${count}</strong> نتیجه برای "<strong>${searchTerm}</strong>"
+        ${count === 0 ? '<span style="color: #f44336;">- هیچ نتیجه‌ای یافت نشد</span>' : ''}
+    `;
+}
+
+// تابع کمکی برای دریافت CSRF token از کوکی
+function getCsrfTokenFromCookie() {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.startsWith('csrftoken=')) {
+            return cookie.substring('csrftoken='.length, cookie.length);
+        }
+    }
+    return '';
+}
+
+// تابع تغییر تعداد رکورد در هر صفحه (حالا توسط pagination مدیریت می‌شود)
+function updatePerPage() {
+    // این تابع دیگر نیازی ندارد چون pagination جاوااسکریپتی خودش تعداد نمایش را مدیریت می‌کند
+    console.log('updatePerPage called - now handled by JavaScript pagination');
+}
+
+// تابع مدیریت pagination links (دیگر نیازی ندارد)
+function handlePaginationClick(event) {
+    // این تابع دیگر استفاده نمی‌شود چون pagination جاوااسکریپتی خودش کلیک‌ها را مدیریت می‌کند
+    console.log('handlePaginationClick called - now handled by JavaScript pagination');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // اضافه کردن واحدها به هدرهای جدول
     addUnitsToHeaders();
@@ -1736,16 +1937,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 enableToast: true,
                 enableIndicators: true,
                 enableSummary: true,
-                enableClearAll: true,
-                debug: true  // فعال کردن debug mode
+                enableClearAll: true
             });
         }
     }, 100);
-});
-
-// تنظیم URL های صحیح bulk edit manager بعد از لود شدن صفحه
-document.addEventListener('DOMContentLoaded', function() {
-    // تنظیم URL های مناسب برای bulk edit manager
+    
+    // تنظیم URL های صحیح bulk edit manager بعد از لود شدن صفحه
     if (typeof bulkEditManager !== 'undefined') {
         bulkEditManager.config.bulkEditPageUrl = '{% url "table_filter:bulk_edit_page" %}';
         bulkEditManager.config.excelEditPageUrl = '{% url "table_filter:bulk_edit_excel_page" %}';
@@ -1757,42 +1954,6 @@ document.addEventListener('DOMContentLoaded', function() {
             downloadTemplateUrl: bulkEditManager.config.downloadTemplateUrl
         });
     }
-    
-    // Debugging cookies and columns
-    console.log('Current cookies:', document.cookie);
-    let columnsFromCookie = '';
-    const cookies = document.cookie.split(';');
-    for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i].trim();
-        if (cookie.startsWith('selected_columns=')) {
-            columnsFromCookie = cookie.substring('selected_columns='.length, cookie.length);
-            break;
-        }
-    }
-    console.log('Selected columns from cookie:', columnsFromCookie);
-    
-    // Available columns in the page
-    const availableColumns = [];
-    document.querySelectorAll('input[name="columns[]"]').forEach(checkbox => {
-        availableColumns.push({
-            id: checkbox.value,
-            checked: checkbox.checked
-        });
-    });
-    console.log('Available columns:', availableColumns);
-    
-    // Table columns actually showing
-    const tableColumns = [];
-    document.querySelectorAll('#activePurchasesTable thead th').forEach(th => {
-        const classes = th.className.split(' ');
-        for (let i = 0; i < classes.length; i++) {
-            if (classes[i].startsWith('column-')) {
-                tableColumns.push(classes[i].replace('column-', ''));
-                break;
-            }
-        }
-    });
-    console.log('Table columns showing:', tableColumns);
     
     // تاریخچه تغییرات
     if (typeof editHistoryManager !== 'undefined') {
@@ -1811,7 +1972,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // ایجاد instance آمار اجماعی خریدها فقط برای نقش‌های مجاز
-    var hideSensitiveInfo = {% if hide_sensitive_info %}true{% else %}false{% endif %};
+    const hideSensitiveInfo = {% if hide_sensitive_info %}true{% else %}false{% endif %};
     if (!hideSensitiveInfo && typeof PurchaseAggregatedStats !== 'undefined') {
         window.purchaseAggregatedStats = new PurchaseAggregatedStats();
         console.log('Purchase aggregated stats initialized');
@@ -1830,31 +1991,26 @@ document.addEventListener('DOMContentLoaded', function() {
     // راه‌اندازی pagination جاوااسکریپتی
     setTimeout(() => {
         // اطمینان از بارگیری کامل table filter قبل از راه‌اندازی pagination
-        console.log('Initializing pagination with debug mode...');
+        const perPageValue = {{ per_page }};
+        const perPageOptionsArray = {{ per_page_options|safe }};
         
         window.activePurchasesPagination = new TablePagination({
             tableSelector: '#activePurchasesTable',
-            perPage: {{ per_page }},
-            perPageOptions: {{ per_page_options|safe }},
-            perPageSelector: '#perPageSelect',
-            debug: true  // فعال کردن debug mode
+            perPage: perPageValue,
+            perPageOptions: perPageOptionsArray,
+            perPageSelector: '#perPageSelect'
         });
         
         // راه‌اندازی pagination برای جدول آرشیو شده
         window.archivedPurchasesPagination = new TablePagination({
             tableSelector: '#archivedPurchasesTable',
-            perPage: {{ per_page }},
-            perPageOptions: {{ per_page_options|safe }},
-            perPageSelector: null,  // از همان select box استفاده نمی‌کند
-            debug: true  // فعال کردن debug mode
+            perPage: perPageValue,
+            perPageOptions: perPageOptionsArray,
+            perPageSelector: null  // از همان select box استفاده نمی‌کند
         });
         
-        console.log('Pagination instances created:', {
-            active: window.activePurchasesPagination,
-            archived: window.archivedPurchasesPagination
-        });
-        
-    }, 1000); // تأخیر کافی برای اطمینان از بارگیری کامل
+        console.log('JavaScript pagination initialized for both tables');
+    }, 500); // تأخیر کوتاه برای اطمینان از بارگیری کامل table filter
     
     // مدیریت ستون‌ها - افزودن event listener برای دکمه ذخیره تغییرات
     const saveColumnsBtn = document.getElementById('saveColumnsBtn');
@@ -2037,96 +2193,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // loadFiltersState();
 });
 
-// تابع مشاهده تاریخچه تغییرات کلی
-function viewEditHistory() {
-    // باز کردن مدال تاریخچه تغییرات
-    const historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
-    historyModal.show();
-    
-    // پاک کردن فیلتر شناسه آبجکت اگر تنظیم شده باشد
-    if (typeof editHistoryManager !== 'undefined') {
-        editHistoryManager.filters.object_id = '';
-        editHistoryManager.loadHistoryData();
-        
-        // تغییر عنوان مدال
-        document.querySelector('#historyModal .modal-title').innerHTML = 
-            `<i class="fas fa-history me-2"></i>تاریخچه تغییرات`;
-    }
-}
-
-// تابع نمایش تاریخچه تغییرات یک خرید خاص
-function showPurchaseHistory(purchaseId) {
-    // باز کردن مدال تاریخچه
-    const historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
-    historyModal.show();
-    
-    // تنظیم فیلترها
-    if (typeof editHistoryManager !== 'undefined') {
-        // تنظیم فیلترها برای نمایش تاریخچه خرید خاص
-        editHistoryManager.filters.object_id = purchaseId;
-        
-        // بارگیری داده‌ها
-        editHistoryManager.loadHistoryData();
-        
-        // تغییر عنوان مدال
-        document.querySelector('#historyModal .modal-title').innerHTML = 
-            `<i class="fas fa-history me-2"></i>تاریخچه تغییرات خرید شماره ${purchaseId}`;
-    }
-}
-
-// دکمه خروجی اکسل
-const exportBtn = document.getElementById('exportBtn');
-if (exportBtn) {
-    exportBtn.addEventListener('click', function() {
-        // دریافت آیتم‌های انتخاب شده از bulk edit manager
-        const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
-        
-        if (selectedCheckboxes.length === 0) {
-            alert('لطفاً حداقل یک خرید را انتخاب کنید');
-            return;
-        }
-        
-        // جمع‌آوری ID های انتخاب شده
-        const selectedIds = Array.from(selectedCheckboxes).map(checkbox => 
-            checkbox.getAttribute('data-id')
-        ).filter(id => id);
-        
-        if (selectedIds.length === 0) {
-            alert('خطا در تشخیص موارد انتخاب شده');
-            return;
-        }
-        
-        // دریافت ستون‌های انتخاب شده از کوکی یا پیش‌فرض
-        let selectedColumns = '';
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.startsWith('selected_columns=')) {
-                selectedColumns = decodeURIComponent(cookie.substring('selected_columns='.length, cookie.length));
-                break;
-            }
-        }
-        
-        // اگر ستون‌ها از کوکی نیامد، از پیش‌فرض استفاده کن
-        if (!selectedColumns) {
-            selectedColumns = 'date,customer,invoice_id,sales_agent,purchase_number,weight,cargo,status';
-        }
-        
-        // حذف ستون actions از لیست ستون‌ها چون در اکسل نمی‌خواهیم
-        selectedColumns = selectedColumns.split(',').filter(col => col.trim() !== 'actions').join(',');
-        
-        // ساخت URL خروجی
-        const exportUrl = "{% url 'export_purchases' %}?ids=" + selectedIds.join(',') + "&columns=" + encodeURIComponent(selectedColumns);
-        
-        console.log("Export URL:", exportUrl);
-        console.log("Selected IDs:", selectedIds);
-        console.log("Selected Columns:", selectedColumns);
-        
-        // باز کردن لینک در تب جدید
-        window.open(exportUrl, '_blank');
-    });
-}
-
 // بهبود تعامل بین فیلتر و ویرایش گروهی
 document.addEventListener('DOMContentLoaded', function() {
     // مدیریت رویدادهای فیلتر
@@ -2163,12 +2229,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // مخفی کردن آمار جمع‌آوری شده
-        {% if not hide_sensitive_info %}
-        const aggregatedStats = document.getElementById('aggregatedStats');
-        if (aggregatedStats) {
-            aggregatedStats.style.display = 'none';
+        var hideSensitiveInfoValue = {% if hide_sensitive_info %}true{% else %}false{% endif %};
+        if (hideSensitiveInfoValue) {
+            const aggregatedStats = document.getElementById('aggregatedStats');
+            if (aggregatedStats) {
+                aggregatedStats.style.display = 'none';
+            }
         }
-        {% endif %}
     });
     
     // بهبود عملکرد دکمه خروجی اکسل
@@ -2200,153 +2267,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// توابع کمکی
-function showSearchLoading(show) {
-    const searchInput = document.getElementById('globalSearch');
-    if (!searchInput) return;
-    
-    if (show) {
-        searchInput.style.backgroundImage = 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTAiIGN5PSIxMCIgcj0iOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiLz4KPHBhdGggZD0iTTEwIDJhOCA4IDAgMCAxIDggOCIgc3Ryb2tlPSIjMDA3YmZmIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiPgogIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0icm90YXRlIiBkdXI9IjFzIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSIgdmFsdWVzPSIwIDEwIDEwOzM2MCAxMCAxMCIvPgo8L3BhdGg+Cjwvc3ZnPg==")';
-        searchInput.style.backgroundRepeat = 'no-repeat';
-        searchInput.style.backgroundPosition = 'left 10px center';
-        searchInput.style.paddingLeft = '40px';
-    } else {
-        searchInput.style.backgroundImage = '';
-        searchInput.style.paddingLeft = '';
-    }
-}
-
-// تابع کمکی برای دریافت CSRF token از کوکی
-function getCsrfTokenFromCookie() {
-    const cookies = document.cookie.split(';');
-    for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i].trim();
-        if (cookie.startsWith('csrftoken=')) {
-            return cookie.substring('csrftoken='.length, cookie.length);
-        }
-    }
-    return '';
-}
-
-function performQuickSearch(searchTerm) {
-    const tables = document.querySelectorAll('.enable-filter');
-    
-    tables.forEach(table => {
-        const rows = table.querySelectorAll('tbody tr');
-        let visibleCount = 0;
-        
-        rows.forEach(row => {
-            const cells = row.querySelectorAll('td');
-            let found = false;
-            
-            cells.forEach(cell => {
-                if (cell.textContent.toLowerCase().includes(searchTerm)) {
-                    found = true;
-                }
-            });
-            
-            if (found) {
-                row.style.display = '';
-                visibleCount++;
-                // هایلایت کردن متن یافت شده
-                highlightSearchTerm(row, searchTerm);
-            } else {
-                row.style.display = 'none';
-            }
-        });
-        
-        // نمایش تعداد نتایج
-        showSearchResults(visibleCount, searchTerm);
-    });
-}
-
-function highlightSearchTerm(row, searchTerm) {
-    const cells = row.querySelectorAll('td');
-    
-    cells.forEach(cell => {
-        const text = cell.textContent;
-        if (text.toLowerCase().includes(searchTerm)) {
-            const regex = new RegExp(`(${searchTerm})`, 'gi');
-            const highlightedText = text.replace(regex, '<mark>$1</mark>');
-            
-            // فقط اگر سلول شامل HTML ساده باشد
-            if (!cell.querySelector('input, button, a')) {
-                cell.innerHTML = highlightedText;
-            }
-        }
-    });
-}
-
-function clearQuickSearch() {
-    // حذف هایلایت‌ها
-    document.querySelectorAll('mark').forEach(mark => {
-        mark.outerHTML = mark.textContent;
-    });
-    
-    // نمایش همه ردیف‌ها
-    document.querySelectorAll('.enable-filter tbody tr').forEach(row => {
-        row.style.display = '';
-    });
-    
-    // مخفی کردن نتایج جستجو
-    const resultsDiv = document.getElementById('searchResults');
-    if (resultsDiv) {
-        resultsDiv.remove();
-    }
-}
-
-function showSearchResults(count, searchTerm) {
-    let resultsDiv = document.getElementById('searchResults');
-    
-    if (!resultsDiv) {
-        resultsDiv = document.createElement('div');
-        resultsDiv.id = 'searchResults';
-        resultsDiv.style.cssText = `
-            background: #e3f2fd;
-            border: 1px solid #2196f3;
-            border-radius: 4px;
-            padding: 8px 12px;
-            margin-top: 10px;
-            font-size: 0.9rem;
-            color: #1976d2;
-        `;
-        
-        const searchPanel = document.querySelector('.search-panel');
-        if (searchPanel) {
-            searchPanel.appendChild(resultsDiv);
-        }
-    }
-    
-    resultsDiv.innerHTML = `
-        <i class="fas fa-search me-2"></i>
-        یافت شد: <strong>${count}</strong> نتیجه برای "<strong>${searchTerm}</strong>"
-        ${count === 0 ? '<span style="color: #f44336;">- هیچ نتیجه‌ای یافت نشد</span>' : ''}
-    `;
-}
-
-// تابع بروزرسانی آمار اجماعی
-function updateAggregatedStats() {
-    // همگام‌سازی با آمار اجماعی خریدها فقط برای نقش‌های مجاز
-    {% if not hide_sensitive_info %}
-    if (window.purchaseAggregatedStats) {
-        window.purchaseAggregatedStats.syncWithBulkEditManager();
-    }
-    {% endif %}
-}
-
-// تابع تغییر تعداد رکورد در هر صفحه (حالا توسط pagination مدیریت می‌شود)
-function updatePerPage() {
-    // این تابع دیگر نیازی ندارد چون pagination جاوااسکریپتی خودش تعداد نمایش را مدیریت می‌کند
-    console.log('updatePerPage called - now handled by JavaScript pagination');
-}
-
-// تابع مدیریت pagination links (دیگر نیازی ندارد)
-function handlePaginationClick(event) {
-    // این تابع دیگر استفاده نمی‌شود چون pagination جاوااسکریپتی خودش کلیک‌ها را مدیریت می‌کند
-    console.log('handlePaginationClick called - now handled by JavaScript pagination');
-}
-
-    // مدیریت toggle آرشیو
+// مدیریت toggle آرشیو
 document.addEventListener('DOMContentLoaded', function() {
     const archiveToggle = document.getElementById('toggleArchived');
     const archivedContent = document.getElementById('archivedContent');
@@ -2366,42 +2287,42 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // حذف کلاس تست از سطر اول
+    // تست ساده برای مطمئن شدن از کارکرد CSS
+    console.log('Testing CSS...');
+    
+    // پیدا کردن اولین سطر جدول و اضافه کردن کلاس تست
     setTimeout(function() {
         const firstRow = document.querySelector('.table tbody tr');
         if (firstRow) {
-            firstRow.classList.remove('test-selected');
+            firstRow.classList.add('test-selected');
+            console.log('Added test-selected to first row');
         }
-    }, 100);
+    }, 1000);
     
     // Event listener مستقیم برای چک‌باکس‌ها
     document.addEventListener('change', function(e) {
         if (e.target && e.target.classList.contains('row-checkbox')) {
+            console.log('Direct event listener triggered');
+            
             const checkbox = e.target;
             const row = checkbox.closest('tr');
             
             if (row) {
                 if (checkbox.checked) {
                     row.classList.add('selected-row');
+                    row.style.backgroundColor = '#e3f2fd !important';
+                    row.style.borderLeft = '4px solid #2196f3';
+                    console.log('Row selected via direct listener');
                 } else {
                     row.classList.remove('selected-row');
+                    row.style.backgroundColor = '';
+                    row.style.borderLeft = '';
+                    console.log('Row deselected via direct listener');
                 }
             }
         }
     });
 });
-
-// تابع ساده برای تغییر رنگ سطر انتخاب شده
-function toggleRowSelection(checkbox) {
-    const row = checkbox.closest('tr');
-    if (row) {
-        if (checkbox.checked) {
-            row.classList.add('selected-row');
-        } else {
-            row.classList.remove('selected-row');
-        }
-    }
-}
 </script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>

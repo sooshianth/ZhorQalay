@@ -413,7 +413,7 @@
                         </div>
                         <div class="card-body text-center">
                             <p>ابتدا قالب اکسل حاوی اطلاعات موارد انتخاب شده را دانلود کنید</p>
-                            <a href="{% url 'table_filter:bulk_edit_template' %}?table_type={{ table_type }}&model={{ model_name }}&app={{ app_name }}&selected_ids={{ selected_ids }}" 
+                            <a href="{% url 'table_filter:bulk_edit_template' %}?table_type={{ table_type }}&model={{ model_name }}&app={{ app_name }}&selected_ids={{ selected_ids_str }}" 
                                class="btn btn-info btn-lg">
                                 <i class="fas fa-download me-2"></i>دانلود قالب اکسل
                             </a>
@@ -440,7 +440,7 @@
                                 <input type="hidden" name="table_type" value="{{ table_type }}">
                                 
                                 <!-- Hidden fields for selected IDs -->
-                                {% for id in selected_ids.split %}
+                                {% for id in selected_ids %}
                                     <input type="hidden" name="selected_ids" value="{{ id }}">
                                 {% endfor %}
 
@@ -537,10 +537,53 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // ساده شده - فقط بررسی نوع فایل
     const fileInput = document.getElementById('excel_file');
     const form = fileInput.closest('form');
     
+    // Debug function
+    function debugExcelFile(file) {
+        console.log('DEBUG - Excel file info:', {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            lastModified: new Date(file.lastModified)
+        });
+        
+        // Show file preview info
+        const formData = new FormData();
+        formData.append('excel_file', file);
+        
+        fetch('/table-filter/debug-excel/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('DEBUG - File analysis:', data);
+            if (data.status === 'success') {
+                const info = data.debug_info;
+                console.log(`File has ${info.shape[0]} rows and ${info.shape[1]} columns`);
+                console.log('Columns:', info.columns);
+                console.log('Sample data:', info.sample_data);
+            }
+        })
+        .catch(error => {
+            console.error('DEBUG - Error analyzing file:', error);
+        });
+    }
+    
+    // File input change handler
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            debugExcelFile(file);
+        }
+    });
+    
+    // Form submit handler
     form.addEventListener('submit', function(e) {
         const file = fileInput.files[0];
         
@@ -556,13 +599,40 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Show loading
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>در حال پردازش...';
+        submitBtn.disabled = true;
+        
+        // Debug info before submit
+        console.log('DEBUG - Form data before submit:', {
+            selectedIds: Array.from(form.querySelectorAll('input[name="selected_ids"]')).map(i => i.value),
+            modelName: form.querySelector('input[name="model_name"]').value,
+            appName: form.querySelector('input[name="app_name"]').value,
+            tableType: form.querySelector('input[name="table_type"]').value,
+            fileName: file.name
+        });
+        
         if (confirm('آیا از اعمال تغییرات روی ' + '{{ selected_count }}' + ' مورد انتخاب شده اطمینان دارید؟')) {
-            return true; // ارسال فرم در صورت تأیید
+            // Form will submit naturally
+            return true;
         } else {
+            // Restore button
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
             e.preventDefault();
             return false;
         }
     });
+    
+    // Add download template button enhancement
+    const downloadBtn = document.querySelector('a[href*="bulk_edit_template"]');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', function() {
+            console.log('DEBUG - Downloading template for URL:', this.href);
+        });
+    }
 });
 </script>
 {% endblock %} 

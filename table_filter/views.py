@@ -15,6 +15,7 @@ from datetime import datetime
 from django.contrib.auth.models import User
 from django.db.models import Q
 import logging
+import pandas as pd
 
 # Create your views here.
 
@@ -131,6 +132,7 @@ def get_editable_fields(model, table_type, selected_ids=None):
     print(f"DEBUG - Processing model: {model_name}")
     print(f"DEBUG - All model fields: {[f.name for f in model._meta.get_fields()]}")
     
+    # پردازش همه فیلدها (نه فقط فیلدهای مهم)
     for field in model._meta.get_fields():
         print(f"DEBUG - Processing field: {field.name}, type: {type(field).__name__}")
         
@@ -203,10 +205,45 @@ def get_editable_fields(model, table_type, selected_ids=None):
             field_choices = field.choices
             print(f"DEBUG - Field {field.name} has choices: {len(field_choices)}")
         
-        # تعیین برچسب فیلد
-        field_label = getattr(field, 'verbose_name', None)
-        if not field_label:
-            field_label = field.name.replace('_', ' ').title()
+        # تعیین برچسب فیلد با برچسب‌های فارسی مناسب برای Purchase
+        if model_name == 'Purchase':
+            field_labels = {
+                'order_weight': 'وزن سفارش (کیلوگرم)',
+                'delivered_weight': 'وزن بارنامه شده (کیلوگرم)',
+                'company_price': 'فی خرید (ریال)',
+                'customer_price': 'فی فروش (ریال)',
+                'amount_paid': 'مبلغ پرداختی (ریال)',
+                'state': 'وضعیت',
+                'is_urgent': 'فوری',
+                'is_canceled': 'لغو شده',
+                'is_archived': 'آرشیو شده',
+                'is_fully_tasvied': 'تسویه کامل',
+                'is_factored': 'فاکتور صادر شده',
+                'priority': 'اولویت',
+                'address': 'آدرس',
+                'description': 'توضیحات',
+                'tracking_number': 'شماره پیگیری',
+                'bazaargah_phone_number': 'شماره تلفن بازارگاه',
+                'buyer_name': 'نام خریدار',
+                'tahvil_phone_number': 'شماره تلفن تحویل',
+                'code_melli_tahvil': 'کد ملی تحویل',
+                'send_cottage_sms': 'ارسال پیامک کوتاژ',
+                'total_weight': 'وزن کل (کیلوگرم)',
+                'type': 'نوع خرید',
+                'payment_method': 'شیوه پرداخت',
+                'is_weight_costed': 'کسر از وزن موجود',
+                'is_ap_af': 'اتوکامپلیت شده',
+                'extelaf_type': 'نوع اختلاف',
+                'extelaf_weight': 'وزن اختلاف (کیلوگرم)',
+                'extelaf_amount': 'مبلغ اختلاف (ریال)',
+                'priority_reason': 'دلیل اولویت',
+                'factor_code': 'فاکتور مبنا'
+            }
+            field_label = field_labels.get(field.name, getattr(field, 'verbose_name', field.name.replace('_', ' ').title()))
+        else:
+            field_label = getattr(field, 'verbose_name', None)
+            if not field_label:
+                field_label = field.name.replace('_', ' ').title()
         
         # بررسی یکتا بودن فیلد
         is_unique = False
@@ -254,7 +291,7 @@ def get_editable_fields(model, table_type, selected_ids=None):
 @login_required
 def bulk_edit_excel_page(request):
     """نمایش صفحه ویرایش با اکسل"""
-    selected_ids = request.GET.get('ids', '').split(',')
+    selected_ids = request.GET.get('selected_ids', '').split()
     selected_ids = [id.strip() for id in selected_ids if id.strip()]
     
     model_name = request.GET.get('model', '')
@@ -262,6 +299,7 @@ def bulk_edit_excel_page(request):
     table_type = request.GET.get('table_type', '')
     
     print(f"DEBUG - Excel page: model_name={model_name}, app_name={app_name}, table_type={table_type}")
+    print(f"DEBUG - Selected IDs: {selected_ids}")
     
     if not selected_ids:
         return render(request, 'table_filter/bulk_edit_error.html', {
@@ -281,7 +319,7 @@ def bulk_edit_excel_page(request):
         elif 'cargo_product' in referer or 'cargo-product' in referer:
             model_name = 'CargoProduct'
             table_type = 'cargo_product'
-        
+    
     # اگر model_name مشخص شده ولی table_type نه، آن را تشخیص دهیم
     if model_name and not table_type:
         if model_name == 'Purchase':
@@ -291,26 +329,26 @@ def bulk_edit_excel_page(request):
         elif model_name == 'CargoProduct':
             table_type = 'cargo_product'
     
+    # دریافت مدل
+    from django.apps import apps
     try:
         model = apps.get_model(app_name, model_name)
-        print(f"DEBUG - Excel page: Found model {model.__name__}")
-    except LookupError as e:
-        print(f"DEBUG - Excel page: LookupError {e}")
+    except LookupError:
         return render(request, 'table_filter/bulk_edit_error.html', {
             'error': f'مدل {model_name} در اپلیکیشن {app_name} یافت نشد'
         })
     
     # دریافت آبجکت‌های انتخاب شده
     objects = model.objects.filter(id__in=selected_ids)
-    print(f"DEBUG - Excel page: Found {objects.count()} objects")
     
     context = {
+        'selected_count': len(selected_ids),
+        'selected_ids_str': ' '.join(selected_ids),  # برای URL در template
+        'selected_ids': selected_ids,  # لیست برای loop در template
         'objects': objects,
         'model_name': model_name,
         'app_name': app_name,
         'table_type': table_type,
-        'selected_count': len(selected_ids),
-        'selected_ids': ','.join(selected_ids),
     }
     
     return render(request, 'table_filter/bulk_edit_excel.html', context)
@@ -579,297 +617,337 @@ def bulk_edit_excel_view(request):
         excel_file = request.FILES['excel_file']
         selected_ids = request.POST.getlist('selected_ids')
         
+        print(f"DEBUG - Bulk Excel: uploaded file: {excel_file.name}")
+        print(f"DEBUG - Bulk Excel: selected_ids from POST: {selected_ids}")
+        
         if not selected_ids:
             from django.contrib import messages
             messages.error(request, 'هیچ موردی انتخاب نشده است')
             return redirect(request.META.get('HTTP_REFERER', '/'))
         
-        # تشخیص مدل
-        model_name = request.POST.get('model_name')
+        # تشخیص نوع مدل
+        table_type = request.POST.get('table_type', 'Purchase')
+        model_name = request.POST.get('model_name', 'Purchase')
         app_name = request.POST.get('app_name', 'core')
         
-        if not model_name:
-            # تلاش برای تشخیص از URL
-            referer = request.META.get('HTTP_REFERER', '')
-            if 'purchase' in referer:
-                model_name = 'Purchase'
-                app_name = 'core'
-            elif 'customer' in referer:
-                model_name = 'Customer'
-                app_name = 'core'
-            elif 'cargo_product' in referer:
-                model_name = 'CargoProduct'
-                app_name = 'core'
-            else:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'نوع مدل تشخیص داده نشد'
-                })
+        print(f"DEBUG - Table type: {table_type}, Model: {model_name}, App: {app_name}")
         
+        # دریافت مدل
+        from django.apps import apps
         try:
             model = apps.get_model(app_name, model_name)
-        except LookupError:
+        except Exception as e:
+            print(f"DEBUG - Error getting model: {e}")
             from django.contrib import messages
-            messages.error(request, f'مدل {model_name} یافت نشد')
+            messages.error(request, f'مدل یافت نشد: {e}')
             return redirect(request.META.get('HTTP_REFERER', '/'))
-        
-        # ایمپورت مدل لاگ
-        from .models import BulkEditLog
         
         # خواندن فایل اکسل
         try:
-            workbook = openpyxl.load_workbook(excel_file)
-            worksheet = workbook.active
+            # خواندن اکسل با دقت زیاد
+            df = pd.read_excel(excel_file, engine='openpyxl')
+            print(f"DEBUG - Excel file read successfully. Shape: {df.shape}")
+            print(f"DEBUG - Excel columns: {list(df.columns)}")
+            print(f"DEBUG - Excel head:\n{df.head()}")
+            
+            # پاک کردن ردیف‌های خالی
+            df = df.dropna(how='all')
+            
+            # بررسی وجود ستون ID
+            if 'ID' not in df.columns:
+                from django.contrib import messages
+                messages.error(request, 'ستون ID در فایل اکسل یافت نشد')
+                return redirect(request.META.get('HTTP_REFERER', '/'))
+            
         except Exception as e:
+            print(f"DEBUG - Error reading Excel file: {e}")
             from django.contrib import messages
-            messages.error(request, f'خطا در خواندن فایل اکسل: {str(e)}')
+            messages.error(request, f'خطا در خواندن فایل اکسل: {e}')
             return redirect(request.META.get('HTTP_REFERER', '/'))
         
-        # خواندن هدرها (سطر اول)
-        headers = []
-        for cell in worksheet[1]:
-            if cell.value:
-                headers.append(str(cell.value).strip())
-            else:
-                break
-        
-        if 'ID' not in headers:
-            from django.contrib import messages
-            messages.error(request, 'ستون ID در فایل اکسل یافت نشد')
-            return redirect(request.META.get('HTTP_REFERER', '/'))
-        
-        id_index = headers.index('ID')
-        
-        # پردازش داده‌ها
-        updated_count = 0
+        # پردازش تغییرات - رویکرد ساده‌تر
+        changes_count = 0
         errors = []
-        log_details = []  # جزئیات لاگ برای نمایش به کاربر
         
-        with transaction.atomic():
-            for row_num, row in enumerate(worksheet.iter_rows(min_row=2), start=2):
-                if not row[id_index].value:
+        for index, row in df.iterrows():
+            try:
+                obj_id = int(row['ID'])
+                print(f"DEBUG - Processing row {index}: ID={obj_id}")
+                
+                # بررسی اینکه آیا این ID در لیست انتخاب شده‌ها هست
+                if str(obj_id) not in selected_ids:
+                    print(f"DEBUG - Skipping ID {obj_id} - not in selected list")
                     continue
-                    
+                
+                # دریافت object
                 try:
-                    obj_id = str(row[id_index].value).strip()
-                    
-                    # بررسی اینکه آبجکت در لیست انتخاب شده‌ها باشد
-                    if obj_id not in selected_ids:
-                        continue
-                    
-                    # دریافت آبجکت
-                    try:
-                        obj = model.objects.get(id=obj_id)
-                    except model.DoesNotExist:
-                        errors.append(f'سطر {row_num}: آبجکت با شناسه {obj_id} یافت نشد')
-                        continue
-                    
-                    # جمع‌آوری تغییرات برای لاگ
-                    changes_dict = {}
-                    
-                    # به‌روزرسانی فیلدها
-                    for col_index, header in enumerate(headers):
-                        if header == 'ID' or col_index >= len(row):
-                            continue
-                            
-                        cell_value = row[col_index].value
-                        
-                        if cell_value is not None and str(cell_value).strip():
-                            field_name = get_field_name_from_header(header, model_name)
-                            
-                            if field_name:
-                                try:
-                                    field = model._meta.get_field(field_name)
-                                    
-                                    # ذخیره مقدار قبلی
-                                    old_value = getattr(obj, field_name, None)
-                                    
-                                    # تبدیل مقدار به نوع مناسب
-                                    converted_value = convert_excel_value(cell_value, field)
-                                    
-                                    # تنظیم مقدار جدید
-                                    setattr(obj, field_name, converted_value)
-                                    
-                                    # ثبت تغییر در دیکشنری تغییرات
-                                    if old_value != converted_value:
-                                        changes_dict[field_name] = {
-                                            'old': old_value,
-                                            'new': converted_value
-                                        }
-                                    
-                                except (FieldDoesNotExist, ValueError, TypeError) as e:
-                                    errors.append(f'سطر {row_num}, ستون {header}: {str(e)}')
-                                    continue
-                    
-                    # ذخیره آبجکت فقط اگر تغییری وجود داشته باشد
-                    if changes_dict:
-                        obj.save()
-                        updated_count += 1
-                        
-                        # ثبت تغییرات در لاگ
-                        log_count = BulkEditLog.log_changes(
-                            user=request.user,
-                            app_name=app_name,
-                            model_name=model_name,
-                            object_id=str(obj.id),
-                            action_type='EXCEL',
-                            changes_dict=changes_dict
-                        )
-                        
-                        # اضافه کردن به جزئیات لاگ
-                        log_details.append({
-                            'id': obj_id,
-                            'changes': len(changes_dict),
-                            'fields': list(changes_dict.keys())
-                        })
-                    
-                except Exception as e:
-                    errors.append(f'سطر {row_num}: خطا در پردازش - {str(e)}')
+                    obj = model.objects.get(id=obj_id)
+                    print(f"DEBUG - Found object: {obj}")
+                except model.DoesNotExist:
+                    print(f"DEBUG - Object with ID {obj_id} not found")
+                    errors.append(f'آبجکت با شناسه {obj_id} یافت نشد')
                     continue
+                
+                # بررسی و اعمال تغییرات
+                obj_changed = False
+                field_changes = {}
+                
+                # پردازش همه ستون‌های اکسل (به جز ID)
+                for excel_column in df.columns:
+                    if excel_column == 'ID':
+                        continue
+                    
+                    # دریافت مقدار جدید از اکسل
+                    new_value = row[excel_column]
+                    
+                    # اگر مقدار NaN باشد، رد کن
+                    if pd.isna(new_value):
+                        print(f"DEBUG - Skipping {excel_column} - value is NaN")
+                        continue
+                    
+                    # تلاش برای پیدا کردن فیلد متناظر
+                    field_name = _find_matching_field(model, excel_column)
+                    if not field_name:
+                        print(f"DEBUG - No matching field found for column: {excel_column}")
+                        continue
+                    
+                    print(f"DEBUG - Processing column '{excel_column}' -> field '{field_name}' with value '{new_value}'")
+                    
+                    # دریافت مقدار فعلی از object
+                    try:
+                        current_value = getattr(obj, field_name)
+                        print(f"DEBUG - Field {field_name}: current='{current_value}', new='{new_value}'")
+                        
+                        # تبدیل و مقایسه مقادیر
+                        processed_new_value = _process_field_value_simple(obj, field_name, new_value, model)
+                        
+                        # مقایسه ساده
+                        if str(current_value) != str(processed_new_value):
+                            print(f"DEBUG - Change detected! Setting {field_name} from '{current_value}' to '{processed_new_value}'")
+                            
+                            setattr(obj, field_name, processed_new_value)
+                            field_changes[field_name] = {
+                                'old': current_value,
+                                'new': processed_new_value
+                            }
+                            obj_changed = True
+                        else:
+                            print(f"DEBUG - No change for {field_name} (same value)")
+                        
+                    except Exception as e:
+                        print(f"DEBUG - Error processing field {field_name}: {e}")
+                        errors.append(f'خطا در پردازش فیلد {field_name} برای آبجکت {obj_id}: {e}')
+                        continue
+                
+                # ذخیره تغییرات
+                if obj_changed:
+                    obj.save()
+                    changes_count += 1
+                    
+                    print(f"DEBUG - Object {obj_id} updated with changes: {field_changes}")
+                    
+                    # ثبت تاریخچه تغییرات
+                    try:
+                        _log_bulk_edit_changes(request.user, obj, field_changes)
+                    except Exception as e:
+                        print(f"DEBUG - Error logging changes: {e}")
+                else:
+                    print(f"DEBUG - No changes detected for object {obj_id}")
+                    
+            except Exception as e:
+                print(f"DEBUG - Error processing row {index}: {e}")
+                errors.append(f'خطا در پردازش ردیف {index + 2}: {e}')
+                continue
         
-        # استفاده از سیستم پیام‌ها برای نمایش نتیجه
+        # نمایش نتایج
         from django.contrib import messages
-        
-        if updated_count > 0:
-            messages.success(request, f'{updated_count} مورد از فایل اکسل به‌روزرسانی شد')
+        if changes_count > 0:
+            messages.success(request, f'{changes_count} مورد با موفقیت ویرایش شد')
         else:
-            messages.warning(request, 'هیچ موردی به‌روزرسانی نشد')
+            messages.warning(request, 'هیچ تغییری اعمال نشد - ممکن است داده‌های اکسل با داده‌های فعلی یکسان باشند')
         
         if errors:
-            error_message = f'خطاها ({len(errors)}): ' + '، '.join(errors[:5])
+            for error in errors[:5]:  # نمایش حداکثر 5 خطا
+                messages.error(request, error)
             if len(errors) > 5:
-                error_message += ' و ...'
-            messages.error(request, error_message)
+                messages.error(request, f'و {len(errors) - 5} خطای دیگر...')
         
-        # بازگشت به صفحه قبلی
         return redirect(request.META.get('HTTP_REFERER', '/'))
         
     except Exception as e:
-        # چاپ خطا برای اشکال‌زدایی
+        print(f"DEBUG - General error in bulk_edit_excel_view: {e}")
         import traceback
-        print(f"Error in bulk_edit_excel_view: {str(e)}")
-        print(traceback.format_exc())
-        
+        print(f"DEBUG - Traceback: {traceback.format_exc()}")
         from django.contrib import messages
-        messages.error(request, f'خطا در پردازش فایل اکسل: {str(e)}')
-        
-        # بازگشت به صفحه قبلی
+        messages.error(request, f'خطای کلی: {e}')
         return redirect(request.META.get('HTTP_REFERER', '/'))
+
+def _create_field_mapping(model, fields, excel_columns):
+    """ایجاد mapping بین فیلدهای مدل و ستون‌های اکسل"""
+    mapping = {}
+    
+    print(f"DEBUG - Creating field mapping for {len(fields)} fields and {len(excel_columns)} excel columns")
+    
+    # ایجاد دیکشنری برای سهولت جستجو
+    field_dict = {}
+    for field in fields:
+        field_dict[field['name']] = field['label']
+    
+    print(f"DEBUG - Available fields: {list(field_dict.keys())}")
+    print(f"DEBUG - Excel columns: {excel_columns}")
+    
+    # mapping دقیق بین headers و field names
+    for excel_column in excel_columns:
+        if excel_column == 'ID':
+            continue  # Skip ID column
+            
+        # جستجوی مستقیم با نام فیلد
+        if excel_column in field_dict:
+            mapping[excel_column] = excel_column
+            print(f"DEBUG - Direct mapping: {excel_column} -> {excel_column}")
+            continue
+        
+        # جستجوی با label
+        for field_name, field_label in field_dict.items():
+            if excel_column == field_label:
+                mapping[excel_column] = field_name
+                print(f"DEBUG - Label mapping: {excel_column} -> {field_name}")
+                break
+        
+        # اگر هنوز پیدا نشد، جستجوی fuzzy
+        if excel_column not in mapping:
+            # normalize کردن برای مقایسه بهتر
+            normalized_excel = excel_column.lower().strip()
+            
+            for field_name, field_label in field_dict.items():
+                normalized_label = field_label.lower().strip()
+                normalized_field = field_name.lower().strip()
+                
+                # چک کردن شباهت
+                if (normalized_excel == normalized_label or 
+                    normalized_excel == normalized_field or
+                    normalized_excel in normalized_label or
+                    normalized_label in normalized_excel):
+                    mapping[excel_column] = field_name
+                    print(f"DEBUG - Fuzzy mapping: {excel_column} -> {field_name}")
+                    break
+    
+    print(f"DEBUG - Final mapping: {mapping}")
+    return mapping
 
 @role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 def download_excel_template_view(request):
     """دانلود قالب اکسل برای ویرایش گروهی"""
-    table_type = request.GET.get('table_type', '')
-    selected_ids = request.GET.get('selected_ids', '').split(',')
-    selected_ids = [id.strip() for id in selected_ids if id.strip()]
-    model_name = request.GET.get('model', '')
-    app_name = request.GET.get('app', 'core')
-        
-    print(f"DEBUG - Excel Template: Initial params: model_name={model_name}, app_name={app_name}, table_type={table_type}, selected_ids={selected_ids}")
-        
-    # تشخیص مدل
-    if not table_type or not model_name:
-        referer = request.META.get('HTTP_REFERER', '')
-        print(f"DEBUG - Excel Template referer: {referer}")
-        if 'purchase' in referer:
-            table_type = 'purchase'
-            model_name = 'Purchase'
-        elif 'customer' in referer:
-            table_type = 'customer'
-            model_name = 'Customer'
-        elif 'cargo_product' in referer or 'cargo-product' in referer:
-            table_type = 'cargo_product'
-            model_name = 'CargoProduct'
-        elif 'barbary' in referer:
-            table_type = 'barbary'
-            model_name = 'Barbary'
-        elif 'vared_konandeh' in referer:
-            table_type = 'vared_konandeh'
-            model_name = 'VaredKonandeh'
-        else:
-            return HttpResponse('نوع جدول تشخیص داده نشد', status=400)
-    
-    print(f"DEBUG - Excel Template: Final params: model_name={model_name}, table_type={table_type}")
-        
     try:
-        model = apps.get_model(app_name, model_name)
-        print(f"DEBUG - Excel Template: Found model {model.__name__}")
-    except LookupError as e:
-        print(f"DEBUG - Excel Template: LookupError {e}")
-        return HttpResponse(f'مدل {model_name} در اپلیکیشن {app_name} یافت نشد. خطا: {str(e)}', status=400)
+        table_type = request.GET.get('table_type', 'purchase')
+        model_name = request.GET.get('model', 'Purchase')
+        app_name = request.GET.get('app', 'core')
+        selected_ids = request.GET.get('selected_ids', '').split()
         
-    # ایجاد فایل اکسل
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = f"ویرایش گروهی {model_name}"
-    
-    # قالب‌بندی هدر
-    header_font = Font(bold=True)
-    header_fill = PatternFill(start_color="AAAAAA", end_color="AAAAAA", fill_type="solid")
-    header_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-    
-    # ستون‌های اکسل
-    headers_fields = get_excel_headers_fields(table_type, selected_ids)
-    
-    if not headers_fields:
-        print(f"DEBUG - Excel Template: No headers fields found for table_type={table_type}")
-        return HttpResponse(f'خطا در دریافت فیلدها برای نوع جدول {table_type}', status=400)
-    
-    print(f"DEBUG - Excel Template: Found {len(headers_fields)} header fields")
+        print(f"DEBUG - Template download: table_type={table_type}, model={model_name}, app={app_name}")
+        print(f"DEBUG - Template download: selected_ids={selected_ids}")
         
-    # اضافه کردن هدرها
-    for col_idx, (header, _) in enumerate(headers_fields, start=1):
-        cell = ws.cell(row=1, column=col_idx, value=header)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = header_alignment
-    
-    # اضافه کردن ستون ID در ابتدا
-    id_cell = ws.cell(row=1, column=len(headers_fields) + 1, value="ID")
-    id_cell.font = header_font
-    id_cell.fill = header_fill
-    id_cell.alignment = header_alignment
-    
-    # اگر آیدی‌های انتخاب شده وجود دارند، اطلاعات آنها را اضافه کنیم
-    if selected_ids:
+        # دریافت مدل
+        from django.apps import apps
+        try:
+            model = apps.get_model(app_name, model_name)
+        except Exception as e:
+            print(f"DEBUG - Error getting model for template: {e}")
+            from django.http import HttpResponse
+            return HttpResponse('مدل یافت نشد', status=400)
+        
+        # دریافت فیلدهای قابل ویرایش
+        editable_fields = get_editable_fields(model, table_type, selected_ids)
+        print(f"DEBUG - Template fields: {[f['name'] for f in editable_fields]}")
+        
+        # دریافت آبجکت‌های انتخاب شده
         objects = model.objects.filter(id__in=selected_ids)
-        print(f"DEBUG - Excel Template: Found {objects.count()} objects for selected IDs")
+        print(f"DEBUG - Template objects count: {objects.count()}")
+        
+        # ساخت فایل اکسل
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment
+        from django.http import HttpResponse
+        
+        workbook = openpyxl.Workbook()
+        worksheet = workbook.active
+        worksheet.title = f"{model_name} Template"
+        
+        # تنظیم هدرها
+        headers = ['ID']  # شروع با ستون ID
+        for field in editable_fields:
+            headers.append(field['label'])
+        
+        print(f"DEBUG - Template headers: {headers}")
+        
+        # نوشتن هدرها
+        for col_num, header in enumerate(headers, 1):
+            cell = worksheet.cell(row=1, column=col_num)
+            cell.value = header
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+            cell.alignment = Alignment(horizontal="center")
+        
+        # نوشتن داده‌ها
+        for row_num, obj in enumerate(objects, 2):
+            # ستون ID
+            worksheet.cell(row=row_num, column=1, value=obj.id)
             
-        for row_idx, obj in enumerate(objects, start=2):
-            # مقدار هر ستون را اضافه کنیم
-            for col_idx, (_, field_name) in enumerate(headers_fields, start=1):
+            # سایر ستون‌ها
+            for col_num, field in enumerate(editable_fields, 2):
+                field_name = field['name']
                 try:
                     value = getattr(obj, field_name)
-                            
-                    # اگر فیلد از نوع ForeignKey است، نام آن را به‌جای آبجکت استفاده کنیم
-                    if hasattr(value, '__class__') and value is not None:
-                        if hasattr(value, 'name'):
-                            value = value.name
-                        elif hasattr(value, 'id'):
-                            value = str(value.id)
                     
-                    ws.cell(row=row_idx, column=col_idx, value=value)
-                except (AttributeError, FieldDoesNotExist) as e:
-                    print(f"DEBUG - Excel Template: Error getting field {field_name} for object {obj.id}: {e}")
-                    continue
-            
-            # اضافه کردن ID برای شناسایی
-            ws.cell(row=row_idx, column=len(headers_fields) + 1, value=str(obj.id))
+                    # تبدیل مقدار برای نمایش در اکسل
+                    if isinstance(value, bool):
+                        display_value = 'بله' if value else 'خیر'
+                    elif value is None:
+                        display_value = ''
+                    elif hasattr(value, '__call__'):  # برای method ها
+                        display_value = str(value())
+                    else:
+                        display_value = str(value)
+                    
+                    worksheet.cell(row=row_num, column=col_num, value=display_value)
+                    
+                except Exception as e:
+                    print(f"DEBUG - Error getting field {field_name} for object {obj.id}: {e}")
+                    worksheet.cell(row=row_num, column=col_num, value='')
         
-    # ذخیره در BytesIO
-    excel_file = BytesIO()
-    wb.save(excel_file)
-    excel_file.seek(0)
+        # تنظیم عرض ستون‌ها
+        for column in worksheet.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            worksheet.column_dimensions[column_letter].width = adjusted_width
         
-    # ارسال فایل به کاربر
-    response = HttpResponse(
-        excel_file.read(),
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-    response['Content-Disposition'] = f'attachment; filename=bulk_edit_{table_type}.xlsx'
+        # ایجاد HttpResponse
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        filename = f"{model_name}_template_{len(selected_ids)}_items.xlsx"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
-    return response
+        # ذخیره workbook در response
+        workbook.save(response)
+        
+        print(f"DEBUG - Template created successfully: {filename}")
+        return response
+        
+    except Exception as e:
+        print(f"DEBUG - Error creating template: {e}")
+        import traceback
+        print(f"DEBUG - Traceback: {traceback.format_exc()}")
+        from django.http import HttpResponse
+        return HttpResponse(f'خطا در ایجاد قالب: {e}', status=500)
 
 def get_field_name_from_header(header, model_name):
     """Map Excel header to model field name به صورت دینامیک"""
@@ -921,7 +999,7 @@ def convert_excel_value(value, field):
     elif field.get_internal_type() in ['FloatField', 'DecimalField']:
         return float(value) if value else 0.0
     elif field.get_internal_type() == 'BooleanField':
-        return str(value).lower() in ['بله', 'true', '1', 'yes', 'on', 'فعال']
+        return str(value).lower() in ['بله', 'yes', 'true', '1']
     else:
         return str(value) if value else ''
 
@@ -1371,3 +1449,328 @@ def restore_value_api(request):
     except Exception as e:
         logger.error(f"System error: {str(e)}", exc_info=True)
         return JsonResponse({'success': False, 'error': f'خطای سیستمی: {str(e)}'})
+
+def _normalize_value_for_comparison(value):
+    """تبدیل مقدار به فرمت استاندارد برای مقایسه"""
+    if value is None:
+        return None
+    
+    # تبدیل boolean
+    if isinstance(value, bool):
+        return value
+    
+    # تبدیل عدد
+    if isinstance(value, (int, float)):
+        return float(value)
+    
+    # تبدیل رشته
+    if isinstance(value, str):
+        # حذف فاصله‌های اضافی
+        value = value.strip()
+        
+        # تبدیل مقادیر فارسی boolean
+        if value.lower() in ['بله', 'yes', 'true', '1']:
+            return True
+        if value.lower() in ['خیر', 'no', 'false', '0']:
+            return False
+        
+        # تلاش برای تبدیل به عدد
+        try:
+            if '.' in value:
+                return float(value)
+            else:
+                return float(int(value))
+        except (ValueError, TypeError):
+            pass
+        
+        return value
+    
+    # سایر موارد
+    return str(value)
+
+def _process_field_value(obj, field_name, value, model):
+    """پردازش مقدار فیلد بر اساس نوع فیلد"""
+    try:
+        field = model._meta.get_field(field_name)
+        field_type = field.get_internal_type()
+        
+        print(f"DEBUG - Processing field {field_name} with type {field_type}, value: {value}")
+        
+        # اگر مقدار خالی باشد
+        if value is None or (isinstance(value, str) and value.strip() == ''):
+            if field.null:
+                return None
+            elif field_type == 'BooleanField':
+                return False
+            else:
+                return value
+        
+        # پردازش بر اساس نوع فیلد
+        if field_type == 'BooleanField':
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, str):
+                value = value.strip().lower()
+                return value in ['بله', 'yes', 'true', '1', 'فعال']
+            return bool(value)
+        
+        elif field_type in ['IntegerField', 'PositiveIntegerField', 'BigIntegerField', 'SmallIntegerField']:
+            if isinstance(value, (int, float)):
+                return int(value)
+            if isinstance(value, str):
+                # حذف کاما و فاصله
+                value = value.replace(',', '').replace(' ', '')
+                try:
+                    return int(float(value))
+                except (ValueError, TypeError):
+                    pass
+            return int(value)
+        
+        elif field_type in ['FloatField', 'DecimalField']:
+            if isinstance(value, (int, float)):
+                return float(value)
+            if isinstance(value, str):
+                # حذف کاما و فاصله
+                value = value.replace(',', '').replace(' ', '')
+                try:
+                    return float(value)
+                except (ValueError, TypeError):
+                    pass
+            return float(value)
+        
+        elif field_type == 'ForeignKey':
+            # اگر مقدار یک ID است
+            if isinstance(value, (int, float)):
+                try:
+                    related_model = field.related_model
+                    return related_model.objects.get(id=int(value))
+                except related_model.DoesNotExist:
+                    return None
+            # اگر مقدار یک رشته است (نام object)
+            elif isinstance(value, str):
+                try:
+                    related_model = field.related_model
+                    # جستجو بر اساس نام یا __str__
+                    if hasattr(related_model, 'name'):
+                        return related_model.objects.get(name=value)
+                    else:
+                        # جستجو در تمام رکوردها
+                        for obj in related_model.objects.all():
+                            if str(obj) == value:
+                                return obj
+                        return None
+                except:
+                    return None
+            return value
+        
+        else:
+            # سایر فیلدها (TextField, CharField, etc.)
+            return str(value)
+            
+    except Exception as e:
+        print(f"DEBUG - Error processing field {field_name}: {e}")
+        return value
+
+def _log_bulk_edit_changes(user, obj, field_changes):
+    """ثبت تغییرات ویرایش گروهی در سیستم لاگ"""
+    try:
+        from .models import BulkEditLog
+        
+        # ثبت هر تغییر به صورت جداگانه
+        for field_name, change in field_changes.items():
+            BulkEditLog.objects.create(
+                user=user,
+                app_name=obj._meta.app_label,
+                model_name=obj._meta.model_name,
+                object_id=str(obj.id),
+                field_name=field_name,
+                old_value=str(change['old']) if change['old'] is not None else '',
+                new_value=str(change['new']) if change['new'] is not None else '',
+                action_type='EXCEL'
+            )
+        
+        print(f"DEBUG - Logged {len(field_changes)} changes for object {obj.id}")
+        
+    except Exception as e:
+        print(f"DEBUG - Error logging changes: {e}")
+        pass
+
+def _find_matching_field(model, excel_column):
+    """پیدا کردن فیلد متناظر با ستون اکسل"""
+    
+    # ابتدا بررسی مستقیم نام فیلد
+    try:
+        field = model._meta.get_field(excel_column)
+        print(f"DEBUG - Direct field match: {excel_column}")
+        return excel_column
+    except:
+        pass
+    
+    # mapping خاص برای مدل Purchase
+    if model.__name__ == 'Purchase':
+        purchase_mappings = {
+            'وزن سفارش (کیلوگرم)': 'order_weight',
+            'وزن بارنامه شده (کیلوگرم)': 'delivered_weight', 
+            'فی خرید (ریال)': 'company_price',
+            'فی فروش (ریال)': 'customer_price',
+            'مبلغ پرداختی (ریال)': 'amount_paid',
+            'وضعیت': 'state',
+            'فوری': 'is_urgent',
+            'لغو شده': 'is_canceled',
+            'آرشیو شده': 'is_archived',
+            'تسویه کامل': 'is_fully_tasvied',
+            'فاکتور صادر شده': 'is_factored',
+            'اولویت': 'priority',
+            'آدرس': 'address',
+            'توضیحات': 'description',
+            'شماره پیگیری': 'tracking_number',
+            'شماره تلفن بازارگاه': 'bazaargah_phone_number',
+            'نام خریدار': 'buyer_name',
+            'شماره تلفن تحویل': 'tahvil_phone_number',
+            'کد ملی تحویل': 'code_melli_tahvil',
+            'ارسال پیامک کوتاژ': 'send_cottage_sms',
+            'وزن کل (کیلوگرم)': 'total_weight',
+            'نوع خرید': 'type',
+            'شیوه پرداخت': 'payment_method',
+            'کسر از وزن موجود': 'is_weight_costed',
+            'اتوکامپلیت شده': 'is_ap_af',
+            'نوع اختلاف': 'extelaf_type',
+            'وزن اختلاف (کیلوگرم)': 'extelaf_weight',
+            'مبلغ اختلاف (ریال)': 'extelaf_amount',
+            'دلیل اولویت': 'priority_reason',
+            'فاکتور مبنا': 'factor_code'
+        }
+        
+        if excel_column in purchase_mappings:
+            field_name = purchase_mappings[excel_column]
+            print(f"DEBUG - Purchase mapping: {excel_column} -> {field_name}")
+            return field_name
+    
+    # جستجو در فیلدهای موجود
+    all_fields = model._meta.get_fields()
+    for field in all_fields:
+        # بررسی نام فیلد
+        if field.name.lower() == excel_column.lower():
+            print(f"DEBUG - Field name match: {excel_column} -> {field.name}")
+            return field.name
+        
+        # بررسی verbose_name
+        if hasattr(field, 'verbose_name') and field.verbose_name:
+            if str(field.verbose_name).lower() == excel_column.lower():
+                print(f"DEBUG - Verbose name match: {excel_column} -> {field.name}")
+                return field.name
+    
+    print(f"DEBUG - No matching field found for: {excel_column}")
+    return None
+
+def _process_field_value_simple(obj, field_name, value, model):
+    """پردازش ساده مقدار فیلد"""
+    try:
+        field = model._meta.get_field(field_name)
+        field_type = field.get_internal_type()
+        
+        print(f"DEBUG - Processing field {field_name} with type {field_type}, value: '{value}' (type: {type(value)})")
+        
+        # اگر مقدار خالی باشد
+        if value is None or (isinstance(value, str) and value.strip() == ''):
+            if field.null:
+                return None
+            elif field_type == 'BooleanField':
+                return False
+            else:
+                return value
+        
+        # پردازش بر اساس نوع فیلد
+        if field_type == 'BooleanField':
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, str):
+                value_lower = value.strip().lower()
+                return value_lower in ['بله', 'yes', 'true', '1', 'فعال', 'on']
+            if isinstance(value, (int, float)):
+                return bool(value)
+            return bool(value)
+        
+        elif field_type in ['IntegerField', 'PositiveIntegerField', 'BigIntegerField', 'SmallIntegerField']:
+            if isinstance(value, (int, float)):
+                return int(value)
+            if isinstance(value, str):
+                # حذف کاما و فاصله
+                clean_value = value.replace(',', '').replace(' ', '').strip()
+                try:
+                    return int(float(clean_value))
+                except (ValueError, TypeError):
+                    return 0
+            return int(value) if value else 0
+        
+        elif field_type in ['FloatField', 'DecimalField']:
+            if isinstance(value, (int, float)):
+                return float(value)
+            if isinstance(value, str):
+                # حذف کاما و فاصله
+                clean_value = value.replace(',', '').replace(' ', '').strip()
+                try:
+                    return float(clean_value)
+                except (ValueError, TypeError):
+                    return 0.0
+            return float(value) if value else 0.0
+        
+        elif field_type == 'CharField':
+            # برای choice fields
+            if hasattr(field, 'choices') and field.choices:
+                # بررسی اینکه آیا مقدار در choices هست
+                choice_values = [choice[0] for choice in field.choices]
+                if value in choice_values:
+                    return value
+                
+                # جستجو با display value
+                for choice_value, choice_display in field.choices:
+                    if str(choice_display).lower() == str(value).lower():
+                        return choice_value
+            
+            return str(value)
+        
+        else:
+            # سایر فیلدها (TextField, etc.)
+            return str(value)
+            
+    except Exception as e:
+        print(f"DEBUG - Error processing field {field_name}: {e}")
+        return value
+
+@role_required('admin', 'logistics_manager', 'financial_manager')
+@login_required
+def debug_excel_processing(request):
+    """تابع debug برای بررسی مشکل پردازش اکسل"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST method allowed'})
+    
+    try:
+        # تست با یک فایل نمونه
+        excel_file = request.FILES.get('excel_file')
+        if not excel_file:
+            return JsonResponse({'error': 'No Excel file provided'})
+        
+        # خواندن فایل
+        df = pd.read_excel(excel_file, engine='openpyxl')
+        
+        debug_info = {
+            'file_name': excel_file.name,
+            'shape': df.shape,
+            'columns': list(df.columns),
+            'sample_data': df.head(2).to_dict('records'),
+            'dtypes': df.dtypes.to_dict(),
+            'null_counts': df.isnull().sum().to_dict()
+        }
+        
+        return JsonResponse({
+            'status': 'success',
+            'debug_info': debug_info
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e),
+            'type': type(e).__name__
+        })

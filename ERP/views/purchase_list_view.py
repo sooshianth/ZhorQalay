@@ -269,6 +269,7 @@ def purchase_list(request):
         {'id': 'sales_agent', 'name': 'نماینده فروش', 'field': 'customer.sales_agent.name', 'editable': False},
         {'id': 'weight', 'name': 'وزن', 'field': 'order_weight', 'editable': True, 'unit': 'کیلوگرم'},
         {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage', 'editable': True},
+        {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name', 'editable': False},
         {'id': 'status', 'name': 'وضعیت‌ها', 'field': 'state', 'editable': True},
         {'id': 'actions', 'name': 'جزئیات', 'editable': False},
         # ستون‌های اضافی
@@ -468,107 +469,187 @@ def export_to_excel(request):
         print("ERROR: No purchase IDs!")
         return JsonResponse({'status': 'error', 'message': 'هیچ خریدی انتخاب نشده است'}, status=400)
     
+    # بررسی تعداد خریدها برای انتخاب روش پردازش
+    total_count = len(purchase_ids)
+    print(f"Total purchases to export: {total_count}")
+    
     try:
-        # برای عملکرد بهتر، اگر تعداد خریدهای انتخاب شده زیاد است، در تکه‌های کوچکتر پردازش کنیم
-        purchases = Purchase.objects.filter(id__in=purchase_ids).select_related('customer', 'cargo', 'unique_sales_agent').prefetch_related('customer__sales_agent', 'sales_agent', 'shenase_takhsis_set').order_by('-created_at')
+        # برای تعداد زیاد از streaming response استفاده کنیم
+        if total_count > 500:
+            return _export_large_excel_stream(purchase_ids, selected_columns)
+        else:
+            return _export_regular_excel(purchase_ids, selected_columns)
+            
+    except Exception as e:
+        # لاگ خطا
+        import traceback
+        print(f"Error in export_to_excel: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({'status': 'error', 'message': f'خطا در ایجاد فایل اکسل: {str(e)}'}, status=500)
+
+def _export_regular_excel(purchase_ids, selected_columns):
+    """پردازش معمولی برای تعداد کم خرید"""
+    purchases = Purchase.objects.filter(id__in=purchase_ids).select_related('customer', 'cargo', 'unique_sales_agent').prefetch_related('customer__sales_agent', 'sales_agent', 'shenase_takhsis_set').order_by('-created_at')
+    
+    print(f"Found {purchases.count()} purchases")
+    
+    if purchases.count() == 0:
+        print("ERROR: No purchases found!")
+        return JsonResponse({'status': 'error', 'message': 'هیچ خریدی با شناسه‌های داده شده یافت نشد'}, status=400)
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "لیست خریدها"
+    
+    # تنظیم گردش متن از راست به چپ برای کل صفحه
+    ws.sheet_view.rightToLeft = True
+    
+    # تعریف استایل‌ها
+    header_font = Font(name='B Nazanin', size=12, bold=True, color='FFFFFF')
+    header_fill = PatternFill(start_color='4CAF50', end_color='4CAF50', fill_type='solid')
+    
+    # تنظیم راست چین و وسط چین
+    alignment = Alignment(horizontal='right', vertical='center', wrap_text=True)
+    
+    # تعریف خطوط جدول
+    thin_border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+    
+    # مپینگ ستون‌ها به فیلدهای مدل با بهبود مدیریت خطا
+    column_mapping = {
+        'date': ('تاریخ', lambda p: p.created_at.strftime("%Y/%m/%d") if p.created_at else "-"),
+        'customer': ('مشتری', lambda p: p.customer.name if p.customer else "نامشخص"),
+        'invoice_id': ('کد درون سازمانی', lambda p: p.invoice_id or "تعیین نشده"),
+        'sales_agent': ('نماینده فروش', lambda p: p.unique_sales_agent_name if p.unique_sales_agent_name else (", ".join([agent.name for agent in p.customer.sales_agent.all()]) if p.customer and p.customer.sales_agent.exists() else "-")),
+        'purchase_number': ('شماره خرید', lambda p: p.purchase_number or "تعیین نشده"),
+        'weight': ('وزن (کیلوگرم)', lambda p: f"{p.order_weight:,}" if p.order_weight else "0"),
+        'cargo': ('کوتاژ', lambda p: p.cargo.cottage if p.cargo and hasattr(p.cargo, 'cottage') else "-"),
+        'importer': ('واردکننده', lambda p: p.cargo.vared_konandeh.name if p.cargo and p.cargo.vared_konandeh else "-"),
+        'status': ('وضعیت', lambda p: dict(Purchase.STATUS_CHOICES).get(p.state, p.state) if p.state else "-"),
+        'company_price': ('فی خرید (ریال)', lambda p: f"{p.company_price:,}" if p.company_price else "0"),
+        'customer_price': ('فی فروش (ریال)', lambda p: f"{p.customer_price:,}" if p.customer_price else "0"),
+        'delivered_weight': ('وزن بارنامه شده (کیلوگرم)', lambda p: f"{p.delivered_weight:,}" if p.delivered_weight else "0"),
+        'amount_paid': ('مبلغ پرداختی (ریال)', lambda p: f"{p.amount_paid:,}" if p.amount_paid else "0"),
+        'updated_at': ('تاریخ بروزرسانی', lambda p: p.updated_at.strftime("%Y/%m/%d") if p.updated_at else "-"),
+        'is_factored': ('ثبت فاکتور', lambda p: "بله" if p.is_factored else "خیر"),
+    }
+    
+    # فقط ستون‌های انتخاب شده را اضافه می‌کنیم
+    headers = []
+    for col in selected_columns:
+        if col in column_mapping:
+            headers.append(column_mapping[col][0])
+    
+    # افزودن هدرها به اکسل
+    ws.append(headers)
+    
+    # تنظیم استایل برای سطر هدر
+    for i, cell in enumerate(ws[1], 1):
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = alignment
+        cell.border = thin_border
+    
+    # داده‌ها
+    row_idx = 2
+    for purchase in purchases:
+        row = []
+        for col in selected_columns:
+            if col in column_mapping:
+                try:
+                    value = column_mapping[col][1](purchase)
+                    row.append(value)
+                except Exception as e:
+                    print(f"خطا در استخراج مقدار {col} برای خرید {purchase.id}: {str(e)}")
+                    row.append("-")
         
-        print(f"Found {purchases.count()} purchases")
+        ws.append(row)
         
-        if purchases.count() == 0:
-            print("ERROR: No purchases found!")
-            return JsonResponse({'status': 'error', 'message': 'هیچ خریدی با شناسه‌های داده شده یافت نشد'}, status=400)
+        # تنظیم استایل برای سطرهای داده
+        for j, cell in enumerate(ws[row_idx], 1):
+            cell.alignment = alignment
+            cell.border = thin_border
         
-        wb = Workbook()
-        ws = wb.active
+        row_idx += 1
+    
+    # تنظیم عرض ستون‌ها
+    for i, column in enumerate(ws.columns, 1):
+        ws.column_dimensions[ws.cell(row=1, column=i).column_letter].width = 15
+    
+    # اضافه کردن فریز به سطر هدر
+    ws.freeze_panes = "A2"
+    
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    filename = f"purchases_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
+
+def _export_large_excel_stream(purchase_ids, selected_columns):
+    """پردازش بهینه شده برای تعداد زیاد خرید با streaming"""
+    from django.http import StreamingHttpResponse
+    import tempfile
+    import os
+    
+    # ایجاد فایل موقت
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx')
+    temp_file.close()
+    
+    try:
+        # ایجاد workbook در فایل موقت
+        wb = Workbook(write_only=True)  # استفاده از write-only mode برای صرفه‌جویی در حافظه
+        ws = wb.create_sheet()
         ws.title = "لیست خریدها"
         
-        # تنظیم گردش متن از راست به چپ برای کل صفحه
-        ws.sheet_view.rightToLeft = True
-        
-        # تعریف استایل‌ها
-        header_font = Font(name='B Nazanin', size=12, bold=True, color='FFFFFF')
-        header_fill = PatternFill(start_color='4CAF50', end_color='4CAF50', fill_type='solid')  # رنگ سبز
-        
-        # استایل برای ردیف‌های زوج
-        even_row_fill = PatternFill(start_color='E8F5E9', end_color='E8F5E9', fill_type='solid')  # سبز بسیار کمرنگ
-        
-        # تنظیم راست چین و وسط چین
-        alignment = Alignment(horizontal='right', vertical='center', wrap_text=True)
-        
-        # تعریف خطوط جدول
-        thin_border = Border(
-            left=Side(style='thin'),
-            right=Side(style='thin'),
-            top=Side(style='thin'),
-            bottom=Side(style='thin')
-        )
-        
-        # مپینگ ستون‌ها به فیلدهای مدل با بهبود مدیریت خطا
+        # مپینگ ستون‌ها - نسخه ساده شده برای عملکرد بهتر
         column_mapping = {
             'date': ('تاریخ', lambda p: p.created_at.strftime("%Y/%m/%d") if p.created_at else "-"),
             'customer': ('مشتری', lambda p: p.customer.name if p.customer else "نامشخص"),
             'invoice_id': ('کد درون سازمانی', lambda p: p.invoice_id or "تعیین نشده"),
-            'sales_agent': ('نماینده فروش', lambda p: p.unique_sales_agent_name if p.unique_sales_agent_name else (", ".join([agent.name for agent in p.customer.sales_agent.all()]) if p.customer and p.customer.sales_agent.exists() else "-")),
+            'sales_agent': ('نماینده فروش', lambda p: p.unique_sales_agent_name or "-"),
             'purchase_number': ('شماره خرید', lambda p: p.purchase_number or "تعیین نشده"),
             'weight': ('وزن (کیلوگرم)', lambda p: f"{p.order_weight:,}" if p.order_weight else "0"),
             'cargo': ('کوتاژ', lambda p: p.cargo.cottage if p.cargo and hasattr(p.cargo, 'cottage') else "-"),
-            'importer': ('واردکننده', lambda p: p.cargo.vared_konandeh.name if p.cargo and p.cargo.vared_konandeh else "-"),
             'status': ('وضعیت', lambda p: dict(Purchase.STATUS_CHOICES).get(p.state, p.state) if p.state else "-"),
-            'address': ('آدرس', lambda p: p.address or "-"),
-            'description': ('توضیحات', lambda p: p.description or "-"),
             'company_price': ('فی خرید (ریال)', lambda p: f"{p.company_price:,}" if p.company_price else "0"),
             'customer_price': ('فی فروش (ریال)', lambda p: f"{p.customer_price:,}" if p.customer_price else "0"),
-            'factor_code': ('فاکتور مبنا', lambda p: "1" if p.factor_code else "0"),
-            'tracking_number': ('شماره پیگیری', lambda p: p.tracking_number or "-"),
-            'shenase_takhsis': ('شناسه‌های تخصیص', lambda p: ", ".join([s.code for s in p.shenase_takhsis_set.all()]) if p.shenase_takhsis_set.exists() else "-"),
-            'code_melli_tahvil': ('کد ملی تحویل', lambda p: p.code_melli_tahvil or "-"),
-            'bazaargah_phone_number': ('شماره تلفن بازارگاه', lambda p: p.bazaargah_phone_number or "-"),
-            'buyer_name': ('نام خریدار', lambda p: p.buyer_name or "-"),
-            'tahvil_phone_number': ('شماره تلفن تحویل', lambda p: p.tahvil_phone_number or "-"),
-            'send_cottage_sms': ('ارسال پیامک کوتاژ', lambda p: "بله" if p.send_cottage_sms else "خیر"),
-            'total_weight': ('وزن کل (کیلوگرم)', lambda p: f"{p.total_weight:,}" if p.total_weight else "0"),
             'delivered_weight': ('وزن بارنامه شده (کیلوگرم)', lambda p: f"{p.delivered_weight:,}" if p.delivered_weight else "0"),
-            'type': ('نوع خرید', lambda p: "بازارگاه" if p.type == "bazaargah" else "خارج از بازارگاه"),
             'amount_paid': ('مبلغ پرداختی (ریال)', lambda p: f"{p.amount_paid:,}" if p.amount_paid else "0"),
-            'payment_method': ('شیوه پرداخت', lambda p: p.payment_method or "-"),
             'updated_at': ('تاریخ بروزرسانی', lambda p: p.updated_at.strftime("%Y/%m/%d") if p.updated_at else "-"),
-            'is_weight_costed': ('کسر از وزن موجود', lambda p: "بله" if p.is_weight_costed else "خیر"),
-            'is_ap_af': ('اتوکامپلیت شده', lambda p: "بله" if p.is_ap_af else "خیر"),
-            'extelaf_type': ('نوع اختلاف', lambda p: p.extelaf_type or "-"),
-            'extelaf_weight': ('وزن اختلاف (کیلوگرم)', lambda p: f"{p.extelaf_weight:,}" if p.extelaf_weight else "0"),
-            'extelaf_amount': ('مبلغ اختلاف (ریال)', lambda p: f"{p.extelaf_amount:,}" if p.extelaf_amount else "0"),
-            'is_urgent': ('فوری', lambda p: "بله" if p.is_urgent else "خیر"),
-            'is_canceled': ('لغو شده', lambda p: "بله" if p.is_canceled else "خیر"),
-            'is_archived': ('آرشیو شده', lambda p: "بله" if p.is_archived else "خیر"),
-            'is_fully_tasvied': ('تسویه کامل', lambda p: "بله" if p.is_fully_tasvied else "خیر"),
             'is_factored': ('ثبت فاکتور', lambda p: "بله" if p.is_factored else "خیر"),
-            'priority': ('اولویت', lambda p: dict(Purchase.PRIORITY_CHOICES).get(p.priority, "عادی") if p.priority else "عادی"),
-            'priority_reason': ('دلیل اولویت', lambda p: p.priority_reason or "-"),
         }
         
-        # فقط ستون‌های انتخاب شده را اضافه می‌کنیم
+        # افزودن هدرها
         headers = []
         for col in selected_columns:
             if col in column_mapping:
                 headers.append(column_mapping[col][0])
-        
-        # افزودن هدرها به اکسل
         ws.append(headers)
         
-        # تنظیم استایل برای سطر هدر
-        for i, cell in enumerate(ws[1], 1):
-            cell.font = header_font
-            cell.fill = header_fill
-            cell.alignment = alignment
-            cell.border = thin_border
+        # پردازش داده‌ها در batch های کوچک
+        batch_size = 100
+        total_processed = 0
         
-        # داده‌ها
-        batch_size = 100  # پردازش خریدها در گروه‌های 100 تایی برای کارایی بهتر
-        row_idx = 2
-        
-        for i in range(0, len(purchases), batch_size):
-            batch = purchases[i:i+batch_size]
-            for purchase in batch:
+        for i in range(0, len(purchase_ids), batch_size):
+            batch_ids = purchase_ids[i:i+batch_size]
+            
+            # دریافت batch از دیتابیس با انتخاب کم فیلد
+            purchases = Purchase.objects.filter(
+                id__in=batch_ids
+            ).select_related(
+                'customer', 'cargo'
+            ).only(
+                'id', 'created_at', 'invoice_id', 'purchase_number', 'order_weight',
+                'state', 'company_price', 'customer_price', 'delivered_weight',
+                'amount_paid', 'updated_at', 'is_factored', 'unique_sales_agent_name',
+                'customer__name', 'cargo__cottage'
+            ).order_by('-created_at')
+            
+            for purchase in purchases:
                 row = []
                 for col in selected_columns:
                     if col in column_mapping:
@@ -580,43 +661,47 @@ def export_to_excel(request):
                             row.append("-")
                 
                 ws.append(row)
+                total_processed += 1
                 
-                # تنظیم استایل برای سطرهای داده
-                for j, cell in enumerate(ws[row_idx], 1):
-                    cell.alignment = alignment
-                    cell.border = thin_border
-                    
-                    # استایل متناوب برای سطرها
-                    if row_idx % 2 == 0:
-                        cell.fill = even_row_fill
-                
-                row_idx += 1
+                # آزادسازی حافظه هر 50 رکورد
+                if total_processed % 50 == 0:
+                    print(f"Processed {total_processed} records")
         
-        # تنظیم عرض ستون‌ها
-        for i, column in enumerate(ws.columns, 1):
-            max_length = 0
-            for cell in column:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = (max_length + 2) * 1.2
-            ws.column_dimensions[ws.cell(row=1, column=i).column_letter].width = adjusted_width
+        # ذخیره workbook
+        wb.save(temp_file.name)
+        wb.close()
         
-        # اضافه کردن فریز به سطر هدر
-        ws.freeze_panes = "A2"
+        # ایجاد streaming response
+        def file_iterator(file_path, chunk_size=8192):
+            with open(file_path, 'rb') as f:
+                while True:
+                    chunk = f.read(chunk_size)
+                    if not chunk:
+                        break
+                    yield chunk
+            # حذف فایل موقت بعد از ارسال
+            try:
+                os.unlink(file_path)
+            except:
+                pass
         
-        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         filename = f"purchases_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        response = StreamingHttpResponse(
+            file_iterator(temp_file.name),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        wb.save(response)
+        
+        print(f"Successfully processed {total_processed} purchases for export")
         return response
         
     except Exception as e:
-        # لاگ خطا
-        print(f"Error in export_to_excel: {str(e)}")
-        return JsonResponse({'status': 'error', 'message': f'خطا در ایجاد فایل اکسل: {str(e)}'}, status=500)
+        # حذف فایل موقت در صورت خطا
+        try:
+            os.unlink(temp_file.name)
+        except:
+            pass
+        raise e
 
 @require_POST
 @login_required

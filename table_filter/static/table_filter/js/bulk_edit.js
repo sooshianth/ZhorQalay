@@ -424,51 +424,85 @@ class BulkEditManager {
     }
 
     openExcelEditPage() {
-        if (this.selectedIds.size === 0) {
-            this.showToast('لطفاً ابتدا موارد مورد نظر را انتخاب کنید', 'warning');
+        const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+        const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.getAttribute('data-id')).filter(id => id);
+        
+        if (selectedIds.length === 0) {
+            this.showToast('لطفاً حداقل یک مورد را انتخاب کنید', 'warning');
             return;
         }
-
-        const tableType = this.detectTableType();
-        const selectedIdsArray = Array.from(this.selectedIds);
         
-        const params = new URLSearchParams({
-            ids: selectedIdsArray.join(','),
-            table_type: tableType,
-            model: this.getModelName(tableType),
-            app: this.getAppName(tableType),
-            selection_type: this.selectionType
+        console.log('Selected IDs for Excel edit:', selectedIds);
+        
+        // تشخیص نوع مدل
+        const tableType = this.detectTableType();
+        const modelName = this.getModelName(tableType);
+        const appName = this.getAppName(tableType);
+        
+        console.log('Model info:', { tableType, modelName, appName });
+        
+        // ایجاد فرم برای ارسال داده‌ها
+        const form = document.createElement('form');
+        form.method = 'GET';
+        form.action = this.config.excelEditPageUrl;
+        form.style.display = 'none';
+        
+        // اضافه کردن پارامترها
+        const params = [
+            { name: 'selected_ids', value: selectedIds.join(' ') },
+            { name: 'model', value: modelName },
+            { name: 'app', value: appName },
+            { name: 'table_type', value: tableType }
+        ];
+        
+        params.forEach(param => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = param.name;
+            input.value = param.value;
+            form.appendChild(input);
+            console.log(`Added param: ${param.name} = ${param.value}`);
         });
-
-        window.open(`${this.config.excelEditPageUrl}?${params.toString()}`, '_blank');
+        
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
     }
 
     downloadExcelTemplate() {
-        if (this.selectedIds.size === 0) {
-            this.showToast('لطفاً ابتدا موارد مورد نظر را انتخاب کنید', 'warning');
+        const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+        const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.getAttribute('data-id')).filter(id => id);
+        
+        if (selectedIds.length === 0) {
+            this.showToast('لطفاً حداقل یک مورد را انتخاب کنید', 'warning');
             return;
         }
-
+        
+        console.log('Selected IDs for template download:', selectedIds);
+        
+        // تشخیص نوع مدل
         const tableType = this.detectTableType();
-        const selectedIdsArray = Array.from(this.selectedIds);
+        const modelName = this.getModelName(tableType);
+        const appName = this.getAppName(tableType);
         
+        console.log('Template model info:', { tableType, modelName, appName });
+        
+        // ساخت URL برای دانلود قالب
         const params = new URLSearchParams({
+            selected_ids: selectedIds.join(' '),
             table_type: tableType,
-            selected_ids: selectedIdsArray.join(','),
-            model: this.getModelName(tableType),
-            app: this.getAppName(tableType),
-            selection_type: this.selectionType
+            model: modelName,
+            app: appName
         });
-
-        // ایجاد لینک مخفی برای دانلود
-        const downloadLink = document.createElement('a');
-        downloadLink.href = `${this.config.downloadTemplateUrl}?${params.toString()}`;
-        downloadLink.download = `bulk_edit_template_${tableType}.xlsx`;
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
         
-        this.showToast('دانلود قالب اکسل آغاز شد', 'success');
+        const downloadUrl = `${this.config.downloadTemplateUrl}?${params.toString()}`;
+        console.log('Template download URL:', downloadUrl);
+        
+        // باز کردن در تب جدید برای دانلود
+        window.open(downloadUrl, '_blank');
+        
+        // نمایش پیام موفقیت
+        this.showToast(`در حال دانلود قالب اکسل برای ${selectedIds.length} مورد انتخاب شده...`, 'success');
     }
 
     getModelName(tableType) {

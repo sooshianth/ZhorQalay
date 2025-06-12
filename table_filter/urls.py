@@ -17,4 +17,5 @@ urlpatterns = [
     # API endpoints
     path('api/edit-history/', views.edit_history_api, name='edit_history_api'),
     path('api/restore-value/', views.restore_value_api, name='restore_value_api'),
+    path('debug-excel/', views.debug_excel_processing, name='debug_excel'),
 ] 
