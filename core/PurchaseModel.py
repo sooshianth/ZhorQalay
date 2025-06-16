@@ -505,23 +505,23 @@ class Purchase(models.Model):
             
         if self.state == 'PAYMENT_VERIFIED' and not self.amount_paid:
             errors['amount_paid'] = 'برای خریدهای پرداخت شده مبلغ الزامی است'
-        elif self.state == 'PAYMENT_VERIFIED' and self.amount_paid <= 400000000:
-            errors['amount_paid'] = 'مبلغ پرداختی باید بزرگتر از 40 میلیون تومان باشد'
+        elif self.state == 'PAYMENT_VERIFIED' and self.amount_paid <= 40000000:
+            errors['amount_paid'] = 'مبلغ پرداختی باید بزرگتر از 4 میلیون تومان باشد'
 
         # وزن را فقط در مواردی که کمتر از 10000 است بررسی کن، تا مقادیر پیش‌فرض بایپس اعتبارسنجی قبول شوند
-        if self.order_weight and self.order_weight <= 5000:
-            errors['order_weight'] = 'وزن باید بزرگتر از 10 تن باشد'
+        if self.order_weight and self.order_weight <= 1000:
+            errors['order_weight'] = 'وزن باید بزرگتر از 1 تن باشد'
                 
         if self.state == 'ARCHIVED':
             if self.state in ['PAYMENT_VERIFIED', 'BARNAMEH_ISSUED', 'PURCHASE_CLOSED', 'CANCELED']:
                 errors['state'] = 'خرید آرشیو شده نمی‌تواند پرداخت شده، ارسال شده، بسته شده یا لغو شده باشد.'
                 
         # تنها زمانی قیمت‌ها را بررسی کن که مقدار واقعی داشته باشند، نه مقادیر پیش‌فرض بایپس اعتبارسنجی
-        if self.customer_price > 0 and self.customer_price < 50000:
-            errors['customer_price'] = 'فی فروش باید حداقل 50000 ریال باشد.'
+        if self.customer_price > 0 and self.customer_price < 10000:
+            errors['customer_price'] = 'فی فروش باید حداقل 10000 ریال باشد.'
             
-        if self.company_price > 0 and self.company_price < 50000:
-            errors['company_price'] = 'فی خرید باید حداقل 50000 ریال باشد.'
+        if self.company_price > 0 and self.company_price < 10000:
+            errors['company_price'] = 'فی خرید باید حداقل 10000 ریال باشد.'
 
         if errors:
             raise ValidationError(errors)

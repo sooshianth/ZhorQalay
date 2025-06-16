@@ -16,6 +16,153 @@ import jdatetime
 from django.utils import timezone
 
 
+def get_state_priority(state):
+    """
+    Get the priority/order of a purchase state in the workflow.
+    Higher numbers represent later stages in the purchase process.
+    
+    Args:
+        state (str): The purchase state
+        
+    Returns:
+        int: The priority order of the state
+    """
+    state_priorities = {
+        'INITIATED': 1,
+        'SMS_SENT': 2,
+        'PAYMENT_VERIFIED': 3,
+        'ALLOCATION_APPROVED': 4,
+        'ADDRESS_SENT': 5,
+        'WAITING_FOR_BARNAMEH': 6,
+        'BARNAMEH_INCOMPLETE': 7,
+        'BARNAMEH_ISSUED': 8,
+        'PURCHASE_CLOSED': 9,
+        'PAY_KASRI': 10,
+        'RECIEIVE_SARAK': 11,
+        'FULLY_SETTLED': 12,
+        'INVOICE_ISSUED': 13,
+        'CANCELED': 99,  # Special state
+        'ARCHIVED': 100,  # Special state
+    }
+    return state_priorities.get(state, 0)
+
+
+def is_state_progression(current_state, new_state):
+    """
+    Check if changing from current_state to new_state represents progress.
+    اجازه جهش (jump) داده می‌شود، فقط برگشت به عقب ممنوع است.
+    
+    Args:
+        current_state (str): The current state of the purchase
+        new_state (str): The proposed new state
+        
+    Returns:
+        bool: True if the change represents progress, False otherwise
+    """
+    current_priority = get_state_priority(current_state)
+    new_priority = get_state_priority(new_state)
+    
+    # Special cases:
+    # - BARNAMEH_INCOMPLETE can go back to BARNAMEH_ISSUED (completion of incomplete barnameh)
+    if current_state == 'BARNAMEH_INCOMPLETE' and new_state == 'BARNAMEH_ISSUED':
+        return True
+    
+    # - PAY_KASRI and RECIEIVE_SARAK can both progress to FULLY_SETTLED
+    if current_state in ['PAY_KASRI', 'RECIEIVE_SARAK'] and new_state == 'FULLY_SETTLED':
+        return True
+    
+    # اجازه جهش: خرید می‌تواند چندین مرحله را یکباره طی کند
+    # فقط برگشت به عقب ممنوع است (new_priority >= current_priority)
+    # مگر در حالت‌های خاص بالا
+    return new_priority >= current_priority
+
+
+def can_api_update_state(current_state, new_state):
+    """
+    Check if the API is allowed to update the state from current to new.
+    Some states can only be changed by operators, not by API.
+    
+    Args:
+        current_state (str): The current state of the purchase
+        new_state (str): The proposed new state from API
+        
+    Returns:
+        bool: True if API can make this change, False otherwise
+    """
+    # States that are only managed by operators (not API)
+    operator_only_states = {
+        'ADDRESS_SENT',
+        'WAITING_FOR_BARNAMEH',
+        'PAY_KASRI',
+        'RECIEIVE_SARAK',
+        'FULLY_SETTLED',
+        'INVOICE_ISSUED',
+        'CANCELED',
+        'ARCHIVED'
+    }
+    
+    # If current state is operator-only, API cannot change it
+    if current_state in operator_only_states:
+        return False
+    
+    # If new state is operator-only, API cannot set it
+    if new_state in operator_only_states:
+        return False
+    
+    # API can only make progressive changes
+    return is_state_progression(current_state, new_state)
+
+
+def log_state_change_attempt(purchase_number, current_state, suggested_state, allowed, reason=""):
+    """
+    Log state change attempts with appropriate messages.
+    
+    Args:
+        purchase_number (str): The purchase number
+        current_state (str): Current state of the purchase
+        suggested_state (str): State suggested by API
+        allowed (bool): Whether the change was allowed
+        reason (str): Additional reason for the decision
+    """
+    current_display = get_state_display_name(current_state)
+    suggested_display = get_state_display_name(suggested_state)
+    
+    if allowed:
+        print(f"✅ خرید {purchase_number}: وضعیت از '{current_display}' به '{suggested_display}' تغییر کرد")
+    else:
+        print(f"⚠️ خرید {purchase_number}: تغییر وضعیت از '{current_display}' به '{suggested_display}' مجاز نیست {reason}")
+
+
+def get_state_display_name(state):
+    """
+    Get the Persian display name for a purchase state.
+    
+    Args:
+        state (str): The state code
+        
+    Returns:
+        str: The Persian display name
+    """
+    state_names = {
+        'INITIATED': 'شروع شده',
+        'SMS_SENT': 'پیامک ارسال شده',
+        'PAYMENT_VERIFIED': 'ثبت خرید در بازارگاه',
+        'ALLOCATION_APPROVED': 'ثبت تخصیص در بازارگاه',
+        'ADDRESS_SENT': 'ارسال آدرس به واردکننده',
+        'WAITING_FOR_BARNAMEH': 'در انتظار بارنامه',
+        'BARNAMEH_INCOMPLETE': 'صدور بارنامه (ناقص)',
+        'BARNAMEH_ISSUED': 'صدور بارنامه',
+        'PURCHASE_CLOSED': 'بستن خرید در بازارگاه',
+        'PAY_KASRI': 'پرداخت کسری',
+        'RECIEIVE_SARAK': 'دریافت سرک',
+        'FULLY_SETTLED': 'تسویه کامل',
+        'INVOICE_ISSUED': 'صدور فاکتور',
+        'CANCELED': 'لغو شده',
+        'ARCHIVED': 'آرشیو شده',
+    }
+    return state_names.get(state, state)
+
+
 def create_or_get_customer(buyer_name, buyer_phone, buyer_address, province_code):
     """
     Create a new customer or get an existing one based on phone number.
@@ -344,8 +491,28 @@ def create_purchase(purchase_data):
                     extelaf_type = "کسری"
                 extelaf_weight = abs(weight_diff)
         
-        # Determine purchase state
-        purchase_state = determine_purchase_state(purchase_data)
+        # Determine purchase state - فقط حالت‌های مجاز برای API
+        api_determined_state = determine_purchase_state(purchase_data)
+        
+        # برای خریدهای جدید، API می‌تواند هر وضعیت مجازی را تنظیم کند
+        # اما فقط وضعیت‌هایی که توسط API قابل مدیریت هستند
+        operator_only_states = {
+            'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'PAY_KASRI', 
+            'RECIEIVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED', 
+            'CANCELED', 'ARCHIVED'
+        }
+        
+        if api_determined_state in operator_only_states:
+            # اگر API وضعیت اپراتور-محور پیشنهاد داد، به جای آن حالت قبلی مناسب را قرار بده
+            if api_determined_state in ['PAY_KASRI', 'RECIEIVE_SARAK', 'FULLY_SETTLED']:
+                purchase_state = 'PURCHASE_CLOSED'  # قبل از تسویه، خرید بسته شده
+            elif api_determined_state in ['CANCELED', 'ARCHIVED']:
+                purchase_state = 'INITIATED'  # حالت اولیه
+            else:
+                purchase_state = 'PAYMENT_VERIFIED'  # حالت پیش‌فرض امن
+            print(f"⚠️ API وضعیت اپراتور-محور {api_determined_state} پیشنهاد داد، به جای آن {purchase_state} تنظیم شد")
+        else:
+            purchase_state = api_determined_state
         
         # Create or get customer
         customer, _, error = create_or_get_customer(
@@ -605,13 +772,16 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
             if purchase.customer_price > 0:
                 purchase.extelaf_amount = purchase.extelaf_weight * purchase.customer_price
         
-        # Update purchase state based on aggregated data
+        # Update purchase state based on aggregated data - با چک کردن پیشرفت
         # For purchases with multiple allocations, check if totalweight equals total_delivered_weight
         # Get totalweight from the first entry (should be the same for all entries with the same idkharid)
         totalweight = int(first_entry.get('totalweight', 0) or 0)
+        
+        # تعیین وضعیت پیشنهادی بر اساس داده‌های API
+        suggested_state = None
         if totalweight > 0 and totalweight == total_delivered_weight:
-            purchase.state = 'PURCHASE_CLOSED'
-            print(f"Debug - Purchase {purchase_number} marked as CLOSED: totalweight={totalweight}, total_delivered_weight={total_delivered_weight}")
+            suggested_state = 'PURCHASE_CLOSED'
+            print(f"Debug - API suggests PURCHASE_CLOSED for {purchase_number}: totalweight={totalweight}, total_delivered_weight={total_delivered_weight}")
         else:
             # Check if all entries have allocation IDs
             all_have_allocation = all(
@@ -622,11 +792,27 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
             if all_have_allocation:
                 if total_delivered_weight > 0:
                     if abs(weight_diff) < 5000:
-                        purchase.state = 'BARNAMEH_ISSUED'
+                        suggested_state = 'BARNAMEH_ISSUED'
                     else:
-                        purchase.state = 'BARNAMEH_INCOMPLETE'
+                        suggested_state = 'BARNAMEH_INCOMPLETE'
                 else:
-                    purchase.state = 'ALLOCATION_APPROVED'
+                    suggested_state = 'ALLOCATION_APPROVED'
+        
+        # فقط در صورتی که تغییر وضعیت پیشرفت باشد، آن را اعمال کن
+        if suggested_state:
+            allowed = can_api_update_state(purchase.state, suggested_state)
+            if allowed:
+                purchase.state = suggested_state
+                log_state_change_attempt(purchase_number, purchase.state, suggested_state, True)
+            else:
+                reason = ""
+                if purchase.state in {'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'PAY_KASRI', 'RECIEIVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED', 'ARCHIVED'}:
+                    reason = "(وضعیت فعلی فقط توسط اپراتور قابل تغییر است)"
+                elif not is_state_progression(purchase.state, suggested_state):
+                    reason = "(تغییر پیشرفت محسوب نمی‌شود)"
+                log_state_change_attempt(purchase_number, purchase.state, suggested_state, False, reason)
+        else:
+            print(f"ℹ️ هیچ تغییر وضعیت برای خرید {purchase_number} پیشنهاد نشد")
         
         # Save changes
         purchase.save()
@@ -663,9 +849,24 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
 
         # Check if the purchase should be marked as closed based on the totalweight
         totalweight = int(first_entry.get('totalweight', 0) or 0)
+        suggested_state = None
         if totalweight > 0 and totalweight == total_delivered_weight:
-            purchase.state = 'PURCHASE_CLOSED'
-            print(f"Debug - New purchase {purchase_number} marked as CLOSED: totalweight={totalweight}, total_delivered_weight={total_delivered_weight}")
+            suggested_state = 'PURCHASE_CLOSED'
+            print(f"Debug - API suggests PURCHASE_CLOSED for new purchase {purchase_number}: totalweight={totalweight}, total_delivered_weight={total_delivered_weight}")
+        
+        # فقط در صورتی که تغییر وضعیت پیشرفت باشد، آن را اعمال کن
+        if suggested_state:
+            allowed = can_api_update_state(purchase.state, suggested_state)
+            if allowed:
+                purchase.state = suggested_state
+                log_state_change_attempt(purchase_number, purchase.state, suggested_state, True)
+            else:
+                reason = ""
+                if purchase.state in {'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'PAY_KASRI', 'RECIEIVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED', 'ARCHIVED'}:
+                    reason = "(وضعیت فعلی فقط توسط اپراتور قابل تغییر است)"
+                elif not is_state_progression(purchase.state, suggested_state):
+                    reason = "(تغییر پیشرفت محسوب نمی‌شود)"
+                log_state_change_attempt(purchase_number, purchase.state, suggested_state, False, reason)
         # Otherwise, the state is already set by create_purchase function
 
         purchase.save()
