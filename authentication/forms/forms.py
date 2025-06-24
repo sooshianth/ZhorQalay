@@ -17,13 +17,18 @@ def send_verify_code(number:str):
     """
     ارسال کد تایید به شماره تلفن
     """
-    api_key = settings.SMS_API_KEY
-    linenumber = settings.SMS_LINE_NUMBER
-    sms_account = SmsIr(api_key, linenumber)
-    
     # تولید کد تصادفی 6 رقمی
     import random
     code = str(random.randint(100000, 999999))
+
+    # در حالت دیباگ، از ارسال واقعی پیامک صرف‌نظر می‌شود تا در محیط توسعه مشکلی پیش نیاید
+    if settings.DEBUG:
+        logger.info(f"DEBUG MODE: SMS not sent for {number}. The code is: {code}")
+        return code, True
+
+    api_key = settings.SMS_API_KEY
+    linenumber = settings.SMS_LINE_NUMBER
+    sms_account = SmsIr(api_key, linenumber)
     
     message = f"کد تایید شما برای ورود به سامانه سیمرغ : \n  {code}"
     try:

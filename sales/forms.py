@@ -39,12 +39,13 @@ class PhoneImportForm(forms.Form):
     def extract_phone_numbers(self):
         """استخراج شماره تلفن‌ها از فایل اکسل یا متن وارد شده"""
         cleaned_data = self.cleaned_data
+        excel_file = cleaned_data.get('excel_file')
+        phone_numbers_text = cleaned_data.get('phone_numbers')
         phone_numbers = []
         
         # استخراج از فایل اکسل
-        if cleaned_data.get('excel_file'):
+        if excel_file:
             try:
-                excel_file = cleaned_data['excel_file']
                 df = pd.read_excel(excel_file)
                 # فرض می‌کنیم شماره‌ها در ستون اول هستند
                 numbers = df.iloc[:, 0].astype(str).tolist()
@@ -53,8 +54,8 @@ class PhoneImportForm(forms.Form):
                 raise forms.ValidationError(f"خطا در خواندن فایل اکسل: {str(e)}")
         
         # استخراج از متن کپی پیست شده
-        if cleaned_data.get('phone_numbers'):
-            lines = cleaned_data['phone_numbers'].strip().split('\n')
+        elif phone_numbers_text:
+            lines = phone_numbers_text.strip().split('\n')
             phone_numbers.extend([line.strip() for line in lines if line.strip()])
         
         # پردازش و تمیز کردن شماره‌ها

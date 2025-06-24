@@ -4,169 +4,542 @@
 {% block title %}شماره‌های تلفن برای تماس{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/phone_assignment.css' %}">
+<style>
+    :root {
+        --primary-color: #065F46;
+        --secondary-color: #065F46;
+        --success-color: #48bb78;
+        --warning-color: #ed8936;
+        --danger-color: #f56565;
+        --info-color: #4299e1;
+        --light-bg: #f8fafc;
+        --card-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        --hover-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        --border-radius: 12px;
+    }
+
+    body {
+        background:rgb(254, 254, 254);
+        min-height: 100vh;
+        font-family: 'Vazir', sans-serif;
+    }
+
+    .main-container {
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(10px);
+        border-radius: var(--border-radius);
+        margin: 20px auto;
+        padding: 30px;
+        box-shadow: var(--card-shadow);
+        animation: slideInUp 0.6s ease-out;
+    }
+
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 40px;
+        position: relative;
+    }
+
+    .page-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+    }
+
+    .page-subtitle {
+        color: #6b7280;
+        font-size: 1.1rem;
+        margin-bottom: 0;
+    }
+
+    .stats-card {
+        background: linear-gradient(135deg, var(--info-color), var(--primary-color));
+        color: white;
+        border-radius: var(--border-radius);
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 30px;
+        box-shadow: var(--card-shadow);
+        transition: all 0.3s ease;
+    }
+
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--hover-shadow);
+    }
+
+    .stats-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+
+    .stats-label {
+        font-size: 1rem;
+        opacity: 0.9;
+    }
+
+    .phone-card {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: var(--card-shadow);
+        transition: all 0.3s ease;
+        border: 1px solid rgba(102, 126, 234, 0.1);
+        animation: fadeInUp 0.5s ease-out;
+    }
+
+    .phone-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--hover-shadow);
+        border-color: var(--primary-color);
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .phone-number-section {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+        border-radius: 8px;
+        border-left: 4px solid var(--primary-color);
+    }
+
+    .phone-display {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        direction: ltr;
+        font-family: 'Courier New', monospace;
+    }
+
+    .copy-btn {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .copy-btn:hover {
+        background: var(--secondary-color);
+        transform: scale(1.1);
+    }
+
+    .notes-section {
+        margin-bottom: 20px;
+    }
+
+    .notes-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 10px;
+        display: block;
+    }
+
+    .notes-textarea {
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    .notes-textarea:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        outline: none;
+    }
+
+    .save-notes-btn {
+        background: linear-gradient(135deg, var(--success-color), #38a169);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 16px;
+        font-weight: 600;
+        margin-top: 10px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .save-notes-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+    }
+
+    .actions-section {
+        display: flex;
+        gap: 10px;
+    }
+
+    .action-btn {
+        flex: 1;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        display: inline-block;
+    }
+
+    .btn-convert {
+        background: linear-gradient(135deg, var(--success-color), #38a169);
+        color: white;
+    }
+
+    .btn-convert:hover {
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4);
+    }
+
+    .btn-archive {
+        background: linear-gradient(135deg, var(--warning-color), #dd6b20);
+        color: white;
+        border: none;
+    }
+
+    .btn-archive:hover {
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(237, 137, 54, 0.4);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        color: var(--info-color);
+        margin-bottom: 20px;
+    }
+
+    .empty-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 10px;
+    }
+
+    .empty-text {
+        color: #6b7280;
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+
+    .pagination {
+        justify-content: center;
+        margin-top: 40px;
+    }
+
+    .page-link {
+        color: var(--primary-color);
+        border: 1px solid #e5e7eb;
+        margin: 0 2px;
+        border-radius: 6px;
+    }
+
+    .page-link:hover {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
+    }
+
+    .page-item.active .page-link {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .guide-card {
+        background: linear-gradient(135deg, #fef3e2, #fde68a);
+        border-radius: var(--border-radius);
+        padding: 25px;
+        margin-top: 30px;
+        box-shadow: var(--card-shadow);
+    }
+
+    .guide-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #92400e;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+    }
+
+    .guide-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+        padding: 10px;
+        background: rgba(255,255,255,0.6);
+        border-radius: 8px;
+    }
+
+    .guide-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: 15px;
+        color: white;
+        font-weight: 600;
+    }
+
+    .guide-icon.phone {
+        background: linear-gradient(135deg, var(--info-color), var(--primary-color));
+    }
+
+    .guide-icon.convert {
+        background: linear-gradient(135deg, var(--success-color), #38a169);
+    }
+
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1050;
+    }
+
+    .custom-toast {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        margin-bottom: 10px;
+        overflow: hidden;
+        animation: slideInRight 0.3s ease-out;
+    }
+
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    .toast-header {
+        padding: 12px 15px;
+        color: white;
+        font-weight: 600;
+    }
+
+    .toast-body {
+        padding: 12px 15px;
+        color: #374151;
+    }
+
+    @media (max-width: 768px) {
+        .main-container {
+            margin: 10px;
+            padding: 20px;
+        }
+        
+        .page-title {
+            font-size: 2rem;
+        }
+        
+        .actions-section {
+            flex-direction: column;
+        }
+        
+        .phone-number-section {
+            flex-direction: column;
+            gap: 10px;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-12">
-            <h4 class="page-heading">شماره‌های اختصاصی برای تماس</h4>
-            
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title">
-                        <i class="bi bi-telephone-plus me-2"></i>لیست تماس‌ها
-                    </h5>
-                    <span class="badge bg-light text-dark">
-                        تعداد: {{ phone_assignments.paginator.count }}
-                    </span>
-                </div>
-                <div class="card-body">
-                    {% if phone_assignments %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th scope="col">#</th>
-                                    <th scope="col">شماره تلفن</th>
-                                    <th scope="col">تاریخ تخصیص</th>
-                                    <th scope="col">یادداشت</th>
-                                    <th scope="col">عملیات</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for phone in phone_assignments %}
-                                <tr>
-                                    <th scope="row">{{ forloop.counter }}</th>
-                                    <td dir="ltr" class="phone-number">{{ phone.phone_number }}</td>
-                                    <td>{{ phone.created_at|date:"Y/m/d" }}</td>
-                                    <td>
-                                        {% if phone.notes %}
-                                            <span class="note-text" data-note-id="{{ phone.id }}">{{ phone.notes }}</span>
-                                            <i class="bi bi-eye expand-note" data-note-id="{{ phone.id }}" title="مشاهده کامل"></i>
-                                            <i class="bi bi-pencil edit-note-btn" data-note-id="{{ phone.id }}" title="ویرایش"></i>
-                                        {% else %}
-                                            <button class="btn btn-sm btn-outline-secondary add-note-btn" data-note-id="{{ phone.id }}">
-                                                <i class="bi bi-pencil-square"></i> افزودن یادداشت
-                                            </button>
-                                        {% endif %}
-                                        
-                                        <div id="note-form-{{ phone.id }}" class="note-form">
-                                            <form method="post" action="{% url 'update_phone_notes' phone.id %}" class="mt-2">
-                                                {% csrf_token %}
-                                                <div class="form-group">
-                                                    <textarea name="notes" class="form-control" rows="4">{{ phone.notes }}</textarea>
-                                                </div>
-                                                <div class="mt-2">
-                                                    <button type="submit" class="btn btn-sm btn-primary">ذخیره</button>
-                                                    <button type="button" class="btn btn-sm btn-light cancel-note" data-note-id="{{ phone.id }}">انصراف</button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="action-buttons" role="group">
-                                            <a href="tel:+98{{ phone.phone_number }}" class="btn btn-sm btn-outline-primary" title="تماس">
-                                                <i class="bi bi-telephone"></i> تماس
-                                            </a>
-                                            <a href="{% url 'add_customer_from_assignment' phone.id %}" class="btn btn-sm btn-outline-success" title="تبدیل به مشتری">
-                                                <i class="bi bi-person-plus"></i> افزودن مشتری
-                                            </a>
-                                            <!-- دکمه حذف برداشته شد - به درخواست کاربر -->
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+<div class="container-fluid">
+    <div class="main-container">
+        <!-- Header Section -->
+        <div class="page-header">
+            <h1 class="page-title">📞 شماره‌های تماس اختصاصی</h1>
+            <p class="page-subtitle">مدیریت و پیگیری شماره‌های تخصیص داده شده</p>
+        </div>
+
+        <!-- Stats Card -->
+        <div class="stats-card">
+            <div class="stats-number">{{ phone_assignments.paginator.count }}</div>
+            <div class="stats-label">شماره در انتظار تماس</div>
+        </div>
+
+        <!-- Phone Numbers List -->
+        {% if phone_assignments %}
+            {% for assignment in phone_assignments %}
+            <div class="phone-card" style="animation-delay: {{ forloop.counter0|floatformat:1 }}00ms">
+                <!-- Phone Number Section -->
+                <div class="phone-number-section">
+                    <div class="phone-display" id="phone-number-{{ assignment.id }}">
+                        0{{ assignment.phone_number }}
                     </div>
-                    
-                    <!-- صفحه‌بندی -->
-                    {% if phone_assignments.has_other_pages %}
-                    <nav aria-label="Page navigation" class="mt-4">
-                        <ul class="pagination justify-content-center">
-                            {% if phone_assignments.has_previous %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page=1" aria-label="First">
-                                    <span aria-hidden="true">&laquo;&laquo;</span>
-                                </a>
-                            </li>
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ phone_assignments.previous_page_number }}" aria-label="Previous">
-                                    <span aria-hidden="true">&laquo;</span>
-                                </a>
-                            </li>
-                            {% endif %}
-                            
-                            {% for i in phone_assignments.paginator.page_range %}
-                                {% if phone_assignments.number == i %}
-                                <li class="page-item active"><span class="page-link">{{ i }}</span></li>
-                                {% elif i > phone_assignments.number|add:'-3' and i < phone_assignments.number|add:'3' %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ i }}">{{ i }}</a>
-                                </li>
-                                {% endif %}
-                            {% endfor %}
-                            
-                            {% if phone_assignments.has_next %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ phone_assignments.next_page_number }}" aria-label="Next">
-                                    <span aria-hidden="true">&raquo;</span>
-                                </a>
-                            </li>
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ phone_assignments.paginator.num_pages }}" aria-label="Last">
-                                    <span aria-hidden="true">&raquo;&raquo;</span>
-                                </a>
-                            </li>
-                            {% endif %}
-                        </ul>
-                    </nav>
+                    <button class="copy-btn" onclick="copyToClipboard('{{ assignment.id }}')">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+
+                <!-- Notes Section -->
+                <div class="notes-section">
+                    <label class="notes-label">یادداشت‌ها:</label>
+                    <form action="{% url 'update_phone_notes' assignment.id %}" method="post" class="notes-form">
+                        {% csrf_token %}
+                        <textarea name="notes" class="form-control notes-textarea" placeholder="یادداشت خود را اینجا بنویسید...">{{ assignment.notes|default:'' }}</textarea>
+                        <button type="submit" class="save-notes-btn">
+                            <i class="fas fa-save"></i> ذخیره یادداشت
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Actions Section -->
+                <div class="actions-section">
+                    <a href="{% url 'add_customer_from_assignment' assignment.id %}" class="action-btn btn-convert">
+                        <i class="fas fa-user-plus"></i> تبدیل به مشتری
+                    </a>
+                    <form action="{% url 'archive_phone_assignment' assignment.id %}" method="post" class="d-inline" style="flex: 1;">
+                        {% csrf_token %}
+                        <button type="submit" class="action-btn btn-archive w-100" onclick="return confirm('آیا از بایگانی کردن این شماره مطمئن هستید؟')">
+                            <i class="fas fa-archive"></i> بایگانی
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Pagination -->
+            {% if phone_assignments.has_other_pages %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination">
+                    {% if phone_assignments.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1" aria-label="First">
+                            <span aria-hidden="true">&laquo;&laquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ phone_assignments.previous_page_number }}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
                     {% endif %}
                     
-                    {% else %}
-                    <div class="alert alert-info d-flex align-items-center">
-                        <i class="bi bi-info-circle-fill me-3 fs-4"></i>
+                    {% for i in phone_assignments.paginator.page_range %}
+                        {% if phone_assignments.number == i %}
+                        <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                        {% elif i > phone_assignments.number|add:'-3' and i < phone_assignments.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if phone_assignments.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ phone_assignments.next_page_number }}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ phone_assignments.paginator.num_pages }}" aria-label="Last">
+                            <span aria-hidden="true">&raquo;&raquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+        {% else %}
+            <!-- Empty State -->
+            <div class="empty-state">
+                <div class="empty-icon">📱</div>
+                <h3 class="empty-title">هیچ شماره‌ای برای تماس وجود ندارد!</h3>
+                <p class="empty-text">
+                    در حال حاضر هیچ شماره تلفنی برای تماس به شما تخصیص داده نشده است.<br>
+                    لطفاً بعداً مراجعه کنید یا با مدیر سیستم تماس بگیرید.
+                </p>
+            </div>
+        {% endif %}
+
+        <!-- Guide Section -->
+        <div class="guide-card">
+            <h5 class="guide-title">
+                <i class="fas fa-lightbulb" style="margin-left: 10px;"></i>
+                راهنمای استفاده
+            </h5>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="guide-item">
+                        <div class="guide-icon phone">
+                            <i class="fas fa-phone"></i>
+                        </div>
                         <div>
-                            <h5 class="alert-heading">شماره‌ای برای تماس وجود ندارد!</h5>
-                            <p class="mb-0">در حال حاضر هیچ شماره تلفنی برای تماس به شما تخصیص داده نشده است. لطفاً بعداً مراجعه کنید یا با مدیر سیستم تماس بگیرید.</p>
+                            <strong>تماس گرفتن</strong>
+                            <p class="mb-0 small">روی شماره کلیک کنید تا کپی شود</p>
                         </div>
                     </div>
-                    {% endif %}
                 </div>
-            </div>
-            
-            <!-- راهنمای استفاده -->
-            <div class="card info-card">
-                <div class="card-body">
-                    <h5 class="text-main-color mb-3">
-                        <i class="bi bi-info-circle me-2"></i>راهنمای استفاده
-                    </h5>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <div class="d-flex align-items-center">
-                                <div class="icon-box bg-primary text-white p-2 rounded me-2">
-                                    <i class="bi bi-telephone"></i>
-                                </div>
-                                <div>
-                                    <strong>تماس</strong>
-                                    <p class="mb-0 small">برقراری تماس مستقیم با شماره</p>
-                                </div>
-                            </div>
+                
+                <div class="col-md-6">
+                    <div class="guide-item">
+                        <div class="guide-icon convert">
+                            <i class="fas fa-user-plus"></i>
                         </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <div class="d-flex align-items-center">
-                                <div class="icon-box bg-success text-white p-2 rounded me-2">
-                                    <i class="bi bi-person-plus"></i>
-                                </div>
-                                <div>
-                                    <strong>تبدیل به مشتری</strong>
-                                    <p class="mb-0 small">ایجاد پروفایل مشتری جدید</p>
-                                </div>
-                            </div>
+                        <div>
+                            <strong>تبدیل به مشتری</strong>
+                            <p class="mb-0 small">پس از تماس موفق، مشتری جدید ایجاد کنید</p>
                         </div>
                     </div>
                 </div>
@@ -175,128 +548,212 @@
     </div>
 </div>
 
-<!-- محل نمایش toast‌ها -->
+<!-- Toast Container -->
 <div class="toast-container"></div>
+{% endblock %}
 
-<!-- مودال نمایش کامل یادداشت‌ -->
-<div class="notes-full-modal" id="fullNotesModal">
-    <div class="notes-modal-content">
-        <div class="notes-modal-header">
-            <h5>متن کامل یادداشت</h5>
-            <button type="button" class="btn-close" id="closeFullNotesModal"></button>
-        </div>
-        <div class="notes-modal-body" id="fullNotesContent">
-            <!-- متن یادداشت اینجا قرار می‌گیرد -->
-        </div>
-        <div class="notes-modal-footer">
-            <button type="button" class="btn btn-outline-primary edit-from-modal">
-                <i class="bi bi-pencil"></i> ویرایش یادداشت
-            </button>
-            <button type="button" class="btn btn-secondary ms-2" id="closeModalBtn">بستن</button>
-        </div>
-    </div>
-</div>
-
+{% block extra_js %}
 <script>
-    $(document).ready(function() {
-        // کپی شماره تلفن با کلیک روی آن
-        $('.phone-number').click(function() {
-            var number = $(this).text().trim();
-            navigator.clipboard.writeText(number).then(function() {
-                // نمایش پیام موفقیت‌آمیز با طراحی جدید
-                showToast('موفقیت', 'شماره تلفن کپی شد: ' + number, 'success');
-            }).catch(function(err) {
-                console.error('خطا در کپی کردن شماره:', err);
-                showToast('خطا', 'عدم موفقیت در کپی شماره', 'danger');
-            });
-        });
-        
-        // نمایش/مخفی‌سازی فرم یادداشت - اصلاح شده
-        $('.add-note-btn, .edit-note-btn').click(function(e) {
-            e.preventDefault();
-            var noteId = $(this).data('note-id');
-            $('#note-form-' + noteId).slideDown();
-        });
-        
-        // لغو فرم یادداشت
-        $('.cancel-note').click(function(e) {
-            e.preventDefault();
-            var noteId = $(this).data('note-id');
-            $('#note-form-' + noteId).slideUp();
-        });
-
-        // نمایش مودال یادداشت کامل
-        $('.expand-note, .note-text').click(function() {
-            var noteId = $(this).data('note-id');
-            var noteText = $('tr:has([data-note-id="' + noteId + '"].note-text) textarea[name="notes"]').val();
-            
-            // اگر تکست‌اریا خالی است، متن نوت را از داخل اسپن بگیریم
-            if (!noteText) {
-                noteText = $('[data-note-id="' + noteId + '"].note-text').text().trim();
+// تنظیم CSRF token برای AJAX
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
             }
-            
-            $('#fullNotesContent').text(noteText);
-            
-            // ذخیره شناسه یادداشت در مودال برای استفاده در دکمه ویرایش
-            $('#fullNotesModal').data('note-id', noteId);
-            
-            // نمایش مودال
-            $('#fullNotesModal').css('display', 'flex');
-        });
-        
-        // بستن مودال یادداشت کامل
-        $('#closeFullNotesModal, #closeModalBtn').click(function() {
-            $('#fullNotesModal').css('display', 'none');
-        });
-        
-        // ویرایش یادداشت از مودال
-        $('.edit-from-modal').click(function() {
-            var noteId = $('#fullNotesModal').data('note-id');
-            
-            // بستن مودال
-            $('#fullNotesModal').css('display', 'none');
-            
-            // نمایش فرم ویرایش
-            $('#note-form-' + noteId).slideDown();
-        });
-        
-        // بستن مودال با کلیک خارج از محتوا
-        $('#fullNotesModal').click(function(e) {
-            if (e.target === this) {
-                $(this).css('display', 'none');
-            }
-        });
-        
-        // تابع نمایش toast
-        function showToast(title, message, type) {
-            var bgColor = 'var(--main-color)';
-            if (type === 'danger') bgColor = 'var(--danger-color)';
-            if (type === 'warning') bgColor = 'var(--warning-color)';
-            
-            var toast = $('<div class="custom-toast">' +
-                          '<div class="toast-header" style="background-color: ' + bgColor + '">' +
-                          '<strong class="me-auto">' + title + '</strong>' +
-                          '<button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>' +
-                          '</div>' +
-                          '<div class="toast-body">' + message + '</div>' +
-                          '</div>');
-            
-            $('.toast-container').append(toast);
-            
-            // حذف toast پس از 3 ثانیه
-            setTimeout(function() {
-                toast.fadeOut(300, function() {
-                    $(this).remove();
-                });
-            }, 3000);
-            
-            // بستن toast با کلیک روی دکمه بستن
-            toast.find('.btn-close').click(function() {
-                toast.fadeOut(300, function() {
-                    $(this).remove();
-                });
-            });
         }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+// تنظیم CSRF token برای همه درخواست‌های AJAX
+$.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+        if (!this.crossDomain) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        }
+    }
+});
+
+// تابع نمایش toast بهبود یافته (global)
+function showToast(title, message, type = 'success') {
+    const colors = {
+        success: 'linear-gradient(135deg, #48bb78, #38a169)',
+        danger: 'linear-gradient(135deg, #f56565, #e53e3e)',
+        warning: 'linear-gradient(135deg, #ed8936, #dd6b20)',
+        info: 'linear-gradient(135deg, #4299e1, #3182ce)'
+    };
+    
+    const toast = $(`
+        <div class="custom-toast">
+            <div class="toast-header" style="background: ${colors[type]}">
+                <strong class="me-auto">${title}</strong>
+                <button type="button" class="btn-close btn-close-white"></button>
+            </div>
+            <div class="toast-body">${message}</div>
+        </div>
+    `);
+    
+    $('.toast-container').append(toast);
+    
+    // حذف خودکار پس از 4 ثانیه
+    setTimeout(() => {
+        toast.fadeOut(300, function() {
+            $(this).remove();
+        });
+    }, 4000);
+    
+    // بستن دستی
+    toast.find('.btn-close').click(function() {
+        toast.fadeOut(300, function() {
+            $(this).remove();
+        });
     });
+}
+
+$(document).ready(function() {
+    // انیمیشن برای کارت‌های تلفن هنگام لود
+    $('.phone-card').each(function(index) {
+        $(this).css('animation-delay', (index * 100) + 'ms');
+    });
+    
+    // افکت hover برای دکمه‌های عملیات
+    $('.action-btn').hover(
+        function() {
+            $(this).css('transform', 'translateY(-2px) scale(1.02)');
+        },
+        function() {
+            $(this).css('transform', 'translateY(0) scale(1)');
+        }
+    );
+
+    // AJAX برای ذخیره یادداشت‌ها
+    $('.notes-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        const form = $(this);
+        const submitBtn = form.find('.save-notes-btn');
+        const originalText = submitBtn.html();
+        
+        // نمایش loading
+        submitBtn.html('<i class="fas fa-spinner fa-spin"></i> در حال ذخیره...');
+        submitBtn.prop('disabled', true);
+        
+        $.ajax({
+            url: form.attr('action'),
+            type: 'POST',
+            data: form.serialize(),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(response) {
+                if (response.success) {
+                    showToast('✅ موفقیت', response.message, 'success');
+                } else {
+                    showToast('❌ خطا', response.error || 'خطا در ذخیره یادداشت', 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                showToast('❌ خطا', 'خطا در ارتباط با سرور', 'danger');
+            },
+            complete: function() {
+                // بازگرداندن دکمه به حالت اولیه
+                submitBtn.html(originalText);
+                submitBtn.prop('disabled', false);
+            }
+        });
+    });
+
+    // AJAX برای بایگانی شماره‌ها
+    $('form[action*="archive_phone_assignment"]').on('submit', function(e) {
+        e.preventDefault();
+        
+        if (!confirm('آیا از بایگانی کردن این شماره مطمئن هستید؟')) {
+            return;
+        }
+        
+        const form = $(this);
+        const submitBtn = form.find('button[type="submit"]');
+        const originalText = submitBtn.html();
+        const phoneCard = form.closest('.phone-card');
+        
+        // نمایش loading
+        submitBtn.html('<i class="fas fa-spinner fa-spin"></i> در حال بایگانی...');
+        submitBtn.prop('disabled', true);
+        
+        $.ajax({
+            url: form.attr('action'),
+            type: 'POST',
+            data: form.serialize(),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(response) {
+                if (response.success) {
+                    showToast('✅ موفقیت', response.message, 'success');
+                    
+                    // حذف کارت با انیمیشن
+                    phoneCard.fadeOut(500, function() {
+                        $(this).remove();
+                        
+                        // اگر هیچ کارتی باقی نماند، نمایش پیام خالی
+                        if ($('.phone-card').length === 0) {
+                            $('.main-container').append(`
+                                <div class="empty-state">
+                                    <div class="empty-icon">📱</div>
+                                    <h3 class="empty-title">همه شماره‌ها پردازش شدند!</h3>
+                                    <p class="empty-text">
+                                        تمام شماره‌های تخصیص داده شده پردازش شده‌اند.<br>
+                                        برای شماره‌های جدید، لطفاً صفحه را بازخوانی کنید.
+                                    </p>
+                                </div>
+                            `);
+                        }
+                    });
+                } else {
+                    showToast('❌ خطا', response.error || 'خطا در بایگانی شماره', 'danger');
+                    // بازگرداندن دکمه به حالت اولیه
+                    submitBtn.html(originalText);
+                    submitBtn.prop('disabled', false);
+                }
+            },
+            error: function(xhr, status, error) {
+                showToast('❌ خطا', 'خطا در ارتباط با سرور', 'danger');
+                // بازگرداندن دکمه به حالت اولیه
+                submitBtn.html(originalText);
+                submitBtn.prop('disabled', false);
+            }
+        });
+    });
+});
+
+function copyToClipboard(assignmentId) {
+    const phoneNumber = document.getElementById('phone-number-' + assignmentId).innerText;
+    
+    navigator.clipboard.writeText(phoneNumber).then(function() {
+        // نمایش toast موفقیت
+        showToast('✅ موفقیت', `شماره ${phoneNumber} کپی شد`, 'success');
+        
+        // افکت بصری روی دکمه کپی
+        const copyBtn = document.querySelector(`#phone-number-${assignmentId}`).nextElementSibling;
+        copyBtn.style.transform = 'scale(1.2)';
+        copyBtn.style.background = 'linear-gradient(135deg, #48bb78, #38a169)';
+        
+        setTimeout(() => {
+            copyBtn.style.transform = 'scale(1)';
+            copyBtn.style.background = '';
+        }, 200);
+        
+    }, function(err) {
+        showToast('❌ خطا', 'عدم موفقیت در کپی شماره', 'danger');
+        console.error('خطا در کپی کردن شماره:', err);
+    });
+}
 </script>
 {% endblock %} 

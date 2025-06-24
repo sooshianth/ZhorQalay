@@ -24,7 +24,7 @@ from .views.phone_assignment_views import (
     admin_import_phone_numbers,
     admin_phone_assignment_list,
     sales_phone_assignment_list,
-    delete_phone_assignment,
+    archive_phone_assignment,
     add_customer_from_assignment,
     update_phone_notes
 )
@@ -74,10 +74,10 @@ urlpatterns = [
     # Phone assignment endpoints
     path('phone-assignment/admin/import/', admin_import_phone_numbers, name='admin_import_phone_numbers'),
     path('phone-assignment/admin/list/', admin_phone_assignment_list, name='admin_phone_assignment_list'),
-    path('phone-assignment/list/', sales_phone_assignment_list, name='sales_phone_assignment_list'),
-    path('phone-assignment/<int:pk>/delete/', delete_phone_assignment, name='delete_phone_assignment'),
-    path('phone-assignment/<int:pk>/add-customer/', add_customer_from_assignment, name='add_customer_from_assignment'),
-    path('phone-assignment/<int:pk>/update-notes/', update_phone_notes, name='update_phone_notes'),
+    path('phone-assignment/sales/list/', sales_phone_assignment_list, name='sales_phone_assignment_list'),
+    path('phone-assignment/<int:pk>/archive/', archive_phone_assignment, name='archive_phone_assignment'),
+    path('phone-assignment/<int:pk>/convert/', add_customer_from_assignment, name='add_customer_from_assignment'),
+    path('phone-assignment/<int:pk>/notes/', update_phone_notes, name='update_phone_notes'),
     
     # Sales purchases view
     

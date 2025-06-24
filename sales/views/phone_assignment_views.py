@@ -24,11 +24,10 @@ def admin_import_phone_numbers(request):
     form = PhoneImportForm()
     
     if request.method == 'POST':
-        # بررسی نوع درخواست: کپی/پیست یا آپلود فایل
-        import_method = request.POST.get('import_method', 'file')
-        
+        import_method = request.POST.get('import_method')
+
         if import_method == 'paste':
-            # پردازش شماره‌های کپی/پیست شده
+            # بررسی نوع درخواست: کپی/پیست یا آپلود فایل
             try:
                 with transaction.atomic():
                     sales_agent_id = request.POST.get('sales_agent')
@@ -88,8 +87,9 @@ def admin_import_phone_numbers(request):
                     
             except Exception as e:
                 return JsonResponse({'success': False, 'error': str(e)})
+
+        # اگر متد فایل بود یا متد مشخص نشده بود (برای سازگاری با فرم قبلی)
         else:
-            # روش قبلی: آپلود فایل
             form = PhoneImportForm(request.POST, request.FILES)
             if form.is_valid():
                 try:
@@ -97,6 +97,10 @@ def admin_import_phone_numbers(request):
                         sales_agent = form.cleaned_data['sales_agent']
                         phone_numbers = form.extract_phone_numbers()
                         
+                        if not phone_numbers:
+                            messages.error(request, "هیچ شماره معتبری در فایل یا متن ورودی یافت نشد.")
+                            return redirect('admin_import_phone_numbers')
+
                         # بررسی تکراری نبودن شماره‌ها
                         existing_numbers = set(PhoneAssignment.objects.filter(
                             phone_number__in=phone_numbers,
@@ -124,14 +128,18 @@ def admin_import_phone_numbers(request):
                         messages.success(
                             request, 
                             f"{new_count} شماره جدید به {sales_agent.name} تخصیص داده شد. "
-                            f"{len(existing_numbers)} شماره قبلاً تخصیص داده شده و "
-                            f"{len(customer_numbers)} شماره قبلاً به عنوان مشتری ثبت شده‌اند."
+                            f"({len(existing_numbers)} شماره تکراری و {len(customer_numbers)} شماره مشتری یافت شد)."
                         )
                         return redirect('admin_phone_assignment_list')
                         
                 except Exception as e:
                     messages.error(request, f"خطا در پردازش شماره‌ها: {str(e)}")
-    
+            else:
+                # اگر فرم معتبر نبود، خطاها را نمایش بده
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f"خطا در فیلد '{form.fields[field].label}': {error}")
+
     # لیست همه کارشناسان فروش برای نمایش در فرم
     sales_agents = SalesAgent.objects.all()
     
@@ -217,21 +225,30 @@ def sales_phone_assignment_list(request):
 
 @role_required('sales_agent', 'admin')
 @login_required
-def delete_phone_assignment(request, pk):
-    """حذف شماره تلفن از لیست"""
+def archive_phone_assignment(request, pk):
+    """بایگانی کردن شماره تلفن از لیست"""
     phone_assignment = get_object_or_404(PhoneAssignment, id=pk)
     
     # بررسی دسترسی (فقط کارشناس مسئول یا ادمین)
     if not (request.user.is_staff or request.user.is_superuser or 
             hasattr(request.user, 'sales_agent') and request.user.sales_agent == phone_assignment.sales_agent):
-        messages.error(request, "شما اجازه حذف این شماره را ندارید.")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': 'شما اجازه بایگانی این شماره را ندارید.'})
+        messages.error(request, "شما اجازه بایگانی این شماره را ندارید.")
         return redirect('home')
     
-    # علامت‌گذاری به عنوان حذف شده
-    phone_assignment.mark_as_deleted()
-    messages.success(request, f"شماره {phone_assignment.phone_number} حذف شد.")
+    # بایگانی کردن شماره
+    phone_assignment.archive()
     
-    # بازگشت به صفحه قبل
+    # اگر درخواست AJAX بود، JSON برگردان
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': True, 
+            'message': f'شماره {phone_assignment.phone_number} بایگانی شد.'
+        })
+    
+    # برای درخواست‌های عادی
+    messages.success(request, f"شماره {phone_assignment.phone_number} بایگانی شد.")
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse('sales_phone_assignment_list')))
 
 @role_required('sales_agent', 'admin')
@@ -246,14 +263,13 @@ def add_customer_from_assignment(request, pk):
         messages.error(request, "شما اجازه تبدیل این شماره به مشتری را ندارید.")
         return redirect('home')
     
-    # حذف کد تغییر وضعیت - این بخش در زمان ذخیره مشتری انجام خواهد شد
-    # phone_assignment.mark_as_converted()
+    # حذف وابستگی به session
+    # request.session['phone_assignment_id'] = pk
     
-    # به session اضافه کردن شناسه شماره تلفن برای استفاده در زمان ایجاد مشتری
-    request.session['phone_assignment_id'] = pk
-    
-    # هدایت به صفحه ایجاد مشتری با پر کردن شماره تلفن
-    return redirect(reverse('general_customer_CRUD') + f'?search_query={phone_assignment.phone_number}')
+    # هدایت به صفحه ایجاد مشتری با پر کردن شماره تلفن و ارسال آیدی تخصیص
+    base_url = reverse('general_customer_CRUD')
+    query_params = f'?search_query={phone_assignment.phone_number}&assignment_id={pk}'
+    return redirect(base_url + query_params)
 
 @role_required('sales_agent', 'admin')
 @login_required
@@ -264,6 +280,8 @@ def update_phone_notes(request, pk):
     # بررسی دسترسی (فقط کارشناس مسئول یا ادمین)
     if not (request.user.is_staff or request.user.is_superuser or 
             hasattr(request.user, 'sales_agent') and request.user.sales_agent == phone_assignment.sales_agent):
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': 'شما اجازه ویرایش این شماره را ندارید.'})
         messages.error(request, "شما اجازه ویرایش این شماره را ندارید.")
         return redirect('home')
     
@@ -275,7 +293,14 @@ def update_phone_notes(request, pk):
         phone_assignment.notes = notes
         phone_assignment.save(update_fields=['notes'])
         
-        # پیام موفقیت
+        # اگر درخواست AJAX بود، JSON برگردان
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True, 
+                'message': 'یادداشت با موفقیت ذخیره شد.'
+            })
+        
+        # برای درخواست‌های عادی
         messages.success(request, "یادداشت با موفقیت ذخیره شد.")
         
         # بازگشت به صفحه قبل
@@ -290,5 +315,7 @@ def update_phone_notes(request, pk):
             return redirect('sales_phone_assignment_list')
     
     # درخواست‌های غیر POST پذیرفته نمی‌شوند
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'success': False, 'error': 'درخواست نامعتبر.'})
     messages.error(request, "درخواست نامعتبر.")
     return redirect('home') 

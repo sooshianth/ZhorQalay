@@ -4,10 +4,21 @@
 {% block title %}تخصیص شماره تلفن{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/phone_assignment.css' %}">
+<style>
+    .nav-tabs .nav-link {
+        cursor: pointer;
+    }
+    .nav-tabs .nav-link.active {
+        font-weight: bold;
+    }
+    #paste-form {
+        display: none; /* مخفی کردن فرم کپی/پیست به طور پیش‌فرض */
+    }
+</style>
 {% endblock %}
 
 {% block content %}
+<link rel="stylesheet" href="{% static 'css/phone_assignment.css' %}">
 <div class="container mt-4">
     <div class="row">
         <div class="col-12">
@@ -22,44 +33,33 @@
                 <div class="card-body">
                     <ul class="nav nav-tabs" id="importTabs" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="file-tab" data-bs-toggle="tab" data-bs-target="#file-tab-pane" type="button" role="tab" aria-selected="true">
-                                <i class="bi bi-file-earmark-excel me-1"></i>آپلود فایل
-                            </button>
+                            <a class="nav-link active" id="file-tab" data-toggle="tab" href="#file-form-container" role="tab" aria-controls="file-form" aria-selected="true">آپلود فایل اکسل</a>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="paste-tab" data-bs-toggle="tab" data-bs-target="#paste-tab-pane" type="button" role="tab" aria-selected="false">
-                                <i class="bi bi-clipboard me-1"></i>کپی/پیست
-                            </button>
+                            <a class="nav-link" id="paste-tab" data-toggle="tab" href="#paste-form-container" role="tab" aria-controls="paste-form" aria-selected="false">کپی و پیست کردن</a>
                         </li>
                     </ul>
                     
-                    <div class="tab-content" id="importTabContent">
-                        <!-- آپلود فایل -->
-                        <div class="tab-pane fade show active" id="file-tab-pane" role="tabpanel" aria-labelledby="file-tab" tabindex="0">
-                            <form method="post" enctype="multipart/form-data" id="file-upload-form">
+                    <div class="tab-content mt-3" id="importTabsContent">
+                        <!-- File Upload Form -->
+                        <div class="tab-pane fade show active" id="file-form-container" role="tabpanel" aria-labelledby="file-tab">
+                            <form method="post" enctype="multipart/form-data" id="file-form">
                                 {% csrf_token %}
+                                <input type="hidden" name="import_method" value="file">
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label for="id_sales_agent" class="form-label">کارشناس فروش</label>
-                                        <select name="sales_agent" id="id_sales_agent" class="form-select" required>
-                                            <option value="">انتخاب کنید</option>
-                                            {% for agent in sales_agents %}
-                                            <option value="{{ agent.id }}">{{ agent.name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                        <div class="form-text">کارشناس فروشی که شماره‌ها به او تخصیص داده خواهند شد.</div>
+                                        <label for="id_sales_agent_file" class="form-label">کارشناس فروش</label>
+                                        {{ form.sales_agent }}
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <label for="id_file" class="form-label">فایل شماره‌های تلفن</label>
-                                        <input type="file" name="file" id="id_file" class="form-control" required accept=".csv,.xlsx,.xls">
-                                        <div class="form-text">فرمت‌های مجاز: CSV، Excel (xls, xlsx)</div>
+                                        <label for="id_excel_file" class="form-label">فایل اکسل</label>
+                                        {{ form.excel_file }}
+                                        <small class="form-text text-muted">{{ form.excel_file.help_text }}</small>
                                     </div>
                                 </div>
                                 <div class="form-divider"></div>
                                 <div class="mb-3">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="bi bi-cloud-upload me-1"></i>آپلود و تخصیص
-                                    </button>
+                                    <button type="submit" class="btn btn-primary">آپلود و تخصیص</button>
                                     <a href="{% url 'admin_phone_assignment_list' %}" class="btn btn-secondary">
                                         <i class="bi bi-arrow-right me-1"></i>بازگشت به لیست
                                     </a>
@@ -67,15 +67,15 @@
                             </form>
                         </div>
                         
-                        <!-- کپی/پیست -->
-                        <div class="tab-pane fade" id="paste-tab-pane" role="tabpanel" aria-labelledby="paste-tab" tabindex="0">
+                        <!-- Paste Text Form -->
+                        <div class="tab-pane fade" id="paste-form-container" role="tabpanel" aria-labelledby="paste-tab">
                             <form method="post" id="paste-form">
                                 {% csrf_token %}
                                 <input type="hidden" name="import_method" value="paste">
                                 <div class="row">
                                     <div class="col-md-12 mb-3">
-                                        <label for="paste_sales_agent" class="form-label">کارشناس فروش</label>
-                                        <select name="sales_agent" id="paste_sales_agent" class="form-select" required>
+                                        <label for="id_sales_agent_paste" class="form-label">کارشناس فروش</label>
+                                        <select name="sales_agent" id="id_sales_agent_paste" class="form-select" required>
                                             <option value="">انتخاب کنید</option>
                                             {% for agent in sales_agents %}
                                             <option value="{{ agent.id }}">{{ agent.name }}</option>
@@ -84,16 +84,14 @@
                                         <div class="form-text">کارشناس فروشی که شماره‌ها به او تخصیص داده خواهند شد.</div>
                                     </div>
                                     <div class="col-md-12 mb-3">
-                                        <label for="phone_numbers" class="form-label">شماره‌های تلفن</label>
-                                        <textarea name="phone_numbers" id="phone_numbers" class="form-control import-textarea" placeholder="هر شماره در یک خط جداگانه، مانند:&#10;09121234567&#10;09367894561&#10;09023456789" required></textarea>
+                                        <label for="id_phone_numbers" class="form-label">شماره‌های تلفن</label>
+                                        <textarea name="phone_numbers" id="id_phone_numbers" class="form-control import-textarea" placeholder="هر شماره در یک خط جداگانه، مانند:&#10;09121234567&#10;09367894561&#10;09023456789" required></textarea>
                                         <div class="form-text">هر شماره را در یک خط وارد کنید. شماره‌ها به صورت خودکار تمیز می‌شوند.</div>
                                     </div>
                                 </div>
                                 <div class="form-divider"></div>
                                 <div class="mb-3">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="bi bi-save me-1"></i>ذخیره و تخصیص
-                                    </button>
+                                    <button type="submit" class="btn btn-primary">بررسی و تخصیص</button>
                                     <a href="{% url 'admin_phone_assignment_list' %}" class="btn btn-secondary">
                                         <i class="bi bi-arrow-right me-1"></i>بازگشت به لیست
                                     </a>
@@ -101,6 +99,9 @@
                             </form>
                         </div>
                     </div>
+
+                    <!-- AJAX Response Area -->
+                    <div id="response-message" class="mt-3"></div>
                 </div>
             </div>
             
@@ -164,65 +165,49 @@
 
 <script>
     $(document).ready(function() {
-        // تغییر ظاهر فرم‌ها بر اساس تب انتخاب شده
-        $('#importTabs button').on('click', function (e) {
+        // Tab switching logic
+        $('#importTabs a').on('click', function (e) {
             e.preventDefault();
             $(this).tab('show');
         });
-        
-        // ارسال فرم کپی/پیست
+
+        // AJAX for Paste form
         $('#paste-form').on('submit', function(e) {
             e.preventDefault();
+            var form = $(this);
+            var url = "{% url 'admin_import_phone_numbers' %}";
             
-            // اعتبارسنجی فرم
-            var salesAgent = $('#paste_sales_agent').val();
-            var phoneNumbers = $('#phone_numbers').val().trim();
-            
-            if (!salesAgent) {
-                alert('لطفاً یک کارشناس فروش انتخاب کنید.');
-                return false;
-            }
-            
-            if (!phoneNumbers) {
-                alert('لطفاً حداقل یک شماره تلفن وارد کنید.');
-                return false;
-            }
-            
-            // ارسال فرم به سرور
-            var formData = $(this).serialize();
             $.ajax({
-                url: '{% url "admin_import_phone_numbers" %}',
-                type: 'POST',
-                data: formData,
-                success: function(response) {
-                    if (response.success) {
-                        window.location.href = '{% url "admin_phone_assignment_list" %}';
+                type: "POST",
+                url: url,
+                data: form.serialize(),
+                success: function(data) {
+                    var responseDiv = $('#response-message');
+                    if (data.success) {
+                        var message = `<div class="alert alert-success">
+                                        <p>${data.message}</p>
+                                        <ul>
+                                            <li>تعداد کل شماره‌های ورودی: ${data.total}</li>
+                                            <li>تعداد شماره‌های جدید: ${data.new}</li>
+                                            <li>شماره‌های تکراری (در انتظار): ${data.existing}</li>
+                                            <li>شماره‌های مشتریان فعلی: ${data.customers}</li>
+                                        </ul>
+                                     </div>`;
+                        responseDiv.html(message);
+                        form.trigger('reset'); // Reset form fields
                     } else {
-                        alert('خطا در ثبت شماره‌ها: ' + response.error);
+                        responseDiv.html('<div class="alert alert-danger">' + data.error + '</div>');
                     }
                 },
                 error: function() {
-                    alert('خطا در ارتباط با سرور. لطفاً مجدداً تلاش کنید.');
+                    $('#response-message').html('<div class="alert alert-danger">خطایی در ارتباط با سرور رخ داد.</div>');
                 }
             });
         });
-        
-        // ارسال فرم آپلود فایل
-        $('#file-upload-form').on('submit', function(e) {
-            var fileInput = $('#id_file');
-            var salesAgent = $('#id_sales_agent').val();
-            
-            if (!salesAgent) {
-                e.preventDefault();
-                alert('لطفاً یک کارشناس فروش انتخاب کنید.');
-                return false;
-            }
-            
-            if (fileInput.get(0).files.length === 0) {
-                e.preventDefault();
-                alert('لطفاً یک فایل انتخاب کنید.');
-                return false;
-            }
+
+        // Ensure file form submits normally
+        $('#file-form').on('submit', function() {
+            // No e.preventDefault(), so the form submits traditionally
         });
     });
 </script>

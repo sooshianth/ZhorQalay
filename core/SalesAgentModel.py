@@ -381,7 +381,7 @@ class PhoneAssignment(models.Model):
     
     STATUS_CHOICES = [
         ('pending', 'در انتظار تماس'),
-        ('deleted', 'حذف شده'),
+        ('archived', 'بایگانی شده'),
         ('converted', 'تبدیل به مشتری'),
     ]
     
@@ -429,9 +429,9 @@ class PhoneAssignment(models.Model):
             if len(self.phone_number) != 10:
                 raise models.ValidationError(_('شماره تلفن باید 10 رقم باشد'))
     
-    def mark_as_deleted(self):
-        """علامت‌گذاری به عنوان حذف شده"""
-        self.status = 'deleted'
+    def archive(self):
+        """علامت‌گذاری به عنوان بایگانی شده"""
+        self.status = 'archived'
         self.save()
     
     def mark_as_converted(self):
