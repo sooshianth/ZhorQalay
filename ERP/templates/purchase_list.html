@@ -11,10 +11,129 @@
     {% table_filter_scripts %}
     {% bulk_edit_scripts %}
     {% edit_history_scripts %}
-    <script src="{% static 'js/drag_and_drop_columns.js' %}?v=1748703972"></script>
-    <script src="{% static 'js/purchase_aggregated_stats.js' %}?v=1748703972"></script>
-    <script src="{% static 'js/table_pagination.js' %}?v=1748703972"></script>
-    <script src="{% static 'js/purchase_list_scripts.js' %}?v=1748703972"></script>
+    <script src="{% static 'js/drag_and_drop_columns.js' %}?v=1748703972" defer></script>
+    <script src="{% static 'js/purchase_aggregated_stats.js' %}?v=1748703972" defer></script>
+    <script src="{% static 'js/table_pagination.js' %}?v=1748703972" defer></script>
+    <script src="{% static 'js/purchase_list_scripts.js' %}?v=1748703972" defer></script>
+    
+    <!-- Lazy Loading Script for Archived Purchases -->
+    <script>
+    let archivedLoaded = false;
+    
+    function loadArchivedPurchases() {
+        if (archivedLoaded) {
+            toggleArchivedDisplay();
+            return;
+        }
+        
+        const archivedContent = document.getElementById('archivedContent');
+        const archiveIcon = document.getElementById('archiveIcon');
+        
+        if (archivedContent.style.display === 'none') {
+            archivedContent.style.display = 'block';
+            archiveIcon.classList.remove('fa-chevron-down');
+            archiveIcon.classList.add('fa-chevron-up');
+            
+            // بارگذاری داده‌های آرشیو با AJAX
+            if (!archivedLoaded) {
+                loadArchivedData();
+            }
+        } else {
+            archivedContent.style.display = 'none';
+            archiveIcon.classList.remove('fa-chevron-up');
+            archiveIcon.classList.add('fa-chevron-down');
+        }
+    }
+    
+    function toggleArchivedDisplay() {
+        const archivedContent = document.getElementById('archivedContent');
+        const archiveIcon = document.getElementById('archiveIcon');
+        
+        if (archivedContent.style.display === 'none') {
+            archivedContent.style.display = 'block';
+            archiveIcon.classList.remove('fa-chevron-down');
+            archiveIcon.classList.add('fa-chevron-up');
+        } else {
+            archivedContent.style.display = 'none';
+            archiveIcon.classList.remove('fa-chevron-up');
+            archiveIcon.classList.add('fa-chevron-down');
+        }
+    }
+    
+    function loadArchivedData() {
+        const spinner = document.getElementById('archivedLoadingSpinner');
+        const container = document.getElementById('archivedTableContainer');
+        
+        // نمایش spinner
+        spinner.style.display = 'block';
+        container.style.display = 'none';
+        
+        // AJAX call برای بارگذاری آرشیو
+        fetch('/erp/purchases/archived/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // ایجاد جدول آرشیو
+                    const tableHtml = createArchivedTable(data.data);
+                    container.innerHTML = tableHtml;
+                    
+                    spinner.style.display = 'none';
+                    container.style.display = 'block';
+                    archivedLoaded = true;
+                    
+                    // اگر کاربر مجدد کلیک کند، فقط toggle شود
+                    document.getElementById('toggleArchived').onclick = toggleArchivedDisplay;
+                } else {
+                    spinner.innerHTML = '<p class="text-danger">خطا در بارگذاری داده‌ها</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading archived data:', error);
+                spinner.innerHTML = '<p class="text-danger">خطا در بارگذاری داده‌ها</p>';
+            });
+    }
+    
+    function createArchivedTable(data) {
+        if (data.length === 0) {
+            return '<div class="empty-state"><i class="fas fa-archive"></i><h4>هیچ خرید آرشیوی یافت نشد</h4></div>';
+        }
+        
+        let html = `
+            <div class="table-responsive shadow-sm rounded">
+                <table class="table table-bordered table-striped align-middle text-center">
+                    <thead class="table-light">
+                        <tr>
+                            <th>شماره خرید</th>
+                            <th>تاریخ</th>
+                            <th>نام مشتری</th>
+                            <th>کد درون سازمانی</th>
+                            <th>وزن</th>
+                            <th>کوتاژ</th>
+                            <th>وضعیت</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        data.forEach(purchase => {
+            html += `
+                <tr>
+                    <td>${purchase.purchase_number}</td>
+                    <td>${purchase.created_at}</td>
+                    <td>${purchase.customer_name}</td>
+                    <td>${purchase.invoice_id}</td>
+                    <td>${purchase.order_weight} کیلوگرم</td>
+                    <td>${purchase.cottage}</td>
+                    <td><span class="table-status-badge bg-secondary text-white">${purchase.state}</span></td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table></div>';
+        return html;
+    }
+    </script>
+    
     <!-- CSRF Token for AJAX requests -->
     <meta name="csrf-token" content="{{ csrf_token }}">
     <!-- Force refresh meta tags for production -->
@@ -454,7 +573,7 @@
                         {{ purchase.customer.name }}
                     </td>
                     {% elif column.id == 'invoice_id' %}
-                    <td class="column-{{ column.id }} {% if user_role != 'sales_agent' %}editable{% endif %}" data-field="invoice_id">
+                    <td class="column-{{ column.id }}">
                         {{ purchase.invoice_id|default:"تعیین نشده" }}
                     </td>
                     {% elif column.id == 'sales_agent' %}
@@ -466,11 +585,11 @@
                         {% endif %}
                     </td>
                     {% elif column.id == 'purchase_number' %}
-                    <td class="column-{{ column.id }} {% if user_role != 'sales_agent' %}editable{% endif %}" data-field="purchase_number">
+                    <td class="column-{{ column.id }}">
                         {{ purchase.purchase_number|default:"تعیین نشده" }}
                     </td>
                     {% elif column.id == 'weight' %}
-                    <td class="column-{{ column.id }} {% if user_role != 'sales_agent' %}editable{% endif %}" data-field="order_weight" data-unit="کیلوگرم">
+                    <td class="column-{{ column.id }}" data-unit="کیلوگرم">
                         {{ purchase.order_weight|add_commas }}
                     </td>
                     {% elif column.id == 'cargo' %}
@@ -664,12 +783,22 @@
 
 <!-- Archived Purchases Section -->
 <div class="archive-section mt-5">
-<div class="archive-toggle shadow-sm" id="toggleArchived">
-<h3 class="mb-0 fw-bold text-secondary"><i class="fas fa-archive me-2"></i>خریدهای آرشیو شده</h3>
+<div class="archive-toggle shadow-sm" id="toggleArchived" onclick="loadArchivedPurchases()">
+<h3 class="mb-0 fw-bold text-secondary">
+    <i class="fas fa-archive me-2"></i>خریدهای آرشیو شده 
+    <span class="badge bg-secondary">{{ archived_count }}</span>
+</h3>
 <i class="fas fa-chevron-down text-secondary" id="archiveIcon"></i>
 </div>
 <div id="archivedContent" style="display: none;">
-{% if archived_purchases %}
+<div id="archivedLoadingSpinner" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">در حال بارگذاری...</span>
+    </div>
+    <p class="mt-2">در حال بارگذاری خریدهای آرشیو شده...</p>
+</div>
+<div id="archivedTableContainer" style="display: none;">
+{% if archived_count > 0 %}
 
 <!-- Pagination برای خریدهای آرشیو شده با JavaScript مدیریت می‌شود -->
 
@@ -914,6 +1043,7 @@
     <p>در حال حاضر هیچ خرید آرشیو شده‌ای وجود ندارد</p>
 </div>
 {% endif %}
+</div>
 </div>
 </div>
 </div>

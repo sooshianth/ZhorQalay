@@ -284,6 +284,7 @@ def general_customer_CRUD_view(request):
     نمای کلی برای ایجاد، مشاهده، و ویرایش مشتریان، تماس‌ها، تسک‌ها و خریدها.
     """
     query = request.GET.get('search_query', '')
+    customer_id = request.GET.get('customer_id')
     assignment_id = request.GET.get('assignment_id')
     customer = None
     sales_agent = None
@@ -292,7 +293,18 @@ def general_customer_CRUD_view(request):
     if hasattr(request.user, 'sales_agent'):
         sales_agent = request.user.sales_agent
 
-    if query:
+    # اول بررسی customer_id (اولویت بالاتر)
+    if customer_id:
+        try:
+            customer = Customer.objects.get(id=customer_id)
+            # بررسی دسترسی کارشناس فروش
+            if sales_agent and customer not in sales_agent.get_all_customers():
+                messages.error(request, "شما دسترسی به این مشتری ندارید.")
+                customer = None
+        except Customer.DoesNotExist:
+            messages.error(request, "مشتری یافت نشد.")
+            customer = None
+    elif query:
         # تمیز کردن شماره تلفن از کاراکترهای غیرعددی برای جستجوی بهتر
         clean_query = ''.join(c for c in query if c.isdigit())
         if clean_query.startswith('0'):
@@ -338,13 +350,169 @@ def general_customer_CRUD_view(request):
                 for error in errors:
                     messages.error(request, f"خطا در فیلد '{form.fields[field].label}': {error}")
     
-    # ... بقیه کد برای نمایش تماس‌ها، تسک‌ها و غیره
-    # ... (این بخش بدون تغییر باقی می‌ماند)
+    # مدیریت فرم‌های POST مختلف
+    if request.method == 'POST' and customer:
+        # ثبت تماس جدید
+        if 'create_call' in request.POST:
+            call_type = request.POST.get('call_type')
+            note = request.POST.get('note')
+            active_tab = request.POST.get('active_tab', 'calls')
+            
+            new_call = CallSession(
+                customer=customer,
+                type=call_type,
+                status='successful',
+                note=note
+            )
+            try:
+                new_call.full_clean()
+                new_call.save()
+                messages.success(request, "تماس جدید ثبت شد")
+            except ValidationError as e:
+                messages.error(request, f"خطا در ثبت تماس: {e}")
+            return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}&active_tab={active_tab}')
+        
+        # ثبت تسک جدید
+        elif 'create_task' in request.POST:
+            task_description = request.POST.get('task_description')
+            due_date_str = request.POST.get('due_date')
+            active_tab = request.POST.get('active_tab', 'tasks')
+            
+            if task_description and due_date_str:
+                try:
+                    due_date = jalali_to_gregorian(due_date_str)
+                    new_task = Task(
+                        customer=customer,
+                        description=task_description,
+                        due_date=due_date
+                    )
+                    new_task.full_clean()
+                    new_task.save()
+                    messages.success(request, "تسک جدید ثبت شد")
+                except (ValueError, ValidationError) as e:
+                    messages.error(request, f"خطا در ثبت تسک: {e}")
+            else:
+                messages.error(request, "لطفاً تمام فیلدهای ضروری را پر کنید")
+            return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}&active_tab={active_tab}')
+        
+        # ثبت خرید جدید
+        elif 'create_purchase' in request.POST or 'create_purchase_without_sms' in request.POST:
+            cottage_number = request.POST.get('cottage_number')
+            weight = request.POST.get('weight')
+            use_custom_price = request.POST.get('use_custom_price')
+            custom_price = request.POST.get('custom_price')
+            send_sms = 'create_purchase' in request.POST
+            active_tab = request.POST.get('active_tab', 'purchases')
+            
+            if cottage_number and weight:
+                try:
+                    cargo = CargoProduct.objects.get(cottage=cottage_number, status=True)
+                    
+                    # تعیین قیمت
+                    if use_custom_price and custom_price:
+                        customer_price = int(custom_price)
+                    else:
+                        customer_price = cargo.customer_price
+                    
+                    # ایجاد خرید جدید
+                    from core.PurchaseModel import Purchase
+                    new_purchase = Purchase(
+                        customer=customer,
+                        cargo=cargo,
+                        order_weight=int(weight),
+                        customer_price=customer_price,
+                        state='INITIATED'
+                    )
+                    new_purchase.full_clean()
+                    new_purchase.save()
+                    
+                    # اضافه کردن کارشناس فروش به خرید (بعد از ذخیره اولیه)
+                    if sales_agent:
+                        new_purchase.sales_agent.add(sales_agent)
+                    
+                    if send_sms:
+                        # ارسال پیامک به مشتری
+                        try:
+                            from sms_api.apis import queue_sms
+                            phone = customer.get_primary_phone()
+                            message = f"سلام {customer.name}\nخرید شما ثبت شد:\nکوتاژ: {cottage_number}\nوزن: {weight} کیلوگرم\nفی: {customer_price:,} ریال\nکارشناس: {sales_agent.name}"
+                            queue_sms(phone, message, notification_type='purchase_registered')
+                            messages.success(request, "خرید ثبت شد و پیامک ارسال شد")
+                        except Exception as e:
+                            messages.warning(request, f"خرید ثبت شد ولی پیامک ارسال نشد: {e}")
+                    else:
+                        messages.success(request, "خرید با موفقیت ثبت شد")
+                        
+                except CargoProduct.DoesNotExist:
+                    messages.error(request, "کوتاژ انتخاب شده یافت نشد")
+                except (ValueError, ValidationError) as e:
+                    messages.error(request, f"خطا در ثبت خرید: {e}")
+            else:
+                messages.error(request, "لطفاً تمام فیلدهای ضروری را پر کنید")
+            return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}&active_tab={active_tab}')
+        
+        # اضافه کردن شماره تلفن جدید
+        elif 'add_phone' in request.POST:
+            new_phone = request.POST.get('new_phone')
+            if new_phone:
+                try:
+                    phone_obj = PhoneNumber(
+                        number=new_phone,
+                        customer=customer,
+                        is_primary=False
+                    )
+                    phone_obj.full_clean()
+                    phone_obj.save()
+                    messages.success(request, "شماره تلفن جدید اضافه شد")
+                except ValidationError as e:
+                    messages.error(request, f"خطا در اضافه کردن شماره: {e}")
+            return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
+        
+        # تنظیم شماره اصلی
+        elif 'make_primary' in request.POST:
+            phone_id = request.POST.get('make_primary')
+            try:
+                phone_obj = PhoneNumber.objects.get(id=phone_id, customer=customer)
+                # حذف primary از شماره‌های قبلی
+                customer.phone_numbers.update(is_primary=False)
+                # تنظیم شماره جدید به عنوان primary
+                phone_obj.is_primary = True
+                phone_obj.save()
+                messages.success(request, "شماره اصلی تغییر کرد")
+            except PhoneNumber.DoesNotExist:
+                messages.error(request, "شماره یافت نشد")
+            return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
 
+    # دریافت داده‌ها برای نمایش
     calls = customer.get_calls_by_time() if customer else []
     tasks = customer.get_tasks_by_time() if customer else []
     purchases = customer.get_purchases_by_time() if customer else []
     all_phone_numbers = customer.get_all_phone_numbers() if customer else []
+    
+    # صفحه‌بندی تسک‌ها
+    if customer:
+        from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+        task_paginator = Paginator(tasks, 10)
+        task_page = request.GET.get('task_page', 1)
+        try:
+            tasks = task_paginator.page(task_page)
+        except PageNotAnInteger:
+            tasks = task_paginator.page(1)
+        except EmptyPage:
+            tasks = task_paginator.page(task_paginator.num_pages)
+        
+        # صفحه‌بندی خریدها
+        purchase_paginator = Paginator(purchases, 10)
+        purchase_page = request.GET.get('purchase_page', 1)
+        try:
+            purchases = purchase_paginator.page(purchase_page)
+        except PageNotAnInteger:
+            purchases = purchase_paginator.page(1)
+        except EmptyPage:
+            purchases = purchase_paginator.page(purchase_paginator.num_pages)
+    
+    # دریافت محصولات فعال برای نمایش در فرم خرید
+    active_products = CargoProduct.get_active_products()
 
     context = {
         'form': form,
@@ -355,6 +523,9 @@ def general_customer_CRUD_view(request):
         'all_phone_numbers': all_phone_numbers,
         'search_query': query,
         'assignment_id': assignment_id,
+        'active_products': active_products,
+        'is_new_customer': customer is None,
+        'sales_agent': sales_agent,
     }
 
     return render(request, 'general_customer_CRUD_view.html', context)

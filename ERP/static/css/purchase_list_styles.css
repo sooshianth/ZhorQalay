@@ -255,85 +255,7 @@ th, td {
     gap: 25px;
 }
 
-/* استایل برای ویرایش درجا (Inline Editing) */
-.editable {
-    position: relative;
-    cursor: pointer;
-    padding: 5px;
-    border: 1px solid transparent;
-    transition: all 0.2s;
-    border-radius: 4px;
-}
 
-.editable:hover {
-    background-color: rgba(0, 123, 255, 0.1);
-    border: 1px dashed #007bff;
-}
-
-.editable:hover::after {
-    content: '\f304'; /* آیکون ویرایش Font Awesome */
-    font-family: 'Font Awesome 5 Free';
-    font-weight: 900;
-    position: absolute;
-    right: 5px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #007bff;
-    font-size: 12px;
-}
-
-.editable-active {
-    background-color: #fff;
-    border: 1px solid #007bff;
-    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-}
-
-.editable-input {
-    width: 100%;
-    border: none;
-    background: transparent;
-    font-family: inherit;
-    font-size: inherit;
-    text-align: inherit;
-    direction: inherit;
-}
-
-.editable-input:focus {
-    outline: none;
-}
-
-.edit-controls {
-    display: flex;
-    position: absolute;
-    right: 0;
-    top: 100%;
-    z-index: 100;
-    background: white;
-    border: 1px solid #ccc;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.edit-control-btn {
-    padding: 3px 8px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.edit-control-btn:hover {
-    background-color: #f8f9fa;
-}
-
-.edit-save {
-    color: green;
-}
-
-.edit-cancel {
-    color: red;
-}
 
 /* استایل برای بخش آرشیو */
 .archive-toggle {
@@ -382,10 +304,6 @@ th, td {
 @media (max-width: 768px) {
     #columnsForm {
         grid-template-columns: 1fr;
-    }
-            
-    .editable:hover::after {
-        content: '';
     }
 }
 
