@@ -54,7 +54,7 @@ def purchase_list(request):
     # تشخیص محدودیت‌های نمایش بر اساس نقش کاربر
     hide_sensitive_info = user_role in ['sales_agent', 'support_agent']
     
-    # فیلتر پایه: خریدهای آرشیو نشده و آرشیو شده (فوق بهینه شده)
+    # فیلتر پایه: تقسیم‌بندی خریدها به سه دسته
     # فقط فیلدهای ضروری را انتخاب می‌کنیم
     selected_fields = [
         'id', 'created_at', 'updated_at', 'purchase_number', 'invoice_id', 
@@ -69,13 +69,23 @@ def purchase_list(request):
     
     all_fields = selected_fields + customer_fields + cargo_fields
     
-    # ایجاد QuerySet پایه بدون slice
-    active_purchases = Purchase.objects.exclude(state='ARCHIVED').exclude(is_archived=True)\
-        .only(*all_fields)\
+    # ایجاد QuerySet پایه
+    base_queryset = Purchase.objects.only(*all_fields)\
         .select_related('customer', 'cargo', 'unique_sales_agent')\
         .order_by('-created_at')
+    
+    # تقسیم‌بندی خریدها به سه دسته:
+    # 1. خریدهای فعال (به جز آرشیو و در انتظار پرداخت)
+    active_purchases = base_queryset.exclude(state='ARCHIVED')\
+        .exclude(is_archived=True)\
+        .exclude(state__in=['SMS_SENT', 'INITIATED'])
         
-    # آرشیو را lazy load می‌کنیم (فقط count می‌گیریم)
+    # 2. خریدهای در انتظار پرداخت (SMS_SENT و INITIATED)
+    pending_payment_purchases = base_queryset.filter(state__in=['SMS_SENT', 'INITIATED'])\
+        .exclude(is_archived=True)
+    pending_payment_count = pending_payment_purchases.count()
+        
+    # 3. آرشیو را lazy load می‌کنیم (فقط count می‌گیریم)
     archived_count = Purchase.objects.filter(Q(state='ARCHIVED') | Q(is_archived=True)).count()
     archived_purchases = None  # lazy load در template
 
@@ -86,6 +96,8 @@ def purchase_list(request):
             # فیلتر ساده‌تر برای کارشناس فروش
             sales_agent_filter = Q(customer__sales_agent=request.user.sales_agent)
             active_purchases = active_purchases.filter(sales_agent_filter)
+            pending_payment_purchases = pending_payment_purchases.filter(sales_agent_filter)
+            pending_payment_count = pending_payment_purchases.count()
             # آرشیو را هم فیلتر می‌کنیم
             archived_count = Purchase.objects.filter(
                 Q(state='ARCHIVED') | Q(is_archived=True)
@@ -93,6 +105,8 @@ def purchase_list(request):
         else:
             # اگر کاربر sales_agent ندارد، هیچ خریدی نمایش نده
             active_purchases = Purchase.objects.none()
+            pending_payment_purchases = Purchase.objects.none()
+            pending_payment_count = 0
             archived_count = 0
     elif user_role == 'support_agent':
         # کارشناس پیگیری همه خریدها را می‌بیند اما با محدودیت اطلاعات
@@ -163,6 +177,8 @@ def purchase_list(request):
     # اعمال همه فیلترها یکجا
     if filters:
         active_purchases = active_purchases.filter(filters)
+        pending_payment_purchases = pending_payment_purchases.filter(filters)
+        pending_payment_count = pending_payment_purchases.count()
     
     # حذف محدودیت 500 رکورد - pagination در frontend مدیریت می‌شود
     # active_purchases = active_purchases[:500]  # این خط حذف شده است
@@ -216,69 +232,89 @@ def purchase_list(request):
         'actions': 10
     }
     
-    # لیست همه ستون های ممکن با اطلاعات لازم
-    all_columns = [
-        {'id': 'purchase_number', 'name': 'شماره خرید', 'field': 'purchase_number'},
-        {'id': 'date', 'name': 'تاریخ', 'field': 'created_at', 'format': 'date'},
-        {'id': 'customer', 'name': 'نام مشتری', 'field': 'customer.name'},
-        {'id': 'invoice_id', 'name': 'کد درون سازمانی', 'field': 'invoice_id'},
-        {'id': 'sales_agent', 'name': 'نماینده فروش', 'field': 'customer.sales_agent.name'},
-        {'id': 'weight', 'name': 'وزن', 'field': 'order_weight', 'unit': 'کیلوگرم'},
-        {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
-        {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name'},
-        {'id': 'status', 'name': 'وضعیت‌ها', 'field': 'state'},
-        {'id': 'actions', 'name': 'جزئیات'},
-        # ستون‌های اضافی
-        {'id': 'address', 'name': 'آدرس', 'field': 'address'},
-        {'id': 'description', 'name': 'توضیحات', 'field': 'description'},
-        {'id': 'factor_code', 'name': 'فاکتور مبنا', 'field': 'factor_code'},
-        {'id': 'tracking_number', 'name': 'شماره پیگیری', 'field': 'tracking_number'},
-        {'id': 'shenase_takhsis', 'name': 'شناسه‌های تخصیص', 'field': 'shenase_takhsis_set'},
-        {'id': 'code_melli_tahvil', 'name': 'کد ملی تحویل', 'field': 'code_melli_tahvil'},
-        {'id': 'bazaargah_phone_number', 'name': 'شماره تلفن بازارگاه', 'field': 'bazaargah_phone_number'},
-        {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
-        {'id': 'tahvil_phone_number', 'name': 'شماره تلفن تحویل', 'field': 'tahvil_phone_number'},
-        {'id': 'send_cottage_sms', 'name': 'ارسال پیامک کوتاژ', 'field': 'send_cottage_sms'},
-        {'id': 'total_weight', 'name': 'وزن کل', 'field': 'total_weight', 'unit': 'کیلوگرم'},
-        {'id': 'delivered_weight', 'name': 'وزن بارنامه شده', 'field': 'delivered_weight', 'unit': 'کیلوگرم'},
-        {'id': 'type', 'name': 'نوع خرید', 'field': 'type'},
-        {'id': 'payment_method', 'name': 'شیوه پرداخت', 'field': 'payment_method'},
-        {'id': 'updated_at', 'name': 'تاریخ بروزرسانی', 'field': 'updated_at'},
-        {'id': 'is_weight_costed', 'name': 'کسر از وزن موجود', 'field': 'is_weight_costed'},
-        {'id': 'is_ap_af', 'name': 'اتوکامپلیت شده', 'field': 'is_ap_af'},
-        {'id': 'extelaf_type', 'name': 'نوع اختلاف', 'field': 'extelaf_type'},
-        {'id': 'extelaf_weight', 'name': 'وزن اختلاف', 'field': 'extelaf_weight', 'unit': 'کیلوگرم'},
-        {'id': 'extelaf_amount', 'name': 'مبلغ اختلاف', 'field': 'extelaf_amount', 'unit': 'ریال'},
-        {'id': 'is_urgent', 'name': 'فوری', 'field': 'is_urgent'},
-        {'id': 'is_canceled', 'name': 'لغو شده', 'field': 'is_canceled'},
-        {'id': 'is_archived', 'name': 'آرشیو شده', 'field': 'is_archived'},
-        {'id': 'is_fully_tasvied', 'name': 'تسویه کامل', 'field': 'is_fully_tasvied'},
-        {'id': 'is_factored', 'name': 'ثبت فاکتور', 'field': 'is_factored'},
-        {'id': 'priority', 'name': 'اولویت', 'field': 'priority'},
-        {'id': 'priority_reason', 'name': 'دلیل اولویت', 'field': 'priority_reason'},
-    ]
-    
-    # اضافه کردن ستون‌های حساس فقط برای نقش‌های مجاز
-    if not hide_sensitive_info:
-        all_columns.extend([
-            {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name'},
-            {'id': 'company_price', 'name': 'فی خرید', 'field': 'company_price', 'unit': 'ریال'},
+    # تعریف ستون‌های مجاز برای کارشناسان فروش و پیگیری
+    if user_role in ['sales_agent', 'support_agent']:
+        # ستون‌های محدود برای کارشناسان فروش و پیگیری
+        all_columns = [
+            {'id': 'purchase_number', 'name': 'شماره خرید', 'field': 'purchase_number'},
+            {'id': 'customer', 'name': 'نام مشتری', 'field': 'customer.name'},
+            {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
+            {'id': 'date', 'name': 'تاریخ', 'field': 'created_at', 'format': 'date'},
+            {'id': 'shenase_takhsis', 'name': 'شماره تخصیص', 'field': 'shenase_takhsis_set'},
+            {'id': 'weight', 'name': 'وزن خرید', 'field': 'order_weight', 'unit': 'کیلوگرم'},
             {'id': 'customer_price', 'name': 'فی فروش', 'field': 'customer_price', 'unit': 'ریال'},
-            {'id': 'amount_paid', 'name': 'مبلغ پرداختی', 'field': 'amount_paid', 'unit': 'ریال'},
-        ])
+            {'id': 'delivered_weight', 'name': 'وزن بارنامه شده', 'field': 'delivered_weight', 'unit': 'کیلوگرم'},
+            {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
+            {'id': 'barbary', 'name': 'نام باربری', 'field': 'cargo.barbary.name'},
+            {'id': 'status', 'name': 'وضعیت', 'field': 'state'},
+            {'id': 'actions', 'name': 'جزئیات'},
+        ]
+        # همچنین selected_columns را به همین ستون‌ها محدود می‌کنیم
+        allowed_columns = ['purchase_number', 'customer', 'buyer_name', 'date', 'shenase_takhsis', 'weight', 'customer_price', 'delivered_weight', 'cargo', 'barbary', 'status', 'actions']
+        selected_columns = [col for col in selected_columns if col in allowed_columns]
+        if not selected_columns:
+            selected_columns = allowed_columns
     else:
-        # برای کارشناسان فروش و پیگیری فقط فی فروش قابل مشاهده است
-        all_columns.extend([
-            {'id': 'customer_price', 'name': 'فی فروش', 'field': 'customer_price', 'unit': 'ریال'},
-        ])
+        # لیست همه ستون های ممکن با اطلاعات لازم برای سایر نقش‌ها
+        all_columns = [
+            {'id': 'purchase_number', 'name': 'شماره خرید', 'field': 'purchase_number'},
+            {'id': 'date', 'name': 'تاریخ', 'field': 'created_at', 'format': 'date'},
+            {'id': 'customer', 'name': 'نام مشتری', 'field': 'customer.name'},
+            {'id': 'invoice_id', 'name': 'کد درون سازمانی', 'field': 'invoice_id'},
+            {'id': 'sales_agent', 'name': 'نماینده فروش', 'field': 'customer.sales_agent.name'},
+            {'id': 'weight', 'name': 'وزن', 'field': 'order_weight', 'unit': 'کیلوگرم'},
+            {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
+            {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name'},
+            {'id': 'status', 'name': 'وضعیت‌ها', 'field': 'state'},
+            {'id': 'actions', 'name': 'جزئیات'},
+            # ستون‌های اضافی
+            {'id': 'address', 'name': 'آدرس', 'field': 'address'},
+            {'id': 'description', 'name': 'توضیحات', 'field': 'description'},
+            {'id': 'factor_code', 'name': 'فاکتور مبنا', 'field': 'factor_code'},
+            {'id': 'tracking_number', 'name': 'شماره پیگیری', 'field': 'tracking_number'},
+            {'id': 'shenase_takhsis', 'name': 'شناسه‌های تخصیص', 'field': 'shenase_takhsis_set'},
+            {'id': 'code_melli_tahvil', 'name': 'کد ملی تحویل', 'field': 'code_melli_tahvil'},
+            {'id': 'bazaargah_phone_number', 'name': 'شماره تلفن بازارگاه', 'field': 'bazaargah_phone_number'},
+            {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
+            {'id': 'tahvil_phone_number', 'name': 'شماره تلفن تحویل', 'field': 'tahvil_phone_number'},
+            {'id': 'send_cottage_sms', 'name': 'ارسال پیامک کوتاژ', 'field': 'send_cottage_sms'},
+            {'id': 'total_weight', 'name': 'وزن کل', 'field': 'total_weight', 'unit': 'کیلوگرم'},
+            {'id': 'delivered_weight', 'name': 'وزن بارنامه شده', 'field': 'delivered_weight', 'unit': 'کیلوگرم'},
+            {'id': 'type', 'name': 'نوع خرید', 'field': 'type'},
+            {'id': 'payment_method', 'name': 'شیوه پرداخت', 'field': 'payment_method'},
+            {'id': 'updated_at', 'name': 'تاریخ بروزرسانی', 'field': 'updated_at'},
+            {'id': 'is_weight_costed', 'name': 'کسر از وزن موجود', 'field': 'is_weight_costed'},
+            {'id': 'is_ap_af', 'name': 'اتوکامپلیت شده', 'field': 'is_ap_af'},
+            {'id': 'extelaf_type', 'name': 'نوع اختلاف', 'field': 'extelaf_type'},
+            {'id': 'extelaf_weight', 'name': 'وزن اختلاف', 'field': 'extelaf_weight', 'unit': 'کیلوگرم'},
+            {'id': 'extelaf_amount', 'name': 'مبلغ اختلاف', 'field': 'extelaf_amount', 'unit': 'ریال'},
+            {'id': 'is_urgent', 'name': 'فوری', 'field': 'is_urgent'},
+            {'id': 'is_canceled', 'name': 'لغو شده', 'field': 'is_canceled'},
+            {'id': 'is_archived', 'name': 'آرشیو شده', 'field': 'is_archived'},
+            {'id': 'is_fully_tasvied', 'name': 'تسویه کامل', 'field': 'is_fully_tasvied'},
+            {'id': 'is_factored', 'name': 'ثبت فاکتور', 'field': 'is_factored'},
+            {'id': 'priority', 'name': 'اولویت', 'field': 'priority'},
+            {'id': 'priority_reason', 'name': 'دلیل اولویت', 'field': 'priority_reason'},
+            {'id': 'barbary', 'name': 'نام باربری', 'field': 'cargo.barbary.name'},
+        ]
+        
+        # اضافه کردن ستون‌های حساس فقط برای نقش‌های مجاز
+        if not hide_sensitive_info:
+            all_columns.extend([
+                {'id': 'company_price', 'name': 'فی خرید', 'field': 'company_price', 'unit': 'ریال'},
+                {'id': 'amount_paid', 'name': 'مبلغ پرداختی', 'field': 'amount_paid', 'unit': 'ریال'},
+            ])
 
     context = {
         'active_purchases': active_purchases,
+        'pending_payment_purchases': pending_payment_purchases,
+        'pending_payment_count': pending_payment_count,
         'archived_purchases': None,  # lazy load
         'archived_count': archived_count,
         'all_states': all_states,
         'user_role': user_role,
         'hide_sensitive_info': hide_sensitive_info,
+        'is_restricted_user': user_role in ['sales_agent', 'support_agent'],  # برای غیرفعال کردن drag & drop
         'per_page': per_page,
         'per_page_options': [25, 50, 100, 200],
         'total_active_purchases': active_purchases.count(),  # تعداد واقعی رکوردها

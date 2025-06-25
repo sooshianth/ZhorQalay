@@ -16,47 +16,29 @@
     <script src="{% static 'js/table_pagination.js' %}?v=1748703972" defer></script>
     <script src="{% static 'js/purchase_list_scripts.js' %}?v=1748703972"></script>
     
-    <!-- Lazy Loading Script for Archived Purchases -->
+    <!-- Purchase Sections Management Script -->
     <script>
     let archivedLoaded = false;
     
-    function loadArchivedPurchases() {
-        if (archivedLoaded) {
-            toggleArchivedDisplay();
-            return;
-        }
+    function togglePurchaseSection(section) {
+        const content = document.getElementById(section + 'Content');
+        const icon = document.getElementById(section + 'Icon');
         
-        const archivedContent = document.getElementById('archivedContent');
-        const archiveIcon = document.getElementById('archiveIcon');
-        
-        if (archivedContent.style.display === 'none') {
-            archivedContent.style.display = 'block';
-            archiveIcon.classList.remove('fa-chevron-down');
-            archiveIcon.classList.add('fa-chevron-up');
-            
-            // بارگذاری داده‌های آرشیو با AJAX
-            if (!archivedLoaded) {
+        if (section === 'archived' && !archivedLoaded) {
+            // اولین بار که آرشیو باز می‌شود، داده‌ها را لود کنیم
                 loadArchivedData();
-            }
-        } else {
-            archivedContent.style.display = 'none';
-            archiveIcon.classList.remove('fa-chevron-up');
-            archiveIcon.classList.add('fa-chevron-down');
+            archivedLoaded = true;
         }
-    }
-    
-    function toggleArchivedDisplay() {
-        const archivedContent = document.getElementById('archivedContent');
-        const archiveIcon = document.getElementById('archiveIcon');
         
-        if (archivedContent.style.display === 'none') {
-            archivedContent.style.display = 'block';
-            archiveIcon.classList.remove('fa-chevron-down');
-            archiveIcon.classList.add('fa-chevron-up');
+        // Toggle content visibility
+        if (content.style.display === 'none') {
+            content.style.display = 'block';
+            icon.classList.remove('fa-chevron-down');
+            icon.classList.add('fa-chevron-up');
         } else {
-            archivedContent.style.display = 'none';
-            archiveIcon.classList.remove('fa-chevron-up');
-            archiveIcon.classList.add('fa-chevron-down');
+            content.style.display = 'none';
+            icon.classList.remove('fa-chevron-up');
+            icon.classList.add('fa-chevron-down');
         }
     }
     
@@ -79,10 +61,6 @@
                     
                     spinner.style.display = 'none';
                     container.style.display = 'block';
-                    archivedLoaded = true;
-                    
-                    // اگر کاربر مجدد کلیک کند، فقط toggle شود
-                    document.getElementById('toggleArchived').onclick = toggleArchivedDisplay;
                 } else {
                     spinner.innerHTML = '<p class="text-danger">خطا در بارگذاری داده‌ها</p>';
                 }
@@ -210,8 +188,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <h1 class="mb-4 section-title">لیست خریدها</h1>
 
 <div class="text-start mb-4 d-flex gap-3 flex-wrap">
-    <!-- دکمه مدیریت ستون‌ها -->
-    {% if request.user.is_superuser or user_role == 'logistics_manager' or user_role == 'financial_manager' %}
+    <!-- دکمه مدیریت ستون‌ها - فقط برای نقش‌های غیر محدود -->
+    {% if not is_restricted_user and request.user.is_superuser or user_role == 'logistics_manager' or user_role == 'financial_manager' %}
     <button class="btn btn-info text-white shadow-sm" data-bs-toggle="modal" data-bs-target="#columnsModal">
         <i class="fas fa-columns me-2"></i> مدیریت ستون‌های جدول</button>
     <button id="resetColumnOrderBtn" class="btn btn-warning text-white shadow-sm ms-2">
@@ -426,6 +404,80 @@ document.addEventListener('DOMContentLoaded', function() {
         padding: 12px 15px;
     }
 }
+
+/* استایل برای جداول dropdown */
+.purchase-tables-container {
+    margin: 2rem 0;
+}
+
+.purchase-section {
+    margin-bottom: 2rem;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.purchase-toggle {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    padding: 1.2rem 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 12px 12px 0 0;
+    border: none;
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    user-select: none;
+}
+
+.purchase-toggle:hover {
+    background: linear-gradient(135deg, #e9ecef, #dee2e6);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.purchase-toggle.active-section {
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+}
+
+.purchase-toggle.active-section:hover {
+    background: linear-gradient(135deg, #bbdefb, #90caf9);
+}
+
+.purchase-icon {
+    transition: transform 0.3s ease;
+    font-size: 1.2rem;
+    margin-right: auto;
+}
+
+.purchase-toggle h3 {
+    margin: 0;
+    flex-grow: 1;
+}
+
+/* استایل خاص برای خریدهای در انتظار پرداخت */
+.pending-payment-row {
+    background-color: rgba(255, 243, 205, 0.3) !important;
+}
+
+.pending-payment-row:hover {
+    background-color: rgba(255, 243, 205, 0.6) !important;
+}
+
+/* بهبود responsive */
+@media (max-width: 768px) {
+    .purchase-toggle {
+        padding: 1rem;
+    }
+    
+    .purchase-toggle h3 {
+        font-size: 1.1rem;
+    }
+    
+    .purchase-icon {
+        font-size: 1rem;
+    }
+}
 </style>
 
 <!-- نوار جستجوی اصلی -->
@@ -467,8 +519,154 @@ document.addEventListener('DOMContentLoaded', function() {
     </form>
 </div>
 
-<!-- Active Purchases Section -->
-<h3 class="mb-4 fw-bold text-primary"><i class="fas fa-shopping-cart me-2"></i>خریدهای فعال</h3>
+<!-- Purchase Tables Section -->
+<div class="purchase-tables-container">
+
+<!-- Pending Payment Purchases Section (بسته به صورت پیش‌فرض) -->
+<div class="purchase-section mt-4">
+<div class="purchase-toggle shadow-sm" onclick="togglePurchaseSection('pending')">
+<h3 class="mb-0 fw-bold text-warning">
+    <i class="fas fa-clock me-2"></i>خریدهای در انتظار پرداخت
+</h3>
+<i class="fas fa-chevron-down text-warning purchase-icon" id="pendingIcon"></i>
+</div>
+<div id="pendingContent" style="display: none;">
+
+{% if pending_payment_purchases %}
+<div class="table-responsive shadow-sm rounded">
+<table class="table table-bordered table-striped align-middle text-center enable-filter" id="pendingPurchasesTable">
+    <thead class="table-light sticky-header">
+        <tr>
+            <!-- Columna para checkboxes de selección -->
+            <th class="text-center" style="width: 50px;">
+                <div class="d-flex justify-content-center">
+                    <input type="checkbox" class="select-all-checkbox-pending" style="width: 20px; height: 20px; cursor: pointer;">
+                </div>
+            </th>
+            {% for column in all_columns %}
+                {% if column.id in selected_columns %}
+                <th class="column-{{ column.id }}" data-column-type="{% if column.id == 'date' or column.id == 'updated_at' %}date{% elif column.id == 'weight' or column.id == 'delivered_weight' or column.id == 'extelaf_weight' or column.id == 'total_weight' or column.id == 'company_price' or column.id == 'customer_price' or column.id == 'amount_paid' %}number{% else %}text{% endif %}">
+                    {{ column.name }}
+                </th>
+                {% endif %}
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+    {% for purchase in pending_payment_purchases %}
+        <tr class="{% if purchase.is_urgent %}urgent-row{% elif purchase.state == 'CANCELED' or purchase.is_canceled %}canceled-row{% endif %} pending-payment-row" 
+            data-id="{{ purchase.id }}"
+            data-order-weight="{{ purchase.order_weight|default:0 }}"
+            data-delivered-weight="{{ purchase.delivered_weight|default:0 }}"
+            data-company-price="{{ purchase.company_price|default:0 }}"
+            data-customer-price="{{ purchase.customer_price|default:0 }}"
+            data-amount-paid="{{ purchase.amount_paid|default:0 }}"
+            data-is-factored="{% if purchase.is_factored %}true{% else %}false{% endif %}"
+            data-factor-code="{% if purchase.factor_code %}1{% else %}0{% endif %}">
+            <!-- Celda para checkbox de selección -->
+            <td class="text-center">
+                <input type="checkbox" class="row-checkbox" data-id="{{ purchase.id }}" style="width: 18px; height: 18px; cursor: pointer;" onchange="toggleRowSelection(this)">
+            </td>
+            {% for column in all_columns %}
+                {% if column.id in selected_columns %}
+                    {% if column.id == 'date' %}
+                    <td class="column-{{ column.id }}">{{ purchase.created_at|date:"Y/m/d" }}</td>
+                    {% elif column.id == 'customer' %}
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.is_urgent %}<span class="urgent-badge">فوری</span>{% endif %}
+                        {{ purchase.customer.name }}
+                    </td>
+                    {% elif column.id == 'invoice_id' %}
+                    <td class="column-{{ column.id }}">
+                        {{ purchase.invoice_id|default:"تعیین نشده" }}
+                    </td>
+                    {% elif column.id == 'sales_agent' %}
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.unique_sales_agent %}
+                            {{ purchase.unique_sales_agent.name }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    {% elif column.id == 'purchase_number' %}
+                    <td class="column-{{ column.id }}">
+                        {{ purchase.purchase_number|default:"تعیین نشده" }}
+                    </td>
+                    {% elif column.id == 'weight' %}
+                    <td class="column-{{ column.id }}" data-unit="کیلوگرم">
+                        {{ purchase.order_weight|add_commas }}
+                    </td>
+                    {% elif column.id == 'cargo' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo %}{{ purchase.cargo }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'barbary' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.barbary %}{{ purchase.cargo.barbary.name }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'importer' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.vared_konandeh %}{{ purchase.cargo.vared_konandeh.name }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'buyer_name' %}
+                    <td class="column-{{ column.id }}">{{ purchase.buyer_name|default:"-" }}</td>
+                    {% elif column.id == 'customer_price' %}
+                    <td class="column-{{ column.id }}">{{ purchase.customer_price|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'delivered_weight' %}
+                    <td class="column-{{ column.id }}">{{ purchase.delivered_weight|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'shenase_takhsis' %}
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.shenase_takhsis_set.exists %}
+                            {% for shenase in purchase.shenase_takhsis_set.all %}
+                                <span class="badge bg-info text-white me-1 mb-1">{{ shenase.code }}</span>
+                            {% endfor %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    {% elif column.id == 'status' %}
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.state == 'INITIATED' %}
+                            <span class="table-status-badge bg-light text-dark">شروع شده</span>
+                        {% elif purchase.state == 'SMS_SENT' %}
+                            <span class="table-status-badge bg-warning text-dark">پیامک ارسال شده</span>
+                        {% else %}
+                            <span class="table-status-badge bg-light text-dark">{{ purchase.get_state_display }}</span>
+                        {% endif %}
+                    </td>
+                    {% elif column.id == 'actions' %}
+                    <td class="column-{{ column.id }}">
+                        <div class="btn-group">
+                            <a href="{% url 'purchase_CRUD' purchase.id %}" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-eye me-1"></i> مشاهده
+                            </a>
+                            <button type="button" class="btn btn-outline-success btn-sm item-history-btn" 
+                                    data-id="{{ purchase.id }}" title="تاریخچه تغییرات">
+                                <i class="fas fa-history"></i>
+                            </button>
+                        </div>
+                    </td>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty-state">
+    <i class="fas fa-clock"></i>
+    <h4>هیچ خرید در انتظار پرداختی یافت نشد</h4>
+    <p>در حال حاضر هیچ خرید در انتظار پرداختی وجود ندارد</p>
+</div>
+{% endif %}
+</div>
+</div>
+
+<!-- Active Purchases Section (باز به صورت پیش‌فرض) -->
+<div class="purchase-section mt-4">
+<div class="purchase-toggle shadow-sm active-section" onclick="togglePurchaseSection('active')">
+<h3 class="mb-0 fw-bold text-primary">
+    <i class="fas fa-shopping-cart me-2"></i>خریدهای فعال
+</h3>
+<i class="fas fa-chevron-up text-primary purchase-icon" id="activeIcon"></i>
+</div>
+<div id="activeContent" style="display: block;">
 
 <!-- Sección de estadísticas agregadas -->
 {% if not hide_sensitive_info %}
@@ -821,15 +1019,18 @@ document.addEventListener('DOMContentLoaded', function() {
     <p>در حال حاضر هیچ خرید فعالی وجود ندارد</p>
 </div>
 {% endif %}
+</div>
+</div>
 
-<!-- Archived Purchases Section -->
-<div class="archive-section mt-5">
-<div class="archive-toggle shadow-sm" id="toggleArchived" onclick="loadArchivedPurchases()">
+
+
+<!-- Archived Purchases Section (بسته به صورت پیش‌فرض) -->
+<div class="purchase-section mt-4">
+<div class="purchase-toggle shadow-sm" onclick="togglePurchaseSection('archived')">
 <h3 class="mb-0 fw-bold text-secondary">
     <i class="fas fa-archive me-2"></i>خریدهای آرشیو شده 
-    <span class="badge bg-secondary">{{ archived_count }}</span>
 </h3>
-<i class="fas fa-chevron-down text-secondary" id="archiveIcon"></i>
+<i class="fas fa-chevron-down text-secondary purchase-icon" id="archivedIcon"></i>
 </div>
 <div id="archivedContent" style="display: none;">
 <div id="archivedLoadingSpinner" class="text-center py-5">
@@ -1086,8 +1287,8 @@ document.addEventListener('DOMContentLoaded', function() {
 {% endif %}
 </div>
 </div>
-</div>
-</div>
+
+</div> <!-- بستن purchase-tables-container -->
 
 <!-- مدال تاریخچه تغییرات -->
 <div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
