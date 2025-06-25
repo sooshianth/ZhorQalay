@@ -164,8 +164,8 @@ def purchase_list(request):
     if filters:
         active_purchases = active_purchases.filter(filters)
     
-    # محدود کردن به 500 رکورد اول در انتها (بعد از همه فیلترها)
-    active_purchases = active_purchases[:500]
+    # حذف محدودیت 500 رکورد - pagination در frontend مدیریت می‌شود
+    # active_purchases = active_purchases[:500]  # این خط حذف شده است
     
     # تنظیمات پیجینیشن جاوااسکریپتی
     per_page = request.GET.get('per_page', '50')  # پیش‌فرض 50 رکورد در هر صفحه
@@ -281,7 +281,7 @@ def purchase_list(request):
         'hide_sensitive_info': hide_sensitive_info,
         'per_page': per_page,
         'per_page_options': [25, 50, 100, 200],
-        'total_active_purchases': len(active_purchases),  # از len استفاده می‌کنیم چون محدود کردیم
+        'total_active_purchases': active_purchases.count(),  # تعداد واقعی رکوردها
         'search_params': {
             'global_search': global_search,
             'customer': customer,
@@ -359,60 +359,57 @@ def load_archived_purchases(request):
 @login_required
 def update_columns(request):
     """
-    Actualiza las columnas seleccionadas para mostrar en la lista de compras
+    به‌روزرسانی ستون‌های انتخاب شده برای نمایش در لیست خریدها
     """
     try:
-        # Obtener las columnas seleccionadas del formulario
+        # دریافت ستون‌های انتخاب شده از فرم
         selected_columns = request.POST.getlist('columns[]')
         
-        # Registrar para depuración
-        print(f"Columnas recibidas: {selected_columns}")
-        print(f"Datos POST completos: {dict(request.POST)}")
+        # ثبت لاگ برای دیباگ
+        print(f"ستون‌های دریافت شده: {selected_columns}")
+        print(f"داده‌های POST کامل: {dict(request.POST)}")
         
-        # Comprobar si hay datos en un formato alternativo
+        # بررسی فرمت‌های مختلف داده
         if not selected_columns and 'columns' in request.POST:
             selected_columns = request.POST.getlist('columns')
-            print(f"Usando formato alternativo: {selected_columns}")
+            print(f"استفاده از فرمت جایگزین: {selected_columns}")
         
-        # Si todavía no hay columnas, buscar otro formato posible
+        # اگر هنوز ستونی یافت نشد، تلاش برای فرمت رشته‌ای
         if not selected_columns and request.POST.get('columns'):
-            # Intentar con una cadena separada por comas
             columns_str = request.POST.get('columns')
             selected_columns = [c.strip() for c in columns_str.split(',') if c.strip()]
-            print(f"Usando cadena separada por comas: {selected_columns}")
+            print(f"استفاده از رشته جدا شده با کاما: {selected_columns}")
         
-        # Verificar que hay columnas seleccionadas
+        # بررسی وجود ستون‌های انتخاب شده
         if not selected_columns:
             return JsonResponse({
                 'status': 'error', 
-                'message': 'No se recibieron columnas seleccionadas'
+                'message': 'هیچ ستونی انتخاب نشده است'
             }, status=400)
         
-        # Asegurar que la columna de acciones siempre está presente
+        # اطمینان از وجود ستون عملیات
         if 'actions' not in selected_columns:
             selected_columns.append('actions')  # ستون جزئیات همیشه باید نمایش داده شود
         
-        # Crear la respuesta y establecer la cookie
+        # ایجاد پاسخ و تنظیم کوکی
         cookie_value = ','.join(selected_columns)
-        print(f"Setting cookie 'selected_columns' with value: {cookie_value}")
+        print(f"تنظیم کوکی 'selected_columns' با مقدار: {cookie_value}")
         
         response = JsonResponse({'status': 'success', 'selected_columns': selected_columns})
         
-        # Establecer la cookie con un período de validez de 30 días
-        # Parámetro httponly=False para permitir acceso desde JavaScript
-        # Asegurar valores correctos para SameSite y Secure
+        # تنظیم کوکی با عمر 30 روز
         response.set_cookie(
             'selected_columns', 
             cookie_value, 
-            max_age=30*24*60*60,  # 30 días
-            httponly=False,       # Permitir acceso desde JavaScript
-            samesite='Lax'        # Permitir envío en contextos de navegación
+            max_age=30*24*60*60,  # 30 روز
+            httponly=False,       # اجازه دسترسی از JavaScript
+            samesite='Lax'        # اجازه ارسال در navigations
         )
         
         return response
     except Exception as e:
         import traceback
-        print(f"Error en update_columns: {str(e)}")
+        print(f"خطا در update_columns: {str(e)}")
         print(traceback.format_exc())
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 

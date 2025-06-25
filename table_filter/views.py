@@ -171,7 +171,16 @@ def get_editable_fields(model, table_type, selected_ids=None):
         print(f"DEBUG - Field {field.name} internal type: {internal_type}")
         
         if internal_type == 'BooleanField':
-            field_type = 'checkbox'
+            # تبدیل فیلد status به dropdown
+            if field.name == 'status':
+                field_type = 'select'
+                field_choices = [
+                    ('', 'بدون تغییر'),
+                    ('true', 'فعال'),
+                    ('false', 'غیرفعال')
+                ]
+            else:
+                field_type = 'checkbox'
         elif internal_type in ['IntegerField', 'PositiveIntegerField', 'BigIntegerField', 'SmallIntegerField']:
             field_type = 'number'
         elif internal_type in ['FloatField', 'DecimalField']:
@@ -193,11 +202,21 @@ def get_editable_fields(model, table_type, selected_ids=None):
             # دریافت گزینه‌های ForeignKey
             try:
                 related_model = field.related_model
-                field_choices = [(obj.id, str(obj)) for obj in related_model.objects.all()[:100]]  # محدود به 100 مورد
-                print(f"DEBUG - Relation field {field.name} has {len(field_choices)} choices")
+                
+                # مدیریت ویژه برای فیلد unique_sales_agent
+                if field.name == 'unique_sales_agent' and model_name == 'Purchase':
+                    from core.CustomerModel import SalesAgent
+                    field_choices = [('', 'بدون تغییر')]
+                    field_choices.extend([(agent.id, agent.name) for agent in SalesAgent.objects.all().order_by('name')])
+                    print(f"DEBUG - unique_sales_agent field: {len(field_choices)-1} sales agents loaded")
+                else:
+                    field_choices = [('', 'بدون تغییر')]
+                    field_choices.extend([(obj.id, str(obj)) for obj in related_model.objects.all()[:100]])
+                    
+                print(f"DEBUG - Relation field {field.name} has {len(field_choices)-1} choices")
             except Exception as e:
                 print(f"DEBUG - Error getting relation choices for {field.name}: {e}")
-                field_choices = []
+                field_choices = [('', 'بدون تغییر')]
         
         # بررسی وجود choices در فیلد
         if hasattr(field, 'choices') and field.choices:
@@ -237,7 +256,26 @@ def get_editable_fields(model, table_type, selected_ids=None):
                 'extelaf_weight': 'وزن اختلاف (کیلوگرم)',
                 'extelaf_amount': 'مبلغ اختلاف (ریال)',
                 'priority_reason': 'دلیل اولویت',
-                'factor_code': 'فاکتور مبنا'
+                'factor_code': 'فاکتور مبنا',
+                'unique_sales_agent': 'کارشناس فروش',
+                'unique_sales_agent_name': 'نام کارشناس فروش',
+            }
+            field_label = field_labels.get(field.name, getattr(field, 'verbose_name', field.name.replace('_', ' ').title()))
+        elif model_name == 'CargoProduct':
+            field_labels = {
+                'cottage': 'کوتاژ',
+                'company_price': 'فی خرید (ریال)',
+                'customer_price': 'فی فروش (ریال)',
+                'product_type': 'نوع محصول',
+                'country': 'کشور مبدا',
+                'vared_konandeh': 'واردکننده',
+                'port': 'محل بارگیری',
+                'loading_time': 'زمان بارگیری',
+                'description': 'توضیحات',
+                'weight': 'وزن موجود (کیلوگرم)',
+                'status': 'وضعیت فعال/غیرفعال',
+                'barbary': 'باربری',
+                'type': 'نوع خرید'
             }
             field_label = field_labels.get(field.name, getattr(field, 'verbose_name', field.name.replace('_', ' ').title()))
         else:
@@ -456,7 +494,15 @@ def bulk_edit_view(request):
                     except ValueError:
                         continue
                 elif field.get_internal_type() == 'BooleanField':
-                    update_data[field_name] = value.lower() in ['true', '1', 'yes', 'on', 'بله', 'فعال']
+                    # پردازش خاص برای فیلد status که dropdown است
+                    if field_name == 'status':
+                        if value == 'true':
+                            update_data[field_name] = True
+                        elif value == 'false':
+                            update_data[field_name] = False
+                        # اگر value خالی باشد (بدون تغییر)، هیچ کاری نمی‌کنیم
+                    else:
+                        update_data[field_name] = value.lower() in ['true', '1', 'yes', 'on', 'بله', 'فعال']
                 elif field.get_internal_type() == 'ForeignKey':
                     # برای ForeignKey، مقدار باید ID باشد
                     try:
@@ -468,7 +514,7 @@ def bulk_edit_view(request):
                     update_data[field_name] = value
             
             # پردازش ویژه برای چک‌باکس‌ها - فقط اگر explicitly sent شده باشند
-            elif field.get_internal_type() == 'BooleanField':
+            elif field.get_internal_type() == 'BooleanField' and field_name != 'status':
                 # اگر چک‌باکس در POST است، یعنی true است
                 if field_name in request.POST:
                     update_data[field_name] = True

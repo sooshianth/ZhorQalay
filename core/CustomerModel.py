@@ -65,6 +65,8 @@ class PaymentPreference(models.Model):
 class PhoneNumber(models.Model):
     number = models.CharField(_("شماره تلفن"), max_length=20)
     is_primary = models.BooleanField(_("شماره اصلی"), default=False)
+    sms_enabled = models.BooleanField(_("ارسال پیامک"), default=True, help_text=_("آیا پیامک به این شماره ارسال شود؟"))
+    description = models.CharField(_("توضیحات"), max_length=100, blank=True, null=True, help_text=_("توضیحات اختیاری برای این شماره تلفن"))
     customer = models.ForeignKey('Customer', on_delete=models.CASCADE, related_name='phone_numbers', verbose_name=_("مشتری"))
     
     class Meta:
@@ -351,30 +353,46 @@ class Customer(models.Model):
         
         # No need to validate phone_number here as it's now in the PhoneNumber model
 
-def change_sales_agent(self):
-    """
-    Change the sales agent for a customer.to next sales agent in the list
-    """
-    all_sales_agents = SalesAgent.objects.all()
-    current_sales_agents = self.sales_agent.all()
-    if not current_sales_agents:
-        return None
-    if SalesAgent.objects.get(user__username='Ms_Sadri') in current_sales_agents:
-        next_sales_agent = SalesAgent.objects.get(user__username='Ms_Sadri')
-    else:
-        next_sales_agent = all_sales_agents.next()
-    self.sales_agent.set([next_sales_agent])
-    self.save()
+    def change_sales_agent(self):
+        """
+        Change the sales agent for a customer.to next sales agent in the list
+        """
+        all_sales_agents = SalesAgent.objects.all()
+        current_sales_agents = self.sales_agent.all()
+        if not current_sales_agents:
+            return None
+        if SalesAgent.objects.get(user__username='Ms_Sadri') in current_sales_agents:
+            next_sales_agent = SalesAgent.objects.get(user__username='Ms_Sadri')
+        else:
+            next_sales_agent = all_sales_agents.next()
+        self.sales_agent.set([next_sales_agent])
+        self.save()
 
-def change_sales_agents_after_two_months_of_no_purchase(self):
-    """
-    Change the sales agent for a customer after two months of no purchase.
-    """
-    if self.purchases_made.count() == 0:
-        return None
-    
-    last_purchase = self.purchases_made.order_by('-created_at').first()
-    if last_purchase.created_at < timezone.now() - timedelta(days=60):
-        return None
-    else:
-        change_sales_agent(self)
+    def change_sales_agents_after_two_months_of_no_purchase(self):
+        """
+        Change the sales agent for a customer after two months of no purchase.
+        """
+        if self.purchases_made.count() == 0:
+            return None
+        
+        last_purchase = self.purchases_made.order_by('-created_at').first()
+        if last_purchase.created_at < timezone.now() - timedelta(days=60):
+            return None
+        else:
+            self.change_sales_agent()
+
+    def get_purchase_phone_numbers(self):
+        """
+        Returns a list of unique phone numbers from customer's purchases.
+        Includes bazaargah_phone_number and tahvil_phone_number from Purchase model.
+        """
+        phone_numbers = set()
+        
+        # Get phone numbers from purchases
+        for purchase in self.purchases_made.all():
+            if purchase.bazaargah_phone_number:
+                phone_numbers.add(('بازارگاه', purchase.bazaargah_phone_number, purchase.purchase_number))
+            if purchase.tahvil_phone_number:
+                phone_numbers.add(('تحویل', purchase.tahvil_phone_number, purchase.purchase_number))
+        
+        return list(phone_numbers)

@@ -155,7 +155,7 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
         for phone in phone_numbers:
             try:
                 queue_sms(
-                    number=phone,
+                    number=pghone,
                     message=message,
                     notification_type='BARNAMEH_CREATED',
                     purchase=instance.purchase  # در صورت وجود

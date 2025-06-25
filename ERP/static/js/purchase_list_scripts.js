@@ -279,7 +279,12 @@ function initializeColumnManagement() {
             }
             
             const selectedColumns = Array.from(checkboxes).map(checkbox => checkbox.value);
-            console.log('Selected columns:', selectedColumns);
+            console.log('ستون‌های انتخاب شده:', selectedColumns);
+            
+            // نمایش پیام در حال پردازش
+            const originalText = saveColumnsBtn.innerHTML;
+            saveColumnsBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>در حال ذخیره...';
+            saveColumnsBtn.disabled = true;
             
             // ساخت FormData برای ارسال به سرور
             const formData = new FormData();
@@ -287,11 +292,17 @@ function initializeColumnManagement() {
                 formData.append('columns[]', column);
             });
             
-            // دریافت CSRF token از meta tag
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            // دریافت CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                             document.querySelector('input[name="csrfmiddlewaretoken"]')?.value ||
+                             getCookie('csrftoken');
             
-            // ارسال داده‌ها به سرور با FormData
-            fetch(window.PurchaseListConfig?.updateColumnsUrl || '/update_columns/', {
+            console.log('CSRF Token:', csrfToken);
+            
+            // ارسال داده‌ها به سرور
+            const updateUrl = window.PurchaseListConfig?.updateColumnsUrl || '/erp/purchases/update-columns/';
+            
+            fetch(updateUrl, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': csrfToken
@@ -299,25 +310,42 @@ function initializeColumnManagement() {
                 body: formData
             })
             .then(response => {
-                console.log('Server response status:', response.status);
+                console.log('وضعیت پاسخ سرور:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 return response.json();
             })
             .then(data => {
-                console.log('Server response data:', data);
+                console.log('داده پاسخ سرور:', data);
                 if (data.status === 'success') {
                     // بستن مدال
                     const modal = bootstrap.Modal.getInstance(document.getElementById('columnsModal'));
-                    modal.hide();
+                    if (modal) {
+                        modal.hide();
+                    }
+                    
+                    // نمایش پیام موفقیت
+                    if (typeof showSuccessToast === 'function') {
+                        showSuccessToast('ستون‌ها با موفقیت به‌روزرسانی شدند');
+                    }
                     
                     // بارگذاری مجدد صفحه برای اعمال تغییرات
-                    window.location.reload();
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
                 } else {
-                    alert('خطا در ذخیره تغییرات: ' + (data.message || 'خطای نامشخص'));
+                    throw new Error(data.message || 'خطای نامشخص در سرور');
                 }
             })
             .catch(error => {
-                console.error('Error saving columns:', error);
-                alert('خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.');
+                console.error('خطا در ذخیره ستون‌ها:', error);
+                alert('خطا در ذخیره ستون‌ها: ' + error.message);
+            })
+            .finally(() => {
+                // بازگردانی حالت دکمه
+                saveColumnsBtn.innerHTML = originalText;
+                saveColumnsBtn.disabled = false;
             });
         });
     }
@@ -351,7 +379,7 @@ function initializeColumnManagement() {
     if (resetColumnsBtn) {
         resetColumnsBtn.addEventListener('click', function() {
             // انتخاب ستون‌های پیش‌فرض
-            const defaultColumns = ['purchase_number', 'date', 'customer', 'invoice_id', 'sales_agent', 'weight', 'cargo', 'importer', 'status', 'actions'];
+            const defaultColumns = ['purchase_number', 'date', 'customer', 'invoice_id', 'sales_agent', 'weight', 'cargo', 'status', 'actions'];
             
             // بازنشانی همه چک‌باکس‌ها
             const checkboxes = document.querySelectorAll('input[name="columns[]"]');
@@ -363,6 +391,54 @@ function initializeColumnManagement() {
             saveColumnsBtn.click();
         });
     }
+}
+
+// تابع کمکی برای دریافت cookie
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// تابع نمایش پیام موفقیت (اگر موجود نباشد)
+function showSuccessToast(message) {
+    // ایجاد toast ساده اگر Bootstrap toast موجود نباشد
+    const toast = document.createElement('div');
+    toast.className = 'alert alert-success position-fixed';
+    toast.style.cssText = `
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    `;
+    toast.innerHTML = `<i class="fas fa-check-circle me-2"></i>${message}`;
+    document.body.appendChild(toast);
+    
+    // نمایش toast
+    setTimeout(() => {
+        toast.style.opacity = '1';
+    }, 100);
+    
+    // حذف toast بعد از 3 ثانیه
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }, 3000);
 }
 
 // راه‌اندازی جستجوی سریع

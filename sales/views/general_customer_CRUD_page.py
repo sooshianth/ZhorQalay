@@ -260,13 +260,27 @@ def customer_search(request):
             
             results = []
             for c in customers:
-                # اضافه کردن شماره تلفن اصلی
-                primary_phone = c.get_primary_phone()
+                # تشخیص اینکه جستجو بر اساس کدام شماره انجام شده
+                matching_phone = None
+                
+                # اگر جستجو بر اساس عدد بود، بررسی کنیم کدام شماره مطابقت دارد
+                if clean_query and clean_query.isdigit():
+                    # ابتدا بررسی شماره‌های PhoneNumber
+                    matching_phone_obj = c.phone_numbers.filter(number__icontains=clean_query).first()
+                    if matching_phone_obj:
+                        matching_phone = matching_phone_obj.number
+                    # اگر در PhoneNumber یافت نشد، شماره قدیمی را بررسی کن
+                    elif c.phone_number and clean_query in c.phone_number:
+                        matching_phone = c.phone_number
+                
+                # اگر شماره مطابق پیدا نشد یا جستجو بر اساس نام بود، شماره اصلی را نمایش بده
+                if not matching_phone:
+                    matching_phone = c.get_primary_phone()
                 
                 customer_info = {
                     'id': c.id,
                     'name': c.name if c.name else 'بدون نام',
-                    'phone_number': primary_phone,
+                    'phone_number': matching_phone,
                     'city': c.city or '',
                 }
                 results.append(customer_info)
@@ -454,20 +468,75 @@ def general_customer_CRUD_view(request):
         # اضافه کردن شماره تلفن جدید
         elif 'add_phone' in request.POST:
             new_phone = request.POST.get('new_phone')
+            phone_description = request.POST.get('phone_description', '').strip()
+            
             if new_phone:
                 try:
-                    phone_obj = PhoneNumber(
-                        number=new_phone,
-                        customer=customer,
-                        is_primary=False
-                    )
-                    phone_obj.full_clean()
-                    phone_obj.save()
-                    messages.success(request, "شماره تلفن جدید اضافه شد")
-                except ValidationError as e:
-                    messages.error(request, f"خطا در اضافه کردن شماره: {e}")
+                    # تمیز کردن شماره تلفن
+                    # تبدیل اعداد فارسی به انگلیسی
+                    persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+                    english_digits = "0123456789"
+                    translation_table = str.maketrans(persian_digits, english_digits)
+                    clean_phone = new_phone.translate(translation_table)
+                    
+                    # پاکسازی شماره از کاراکترهای غیرعددی
+                    clean_phone = ''.join(c for c in clean_phone if c.isdigit())
+                    
+                    # اگر با صفر شروع می‌شود، آن را حذف می‌کنیم
+                    if clean_phone.startswith('0'):
+                        clean_phone = clean_phone[1:]
+                    
+                    # حذف کد کشور ایران اگر وجود داشت
+                    if clean_phone.startswith('98'):
+                        clean_phone = clean_phone[2:]
+                    
+                    # بررسی اینکه شماره حداقل معقول باشه
+                    if len(clean_phone) < 10:
+                        messages.error(request, "شماره تلفن باید حداقل 10 رقم باشد")
+                    else:
+                        # بررسی تکراری نبودن شماره
+                        existing_phone = PhoneNumber.objects.filter(number=clean_phone).first()
+                        
+                        if existing_phone:
+                            if existing_phone.customer == customer:
+                                messages.error(request, "این شماره قبلاً برای این مشتری ثبت شده است")
+                            else:
+                                messages.error(request, f"این شماره قبلاً برای مشتری '{existing_phone.customer.name}' ثبت شده است")
+                        else:
+                            # ایجاد شماره جدید
+                            phone_obj = PhoneNumber(
+                                number=clean_phone,
+                                customer=customer,
+                                is_primary=False,
+                                sms_enabled=True,  # دیفالت روشن
+                                description=phone_description if phone_description else None
+                            )
+                            phone_obj.save()
+                            success_msg = f"شماره تلفن {clean_phone} با موفقیت اضافه شد"
+                            if phone_description:
+                                success_msg += f" (توضیحات: {phone_description})"
+                            messages.success(request, success_msg)
+                            
+                except Exception as e:
+                    messages.error(request, f"خطا در اضافه کردن شماره: {str(e)}")
+            else:
+                messages.error(request, "لطفاً شماره تلفن را وارد کنید")
+                
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
         
+        # تغییر وضعیت پیامک شماره تلفن
+        elif 'toggle_sms' in request.POST:
+            phone_id = request.POST.get('phone_id')
+            try:
+                phone_obj = PhoneNumber.objects.get(id=phone_id, customer=customer)
+                phone_obj.sms_enabled = not phone_obj.sms_enabled
+                phone_obj.save()
+                status = "فعال" if phone_obj.sms_enabled else "غیرفعال"
+                messages.success(request, f"ارسال پیامک برای شماره {phone_obj.number} {status} شد")
+            except PhoneNumber.DoesNotExist:
+                messages.error(request, "شماره یافت نشد")
+            return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
+
         # تنظیم شماره اصلی
         elif 'make_primary' in request.POST:
             phone_id = request.POST.get('make_primary')
@@ -483,11 +552,28 @@ def general_customer_CRUD_view(request):
                 messages.error(request, "شماره یافت نشد")
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
 
+        # ویرایش توضیحات شماره تلفن
+        elif 'edit_phone_description' in request.POST:
+            phone_id = request.POST.get('phone_id')
+            new_description = request.POST.get('new_description', '').strip()
+            try:
+                phone_obj = PhoneNumber.objects.get(id=phone_id, customer=customer)
+                phone_obj.description = new_description if new_description else None
+                phone_obj.save()
+                if new_description:
+                    messages.success(request, f"توضیحات شماره {phone_obj.number} با موفقیت ذخیره شد")
+                else:
+                    messages.success(request, f"توضیحات شماره {phone_obj.number} حذف شد")
+            except PhoneNumber.DoesNotExist:
+                messages.error(request, "شماره یافت نشد")
+            return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
+
     # دریافت داده‌ها برای نمایش
     calls = customer.get_calls_by_time() if customer else []
     tasks = customer.get_tasks_by_time() if customer else []
     purchases = customer.get_purchases_by_time() if customer else []
     all_phone_numbers = customer.get_all_phone_numbers() if customer else []
+    purchase_phone_numbers = customer.get_purchase_phone_numbers() if customer else []
     
     # صفحه‌بندی تسک‌ها
     if customer:
@@ -521,6 +607,7 @@ def general_customer_CRUD_view(request):
         'tasks': tasks,
         'purchases': purchases,
         'all_phone_numbers': all_phone_numbers,
+        'purchase_phone_numbers': purchase_phone_numbers,
         'search_query': query,
         'assignment_id': assignment_id,
         'active_products': active_products,

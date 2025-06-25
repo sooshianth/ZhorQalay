@@ -14,7 +14,7 @@
     <script src="{% static 'js/drag_and_drop_columns.js' %}?v=1748703972" defer></script>
     <script src="{% static 'js/purchase_aggregated_stats.js' %}?v=1748703972" defer></script>
     <script src="{% static 'js/table_pagination.js' %}?v=1748703972" defer></script>
-    <script src="{% static 'js/purchase_list_scripts.js' %}?v=1748703972" defer></script>
+    <script src="{% static 'js/purchase_list_scripts.js' %}?v=1748703972"></script>
     
     <!-- Lazy Loading Script for Archived Purchases -->
     <script>
@@ -154,11 +154,52 @@
          data-restore-value-api-url="{% url 'table_filter:restore_value_api' %}"
          style="display: none;"></div>
 
+<!-- script برای تنظیم configuration در window -->
+<script>
+    // تنظیم configuration برای JavaScript
+    window.PurchaseListConfig = {
+        updateColumnsUrl: "{% url 'update_columns' %}",
+        exportPurchasesUrl: "{% url 'export_purchases' %}",
+        purchaseAggregatedStatsUrl: "{% url 'purchase_aggregated_stats' %}",
+        perPage: {{ per_page }},
+        hideSensitiveInfo: {% if hide_sensitive_info %}true{% else %}false{% endif %}
+    };
+    
+    console.log('Purchase List Config loaded:', window.PurchaseListConfig);
+</script>
+
 {% endblock %}
 
 {% block title %}لیست خریدها{% endblock %}
 
 {% block content %}
+
+<!-- اضافه کردن initialization script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // تأخیر کوتاه برای اطمینان از بارگذاری کامل DOM
+    setTimeout(function() {
+        // راه‌اندازی مدیریت ستون‌ها
+        if (typeof initializeColumnManagement === 'function') {
+            initializeColumnManagement();
+            console.log('Column management initialized');
+        } else {
+            console.error('initializeColumnManagement function not found');
+        }
+        
+        // راه‌اندازی pagination
+        if (typeof TablePagination !== 'undefined') {
+            window.tablePagination = new TablePagination({
+                tableSelector: '#activePurchasesTable',
+                perPage: {{ per_page }},
+                perPageOptions: {{ per_page_options|safe }},
+                debug: true
+            });
+            console.log('Table pagination initialized');
+        }
+    }, 500);
+});
+</script>
 
 {% load custom_filters %}
 
@@ -578,10 +619,12 @@
                     </td>
                     {% elif column.id == 'sales_agent' %}
                     <td class="column-{{ column.id }}">
-                        {% if purchase.unique_sales_agent_name %}
+                        {% if purchase.unique_sales_agent %}
+                            {{ purchase.unique_sales_agent.name }}
+                        {% elif purchase.unique_sales_agent_name %}
                             {{ purchase.unique_sales_agent_name }}
                         {% else %}
-                            {% for agent in purchase.customer.sales_agent.all %}{{ agent.name }}{% if not forloop.last %}، {% endif %}{% empty %}-{% endfor %}
+                            -
                         {% endif %}
                     </td>
                     {% elif column.id == 'purchase_number' %}
@@ -845,10 +888,12 @@
                     <td class="column-{{ column.id }}">{{ purchase.invoice_id|default:"تعیین نشده" }}</td>
                     {% elif column.id == 'sales_agent' %}
                     <td class="column-{{ column.id }}">
-                        {% if purchase.unique_sales_agent_name %}
+                        {% if purchase.unique_sales_agent %}
+                            {{ purchase.unique_sales_agent.name }}
+                        {% elif purchase.unique_sales_agent_name %}
                             {{ purchase.unique_sales_agent_name }}
                         {% else %}
-                            {% for agent in purchase.customer.sales_agent.all %}{{ agent.name }}{% if not forloop.last %}، {% endif %}{% empty %}-{% endfor %}
+                            -
                         {% endif %}
                     </td>
                     {% elif column.id == 'purchase_number' %}
