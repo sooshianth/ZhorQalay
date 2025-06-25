@@ -195,29 +195,6 @@ def purchase_list(request):
     # فهرست وضعیت‌ها برای فیلتر
     all_states = dict(Purchase.STATUS_CHOICES)
 
-    # دریافت ستون های انتخاب شده از کوکی
-    selected_columns = request.COOKIES.get('selected_columns', '')
-    
-    # For debugging
-    print(f"Cookie selected_columns: '{selected_columns}'")
-    
-    if not selected_columns:
-        selected_columns = 'purchase_number,date,customer,invoice_id,sales_agent,weight,cargo,status,actions'
-        print("Using default columns")
-    
-    # Make sure we have a string before splitting
-    if isinstance(selected_columns, str):
-        selected_columns = selected_columns.split(',')
-    else:
-        selected_columns = ['purchase_number', 'date', 'customer', 'invoice_id', 'sales_agent', 'weight', 'cargo', 'status', 'actions']
-        print("Type error on selected_columns - using defaults")
-    
-    # اطمینان از حضور ستون actions
-    if 'actions' not in selected_columns:
-        selected_columns.append('actions')
-    
-    print(f"Final selected columns: {selected_columns}")
-    
     # تعریف ایندکس ستون ها برای نمایش/مخفی کردن آنها در جاوااسکریپت
     column_indices = {
         'purchase_number': 1,
@@ -249,12 +226,62 @@ def purchase_list(request):
             {'id': 'status', 'name': 'وضعیت', 'field': 'state'},
             {'id': 'actions', 'name': 'جزئیات'},
         ]
-        # همچنین selected_columns را به همین ستون‌ها محدود می‌کنیم
+        
+        # ستون‌های مجاز برای کاربران محدود
         allowed_columns = ['purchase_number', 'customer', 'buyer_name', 'date', 'shenase_takhsis', 'weight', 'customer_price', 'delivered_weight', 'cargo', 'barbary', 'status', 'actions']
-        selected_columns = [col for col in selected_columns if col in allowed_columns]
+        
+        # دریافت ستون های انتخاب شده از کوکی فقط برای کاربران محدود
+        selected_columns = request.COOKIES.get('selected_columns', '')
+        
+        # For debugging
+        print(f"Cookie selected_columns for restricted user: '{selected_columns}'")
+        
         if not selected_columns:
+            # پیش‌فرض برای کاربران محدود: نمایش همه ستون‌های مجاز
             selected_columns = allowed_columns
+            print("Using default columns for restricted user")
+        else:
+            # Make sure we have a string before splitting
+            if isinstance(selected_columns, str):
+                selected_columns = selected_columns.split(',')
+            else:
+                selected_columns = allowed_columns
+                print("Type error on selected_columns - using defaults for restricted user")
+            
+            # فیلتر کردن فقط ستون‌های مجاز
+            selected_columns = [col for col in selected_columns if col in allowed_columns]
+            if not selected_columns:
+                selected_columns = allowed_columns
+        
+        # اطمینان از حضور ستون actions
+        if 'actions' not in selected_columns:
+            selected_columns.append('actions')
+        
+        print(f"Final selected columns for restricted user: {selected_columns}")
     else:
+        # دریافت ستون های انتخاب شده از کوکی برای کاربران غیرمحدود
+        selected_columns = request.COOKIES.get('selected_columns', '')
+        
+        # For debugging
+        print(f"Cookie selected_columns for unrestricted user: '{selected_columns}'")
+        
+        if not selected_columns:
+            selected_columns = 'purchase_number,date,customer,invoice_id,sales_agent,weight,cargo,status,actions'
+            print("Using default columns for unrestricted user")
+        
+        # Make sure we have a string before splitting
+        if isinstance(selected_columns, str):
+            selected_columns = selected_columns.split(',')
+        else:
+            selected_columns = ['purchase_number', 'date', 'customer', 'invoice_id', 'sales_agent', 'weight', 'cargo', 'status', 'actions']
+            print("Type error on selected_columns - using defaults for unrestricted user")
+        
+        # اطمینان از حضور ستون actions
+        if 'actions' not in selected_columns:
+            selected_columns.append('actions')
+        
+        print(f"Final selected columns for unrestricted user: {selected_columns}")
+        
         # لیست همه ستون های ممکن با اطلاعات لازم برای سایر نقش‌ها
         all_columns = [
             {'id': 'purchase_number', 'name': 'شماره خرید', 'field': 'purchase_number'},
@@ -1066,3 +1093,22 @@ def get_purchase_aggregated_stats(request):
             'status': 'error', 
             'message': f'خطا در محاسبه آمار: {str(e)}'
         }, status=500)
+
+@require_POST
+@login_required
+@role_required('admin', 'logistics_manager', 'financial_manager')
+def clear_column_cache(request):
+    """
+    پاک کردن cache و کوکی‌های مربوط به ستون‌ها
+    """
+    try:
+        # ایجاد پاسخ
+        response = JsonResponse({'status': 'success', 'message': 'کوکی‌ها با موفقیت پاک شدند'})
+        
+        # حذف تمامی کوکی‌های مربوط به ستون‌ها
+        response.delete_cookie('selected_columns')
+        response.delete_cookie('purchase_list_column_order')
+        
+        return response
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

@@ -165,6 +165,35 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('initializeColumnManagement function not found');
         }
         
+        // اضافه کردن event listener برای دکمه پاک کردن cache
+        const clearCacheBtn = document.getElementById('clearCacheBtn');
+        if (clearCacheBtn) {
+            clearCacheBtn.addEventListener('click', function() {
+                if (confirm('آیا از پاک کردن تمام کوکی‌های ستون‌ها اطمینان دارید؟')) {
+                    fetch('{% url "clear_column_cache" %}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                            'Content-Type': 'application/json',
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert('کوکی‌ها با موفقیت پاک شدند. صفحه را تازه کنید.');
+                            location.reload();
+                        } else {
+                            alert('خطا در پاک کردن کوکی‌ها: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('خطا در پاک کردن کوکی‌ها');
+                    });
+                }
+            });
+        }
+        
         // راه‌اندازی pagination
         if (typeof TablePagination !== 'undefined') {
             window.tablePagination = new TablePagination({
@@ -194,6 +223,8 @@ document.addEventListener('DOMContentLoaded', function() {
         <i class="fas fa-columns me-2"></i> مدیریت ستون‌های جدول</button>
     <button id="resetColumnOrderBtn" class="btn btn-warning text-white shadow-sm ms-2">
         <i class="fas fa-undo me-2"></i> بازگشت به ترتیب اولیه</button>
+    <button id="clearCacheBtn" class="btn btn-danger text-white shadow-sm ms-2">
+        <i class="fas fa-trash me-2"></i> پاک کردن Cache</button>
     {% endif %}
     
     <!-- دکمه تاریخچه تغییرات -->
@@ -833,6 +864,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     </td>
                     {% elif column.id == 'cargo' %}
                     <td class="column-{{ column.id }}">{% if purchase.cargo %}{{ purchase.cargo }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'barbary' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.barbary %}{{ purchase.cargo.barbary.name }}{% else %}-{% endif %}</td>
                     {% elif column.id == 'importer' %}
                     <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.vared_konandeh %}{{ purchase.cargo.vared_konandeh.name }}{% else %}-{% endif %}</td>
                     {% elif column.id == 'address' %}
@@ -1099,6 +1132,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="column-{{ column.id }}" data-unit="کیلوگرم">{{ purchase.order_weight|add_commas }}</td>
                     {% elif column.id == 'cargo' %}
                     <td class="column-{{ column.id }}">{% if purchase.cargo %}{{ purchase.cargo }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'barbary' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.barbary %}{{ purchase.cargo.barbary.name }}{% else %}-{% endif %}</td>
                     {% elif column.id == 'importer' %}
                     <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.vared_konandeh %}{{ purchase.cargo.vared_konandeh.name }}{% else %}-{% endif %}</td>
                     {% elif column.id == 'address' %}

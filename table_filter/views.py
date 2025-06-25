@@ -258,7 +258,7 @@ def get_editable_fields(model, table_type, selected_ids=None):
                 'priority_reason': 'دلیل اولویت',
                 'factor_code': 'فاکتور مبنا',
                 'unique_sales_agent': 'کارشناس فروش',
-                'unique_sales_agent_name': 'نام کارشناس فروش',
+                'unique_sales_agent_code': 'کد کارشناس فروش',
             }
             field_label = field_labels.get(field.name, getattr(field, 'verbose_name', field.name.replace('_', ' ').title()))
         elif model_name == 'CargoProduct':

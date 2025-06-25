@@ -58,7 +58,7 @@ class CustomerForm(forms.ModelForm):
     phone_number = forms.CharField(
         label=_("شماره تلفن اصلی"),
         max_length=20,
-        required=True,
+        required=False,  # به صورت پیش فرض غیرالزامی و در __init__ تنظیم می‌شود
         help_text=_("شماره تلفن اصلی مشتری")
     )
     product_preferences = forms.MultipleChoiceField(
@@ -80,6 +80,9 @@ class CustomerForm(forms.ModelForm):
         self.sales_agent = sales_agent
         
         if self.instance and self.instance.pk:
+            # برای مشتریان موجود، فیلد شماره تلفن الزامی نیست
+            self.fields['phone_number'].required = False
+            
             primary_phone = self.instance.phone_numbers.filter(is_primary=True).first()
             if primary_phone:
                 self.initial['phone_number'] = primary_phone.number
@@ -90,6 +93,9 @@ class CustomerForm(forms.ModelForm):
             self.initial['field_of_activity'] = self.instance.get_field_of_activity_list()
             self.initial['product_preferences'] = self.instance.get_product_preferences_list()
             self.initial['purchase_preferences'] = self.instance.get_purchase_preferences_list()
+        else:
+            # برای مشتریان جدید، فیلد شماره تلفن الزامی است
+            self.fields['phone_number'].required = True
                 
         self.fields['name'].required = True
 
@@ -104,30 +110,40 @@ class CustomerForm(forms.ModelForm):
     
     def clean_phone_number(self):
         phone_number = self.cleaned_data.get('phone_number')
-        if phone_number:
-            # Convert Persian digits to English digits if needed
-            persian_digits = "۰۱۲۳۴۵۶۷۸۹"
-            english_digits = "0123456789"
-            translation_table = str.maketrans(persian_digits, english_digits)
-            phone_number = phone_number.translate(translation_table)
+        
+        # اگر شماره تلفن خالی است
+        if not phone_number:
+            # برای مشتریان جدید، شماره الزامی است
+            if not (self.instance and self.instance.pk):
+                raise forms.ValidationError(_('شماره تلفن اصلی الزامی است.'))
+            # برای مشتریان موجود، شماره خالی مجاز است
+            return phone_number
+        
+        # اگر شماره وارد شده، آن را validate کن
+        # Convert Persian digits to English digits if needed
+        persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+        english_digits = "0123456789"
+        translation_table = str.maketrans(persian_digits, english_digits)
+        phone_number = phone_number.translate(translation_table)
+        
+        # Clean the number - keep only digits
+        phone_number = ''.join(c for c in phone_number if c.isdigit())
+        
+        # Handle formats with leading zero
+        if phone_number.startswith('0'):
+            phone_number = phone_number[1:]
+        
+        # Validate format - must be 10 digits and start with 9
+        if not phone_number.startswith('9'):
+            raise forms.ValidationError(
+                _('شماره تلفن باید با 9 شروع شود. مثال: 9123456789')
+            )
+        
+        if len(phone_number) != 10:
+            raise forms.ValidationError(
+                _('شماره تلفن باید 10 رقم باشد. مثال: 9123456789')
+            )
             
-            # Clean the number - keep only digits
-            phone_number = ''.join(c for c in phone_number if c.isdigit())
-            
-            # Handle formats with leading zero
-            if phone_number.startswith('0'):
-                phone_number = phone_number[1:]
-            
-            # Validate format - must be 10 digits and start with 9
-            if not phone_number.startswith('9'):
-                raise forms.ValidationError(
-                    _('شماره تلفن باید با 9 شروع شود. مثال: 9123456789')
-                )
-            
-            if len(phone_number) != 10:
-                raise forms.ValidationError(
-                    _('شماره تلفن باید 10 رقم باشد. مثال: 9123456789')
-                )
         return phone_number
 
     def clean_product_preferences(self):
@@ -168,6 +184,10 @@ class CustomerForm(forms.ModelForm):
                     f"این شماره تلفن قبلاً برای مشتری {existing_phone.customer.name} ثبت شده است."
                 )
             instance.phone_number = phone_number
+        # اگر شماره تلفن خالی است، آن را null بگذار
+        elif not phone_number and not (self.instance and self.instance.pk):
+            # برای مشتریان جدید که شماره ندارند، خطا بده
+            raise forms.ValidationError(_('شماره تلفن اصلی الزامی است.'))
         
         # اول مشتری را ذخیره می‌کنیم تا primary key داشته باشد
         instance.save()
@@ -177,7 +197,7 @@ class CustomerForm(forms.ModelForm):
         instance.product_preferences_list = self.cleaned_data['product_preferences']
         instance.purchase_preferences_list = self.cleaned_data['purchase_preferences']
         
-        # ایجاد شماره تلفن
+        # ایجاد شماره تلفن فقط اگر شماره وارد شده باشد
         if phone_number:
             if not existing_phone:
                 try:
@@ -437,10 +457,16 @@ def general_customer_CRUD_view(request):
                         customer_price=customer_price,
                         state='INITIATED'
                     )
+                    
+                    # تنظیم کارشناس فروش یکتا
+                    if sales_agent:
+                        new_purchase.unique_sales_agent = sales_agent
+                        new_purchase.unique_sales_agent_code = sales_agent.factor_code
+                    
                     new_purchase.full_clean()
                     new_purchase.save()
                     
-                    # اضافه کردن کارشناس فروش به خرید (بعد از ذخیره اولیه)
+                    # اضافه کردن کارشناس فروش به خرید (برای سازگاری با سیستم قدیمی)
                     if sales_agent:
                         new_purchase.sales_agent.add(sales_agent)
                     

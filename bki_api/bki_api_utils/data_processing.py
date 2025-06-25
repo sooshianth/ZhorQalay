@@ -413,7 +413,7 @@ def update_purchase(purchase, purchase_data):
                         }
                     )
                     purchase.unique_sales_agent = admin_sales_agent
-                    purchase.unique_sales_agent_name = admin_sales_agent.name
+                    purchase.unique_sales_agent_code = admin_sales_agent.factor_code
             except Exception as e:
                 print(f"خطا در تنظیم کارشناس فروش مدیریت برای خرید موجود: {str(e)}")
 
@@ -577,7 +577,7 @@ def create_purchase(purchase_data):
             'code_melli_tahvil': receiver_id,
             # تنظیم کارشناس فروش یکتا به مدیریت به صورت پیش‌فرض
             'unique_sales_agent': admin_sales_agent,
-            'unique_sales_agent_name': admin_sales_agent_name,
+            'unique_sales_agent_code': admin_sales_agent.factor_code if admin_sales_agent else None,
         }
         
         # تبدیل تاریخ جلالی به فرمت مناسب

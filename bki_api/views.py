@@ -440,13 +440,13 @@ def merge_purchases_view(request):
                 current_sales_agent = request.user.sales_agent
                 # تنظیم کارشناس فروش یکتا
                 api_purchase.unique_sales_agent = current_sales_agent
-                api_purchase.unique_sales_agent_name = current_sales_agent.name
+                api_purchase.unique_sales_agent_code = current_sales_agent.factor_code
             except:
                 # اگر کاربر فعلی کارشناس فروش نیست، از اولین کارشناس فروش موجود استفاده می‌کنیم
                 if sales_agents:
                     first_agent = sales_agents[0].sales_agent
                     api_purchase.unique_sales_agent = first_agent
-                    api_purchase.unique_sales_agent_name = first_agent.name
+                    api_purchase.unique_sales_agent_code = first_agent.factor_code
             
             # برای جلوگیری از مشکل UNIQUE constraint در invoice_id:
             # ابتدا invoice_id خرید API را به یک مقدار موقت تغییر می‌دهیم
@@ -477,8 +477,8 @@ def merge_purchases_view(request):
             # ثبت تغییرات در تاریخچه خرید
             from core.PurchaseModel import PurchaseHistory
             history_message = f"ادغام با خرید دستی شماره {agent_purchase_id} - مشتری: {customer.name if customer else 'نامعلوم'}"
-            if api_purchase.unique_sales_agent_name:
-                history_message += f" - کارشناس فروش: {api_purchase.unique_sales_agent_name}"
+            if api_purchase.unique_sales_agent:
+                history_message += f" - کارشناس فروش: {api_purchase.unique_sales_agent.name}"
             if api_purchase.bazaargah_customer:
                 history_message += f" - مشتری قبلی بازارگاه: {api_purchase.bazaargah_customer.name}"
             
