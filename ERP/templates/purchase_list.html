@@ -621,8 +621,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="column-{{ column.id }}">
                         {% if purchase.unique_sales_agent %}
                             {{ purchase.unique_sales_agent.name }}
-                        {% elif purchase.unique_sales_agent_name %}
-                            {{ purchase.unique_sales_agent_name }}
                         {% else %}
                             -
                         {% endif %}
@@ -890,8 +888,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="column-{{ column.id }}">
                         {% if purchase.unique_sales_agent %}
                             {{ purchase.unique_sales_agent.name }}
-                        {% elif purchase.unique_sales_agent_name %}
-                            {{ purchase.unique_sales_agent_name }}
                         {% else %}
                             -
                         {% endif %}

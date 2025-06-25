@@ -58,7 +58,7 @@ class Purchase(models.Model):
     buyer_name = models.CharField("نام خریدار", max_length=255, blank=True, null=True)
     tahvil_phone_number = models.CharField("شماره تلفن تحویل", max_length=15, blank=True, null=True)
     bazaargah_customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, verbose_name="مشتری بازارگاه", null=True, blank=True, related_name='bazaargah_purchases')
-    unique_sales_agent_name = models.CharField("کارشناس فروش", max_length=255, blank=True, null=True)
+    unique_sales_agent_code = models.CharField("کد کارشناس فروش", max_length=50, blank=True, null=True)
     unique_sales_agent = models.ForeignKey(SalesAgent, on_delete=models.SET_NULL, verbose_name="کارشناس فروش", null=True, blank=True, related_name='unique_sales_agent_purchases')
 
     send_cottage_sms = models.BooleanField('ارسال پیامک کوتاژ', default=True)
@@ -535,19 +535,15 @@ class Purchase(models.Model):
         
         # مکانیزم خودکار همگام‌سازی کارشناس فروش و نام
         try:
-            # حالت اول: نام موجود است اما آبجکت موجود نیست
-            if self.unique_sales_agent_name and not self.unique_sales_agent:
-                sales_agent = SalesAgent.objects.filter(name__iexact=self.unique_sales_agent_name.strip()).first()
+            
+            # حالت سوم: کد کارشناس فروش موجود است اما آبجکت موجود نیست
+            if self.unique_sales_agent_code:
+                sales_agent = SalesAgent.objects.filter(factor_code=self.unique_sales_agent_code).first()
                 if sales_agent:
                     self.unique_sales_agent = sales_agent
-                    print(f"✅ کارشناس فروش {sales_agent.name} برای خرید {self.pk or 'جدید'} تنظیم شد")
+                    print(f"✅ کارشناس فروش {sales_agent.name} با کد {sales_agent.factor_code} برای خرید {self.pk or 'جدید'} تنظیم شد")
                 else:
-                    print(f"⚠️ کارشناس فروش با نام '{self.unique_sales_agent_name}' یافت نشد")
-                    
-            # حالت دوم: آبجکت موجود است اما نام موجود نیست یا خالی است
-            elif self.unique_sales_agent and not self.unique_sales_agent_name:
-                self.unique_sales_agent_name = self.unique_sales_agent.name
-                print(f"✅ نام کارشناس فروش '{self.unique_sales_agent.name}' از آبجکت تنظیم شد")
+                    print(f"⚠️ کارشناس فروش با کد '{self.unique_sales_agent_code}' یافت نشد")
                 
         except Exception as e:
             print(f"❌ خطا در همگام‌سازی کارشناس فروش: {str(e)}")

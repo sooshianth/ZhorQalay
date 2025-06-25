@@ -60,7 +60,7 @@ def purchase_list(request):
         'id', 'created_at', 'updated_at', 'purchase_number', 'invoice_id', 
         'order_weight', 'delivered_weight', 'state', 'is_factored', 'is_urgent', 
         'is_canceled', 'is_archived', 'company_price', 'customer_price', 
-        'amount_paid', 'unique_sales_agent_name', 'factor_code'
+        'amount_paid', 'factor_code', 'unique_sales_agent'
     ]
     
     # فیلدهای customer و cargo
@@ -72,7 +72,7 @@ def purchase_list(request):
     # ایجاد QuerySet پایه بدون slice
     active_purchases = Purchase.objects.exclude(state='ARCHIVED').exclude(is_archived=True)\
         .only(*all_fields)\
-        .select_related('customer', 'cargo')\
+        .select_related('customer', 'cargo', 'unique_sales_agent')\
         .order_by('-created_at')
         
     # آرشیو را lazy load می‌کنیم (فقط count می‌گیریم)
@@ -465,7 +465,7 @@ def export_to_excel(request):
 
 def _export_regular_excel(purchase_ids, selected_columns):
     """پردازش معمولی برای تعداد کم خرید"""
-    purchases = Purchase.objects.filter(id__in=purchase_ids).select_related('customer', 'cargo').order_by('-created_at')
+    purchases = Purchase.objects.filter(id__in=purchase_ids).select_related('customer', 'cargo', 'unique_sales_agent').order_by('-created_at')
     
     print(f"Found {purchases.count()} purchases")
     
@@ -500,7 +500,7 @@ def _export_regular_excel(purchase_ids, selected_columns):
         'date': ('تاریخ', lambda p: p.created_at.strftime("%Y/%m/%d") if p.created_at else "-"),
         'customer': ('مشتری', lambda p: p.customer.name if p.customer else "نامشخص"),
         'invoice_id': ('کد درون سازمانی', lambda p: p.invoice_id or "تعیین نشده"),
-        'sales_agent': ('نماینده فروش', lambda p: p.unique_sales_agent_name if p.unique_sales_agent_name else (", ".join([agent.name for agent in p.customer.sales_agent.all()]) if p.customer and p.customer.sales_agent.exists() else "-")),
+        'sales_agent': ('نماینده فروش', lambda p: p.unique_sales_agent.name if p.unique_sales_agent else (", ".join([agent.name for agent in p.customer.sales_agent.all()]) if p.customer and p.customer.sales_agent.exists() else "-")),
         'purchase_number': ('شماره خرید', lambda p: p.purchase_number or "تعیین نشده"),
         'weight': ('وزن (کیلوگرم)', lambda p: f"{p.order_weight:,}" if p.order_weight else "0"),
         'cargo': ('کوتاژ', lambda p: p.cargo.cottage if p.cargo and hasattr(p.cargo, 'cottage') else "-"),
@@ -586,7 +586,7 @@ def _export_large_excel_stream(purchase_ids, selected_columns):
             'date': ('تاریخ', lambda p: p.created_at.strftime("%Y/%m/%d") if p.created_at else "-"),
             'customer': ('مشتری', lambda p: p.customer.name if p.customer else "نامشخص"),
             'invoice_id': ('کد درون سازمانی', lambda p: p.invoice_id or "تعیین نشده"),
-            'sales_agent': ('نماینده فروش', lambda p: p.unique_sales_agent_name or "-"),
+            'sales_agent': ('نماینده فروش', lambda p: p.unique_sales_agent.name if p.unique_sales_agent else "-"),
             'purchase_number': ('شماره خرید', lambda p: p.purchase_number or "تعیین نشده"),
             'weight': ('وزن (کیلوگرم)', lambda p: f"{p.order_weight:,}" if p.order_weight else "0"),
             'cargo': ('کوتاژ', lambda p: p.cargo.cottage if p.cargo and hasattr(p.cargo, 'cottage') else "-"),
@@ -617,12 +617,12 @@ def _export_large_excel_stream(purchase_ids, selected_columns):
             purchases = Purchase.objects.filter(
                 id__in=batch_ids
             ).select_related(
-                'customer', 'cargo'
+                'customer', 'cargo', 'unique_sales_agent'
             ).only(
                 'id', 'created_at', 'invoice_id', 'purchase_number', 'order_weight',
                 'state', 'company_price', 'customer_price', 'delivered_weight',
-                'amount_paid', 'updated_at', 'is_factored', 'unique_sales_agent_name',
-                'customer__name', 'cargo__cottage'
+                'amount_paid', 'updated_at', 'is_factored', 'unique_sales_agent',
+                'customer__name', 'cargo__cottage', 'unique_sales_agent__name'
             ).order_by('-created_at')
             
             for purchase in purchases:
