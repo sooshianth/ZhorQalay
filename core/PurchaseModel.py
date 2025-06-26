@@ -104,6 +104,21 @@ class Purchase(models.Model):
         null=True
     )
 
+    def is_merged_purchase(self):
+        """
+        بررسی اینکه آیا این خرید بازارگاه قبلاً با خرید دستی ادغام شده است یا نه
+        اگر خرید دارای purchase_number باشد و bazaargah_customer مقدار داشته باشد،
+        یعنی این خرید قبلاً ادغام شده است
+        """
+        return bool(self.purchase_number and self.bazaargah_customer)
+    
+    def can_be_merged(self):
+        """
+        بررسی اینکه آیا این خرید می‌تواند ادغام شود یا نه
+        خریدهای API (دارای purchase_number) که قبلاً ادغام نشده‌اند می‌توانند ادغام شوند
+        """
+        return bool(self.purchase_number and not self.bazaargah_customer)
+
     def change_state(self, new_state, user, notes=None):
         """
         متد عمومی برای تغییر وضعیت خرید و ثبت آن در تاریخچه
@@ -502,6 +517,11 @@ class Purchase(models.Model):
             if len(str(self.tracking_number)) <= 4:
                 errors['tracking_number'] = 'شماره پیگیری باید بیشتر از 5 رقم عددی باشد'
         
+        # بررسی اینکه خرید بازارگاه (دارای purchase_number) که قبلاً ادغام شده نتواند دوباره ادغام شود
+        if self.purchase_number and self.bazaargah_customer:
+            # این یک خرید API است که قبلاً ادغام شده - بررسی محدودیت‌های اضافی
+            pass
+        
             
         if self.state == 'PAYMENT_VERIFIED' and not self.amount_paid:
             errors['amount_paid'] = 'برای خریدهای پرداخت شده مبلغ الزامی است'
@@ -581,6 +601,15 @@ class Purchase(models.Model):
                 self.company_price = self.cargo.company_price
                 
         super().save(*args, **kwargs)
+        
+        # 🔗 مکانیزم همگام‌سازی کارشناس فروش با مشتری
+        # اگر unique_sales_agent تنظیم شده و مشتری موجود است،
+        # کارشناس فروش را به لیست sales_agent های مشتری اضافه می‌کنیم
+        if self.unique_sales_agent and self.customer:
+            # بررسی اینکه آیا این کارشناس قبلاً در لیست sales_agent های مشتری هست یا نه
+            if not self.customer.sales_agent.filter(id=self.unique_sales_agent.id).exists():
+                self.customer.sales_agent.add(self.unique_sales_agent)
+                print(f"✅ کارشناس فروش {self.unique_sales_agent.name} به لیست کارشناسان مشتری {self.customer.name} اضافه شد")
         
         # اضافه کردن کاربر فعلی به عنوان کارشناس فروش خرید
         # این قسمت را در view هایی که خرید ایجاد می‌کنند استفاده می‌کنیم

@@ -414,12 +414,19 @@ def merge_purchases_view(request):
                 'error': f'خرید {api_purchase_id} فاقد شماره خرید بازارگاه است و نمی‌تواند به عنوان خرید API ادغام شود'
             }, status=400)
         
-        # بررسی محدودیت زمانی 24 ساعت
-        time_threshold = timezone.now() - datetime.timedelta(hours=24)
+        # بررسی اینکه آیا خرید API قبلاً ادغام شده است یا نه
+        if api_purchase.is_merged_purchase():
+            return JsonResponse({
+                'success': False,
+                'error': f'خرید بازارگاه {api_purchase_id} قبلاً با خرید دیگری ادغام شده است و امکان ادغام مجدد وجود ندارد'
+            }, status=400)
+        
+        # بررسی محدودیت زمانی 49 ساعت
+        time_threshold = timezone.now() - datetime.timedelta(hours=49)
         if api_purchase.created_at < time_threshold:
             return JsonResponse({
                 'success': False,
-                'error': 'امکان ادغام خرید‌های بازارگاه با عمر بیشتر از 24 ساعت وجود ندارد'
+                'error': 'امکان ادغام خرید‌های بازارگاه با عمر بیشتر از 49 ساعت وجود ندارد'
             }, status=400)
         
         # ادغام خریدها با استفاده از تراکنش برای اطمینان از یکپارچگی داده‌ها
@@ -430,6 +437,8 @@ def merge_purchases_view(request):
             sales_agents = list(agent_purchase.purchase_sales_agents.all())
             
             # ذخیره مشتری قبلی خرید API در bazaargah_customer
+            # این فیلد همچنین به عنوان نشانگر ادغام شدن خرید استفاده می‌شود
+            # اگر مقدار داشته باشد، یعنی خرید قبلاً ادغام شده و نمی‌تواند دوباره ادغام شود
             api_purchase.bazaargah_customer = api_purchase.customer
             
             # تنظیم مشتری و شناسه فاکتور در خرید API

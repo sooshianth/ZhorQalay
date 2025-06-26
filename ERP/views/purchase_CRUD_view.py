@@ -1192,6 +1192,11 @@ def link_bazaargah_purchase(request, purchase_id):
         messages.error(request, f'خریدی با شماره {purchase_number} در سیستم یافت نشد. ممکن است هنوز توسط API بازارگاه دریافت نشده باشد.')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
     
+    # بررسی اینکه آیا خرید API قبلاً ادغام شده است یا نه
+    if api_purchase.is_merged_purchase():
+        messages.error(request, f'خرید با شماره {purchase_number} قبلاً با خرید دیگری ادغام شده است و امکان ادغام مجدد وجود ندارد.')
+        return redirect('purchase_CRUD', purchase_id=purchase_id)
+    
     # بررسی محدودیت زمانی 24 ساعت
     time_threshold = timezone.now() - datetime.timedelta(hours=24)
     if api_purchase.created_at < time_threshold:
