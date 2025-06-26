@@ -1440,7 +1440,141 @@ document.addEventListener('DOMContentLoaded', function() {
 {% enable_bulk_edit %}
 {% enable_edit_history "core" "Purchase" %}
 
+<!-- اضافه کردن script کامل برای مدیریت دکمه خروجی اکسل -->
+<script>
+// تعریف global تابع updateExportButton
+window.updateExportButton = function() {
+    const exportBtn = document.getElementById('exportBtn');
+    if (!exportBtn) {
+        console.log('❌ دکمه خروجی اکسل یافت نشد');
+        return;
+    }
+    
+    const selectedRows = document.querySelectorAll('.row-checkbox:checked');
+    const selectedCount = selectedRows.length;
+    
+    console.log(`📊 تعداد خریدهای انتخاب شده: ${selectedCount}`);
+    
+    // تنظیم وضعیت دکمه
+    exportBtn.disabled = selectedCount === 0;
+    
+    // تغییر متن دکمه
+    if (selectedCount > 0) {
+        exportBtn.innerHTML = `<i class="fas fa-file-excel me-2"></i>خروجی اکسل (${selectedCount} مورد)`;
+        exportBtn.classList.remove('btn-secondary');
+        exportBtn.classList.add('btn-success');
+    } else {
+        exportBtn.innerHTML = '<i class="fas fa-file-excel me-2"></i>خروجی اکسل';
+        exportBtn.classList.remove('btn-success');
+        exportBtn.classList.add('btn-secondary');
+    }
+    
+    console.log(`🔘 وضعیت دکمه - disabled: ${exportBtn.disabled}, text: ${exportBtn.textContent}`);
+};
 
+// تابع getCookie برای استفاده در export
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔍 شروع راه‌اندازی دکمه خروجی اکسل...');
+    
+    // منتظر بارگیری کامل صفحه باشیم
+    setTimeout(function() {
+        const exportBtn = document.getElementById('exportBtn');
+        if (exportBtn) {
+            console.log('✅ دکمه خروجی اکسل یافت شد');
+            
+            // اضافه کردن event listener برای کلیک
+            exportBtn.addEventListener('click', function() {
+                console.log('🖱️ کلیک روی دکمه خروجی اکسل');
+                
+                const selectedRows = document.querySelectorAll('.row-checkbox:checked');
+                
+                if (selectedRows.length === 0) {
+                    alert('هیچ خریدی انتخاب نشده است!');
+                    return;
+                }
+                
+                // جمع‌آوری آیدی‌های خریدهای انتخاب شده
+                const selectedIds = Array.from(selectedRows).map(checkbox => checkbox.getAttribute('data-id'));
+                
+                // دریافت ستون‌های انتخاب شده از کوکی
+                const cookieColumns = getCookie('selected_columns');
+                const columnsParam = cookieColumns || 'date,customer,invoice_id,sales_agent,purchase_number,weight,cargo,status';
+                
+                console.log('📤 خروجی خریدها:', selectedIds);
+                console.log('📋 ستون‌ها:', columnsParam);
+                
+                // ایجاد URL برای خروجی اکسل
+                const exportUrl = window.PurchaseListConfig?.exportPurchasesUrl || '/erp/purchases/export/';
+                const params = new URLSearchParams();
+                params.append('ids', selectedIds.join(','));
+                params.append('columns', columnsParam);
+                
+                // باز کردن URL در پنجره جدید یا دانلود مستقیم
+                const fullUrl = `${exportUrl}?${params.toString()}`;
+                
+                // نمایش پیام بارگیری
+                const originalText = exportBtn.innerHTML;
+                exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>در حال ایجاد فایل...';
+                exportBtn.disabled = true;
+                
+                // ایجاد لینک مخفی برای دانلود
+                const downloadLink = document.createElement('a');
+                downloadLink.href = fullUrl;
+                downloadLink.style.display = 'none';
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                
+                // بازگردانی وضعیت دکمه بعد از 3 ثانیه
+                setTimeout(() => {
+                    exportBtn.innerHTML = originalText;
+                    exportBtn.disabled = false;
+                    window.updateExportButton(); // بروزرسانی دکمه براساس انتخاب‌ها
+                }, 3000);
+            });
+            
+            // فراخوانی اولیه برای تنظیم وضعیت دکمه
+            window.updateExportButton();
+        } else {
+            console.log('❌ دکمه خروجی اکسل یافت نشد!');
+        }
+        
+        // اضافه کردن event listener برای چک‌باکس‌ها
+        document.addEventListener('change', function(e) {
+            if (e.target && e.target.classList.contains('row-checkbox')) {
+                console.log('🔄 تغییر در چک‌باکس ردیف');
+                window.updateExportButton();
+            }
+            
+            // مدیریت چک‌باکس‌های انتخاب همه
+            if (e.target && (e.target.classList.contains('select-all-checkbox') ||
+                            e.target.classList.contains('select-all-checkbox-pending') ||
+                            e.target.classList.contains('select-all-checkbox-archived'))) {
+                console.log('🔄 تغییر در چک‌باکس انتخاب همه');
+                setTimeout(window.updateExportButton, 100);
+            }
+        });
+        
+        console.log('✅ راه‌اندازی دکمه خروجی اکسل کامل شد');
+        
+    }, 1000);
+});
+</script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>

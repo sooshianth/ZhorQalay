@@ -472,34 +472,128 @@ function initializeQuickSearch() {
     }
 }
 
+// تابع بروزرسانی وضعیت دکمه خروجی اکسل (global)
+function updateExportButton() {
+    const exportBtn = document.getElementById('exportBtn');
+    if (!exportBtn) return;
+    
+    const selectedRows = document.querySelectorAll('.row-checkbox:checked');
+    const selectedCount = selectedRows.length;
+    
+    console.log(`📊 تعداد خریدهای انتخاب شده: ${selectedCount}`);
+    
+    // تنظیم وضعیت دکمه
+    exportBtn.disabled = selectedCount === 0;
+    
+    // تغییر متن دکمه
+    if (selectedCount > 0) {
+        exportBtn.innerHTML = `<i class="fas fa-file-excel me-2"></i>خروجی اکسل (${selectedCount} مورد)`;
+        exportBtn.classList.remove('btn-secondary');
+        exportBtn.classList.add('btn-success');
+    } else {
+        exportBtn.innerHTML = '<i class="fas fa-file-excel me-2"></i>خروجی اکسل';
+        exportBtn.classList.remove('btn-success');
+        exportBtn.classList.add('btn-secondary');
+    }
+    
+    console.log(`🔘 وضعیت دکمه - disabled: ${exportBtn.disabled}, text: ${exportBtn.textContent}`);
+}
+
 // راه‌اندازی دکمه خروجی اکسل
 function initializeExportButton() {
     const exportBtn = document.getElementById('exportBtn');
-    if (exportBtn) {
-        // مدیریت فعال/غیرفعال بودن دکمه بر اساس انتخاب‌ها
-        const updateExportButton = function() {
-            const selectedRows = document.querySelectorAll('.row-checkbox:checked');
-            exportBtn.disabled = selectedRows.length === 0;
-            
-            if (selectedRows.length > 0) {
-                exportBtn.innerHTML = `<i class="fas fa-file-excel me-2"></i>خروجی اکسل (${selectedRows.length} مورد)`;
-            } else {
-                exportBtn.innerHTML = '<i class="fas fa-file-excel me-2"></i>خروجی اکسل';
-            }
-        };
-        
-        // بروزرسانی اولیه
-        updateExportButton();
-        
-        // Listener برای تغییرات انتخاب
-        document.addEventListener('change', function(e) {
-            if (e.target.classList.contains('row-checkbox') || 
-                e.target.classList.contains('select-all-checkbox') ||
-                e.target.classList.contains('select-all-checkbox-archived')) {
-                updateExportButton();
-            }
-        });
+    if (!exportBtn) {
+        console.log('❌ دکمه خروجی اکسل یافت نشد!');
+        return;
     }
+    
+    console.log('✅ شروع راه‌اندازی دکمه خروجی اکسل');
+    
+    // اضافه کردن event listener برای کلیک روی دکمه
+    exportBtn.addEventListener('click', function() {
+        console.log('🖱️ کلیک روی دکمه خروجی اکسل');
+        
+        const selectedRows = document.querySelectorAll('.row-checkbox:checked');
+        
+        if (selectedRows.length === 0) {
+            alert('هیچ خریدی انتخاب نشده است!');
+            return;
+        }
+        
+        // جمع‌آوری آیدی‌های خریدهای انتخاب شده
+        const selectedIds = Array.from(selectedRows).map(checkbox => checkbox.getAttribute('data-id'));
+        
+        // دریافت ستون‌های انتخاب شده
+        const selectedColumns = [];
+        document.querySelectorAll('input[name="columns[]"]:checked').forEach(checkbox => {
+            selectedColumns.push(checkbox.value);
+        });
+        
+        // اگر ستونی انتخاب نشده، از کوکی استفاده کن
+        let columnsParam = '';
+        if (selectedColumns.length > 0) {
+            columnsParam = selectedColumns.join(',');
+        } else {
+            // استفاده از کوکی selected_columns
+            const cookieColumns = getCookie('selected_columns');
+            if (cookieColumns) {
+                columnsParam = cookieColumns;
+            } else {
+                // ستون‌های پیش‌فرض
+                columnsParam = 'date,customer,invoice_id,sales_agent,purchase_number,weight,cargo,status';
+            }
+        }
+        
+        console.log('Exporting purchases:', selectedIds);
+        console.log('With columns:', columnsParam);
+        
+        // ایجاد URL برای خروجی اکسل
+        const exportUrl = window.PurchaseListConfig?.exportPurchasesUrl || '/erp/purchases/export/';
+        const params = new URLSearchParams();
+        params.append('ids', selectedIds.join(','));
+        params.append('columns', columnsParam);
+        
+        // باز کردن URL در پنجره جدید یا دانلود مستقیم
+        const fullUrl = `${exportUrl}?${params.toString()}`;
+        
+        // نمایش پیام بارگیری
+        const originalText = exportBtn.innerHTML;
+        exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>در حال ایجاد فایل...';
+        exportBtn.disabled = true;
+        
+        // ایجاد لینک مخفی برای دانلود
+        const downloadLink = document.createElement('a');
+        downloadLink.href = fullUrl;
+        downloadLink.style.display = 'none';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+        // بازگردانی وضعیت دکمه بعد از 3 ثانیه
+        setTimeout(() => {
+            exportBtn.innerHTML = originalText;
+            exportBtn.disabled = false;
+            updateExportButton(); // بروزرسانی دکمه براساس انتخاب‌ها
+        }, 3000);
+    });
+    
+    // بروزرسانی اولیه
+    updateExportButton();
+    
+    // اضافه کردن visual feedback برای دکمه
+    exportBtn.addEventListener('mouseenter', function() {
+        if (!this.disabled) {
+            this.style.transform = 'translateY(-2px)';
+            this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+        }
+    });
+    
+    exportBtn.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = '';
+    });
+    
+    console.log('✅ راه‌اندازی دکمه خروجی اکسل کامل شد');
 }
 
 // مدیریت toggle آرشیو
@@ -646,7 +740,7 @@ function initializeRowSelection() {
     // Event listener مستقیم برای چک‌باکس‌ها
     document.addEventListener('change', function(e) {
         if (e.target && e.target.classList.contains('row-checkbox')) {
-            console.log('Direct event listener triggered');
+            console.log('🔄 Row checkbox changed');
             
             const checkbox = e.target;
             const row = checkbox.closest('tr');
@@ -656,12 +750,118 @@ function initializeRowSelection() {
                     row.classList.add('selected-row');
                     row.style.backgroundColor = '#e3f2fd !important';
                     row.style.borderLeft = '4px solid #2196f3';
-                    console.log('Row selected via direct listener');
+                    console.log('✅ Row selected');
                 } else {
                     row.classList.remove('selected-row');
                     row.style.backgroundColor = '';
                     row.style.borderLeft = '';
-                    console.log('Row deselected via direct listener');
+                    console.log('❌ Row deselected');
+                }
+            }
+            
+            // بروزرسانی دکمه خروجی اکسل
+            console.log('📤 Calling updateExportButton...');
+            try {
+                if (typeof updateExportButton === 'function') {
+                    updateExportButton();
+                } else {
+                    console.error('❌ updateExportButton is not a function!');
+                }
+            } catch (error) {
+                console.error('❌ Error calling updateExportButton:', error);
+            }
+        }
+        
+        // بروزرسانی دکمه خروجی اکسل برای چک‌باکس‌های انتخاب همه
+        if (e.target && (e.target.classList.contains('select-all-checkbox') ||
+                        e.target.classList.contains('select-all-checkbox-pending') ||
+                        e.target.classList.contains('select-all-checkbox-archived'))) {
+            console.log('🔄 Select-all checkbox changed - updating export button');
+            setTimeout(() => {
+                try {
+                    if (typeof updateExportButton === 'function') {
+                        updateExportButton();
+                    } else {
+                        console.error('❌ updateExportButton is not a function!');
+                    }
+                } catch (error) {
+                    console.error('❌ Error calling updateExportButton:', error);
+                }
+            }, 100);
+        }
+    });
+}
+
+// تابع مدیریت چک‌باکس‌های انتخاب همه
+function initializeSelectAllCheckboxes() {
+    // مدیریت چک‌باکس انتخاب همه برای خریدهای فعال
+    const selectAllActive = document.querySelector('.select-all-checkbox');
+    if (selectAllActive) {
+        selectAllActive.addEventListener('change', function() {
+            const activeTable = document.getElementById('activePurchasesTable');
+            if (activeTable) {
+                const rowCheckboxes = activeTable.querySelectorAll('.row-checkbox');
+                rowCheckboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                    // فراخوانی event change برای هر checkbox
+                    checkbox.dispatchEvent(new Event('change'));
+                });
+            }
+        });
+    }
+
+    // مدیریت چک‌باکس انتخاب همه برای خریدهای در انتظار پرداخت
+    const selectAllPending = document.querySelector('.select-all-checkbox-pending');
+    if (selectAllPending) {
+        selectAllPending.addEventListener('change', function() {
+            const pendingTable = document.getElementById('pendingPurchasesTable');
+            if (pendingTable) {
+                const rowCheckboxes = pendingTable.querySelectorAll('.row-checkbox');
+                rowCheckboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                    // فراخوانی event change برای هر checkbox
+                    checkbox.dispatchEvent(new Event('change'));
+                });
+            }
+        });
+    }
+
+    // مدیریت چک‌باکس انتخاب همه برای خریدهای آرشیو شده
+    const selectAllArchived = document.querySelector('.select-all-checkbox-archived');
+    if (selectAllArchived) {
+        selectAllArchived.addEventListener('change', function() {
+            const archivedTable = document.getElementById('archivedPurchasesTable');
+            if (archivedTable) {
+                const rowCheckboxes = archivedTable.querySelectorAll('.row-checkbox');
+                rowCheckboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                    // فراخوانی event change برای هر checkbox
+                    checkbox.dispatchEvent(new Event('change'));
+                });
+            }
+        });
+    }
+
+    // بروزرسانی وضعیت چک‌باکس‌های انتخاب همه بر اساس انتخاب ردیف‌ها
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.classList.contains('row-checkbox')) {
+            const table = e.target.closest('table');
+            if (table) {
+                const selectAllCheckbox = table.querySelector('.select-all-checkbox, .select-all-checkbox-pending, .select-all-checkbox-archived');
+                if (selectAllCheckbox) {
+                    const allCheckboxes = table.querySelectorAll('.row-checkbox');
+                    const checkedCheckboxes = table.querySelectorAll('.row-checkbox:checked');
+                    
+                    if (checkedCheckboxes.length === 0) {
+                        selectAllCheckbox.checked = false;
+                        selectAllCheckbox.indeterminate = false;
+                    } else if (checkedCheckboxes.length === allCheckboxes.length) {
+                        selectAllCheckbox.checked = true;
+                        selectAllCheckbox.indeterminate = false;
+                    } else {
+                        selectAllCheckbox.checked = false;
+                        selectAllCheckbox.indeterminate = true;
+                    }
                 }
             }
         }
@@ -674,6 +874,18 @@ function initializePurchaseListPage() {
     
     // اضافه کردن واحدها به هدرهای جدول
     addUnitsToHeaders();
+    
+    // راه‌اندازی دکمه خروجی اکسل
+    initializeExportButton();
+    
+    // راه‌اندازی انتخاب سطرها
+    initializeRowSelection();
+    
+    // راه‌اندازی چک‌باکس‌های انتخاب همه
+    initializeSelectAllCheckboxes();
+    
+    // راه‌اندازی تاریخچه تغییرات
+    initializeEditHistory();
     
     // انتظار کوتاه برای اطمینان از بارگیری table filter
     setTimeout(() => {

@@ -528,7 +528,11 @@ def export_to_excel(request):
 
 def _export_regular_excel(purchase_ids, selected_columns):
     """پردازش معمولی برای تعداد کم خرید"""
-    purchases = Purchase.objects.filter(id__in=purchase_ids).select_related('customer', 'cargo', 'unique_sales_agent').order_by('-created_at')
+    purchases = Purchase.objects.filter(id__in=purchase_ids).select_related(
+        'customer', 'cargo', 'unique_sales_agent'
+    ).prefetch_related(
+        'shenase_takhsis_set', 'cargo__barbary', 'cargo__vared_konandeh', 'customer__sales_agent'
+    ).order_by('-created_at')
     
     print(f"Found {purchases.count()} purchases")
     
@@ -558,23 +562,48 @@ def _export_regular_excel(purchase_ids, selected_columns):
         bottom=Side(style='thin')
     )
     
-    # مپینگ ستون‌ها به فیلدهای مدل با بهبود مدیریت خطا
+    # مپینگ کامل ستون‌ها به فیلدهای مدل - پشتیبانی از همه فیلدها
     column_mapping = {
+        'purchase_number': ('شماره خرید', lambda p: p.purchase_number or "تعیین نشده"),
         'date': ('تاریخ', lambda p: p.created_at.strftime("%Y/%m/%d") if p.created_at else "-"),
-        'customer': ('مشتری', lambda p: p.customer.name if p.customer else "نامشخص"),
+        'customer': ('نام مشتری', lambda p: p.customer.name if p.customer else "نامشخص"),
         'invoice_id': ('کد درون سازمانی', lambda p: p.invoice_id or "تعیین نشده"),
         'sales_agent': ('نماینده فروش', lambda p: p.unique_sales_agent.name if p.unique_sales_agent else (", ".join([agent.name for agent in p.customer.sales_agent.all()]) if p.customer and p.customer.sales_agent.exists() else "-")),
-        'purchase_number': ('شماره خرید', lambda p: p.purchase_number or "تعیین نشده"),
         'weight': ('وزن (کیلوگرم)', lambda p: f"{p.order_weight:,}" if p.order_weight else "0"),
         'cargo': ('کوتاژ', lambda p: p.cargo.cottage if p.cargo and hasattr(p.cargo, 'cottage') else "-"),
-        'importer': ('واردکننده', lambda p: p.cargo.vared_konandeh.name if p.cargo and p.cargo.vared_konandeh else "-"),
+        'importer': ('واردکننده', lambda p: p.cargo.vared_konandeh.name if p.cargo and hasattr(p.cargo, 'vared_konandeh') and p.cargo.vared_konandeh else "-"),
         'status': ('وضعیت', lambda p: dict(Purchase.STATUS_CHOICES).get(p.state, p.state) if p.state else "-"),
+        'address': ('آدرس', lambda p: p.address or "-"),
+        'description': ('توضیحات', lambda p: p.description or "-"),
+        'factor_code': ('فاکتور مبنا', lambda p: "بله" if p.factor_code else "خیر"),
+        'tracking_number': ('شماره پیگیری', lambda p: p.tracking_number or "-"),
+        'shenase_takhsis': ('شناسه‌های تخصیص', lambda p: ", ".join([st.code for st in p.shenase_takhsis_set.all()]) if hasattr(p, 'shenase_takhsis_set') and p.shenase_takhsis_set.exists() else "-"),
+        'code_melli_tahvil': ('کد ملی تحویل', lambda p: p.code_melli_tahvil or "-"),
+        'bazaargah_phone_number': ('شماره تلفن بازارگاه', lambda p: p.bazaargah_phone_number or "-"),
+        'buyer_name': ('نام خریدار', lambda p: p.buyer_name or "-"),
+        'tahvil_phone_number': ('شماره تلفن تحویل', lambda p: p.tahvil_phone_number or "-"),
+        'send_cottage_sms': ('ارسال پیامک کوتاژ', lambda p: "بله" if p.send_cottage_sms else "خیر"),
+        'total_weight': ('وزن کل (کیلوگرم)', lambda p: f"{p.total_weight:,}" if p.total_weight else "0"),
+        'delivered_weight': ('وزن بارنامه شده (کیلوگرم)', lambda p: f"{p.delivered_weight:,}" if p.delivered_weight else "0"),
+        'type': ('نوع خرید', lambda p: "بازارگاه" if p.type == "bazaargah" else "خارج از بازارگاه" if p.type == "non_bazaargah" else p.type or "-"),
+        'payment_method': ('شیوه پرداخت', lambda p: p.payment_method or "-"),
+        'updated_at': ('تاریخ بروزرسانی', lambda p: p.updated_at.strftime("%Y/%m/%d") if p.updated_at else "-"),
+        'is_weight_costed': ('کسر از وزن موجود', lambda p: "بله" if p.is_weight_costed else "خیر"),
+        'is_ap_af': ('اتوکامپلیت شده', lambda p: "بله" if p.is_ap_af else "خیر"),
+        'extelaf_type': ('نوع اختلاف', lambda p: p.extelaf_type or "-"),
+        'extelaf_weight': ('وزن اختلاف (کیلوگرم)', lambda p: f"{p.extelaf_weight:,}" if p.extelaf_weight else "0"),
+        'extelaf_amount': ('مبلغ اختلاف (ریال)', lambda p: f"{p.extelaf_amount:,}" if p.extelaf_amount else "0"),
+        'is_urgent': ('فوری', lambda p: "بله" if p.is_urgent else "خیر"),
+        'is_canceled': ('لغو شده', lambda p: "بله" if p.is_canceled else "خیر"),
+        'is_archived': ('آرشیو شده', lambda p: "بله" if p.is_archived else "خیر"),
+        'is_fully_tasvied': ('تسویه کامل', lambda p: "بله" if p.is_fully_tasvied else "خیر"),
+        'is_factored': ('ثبت فاکتور', lambda p: "بله" if p.is_factored else "خیر"),
+        'priority': ('اولویت', lambda p: dict(Purchase.PRIORITY_CHOICES).get(p.priority, p.priority) if p.priority else "-"),
+        'priority_reason': ('دلیل اولویت', lambda p: p.priority_reason or "-"),
+        'barbary': ('نام باربری', lambda p: p.cargo.barbary.name if p.cargo and hasattr(p.cargo, 'barbary') and p.cargo.barbary else "-"),
         'company_price': ('فی خرید (ریال)', lambda p: f"{p.company_price:,}" if p.company_price else "0"),
         'customer_price': ('فی فروش (ریال)', lambda p: f"{p.customer_price:,}" if p.customer_price else "0"),
-        'delivered_weight': ('وزن بارنامه شده (کیلوگرم)', lambda p: f"{p.delivered_weight:,}" if p.delivered_weight else "0"),
         'amount_paid': ('مبلغ پرداختی (ریال)', lambda p: f"{p.amount_paid:,}" if p.amount_paid else "0"),
-        'updated_at': ('تاریخ بروزرسانی', lambda p: p.updated_at.strftime("%Y/%m/%d") if p.updated_at else "-"),
-        'is_factored': ('ثبت فاکتور', lambda p: "بله" if p.is_factored else "خیر"),
     }
     
     # فقط ستون‌های انتخاب شده را اضافه می‌کنیم
@@ -644,22 +673,48 @@ def _export_large_excel_stream(purchase_ids, selected_columns):
         ws = wb.create_sheet()
         ws.title = "لیست خریدها"
         
-        # مپینگ ستون‌ها - نسخه ساده شده برای عملکرد بهتر
+        # مپینگ کامل ستون‌ها - نسخه کامل برای پشتیبانی از همه فیلدها
         column_mapping = {
+            'purchase_number': ('شماره خرید', lambda p: p.purchase_number or "تعیین نشده"),
             'date': ('تاریخ', lambda p: p.created_at.strftime("%Y/%m/%d") if p.created_at else "-"),
-            'customer': ('مشتری', lambda p: p.customer.name if p.customer else "نامشخص"),
+            'customer': ('نام مشتری', lambda p: p.customer.name if p.customer else "نامشخص"),
             'invoice_id': ('کد درون سازمانی', lambda p: p.invoice_id or "تعیین نشده"),
             'sales_agent': ('نماینده فروش', lambda p: p.unique_sales_agent.name if p.unique_sales_agent else "-"),
-            'purchase_number': ('شماره خرید', lambda p: p.purchase_number or "تعیین نشده"),
             'weight': ('وزن (کیلوگرم)', lambda p: f"{p.order_weight:,}" if p.order_weight else "0"),
             'cargo': ('کوتاژ', lambda p: p.cargo.cottage if p.cargo and hasattr(p.cargo, 'cottage') else "-"),
+            'importer': ('واردکننده', lambda p: p.cargo.vared_konandeh.name if p.cargo and hasattr(p.cargo, 'vared_konandeh') and p.cargo.vared_konandeh else "-"),
             'status': ('وضعیت', lambda p: dict(Purchase.STATUS_CHOICES).get(p.state, p.state) if p.state else "-"),
+            'address': ('آدرس', lambda p: p.address or "-"),
+            'description': ('توضیحات', lambda p: p.description or "-"),
+            'factor_code': ('فاکتور مبنا', lambda p: "بله" if p.factor_code else "خیر"),
+            'tracking_number': ('شماره پیگیری', lambda p: p.tracking_number or "-"),
+            'shenase_takhsis': ('شناسه‌های تخصیص', lambda p: p.shenase_takhsis if hasattr(p, 'shenase_takhsis') and p.shenase_takhsis else "-"),
+            'code_melli_tahvil': ('کد ملی تحویل', lambda p: p.code_melli_tahvil or "-"),
+            'bazaargah_phone_number': ('شماره تلفن بازارگاه', lambda p: p.bazaargah_phone_number or "-"),
+            'buyer_name': ('نام خریدار', lambda p: p.buyer_name or "-"),
+            'tahvil_phone_number': ('شماره تلفن تحویل', lambda p: p.tahvil_phone_number or "-"),
+            'send_cottage_sms': ('ارسال پیامک کوتاژ', lambda p: "بله" if p.send_cottage_sms else "خیر"),
+            'total_weight': ('وزن کل (کیلوگرم)', lambda p: f"{p.total_weight:,}" if p.total_weight else "0"),
+            'delivered_weight': ('وزن بارنامه شده (کیلوگرم)', lambda p: f"{p.delivered_weight:,}" if p.delivered_weight else "0"),
+            'type': ('نوع خرید', lambda p: "بازارگاه" if p.type == "bazaargah" else "خارج از بازارگاه" if p.type == "non_bazaargah" else p.type or "-"),
+            'payment_method': ('شیوه پرداخت', lambda p: p.payment_method or "-"),
+            'updated_at': ('تاریخ بروزرسانی', lambda p: p.updated_at.strftime("%Y/%m/%d") if p.updated_at else "-"),
+            'is_weight_costed': ('کسر از وزن موجود', lambda p: "بله" if p.is_weight_costed else "خیر"),
+            'is_ap_af': ('اتوکامپلیت شده', lambda p: "بله" if p.is_ap_af else "خیر"),
+            'extelaf_type': ('نوع اختلاف', lambda p: p.extelaf_type or "-"),
+            'extelaf_weight': ('وزن اختلاف (کیلوگرم)', lambda p: f"{p.extelaf_weight:,}" if p.extelaf_weight else "0"),
+            'extelaf_amount': ('مبلغ اختلاف (ریال)', lambda p: f"{p.extelaf_amount:,}" if p.extelaf_amount else "0"),
+            'is_urgent': ('فوری', lambda p: "بله" if p.is_urgent else "خیر"),
+            'is_canceled': ('لغو شده', lambda p: "بله" if p.is_canceled else "خیر"),
+            'is_archived': ('آرشیو شده', lambda p: "بله" if p.is_archived else "خیر"),
+            'is_fully_tasvied': ('تسویه کامل', lambda p: "بله" if p.is_fully_tasvied else "خیر"),
+            'is_factored': ('ثبت فاکتور', lambda p: "بله" if p.is_factored else "خیر"),
+            'priority': ('اولویت', lambda p: dict(Purchase.PRIORITY_CHOICES).get(p.priority, p.priority) if p.priority else "-"),
+            'priority_reason': ('دلیل اولویت', lambda p: p.priority_reason or "-"),
+            'barbary': ('نام باربری', lambda p: p.cargo.barbary.name if p.cargo and hasattr(p.cargo, 'barbary') and p.cargo.barbary else "-"),
             'company_price': ('فی خرید (ریال)', lambda p: f"{p.company_price:,}" if p.company_price else "0"),
             'customer_price': ('فی فروش (ریال)', lambda p: f"{p.customer_price:,}" if p.customer_price else "0"),
-            'delivered_weight': ('وزن بارنامه شده (کیلوگرم)', lambda p: f"{p.delivered_weight:,}" if p.delivered_weight else "0"),
             'amount_paid': ('مبلغ پرداختی (ریال)', lambda p: f"{p.amount_paid:,}" if p.amount_paid else "0"),
-            'updated_at': ('تاریخ بروزرسانی', lambda p: p.updated_at.strftime("%Y/%m/%d") if p.updated_at else "-"),
-            'is_factored': ('ثبت فاکتور', lambda p: "بله" if p.is_factored else "خیر"),
         }
         
         # افزودن هدرها
@@ -676,16 +731,13 @@ def _export_large_excel_stream(purchase_ids, selected_columns):
         for i in range(0, len(purchase_ids), batch_size):
             batch_ids = purchase_ids[i:i+batch_size]
             
-            # دریافت batch از دیتابیس با انتخاب کم فیلد
+            # دریافت batch از دیتابیس با انتخاب همه فیلدهای ضروری
             purchases = Purchase.objects.filter(
                 id__in=batch_ids
             ).select_related(
                 'customer', 'cargo', 'unique_sales_agent'
-            ).only(
-                'id', 'created_at', 'invoice_id', 'purchase_number', 'order_weight',
-                'state', 'company_price', 'customer_price', 'delivered_weight',
-                'amount_paid', 'updated_at', 'is_factored', 'unique_sales_agent',
-                'customer__name', 'cargo__cottage', 'unique_sales_agent__name'
+            ).prefetch_related(
+                'shenase_takhsis_set', 'cargo__barbary', 'cargo__vared_konandeh'
             ).order_by('-created_at')
             
             for purchase in purchases:
