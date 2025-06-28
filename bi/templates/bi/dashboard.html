@@ -1,0 +1,982 @@
+{% extends 'bi/bi_base.html' %}
+
+{% block page_title %}داشبورد مدیریتی{% endblock %}
+{% block page_subtitle %}نمای کلی عملکرد و آمار سیستم ژورقالای{% endblock %}
+
+{% block extra_css %}
+<style>
+    .kpi-card {
+        background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+        border-radius: var(--border-radius-lg);
+        padding: 1.5rem;
+        text-align: center;
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .kpi-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-color), var(--info-color));
+    }
+    
+    .kpi-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .kpi-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin: 0.5rem 0;
+    }
+    
+    .kpi-label {
+        color: var(--text-secondary);
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+    
+    .kpi-change {
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+    }
+    
+    .kpi-change.positive {
+        color: var(--success-color);
+    }
+    
+    .kpi-change.negative {
+        color: var(--danger-color);
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 350px;
+    }
+    
+    .quick-filters {
+        background: var(--bg-secondary);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        margin-bottom: 2rem;
+        border: 1px solid var(--border-color);
+    }
+    
+    .filter-group {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .filter-group label {
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-bottom: 0;
+    }
+    
+    .btn-refresh {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .btn-refresh.loading {
+        color: transparent;
+    }
+    
+    .btn-refresh .spinner-border {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 1rem;
+        height: 1rem;
+    }
+    
+    .section-tabs {
+        border-bottom: 2px solid var(--border-light);
+        margin-bottom: 2rem;
+    }
+    
+    .section-tab {
+        padding: 1rem 1.5rem;
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s;
+        font-weight: 500;
+    }
+    
+    .section-tab.active {
+        color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+    }
+    
+    .section-content {
+        display: none;
+    }
+    
+    .section-content.active {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Quick Stats -->
+<div class="row mb-4" id="quickStats">
+    <!-- KPI Cards will be loaded here -->
+</div>
+
+<!-- Quick Filters -->
+<div class="quick-filters">
+    <div class="filter-group">
+        <label>بازه زمانی:</label>
+        <select class="form-select form-select-sm" id="timeRange" style="width: auto;">
+            <option value="today">امروز</option>
+            <option value="week">هفته اخیر</option>
+            <option value="month" selected>ماه اخیر</option>
+            <option value="30days">30 روز اخیر</option>
+            <option value="90days">3 ماه اخیر</option>
+            <option value="6months">6 ماه اخیر</option>
+            <option value="year">سال اخیر</option>
+            <option value="all">کل دوره</option>
+        </select>
+        
+        <label>نوع محصول:</label>
+        <select class="form-select form-select-sm" id="productType" style="width: auto;">
+            <option value="">همه محصولات</option>
+        </select>
+        
+        <label>استان:</label>
+        <select class="form-select form-select-sm" id="province" style="width: auto;">
+            <option value="">همه استان‌ها</option>
+        </select>
+        
+        <button class="btn btn-primary btn-sm btn-refresh" id="refreshData">
+            <i class="fas fa-sync-alt me-1"></i>
+            بروزرسانی
+            <div class="spinner-border d-none" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </button>
+    </div>
+</div>
+
+<!-- Section Tabs -->
+<div class="section-tabs">
+    <button class="section-tab active" data-section="overview">نمای کلی</button>
+    <button class="section-tab" data-section="sales">فروش</button>
+    <button class="section-tab" data-section="customers">مشتریان</button>
+    <button class="section-tab" data-section="products">محصولات</button>
+    <button class="section-tab" data-section="geographic">جغرافیایی</button>
+</div>
+
+<!-- Overview Section -->
+<div class="section-content active" id="overview-section">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="widget-card">
+                <div class="widget-header">
+                    <h5 class="widget-title">روند فروش ماهانه</h5>
+                    <div class="widget-actions">
+                        <button class="widget-btn" data-chart="salesTrend" data-action="config">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <button class="widget-btn" data-chart="salesTrend" data-action="fullscreen">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="chart-container">
+                        <canvas id="salesTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="widget-card">
+                <div class="widget-header">
+                    <h5 class="widget-title">توزیع محصولات</h5>
+                </div>
+                <div class="widget-content">
+                    <div class="chart-container">
+                        <canvas id="productDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="widget-card">
+                <div class="widget-header">
+                    <h5 class="widget-title">مشتریان برتر</h5>
+                </div>
+                <div class="widget-content">
+                    <div id="topCustomersTable"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="widget-card">
+                <div class="widget-header">
+                    <h5 class="widget-title">وضعیت خریدها</h5>
+                </div>
+                <div class="widget-content">
+                    <div class="chart-container">
+                        <canvas id="purchaseStatusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="widget-card">
+                <div class="widget-header">
+                    <h5 class="widget-title">کارشناسان برتر</h5>
+                </div>
+                <div class="widget-content">
+                    <div class="chart-container">
+                        <canvas id="topSalesAgentsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sales Section -->
+<div class="section-content" id="sales-section">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="widget-card">
+                <div class="widget-header">
+                    <h5 class="widget-title">روند فروش ماهانه</h5>
+                </div>
+                <div class="widget-content">
+                    <div class="chart-container">
+                        <canvas id="salesDetailTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="widget-card">
+                <div class="widget-header">
+                    <h5 class="widget-title">فروش براساس نوع پرداخت</h5>
+                </div>
+                <div class="widget-content">
+                    <div class="chart-container">
+                        <canvas id="paymentMethodChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="widget-card">
+                <div class="widget-header">
+                    <h5 class="widget-title">مقایسه فروش ماه جاری و قبلی</h5>
+                </div>
+                <div class="widget-content">
+                    <div class="chart-container">
+                        <canvas id="salesComparisonChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="widget-card">
+                <div class="widget-header">
+                    <h5 class="widget-title">آمار فروش کارشناسان</h5>
+                </div>
+                <div class="widget-content">
+                    <div id="salesAgentStats"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Customers Section -->
+<div class="section-content" id="customers-section">
+    <div class="row">
+        <div class="col-12">
+            <div class="widget-card">
+                <div class="widget-header">
+                    <h5 class="widget-title">تحلیل مشتریان</h5>
+                </div>
+                <div class="widget-content">
+                    <div id="customerAnalytics"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Products Section -->
+<div class="section-content" id="products-section">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="widget-card">
+                <div class="widget-header">
+                    <h5 class="widget-title">فروش محصولات در زمان</h5>
+                </div>
+                <div class="widget-content">
+                    <div class="chart-container">
+                        <canvas id="productSalesTimeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="widget-card">
+                <div class="widget-header">
+                    <h5 class="widget-title">محصولات پرفروش</h5>
+                </div>
+                <div class="widget-content">
+                    <div class="chart-container">
+                        <canvas id="topProductsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="widget-card">
+                <div class="widget-header">
+                    <h5 class="widget-title">موجودی محصولات</h5>
+                </div>
+                <div class="widget-content">
+                    <div id="inventoryStatus"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="widget-card">
+                <div class="widget-header">
+                    <h5 class="widget-title">محصولات براساس کشور</h5>
+                </div>
+                <div class="widget-content">
+                    <div class="chart-container">
+                        <canvas id="productsByCountryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="widget-card">
+                <div class="widget-header">
+                    <h5 class="widget-title">قیمت‌های محصولات</h5>
+                </div>
+                <div class="widget-content">
+                    <div id="productPriceTable"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Geographic Section -->
+<div class="section-content" id="geographic-section">
+    <div class="row">
+        <div class="col-12">
+            <div class="widget-card">
+                <div class="widget-header">
+                    <h5 class="widget-title">تحلیل جغرافیایی ایران</h5>
+                </div>
+                <div class="widget-content">
+                    <div id="iranMap" style="height: 500px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Dashboard Main Class
+    class BiDashboard {
+        constructor() {
+            this.charts = {};
+            this.currentSection = 'overview';
+            this.filters = {
+                timeRange: 'month',
+                productType: '',
+                province: ''
+            };
+            
+            this.init();
+        }
+        
+        init() {
+            this.bindEvents();
+            this.loadQuickStats();
+            this.loadFilterOptions();
+            this.loadOverviewCharts();
+        }
+        
+        bindEvents() {
+            // Section tabs
+            document.querySelectorAll('.section-tab').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    this.switchSection(e.target.dataset.section);
+                });
+            });
+            
+            // Filters
+            document.getElementById('timeRange').addEventListener('change', (e) => {
+                this.filters.timeRange = e.target.value;
+                this.refreshCurrentSection();
+            });
+            
+            document.getElementById('productType').addEventListener('change', (e) => {
+                this.filters.productType = e.target.value;
+                this.refreshCurrentSection();
+            });
+            
+            document.getElementById('province').addEventListener('change', (e) => {
+                this.filters.province = e.target.value;
+                this.refreshCurrentSection();
+            });
+            
+            // Refresh button
+            document.getElementById('refreshData').addEventListener('click', () => {
+                this.refreshCurrentSection();
+            });
+        }
+        
+        async loadQuickStats() {
+            try {
+                this.showLoading('quickStats');
+                
+                const response = await apiCall('quick-stats/');
+                const data = await response.json();
+                
+                this.renderKPICards(data);
+                
+            } catch (error) {
+                handleError(error, 'بارگذاری آمار سریع');
+            }
+        }
+        
+        renderKPICards(data) {
+            const container = document.getElementById('quickStats');
+            const kpis = [
+                {
+                    label: 'کل خریدها',
+                    value: data.purchases?.total || 0,
+                    change: this.calculateChange(data.purchases?.today, data.purchases?.total),
+                    icon: 'fa-shopping-cart',
+                    color: 'primary'
+                },
+                {
+                    label: 'درآمد کل',
+                    value: this.formatCurrency(data.financial?.total_revenue || 0),
+                    change: this.calculateChange(data.financial?.today_revenue, data.financial?.total_revenue),
+                    icon: 'fa-dollar-sign',
+                    color: 'success'
+                },
+                {
+                    label: 'مشتریان فعال',
+                    value: data.customers?.active || 0,
+                    change: this.calculateChange(data.customers?.new_today, data.customers?.total),
+                    icon: 'fa-users',
+                    color: 'info'
+                },
+                {
+                    label: 'محصولات فعال',
+                    value: data.products?.active || 0,
+                    change: data.products?.low_stock || 0,
+                    icon: 'fa-boxes',
+                    color: 'warning'
+                }
+            ];
+            
+            container.innerHTML = kpis.map(kpi => `
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="kpi-card">
+                        <div class="kpi-icon">
+                            <i class="fas ${kpi.icon} text-${kpi.color}"></i>
+                        </div>
+                        <div class="kpi-value">${kpi.value}</div>
+                        <div class="kpi-label">${kpi.label}</div>
+                        <div class="kpi-change ${kpi.change >= 0 ? 'positive' : 'negative'}">
+                            <i class="fas fa-arrow-${kpi.change >= 0 ? 'up' : 'down'}"></i>
+                            ${Math.abs(kpi.change)}%
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        async loadFilterOptions() {
+            try {
+                // Load product types and provinces for filters
+                const productTypeSelect = document.getElementById('productType');
+                const provinceSelect = document.getElementById('province');
+                
+                // Add product type options (you can get these from API)
+                const productTypes = [
+                    {value: 'corn', label: 'ذرت'},
+                    {value: 'barley', label: 'جو'},
+                    {value: 'soy_meal', label: 'کنجاله سویا'}
+                ];
+                
+                productTypes.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type.value;
+                    option.textContent = type.label;
+                    productTypeSelect.appendChild(option);
+                });
+                
+                // Add province options
+                const provinces = [
+                    'تهران', 'اصفهان', 'شیراز', 'مشهد', 'تبریز'
+                ];
+                
+                provinces.forEach(province => {
+                    const option = document.createElement('option');
+                    option.value = province;
+                    option.textContent = province;
+                    provinceSelect.appendChild(option);
+                });
+                
+            } catch (error) {
+                handleError(error, 'بارگذاری گزینه‌های فیلتر');
+            }
+        }
+        
+        async loadOverviewCharts() {
+            await Promise.all([
+                this.loadSalesTrendChart(),
+                this.loadProductDistributionChart(),
+                this.loadTopCustomersTable(),
+                this.loadPurchaseStatusChart(),
+                this.loadTopSalesAgentsChart()
+            ]);
+        }
+        
+        async loadSalesTrendChart() {
+            try {
+                const response = await apiCall(`specialized-chart/purchase_timeline/?time_period=${this.filters.timeRange}`);
+                const data = await response.json();
+                
+                const ctx = document.getElementById('salesTrendChart').getContext('2d');
+                
+                if (this.charts.salesTrend) {
+                    this.charts.salesTrend.destroy();
+                }
+                
+                this.charts.salesTrend = new Chart(ctx, {
+                    type: 'line',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+                
+            } catch (error) {
+                handleError(error, 'بارگذاری نمودار روند فروش');
+            }
+        }
+        
+        async loadProductDistributionChart() {
+            try {
+                const response = await apiCall('analytics/product/');
+                const data = await response.json();
+                
+                const ctx = document.getElementById('productDistributionChart').getContext('2d');
+                
+                if (this.charts.productDistribution) {
+                    this.charts.productDistribution.destroy();
+                }
+                
+                this.charts.productDistribution = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.product_performance?.map(p => p.cargo__product_type) || [],
+                        datasets: [{
+                            data: data.product_performance?.map(p => p.total_weight) || [],
+                            backgroundColor: [
+                                '#2563eb', '#059669', '#d97706', '#dc2626', '#0891b2'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+                
+            } catch (error) {
+                handleError(error, 'بارگذاری نمودار توزیع محصولات');
+            }
+        }
+        
+        switchSection(section) {
+            // Update tab states
+            document.querySelectorAll('.section-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-section="${section}"]`).classList.add('active');
+            
+            // Update content states
+            document.querySelectorAll('.section-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`${section}-section`).classList.add('active');
+            
+            this.currentSection = section;
+            this.loadSectionData(section);
+        }
+        
+        async loadSectionData(section) {
+            switch(section) {
+                case 'sales':
+                    await this.loadSalesAnalytics();
+                    break;
+                case 'customers':
+                    await this.loadCustomerAnalytics();
+                    break;
+                case 'products':
+                    await this.loadProductAnalytics();
+                    break;
+                case 'geographic':
+                    await this.loadGeographicAnalytics();
+                    break;
+            }
+        }
+        
+        async refreshCurrentSection() {
+            const refreshBtn = document.getElementById('refreshData');
+            this.showButtonLoading(refreshBtn);
+            
+            try {
+                await this.loadQuickStats();
+                await this.loadSectionData(this.currentSection);
+                
+                showToast('داده‌ها با موفقیت بروزرسانی شد', 'success');
+            } catch (error) {
+                handleError(error, 'بروزرسانی داده‌ها');
+            } finally {
+                this.hideButtonLoading(refreshBtn);
+            }
+        }
+        
+        showLoading(containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                </div>
+            `;
+        }
+        
+        showButtonLoading(button) {
+            button.classList.add('loading');
+            button.querySelector('.spinner-border').classList.remove('d-none');
+        }
+        
+        hideButtonLoading(button) {
+            button.classList.remove('loading');
+            button.querySelector('.spinner-border').classList.add('d-none');
+        }
+        
+        formatCurrency(amount) {
+            return new Intl.NumberFormat('fa-IR').format(amount) + ' ریال';
+        }
+        
+        calculateChange(current, total) {
+            if (!total || total === 0) return 0;
+            return Math.round((current / total) * 100);
+        }
+        
+        async loadTopSalesAgentsChart() {
+            try {
+                const response = await apiCall(`analytics/sales_agent/?time_range=${this.filters.timeRange}`);
+                const data = await response.json();
+                
+                const ctx = document.getElementById('topSalesAgentsChart').getContext('2d');
+                
+                if (this.charts.topSalesAgents) {
+                    this.charts.topSalesAgents.destroy();
+                }
+                
+                this.charts.topSalesAgents = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.top_agents?.map(a => a.name) || [],
+                        datasets: [{
+                            label: 'تعداد فروش',
+                            data: data.top_agents?.map(a => a.sales_count) || [],
+                            backgroundColor: '#2563eb'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: { beginAtZero: true }
+                        }
+                    }
+                });
+                
+            } catch (error) {
+                handleError(error, 'بارگذاری نمودار کارشناسان برتر');
+            }
+        }
+        
+        async loadTopCustomersTable() {
+            try {
+                const response = await apiCall(`analytics/customer/?time_range=${this.filters.timeRange}`);
+                const data = await response.json();
+                
+                const container = document.getElementById('topCustomersTable');
+                
+                if (data.top_customers && data.top_customers.length > 0) {
+                    container.innerHTML = `
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>نام مشتری</th>
+                                        <th>تعداد خرید</th>
+                                        <th>مبلغ کل</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.top_customers.map(customer => `
+                                        <tr>
+                                            <td>${customer.name || 'نامشخص'}</td>
+                                            <td>${customer.purchase_count}</td>
+                                            <td>${this.formatCurrency(customer.total_amount || 0)}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = '<div class="text-center text-muted p-3">داده‌ای یافت نشد</div>';
+                }
+                
+            } catch (error) {
+                handleError(error, 'بارگذاری جدول مشتریان برتر');
+                document.getElementById('topCustomersTable').innerHTML = '<div class="text-center text-danger p-3">خطا در بارگذاری داده‌ها</div>';
+            }
+        }
+        
+        async loadPurchaseStatusChart() {
+            try {
+                const response = await apiCall(`analytics/purchase/?time_range=${this.filters.timeRange}`);
+                const data = await response.json();
+                
+                const ctx = document.getElementById('purchaseStatusChart').getContext('2d');
+                
+                if (this.charts.purchaseStatus) {
+                    this.charts.purchaseStatus.destroy();
+                }
+                
+                this.charts.purchaseStatus = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.status_breakdown?.map(s => s.status_display) || [],
+                        datasets: [{
+                            data: data.status_breakdown?.map(s => s.count) || [],
+                            backgroundColor: [
+                                '#2563eb', '#059669', '#d97706', '#dc2626', '#0891b2', '#7c3aed'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+                
+            } catch (error) {
+                handleError(error, 'بارگذاری نمودار وضعیت خریدها');
+            }
+        }
+        
+        async loadSalesAnalytics() {
+            try {
+                await Promise.all([
+                    this.loadSalesDetailTrendChart(),
+                    this.loadPaymentMethodChart(),
+                    this.loadSalesComparisonChart(),
+                    this.loadSalesAgentStats()
+                ]);
+            } catch (error) {
+                handleError(error, 'بارگذاری تحلیل‌های فروش');
+            }
+        }
+        
+        async loadProductAnalytics() {
+            try {
+                await Promise.all([
+                    this.loadProductSalesTimeChart(),
+                    this.loadTopProductsChart(),
+                    this.loadInventoryStatus(),
+                    this.loadProductsByCountryChart(),
+                    this.loadProductPriceTable()
+                ]);
+            } catch (error) {
+                handleError(error, 'بارگذاری تحلیل‌های محصولات');
+            }
+        }
+        
+        async loadCustomerAnalytics() {
+            try {
+                const response = await apiCall(`analytics/customer/?time_range=${this.filters.timeRange}`);
+                const data = await response.json();
+                
+                const container = document.getElementById('customerAnalytics');
+                container.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <canvas id="customerGrowthChart"></canvas>
+                        </div>
+                        <div class="col-md-6">
+                            <canvas id="customerActivityChart"></canvas>
+                        </div>
+                    </div>
+                `;
+                
+                // Customer Growth Chart
+                const growthCtx = document.getElementById('customerGrowthChart').getContext('2d');
+                new Chart(growthCtx, {
+                    type: 'line',
+                    data: {
+                        labels: data.growth_data?.labels || [],
+                        datasets: [{
+                            label: 'مشتریان جدید',
+                            data: data.growth_data?.values || [],
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.1)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+                
+            } catch (error) {
+                handleError(error, 'بارگذاری تحلیل‌های مشتریان');
+            }
+        }
+        
+        async loadGeographicAnalytics() {
+            try {
+                const response = await apiCall('geo-analytics/');
+                const data = await response.json();
+                
+                const container = document.getElementById('iranMap');
+                container.innerHTML = `
+                    <div class="text-center p-5">
+                        <h4>نقشه فروش ایران</h4>
+                        <p class="text-muted">اینجا نقشه تعاملی ایران با اطلاعات فروش نمایش داده می‌شود</p>
+                        <div class="row">
+                            ${data.provinces?.map(province => `
+                                <div class="col-md-3 mb-2">
+                                    <div class="bg-light p-2 rounded">
+                                        <strong>${province.name}</strong><br>
+                                        <small class="text-muted">${province.sales_count} فروش</small>
+                                    </div>
+                                </div>
+                            `).join('') || ''}
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                handleError(error, 'بارگذاری تحلیل‌های جغرافیایی');
+            }
+        }
+        
+        // متدهای کمکی برای نمودارهای جدید
+        async loadSalesDetailTrendChart() {
+            // Implementation for detailed sales trend
+        }
+        
+        async loadPaymentMethodChart() {
+            // Implementation for payment method chart  
+        }
+        
+        async loadSalesComparisonChart() {
+            // Implementation for sales comparison
+        }
+        
+        async loadSalesAgentStats() {
+            // Implementation for sales agent statistics
+        }
+        
+        async loadProductSalesTimeChart() {
+            // Implementation for product sales over time
+        }
+        
+        async loadTopProductsChart() {
+            // Implementation for top products chart
+        }
+        
+        async loadInventoryStatus() {
+            // Implementation for inventory status
+        }
+        
+        async loadProductsByCountryChart() {
+            // Implementation for products by country
+        }
+        
+        async loadProductPriceTable() {
+            // Implementation for product price table
+        }
+    }
+    
+    // Initialize Dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+        new BiDashboard();
+    });
+</script>
+{% endblock %} 

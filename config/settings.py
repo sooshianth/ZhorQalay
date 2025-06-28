@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'bki_cargos.apps.BkiCargosConfig',
     'data_exflow.apps.DataExflowConfig',
     'table_filter.apps.TableFilterConfig',
+    'bi.apps.BIConfig',
 ]
 
 MIDDLEWARE = [
