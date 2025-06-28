@@ -145,7 +145,7 @@
                 </div>
                 {% endif %}
                 
-                <!-- دسته جدید: مدیریت داده‌ها -->
+                <!-- دسته چهارم: مدیریت داده‌ها -->
                 {% if request.user.is_superuser %}
                 <div class="menu-category">
                     <div class="category-title" data-toggle="collapse" data-target="data-management">
@@ -160,10 +160,25 @@
                 </div>
                 {% endif %}
                 
-                <!-- دسته چهارم: گزارشات و مدیریت -->
+                <!-- دسته پنجم: هوش تجاری -->
+                {% if request.user.is_superuser or request.user.is_staff or request.user.financial_manager or request.user.logistics_manager %}
+                <div class="menu-category">
+                    <div class="category-title" data-toggle="collapse" data-target="business-intelligence">
+                        <i class="fas fa-chart-line category-icon"></i>
+                        <span>هوش تجاری و گزارشات</span>
+                        <i class="fas fa-chevron-down category-arrow"></i>
+                    </div>
+                    
+                    <div class="submenu-container collapsed" id="business-intelligence">
+                        <li><a href="{% url 'bi:bi_dashboard' %}"><i class="fas fa-chart-pie"></i> داشبورد هوش تجاری</a></li>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- دسته ششم: منابع انسانی -->
                 <div class="menu-category">
                     <div class="category-title" data-toggle="collapse" data-target="reports-management">
-                        <i class="fas fa-chart-line category-icon"></i>
+                        <i class="fas fa-user-tie category-icon"></i>
                         <span>منابع انسانی</span>
                         <i class="fas fa-chevron-down category-arrow"></i>
                     </div>

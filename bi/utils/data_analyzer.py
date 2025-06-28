@@ -410,7 +410,15 @@ class DataAnalyzer:
             status_stats = queryset.values('state').annotate(
                 count=Count('id'),
                 total_amount=Sum('amount_paid')
-            )
+            ).exclude(state__isnull=True)
+            
+            # اضافه کردن نام نمایشی وضعیت‌ها
+            from core.PurchaseModel import Purchase
+            status_choices = dict(Purchase.STATUS_CHOICES)
+            
+            for item in status_stats:
+                state_key = item['state']
+                item['status_display'] = status_choices.get(state_key, state_key)
             
             # آمار براساس نوع محصول
             product_stats = queryset.values('cargo__product_type').annotate(
@@ -439,33 +447,67 @@ class DataAnalyzer:
     def get_customer_analytics(self, filters: Dict = None) -> Dict:
         """تحلیل کامل مشتریان"""
         try:
-            queryset = self.model.objects.all()
+            queryset = self.model.objects.select_related('customer').all()
             if filters:
                 queryset = self.apply_filters(queryset, filters)
             
-            # مشتریان برتر
-            top_customers = queryset.values('customer__name', 'customer__city').annotate(
+            # مشتریان برتر - بررسی null values
+            top_customers_raw = queryset.values(
+                'customer__name', 'customer__city', 'customer__phone_number'
+            ).annotate(
                 purchase_count=Count('id'),
                 total_amount=Sum('amount_paid'),
                 avg_amount=Avg('amount_paid')
-            ).order_by('-total_amount')[:10]
+            ).exclude(customer__isnull=True).order_by('-total_amount')[:10]
+            
+            # پردازش نام‌های مشتریان
+            top_customers = []
+            for item in top_customers_raw:
+                name = item.get('customer__name')
+                phone = item.get('customer__phone_number')
+                
+                # تعیین نام نمایشی
+                if name and name.strip():
+                    display_name = name.strip()
+                elif phone:
+                    display_name = f"مشتری {phone[-4:]}"  # آخرین 4 رقم شماره
+                else:
+                    display_name = "مشتری ناشناس"
+                
+                top_customers.append({
+                    'name': display_name,
+                    'city': item.get('customer__city') or 'نامشخص',
+                    'purchase_count': item['purchase_count'],
+                    'total_amount': item['total_amount'] or 0,
+                    'avg_amount': item['avg_amount'] or 0
+                })
             
             # توزیع جغرافیایی
             city_distribution = queryset.values('customer__city').annotate(
                 customer_count=Count('customer', distinct=True),
                 purchase_count=Count('id'),
                 total_amount=Sum('amount_paid')
+            ).exclude(customer__city__isnull=True).exclude(
+                customer__city__exact=''
             ).order_by('-total_amount')
             
             # تحلیل رفتار خرید
             purchase_behavior = queryset.aggregate(
                 repeat_customers=Count('customer', distinct=True),
-                avg_purchases_per_customer=Avg('customer__purchases_made__id'),
-                first_time_buyers=Count('customer', filter=Q(customer__purchases_made__id=1))
+                total_customers=Count('customer', distinct=True),
+                total_purchases=Count('id')
             )
             
+            # محاسبه میانگین خرید به ازای هر مشتری
+            if purchase_behavior['total_customers'] > 0:
+                purchase_behavior['avg_purchases_per_customer'] = round(
+                    purchase_behavior['total_purchases'] / purchase_behavior['total_customers'], 2
+                )
+            else:
+                purchase_behavior['avg_purchases_per_customer'] = 0
+            
             return {
-                'top_customers': list(top_customers),
+                'top_customers': top_customers,
                 'city_distribution': list(city_distribution),
                 'purchase_behavior': purchase_behavior
             }
@@ -475,37 +517,87 @@ class DataAnalyzer:
     def get_product_analytics(self, filters: Dict = None) -> Dict:
         """تحلیل کامل محصولات"""
         try:
-            queryset = self.model.objects.all()
+            queryset = self.model.objects.select_related('cargo').all()
             if filters:
                 queryset = self.apply_filters(queryset, filters)
             
-            # عملکرد محصولات
-            product_performance = queryset.values(
-                'cargo__product_type', 
-                'cargo__country'
+            # عملکرد محصولات - گروه‌بندی فقط بر اساس نوع محصول
+            product_performance = queryset.values('cargo__product_type').annotate(
+                sales_count=Count('id'),
+                total_weight=Sum('order_weight'),
+                total_amount=Sum('amount_paid'),
+                avg_price=Avg('customer_price')
+            ).exclude(cargo__product_type__isnull=True).order_by('-total_weight')
+            
+            # عملکرد محصولات بر اساس کشور - برای نمودار کشورها
+            country_performance = queryset.values('cargo__country').annotate(
+                sales_count=Count('id'),
+                total_weight=Sum('order_weight'),
+                total_amount=Sum('amount_paid'),
+                avg_price=Avg('customer_price')
+            ).exclude(cargo__country__isnull=True).order_by('-total_weight')
+            
+            # محصولات بر اساس نوع و کشور - برای تحلیل جزئی‌تر
+            product_country_performance = queryset.values(
+                'cargo__product_type', 'cargo__country'
             ).annotate(
                 sales_count=Count('id'),
                 total_weight=Sum('order_weight'),
                 total_amount=Sum('amount_paid'),
                 avg_price=Avg('customer_price')
+            ).exclude(
+                cargo__product_type__isnull=True
+            ).exclude(
+                cargo__country__isnull=True
             ).order_by('-total_weight')
             
-            # ترندهای قیمت
+            # اضافه کردن نام‌های نمایشی
+            from core.CargoProductModel import CargoProduct
+            product_types = dict(CargoProduct.PRODUCT_TYPES)
+            countries = dict(CargoProduct.COUNTRIES)
+            
+            for item in product_performance:
+                product_type = item['cargo__product_type']
+                item['product_display_name'] = product_types.get(product_type, product_type)
+            
+            for item in country_performance:
+                country = item['cargo__country']
+                item['country_display_name'] = countries.get(country, country)
+            
+            for item in product_country_performance:
+                product_type = item['cargo__product_type']
+                country = item['cargo__country']
+                item['product_display_name'] = product_types.get(product_type, product_type)
+                item['country_display_name'] = countries.get(country, country)
+            
+            # ترندهای قیمت - اصلاح شده
             price_trends = queryset.values('cargo__product_type').annotate(
                 min_price=Min('customer_price'),
                 max_price=Max('customer_price'),
                 avg_price=Avg('customer_price'),
-                latest_price=F('customer_price')  # این باید بهبود یابد
-            )
+                price_count=Count('customer_price')  # تعداد قیمت‌ها برای بررسی
+            ).exclude(cargo__product_type__isnull=True).exclude(customer_price__isnull=True)
+            
+            # اضافه کردن نام نمایشی
+            for item in price_trends:
+                product_type = item['cargo__product_type']
+                item['product_display_name'] = product_types.get(product_type, product_type)
             
             # آمار موجودی
             inventory_stats = queryset.values('cargo__product_type').annotate(
                 available_weight=Sum('cargo__weight'),
                 sold_weight=Sum('order_weight')
-            )
+            ).exclude(cargo__product_type__isnull=True)
+            
+            # اضافه کردن نام نمایشی
+            for item in inventory_stats:
+                product_type = item['cargo__product_type']
+                item['product_display_name'] = product_types.get(product_type, product_type)
             
             return {
                 'product_performance': list(product_performance),
+                'country_performance': list(country_performance),
+                'product_country_performance': list(product_country_performance),
                 'price_trends': list(price_trends),
                 'inventory_stats': list(inventory_stats)
             }

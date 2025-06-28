@@ -10,7 +10,7 @@ router.register(r'dashboards', views.DashboardViewSet, basename='dashboard')
 
 urlpatterns = [
     # صفحات اصلی
-    path('', views.DashboardView.as_view(), name='dashboard_home'),
+    path('', views.DashboardView.as_view(), name='bi_dashboard'),
     path('dashboard/<uuid:dashboard_id>/', views.DashboardView.as_view(), name='dashboard_detail'),
 
     
@@ -39,6 +39,7 @@ urlpatterns = [
     path('api/specialized-chart/<str:chart_type>/', views.SpecializedChartsView.as_view(), name='specialized_chart'),
     path('api/analytics/<str:analysis_type>/', views.AnalyticsDataView.as_view(), name='analytics_data'),
     path('api/quick-stats/', views.DashboardQuickStatsView.as_view(), name='quick_stats'),
+    path('api/debug/products/', views.ProductDebugView.as_view(), name='product_debug'),
 
     
     # REST API Router

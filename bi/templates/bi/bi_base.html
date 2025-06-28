@@ -22,8 +22,8 @@
     <!-- Custom BI Styles -->
     <style>
         :root {
-            --primary-color: #2563eb;
-            --primary-dark: #1d4ed8;
+            --primary-color: #065F46;
+            --primary-dark: #064E3B;
             --secondary-color: #64748b;
             --success-color: #059669;
             --warning-color: #d97706;
@@ -115,6 +115,33 @@
         .nav-link.active {
             background-color: rgba(255,255,255,0.1);
             color: white;
+        }
+        
+        .nav-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .nav-section-title {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: rgba(255,255,255,0.6);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .section-nav {
+            font-size: 0.875rem;
+        }
+        
+        .section-nav.active {
+            background-color: rgba(255,255,255,0.15);
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
         .main-content {
@@ -283,30 +310,76 @@
             </div>
         </div>
         <div class="sidebar-nav">
-            <div class="nav-item">
-                <a href="{% url 'bi:dashboard_home' %}" class="nav-link">
+            <!-- Dashboard Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">
                     <i class="fas fa-tachometer-alt"></i>
-                    <span>داشبورد اصلی</span>
-                </a>
+                    <span>داشبورد</span>
+                </div>
+                <div class="nav-item">
+                    <a href="#" class="nav-link section-nav active" data-section="overview">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>نمای کلی</span>
+                    </a>
+                </div>
             </div>
 
-            <div class="nav-item">
-                <a href="#" class="nav-link" data-section="analytics">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>تحلیل‌ها</span>
-                </a>
+            <!-- Analytics Sections -->
+            <div class="nav-section">
+                <div class="nav-section-title">
+                    <i class="fas fa-chart-line"></i>
+                    <span>تحلیل‌های تخصصی</span>
+                </div>
+                <div class="nav-item">
+                    <a href="#" class="nav-link section-nav" data-section="sales">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span>فروش</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="#" class="nav-link section-nav" data-section="customers">
+                        <i class="fas fa-users"></i>
+                        <span>مشتریان</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="#" class="nav-link section-nav" data-section="products">
+                        <i class="fas fa-boxes"></i>
+                        <span>محصولات</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="#" class="nav-link section-nav" data-section="geographic">
+                        <i class="fas fa-map-marked-alt"></i>
+                        <span>تحلیل جغرافیایی</span>
+                    </a>
+                </div>
             </div>
-            <div class="nav-item">
-                <a href="#" class="nav-link" data-section="reports">
-                    <i class="fas fa-file-alt"></i>
-                    <span>گزارش‌ها</span>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="#" class="nav-link" data-section="geographic">
-                    <i class="fas fa-map-marked-alt"></i>
-                    <span>تحلیل جغرافیایی</span>
-                </a>
+
+            <!-- Additional Tools -->
+            <div class="nav-section">
+                <div class="nav-section-title">
+                    <i class="fas fa-tools"></i>
+                    <span>ابزارها</span>
+                </div>
+                <div class="nav-item">
+                    <a href="#" class="nav-link" onclick="window.location.reload()">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>بروزرسانی داده‌ها</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="#" class="nav-link" data-action="export">
+                        <i class="fas fa-download"></i>
+                        <span>صدور گزارش</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="#" class="nav-link" onclick="debugProducts()">
+                        <i class="fas fa-bug"></i>
+                        <span>Debug محصولات</span>
+                    </a>
+                </div>
             </div>
 
         </div>
@@ -328,7 +401,7 @@
                     <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>تنظیمات</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/admin/"><i class="fas fa-home me-2"></i>بازگشت به سیستم اصلی</a></li>
+                        <li><a class="dropdown-item" href="{% url 'home_view' %}"><i class="fas fa-home me-2"></i>بازگشت به سیستم اصلی</a></li>
                         <li><a class="dropdown-item" href="{% url 'admin:logout' %}"><i class="fas fa-sign-out-alt me-2"></i>خروج</a></li>
                     </ul>
                 </div>
@@ -378,6 +451,38 @@
             mainContent.classList.toggle('expanded');
         });
 
+        // Section Navigation
+        window.switchDashboardSection = function(section) {
+            // Update sidebar nav states
+            document.querySelectorAll('.section-nav').forEach(nav => {
+                nav.classList.remove('active');
+            });
+            document.querySelector(`[data-section="${section}"]`).classList.add('active');
+            
+            // Update content sections if available
+            if (window.biDashboard && typeof window.biDashboard.switchSection === 'function') {
+                window.biDashboard.switchSection(section);
+            }
+            
+            // Dispatch custom event for dashboard
+            window.dispatchEvent(new CustomEvent('sectionChanged', {
+                detail: { section: section }
+            }));
+        };
+
+        // Bind section navigation events
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.section-nav').forEach(nav => {
+                nav.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const section = this.dataset.section;
+                    if (section) {
+                        window.switchDashboardSection(section);
+                    }
+                });
+            });
+        });
+
         // Toast Utility
         window.showToast = function(message, type = 'info') {
             const toastHtml = `
@@ -425,6 +530,44 @@
         window.handleError = function(error, context = '') {
             console.error(`Error in ${context}:`, error);
             window.showToast(`خطا در ${context}: ${error.message}`, 'danger');
+        };
+
+        // Debug Products Function
+        window.debugProducts = async function() {
+            try {
+                console.log('🔍 شروع debug محصولات...');
+                const response = await apiCall('debug/products/');
+                const data = await response.json();
+                
+                console.log('📊 آمار کامل محصولات:', data);
+                console.log('🏷️ انواع محصولات موجود:', data.available_product_types);
+                console.log('📈 آمار هر نوع محصول:', data.product_stats);
+                console.log('⚠️ آمار مقادیر null:', data.null_stats);
+                
+                // نمایش در modal یا alert
+                const summary = `
+📊 آمار کلی:
+- کل محصولات: ${data.total_products}
+- کل خریدها: ${data.total_purchases}
+
+🏷️ انواع محصولات:
+${Object.entries(data.product_stats).map(([type, stats]) => 
+    `- ${stats.display_name}: ${stats.cargo_count} محصول، ${stats.purchases_count} خرید`
+).join('\n')}
+
+⚠️ مشکلات احتمالی:
+- خریدهای بدون محصول: ${data.null_stats.purchases_without_cargo}
+- محصولات بدون نوع: ${data.null_stats.cargo_without_product_type}
+- محصولات غیرفعال: ${data.null_stats.cargo_inactive}
+                `;
+                
+                alert(summary);
+                window.showToast('اطلاعات debug در console نمایش داده شد', 'info');
+                
+            } catch (error) {
+                console.error('خطا در debug محصولات:', error);
+                window.showToast('خطا در دریافت اطلاعات debug', 'danger');
+            }
         };
     </script>
     

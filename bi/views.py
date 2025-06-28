@@ -392,6 +392,23 @@ class DashboardQuickStatsView(LoginRequiredMixin, TemplateView):
             yesterday = today - timedelta(days=1)
             this_month = today.replace(day=1)
             
+            # Debug: بررسی محصولات موجود
+            product_debug = {
+                'total_products': CargoProduct.objects.count(),
+                'active_products': CargoProduct.objects.filter(status=True).count(),
+                'product_types_in_db': list(CargoProduct.objects.values_list('product_type', flat=True).distinct()),
+                'purchases_with_product': Purchase.objects.filter(cargo__isnull=False).count(),
+                'purchases_by_product': list(
+                    Purchase.objects.filter(cargo__isnull=False)
+                    .values('cargo__product_type')
+                    .annotate(count=Count('id'))
+                    .order_by('-count')
+                ),
+                'all_cargo_products': list(
+                    CargoProduct.objects.values('id', 'product_type', 'country', 'status', 'weight')[:20]
+                )
+            }
+            
             stats = {
                 # آمار خریدها
                 'purchases': {
@@ -441,10 +458,69 @@ class DashboardQuickStatsView(LoginRequiredMixin, TemplateView):
                     'complete': Barnameh.objects.filter(status='BARNAMEH_COMPLETE').count(),
                     'incomplete': Barnameh.objects.filter(status='BARNAMEH_INCOMPLETE').count(),
                     'today': Barnameh.objects.filter(barnameh_created_at__date=today).count()
-                }
+                },
+                
+                # Debug اطلاعات
+                'debug': product_debug
             }
             
             return JsonResponse(stats)
+            
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+class ProductDebugView(LoginRequiredMixin, TemplateView):
+    """Debug view برای بررسی مشکلات محصولات"""
+    
+    def get(self, request):
+        """دریافت اطلاعات کامل محصولات"""
+        try:
+            from core.PurchaseModel import Purchase
+            from core.CargoProductModel import CargoProduct
+            
+            # بررسی کامل محصولات
+            all_products = list(CargoProduct.objects.values(
+                'id', 'product_type', 'country', 'status', 'weight', 'cottage'
+            ))
+            
+            # بررسی خریدهای مرتبط
+            purchases_with_cargo = list(
+                Purchase.objects.filter(cargo__isnull=False)
+                .select_related('cargo')
+                .values(
+                    'id', 'cargo__id', 'cargo__product_type', 'cargo__country', 
+                    'order_weight', 'customer_price', 'created_at'
+                )[:50]  # آخرین 50 خرید
+            )
+            
+            # آمار محصولات
+            product_stats = {}
+            for product_type, display_name in CargoProduct.PRODUCT_TYPES:
+                count = CargoProduct.objects.filter(product_type=product_type).count()
+                purchases_count = Purchase.objects.filter(cargo__product_type=product_type).count()
+                product_stats[product_type] = {
+                    'display_name': display_name,
+                    'cargo_count': count,
+                    'purchases_count': purchases_count
+                }
+            
+            # بررسی null values
+            null_stats = {
+                'purchases_without_cargo': Purchase.objects.filter(cargo__isnull=True).count(),
+                'cargo_without_product_type': CargoProduct.objects.filter(product_type__isnull=True).count(),
+                'cargo_inactive': CargoProduct.objects.filter(status=False).count()
+            }
+            
+            return JsonResponse({
+                'all_products': all_products,
+                'recent_purchases': purchases_with_cargo,
+                'product_stats': product_stats,
+                'null_stats': null_stats,
+                'total_products': CargoProduct.objects.count(),
+                'total_purchases': Purchase.objects.count(),
+                'available_product_types': list(CargoProduct.PRODUCT_TYPES)
+            })
             
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
