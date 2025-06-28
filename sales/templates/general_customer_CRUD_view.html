@@ -731,6 +731,35 @@
             background-color: var(--hover-color);
         }
 
+        /* استایل دکمه شبکه‌های اجتماعی */
+        .social-media-btn {
+            background-color: #8b5cf6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .social-media-btn:hover {
+            background-color: #7c3aed;
+        }
+
+        .social-media-section h5 {
+            margin-bottom: 15px;
+            color: #8b5cf6;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
         /* استایل شماره‌های خرید */
         .purchase-phone-numbers {
             background-color: #f0f9ff;
@@ -981,6 +1010,18 @@
                                         <i class="fas fa-plus"></i> افزودن
                                     </button>
                                 </div>
+                            </form>
+                        </div>
+
+                        <!-- ارسال لینک شبکه‌های اجتماعی -->
+                        <div class="social-media-section" style="margin-top: 20px; padding-top: 20px; border-top: 2px dashed var(--border-color);">
+                            <h5><i class="fas fa-share-alt"></i> ارسال شبکه‌های اجتماعی</h5>
+                            <form method="post" class="social-media-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="send_social_media_links" value="true">
+                                <button type="submit" class="social-media-btn" onclick="return confirm('آیا مطمئن هستید که می‌خواهید لینک شبکه‌های اجتماعی را به همه شماره‌های فعال این مشتری ارسال کنید؟')">
+                                    <i class="fas fa-paper-plane"></i> ارسال شبکه‌های اجتماعی
+                                </button>
                             </form>
                         </div>
                     </div>

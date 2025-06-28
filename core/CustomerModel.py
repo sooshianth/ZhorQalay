@@ -220,18 +220,31 @@ class Customer(models.Model):
 
     def get_all_phone_numbers(self):
         """
-        Returns a list of all phone numbers associated with this customer.
-        Includes phone numbers from the PhoneNumber model, and if it exists,
+        Returns a list of all phone numbers associated with this customer that have SMS enabled.
+        Includes phone numbers from the PhoneNumber model (with sms_enabled=True),
+        purchase phone numbers (bazaargah and tahvil), and if it exists,
         the legacy phone_number field.
         """
-        # Get all phone numbers from the PhoneNumber model
-        numbers = [phone.number for phone in self.phone_numbers.all()]
+        numbers = set()
         
-        # Add the legacy phone number if it exists and is not already in the list
-        if self.phone_number and self.phone_number not in numbers:
-            numbers.append(self.phone_number)
+        # Get SMS-enabled phone numbers from the PhoneNumber model
+        for phone in self.phone_numbers.filter(sms_enabled=True):
+            numbers.add(phone.number)
+        
+        # Add phone numbers from purchases (bazaargah and tahvil)
+        for purchase in self.purchases_made.all():
+            if purchase.bazaargah_phone_number:
+                numbers.add(purchase.bazaargah_phone_number)
+            if purchase.tahvil_phone_number:
+                numbers.add(purchase.tahvil_phone_number)
+        
+        # Add the legacy phone number if it exists, is not already in the list,
+        # and customer has SMS preference enabled
+        if (self.phone_number and self.phone_number not in numbers and 
+            self.sms_preference):
+            numbers.add(self.phone_number)
             
-        return numbers
+        return list(numbers)
 
     def get_tasks_by_time(self):
         return self.tasks.order_by('due_date')
@@ -385,14 +398,23 @@ class Customer(models.Model):
         """
         Returns a list of unique phone numbers from customer's purchases.
         Includes bazaargah_phone_number and tahvil_phone_number from Purchase model.
+        Removes duplicates while keeping the first occurrence.
         """
-        phone_numbers = set()
+        phone_numbers = {}  # Use dict to keep track of first occurrence
+        result = []
         
         # Get phone numbers from purchases
         for purchase in self.purchases_made.all():
             if purchase.bazaargah_phone_number:
-                phone_numbers.add(('بازارگاه', purchase.bazaargah_phone_number, purchase.purchase_number))
+                phone_key = ('بازارگاه', purchase.bazaargah_phone_number)
+                if phone_key not in phone_numbers:
+                    phone_numbers[phone_key] = True
+                    result.append(('بازارگاه', purchase.bazaargah_phone_number, purchase.purchase_number))
+                    
             if purchase.tahvil_phone_number:
-                phone_numbers.add(('تحویل', purchase.tahvil_phone_number, purchase.purchase_number))
+                phone_key = ('تحویل', purchase.tahvil_phone_number)
+                if phone_key not in phone_numbers:
+                    phone_numbers[phone_key] = True
+                    result.append(('تحویل', purchase.tahvil_phone_number, purchase.purchase_number))
         
-        return list(phone_numbers)
+        return result

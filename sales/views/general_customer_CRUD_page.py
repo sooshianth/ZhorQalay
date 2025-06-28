@@ -594,6 +594,44 @@ def general_customer_CRUD_view(request):
                 messages.error(request, "شماره یافت نشد")
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
 
+        # ارسال لینک شبکه‌های اجتماعی
+        elif 'send_social_media_links' in request.POST:
+            try:
+                from sms_api.apis import queue_sms
+                
+                # متن پیام شبکه‌های اجتماعی
+                social_media_message = """لینک شبکه‌های اجتماعی شرکت تأمین نهاده سیمرغ:
+
+واتساپ: chat.whatsapp.com/DMqFJ2OUZXb9IA8GUqDMFH
+بله: ble.ir/join/baS6duS998
+روبیکا: rubika.ir/simurgh360
+ایتا: eitaa.com/simurgh360
+تلگرام: t.me/simurgh360
+اینستاگرام: instagram.com/simurgh360
+وبسایت: simurgh360.com
+ """
+
+                # ارسال به همه شماره‌های فعال مشتری
+                phone_numbers = customer.get_all_phone_numbers()
+                sent_count = 0
+                
+                for phone in phone_numbers:
+                    try:
+                        queue_sms(phone, social_media_message, notification_type='social_media_links')
+                        sent_count += 1
+                    except Exception as e:
+                        print(f"خطا در ارسال پیامک به شماره {phone}: {e}")
+                
+                if sent_count > 0:
+                    messages.success(request, f"لینک شبکه‌های اجتماعی به {sent_count} شماره ارسال شد")
+                else:
+                    messages.error(request, "خطا در ارسال پیامک")
+                    
+            except Exception as e:
+                messages.error(request, f"خطا در ارسال لینک شبکه‌های اجتماعی: {str(e)}")
+                
+            return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
+
     # دریافت داده‌ها برای نمایش
     calls = customer.get_calls_by_time() if customer else []
     tasks = customer.get_tasks_by_time() if customer else []

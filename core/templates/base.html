@@ -233,8 +233,20 @@
             <div class="messages-container">
                 {% for message in messages %}
                 <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
-                    <i class="{% if message.tags == 'success' %}fas fa-check-circle{% else %}fas fa-exclamation-triangle{% endif %}"></i>
-                    {{ message }}
+                    {% if message.tags == 'success' %}
+                        <i class="fas fa-check-circle"></i>
+                    {% elif message.tags == 'error' %}
+                        <i class="fas fa-exclamation-circle"></i>
+                    {% elif message.tags == 'warning' %}
+                        <i class="fas fa-exclamation-triangle"></i>
+                    {% elif message.tags == 'info' %}
+                        <i class="fas fa-info-circle"></i>
+                    {% elif message.tags == 'debug' %}
+                        <i class="fas fa-bug"></i>
+                    {% else %}
+                        <i class="fas fa-bell"></i>
+                    {% endif %}
+                    <span>{{ message }}</span>
                 </div>
                 {% endfor %}
             </div>
@@ -412,18 +424,34 @@
             });
         }
         
+        // مدیریت ساده پیام‌ها
+        function initializeMessages() {
+            const messages = document.querySelectorAll('.message:not([data-initialized])');
+            
+            messages.forEach((message, index) => {
+                message.setAttribute('data-initialized', 'true');
+                
+                // بستن خودکار فقط پیام‌های موفق
+                if (message.classList.contains('success')) {
+                    setTimeout(() => {
+                        if (message.parentNode) {
+                            message.style.opacity = '0';
+                            message.style.transform = 'translateX(100px)';
+                            setTimeout(() => {
+                                if (message.parentNode) {
+                                    message.remove();
+                                }
+                            }, 300);
+                        }
+                    }, 4000);
+                }
+            });
+        }
+        
         // اجرای تابع بعد از بارگذاری کامل صفحه
-        document.addEventListener('DOMContentLoaded', applyVazirFont);
-        
-        // اجرای مجدد تابع بعد از هر تغییر در DOM
-        const observer = new MutationObserver(() => {
+        document.addEventListener('DOMContentLoaded', () => {
             applyVazirFont();
-        });
-        
-        // شروع نظارت بر تغییرات DOM
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
+            initializeMessages();
         });
     </script>
 </body>
