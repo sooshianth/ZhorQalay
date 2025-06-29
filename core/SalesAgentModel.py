@@ -37,12 +37,15 @@ class SalesAgent(models.Model):
         دریافت خریدهای انجام شده در یک بازه زمانی با فیلترهای مختلف
         با توجه به سیستم استیجینگ جدید
         """
+        from .PurchaseModel import Purchase
+        
         if start_date is None:
             start_date = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         if end_date is None:
             end_date = timezone.now()
             
         filters = Q(created_at__gte=start_date, created_at__lte=end_date)
+        filters &= Q(unique_sales_agent=self)  # فیلتر مستقیم بر اساس unique_sales_agent
         
         # فیلتر بر اساس وضعیت پرداخت
         paid_states = [
@@ -63,11 +66,7 @@ class SalesAgent(models.Model):
         else:
             filters &= ~Q(state='ARCHIVED')
         
-        sales = []
-        for customer in self.get_all_customers():
-            sales.extend(customer.purchases_made.filter(filters))
-            
-        return sales
+        return Purchase.objects.filter(filters)
 
     def get_this_month_sales(self):
         """دریافت همه خریدهای پرداخت شده و غیرآرشیوی ماه جاری."""
@@ -104,6 +103,8 @@ class SalesAgent(models.Model):
 
     def get_potential_sales(self):
         """دریافت همه خریدهای پرداخت نشده و غیرآرشیوی (درآمد بالقوه آینده)."""
+        from .PurchaseModel import Purchase
+        
         now = timezone.now()
         start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         
@@ -113,25 +114,26 @@ class SalesAgent(models.Model):
         filters = Q(created_at__gte=start_of_month, created_at__lte=timezone.now())
         filters &= Q(state__in=unpaid_states)
         filters &= ~Q(state='ARCHIVED')
+        filters &= Q(unique_sales_agent=self)  # فیلتر مستقیم بر اساس unique_sales_agent
         
-        sales = []
-        for customer in self.get_all_customers():
-            sales.extend(customer.purchases_made.filter(filters))
-            
-        return sales
+        return Purchase.objects.filter(filters)
     
     def get_all_unpaid_sales(self):
         """دریافت همه خریدهای پرداخت نشده صرف نظر از وضعیت آرشیو."""
+        from .PurchaseModel import Purchase
+        
         # وضعیت‌های پرداخت نشده
         unpaid_states = ['INITIATED', 'SMS_SENT']
         
-        unpaid_sales = []
-        for customer in self.get_all_customers():
-            unpaid_sales.extend(customer.purchases_made.filter(state__in=unpaid_states))
-        return unpaid_sales
+        filters = Q(state__in=unpaid_states)
+        filters &= Q(unique_sales_agent=self)  # فیلتر مستقیم بر اساس unique_sales_agent
+        
+        return Purchase.objects.filter(filters)
 
     def get_all_active_sales(self):
         """دریافت همه خریدهای پرداخت شده و غیرآرشیوی."""
+        from .PurchaseModel import Purchase
+        
         # وضعیت‌های پرداخت شده و فعال
         active_states = [
             'PAYMENT_VERIFIED', 'ALLOCATION_APPROVED', 
@@ -142,17 +144,19 @@ class SalesAgent(models.Model):
             'FINANCIAL_APPROVED', 'COMPLETED'
         ]
         
-        active_sales = []
-        for customer in self.get_all_customers():
-            active_sales.extend(customer.purchases_made.filter(state__in=active_states))
-        return active_sales
+        filters = Q(state__in=active_states)
+        filters &= Q(unique_sales_agent=self)  # فیلتر مستقیم بر اساس unique_sales_agent
+        
+        return Purchase.objects.filter(filters)
 
     def get_all_archived_sales(self):
         """دریافت همه خریدهای آرشیو شده."""
-        archived_sales = []
-        for customer in self.get_all_customers():
-            archived_sales.extend(customer.purchases_made.filter(state='ARCHIVED'))
-        return archived_sales
+        from .PurchaseModel import Purchase
+        
+        filters = Q(state='ARCHIVED')
+        filters &= Q(unique_sales_agent=self)  # فیلتر مستقیم بر اساس unique_sales_agent
+        
+        return Purchase.objects.filter(filters)
 
     def get_tasks_by_status(self, status=None, due_date=None):
         tasks = []

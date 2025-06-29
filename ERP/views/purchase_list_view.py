@@ -93,8 +93,8 @@ def purchase_list(request):
     if user_role == 'sales_agent':
         # بررسی اینکه آیا کاربر sales_agent دارد یا نه
         if hasattr(request.user, 'sales_agent') and request.user.sales_agent:
-            # فیلتر ساده‌تر برای کارشناس فروش
-            sales_agent_filter = Q(customer__sales_agent=request.user.sales_agent)
+            # فیلتر مستقیم بر اساس unique_sales_agent
+            sales_agent_filter = Q(unique_sales_agent=request.user.sales_agent)
             active_purchases = active_purchases.filter(sales_agent_filter)
             pending_payment_purchases = pending_payment_purchases.filter(sales_agent_filter)
             pending_payment_count = pending_payment_purchases.count()
@@ -128,8 +128,8 @@ def purchase_list(request):
         filters &= Q(customer__name__icontains=customer)
     
     if sales_agent:
-        # جستجو ساده‌تر در کارشناس فروش
-        filters &= Q(customer__sales_agent__name__icontains=sales_agent)
+        # جستجو مستقیم در کارشناس فروش
+        filters &= Q(unique_sales_agent__name__icontains=sales_agent)
     
     if invoice_id:
         filters &= Q(invoice_id__icontains=invoice_id)
@@ -386,7 +386,7 @@ def load_archived_purchases(request):
         # فیلتر برای کارشناس فروش
         if user_role == 'sales_agent':
             if hasattr(request.user, 'sales_agent') and request.user.sales_agent:
-                archived_purchases = archived_purchases.filter(customer__sales_agent=request.user.sales_agent)
+                archived_purchases = archived_purchases.filter(unique_sales_agent=request.user.sales_agent)
             else:
                 # اگر کاربر sales_agent ندارد، هیچ خریدی نمایش نده
                 archived_purchases = Purchase.objects.none()

@@ -13,7 +13,7 @@
     {% edit_history_scripts %}
     <script src="{% static 'js/drag_and_drop_columns.js' %}?v=1748703972" defer></script>
     <script src="{% static 'js/purchase_aggregated_stats.js' %}?v=1748703972" defer></script>
-    <script src="{% static 'js/table_pagination.js' %}?v=1748703972" defer></script>
+
     <script src="{% static 'js/purchase_list_scripts.js' %}?v=1748703972"></script>
     
     <!-- Purchase Sections Management Script -->
@@ -121,8 +121,6 @@
     
     <!-- Configuration data for JavaScript -->
     <div id="purchase-list-config"
-         data-per-page="{{ per_page }}"
-         data-per-page-options="{{ per_page_options|safe }}"
          data-hide-sensitive-info="{% if hide_sensitive_info %}true{% else %}false{% endif %}"
          data-update-columns-url="{% url 'update_columns' %}"
          data-bulk-edit-page-url="{% url 'table_filter:bulk_edit_page' %}"
@@ -139,7 +137,6 @@
         updateColumnsUrl: "{% url 'update_columns' %}",
         exportPurchasesUrl: "{% url 'export_purchases' %}",
         purchaseAggregatedStatsUrl: "{% url 'purchase_aggregated_stats' %}",
-        perPage: {{ per_page }},
         hideSensitiveInfo: {% if hide_sensitive_info %}true{% else %}false{% endif %}
     };
     
@@ -193,17 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
-        
-        // راه‌اندازی pagination
-        if (typeof TablePagination !== 'undefined') {
-            window.tablePagination = new TablePagination({
-                tableSelector: '#activePurchasesTable',
-                perPage: {{ per_page }},
-                perPageOptions: {{ per_page_options|safe }},
-                debug: true
-            });
-            console.log('Table pagination initialized');
-        }
+
     }, 500);
 });
 </script>
@@ -515,20 +502,10 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="search-panel mb-4 shadow-sm">
     <form id="searchForm" method="GET" action="">
         <div class="row">
-            <div class="col-md-6">
+            <div class="col-md-8">
                 <label for="globalSearch" class="form-label fw-bold"><i class="fas fa-search me-2"></i>جستجوی سریع:</label>
                 <input type="text" id="globalSearch" name="global_search" class="form-control" 
                        placeholder="جستجوی سریع در تمام فیلدها..." value="{{ search_params.global_search }}">
-            </div>
-            <div class="col-md-2">
-                <label for="perPageSelect" class="form-label fw-bold"><i class="fas fa-list me-2"></i>تعداد نمایش:</label>
-                <select id="perPageSelect" name="per_page" class="form-select">
-                    {% for option in per_page_options %}
-                    <option value="{{ option }}" {% if option == per_page %}selected{% endif %}>
-                        {{ option }} رکورد
-                    </option>
-                    {% endfor %}
-                </select>
             </div>
             <div class="col-md-2 d-flex align-items-end">
                 <button type="submit" class="btn btn-success w-100 text-white shadow-sm">
@@ -543,7 +520,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <!-- Hidden inputs to preserve other search parameters -->
         {% for key, value in search_params.items %}
-            {% if key != 'global_search' and key != 'per_page' and key != 'active_page' and key != 'archived_page' and value %}
+            {% if key != 'global_search' and value %}
                 <input type="hidden" name="{{ key }}" value="{{ value }}">
             {% endif %}
         {% endfor %}
@@ -770,7 +747,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {% if active_purchases %}
 
-<!-- Pagination برای خریدهای فعال با JavaScript مدیریت می‌شود -->
+
 
 <!-- Bulk Edit Controls Panel -->
 <div class="bulk-edit-controls" style="display: none;">
@@ -1075,7 +1052,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <div id="archivedTableContainer" style="display: none;">
 {% if archived_count > 0 %}
 
-<!-- Pagination برای خریدهای آرشیو شده با JavaScript مدیریت می‌شود -->
+
 
 <div class="table-responsive shadow-sm rounded">
 <table class="table table-bordered table-striped align-middle text-center enable-filter" id="archivedPurchasesTable">

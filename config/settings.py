@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'data_exflow.apps.DataExflowConfig',
     'table_filter.apps.TableFilterConfig',
     'bi.apps.BIConfig',
+    'fledger.apps.FledgerConfig',
 ]
 
 MIDDLEWARE = [
@@ -154,6 +155,7 @@ STATICFILES_DIRS = [
     # BASE_DIR / "excel_manager/static",
     BASE_DIR / "sms_api/static",
     BASE_DIR / "whatsapp_api/static",
+    BASE_DIR / "fledger/static",
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

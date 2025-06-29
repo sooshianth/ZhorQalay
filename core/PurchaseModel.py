@@ -84,6 +84,8 @@ class Purchase(models.Model):
     is_fully_tasvied = models.BooleanField("تسویه کامل", default=False)
     is_factored = models.BooleanField("ثبت فاکتور", default=False)
 
+    wallet_index = models.CharField("شاخص محاسبه کیف پول", max_length=1, default='0', choices=[('0', 'وزن سفارش'), ('1', 'وزن تحویلی')])
+
     PRIORITY_CHOICES = [
         ('low', 'عادی'),
         ('medium', 'مهم'),

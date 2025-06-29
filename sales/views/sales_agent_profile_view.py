@@ -146,7 +146,7 @@ def delete_unpaid_purchase(request, purchase_id):
     # Get the specific unpaid purchase that belongs to this sales agent
     purchase = get_object_or_404(Purchase, 
                                id=purchase_id,
-                               customer__sales_agent=sales_agent,
+                               unique_sales_agent=sales_agent,
                                state__in=['INITIATED', 'SMS_SENT'])
     
     try:

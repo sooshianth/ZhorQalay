@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}داشبورد مدیریت کیف پول واردکنندگان{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<style>
+    .stats-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    .stats-card h3 {
+        color: #2c3e50;
+        margin-bottom: 10px;
+        font-size: 2rem;
+    }
+    .stats-card p {
+        color: #7f8c8d;
+        margin: 0;
+        font-size: 0.9rem;
+    }
+    .balance-positive { color: #27ae60; }
+    .balance-negative { color: #e74c3c; }
+    .balance-zero { color: #95a5a6; }
+    
+    .action-buttons {
+        margin: 20px 0;
+    }
+    .action-buttons .btn {
+        margin: 5px;
+    }
+    
+    .table-container {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    .table-header {
+        background: #3498db;
+        color: white;
+        padding: 15px 20px;
+        margin: 0;
+        font-size: 1.1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="padding: 20px;">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">داشبورد مدیریت کیف پول واردکنندگان</h1>
+        </div>
+    </div>
+
+    <!-- آمار کلی -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3>{{ total_wallets }}</h3>
+                <p>کل کیف پول‌ها</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3>{{ total_transactions }}</h3>
+                <p>تراکنش‌های تایید شده</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3 class="{% if total_balance >= 0 %}balance-positive{% else %}balance-negative{% endif %}">
+                    {{ total_balance|floatformat:0 }} ریال
+                </h3>
+                <p>کل موجودی سیستم</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3 class="{% if pending_transactions > 0 %}balance-negative{% else %}balance-positive{% endif %}">
+                    {{ pending_transactions }}
+                </h3>
+                <p>تراکنش‌های در انتظار</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- دکمه‌های عملیات -->
+    <div class="row">
+        <div class="col-12">
+            <div class="action-buttons text-center">
+                <a href="{% url 'fledger:wallet_list' %}" class="btn btn-primary">
+                    <i class="fas fa-wallet"></i> مدیریت کیف پول‌ها
+                </a>
+                <a href="{% url 'fledger:transaction_list' %}" class="btn btn-success">
+                    <i class="fas fa-exchange-alt"></i> مدیریت تراکنش‌ها
+                </a>
+                <a href="{% url 'fledger:ledger_entries' %}" class="btn btn-info">
+                    <i class="fas fa-book"></i> دفتر کل
+                </a>
+                <form method="post" action="{% url 'fledger:recalculate_wallets' %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-warning" onclick="return confirm('آیا از محاسبه مجدد تمام کیف پول‌ها اطمینان دارید؟')">
+                        <i class="fas fa-calculator"></i> محاسبه مجدد موجودی‌ها
+                    </button>
+                </form>
+                <form method="post" action="{% url 'fledger:sync_purchases' %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-secondary" onclick="return confirm('آیا از همگام‌سازی خریدها با دفتر کل اطمینان دارید؟')">
+                        <i class="fas fa-sync"></i> همگام‌سازی خریدها
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- واردکنندگان با بیشترین بدهی -->
+        {% if top_debtors %}
+        <div class="col-md-6">
+            <div class="table-container">
+                <h4 class="table-header">بیشترین بدهی‌ها</h4>
+                <div class="table-responsive">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>واردکننده</th>
+                                <th>موجودی</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for wallet in top_debtors %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'fledger:wallet_detail' wallet.id %}">
+                                        {{ wallet.varedkonandeh.name }}
+                                    </a>
+                                </td>
+                                <td class="balance-negative">
+                                    {{ wallet.balance|floatformat:0 }} ریال
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- واردکنندگان با بیشترین موجودی مثبت -->
+        {% if top_creditors %}
+        <div class="col-md-6">
+            <div class="table-container">
+                <h4 class="table-header">بیشترین موجودی‌ها</h4>
+                <div class="table-responsive">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>واردکننده</th>
+                                <th>موجودی</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for wallet in top_creditors %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'fledger:wallet_detail' wallet.id %}">
+                                        {{ wallet.varedkonandeh.name }}
+                                    </a>
+                                </td>
+                                <td class="balance-positive">
+                                    {{ wallet.balance|floatformat:0 }} ریال
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- تراکنش‌های اخیر -->
+    {% if recent_transactions %}
+    <div class="row">
+        <div class="col-12">
+            <div class="table-container">
+                <h4 class="table-header">تراکنش‌های اخیر</h4>
+                <div class="table-responsive">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>واردکننده</th>
+                                <th>نوع</th>
+                                <th>مبلغ</th>
+                                <th>توضیحات</th>
+                                <th>تاریخ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in recent_transactions %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'fledger:wallet_detail' transaction.wallet.id %}">
+                                        {{ transaction.wallet.varedkonandeh.name }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="badge badge-{% if transaction.transaction_type == 'deposit' %}success{% elif transaction.transaction_type == 'withdrawal' %}danger{% else %}info{% endif %}">
+                                        {{ transaction.get_transaction_type_display }}
+                                    </span>
+                                </td>
+                                <td class="{% if transaction.transaction_type == 'deposit' %}balance-positive{% else %}balance-negative{% endif %}">
+                                    {{ transaction.amount|floatformat:0 }} ریال
+                                </td>
+                                <td>{{ transaction.description|default:"-"|truncatechars:50 }}</td>
+                                <td>{{ transaction.created_at }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // هر 30 ثانیه، صفحه را رفرش کن برای بروزرسانی آمار
+    setTimeout(function() {
+        window.location.reload();
+    }, 30000);
+</script>
+{% endblock %} 
