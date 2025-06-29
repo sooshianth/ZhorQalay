@@ -22,6 +22,7 @@ urlpatterns = [
     path('data-exflow/', include('data_exflow.urls')),
     path('table_filter/', include('table_filter.urls')),
     path('bi/', include('bi.urls')),
+    path('fledger/', include(('fledger.urls', 'fledger'), namespace='fledger')),
     path('', include('authentication.urls')),
     # هدایت مسیرهای قدیمی به صفحه ورود جدید
     path('sales_agent_login/', RedirectView.as_view(pattern_name='unified_login', permanent=True)),

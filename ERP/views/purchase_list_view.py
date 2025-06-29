@@ -15,7 +15,7 @@ from core.decorators.det_user_role import determine_user_role
 from datetime import datetime
 from django.views.decorators.cache import cache_page
 from django.core.cache import cache
-
+from core.PurchaseModel import Purchase, PurchaseEditLog
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
@@ -93,8 +93,8 @@ def purchase_list(request):
     if user_role == 'sales_agent':
         # بررسی اینکه آیا کاربر sales_agent دارد یا نه
         if hasattr(request.user, 'sales_agent') and request.user.sales_agent:
-            # فیلتر ساده‌تر برای کارشناس فروش
-            sales_agent_filter = Q(customer__sales_agent=request.user.sales_agent)
+            # فیلتر مستقیم بر اساس unique_sales_agent
+            sales_agent_filter = Q(unique_sales_agent=request.user.sales_agent)
             active_purchases = active_purchases.filter(sales_agent_filter)
             pending_payment_purchases = pending_payment_purchases.filter(sales_agent_filter)
             pending_payment_count = pending_payment_purchases.count()
@@ -128,8 +128,8 @@ def purchase_list(request):
         filters &= Q(customer__name__icontains=customer)
     
     if sales_agent:
-        # جستجو ساده‌تر در کارشناس فروش
-        filters &= Q(customer__sales_agent__name__icontains=sales_agent)
+        # جستجو مستقیم در کارشناس فروش
+        filters &= Q(unique_sales_agent__name__icontains=sales_agent)
     
     if invoice_id:
         filters &= Q(invoice_id__icontains=invoice_id)
@@ -180,34 +180,11 @@ def purchase_list(request):
         pending_payment_purchases = pending_payment_purchases.filter(filters)
         pending_payment_count = pending_payment_purchases.count()
     
-    # حذف محدودیت 500 رکورد - pagination در frontend مدیریت می‌شود
+    # حذف محدودیت 500 رکورد - نمایش همه خریدها
     # active_purchases = active_purchases[:500]  # این خط حذف شده است
-    
-    # تنظیمات پیجینیشن جاوااسکریپتی
-    per_page = request.GET.get('per_page', '50')  # پیش‌فرض 50 رکورد در هر صفحه
-    try:
-        per_page = int(per_page)
-        if per_page not in [10, 25, 50, 100, 200]:  # محدود کردن به گزینه‌های مجاز
-            per_page = 50
-    except (ValueError, TypeError):
-        per_page = 50
     
     # فهرست وضعیت‌ها برای فیلتر
     all_states = dict(Purchase.STATUS_CHOICES)
-
-    # تعریف ایندکس ستون ها برای نمایش/مخفی کردن آنها در جاوااسکریپت
-    column_indices = {
-        'purchase_number': 1,
-        'date': 2,
-        'customer': 3,
-        'invoice_id': 4,
-        'sales_agent': 5,
-        'weight': 6,
-        'cargo': 7,
-        'importer': 8,
-        'status': 9,
-        'actions': 10
-    }
     
     # تعریف ستون‌های مجاز برای کارشناسان فروش و پیگیری
     if user_role in ['sales_agent', 'support_agent']:
@@ -342,8 +319,6 @@ def purchase_list(request):
         'user_role': user_role,
         'hide_sensitive_info': hide_sensitive_info,
         'is_restricted_user': user_role in ['sales_agent', 'support_agent'],  # برای غیرفعال کردن drag & drop
-        'per_page': per_page,
-        'per_page_options': [25, 50, 100, 200],
         'total_active_purchases': active_purchases.count(),  # تعداد واقعی رکوردها
         'search_params': {
             'global_search': global_search,
@@ -354,7 +329,6 @@ def purchase_list(request):
             'cottage': cottage,
             'state': state,
             'is_archived': is_archived,
-            'per_page': per_page,
         },
         'selected_columns': selected_columns,
         'all_columns': all_columns,
@@ -386,7 +360,7 @@ def load_archived_purchases(request):
         # فیلتر برای کارشناس فروش
         if user_role == 'sales_agent':
             if hasattr(request.user, 'sales_agent') and request.user.sales_agent:
-                archived_purchases = archived_purchases.filter(customer__sales_agent=request.user.sales_agent)
+                archived_purchases = archived_purchases.filter(unique_sales_agent=request.user.sales_agent)
             else:
                 # اگر کاربر sales_agent ندارد، هیچ خریدی نمایش نده
                 archived_purchases = Purchase.objects.none()
@@ -508,16 +482,13 @@ def export_to_excel(request):
         print("ERROR: No purchase IDs!")
         return JsonResponse({'status': 'error', 'message': 'هیچ خریدی انتخاب نشده است'}, status=400)
     
-    # بررسی تعداد خریدها برای انتخاب روش پردازش
+    # بررسی تعداد خریدها
     total_count = len(purchase_ids)
     print(f"Total purchases to export: {total_count}")
     
     try:
-        # برای تعداد زیاد از streaming response استفاده کنیم
-        if total_count > 500:
-            return _export_large_excel_stream(purchase_ids, selected_columns)
-        else:
-            return _export_regular_excel(purchase_ids, selected_columns)
+        # استفاده از روش معمولی برای همه خریدها
+        return _export_regular_excel(purchase_ids, selected_columns)
             
     except Exception as e:
         # لاگ خطا
@@ -657,142 +628,7 @@ def _export_regular_excel(purchase_ids, selected_columns):
     wb.save(response)
     return response
 
-def _export_large_excel_stream(purchase_ids, selected_columns):
-    """پردازش بهینه شده برای تعداد زیاد خرید با streaming"""
-    from django.http import StreamingHttpResponse
-    import tempfile
-    import os
-    
-    # ایجاد فایل موقت
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx')
-    temp_file.close()
-    
-    try:
-        # ایجاد workbook در فایل موقت
-        wb = Workbook(write_only=True)  # استفاده از write-only mode برای صرفه‌جویی در حافظه
-        ws = wb.create_sheet()
-        ws.title = "لیست خریدها"
-        
-        # مپینگ کامل ستون‌ها - نسخه کامل برای پشتیبانی از همه فیلدها
-        column_mapping = {
-            'purchase_number': ('شماره خرید', lambda p: p.purchase_number or "تعیین نشده"),
-            'date': ('تاریخ', lambda p: p.created_at.strftime("%Y/%m/%d") if p.created_at else "-"),
-            'customer': ('نام مشتری', lambda p: p.customer.name if p.customer else "نامشخص"),
-            'invoice_id': ('کد درون سازمانی', lambda p: p.invoice_id or "تعیین نشده"),
-            'sales_agent': ('نماینده فروش', lambda p: p.unique_sales_agent.name if p.unique_sales_agent else "-"),
-            'weight': ('وزن (کیلوگرم)', lambda p: f"{p.order_weight:,}" if p.order_weight else "0"),
-            'cargo': ('کوتاژ', lambda p: p.cargo.cottage if p.cargo and hasattr(p.cargo, 'cottage') else "-"),
-            'importer': ('واردکننده', lambda p: p.cargo.vared_konandeh.name if p.cargo and hasattr(p.cargo, 'vared_konandeh') and p.cargo.vared_konandeh else "-"),
-            'status': ('وضعیت', lambda p: dict(Purchase.STATUS_CHOICES).get(p.state, p.state) if p.state else "-"),
-            'address': ('آدرس', lambda p: p.address or "-"),
-            'description': ('توضیحات', lambda p: p.description or "-"),
-            'factor_code': ('فاکتور مبنا', lambda p: "بله" if p.factor_code else "خیر"),
-            'tracking_number': ('شماره پیگیری', lambda p: p.tracking_number or "-"),
-            'shenase_takhsis': ('شناسه‌های تخصیص', lambda p: p.shenase_takhsis if hasattr(p, 'shenase_takhsis') and p.shenase_takhsis else "-"),
-            'code_melli_tahvil': ('کد ملی تحویل', lambda p: p.code_melli_tahvil or "-"),
-            'bazaargah_phone_number': ('شماره تلفن بازارگاه', lambda p: p.bazaargah_phone_number or "-"),
-            'buyer_name': ('نام خریدار', lambda p: p.buyer_name or "-"),
-            'tahvil_phone_number': ('شماره تلفن تحویل', lambda p: p.tahvil_phone_number or "-"),
-            'send_cottage_sms': ('ارسال پیامک کوتاژ', lambda p: "بله" if p.send_cottage_sms else "خیر"),
-            'total_weight': ('وزن کل (کیلوگرم)', lambda p: f"{p.total_weight:,}" if p.total_weight else "0"),
-            'delivered_weight': ('وزن بارنامه شده (کیلوگرم)', lambda p: f"{p.delivered_weight:,}" if p.delivered_weight else "0"),
-            'type': ('نوع خرید', lambda p: "بازارگاه" if p.type == "bazaargah" else "خارج از بازارگاه" if p.type == "non_bazaargah" else p.type or "-"),
-            'payment_method': ('شیوه پرداخت', lambda p: p.payment_method or "-"),
-            'updated_at': ('تاریخ بروزرسانی', lambda p: p.updated_at.strftime("%Y/%m/%d") if p.updated_at else "-"),
-            'is_weight_costed': ('کسر از وزن موجود', lambda p: "بله" if p.is_weight_costed else "خیر"),
-            'is_ap_af': ('اتوکامپلیت شده', lambda p: "بله" if p.is_ap_af else "خیر"),
-            'extelaf_type': ('نوع اختلاف', lambda p: p.extelaf_type or "-"),
-            'extelaf_weight': ('وزن اختلاف (کیلوگرم)', lambda p: f"{p.extelaf_weight:,}" if p.extelaf_weight else "0"),
-            'extelaf_amount': ('مبلغ اختلاف (ریال)', lambda p: f"{p.extelaf_amount:,}" if p.extelaf_amount else "0"),
-            'is_urgent': ('فوری', lambda p: "بله" if p.is_urgent else "خیر"),
-            'is_canceled': ('لغو شده', lambda p: "بله" if p.is_canceled else "خیر"),
-            'is_archived': ('آرشیو شده', lambda p: "بله" if p.is_archived else "خیر"),
-            'is_fully_tasvied': ('تسویه کامل', lambda p: "بله" if p.is_fully_tasvied else "خیر"),
-            'is_factored': ('ثبت فاکتور', lambda p: "بله" if p.is_factored else "خیر"),
-            'priority': ('اولویت', lambda p: dict(Purchase.PRIORITY_CHOICES).get(p.priority, p.priority) if p.priority else "-"),
-            'priority_reason': ('دلیل اولویت', lambda p: p.priority_reason or "-"),
-            'barbary': ('نام باربری', lambda p: p.cargo.barbary.name if p.cargo and hasattr(p.cargo, 'barbary') and p.cargo.barbary else "-"),
-            'company_price': ('فی خرید (ریال)', lambda p: f"{p.company_price:,}" if p.company_price else "0"),
-            'customer_price': ('فی فروش (ریال)', lambda p: f"{p.customer_price:,}" if p.customer_price else "0"),
-            'amount_paid': ('مبلغ پرداختی (ریال)', lambda p: f"{p.amount_paid:,}" if p.amount_paid else "0"),
-        }
-        
-        # افزودن هدرها
-        headers = []
-        for col in selected_columns:
-            if col in column_mapping:
-                headers.append(column_mapping[col][0])
-        ws.append(headers)
-        
-        # پردازش داده‌ها در batch های کوچک
-        batch_size = 100
-        total_processed = 0
-        
-        for i in range(0, len(purchase_ids), batch_size):
-            batch_ids = purchase_ids[i:i+batch_size]
-            
-            # دریافت batch از دیتابیس با انتخاب همه فیلدهای ضروری
-            purchases = Purchase.objects.filter(
-                id__in=batch_ids
-            ).select_related(
-                'customer', 'cargo', 'unique_sales_agent'
-            ).prefetch_related(
-                'shenase_takhsis_set', 'cargo__barbary', 'cargo__vared_konandeh'
-            ).order_by('-created_at')
-            
-            for purchase in purchases:
-                row = []
-                for col in selected_columns:
-                    if col in column_mapping:
-                        try:
-                            value = column_mapping[col][1](purchase)
-                            row.append(value)
-                        except Exception as e:
-                            print(f"خطا در استخراج مقدار {col} برای خرید {purchase.id}: {str(e)}")
-                            row.append("-")
-                
-                ws.append(row)
-                total_processed += 1
-                
-                # آزادسازی حافظه هر 50 رکورد
-                if total_processed % 50 == 0:
-                    print(f"Processed {total_processed} records")
-        
-        # ذخیره workbook
-        wb.save(temp_file.name)
-        wb.close()
-        
-        # ایجاد streaming response
-        def file_iterator(file_path, chunk_size=8192):
-            with open(file_path, 'rb') as f:
-                while True:
-                    chunk = f.read(chunk_size)
-                    if not chunk:
-                        break
-                    yield chunk
-            # حذف فایل موقت بعد از ارسال
-            try:
-                os.unlink(file_path)
-            except:
-                pass
-        
-        filename = f"purchases_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-        response = StreamingHttpResponse(
-            file_iterator(temp_file.name),
-            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        
-        print(f"Successfully processed {total_processed} purchases for export")
-        return response
-        
-    except Exception as e:
-        # حذف فایل موقت در صورت خطا
-        try:
-            os.unlink(temp_file.name)
-        except:
-            pass
-        raise e
+
 
 
 

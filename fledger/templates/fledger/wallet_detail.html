@@ -1,0 +1,349 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}جزئیات کیف پول {{ wallet.varedkonandeh.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<style>
+    .wallet-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+    
+    .balance-card {
+        text-align: center;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .balance-positive { 
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+    }
+    .balance-negative { 
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+    }
+    .balance-zero { 
+        background: linear-gradient(135deg, #d299c2 0%, #fef9d7 100%);
+        color: #333;
+    }
+    
+    .info-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    .summary-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .summary-item:last-child {
+        border-bottom: none;
+    }
+    
+    .transaction-badge {
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+    
+    .btn-action {
+        margin: 2px;
+        padding: 5px 10px;
+        font-size: 0.8rem;
+    }
+    
+    .nav-tabs .nav-link {
+        border: 1px solid transparent;
+        border-top-left-radius: 0.25rem;
+        border-top-right-radius: 0.25rem;
+    }
+    
+    .nav-tabs .nav-link.active {
+        background-color: #007bff;
+        border-color: #007bff;
+        color: white;
+    }
+    
+    .tab-content {
+        background: white;
+        border-radius: 0 0 10px 10px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="padding: 20px;">
+    <!-- هدر کیف پول -->
+    <div class="wallet-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-2">{{ wallet.varedkonandeh.name }}</h1>
+                <p class="mb-1">
+                    <i class="fas fa-phone"></i> 
+                    {% if wallet.varedkonandeh.phone_number %}
+                        {{ wallet.varedkonandeh.phone_number }}
+                    {% else %}
+                        شماره تماس ثبت نشده
+                    {% endif %}
+                </p>
+                {% if wallet.varedkonandeh.email %}
+                <p class="mb-1">
+                    <i class="fas fa-envelope"></i> {{ wallet.varedkonandeh.email }}
+                </p>
+                {% endif %}
+                {% if wallet.description %}
+                <p class="mb-0">
+                    <i class="fas fa-info-circle"></i> {{ wallet.description }}
+                </p>
+                {% endif %}
+            </div>
+            <div class="col-md-4 text-right">
+                <a href="{% url 'fledger:wallet_list' %}" class="btn btn-light">
+                    <i class="fas fa-arrow-right"></i> بازگشت به لیست
+                </a>
+                <a href="{% url 'fledger:create_transaction' %}?wallet_id={{ wallet.id }}" class="btn btn-success ml-2">
+                    <i class="fas fa-plus"></i> تراکنش جدید
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- موجودی کیف پول -->
+        <div class="col-md-4">
+            <div class="balance-card {% if wallet.balance > 0 %}balance-positive{% elif wallet.balance < 0 %}balance-negative{% else %}balance-zero{% endif %}">
+                <h2>موجودی فعلی</h2>
+                <h1 style="font-size: 2.5rem; margin: 20px 0;">
+                    {{ wallet.balance|floatformat:0 }} ریال
+                </h1>
+                <p>آخرین بروزرسانی: {{ wallet.updated_at }}</p>
+            </div>
+        </div>
+
+        <!-- خلاصه خریدها -->
+        <div class="col-md-8">
+            <div class="info-card">
+                <h4 class="mb-3">
+                    <i class="fas fa-chart-bar"></i> خلاصه خریدها
+                </h4>
+                <div class="summary-item">
+                    <span>تعداد کل خریدها:</span>
+                    <strong>{{ purchase_summary.total_purchases }}</strong>
+                </div>
+                <div class="summary-item">
+                    <span>کل وزن سفارش:</span>
+                    <strong>{{ purchase_summary.total_order_weight|floatformat:0 }} کیلوگرم</strong>
+                </div>
+                <div class="summary-item">
+                    <span>کل وزن تحویل شده:</span>
+                    <strong>{{ purchase_summary.total_delivered_weight|floatformat:0 }} کیلوگرم</strong>
+                </div>
+                <div class="summary-item">
+                    <span>مبلغ کل (بر اساس سفارش):</span>
+                    <strong class="text-danger">{{ purchase_summary.total_order_amount|floatformat:0 }} ریال</strong>
+                </div>
+                <div class="summary-item">
+                    <span>مبلغ کل (بر اساس تحویل):</span>
+                    <strong class="text-danger">{{ purchase_summary.total_delivered_amount|floatformat:0 }} ریال</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- محصولات -->
+    {% if purchase_summary.products %}
+    <div class="row">
+        <div class="col-12">
+            <div class="info-card">
+                <h4 class="mb-3">
+                    <i class="fas fa-boxes"></i> تفکیک محصولات
+                </h4>
+                <div class="row">
+                    {% for product, data in purchase_summary.products.items %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">{{ product }}</h6>
+                                <p class="card-text">
+                                    <small class="text-muted">تعداد: {{ data.count }} خرید</small><br>
+                                    <small class="text-muted">وزن: {{ data.total_weight|floatformat:0 }} کیلوگرم</small><br>
+                                    <small class="text-danger">مبلغ: {{ data.total_amount|floatformat:0 }} ریال</small>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- تب‌ها برای تراکنش‌ها و ثبت‌های دفتر -->
+    <div class="row">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="detailTabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" id="transactions-tab" data-toggle="tab" href="#transactions" role="tab">
+                        <i class="fas fa-exchange-alt"></i> تراکنش‌ها ({{ transactions.count }})
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="ledger-tab" data-toggle="tab" href="#ledger" role="tab">
+                        <i class="fas fa-book"></i> ثبت‌های دفتر ({{ ledger_entries.count }})
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="tab-content" id="detailTabsContent">
+                <!-- تراکنش‌ها -->
+                <div class="tab-pane fade show active" id="transactions" role="tabpanel">
+                    {% if transactions %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ردیف</th>
+                                    <th>نوع</th>
+                                    <th>مبلغ</th>
+                                    <th>وضعیت</th>
+                                    <th>توضیحات</th>
+                                    <th>تاریخ</th>
+                                    <th>عملیات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in transactions %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>
+                                        <span class="badge badge-{% if transaction.transaction_type == 'deposit' %}success{% elif transaction.transaction_type == 'withdrawal' %}danger{% else %}info{% endif %}">
+                                            {{ transaction.get_transaction_type_display }}
+                                        </span>
+                                    </td>
+                                    <td class="{% if transaction.transaction_type == 'deposit' %}text-success{% else %}text-danger{% endif %}">
+                                        {{ transaction.amount|floatformat:0 }} ریال
+                                    </td>
+                                    <td>
+                                        <span class="transaction-badge badge-{% if transaction.status == 'approved' %}success{% elif transaction.status == 'pending' %}warning{% else %}danger{% endif %}">
+                                            {{ transaction.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ transaction.description|default:"-"|truncatechars:50 }}</td>
+                                    <td>{{ transaction.created_at }}</td>
+                                    <td>
+                                        {% if transaction.status == 'pending' %}
+                                        <form method="post" action="{% url 'fledger:approve_transaction' transaction.id %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-success btn-action">
+                                                <i class="fas fa-check"></i> تایید
+                                            </button>
+                                        </form>
+                                        <form method="post" action="{% url 'fledger:reject_transaction' transaction.id %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger btn-action">
+                                                <i class="fas fa-times"></i> لغو
+                                            </button>
+                                        </form>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-exchange-alt fa-3x mb-3"></i>
+                        <p>هیچ تراکنشی ثبت نشده است.</p>
+                        <a href="{% url 'fledger:create_transaction' %}?wallet_id={{ wallet.id }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> اولین تراکنش را ثبت کنید
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- ثبت‌های دفتر -->
+                <div class="tab-pane fade" id="ledger" role="tabpanel">
+                    {% if ledger_entries %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>خرید</th>
+                                    <th>وزن</th>
+                                    <th>فی کیلو</th>
+                                    <th>مبلغ کل</th>
+                                    <th>محاسبه بر اساس</th>
+                                    <th>تاریخ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entry in ledger_entries %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ entry.purchase.invoice_id }}</strong>
+                                        {% if entry.purchase.purchase_number %}
+                                        <br><small class="text-muted">{{ entry.purchase.purchase_number }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ entry.weight|floatformat:0 }} کیلوگرم</td>
+                                    <td>{{ entry.price_per_kg|floatformat:0 }} ریال</td>
+                                    <td class="text-danger">{{ entry.total_amount|floatformat:0 }} ریال</td>
+                                    <td>
+                                        <span class="badge badge-{% if entry.wallet_index_used == '0' %}primary{% else %}info{% endif %}">
+                                            {{ entry.get_wallet_index_used_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ entry.created_at }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-book fa-3x mb-3"></i>
+                        <p>هیچ ثبت دفتری وجود ندارد.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+    // تایید قبل از تایید/لغو تراکنش
+    $('form[action*="approve_transaction"], form[action*="reject_transaction"]').on('submit', function(e) {
+        const action = this.action.includes('approve') ? 'تایید' : 'لغو';
+        if (!confirm(`آیا از ${action} این تراکنش اطمینان دارید؟`)) {
+            e.preventDefault();
+        }
+    });
+</script>
+{% endblock %} 
