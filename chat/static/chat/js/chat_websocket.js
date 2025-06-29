@@ -442,11 +442,7 @@ function markMessagesAsRead(senderId = null, isGlobal = false) {
 }
 
 // راه‌اندازی وب‌سوکت
-function initChatWebSocket(userIdParam, usernameParam) {
-    // ذخیره شناسه کاربر و نام کاربری در متغیرهای سراسری
-    userId = userIdParam;
-    username = usernameParam;
-    
+function initChatWebSocket(userIdParam, usernameParam) {    
     // بازیابی وضعیت پیام‌های جدید از localStorage
     loadNewMessageState();
     
@@ -674,6 +670,26 @@ function pinMessage(msg) {
     });
 }
 
+function unpinMessage() {
+    const pinBox = document.getElementById('pinBox');
+    const messageId = pinBox.getAttribute('data-msg-id');
+    if (messageId) {
+        fetch(`/chat/api/chat/unpin/${messageId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                pinBox.style.display = 'none';
+                pinBox.removeAttribute('data-msg-id');
+            }
+        });
+    }
+}
+
 function showPinnedMessage(msg) {
     let pinBox = document.getElementById('pinBox');
     if (!pinBox) {
@@ -683,5 +699,5 @@ function showPinnedMessage(msg) {
         const chatBody = document.querySelector('.chat-body');
         chatBody.parentNode.insertBefore(pinBox, chatBody);
     }
-    pinBox.innerHTML = `<i class="fas fa-thumbtack"></i> پیام پین شده: ${msg.message ? msg.message.substring(0, 50) : '[فایل]'}`;
+    pinBox.innerHTML = `<i class="fas fa-thumbtack"></i> پیام پین شده: ${escapeHtml(msg.message ? msg.message.substring(0, 50) : '[فایل]')}`;
 }

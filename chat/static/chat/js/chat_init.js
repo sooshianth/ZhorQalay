@@ -1,7 +1,3 @@
-// متغیرهای سراسری برای شناسه و نام کاربری
-let userId = null;
-let username = null;
-
 // به‌روزرسانی اولیه نشانگرها
 document.addEventListener("DOMContentLoaded", function() {
     if (typeof isAuthenticated !== 'undefined' && isAuthenticated) {
