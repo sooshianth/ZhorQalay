@@ -121,6 +121,9 @@ class OTPLoginForm(forms.Form):
                 cache.set(cooldown_key, True, timeout=cooldown_time)
                 cache.set(cooldown_expires_key, expires_at, timeout=cooldown_time)
                 
+                # Reset login attempts when new OTP is sent
+                cache.set(f"login_attempts_phone_{phone}", 0, timeout=300)
+                
                 response = {
                     'success': True,
                     'message': "کد تایید با موفقیت ارسال شد" if sms_sent else "خطا در ارسال پیامک، اما کد تایید ایجاد شد",
@@ -156,6 +159,7 @@ class OTPLoginForm(forms.Form):
         cache.delete(f"otp_{phone}")
         cache.delete(f"cooldown_{phone}")
         cache.delete(f"cooldown_expires_{phone}")
+        cache.delete(f"login_attempts_phone_{phone}")
         
         return True
 
@@ -164,6 +168,14 @@ class OTPLoginForm(forms.Form):
         code = self.cleaned_data.get('verification_code')
         
         if phone and code:
+            # Check rate limit for login attempts
+            login_attempts_key = f"login_attempts_phone_{phone}"
+            current_attempts = cache.get(login_attempts_key, 0)
+            
+            # If more than 10 attempts, always return false
+            if current_attempts >= 10:
+                return {'success': False, 'message': "تعداد تلاش‌های ورود بیش از حد مجاز است. لطفا بعدا تلاش کنید"}
+            
             saved_code = cache.get(f"otp_{phone}")
             
             # مقایسه کد وارد شده با کد ذخیره شده
@@ -171,6 +183,9 @@ class OTPLoginForm(forms.Form):
                 # یافتن و احراز هویت کاربر
                 user = self.find_user_by_phone(phone)
                 if not user:
+                    # Increment login attempts
+                    cache.set(login_attempts_key, current_attempts + 1, timeout=300)  # Same timeout as OTP
+                    
                     # پاک کردن کلیدهای کش برای این شماره
                     self.reset_verification(phone)
                     
@@ -181,9 +196,13 @@ class OTPLoginForm(forms.Form):
                     login(request, user)
                     # پاک کردن کلیدهای کش پس از ورود موفق
                     self.reset_verification(phone)
+                    # Reset login attempts on successful login
+                    cache.delete(login_attempts_key)
                     
                 return {'success': True, 'message': "ورود موفقیت‌آمیز"}
             else:
+                # Increment login attempts for failed verification
+                cache.set(login_attempts_key, current_attempts + 1, timeout=300)  # Same timeout as OTP
                 return {'success': False, 'message': "کد تایید اشتباه است"}
         
         return {'success': False, 'message': "شماره موبایل یا کد تایید وارد نشده است"}
