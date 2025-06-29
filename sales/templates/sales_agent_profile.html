@@ -1439,6 +1439,7 @@ function showNotification(message, type = 'info') {
     messageElement.textContent = message;
     
     // نمایش پاپ‌آپ
+    popup.style.display = 'block';
     popup.classList.add('show');
 
     // شروع پیشرفت نوار
@@ -1450,6 +1451,7 @@ function showNotification(message, type = 'info') {
     // بستن خودکار پاپ‌آپ بعد از 5 ثانیه
     setTimeout(() => {
         popup.classList.remove('show');
+        popup.style.display = 'none';
         progressBar.style.width = '0%';
     }, 5000);
 }
@@ -1457,8 +1459,10 @@ function showNotification(message, type = 'info') {
 function closeNotification() {
     const popup = document.getElementById('notification-popup');
     popup.classList.remove('show');
+    popup.style.display = 'none';
     document.getElementById('progress-bar').style.width = '0%';
 }
+
 
 // تابع تست برای نمایش پاپ‌آپ
 function testNotification(type = 'info') {

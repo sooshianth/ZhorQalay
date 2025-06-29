@@ -1,3 +1,10 @@
+// Helper function to escape HTML content to prevent XSS
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 function loadUserList() {
     console.log('Loading user list...');
     
@@ -22,7 +29,7 @@ function loadUserList() {
             console.log('Users received:', users);
             if (users.error) {
                 console.error('Error from API:', users.error);
-                userListItems.innerHTML = '<div class="error-message">خطا در دریافت لیست کاربران: ' + users.error + '</div>';
+                userListItems.innerHTML = '<div class="error-message">خطا در دریافت لیست کاربران: ' + escapeHtml(users.error) + '</div>';
                 return;
             }
             
@@ -71,7 +78,7 @@ function loadUserList() {
         })
         .catch(error => {
             console.error('Error fetching users:', error);
-            userListItems.innerHTML = '<div class="error-message">خطا در بارگذاری لیست کاربران: ' + error.message + '</div>';
+            userListItems.innerHTML = '<div class="error-message">خطا در بارگذاری لیست کاربران: ' + escapeHtml(error.message) + '</div>';
         });
 }
 
@@ -82,7 +89,7 @@ function startChat(userId, username) {
     
     const chatTitle = document.getElementById('chatTitle');
     if (chatTitle) {
-        chatTitle.textContent = `چت با ${username}`;
+        chatTitle.textContent = `چت با ${escapeHtml(username)}`;
     }
     
     const userItems = document.querySelectorAll('.user-item');
@@ -454,7 +461,7 @@ function switchTab(tab) {
         if (currentChatUser) {
             const username = localStorage.getItem('currentChatUsername') || 'کاربر';
             if (chatTitle) {
-                chatTitle.textContent = `چت با ${username}`;
+                chatTitle.textContent = `چت با ${escapeHtml(username)}`;
             }
             loadChatHistory();
             resetBadge('private', currentChatUser);
@@ -562,8 +569,8 @@ function displayPrivateMessage(msg) {
         replyDiv.className = 'reply-preview';
         replyDiv.innerHTML = `
             <a href="#" class="reply-link" onclick="scrollToMessage('msg-${msg.reply_to}');return false;">
-                <span class="reply-author">${msg.reply_to_author || 'کاربر'}:</span>
-                <span class="reply-text">${msg.reply_to_message.substring(0, 40)}</span>
+                <span class="reply-author">${escapeHtml(msg.reply_to_author || 'کاربر')}:</span>
+                <span class="reply-text">${escapeHtml(msg.reply_to_message.substring(0, 40))}</span>
             </a>
         `;
         messageDiv.appendChild(replyDiv);
@@ -644,8 +651,8 @@ function displayGlobalMessage(msg) {
         replyDiv.className = 'reply-preview';
         replyDiv.innerHTML = `
             <a href="#" class="reply-link" onclick="scrollToMessage('msg-${msg.reply_to}');return false;">
-                <span class="reply-author">${msg.reply_to_author || 'کاربر'}:</span>
-                <span class="reply-text">${msg.reply_to_message.substring(0, 40)}</span>
+                <span class="reply-author">${escapeHtml(msg.reply_to_author || 'کاربر')}:</span>
+                <span class="reply-text">${escapeHtml(msg.reply_to_message.substring(0, 40))}</span>
             </a>
         `;
         messageDiv.appendChild(replyDiv);
@@ -748,7 +755,7 @@ function setReplyTo(msg) {
     replyBox.id = 'replyBox';
     replyBox.className = 'reply-box';
     replyBox.innerHTML = `
-        <span>در حال ریپلای به: ${msg.message ? msg.message.substring(0, 30) : '[فایل]'}</span>
+        <span>در حال ریپلای به: ${escapeHtml(msg.message ? msg.message.substring(0, 30) : '[فایل]')}</span>
         <button onclick="clearReply()" title="لغو ریپلای"><i class="fas fa-times"></i></button>
     `;
     const chatFooter = document.querySelector('.chat-footer');
@@ -765,15 +772,15 @@ function showPinnedMessage(msg) {
     const pinBox = document.getElementById('pinBox');
     const pinnedText = document.getElementById('pinnedMessageText');
     pinBox.style.display = 'flex';
-    pinnedText.innerHTML = `<a href="#" onclick="scrollToMessage('msg-${msg.id}');return false;">${msg.message ? msg.message.substring(0, 50) : '[فایل]'}</a>`;
+    pinnedText.innerHTML = `<a href="#" onclick="scrollToMessage('msg-${msg.id}');return false;">${escapeHtml(msg.message ? msg.message.substring(0, 50) : '[فایل]')}</a>`;
     pinBox.setAttribute('data-msg-id', msg.id);
 }
 
-function unpinPinnedMessage() {
+function unpinMessage() {
     const pinBox = document.getElementById('pinBox');
     const messageId = pinBox.getAttribute('data-msg-id');
     if (messageId) {
-        fetch(`/chat/api/chat/unpin/${messageId}/`, {
+        fetch(`/chat/api/chat/unpin/${escapeHtml(messageId)}/`, {
             method: 'POST',
             headers: {
                 'X-CSRFToken': getCookie('csrftoken')
