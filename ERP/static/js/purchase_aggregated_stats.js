@@ -32,6 +32,8 @@ class PurchaseAggregatedStats {
                 this.handleSelectAll(e.target);
             } else if (e.target.classList.contains('select-all-checkbox-archived')) {
                 this.handleSelectAllArchived(e.target);
+            } else if (e.target.classList.contains('select-all-checkbox-pending')) {
+                this.handleSelectAllPending(e.target);
             }
         });
         
@@ -112,6 +114,24 @@ class PurchaseAggregatedStats {
         this.updateStats();
     }
     
+    handleSelectAllPending(selectAllCheckbox) {
+        const tableId = 'pendingPurchasesTable';
+        const checkboxes = document.querySelectorAll(`#${tableId} tbody tr:not([style*="display: none"]) .row-checkbox`);
+        
+        checkboxes.forEach(checkbox => {
+            const purchaseId = checkbox.getAttribute('data-id');
+            if (selectAllCheckbox.checked) {
+                this.selectedPurchases.add(purchaseId);
+                checkbox.checked = true;
+            } else {
+                this.selectedPurchases.delete(purchaseId);
+                checkbox.checked = false;
+            }
+        });
+        
+        this.updateStats();
+    }
+    
     updateStats() {
         if (this.selectedPurchases.size === 0) {
             this.hideStats();
@@ -143,7 +163,7 @@ class PurchaseAggregatedStats {
             checkbox.checked = false;
         });
         
-        document.querySelectorAll('.select-all-checkbox, .select-all-checkbox-archived').forEach(checkbox => {
+        document.querySelectorAll('.select-all-checkbox, .select-all-checkbox-archived, .select-all-checkbox-pending').forEach(checkbox => {
             checkbox.checked = false;
         });
         

@@ -1408,3 +1408,248 @@ function initializePurchaseListPage() {
 document.addEventListener('DOMContentLoaded', function() {
     initializePurchaseListPage();
 }); 
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔒 راه‌اندازی سیستم blur فیلدهای مالی...');
+    
+    // تابع برای toggle کردن blur
+    function toggleFinancialFieldBlur(fieldElement) {
+        const valueElement = fieldElement.querySelector('.financial-value');
+        
+        console.log('🖱️ کلیک روی فیلد مالی:', fieldElement.querySelector('h6').textContent.trim());
+        console.log('📊 کلاس‌های فعلی valueElement:', valueElement.className);
+        console.log('📊 کلاس‌های فعلی fieldElement:', fieldElement.className);
+        
+        if (valueElement.classList.contains('blurred')) {
+            // نمایش دادن
+            valueElement.classList.remove('blurred');
+            valueElement.classList.add('revealed');
+            fieldElement.classList.remove('blurred');
+            fieldElement.classList.add('revealed');
+            console.log('🔓 فیلد مالی نمایش داده شد - کلاس‌های جدید:', valueElement.className);
+        } else {
+            // مخفی کردن
+            valueElement.classList.remove('revealed');
+            valueElement.classList.add('blurred');
+            fieldElement.classList.remove('revealed');
+            fieldElement.classList.add('blurred');
+            console.log('🔒 فیلد مالی مخفی شد - کلاس‌های جدید:', valueElement.className);
+        }
+    }
+    
+    // اضافه کردن event listener به همه فیلدهای مالی (به جز سود)
+    function initializeFinancialFields() {
+        const financialFields = document.querySelectorAll('.financial-field');
+        
+        console.log(`🔍 پیدا شد ${financialFields.length} فیلد مالی`);
+        
+        financialFields.forEach(function(field, index) {
+            const valueElement = field.querySelector('.financial-value');
+            const titleElement = field.querySelector('h6');
+            
+            if (!valueElement || !titleElement) {
+                console.log(`❌ فیلد ${index + 1} ساختار نامعتبر دارد`);
+                return;
+            }
+            
+            // اگر این کادر سود است، آن را skip کنیم
+            if (valueElement.id === 'profit') {
+                console.log(`💰 کادر سود skip شد - مدیریت جداگانه دارد`);
+                return;
+            }
+            
+            // حذف event listener های قبلی
+            field.removeEventListener('click', toggleFinancialFieldBlur);
+            
+            // ابتدا همه فیلدها را blur می‌کنیم
+            valueElement.classList.remove('revealed');
+            valueElement.classList.add('blurred');
+            field.classList.remove('revealed'); 
+            field.classList.add('blurred');
+            
+            // اضافه کردن event listener برای کلیک
+            const clickHandler = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🖱️ کلیک شناسایی شد روی:', titleElement.textContent.trim());
+                toggleFinancialFieldBlur(field);
+            };
+            
+            field.addEventListener('click', clickHandler);
+            
+            // آیکون نشانگر برای مشاهده بهتر
+            field.style.position = 'relative';
+            
+            console.log(`✅ فیلد مالی ${index + 1} راه‌اندازی شد:`, titleElement.textContent.trim());
+        });
+        
+        console.log(`✅ ${financialFields.length} فیلد مالی راه‌اندازی شدند (به جز سود)`);
+    }
+    
+    // راه‌اندازی اولیه با تأخیر کوتاه
+    setTimeout(function() {
+        initializeFinancialFields();
+    }, 1000);
+    
+    // راه‌اندازی مجدد پس از بارگذاری آمار جدید
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList' || mutation.type === 'attributes') {
+                const aggregatedStats = document.getElementById('aggregatedStats');
+                if (aggregatedStats && aggregatedStats.style.display !== 'none') {
+                    console.log('🔄 باکس آمار نمایش داده شد - راه‌اندازی مجدد blur');
+                    setTimeout(initializeFinancialFields, 500);
+                }
+            }
+        });
+    });
+    
+    // نظارت بر تغییرات در باکس آمار
+    const aggregatedStats = document.getElementById('aggregatedStats');
+    if (aggregatedStats) {
+        observer.observe(aggregatedStats, { 
+            childList: true, 
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['style']
+        });
+        console.log('👁️ نظارت بر باکس آمار فعال شد');
+    }
+    
+    // اضافه کردن نظارت بر تغییرات کل صفحه برای catch کردن آپدیت‌های دیرهنگام
+    const bodyObserver = new MutationObserver(function(mutations) {
+        const hasFinancialFields = document.querySelectorAll('.financial-field').length > 0;
+        if (hasFinancialFields) {
+            console.log('🔄 فیلدهای مالی در DOM شناسایی شدند');
+            setTimeout(initializeFinancialFields, 200);
+        }
+    });
+    
+    bodyObserver.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+    
+    
+    
+    // اضافه کردن مدیریت مخصوص کادر سود
+    function setupProfitField() {
+        console.log('💰 راه‌اندازی مخصوص کادر سود...');
+        
+        const profitElement = document.getElementById('profit');
+        const profitField = profitElement ? profitElement.closest('.financial-field') : null;
+        
+        if (profitElement && profitField) {
+            console.log('✅ کادر سود پیدا شد');
+            
+            // حذف تمام event listeners قبلی
+            const clonedField = profitField.cloneNode(true);
+            profitField.parentNode.replaceChild(clonedField, profitField);
+            
+            // references جدید بعد از clone
+            const newProfitElement = document.getElementById('profit');
+            const newProfitField = newProfitElement.closest('.financial-field');
+            
+            // اطمینان از وجود کلاس‌های لازم
+            newProfitElement.classList.add('financial-value', 'blurred');
+            newProfitField.classList.add('financial-field', 'blurred');
+            
+            // اعمال style مستقیم برای اطمینان
+            newProfitElement.style.filter = 'blur(8px)';
+            newProfitElement.style.transition = 'filter 0.3s ease';
+            newProfitElement.style.userSelect = 'none';
+            newProfitElement.style.pointerEvents = 'none';
+            
+            console.log('🔒 blur مستقیم روی کادر سود اعمال شد');
+            
+            // اضافه کردن listener جدید
+            const profitClickHandler = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('🖱️ کلیک روی کادر سود شناسایی شد');
+                console.log('📊 وضعیت فعلی:', {
+                    classes: newProfitElement.className,
+                    style: newProfitElement.style.cssText,
+                    isBlurred: newProfitElement.classList.contains('blurred')
+                });
+                
+                if (newProfitElement.classList.contains('blurred')) {
+                    // نمایش دادن
+                    newProfitElement.classList.remove('blurred');
+                    newProfitElement.classList.add('revealed');
+                    newProfitField.classList.remove('blurred');
+                    newProfitField.classList.add('revealed');
+                    
+                    // حذف blur مستقیم
+                    newProfitElement.style.filter = 'blur(0px)';
+                    newProfitElement.style.userSelect = 'text';
+                    newProfitElement.style.pointerEvents = 'auto';
+                    
+                    console.log('🔓 کادر سود نمایش داده شد');
+                } else {
+                    // مخفی کردن
+                    newProfitElement.classList.remove('revealed');
+                    newProfitElement.classList.add('blurred');
+                    newProfitField.classList.remove('revealed');
+                    newProfitField.classList.add('blurred');
+                    
+                    // اعمال blur مستقیم
+                    newProfitElement.style.filter = 'blur(8px)';
+                    newProfitElement.style.userSelect = 'none';
+                    newProfitElement.style.pointerEvents = 'none';
+                    
+                    console.log('🔒 کادر سود مخفی شد');
+                }
+                
+                // وضعیت جدید
+                console.log('📊 وضعیت جدید:', {
+                    classes: newProfitElement.className,
+                    style: newProfitElement.style.cssText
+                });
+            };
+            
+            newProfitField.addEventListener('click', profitClickHandler);
+            
+            // تنظیم cursor
+            newProfitField.style.cursor = 'pointer';
+            newProfitField.style.position = 'relative';
+            
+            console.log('💰 مدیریت مخصوص کادر سود راه‌اندازی شد');
+            
+            return true;
+        } else {
+            console.log('❌ کادر سود پیدا نشد');
+            return false;
+        }
+    }
+    
+    // تلاش مجدد تا کادر سود پیدا شود
+    function attemptProfitSetup() {
+        if (!setupProfitField()) {
+            console.log('⏳ تلاش مجدد برای راه‌اندازی کادر سود...');
+            setTimeout(attemptProfitSetup, 500);
+        }
+    }
+    
+    setTimeout(attemptProfitSetup, 1000);
+    
+    // محافظت از کادر سود در مقابل تداخلات
+    function protectProfitBlur() {
+        const profitElement = document.getElementById('profit');
+        if (profitElement && profitElement.classList.contains('blurred')) {
+            // اگر کادر سود باید blur باشد اما نیست، دوباره blur کنیم
+            if (profitElement.style.filter !== 'blur(8px)') {
+                console.log('🛡️ محافظت از blur کادر سود - اعمال مجدد');
+                profitElement.style.filter = 'blur(8px)';
+                profitElement.style.userSelect = 'none';
+                profitElement.style.pointerEvents = 'none';
+            }
+        }
+    }
+    
+    // چک کردن هر 2 ثانیه
+    setInterval(protectProfitBlur, 2000);
+    
+    console.log('🔒 سیستم blur فیلدهای مالی آماده است');
+});
