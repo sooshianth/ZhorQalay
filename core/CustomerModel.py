@@ -418,3 +418,17 @@ class Customer(models.Model):
                     result.append(('تحویل', purchase.tahvil_phone_number, purchase.purchase_number))
         
         return result
+    
+
+class CrmAccessNumbers(models.Model):
+    phone_number = models.CharField(max_length=12, null=True, blank=True)
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='crm_access_numbers', null=True, blank=True)
+
+    def __str__(self) -> str:
+        return f"شماره تلفن {self.phone_number} برای مشتری {self.customer} در سی‌آرام مجاز است"
+
+    class Meta:
+        db_table = ''
+        managed = True
+        verbose_name = 'شماره های مجاز در CRM'
+        verbose_name_plural = 'شماره های مجاز در CRM'

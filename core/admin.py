@@ -5,7 +5,7 @@ from django.shortcuts import render
 from django.db.models import Q
 from .CallSessionModel import CallSession
 from .CargoProductModel import CargoProduct
-from .CustomerModel import Customer, PhoneNumber, FIELD_OF_ACTIVITY, ActivityField, ProductPreference, PaymentPreference
+from .CustomerModel import Customer, PhoneNumber, CrmAccessNumbers, FIELD_OF_ACTIVITY, ActivityField, ProductPreference, PaymentPreference
 from .FinancialManagerModel import FinancialManager
 from .LogisticsManagerModel import LogisticsManager
 from .PurchaseModel import Purchase, PurchaseHistory, ShenaseTakhsis, PurchaseReceipts, PurchaseStateChange
@@ -85,6 +85,13 @@ class CargoProductAdmin(admin.ModelAdmin):
 class PhoneNumberInline(admin.TabularInline):
     model = PhoneNumber
     extra = 1
+
+class CrmAccessNumbersInline(admin.TabularInline):
+    model = CrmAccessNumbers
+    extra = 1
+    fields = ('phone_number',)
+    verbose_name = "شماره مجاز در CRM"
+    verbose_name_plural = "شماره‌های مجاز در CRM"
 
 class PurchaseInline(admin.TabularInline):
     model = Purchase
@@ -218,7 +225,7 @@ class CustomerAdmin(admin.ModelAdmin):
     list_display = ('pk', 'name', 'get_primary_phone', 'city', 'get_total_purchases', 'get_last_purchase_date')
     list_filter = ('field_of_activity', 'city', 'sms_preference', 'whatsapp_preference', 'day_of_week', 'is_bazaargah_enjoyer', CustomerProductFilter, CustomerCountryFilter, CustomerProductCountryFilter, CustomerPurchaseStatusFilter, CustomerPurchaseDateFilter, CustomerCargoFilter, CustomerSpecificCargoFilter)
     ordering = ('-created_at',)
-    inlines = [PhoneNumberInline, PurchaseInline]
+    inlines = [PhoneNumberInline, CrmAccessNumbersInline, PurchaseInline]
     actions = ['send_custom_sms']
     
     def get_primary_phone(self, obj):

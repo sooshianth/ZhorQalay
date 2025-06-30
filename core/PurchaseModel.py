@@ -85,6 +85,7 @@ class Purchase(models.Model):
     is_factored = models.BooleanField("ثبت فاکتور", default=False)
 
     wallet_index = models.CharField("شاخص محاسبه کیف پول", max_length=1, default='0', choices=[('0', 'وزن سفارش'), ('1', 'وزن تحویلی')])
+    is_address_sent = models.CharField('آیا آدرس به واردکننده ارسال شده اس؟', max_length=1, default='0', choices=[('0', "ارسال نشده"),('1', "ارسال شده")])
 
     PRIORITY_CHOICES = [
         ('low', 'عادی'),
@@ -668,6 +669,30 @@ class Purchase(models.Model):
             elif not self.is_factored and self.order_weight and self.customer_price:
                 self.amount_paid = self.customer_price * self.order_weight
                 super().save(update_fields=['amount_paid'])
+
+        from core.CustomerModel import CrmAccessNumbers
+        if self.bazaargah_customer and self.bazaargah_phone_number:
+            try: 
+                # بررسی اینکه آیا این شماره قبلاً برای این مشتری ثبت شده یا نه
+                existing_crm_number = CrmAccessNumbers.objects.filter(
+                    customer=self.bazaargah_customer,
+                    phone_number=self.bazaargah_phone_number
+                ).exists()
+                
+                # اگر ثبت نشده باشد، اضافه کن
+                if not existing_crm_number:
+                    CrmAccessNumbers.objects.create(
+                        customer=self.bazaargah_customer,
+                        phone_number=self.bazaargah_phone_number
+                    )
+                    print(f"✅ شماره تلفن {self.bazaargah_phone_number} به CRM مشتری {self.bazaargah_customer.name} اضافه شد")
+                    
+            except Exception as e:
+                print(f"❌ خطا در اضافه کردن شماره تلفن به CRM: {str(e)}")
+
+        if not self.state in ['INITIAED', 'SMS_SENT', 'PAYMENT_VERIFIED', 'ALLOCATION_APPROVED']:
+            self.is_address_sent = True
+            super().save(update_fields=['is_address_sent'])
 
     def send_notification(self, user, title, message, notification_type='purchase', priority='medium'):
         """ارسال نوتیفیکیشن برای کاربر"""
