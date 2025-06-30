@@ -131,8 +131,49 @@ def enhanced_customer_list_view(request):
     
     customers = customers.order_by(sort_field)
 
+    # بررسی درخواست AJAX برای جستجوی real-time
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        # برای درخواست‌های AJAX، فقط نتایج محدودتری برمی‌گردانیم
+        customers_data = []
+        limited_customers = customers
+        
+        for customer in limited_customers:
+            customers_data.append({
+                'id': customer.id,
+                'name': customer.name,
+                'phone': customer.get_primary_phone(),
+                'city': customer.city or '',
+                'purchase_count': customer.purchases_made.count(),
+                'total_weight': float(customer.total_purchase_weight or 0),
+                'is_favorite': customer.is_favorite,
+                'field_of_activity': customer.get_field_of_activity_display()
+            })
+        
+        return JsonResponse({
+            'customers': customers_data,
+            'total_count': customers.count()
+        })
+
+
+
+    # دریافت لیست‌های مورد نیاز برای فیلترها
+    all_cities = Customer.objects.values_list('city', flat=True).distinct().exclude(city__isnull=True).exclude(city='').order_by('city')
+    all_activities = ActivityField.objects.all().order_by('code')
+    all_payment_preferences = PaymentPreference.objects.all().order_by('code')
+    all_product_preferences = ProductPreference.objects.all().order_by('code')
+
+    # محاسبه سهمیه پیامک
+    sms_quota = getattr(settings, 'SALES_AGENT_SMS_QOUTA', 0)
+    
+    # اضافه کردن اطلاعات بیشتر برای هر مشتری با prefetch_related برای بهینه‌سازی
+    customers_with_preferences = customers.prefetch_related(
+        'purchase_preferences',
+        'product_preferences',
+        'purchases_made'
+    )
+    
     # صفحه‌بندی
-    paginator = Paginator(customers, 20)
+    paginator = Paginator(customers_with_preferences, 25)
     page_number = request.GET.get('page')
     try:
         page_obj = paginator.page(page_number)
@@ -140,16 +181,23 @@ def enhanced_customer_list_view(request):
         page_obj = paginator.page(1)
     except EmptyPage:
         page_obj = paginator.page(paginator.num_pages)
+    
+    # اضافه کردن اطلاعات بیشتر برای هر مشتری
+    for customer in page_obj:
+        # محاسبه آخرین خرید
+        if customer.purchases_made.exists():
+            customer.last_purchase_date = customer.purchases_made.first().created_at
+        else:
+            customer.last_purchase_date = None
+            
+        # محاسبه وزن کل خریدها
+        total_weight = 0
+        for purchase in customer.purchases_made.all():
+            if purchase.order_weight:
+                total_weight += purchase.order_weight
+        customer.total_purchase_weight = total_weight
 
-    # دریافت لیست‌های مورد نیاز برای فیلترها
-    all_cities = Customer.objects.values_list('city', flat=True).distinct().exclude(city__isnull=True).exclude(city='')
-    all_activities = ActivityField.objects.all()
-    all_payment_preferences = PaymentPreference.objects.all()
-    all_product_preferences = ProductPreference.objects.all()
-
-    # محاسبه سهمیه پیامک
-    sms_quota = getattr(settings, 'SALES_AGENT_SMS_QOUTA', 0)
-
+    # آماده‌سازی context
     context = {
         'customers': page_obj,
         'search_query': search_query,
@@ -168,7 +216,13 @@ def enhanced_customer_list_view(request):
         'all_activities': all_activities,
         'all_payment_preferences': all_payment_preferences,
         'all_product_preferences': all_product_preferences,
-        'sms_quota': sms_quota
+        'sms_quota': sms_quota,
+        'total_customers': customers.count(),
+        'has_filters': any([
+            search_query, favorites_only, city_filter, activity_filter,
+            payment_filter, product_filter, status_filter, min_purchases,
+            last_purchase_days, sms_preference, whatsapp_preference
+        ])
     }
     
     return render(request, 'customer_list.html', context)

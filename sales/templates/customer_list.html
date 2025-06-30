@@ -7,362 +7,61 @@
 
 {% block extra_css %}
 {% table_filter_scripts %}
+<link rel="stylesheet" href="{% static 'css_file/customer_list_styles.css' %}">
+<script src="{% static 'js/customer_list_scripts.js' %}" defer></script>
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-<style>
-    :root {
-        --primary-color: #065F46;
-        --primary-hover: #064e3b;
-        --secondary-color: #3b82f6;
-        --secondary-hover: #2563eb;
-        --neutral-color: #64748b;
-        --neutral-hover: #475569;
-        --light-bg: #f8fafc;
-        --border-color: #e2e8f0;
-        --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        --transition-speed: 0.3s;
-    }
-    
-    body {
-        background-color: var(--light-bg);
-    }
-    
-    .modal {
-        transition: opacity var(--transition-speed) ease-in-out;
-    }
-    
-    .modal-overlay {
-        background-color: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(2px);
-    }
-    
-    .modal-content {
-        max-width: 90%;
-        width: 600px;
-        border-radius: 0.75rem;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-    }
-    
-    .btn-primary {
-        background-color: var(--primary-color);
-        color: white;
-        transition: all var(--transition-speed) ease;
-        border-radius: 0.5rem;
-        font-weight: 500;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .btn-primary:hover {
-        background-color: var(--primary-hover);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-    
-    .btn-secondary {
-        background-color: var(--neutral-color);
-        color: white;
-        transition: all var(--transition-speed) ease;
-        border-radius: 0.5rem;
-        font-weight: 500;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .btn-secondary:hover {
-        background-color: var(--neutral-hover);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-    
-    .btn-warning {
-        background-color: #f59e0b;
-        color: white;
-        transition: all var(--transition-speed) ease;
-        border-radius: 0.5rem;
-        font-weight: 500;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .btn-warning:hover {
-        background-color: #d97706;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-    
-    .table-hover tbody tr:hover {
-        background-color: #f0f9ff;
-        transition: background-color 0.2s ease;
-        cursor: pointer;
-    }
-    
-    .shadow-custom {
-        box-shadow: var(--card-shadow);
-    }
-    
-    .filter-section {
-        transition: max-height 0.5s ease-in-out, opacity 0.3s ease-in-out;
-        overflow: hidden;
-    }
-    
-    .filter-section.collapsed {
-        max-height: 0;
-        opacity: 0;
-    }
-    
-    .selected-row {
-        background-color: #e0f2fe;
-        border-left: 3px solid var(--secondary-color);
-    }
-    
-    .favorite-icon {
-        transition: transform 0.3s ease;
-    }
-    
-    .favorite-icon:hover {
-        transform: scale(1.2);
-    }
-    
-    .preview-box {
-        max-height: 150px;
-        overflow-y: auto;
-        border: 1px solid var(--border-color);
-        padding: 10px;
-        background-color: #f9fafb;
-        border-radius: 0.5rem;
-    }
-    
-    .card {
-        background-color: white;
-        border-radius: 0.75rem;
-        box-shadow: var(--card-shadow);
-        transition: all 0.3s ease;
-    }
-    
-    .card:hover {
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    }
-    
-    .form-input {
-        padding: 0.75rem;
-        border-radius: 0.5rem;
-        border: 1px solid var(--border-color);
-        transition: all 0.3s ease;
-        width: 100%;
-    }
-    
-    .form-input:focus {
-        outline: none;
-        border-color: var(--secondary-color);
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-    }
-    
-    .tag {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.3rem 0.6rem;
-        background-color: #e0f2fe;
-        color: #0369a1;
-        border-radius: 9999px;
-        font-size: 0.75rem;
-        font-weight: 500;
-        line-height: 1;
-        margin-right: 0.5rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    /* Animation classes */
-    .animate-fade-in {
-        animation: fadeIn 0.5s ease-in-out;
-    }
-    
-    .animate-slide-up {
-        animation: slideUp 0.3s ease-out;
-    }
-    
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-    
-    @keyframes slideUp {
-        from { transform: translateY(10px); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
-    }
-    
-    /* Table styles */
-    table {
-        border-collapse: separate;
-        border-spacing: 0;
-        width: 100%;
-        border-radius: 0.5rem;
-        overflow: hidden;
-    }
-    
-    thead {
-        background-color: #f8fafc;
-    }
-    
-    th {
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: 0.75rem;
-        letter-spacing: 0.05em;
-        padding: 1rem;
-        text-align: right;
-        border-bottom: 1px solid var(--border-color);
-        position: relative;
-    }
-    
-    td {
-        padding: 1rem;
-        border-bottom: 1px solid var(--border-color);
-        vertical-align: middle;
-    }
-    
-    tbody tr:last-child td {
-        border-bottom: none;
-    }
-    
-    /* Pagination styles */
-    .pagination {
-        display: flex;
-        justify-content: center;
-        list-style: none;
-        padding: 0;
-    }
-    
-    .pagination-item {
-        margin: 0 0.25rem;
-    }
-    
-    .pagination-link {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 2.5rem;
-        height: 2.5rem;
-        border-radius: 0.5rem;
-        background-color: white;
-        transition: all 0.3s ease;
-        box-shadow: var(--card-shadow);
-    }
-    
-    .pagination-link:hover {
-        background-color: #f0f9ff;
-        transform: translateY(-1px);
-    }
-    
-    .pagination-link.active {
-        background-color: var(--primary-color);
-        color: white;
-    }
-    
-    .bulk-edit-controls {
-        background-color: white;
-        border: 1px solid var(--border-color);
-        border-radius: 0.75rem;
-        padding: 1rem;
-        margin-bottom: 1rem;
-        box-shadow: var(--card-shadow);
-        transition: all 0.3s ease;
-    }
-    
-    .bulk-edit-toolbar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-    }
-    
-    .selected-count {
-        font-weight: 600;
-        color: #1e293b;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    .bulk-edit-actions {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-    }
-    
-    .bulk-selected {
-        background-color: #e0f2fe;
-        border-left: 3px solid var(--secondary-color);
-    }
-    
-    .btn-success {
-        background-color: #10b981;
-        color: white;
-        transition: all var(--transition-speed) ease;
-        border-radius: 0.5rem;
-        font-weight: 500;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .btn-success:hover {
-        background-color: #059669;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-    
-    .btn-info {
-        background-color: #3b82f6;
-        color: white;
-        transition: all var(--transition-speed) ease;
-        border-radius: 0.5rem;
-        font-weight: 500;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .btn-info:hover {
-        background-color: #2563eb;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-</style>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-6 min-h-screen">
-    <div id="js-status" class="hidden bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded-md animate-fade-in">
-        JavaScript has been successfully initialized. If you're still experiencing issues, please try refreshing the page.
+<div class="container animate-fade-in">
+    <!-- Header with modern gradient -->
+    <div class="page-header animate-slide-up">
+        <h1 class="page-title">لیست پیشرفته مشتریان</h1>
     </div>
-    <div class="flex flex-col md:flex-row justify-between items-center mb-6 card p-4 animate-slide-up">
-        <h1 class="text-3xl font-bold text-indigo-800 mb-3 md:mb-0">لیست پیشرفته مشتریان</h1>
-        <div class="flex gap-3">
-            <a href="{% url 'general_customer_CRUD' %}" class="btn-primary px-4 py-2 shadow-md flex items-center">
-                <i class="fas fa-plus-circle mr-2"></i>افزودن مشتری جدید
-            </a>
-            <button type="button" id="toggle-filters-btn" class="btn-secondary px-4 py-2 shadow-md flex items-center">
-                <i class="fas fa-filter mr-2"></i>فیلترهای پیشرفته
+    
+    <!-- Action Buttons -->
+    <div class="d-flex justify-content-between align-items-center mb-4 animate-slide-up" style="animation-delay: 0.1s;">
+        <div class="d-flex gap-3 flex-wrap">
+            <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#columnsModal">
+                <i class="fas fa-columns me-2"></i>مدیریت ستون‌ها
             </button>
-            <a href="{% url 'sales_agent_profile' %}" class="btn-secondary px-4 py-2 shadow-md flex items-center">
-                <i class="fas fa-user mr-2"></i>بازگشت به پروفایل
+            <a href="{% url 'general_customer_CRUD' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-2"></i>مشتری جدید
             </a>
+            <button type="button" id="toggle-filters-btn" class="btn {% if has_filters %}btn-warning{% else %}btn-secondary{% endif %}">
+                <i class="fas fa-filter me-2"></i>فیلترها
+                {% if has_filters %}<span class="badge bg-white text-dark ms-2">فعال</span>{% endif %}
+            </button>
         </div>
+        <a href="{% url 'sales_agent_profile' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right me-2"></i>بازگشت
+        </a>
     </div>
     <!-- فیلتر سریع جستجو -->
-    <div class="mb-6 card p-5 animate-slide-up" style="animation-delay: 0.1s;">
-        <form method="get" action="" class="flex flex-col md:flex-row gap-3">
-            <input type="text" name="search" id="quick-search" placeholder="جستجو بر اساس نام یا شماره تلفن" value="{{ search_query }}"
-               class="form-input md:flex-grow">
-            <button type="submit" class="btn-primary px-6 py-3 shadow-md flex items-center justify-center">
-                <i class="fas fa-search mr-2"></i>جستجو
-            </button>
-        </form>
+    <div class="search-container animate-slide-up" style="animation-delay: 0.2s;">
+        <div class="d-flex align-items-center gap-3 mb-3">
+            <i class="fas fa-search text-primary"></i>
+            <h3 class="h5 mb-0 fw-semibold">جستجوی هوشمند</h3>
+        </div>
+        <div class="position-relative">
+            <input type="text" name="search" id="real-time-search" 
+                   placeholder="نام مشتری یا شماره تلفن را تایپ کنید..." 
+                   value="{{ search_query }}" class="form-input">
+            <div class="search-icon">
+                <i class="fas fa-search"></i>
+            </div>
+            <div id="search-loading" class="search-loading d-none">
+                <i class="fas fa-spinner fa-spin text-primary"></i>
+            </div>
+        </div>
+        <div class="mt-2 small text-muted d-flex align-items-center gap-2">
+            <i class="fas fa-lightbulb text-warning"></i>
+            <span>نتایج به صورت لحظه‌ای بروزرسانی می‌شوند</span>
+        </div>
     </div>
     {% comment %} <!-- اطلاعات سهمیه پیامک -->
     <div class="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-400 rounded-lg shadow-custom p-4 flex items-center animate-slide-up" style="animation-delay: 0.2s;">
@@ -388,226 +87,420 @@
     </div> {% endcomment %}
 
     <!-- فیلترهای پیشرفته -->
-    <div id="filters-container" class="bg-white p-6 rounded-lg mb-6 shadow-custom {% if not search_query and not city_filter and not activity_filter and not favorites_only %}hidden{% endif %}">
-        <form method="get" id="filter-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- فیلتر جستجو -->
-            <div class="filter-section col-span-1 md:col-span-2 lg:col-span-3">
-                <label for="search" class="block text-sm font-medium text-gray-700 mb-2">جستجو</label>
-                    <input type="text" name="search" id="search" value="{{ search_query }}" 
-                       class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <p class="text-xs text-gray-500 mt-1">جستجو در نام و شماره تلفن</p>
+    <div id="filters-container" class="relative bg-gradient-to-br from-white via-blue-50 to-indigo-50 rounded-2xl mb-6 shadow-xl border border-blue-100 overflow-hidden {% if not has_filters %}hidden{% endif %}">
+        <!-- Header با انیمیشن -->
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full -translate-y-32 translate-x-32"></div>
+            <div class="absolute bottom-0 left-0 w-48 h-48 bg-white opacity-5 rounded-full translate-y-24 -translate-x-24"></div>
+            <div class="relative z-10">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-white bg-opacity-20 p-3 rounded-xl">
+                            <i class="fas fa-filter text-2xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold">فیلترهای پیشرفته</h2>
+                            <p class="text-blue-100 mt-1">جستجوی دقیق و هوشمند مشتریان</p>
+                        </div>
+                    </div>
+                    <button type="button" id="close-filters" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-lg transition-all duration-300">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
                 </div>
-                
-                <!-- فیلتر مورد علاقه -->
-                <div class="filter-section">
-                <label class="block text-sm font-medium text-gray-700 mb-2">فقط مورد علاقه</label>
-                    <div class="flex items-center">
-                        <input type="checkbox" name="favorites_only" id="favorites_only" value="true" 
-                           {% if favorites_only %}checked{% endif %} class="mr-2 h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                    <label for="favorites_only" class="text-sm text-gray-700">نمایش فقط مشتریان مورد علاقه</label>
-                </div>
-                </div>
-                
-                <!-- فیلتر شهر -->
-                <div class="filter-section">
-                <label for="city" class="block text-sm font-medium text-gray-700 mb-2">شهر</label>
-                <select name="city" id="city" multiple class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-24">
-                        {% for city in all_cities %}
-                            <option value="{{ city }}" {% if city in city_filter %}selected{% endif %}>{{ city }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <!-- فیلتر حوزه فعالیت -->
-                <div class="filter-section">
-                <label for="activity" class="block text-sm font-medium text-gray-700 mb-2">حوزه فعالیت</label>
-                <select name="activity" id="activity" multiple class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-24">
-                        {% for activity in all_activities %}
-                            <option value="{{ activity.code }}" {% if activity.code in activity_filter %}selected{% endif %}>
-                                {{ activity }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <!-- فیلتر ترجیحات پرداخت -->
-                <div class="filter-section">
-                <label for="payment" class="block text-sm font-medium text-gray-700 mb-2">ترجیحات پرداخت</label>
-                <select name="payment" id="payment" multiple class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-24">
-                        {% for payment in all_payment_preferences %}
-                            <option value="{{ payment.code }}" {% if payment.code in payment_filter %}selected{% endif %}>
-                                {{ payment }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <!-- فیلتر ترجیحات محصول -->
-                <div class="filter-section">
-                <label for="product" class="block text-sm font-medium text-gray-700 mb-2">ترجیحات محصول</label>
-                <select name="product" id="product" multiple class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-24">
-                        {% for product in all_product_preferences %}
-                            <option value="{{ product.code }}" {% if product.code in product_filter %}selected{% endif %}>
-                                {{ product }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <!-- فیلتر وضعیت فعال/غیرفعال -->
-                <div class="filter-section">
-                <label for="status" class="block text-sm font-medium text-gray-700 mb-2">وضعیت</label>
-                <select name="status" id="status" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="" {% if not status_filter %}selected{% endif %}>همه</option>
-                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>فعال</option>
-                        <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>غیرفعال</option>
-                        <option value="blocked" {% if status_filter == 'blocked' %}selected{% endif %}>مسدود</option>
-                    </select>
-                </div>
-                
-                <!-- فیلتر حداقل تعداد خریدها -->
-                <div class="filter-section">
-                <label for="min_purchases" class="block text-sm font-medium text-gray-700 mb-2">حداقل تعداد خرید</label>
-                    <input type="number" name="min_purchases" id="min_purchases" value="{{ min_purchases }}" 
-                       class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" min="0">
-                </div>
-                
-                <!-- فیلتر آخرین خرید در X روز گذشته -->
-                <div class="filter-section">
-                <label for="last_purchase_days" class="block text-sm font-medium text-gray-700 mb-2">آخرین خرید در X روز گذشته</label>
-                    <input type="number" name="last_purchase_days" id="last_purchase_days" value="{{ last_purchase_days }}" 
-                       class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" min="0">
-                </div>
-                
-                <!-- فیلتر ترجیح پیامک -->
-                <div class="filter-section">
-                <label for="sms_preference" class="block text-sm font-medium text-gray-700 mb-2">ترجیح پیامک</label>
-                <select name="sms_preference" id="sms_preference" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="" {% if not sms_preference %}selected{% endif %}>همه</option>
-                        <option value="yes" {% if sms_preference == 'yes' %}selected{% endif %}>دارد</option>
-                        <option value="no" {% if sms_preference == 'no' %}selected{% endif %}>ندارد</option>
-                    </select>
-                </div>
-                
-                <!-- فیلتر ترجیح واتساپ -->
-                <div class="filter-section">
-                <label for="whatsapp_preference" class="block text-sm font-medium text-gray-700 mb-2">ترجیح واتساپ</label>
-                <select name="whatsapp_preference" id="whatsapp_preference" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="" {% if not whatsapp_preference %}selected{% endif %}>همه</option>
-                        <option value="yes" {% if whatsapp_preference == 'yes' %}selected{% endif %}>دارد</option>
-                        <option value="no" {% if whatsapp_preference == 'no' %}selected{% endif %}>ندارد</option>
-                    </select>
             </div>
-        </form>
-        <div class="flex justify-end mt-6 col-span-3">
-            <button type="button" id="reset-filters" class="btn-secondary px-4 py-2 rounded-lg shadow-md mr-2">
-                <i class="fas fa-times mr-2"></i>حذف فیلترها
-            </button>
-            <button type="submit" form="filter-form" class="btn-primary px-4 py-2 rounded-lg shadow-md">
-                <i class="fas fa-check mr-2"></i>اعمال فیلترها
-            </button>
         </div>
+
+        <!-- فرم فیلتر -->
+        <div class="p-8">
+            <form method="get" id="filter-form" class="space-y-8">
+                
+                <!-- ردیف اول: فیلترهای اصلی -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    
+                    <!-- فیلتر مورد علاقه -->
+                    <div class="filter-section space-y-3">
+                        <label class="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                            <i class="fas fa-star text-yellow-500"></i>
+                            علاقه‌مندی
+                        </label>
+                        <div class="relative">
+                            <div class="bg-white rounded-xl border-2 border-gray-200 p-4 hover:border-blue-300 transition-all duration-300 shadow-sm">
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" name="favorites_only" id="favorites_only" value="true" 
+                                       {% if favorites_only %}checked{% endif %} 
+                                       class="h-5 w-5 text-yellow-500 focus:ring-yellow-400 border-gray-300 rounded-lg transition-all duration-300">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-heart text-red-400"></i>
+                                        <span class="text-gray-700 font-medium">فقط مشتریان مورد علاقه</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- فیلتر وضعیت -->
+                    <div class="filter-section space-y-3">
+                        <label for="status" class="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                            <i class="fas fa-toggle-on text-green-500"></i>
+                            وضعیت حساب
+                        </label>
+                        <div class="relative">
+                            <select name="status" id="status" class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm transition-all duration-300 hover:border-blue-300">
+                                <option value="" {% if not status_filter %}selected{% endif %}>🔘 همه وضعیت‌ها</option>
+                                <option value="active" {% if status_filter == 'active' %}selected{% endif %}>✅ فعال</option>
+                                <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>❌ غیرفعال</option>
+                                <option value="blocked" {% if status_filter == 'blocked' %}selected{% endif %}>🚫 مسدود</option>
+                            </select>
+                            <div class="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                                <i class="fas fa-chevron-down text-gray-400"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- فیلتر شهر -->
+                    <div class="filter-section space-y-3">
+                        <label for="city" class="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                            <i class="fas fa-map-marker-alt text-red-500"></i>
+                            شهر محل سکونت
+                        </label>
+                        <div class="relative">
+                            <select name="city" id="city" multiple class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm transition-all duration-300 hover:border-blue-300 h-32">
+                                {% for city in all_cities %}
+                                    <option value="{{ city }}" {% if city in city_filter %}selected{% endif %} class="p-2">{{ city }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="absolute left-3 top-4 pointer-events-none">
+                                <i class="fas fa-city text-gray-400"></i>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                            <i class="fas fa-info-circle"></i>
+                            برای انتخاب چندتایی Ctrl کلیک کنید
+                        </p>
+                    </div>
+                </div>
+
+                <!-- ردیف دوم: ترجیحات -->
+                <div class="border-t border-gray-200 pt-8">
+                    <h3 class="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+                        <i class="fas fa-cogs text-blue-500"></i>
+                        ترجیحات مشتری
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        
+                        <!-- فیلتر حوزه فعالیت -->
+                        <div class="filter-section space-y-3">
+                            <label for="activity" class="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                                <i class="fas fa-briefcase text-purple-500"></i>
+                                حوزه فعالیت
+                            </label>
+                            <div class="relative">
+                                <select name="activity" id="activity" multiple class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm transition-all duration-300 hover:border-blue-300 h-32">
+                                    {% for activity in all_activities %}
+                                        <option value="{{ activity.code }}" {% if activity.code in activity_filter %}selected{% endif %} class="p-2">
+                                            {{ activity }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- فیلتر ترجیحات پرداخت -->
+                        <div class="filter-section space-y-3">
+                            <label for="payment" class="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                                <i class="fas fa-credit-card text-green-500"></i>
+                                ترجیحات پرداخت
+                            </label>
+                            <div class="relative">
+                                <select name="payment" id="payment" multiple class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm transition-all duration-300 hover:border-blue-300 h-32">
+                                    {% for payment in all_payment_preferences %}
+                                        <option value="{{ payment.code }}" {% if payment.code in payment_filter %}selected{% endif %} class="p-2">
+                                            {{ payment }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- فیلتر ترجیحات محصول -->
+                        <div class="filter-section space-y-3">
+                            <label for="product" class="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                                <i class="fas fa-box text-orange-500"></i>
+                                ترجیحات محصول
+                            </label>
+                            <div class="relative">
+                                <select name="product" id="product" multiple class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm transition-all duration-300 hover:border-blue-300 h-32">
+                                    {% for product in all_product_preferences %}
+                                        <option value="{{ product.code }}" {% if product.code in product_filter %}selected{% endif %} class="p-2">
+                                            {{ product }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ردیف سوم: تنظیمات ارتباطی -->
+                <div class="border-t border-gray-200 pt-8">
+                    <h3 class="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+                        <i class="fas fa-comments text-green-500"></i>
+                        تنظیمات ارتباطی
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        <!-- فیلتر ترجیح پیامک -->
+                        <div class="filter-section space-y-3">
+                            <label for="sms_preference" class="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                                <i class="fas fa-sms text-blue-500"></i>
+                                ترجیح پیامک
+                            </label>
+                            <div class="relative">
+                                <select name="sms_preference" id="sms_preference" class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm transition-all duration-300 hover:border-blue-300">
+                                    <option value="" {% if not sms_preference %}selected{% endif %}>📱 همه</option>
+                                    <option value="yes" {% if sms_preference == 'yes' %}selected{% endif %}>✅ تمایل دارد</option>
+                                    <option value="no" {% if sms_preference == 'no' %}selected{% endif %}>❌ تمایل ندارد</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- فیلتر ترجیح واتساپ -->
+                        <div class="filter-section space-y-3">
+                            <label for="whatsapp_preference" class="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                                <i class="fab fa-whatsapp text-green-500"></i>
+                                ترجیح واتساپ
+                            </label>
+                            <div class="relative">
+                                <select name="whatsapp_preference" id="whatsapp_preference" class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm transition-all duration-300 hover:border-blue-300">
+                                    <option value="" {% if not whatsapp_preference %}selected{% endif %}>💬 همه</option>
+                                    <option value="yes" {% if whatsapp_preference == 'yes' %}selected{% endif %}>✅ تمایل دارد</option>
+                                    <option value="no" {% if whatsapp_preference == 'no' %}selected{% endif %}>❌ تمایل ندارد</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ردیف چهارم: فیلترهای عددی -->
+                <div class="border-t border-gray-200 pt-8">
+                    <h3 class="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+                        <i class="fas fa-chart-line text-indigo-500"></i>
+                        آمار خریدها
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        <!-- فیلتر حداقل تعداد خریدها -->
+                        <div class="filter-section space-y-3">
+                            <label for="min_purchases" class="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                                <i class="fas fa-shopping-cart text-blue-500"></i>
+                                حداقل تعداد خرید
+                            </label>
+                            <div class="relative">
+                                <input type="number" name="min_purchases" id="min_purchases" value="{{ min_purchases }}" 
+                                   class="w-full p-4 pl-12 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm transition-all duration-300 hover:border-blue-300" 
+                                   min="0" placeholder="مثال: 5">
+                                <div class="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                                    <i class="fas fa-hashtag text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- فیلتر آخرین خرید -->
+                        <div class="filter-section space-y-3">
+                            <label for="last_purchase_days" class="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                                <i class="fas fa-calendar-alt text-red-500"></i>
+                                آخرین خرید در X روز گذشته
+                            </label>
+                            <div class="relative">
+                                <input type="number" name="last_purchase_days" id="last_purchase_days" value="{{ last_purchase_days }}" 
+                                   class="w-full p-4 pl-12 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm transition-all duration-300 hover:border-blue-300" 
+                                   min="0" placeholder="مثال: 30">
+                                <div class="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                                    <i class="fas fa-clock text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <!-- دکمه‌های عملیات -->
+            <div class="flex justify-center mt-10 pt-8 border-t border-gray-200">
+                <div class="flex gap-4">
+                    <button type="button" id="reset-filters" class="btn-secondary px-8 py-4 rounded-xl shadow-lg flex items-center gap-3 hover:scale-105 transition-all duration-300">
+                        <i class="fas fa-eraser"></i>
+                        پاک کردن فیلترها
+                    </button>
+                    <button type="submit" form="filter-form" class="btn-primary px-8 py-4 rounded-xl shadow-lg flex items-center gap-3 hover:scale-105 transition-all duration-300">
+                        <i class="fas fa-search"></i>
+                        اعمال فیلترها
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- نوار پیشرفت فیلترها -->
+        <div class="h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500"></div>
     </div>
     
-    <!-- نمایش تعداد نتایج و گزینه‌های مرتب‌سازی -->
-    <div class="flex flex-col md:flex-row justify-between items-center mb-4 card p-4 animate-slide-up" style="animation-delay: 0.4s;">
-        <div class="text-gray-700 mb-3 md:mb-0">
-            <span class="tag bg-indigo-100 text-indigo-800 text-sm py-2 px-3">
-                <i class="fas fa-users mr-2"></i>تعداد نتایج: <span class="font-bold">{{ customers.paginator.count }}</span>
-            </span>
-        </div>
-        <div>
-            <a href="{% url 'customer_list' %}" class="btn-warning px-4 py-2 rounded-lg shadow-md">
-                <i class="fas fa-undo mr-2"></i>حذف فیلترها و مرتب‌سازی
-            </a>
-        </div>
-    </div>
+
     
-    <!-- جدول مشتریان با امکان انتخاب چندگانه -->
-    <form id="sms-selection-form" class="card p-0 mb-6 animate-slide-up" style="animation-delay: 0.5s;">
-        {% csrf_token %}
-        <div class="overflow-x-auto">
-            <table class="min-w-full table-hover enable-filter">
+    <!-- جدول مشتریان -->
+    <div class="table-container animate-slide-up" style="animation-delay: 0.4s;">
+        <div class="table-wrapper">
+            <form id="sms-selection-form">
+                {% csrf_token %}
+                <table class="table enable-filter">
                 <thead>
                     <tr>
-                        <th width="40px" class="px-6 py-3 text-right column-checkbox">
-                            <input type="checkbox" id="select-all-checkbox" class="select-all-checkbox h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                        <th class="column-checkbox" style="width: 50px;">
+                            <input type="checkbox" id="select-all-checkbox" class="form-check-input">
                         </th>
-                        <th width="40px" class="px-6 py-3 text-right column-favorite" data-column-type="boolean">
-                            <span>علاقه</span>
+                        <th class="column-favorite" data-column-type="boolean" style="width: 60px;">
+                            علاقه
                         </th>
-                        <th class="px-6 py-3 text-right column-name" data-column-type="text">
-                            <span>نام</span>
+                        <th class="column-name" data-column-type="text">
+                            نام
                         </th>
-                        <th class="px-6 py-3 text-right column-phone" data-column-type="text">
-                            <span>شماره موبایل</span>
+                        <th class="column-phone" data-column-type="text">
+                            شماره موبایل
                         </th>
-                        <th class="px-6 py-3 text-right column-city" data-column-type="text">
-                            <span>شهر</span>
+                        <th class="column-city" data-column-type="text">
+                            شهر
                         </th>
-                        <th class="px-6 py-3 text-right column-activity" data-column-type="text">حوزه فعالیت</th>
-                        <th class="px-6 py-3 text-right column-purchase_count" data-column-type="number">
-                            <span>تعداد خرید</span>
+                        <th class="column-activity" data-column-type="text">حوزه فعالیت</th>
+                        <th class="column-purchase_count" data-column-type="number">
+                            تعداد خرید
                         </th>
-                        <th class="px-6 py-3 text-right column-total_weight" data-column-type="number">
-                            <span>حجم خرید کل (کیلوگرم)</span>
+                        <th class="column-total_weight" data-column-type="number">
+                            حجم خرید کل (کیلوگرم)
+                        </th>
+                        <th class="column-payment_preference" data-column-type="text" style="display: none;">
+                            ترجیحات پرداخت
+                        </th>
+                        <th class="column-product_preference" data-column-type="text" style="display: none;">
+                            ترجیحات محصول
+                        </th>
+                        <th class="column-last_purchase" data-column-type="text" style="display: none;">
+                            آخرین خرید
                         </th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for customer in customers %}
                         <tr>
-                            <td class="px-6 py-4 text-right column-checkbox">
-                                <input type="checkbox" name="customer_ids" value="{{ customer.id }}" class="row-checkbox h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" data-id="{{ customer.id }}">
+                            <td class="column-checkbox">
+                                <input type="checkbox" name="customer_ids" value="{{ customer.id }}" class="form-check-input row-checkbox customer-checkbox" data-id="{{ customer.id }}">
                             </td>
-                            <td class="px-6 py-4 text-right column-favorite">
-                                <span class="favorite-icon text-yellow-500 cursor-pointer hover:scale-125 transition-transform" data-customer-id="{{ customer.id }}" data-is-favorite="{{ customer.is_favorite|lower }}">
+                            <td class="column-favorite">
+                                <span class="favorite-icon" data-customer-id="{{ customer.id }}" data-is-favorite="{{ customer.is_favorite|lower }}">
                                     {% if customer.is_favorite %}
-                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star text-warning"></i>
                                     {% else %}
-                                        <i class="far fa-star"></i>
+                                        <i class="far fa-star text-secondary"></i>
                                     {% endif %}
                                 </span>
                             </td>
-                            <td class="px-6 py-4 text-right column-name">
-                                <a href="{% url 'general_customer_CRUD' %}?customer_id={{ customer.id }}" class="text-blue-600 hover:text-blue-900 font-medium">
+                            <td class="column-name">
+                                <a href="{% url 'general_customer_CRUD' %}?customer_id={{ customer.id }}" class="text-decoration-none fw-medium text-primary">
                                     {{ customer.name }}
                                 </a>
                             </td>
-                            <td class="px-6 py-4 text-right font-mono column-phone">{{ customer.get_primary_phone }}</td>
-                            <td class="px-6 py-4 text-right column-city">
-                                <span class="tag">{{ customer.city }}</span>
+                            <td class="column-phone">
+                                <span class="text-monospace text-dark small">
+                                    <i class="fas fa-phone text-success me-1"></i>
+                                    {{ customer.get_primary_phone }}
+                                </span>
                             </td>
-                            <td class="px-6 py-4 text-right column-activity">{{ customer.get_field_of_activity_display }}</td>
-                            <td class="px-6 py-4 text-right column-purchase_count" data-value="{{ customer.purchases_made.count }}">
-                                <span class="bg-blue-100 text-blue-800 py-1 px-2 rounded-full text-xs font-medium">
-                                {% if customer.purchases_made.count %}
-                                    {{ customer.purchases_made.count }}
+                            <td class="column-city">
+                                <span class="text-dark">
+                                    <i class="fas fa-map-marker-alt text-danger me-1"></i>
+                                    {{ customer.city }}
+                                </span>
+                            </td>
+                            <td class="column-activity">
+                                <span class="text-secondary small">
+                                    <i class="fas fa-briefcase text-secondary me-1"></i>
+                                    {% if customer.get_field_of_activity_display %}
+                                        {{ customer.get_field_of_activity_display }}
+                                    {% else %}
+                                        تعیین نشده
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td class="column-purchase_count" data-value="{{ customer.purchases_made.count }}">
+                                <span class="fw-bold text-primary">
+                                    <i class="fas fa-shopping-cart me-1"></i>
+                                    {% if customer.purchases_made.count %}
+                                        {{ customer.purchases_made.count }} خرید
+                                    {% else %}
+                                        بدون خرید
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td class="column-total_weight" data-value="{{ customer.total_purchase_weight }}">
+                                <span class="fw-bold text-success">
+                                    <i class="fas fa-weight text-success me-1"></i>
+                                    {{ customer.total_purchase_weight|floatformat:0|default:"0"|intcomma }} کیلوگرم
+                                </span>
+                            </td>
+
+                            <td class="column-payment_preference" style="display: none;">
+                                {% if customer.purchase_preferences.all %}
+                                    <div class="small">
+                                        <i class="fas fa-credit-card text-info me-1"></i>
+                                        {% for pref in customer.purchase_preferences.all %}
+                                            <span class="text-info">{{ pref }}</span>{% if not forloop.last %}، {% endif %}
+                                        {% endfor %}
+                                    </div>
                                 {% else %}
-                                    0
+                                    <span class="text-muted">
+                                        <i class="fas fa-credit-card text-muted me-1"></i>
+                                        تعیین نشده
+                                    </span>
                                 {% endif %}
-                                </span>
                             </td>
-                            <td class="px-6 py-4 text-right font-medium column-total_weight" data-value="{{ customer.total_purchase_weight }}">
-                                <span class="bg-green-100 text-green-800 py-1 px-2 rounded-full text-xs">
-                                    {{ customer.total_purchase_weight|floatformat:0|default:"0"|intcomma }}
-                                </span>
+                            <td class="column-product_preference" style="display: none;">
+                                {% if customer.product_preferences.all %}
+                                    <div class="small">
+                                        <i class="fas fa-boxes text-warning me-1"></i>
+                                        {% for pref in customer.product_preferences.all %}
+                                            <span class="text-warning">{{ pref }}</span>{% if not forloop.last %}، {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">
+                                        <i class="fas fa-boxes text-muted me-1"></i>
+                                        تعیین نشده
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="column-last_purchase" style="display: none;">
+                                {% if customer.purchases_made.exists %}
+                                    <span class="small text-secondary">
+                                        <i class="fas fa-calendar-alt me-1"></i>
+                                        {{ customer.purchases_made.first.created_at|date:"Y/m/d" }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted small">هیچ خریدی ثبت نشده</span>
+                                {% endif %}
                             </td>
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center py-10 text-gray-500">
-                                <div class="flex flex-col items-center">
-                                    <i class="fas fa-search text-4xl mb-3 text-gray-300"></i>
-                                    <p>مشتری‌ای یافت نشد</p>
+                            <td colspan="11" class="text-center py-5">
+                                <div class="d-flex flex-column align-items-center">
+                                    <i class="fas fa-search display-4 mb-3 text-muted"></i>
+                                    <p class="text-muted">مشتری‌ای یافت نشد</p>
                                 </div>
                             </td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
+        </form>
         </div>
-    </form>
+    </div>
     
     <!-- پنل ارسال پیامک -->
     <div id="sms-panel" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden modal-overlay z-50">
@@ -713,6 +606,168 @@
             </ul>
         </nav>
     </div>
+
+    <!-- مدال مدیریت ستون‌ها -->
+    <div class="modal fade" id="columnsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content shadow">
+                <div class="modal-header bg-white border-bottom">
+                    <h5 class="modal-title fw-bold text-primary">
+                        <i class="fas fa-columns me-2"></i>مدیریت ستون‌های جدول مشتریان
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <div class="alert alert-info bg-info bg-opacity-10 border-0 mb-4 p-3">
+                        <p class="mb-0 py-1">
+                            <i class="fas fa-info-circle me-2"></i>
+                            ستون‌های مورد نظر خود را برای نمایش در جدول انتخاب کنید.
+                        </p>
+                    </div>
+                    
+                    <form id="columnsForm" class="px-3">
+                        {% csrf_token %}
+                        <div class="section-container pb-4">
+                            <div class="section-header d-flex justify-content-between align-items-center mb-4">
+                                <h6 class="mb-0 fw-bold text-primary fs-5">
+                                    <i class="fas fa-table me-2"></i>ستون‌های قابل انتخاب
+                                </h6>
+                                <div class="d-flex gap-3">
+                                    <button type="button" class="btn btn-sm btn-outline-primary px-3 py-2" id="selectAllColumns">
+                                        <i class="fas fa-check-square me-2"></i>انتخاب همه
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-2" id="deselectAllColumns">
+                                        <i class="fas fa-square me-2"></i>هیچکدام
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="section-body pt-2">
+                                <div class="row g-4">
+                                    <!-- ستون نام -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-name" name="columns[]" 
+                                                value="name" checked>
+                                            <label class="form-check-label" for="col-name">
+                                                نام مشتری
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون شماره تلفن -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-phone" name="columns[]" 
+                                                value="phone" checked>
+                                            <label class="form-check-label" for="col-phone">
+                                                شماره موبایل
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون شهر -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-city" name="columns[]" 
+                                                value="city" checked>
+                                            <label class="form-check-label" for="col-city">
+                                                شهر
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون حوزه فعالیت -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-activity" name="columns[]" 
+                                                value="activity" checked>
+                                            <label class="form-check-label" for="col-activity">
+                                                حوزه فعالیت
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون تعداد خرید -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-purchase_count" name="columns[]" 
+                                                value="purchase_count" checked>
+                                            <label class="form-check-label" for="col-purchase_count">
+                                                تعداد خرید
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون حجم خرید کل -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-total_weight" name="columns[]" 
+                                                value="total_weight" checked>
+                                            <label class="form-check-label" for="col-total_weight">
+                                                حجم خرید کل
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+
+                                    
+                                    <!-- ستون ترجیحات پرداخت -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-payment_preference" name="columns[]" 
+                                                value="payment_preference">
+                                            <label class="form-check-label" for="col-payment_preference">
+                                                ترجیحات پرداخت
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون ترجیحات محصول -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-product_preference" name="columns[]" 
+                                                value="product_preference">
+                                            <label class="form-check-label" for="col-product_preference">
+                                                ترجیحات محصول
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون آخرین خرید -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-last_purchase" name="columns[]" 
+                                                value="last_purchase">
+                                            <label class="form-check-label" for="col-last_purchase">
+                                                آخرین خرید
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-light py-3">
+                    <button type="button" class="btn btn-outline-secondary px-4 py-2" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>انصراف
+                    </button>
+                    <button type="button" class="btn btn-primary px-4 py-2" id="saveColumnsBtn">
+                        <i class="fas fa-save me-2"></i>ذخیره تغییرات
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -720,343 +775,16 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8/dist/sweetalert2.all.min.js"></script>
 <script src="{% static 'table_filter/js/table_filter.js' %}"></script>
 <script src="{% static 'table_filter/js/bulk_edit.js' %}"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOM fully loaded');
-        
-        // Initialize table filter first
-        const tableFilter = new TableFilter({
-            tableSelector: '.enable-filter',
-            enableToast: true,
-            enableIndicators: true,
-            enableSummary: true,
-            enableClearAll: true,
-            autoDetectColumns: true
-        });
-        tableFilter.init();
-        console.log('Table filter initialized');
-        
-        // Initialize the bulk edit manager
-        const bulkEditManager = new BulkEditManager({
-            tableSelector: '.enable-filter',
-            bulkEditPageUrl: '{% url "table_filter:bulk_edit_page" %}',
-            excelEditPageUrl: '{% url "table_filter:bulk_edit_excel_page" %}',
-            downloadTemplateUrl: '{% url "table_filter:bulk_edit_template" %}'
-        });
-        bulkEditManager.init();
-        
-        // اضافه کردن امکان تشخیص نوع جدول برای cargo_product
-        bulkEditManager.detectTableType = function() {
-            const url = window.location.pathname;
-            if (url.includes('cargo_product')) {
-                return 'cargo_product';
-            } else if (url.includes('purchase')) {
-                return 'purchase';
-            } else if (url.includes('customer')) {
-                return 'customer';
-            } else if (url.includes('barbary')) {
-                return 'barbary';
-            }
-            return 'generic';
-        };
-        
-        // اضافه کردن نگاشت مدل برای cargo_product
-        bulkEditManager.getModelName = function(tableType) {
-            const modelMap = {
-                'purchase': 'Purchase',
-                'customer': 'Customer',
-                'barbary': 'Barbary',
-                'cargo_product': 'CargoProduct'
-            };
-            return modelMap[tableType] || 'Customer';
-        };
-        
-        // تنظیم اپلیکیشن مدل
-        bulkEditManager.getAppName = function(tableType) {
-            return 'core';
-        };
-        
-        // تنظیم فیلتر مناسب برای لیست مشتریان
-        var toggleFiltersBtn = document.getElementById('toggle-filters-btn');
-        var filtersContainer = document.getElementById('filters-container');
-        
-        if (toggleFiltersBtn && filtersContainer) {
-            // توقف کامل propagation برای دکمه فیلترها
-            toggleFiltersBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                filtersContainer.classList.toggle('hidden');
-                return false;
-            });
-            
-            // توقف propagation برای درون منوی فیلتر
-            filtersContainer.addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
-            
-            // اضافه کردن event listener برای کلیک خارج از منو
-            document.addEventListener('click', function(e) {
-                if (!filtersContainer.classList.contains('hidden')) {
-                    if (!filtersContainer.contains(e.target) && 
-                        e.target !== toggleFiltersBtn && 
-                        !toggleFiltersBtn.contains(e.target)) {
-                        filtersContainer.classList.add('hidden');
-                    }
-                }
-            });
-        }
-        
-        // حذف فیلترها
-        var resetFiltersBtn = document.getElementById('reset-filters');
-        if (resetFiltersBtn) {
-            resetFiltersBtn.addEventListener('click', function() {
-                window.location.href = window.location.pathname;
-            });
-        }
+<script src="{% static 'js/customer_list_scripts.js' %}?v={% now 'U' %}"></script>
 
-        // انتخاب همه
-        var selectAllBtn = document.getElementById('select-all-btn');
-        if (selectAllBtn) {
-            selectAllBtn.addEventListener('click', function() {
-                var checkboxes = document.querySelectorAll('.row-checkbox');
-                checkboxes.forEach(function(checkbox) {
-                    checkbox.checked = true;
-                    checkbox.closest('tr').classList.add('selected-row');
-                });
-                updateSelectionCount();
-            });
-        }
-
-        // لغو انتخاب همه
-        var deselectAllBtn = document.getElementById('deselect-all-btn');
-        if (deselectAllBtn) {
-            deselectAllBtn.addEventListener('click', function() {
-                var checkboxes = document.querySelectorAll('.row-checkbox');
-                checkboxes.forEach(function(checkbox) {
-                    checkbox.checked = false;
-                    checkbox.closest('tr').classList.remove('selected-row');
-                });
-                updateSelectionCount();
-            });
-        }
-
-        // انتخاب همه در هدر جدول
-        var selectAllCheckbox = document.getElementById('select-all-checkbox');
-        if (selectAllCheckbox) {
-            selectAllCheckbox.addEventListener('change', function() {
-                var checkboxes = document.querySelectorAll('.row-checkbox');
-                checkboxes.forEach(function(checkbox) {
-                    checkbox.checked = this.checked;
-                    if (this.checked) {
-                        checkbox.closest('tr').classList.add('selected-row');
-                    } else {
-                        checkbox.closest('tr').classList.remove('selected-row');
-                    }
-                });
-                updateSelectionCount();
-            });
-        }
-
-        // محاسبه تعداد انتخاب‌ها
-        function updateSelectionCount() {
-            var count = document.querySelectorAll('.row-checkbox:checked').length;
-            var sendSmsBtn = document.getElementById('send-sms-btn');
-            if (sendSmsBtn) {
-                sendSmsBtn.disabled = count === 0;
-            }
-            var selectedCount = document.getElementById('selected-count');
-            if (selectedCount) {
-                selectedCount.textContent = count;
-            }
-        }
-
-        // اضافه کردن event listener به تمام چک‌باکس‌ها
-        var customerCheckboxes = document.querySelectorAll('.row-checkbox');
-        customerCheckboxes.forEach(function(checkbox) {
-            checkbox.addEventListener('change', function() {
-                console.log('Checkbox changed');
-                if (this.checked) {
-                    this.closest('tr').classList.add('selected-row');
-                } else {
-                    this.closest('tr').classList.remove('selected-row');
-                }
-                updateSelectionCount();
-            });
-        });
-
-        // اضافه کردن قابلیت کلیک روی سطرها برای انتخاب
-        var tableRows = document.querySelectorAll('tbody tr');
-        console.log('Found ' + tableRows.length + ' table rows');
-        
-        tableRows.forEach(function(row) {
-            row.addEventListener('click', function(e) {
-                // جلوگیری از انتخاب سطر در صورت کلیک روی لینک یا ستاره
-                if (e.target.tagName === 'A' || 
-                    e.target.closest('a') || 
-                    e.target.classList.contains('fa-star') || 
-                    e.target.classList.contains('favorite-icon') || 
-                    e.target.closest('.favorite-icon')) {
-                    return;
-                }
-                
-                // اگر روی چک‌باکس کلیک شده، خود چک‌باکس کار خودش را انجام می‌دهد
-                if (e.target.type === 'checkbox' || e.target.closest('input[type="checkbox"]')) {
-                    return;
-                }
-                
-                console.log('Row clicked');
-                var checkbox = this.querySelector('.row-checkbox');
-                if (checkbox) {
-                    checkbox.checked = !checkbox.checked;
-                    
-                    if (checkbox.checked) {
-                        this.classList.add('selected-row');
-                    } else {
-                        this.classList.remove('selected-row');
-                    }
-                    
-                    updateSelectionCount();
-                }
-            });
-        });
-        
-        // تغییر وضعیت علاقه‌مندی
-        var favoriteIcons = document.querySelectorAll('.favorite-icon');
-        console.log('Found ' + favoriteIcons.length + ' favorite icons');
-        
-        favoriteIcons.forEach(function(icon) {
-            icon.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                var customerId = this.getAttribute('data-customer-id');
-                console.log('Favorite icon clicked for customer ID:', customerId);
-                toggleFavorite(customerId, this);
-            });
-        });
-
-        // نمایش پنل ارسال پیامک
-        var sendSmsBtn = document.getElementById('send-sms-btn');
-        if (sendSmsBtn) {
-            sendSmsBtn.addEventListener('click', function() {
-                var smsPanel = document.getElementById('sms-panel');
-                if (smsPanel) {
-                    smsPanel.classList.remove('hidden');
-                }
-            });
-        }
-
-        // بستن پنل پیامک
-        var closeSmsPanel = document.getElementById('close-sms-panel');
-        if (closeSmsPanel) {
-            closeSmsPanel.addEventListener('click', function() {
-                var smsPanel = document.getElementById('sms-panel');
-                if (smsPanel) {
-                    smsPanel.classList.add('hidden');
-                }
-            });
-        }
-    });
-
-    // تابع تغییر وضعیت علاقه‌مندی
-    function toggleFavorite(customerId, iconElement) {
-        if (!customerId) {
-            console.error('شناسه مشتری یافت نشد');
-            return;
-        }
-        
-        console.log('Toggling favorite for customer ID:', customerId);
-        
-        // یافتن توکن CSRF
-        var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-        if (!csrfToken) {
-            console.error('CSRF token not found');
-            return;
-        }
-        
-        // نمایش لودینگ روی آیکون
-        var originalHTML = iconElement.innerHTML;
-        iconElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        
-        // ساخت داده‌های فرم
-        var formData = new FormData();
-        formData.append('customer_id', customerId);
-        
-        // ارسال درخواست
-        fetch('{% url "toggle_favorite" %}', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrfToken
-            },
-            body: formData
-        })
-        .then(function(response) {
-            console.log('Response status:', response.status);
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.status);
-            }
-            return response.json();
-        })
-        .then(function(data) {
-            console.log('Response data:', data);
-            
-            if (data.success) {
-                // تغییر آیکون بر اساس وضعیت جدید
-                if (data.is_favorite) {
-                    iconElement.innerHTML = '<i class="fas fa-star text-yellow-500"></i>';
-                    iconElement.setAttribute('data-is-favorite', 'true');
-                } else {
-                    iconElement.innerHTML = '<i class="far fa-star"></i>';
-                    iconElement.setAttribute('data-is-favorite', 'false');
-                }
-                
-                // نمایش پیام موفقیت
-                Swal.fire({
-                    icon: 'success',
-                    title: 'موفق',
-                    text: data.message,
-                    showConfirmButton: false,
-                    timer: 1500
-                });
-            } else {
-                // بازگرداندن آیکون به حالت قبلی در صورت خطا
-                iconElement.innerHTML = originalHTML;
-                
-                // نمایش پیام خطا
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطا',
-                    text: data.error || 'خطایی رخ داد',
-                });
-            }
-        })
-        .catch(function(error) {
-            // بازگرداندن آیکون به حالت قبلی در صورت خطا
-            iconElement.innerHTML = originalHTML;
-            
-            console.error('خطا در ارسال درخواست:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'خطا',
-                text: 'خطایی در ارتباط با سرور رخ داد: ' + error.message,
-            });
-        });
-    }
-
-    // نمایش وضعیت جاوااسکریپت
-    var jsStatus = document.getElementById('js-status');
-    if (jsStatus) {
-        jsStatus.classList.remove('hidden');
-        setTimeout(function() {
-            jsStatus.classList.add('hidden');
-        }, 3000);
-    }
-
-    // کد مربوط به قالب‌های پیامک و سایر عملکردها را حفظ می‌کنیم
-    // ...
-</script>
-
-<!-- Initialize table filters -->
 {% enable_table_filter %}
+{% enable_bulk_edit %}
+{% enable_edit_history "core" "Customer" %}
+
+<!-- Selection Indicator -->
+<div id="selection-indicator" style="display: none;">
+    <i class="fas fa-check-square"></i>
+    <span id="selection-count">0</span> مشتری انتخاب شده
+</div>
 
 {% endblock %} 

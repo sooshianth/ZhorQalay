@@ -54,3 +54,206 @@ Traceback (most recent call last):
 ValueError: No route found for path 'ws/notifications/1/'.
 WARNING 2025-06-30 16:21:31,216 log Not Found: /favicon.ico
 WARNING 2025-06-30 16:21:31,217 runserver HTTP GET /favicon.ico 404 [0.07, 127.0.0.1:54413]
+WARNING 2025-06-30 18:12:24,139 server Application instance <Task pending name='Task-183' coro=<ASGIStaticFilesHandler.__call__() running at C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\contrib\staticfiles\handlers.py:101> wait_for=<Future pending cb=[Task.task_wakeup()]>> for connection <WebSocketProtocol client=['127.0.0.1', 2897] path=b'/ws/chat/1/'> took too long to shut down and was killed.
+ERROR 2025-06-30 18:24:58,373 log Internal Server Error: /sales/get-related-products/
+ERROR 2025-06-30 18:24:58,376 runserver [35;1mHTTP GET /sales/get-related-products/?customer_id=12 500 [0.02, 127.0.0.1:3207][0m
+WARNING 2025-06-30 18:30:47,140 log Not Found: /favicon.ico
+WARNING 2025-06-30 18:30:47,144 runserver [33mHTTP GET /favicon.ico 404 [0.05, 127.0.0.1:3425][0m
+ERROR 2025-06-30 18:35:53,539 server Exception inside application: No route found for path 'ws/notifications/1/'.
+Traceback (most recent call last):
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\contrib\staticfiles\handlers.py", line 101, in __call__
+    return await self.application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\channels\routing.py", line 48, in __call__
+    return await application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\channels\security\websocket.py", line 37, in __call__
+    return await self.application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\channels\routing.py", line 136, in __call__
+    raise ValueError("No route found for path %r." % path)
+ValueError: No route found for path 'ws/notifications/1/'.
+WARNING 2025-06-30 18:35:56,840 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:3552][0m
+ERROR 2025-06-30 21:57:30,570 server Exception inside application: No route found for path 'ws/notifications/1/'.
+Traceback (most recent call last):
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\contrib\staticfiles\handlers.py", line 101, in __call__
+    return await self.application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\channels\routing.py", line 48, in __call__
+    return await application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\channels\security\websocket.py", line 37, in __call__
+    return await self.application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\channels\routing.py", line 136, in __call__
+    raise ValueError("No route found for path %r." % path)
+ValueError: No route found for path 'ws/notifications/1/'.
+WARNING 2025-06-30 22:01:02,233 runserver [33mHTTP GET /static/sales/js/customer_list_scripts.js 404 [0.02, 127.0.0.1:4902][0m
+WARNING 2025-06-30 22:01:02,237 runserver [33mHTTP GET /static/css_files/customer_list_styles.css 404 [0.03, 127.0.0.1:4900][0m
+WARNING 2025-06-30 22:01:05,180 runserver [33mHTTP GET /static/sales/js/customer_list_scripts.js 404 [0.03, 127.0.0.1:4897][0m
+WARNING 2025-06-30 22:01:05,183 runserver [33mHTTP GET /static/css_files/customer_list_styles.css 404 [0.03, 127.0.0.1:4896][0m
+WARNING 2025-06-30 22:01:07,462 runserver [33mHTTP GET /static/css_files/customer_list_styles.css 404 [0.02, 127.0.0.1:4896][0m
+WARNING 2025-06-30 22:01:07,466 runserver [33mHTTP GET /static/sales/js/customer_list_scripts.js 404 [0.02, 127.0.0.1:4897][0m
+WARNING 2025-06-30 22:01:08,051 runserver [33mHTTP GET /static/sales/js/customer_list_scripts.js 404 [0.01, 127.0.0.1:4900][0m
+WARNING 2025-06-30 22:01:08,053 runserver [33mHTTP GET /static/css_files/customer_list_styles.css 404 [0.02, 127.0.0.1:4897][0m
+WARNING 2025-06-30 22:04:26,390 log Not Found: /sales/customers/enhanced/{% url "customer_list" %}
+WARNING 2025-06-30 22:04:26,393 runserver [33mHTTP GET /sales/customers/enhanced/%7B%%20url%20%22customer_list%22%20%%7D 404 [0.03, 127.0.0.1:5058][0m
+WARNING 2025-06-30 22:04:26,468 log Not Found: /favicon.ico
+WARNING 2025-06-30 22:04:26,471 runserver [33mHTTP GET /favicon.ico 404 [0.03, 127.0.0.1:5058][0m
+WARNING 2025-06-30 22:04:34,682 log Not Found: /sales/customers/enhanced/{% url "customer_list" %}
+WARNING 2025-06-30 22:04:34,685 runserver [33mHTTP GET /sales/customers/enhanced/%7B%%20url%20%22customer_list%22%20%%7D 404 [0.02, 127.0.0.1:5060][0m
+ERROR 2025-06-30 22:10:53,976 log Internal Server Error: /sales/get-related-products/
+ERROR 2025-06-30 22:10:53,978 runserver [35;1mHTTP GET /sales/get-related-products/?customer_id=12 500 [0.04, 127.0.0.1:5370][0m
+ERROR 2025-06-30 22:45:34,944 server Exception inside application: No route found for path 'ws/notifications/1/'.
+Traceback (most recent call last):
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\contrib\staticfiles\handlers.py", line 101, in __call__
+    return await self.application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\channels\routing.py", line 48, in __call__
+    return await application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\channels\security\websocket.py", line 37, in __call__
+    return await self.application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\channels\routing.py", line 136, in __call__
+    raise ValueError("No route found for path %r." % path)
+ValueError: No route found for path 'ws/notifications/1/'.
+WARNING 2025-06-30 22:45:39,033 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.03, 127.0.0.1:6242][0m
+ERROR 2025-06-30 22:54:17,378 log Internal Server Error: /sales/customers/enhanced/
+Traceback (most recent call last):
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\asgiref\sync.py", line 518, in thread_handler
+    raise exc_info[1]
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\core\handlers\exception.py", line 42, in inner
+    response = await get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\asgiref\sync.py", line 518, in thread_handler
+    raise exc_info[1]
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\core\handlers\base.py", line 253, in _get_response_async
+    response = await wrapped_callback(
+               ^^^^^^^^^^^^^^^^^^^^^^^
+        request, *callback_args, **callback_kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\asgiref\sync.py", line 468, in __call__
+    ret = await asyncio.shield(exec_coro)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\asgiref\current_thread_executor.py", line 40, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\asgiref\sync.py", line 522, in thread_handler
+    return func(*args, **kwargs)
+  File "C:\Users\Asus\Documents\GitHub\ZhorQalay\core\decorators\decorators.py", line 210, in _wrapped_view
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\contrib\auth\decorators.py", line 60, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\Asus\Documents\GitHub\ZhorQalay\sales\views\customer_list_view.py", line 170, in enhanced_customer_list_view
+    'customers': page_obj,
+                 ^^^^^^^^
+UnboundLocalError: cannot access local variable 'page_obj' where it is not associated with a value
+ERROR 2025-06-30 22:54:17,416 runserver [35;1mHTTP GET /sales/customers/enhanced/?csrfmiddlewaretoken=CGt7yIioKaIGmErq3ulzV8eUSRuGB5UNxhA37Z6YxtMfpd0cAmD9lXIscDIrzDKr 500 [0.18, 127.0.0.1:6513][0m
+WARNING 2025-06-30 22:54:17,494 log Not Found: /favicon.ico
+WARNING 2025-06-30 22:54:17,496 runserver [33mHTTP GET /favicon.ico 404 [0.03, 127.0.0.1:6513][0m
+ERROR 2025-06-30 22:55:49,200 log Internal Server Error: /sales/customers/enhanced/
+Traceback (most recent call last):
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\asgiref\sync.py", line 518, in thread_handler
+    raise exc_info[1]
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\core\handlers\exception.py", line 42, in inner
+    response = await get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\asgiref\sync.py", line 518, in thread_handler
+    raise exc_info[1]
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\core\handlers\base.py", line 253, in _get_response_async
+    response = await wrapped_callback(
+               ^^^^^^^^^^^^^^^^^^^^^^^
+        request, *callback_args, **callback_kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\asgiref\sync.py", line 468, in __call__
+    ret = await asyncio.shield(exec_coro)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\asgiref\current_thread_executor.py", line 40, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\asgiref\sync.py", line 522, in thread_handler
+    return func(*args, **kwargs)
+  File "C:\Users\Asus\Documents\GitHub\ZhorQalay\core\decorators\decorators.py", line 210, in _wrapped_view
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\contrib\auth\decorators.py", line 60, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\Asus\Documents\GitHub\ZhorQalay\sales\views\customer_list_view.py", line 186, in enhanced_customer_list_view
+    for customer in page_obj:
+                    ^^^^^^^^
+  File "<frozen _collections_abc>", line 1031, in __iter__
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\core\paginator.py", line 202, in __getitem__
+    self.object_list = list(self.object_list)
+                       ~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\db\models\query.py", line 400, in __iter__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\db\models\query.py", line 1930, in _fetch_all
+    self._prefetch_related_objects()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\db\models\query.py", line 1320, in _prefetch_related_objects
+    prefetch_related_objects(self._result_cache, *self._prefetch_related_lookups)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\db\models\query.py", line 2355, in prefetch_related_objects
+    raise AttributeError(
+    ...<7 lines>...
+    )
+AttributeError: Cannot find 'payment_preferences' on Customer object, 'payment_preferences' is an invalid parameter to prefetch_related()
+ERROR 2025-06-30 22:55:49,211 runserver [35;1mHTTP GET /sales/customers/enhanced/?csrfmiddlewaretoken=CGt7yIioKaIGmErq3ulzV8eUSRuGB5UNxhA37Z6YxtMfpd0cAmD9lXIscDIrzDKr 500 [0.11, 127.0.0.1:6577][0m
+WARNING 2025-06-30 22:55:49,339 log Not Found: /favicon.ico
+WARNING 2025-06-30 22:55:49,341 runserver [33mHTTP GET /favicon.ico 404 [0.02, 127.0.0.1:6577][0m
+ERROR 2025-06-30 22:55:53,425 log Internal Server Error: /sales/customers/enhanced/
+Traceback (most recent call last):
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\asgiref\sync.py", line 518, in thread_handler
+    raise exc_info[1]
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\core\handlers\exception.py", line 42, in inner
+    response = await get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\asgiref\sync.py", line 518, in thread_handler
+    raise exc_info[1]
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\core\handlers\base.py", line 253, in _get_response_async
+    response = await wrapped_callback(
+               ^^^^^^^^^^^^^^^^^^^^^^^
+        request, *callback_args, **callback_kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\asgiref\sync.py", line 468, in __call__
+    ret = await asyncio.shield(exec_coro)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\asgiref\current_thread_executor.py", line 40, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\asgiref\sync.py", line 522, in thread_handler
+    return func(*args, **kwargs)
+  File "C:\Users\Asus\Documents\GitHub\ZhorQalay\core\decorators\decorators.py", line 210, in _wrapped_view
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\contrib\auth\decorators.py", line 60, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\Asus\Documents\GitHub\ZhorQalay\sales\views\customer_list_view.py", line 186, in enhanced_customer_list_view
+    for customer in page_obj:
+                    ^^^^^^^^
+  File "<frozen _collections_abc>", line 1031, in __iter__
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\core\paginator.py", line 202, in __getitem__
+    self.object_list = list(self.object_list)
+                       ~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\db\models\query.py", line 400, in __iter__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\db\models\query.py", line 1930, in _fetch_all
+    self._prefetch_related_objects()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\db\models\query.py", line 1320, in _prefetch_related_objects
+    prefetch_related_objects(self._result_cache, *self._prefetch_related_lookups)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\db\models\query.py", line 2355, in prefetch_related_objects
+    raise AttributeError(
+    ...<7 lines>...
+    )
+AttributeError: Cannot find 'payment_preferences' on Customer object, 'payment_preferences' is an invalid parameter to prefetch_related()
+ERROR 2025-06-30 22:55:53,432 runserver [35;1mHTTP GET /sales/customers/enhanced/?csrfmiddlewaretoken=CGt7yIioKaIGmErq3ulzV8eUSRuGB5UNxhA37Z6YxtMfpd0cAmD9lXIscDIrzDKr 500 [0.06, 127.0.0.1:6577][0m
+WARNING 2025-06-30 22:55:53,492 log Not Found: /favicon.ico
+WARNING 2025-06-30 22:55:53,495 runserver [33mHTTP GET /favicon.ico 404 [0.03, 127.0.0.1:6577][0m
+ERROR 2025-06-30 23:01:33,355 log Internal Server Error: /sales/get-related-products/
+ERROR 2025-06-30 23:01:33,357 runserver [35;1mHTTP GET /sales/get-related-products/?customer_id=12 500 [0.03, 127.0.0.1:6737][0m
