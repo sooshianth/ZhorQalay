@@ -16,6 +16,7 @@ from datetime import datetime
 from django.views.decorators.cache import cache_page
 from django.core.cache import cache
 from core.PurchaseModel import Purchase, PurchaseEditLog
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
@@ -38,6 +39,12 @@ def purchase_list(request):
     is_factored = request.GET.get('is_factored', '')
     priority = request.GET.get('priority', '')
     
+    # پارامترهای pagination
+    active_page = request.GET.get('active_page', 1)
+    pending_page = request.GET.get('pending_page', 1)
+    archived_page = request.GET.get('archived_page', 1)
+    per_page = int(request.GET.get('per_page', 100))  # تغییر پیش‌فرض به 100
+    
     # پارامترهای فیلتر اضافی
     factor_code = request.GET.get('factor_code', '')
     is_urgent = request.GET.get('is_urgent', '')
@@ -47,6 +54,9 @@ def purchase_list(request):
     payment_method = request.GET.get('payment_method', '')
     extelaf_type = request.GET.get('extelaf_type', '')
     send_cottage_sms = request.GET.get('send_cottage_sms', '')
+    
+    # بررسی اینکه آیا درخواست AJAX است
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     
     # تشخیص نقش کاربر
     user_role = determine_user_role(request.user)
@@ -83,11 +93,9 @@ def purchase_list(request):
     # 2. خریدهای در انتظار پرداخت (SMS_SENT و INITIATED)
     pending_payment_purchases = base_queryset.filter(state__in=['SMS_SENT', 'INITIATED'])\
         .exclude(is_archived=True)
-    pending_payment_count = pending_payment_purchases.count()
         
-    # 3. آرشیو را lazy load می‌کنیم (فقط count می‌گیریم)
-    archived_count = Purchase.objects.filter(Q(state='ARCHIVED') | Q(is_archived=True)).count()
-    archived_purchases = None  # lazy load در template
+    # 3. خریدهای آرشیو شده
+    archived_purchases = base_queryset.filter(Q(state='ARCHIVED') | Q(is_archived=True))
 
     # اگر کاربر کارشناس فروش یا پیگیری است، فقط خریدهای مربوطه را ببیند
     if user_role == 'sales_agent':
@@ -97,17 +105,12 @@ def purchase_list(request):
             sales_agent_filter = Q(unique_sales_agent=request.user.sales_agent)
             active_purchases = active_purchases.filter(sales_agent_filter)
             pending_payment_purchases = pending_payment_purchases.filter(sales_agent_filter)
-            pending_payment_count = pending_payment_purchases.count()
-            # آرشیو را هم فیلتر می‌کنیم
-            archived_count = Purchase.objects.filter(
-                Q(state='ARCHIVED') | Q(is_archived=True)
-            ).filter(sales_agent_filter).count()
+            archived_purchases = archived_purchases.filter(sales_agent_filter)
         else:
             # اگر کاربر sales_agent ندارد، هیچ خریدی نمایش نده
             active_purchases = Purchase.objects.none()
             pending_payment_purchases = Purchase.objects.none()
-            pending_payment_count = 0
-            archived_count = 0
+            archived_purchases = Purchase.objects.none()
     elif user_role == 'support_agent':
         # کارشناس پیگیری همه خریدها را می‌بیند اما با محدودیت اطلاعات
         pass
@@ -117,9 +120,10 @@ def purchase_list(request):
         if is_archived == '1':
             # نمایش فقط آرشیو - active را خالی می‌کنیم
             active_purchases = Purchase.objects.none()
+            pending_payment_purchases = Purchase.objects.none()
         else:  # is_archived == '0'
-            # نمایش فقط فعال - آرشیو count را صفر می‌کنیم
-            archived_count = 0
+            # نمایش فقط فعال - آرشیو را خالی می‌کنیم
+            archived_purchases = Purchase.objects.none()
 
     # اعمال فیلترهای پیشرفته (بهینه شده)
     filters = Q()
@@ -178,10 +182,30 @@ def purchase_list(request):
     if filters:
         active_purchases = active_purchases.filter(filters)
         pending_payment_purchases = pending_payment_purchases.filter(filters)
-        pending_payment_count = pending_payment_purchases.count()
+        archived_purchases = archived_purchases.filter(filters)
     
-    # حذف محدودیت 500 رکورد - نمایش همه خریدها
-    # active_purchases = active_purchases[:500]  # این خط حذف شده است
+    # تنظیم pagination برای هر بخش
+    active_paginator = Paginator(active_purchases, per_page)
+    pending_paginator = Paginator(pending_payment_purchases, per_page)
+    archived_paginator = Paginator(archived_purchases, per_page)
+    
+    try:
+        active_page_obj = active_paginator.page(active_page)
+    except (PageNotAnInteger, EmptyPage):
+        active_page_obj = active_paginator.page(1)
+        active_page = 1
+    
+    try:
+        pending_page_obj = pending_paginator.page(pending_page)
+    except (PageNotAnInteger, EmptyPage):
+        pending_page_obj = pending_paginator.page(1)
+        pending_page = 1
+    
+    try:
+        archived_page_obj = archived_paginator.page(archived_page)
+    except (PageNotAnInteger, EmptyPage):
+        archived_page_obj = archived_paginator.page(1)
+        archived_page = 1
     
     # فهرست وضعیت‌ها برای فیلتر
     all_states = dict(Purchase.STATUS_CHOICES)
@@ -309,17 +333,49 @@ def purchase_list(request):
                 {'id': 'amount_paid', 'name': 'مبلغ پرداختی', 'field': 'amount_paid', 'unit': 'ریال'},
             ])
 
+    # اگر درخواست AJAX است، فقط داده‌های JSON برگردان
+    if is_ajax:
+        return JsonResponse({
+            'status': 'success',
+            'data': {
+                'active': {
+                    'has_previous': active_page_obj.has_previous(),
+                    'has_next': active_page_obj.has_next(),
+                    'number': active_page_obj.number,
+                    'num_pages': active_paginator.num_pages,
+                    'count': active_paginator.count,
+                    'page_range': list(active_paginator.get_elided_page_range(active_page_obj.number, on_each_side=2, on_ends=1)),
+                },
+                'pending': {
+                    'has_previous': pending_page_obj.has_previous(),
+                    'has_next': pending_page_obj.has_next(),
+                    'number': pending_page_obj.number,
+                    'num_pages': pending_paginator.num_pages,
+                    'count': pending_paginator.count,
+                    'page_range': list(pending_paginator.get_elided_page_range(pending_page_obj.number, on_each_side=2, on_ends=1)),
+                },
+                'archived': {
+                    'has_previous': archived_page_obj.has_previous(),
+                    'has_next': archived_page_obj.has_next(),
+                    'number': archived_page_obj.number,
+                    'num_pages': archived_paginator.num_pages,
+                    'count': archived_paginator.count,
+                    'page_range': list(archived_paginator.get_elided_page_range(archived_page_obj.number, on_each_side=2, on_ends=1)),
+                }
+            }
+        })
+
     context = {
-        'active_purchases': active_purchases,
-        'pending_payment_purchases': pending_payment_purchases,
-        'pending_payment_count': pending_payment_count,
-        'archived_purchases': None,  # lazy load
-        'archived_count': archived_count,
+        'active_purchases': active_page_obj,
+        'pending_payment_purchases': pending_page_obj,
+        'archived_purchases': archived_page_obj,
+        'pending_payment_count': pending_paginator.count,
+        'archived_count': archived_paginator.count,
         'all_states': all_states,
         'user_role': user_role,
         'hide_sensitive_info': hide_sensitive_info,
         'is_restricted_user': user_role in ['sales_agent', 'support_agent'],  # برای غیرفعال کردن drag & drop
-        'total_active_purchases': active_purchases.count(),  # تعداد واقعی رکوردها
+        'total_active_purchases': active_paginator.count,  # تعداد واقعی رکوردها
         'search_params': {
             'global_search': global_search,
             'customer': customer,
@@ -329,9 +385,28 @@ def purchase_list(request):
             'cottage': cottage,
             'state': state,
             'is_archived': is_archived,
+            'per_page': per_page,
         },
         'selected_columns': selected_columns,
         'all_columns': all_columns,
+        # اضافه کردن pagination info
+        'pagination': {
+            'active': {
+                'paginator': active_paginator,
+                'page_obj': active_page_obj,
+                'current_page': int(active_page),
+            },
+            'pending': {
+                'paginator': pending_paginator,
+                'page_obj': pending_page_obj,
+                'current_page': int(pending_page),
+            },
+            'archived': {
+                'paginator': archived_paginator,
+                'page_obj': archived_page_obj,
+                'current_page': int(archived_page),
+            }
+        }
     }
     
     return render(request, 'purchase_list.html', context)
@@ -627,14 +702,6 @@ def _export_regular_excel(purchase_ids, selected_columns):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     wb.save(response)
     return response
-
-
-
-
-
-
-
-
 
 @login_required
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')

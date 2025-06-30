@@ -868,9 +868,504 @@ function initializeSelectAllCheckboxes() {
     });
 }
 
+function togglePurchaseSection(section) {
+    const content = document.getElementById(section + 'Content');
+    const icon = document.getElementById(section + 'Icon');
+
+    // Toggle content visibility
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+        // ذخیره وضعیت در sessionStorage
+        sessionStorage.setItem(`purchase_section_${section}`, 'open');
+    } else {
+        content.style.display = 'none';
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+        // ذخیره وضعیت در sessionStorage
+        sessionStorage.setItem(`purchase_section_${section}`, 'closed');
+    }
+}
+
+// تابع بازیابی وضعیت بخش‌ها
+function restoreSectionStates() {
+    const sections = ['active', 'pending', 'archived'];
+    sections.forEach(section => {
+        const state = sessionStorage.getItem(`purchase_section_${section}`);
+        const content = document.getElementById(section + 'Content');
+        const icon = document.getElementById(section + 'Icon');
+        
+        if (content && icon) {
+            if (state === 'open') {
+                content.style.display = 'block';
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else if (state === 'closed') {
+                content.style.display = 'none';
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            } else {
+                // حالت پیش‌فرض: active باز، بقیه بسته
+                if (section === 'active') {
+                    content.style.display = 'block';
+                    icon.classList.remove('fa-chevron-down');
+                    icon.classList.add('fa-chevron-up');
+                } else {
+                    content.style.display = 'none';
+                    icon.classList.remove('fa-chevron-up');
+                    icon.classList.add('fa-chevron-down');
+                }
+            }
+        }
+    });
+}
+
+// اضافه کردن تابع بازیابی وضعیت به هنگام بارگذاری صفحه
+document.addEventListener('DOMContentLoaded', function() {
+    // بازیابی وضعیت بخش‌ها
+    setTimeout(restoreSectionStates, 100);
+});
+
+// Pagination functionality
+class PurchasePagination {
+    constructor() {
+        this.currentFilters = this.getFiltersFromURL();
+        this.isLoading = false;
+        this.init();
+    }
+
+    init() {
+        this.attachEventListeners();
+        console.log('🔧 Pagination initialized with Ajax support');
+    }
+
+    attachEventListeners() {
+        // Event listener برای کلیک روی لینک‌های pagination
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.page-link[data-page]')) {
+                e.preventDefault();
+                const link = e.target.closest('.page-link[data-page]');
+                const page = link.getAttribute('data-page');
+                const section = link.getAttribute('data-section');
+                
+                if (!this.isLoading && page && section) {
+                    console.log(`👆 Clicked on page ${page} for section ${section}`);
+                    this.loadPage(page, section);
+                }
+            }
+        });
+
+        // Event listener برای تغییر تعداد نمایش در هر صفحه
+        ['activePerPage', 'pendingPerPage', 'archivedPerPage'].forEach(selectId => {
+            const select = document.getElementById(selectId);
+            if (select) {
+                select.addEventListener('change', (e) => {
+                    const section = selectId.replace('PerPage', '');
+                    const perPage = e.target.value;
+                    console.log(`📏 Changed items per page to ${perPage} for section ${section}`);
+                    this.changePerPage(section, perPage);
+                });
+            }
+        });
+
+        // Event listener برای فیلترهای جدول
+        document.addEventListener('tableFiltered', () => {
+            console.log('🔍 Table filtered, resetting pagination to page 1');
+            this.resetPaginationToFirstPage();
+        });
+    }
+
+    getFiltersFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const filters = {};
+        
+        // دریافت تمام پارامترهای فیلتر از URL
+        for (const [key, value] of urlParams.entries()) {
+            if (!key.includes('_page') && key !== 'per_page') {
+                filters[key] = value;
+            }
+        }
+        
+        return filters;
+    }
+
+    updateFilters() {
+        // بروزرسانی فیلترها از فرم جستجو
+        const searchForm = document.getElementById('searchForm');
+        if (searchForm) {
+            const formData = new FormData(searchForm);
+            this.currentFilters = {};
+            
+            for (const [key, value] of formData.entries()) {
+                if (value && value.trim() !== '') {
+                    this.currentFilters[key] = value;
+                }
+            }
+        }
+
+        // دریافت فیلترهای جدول از table_filter
+        if (window.tableFilter && typeof window.tableFilter.getActiveFilters === 'function') {
+            const tableFilters = window.tableFilter.getActiveFilters();
+            Object.assign(this.currentFilters, tableFilters);
+        }
+    }
+
+    loadPage(page, section) {
+        if (this.isLoading) return;
+        
+        console.log(`📄 Loading page ${page} for section ${section}`);
+        
+        // ذخیره وضعیت فعلی بخش‌ها
+        this.saveCurrentTableState();
+        
+        // بروزرسانی فیلترها
+        this.updateFilters();
+        
+        // دریافت تعداد نمایش در هر صفحه از select box
+        const perPage = this.getPerPageValue(section);
+        
+        console.log(`📄 Loading page ${page} for section ${section} with ${perPage} items per page`);
+        
+        // استفاده از روش بدون AJAX برای بارگذاری مطمئن صفحه
+        this.fallbackToFullReload(section, page);
+    }
+
+    changePerPage(section, perPage) {
+        // تغییر تعداد نمایش در هر صفحه و بازگشت به صفحه اول
+        console.log(`📊 Changing items per page to ${perPage} for ${section}`);
+        
+        // ذخیره تعداد نمایش برای همه select boxes
+        ['active', 'pending', 'archived'].forEach(s => {
+            const select = document.getElementById(`${s}PerPage`);
+            if (select) {
+                select.value = perPage;
+            }
+        });
+        
+        // بروزرسانی تنظیمات در پیکربندی
+        if (window.PurchaseListConfig) {
+            window.PurchaseListConfig.perPage = parseInt(perPage);
+        }
+        
+        // ذخیره وضعیت فعلی بخش‌ها
+        this.saveCurrentTableState();
+        
+        // بارگذاری صفحه با پارامترهای جدید
+        const url = new URL(window.location);
+        url.searchParams.set('per_page', perPage);
+        
+        // بازگشت به صفحه اول برای همه بخش‌ها
+        ['active', 'pending', 'archived'].forEach(s => {
+            url.searchParams.set(`${s}_page`, 1);
+        });
+        
+        // هدایت به URL جدید
+        window.location.href = url.toString();
+    }
+
+    getPerPageValue(section) {
+        const select = document.getElementById(`${section}PerPage`);
+        if (select) {
+            return select.value;
+        }
+        
+        // اگر select نبود، از URL بخوان
+        const urlParams = new URLSearchParams(window.location.search);
+        const perPage = urlParams.get('per_page');
+        
+        // مقدار پیش‌فرض 5
+        return perPage || 5;
+    }
+
+    updatePaginationUI(section, paginationData) {
+        const container = document.getElementById(`${section}Pagination`);
+        if (!container) {
+            console.warn(`⚠️ Pagination container for ${section} not found`);
+            return;
+        }
+
+        // بروزرسانی اطلاعات صفحه‌بندی
+        const details = container.querySelector('.pagination-details');
+        if (details) {
+            const perPage = this.getPerPageValue(section);
+            const startIndex = ((paginationData.number - 1) * perPage) + 1;
+            const endIndex = Math.min(startIndex + perPage - 1, paginationData.count);
+            
+            details.innerHTML = `
+                <span class="text-muted">نمایش ${startIndex} تا ${endIndex} از ${paginationData.count} خرید ${this.getSectionTitle(section)}</span>
+            `;
+        }
+
+        // بروزرسانی لینک‌های pagination
+        this.updatePaginationLinks(section, paginationData);
+    }
+
+    updatePaginationLinks(section, paginationData) {
+        const nav = document.querySelector(`#${section}Pagination nav ul.pagination`);
+        if (!nav) {
+            console.warn(`⚠️ Pagination navigation for ${section} not found`);
+            return;
+        }
+        
+        // فقط اگر بیش از یک صفحه وجود داشته باشد، نمایش دهیم
+        if (paginationData.num_pages <= 1) {
+            nav.innerHTML = '';
+            return;
+        }
+
+        let html = '';
+
+        // دکمه اول و قبلی
+        if (paginationData.has_previous) {
+            html += `
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="1" data-section="${section}">
+                        <i class="fas fa-angle-double-right"></i> اول
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="${paginationData.number - 1}" data-section="${section}">
+                        <i class="fas fa-angle-right"></i> قبلی
+                    </a>
+                </li>
+            `;
+        }
+
+        // شماره صفحات با پشتیبانی از بیش‌نقطه (...)
+        if (Array.isArray(paginationData.page_range)) {
+            paginationData.page_range.forEach(pageNum => {
+                if (pageNum === '...' || pageNum === -1) {
+                    html += `
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    `;
+                } else {
+                    const isActive = pageNum === paginationData.number;
+                    html += `
+                        <li class="page-item ${isActive ? 'active' : ''}">
+                            <a class="page-link" href="#" data-page="${pageNum}" data-section="${section}">${pageNum}</a>
+                        </li>
+                    `;
+                }
+            });
+        }
+
+        // دکمه بعدی و آخر
+        if (paginationData.has_next) {
+            html += `
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="${paginationData.number + 1}" data-section="${section}">
+                        بعدی <i class="fas fa-angle-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="${paginationData.num_pages}" data-section="${section}">
+                        آخر <i class="fas fa-angle-double-left"></i>
+                    </a>
+                </li>
+            `;
+        }
+
+        nav.innerHTML = html;
+    }
+
+    getSectionTitle(section) {
+        const titles = {
+            'active': 'فعال',
+            'pending': 'در انتظار پرداخت',
+            'archived': 'آرشیو شده'
+        };
+        return titles[section] || section;
+    }
+
+    updateURL(page, section, perPage = null) {
+        const url = new URL(window.location);
+        
+        // بروزرسانی پارامترهای URL
+        url.searchParams.set(`${section}_page`, page);
+        
+        if (perPage) {
+            url.searchParams.set('per_page', perPage);
+        }
+        
+        // بروزرسانی URL بدون reload صفحه
+        window.history.pushState({}, '', url);
+        
+        console.log(`🔗 URL updated: ${url.href}`);
+    }
+
+    resetPaginationToFirstPage() {
+        // بازگشت به صفحه اول برای همه بخش‌ها بعد از اعمال فیلتر
+        ['active', 'pending', 'archived'].forEach(section => {
+            const currentPage = this.getCurrentPage(section);
+            if (currentPage !== 1) {
+                this.loadPage(1, section);
+            }
+        });
+    }
+
+    getCurrentPage(section) {
+        const url = new URL(window.location);
+        return parseInt(url.searchParams.get(`${section}_page`)) || 1;
+    }
+
+    reloadTableSection(section) {
+        console.log(`🔄 Reloading table section ${section} with AJAX`);
+        
+        if (this.isLoading) return;
+        
+        this.isLoading = true;
+        this.showLoading(section);
+        
+        // ذخیره وضعیت فعلی بخش‌ها
+        this.saveCurrentTableState();
+        
+        // ساخت پارامترهای درخواست
+        const params = new URLSearchParams(this.currentFilters);
+        const currentPage = this.getCurrentPage(section);
+        params.append(`${section}_page`, currentPage);
+        params.append('per_page', this.getPerPageValue(section));
+        
+        // برای اطمینان از دریافت پاسخ JSON با داده‌های تازه
+        params.append('X-Requested-With', 'XMLHttpRequest');
+        
+        // ارسال درخواست AJAX برای دریافت HTML جدول
+        fetch(`${window.location.pathname}?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                console.log(`✅ Received data for ${section}:`, data);
+                
+                // بروزرسانی UI پگینیشن
+                this.updatePaginationUI(section, data.data[section]);
+                
+                // بروزرسانی URL بدون reload صفحه
+                this.updateURL(currentPage, section, this.getPerPageValue(section));
+                
+                // چون نمی‌توانیم مستقیماً داده‌ها را در جدول نمایش دهیم (نیاز به HTML داریم)
+                // مجبوریم کل صفحه را بارگذاری مجدد کنیم
+                // در آینده می‌توان با دریافت HTML بخش جدول این مشکل را حل کرد
+                this.fallbackToFullReload(section, currentPage);
+            } else {
+                console.error(`❌ Error in AJAX response:`, data);
+                this.fallbackToFullReload(section, currentPage);
+            }
+        })
+        .catch(error => {
+            console.error(`❌ Error in AJAX update:`, error);
+            this.fallbackToFullReload(section, currentPage);
+        })
+        .finally(() => {
+            this.isLoading = false;
+            this.hideLoading(section);
+        });
+    }
+    
+    // حالت پشتیبانی برای وقتی که AJAX با مشکل مواجه می‌شود
+    fallbackToFullReload(section, page) {
+        console.warn(`⚠️ Falling back to full page reload for ${section}`);
+        
+        // ساخت URL جدید
+        const url = new URL(window.location);
+        url.searchParams.set(`${section}_page`, page);
+        url.searchParams.set('per_page', this.getPerPageValue(section));
+        
+        // اضافه کردن پارامتر تصادفی برای جلوگیری از کش
+        url.searchParams.set('_', new Date().getTime());
+        
+        // بارگذاری مجدد صفحه
+        window.location.href = url.toString();
+    }
+
+    showLoading(section) {
+        const container = document.getElementById(`${section}Pagination`);
+        if (container) {
+            container.classList.add('pagination-loading');
+        }
+    }
+
+    hideLoading(section) {
+        const container = document.getElementById(`${section}Pagination`);
+        if (container) {
+            container.classList.remove('pagination-loading');
+        }
+    }
+
+    showError(section, message) {
+        console.error(`Error in ${section} pagination:`, message);
+        
+        // نمایش toast خطا
+        showErrorToast(`خطا در بارگذاری صفحه: ${message}`);
+    }
+
+    // ذخیره وضعیت فعلی جدول‌ها
+    saveCurrentTableState() {
+        const sections = ['active', 'pending', 'archived'];
+        sections.forEach(section => {
+            const content = document.getElementById(section + 'Content');
+            if (content) {
+                const isVisible = content.style.display !== 'none';
+                sessionStorage.setItem(`purchase_section_${section}`, isVisible ? 'open' : 'closed');
+            }
+        });
+    }
+}
+
+// Toast functions for error display
+function showErrorToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast-error';
+    toast.innerHTML = `
+        <div class="toast-content">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    // Add styles
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #dc3545;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        z-index: 9999;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Show toast
+    setTimeout(() => {
+        toast.style.opacity = '1';
+    }, 100);
+    
+    // Hide and remove toast
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }, 5000);
+}
+
 // تابع اصلی راه‌اندازی
 function initializePurchaseListPage() {
-    console.log('Initializing Purchase List Page...');
+    console.log('🚀 Initializing Purchase List Page with Pagination...');
     
     // اضافه کردن واحدها به هدرهای جدول
     addUnitsToHeaders();
@@ -886,6 +1381,9 @@ function initializePurchaseListPage() {
     
     // راه‌اندازی تاریخچه تغییرات
     initializeEditHistory();
+
+    // بازیابی وضعیت بخش‌ها
+    restoreSectionStates();
     
     // انتظار کوتاه برای اطمینان از بارگیری table filter
     setTimeout(() => {
@@ -900,7 +1398,10 @@ function initializePurchaseListPage() {
         }
     }, 100);
     
-    console.log('Purchase List Page initialization completed');
+    // Initialize pagination
+    window.purchasePagination = new PurchasePagination();
+    
+    console.log('✅ Purchase List Page fully initialized');
 }
 
 // راه‌اندازی هنگام بارگیری DOM
