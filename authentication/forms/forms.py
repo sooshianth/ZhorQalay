@@ -11,7 +11,7 @@ from django.conf import settings
 import logging
 
 # ایجاد لاگر برای ثبت رویدادها
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("auth_form")
 
 def send_verify_code(number:str):
     """
@@ -23,7 +23,7 @@ def send_verify_code(number:str):
 
     # در حالت دیباگ، از ارسال واقعی پیامک صرف‌نظر می‌شود تا در محیط توسعه مشکلی پیش نیاید
     if settings.DEBUG:
-        logger.info(f"DEBUG MODE: SMS not sent for {number}. The code is: {code}")
+        logger.debug(f"DEBUG MODE: SMS not sent for {number}. The code is: {code}")
         return code, True
 
     api_key = settings.SMS_API_KEY
@@ -174,6 +174,7 @@ class OTPLoginForm(forms.Form):
             
             # If more than 10 attempts, always return false
             if current_attempts >= 10:
+                logger.warning(f"phone: {phone} - current_attempts: {current_attempts}")
                 return {'success': False, 'message': "تعداد تلاش‌های ورود بیش از حد مجاز است. لطفا بعدا تلاش کنید"}
             
             saved_code = cache.get(f"otp_{phone}")

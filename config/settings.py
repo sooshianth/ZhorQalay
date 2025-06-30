@@ -174,7 +174,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # تنظیمات لاگینگ
 LOGGING = {
     'version': 1,
-    'disable_existing_loggers': False,
+    'disable_existing_loggers': True,
     'formatters': {
         'verbose': {
             'format': '{levelname} {asctime} {module} {message}',
@@ -185,29 +185,40 @@ LOGGING = {
             'style': '{',
         },
     },
+    'filters': {
+        'exclude_runserver_and_http_protocol': {
+            '()': 'core.logging_filters.ExcludeRunserverAndHttpProtocol',
+        },
+    },
     'handlers': {
         'console': {
-            'level': 'DEBUG',  # Shows everything in the console
+            'level': 'DEBUG',
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
+            'filters': ['exclude_runserver_and_http_protocol'],
         },
         'file': {
-            'level': 'WARNING',  # Only WARNING and above go to debug.log
+            'level': 'WARNING',
             'class': 'logging.FileHandler',
             'filename': os.path.join(BASE_DIR, 'debug.log'),
             'formatter': 'verbose',
+            'filters': ['exclude_runserver_and_http_protocol'],
+        },
+        'null': {
+            'class': 'logging.NullHandler',  # Ignores messages
         },
     },
     'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': True,
+        'http_protocol': {
+            'handlers': ['null'],
+            'level': 'DEBUG',
+            'propagate': False,
         },
-    },
-    'root': {
-        'handlers': ['console', 'file'],  # Both handlers here
-        'level': 'DEBUG',  # Set to lowest level you want to capture
+        'auth_form': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
     },
 }
 
