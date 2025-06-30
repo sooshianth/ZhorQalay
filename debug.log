@@ -22,3 +22,35 @@ ERROR 2025-04-23 03:47:33,122 bge_file_list_views Traceback (most recent call la
     handle = open(handle, ioargs.mode)
 FileNotFoundError: [Errno 2] No such file or directory: 'C:\\inetpub\\wwwroot\\ZhorQalay\\media\\excel_files\\HamlSPS14040126_1_2_Vl9daQz.xlsx'
 
+ERROR 2025-06-30 15:45:01,196 server Exception inside application: No route found for path 'ws/notifications/1/'.
+Traceback (most recent call last):
+  File "C:\Users\arshi\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\contrib\staticfiles\handlers.py", line 101, in __call__
+    return await self.application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\arshi\AppData\Local\Programs\Python\Python312\Lib\site-packages\channels\routing.py", line 48, in __call__
+    return await application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\arshi\AppData\Local\Programs\Python\Python312\Lib\site-packages\channels\security\websocket.py", line 37, in __call__
+    return await self.application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\arshi\AppData\Local\Programs\Python\Python312\Lib\site-packages\channels\routing.py", line 136, in __call__
+    raise ValueError("No route found for path %r." % path)
+ValueError: No route found for path 'ws/notifications/1/'.
+WARNING 2025-06-30 15:45:08,275 log Not Found: /media/chat_files/1_9_20250629_194549_40.jpg
+WARNING 2025-06-30 15:45:08,276 runserver HTTP GET /media/chat_files/1_9_20250629_194549_40.jpg 404 [0.08, 127.0.0.1:53291]
+ERROR 2025-06-30 16:21:08,955 server Exception inside application: No route found for path 'ws/notifications/1/'.
+Traceback (most recent call last):
+  File "C:\Users\arshi\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\contrib\staticfiles\handlers.py", line 101, in __call__
+    return await self.application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\arshi\AppData\Local\Programs\Python\Python312\Lib\site-packages\channels\routing.py", line 48, in __call__
+    return await application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\arshi\AppData\Local\Programs\Python\Python312\Lib\site-packages\channels\security\websocket.py", line 37, in __call__
+    return await self.application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\arshi\AppData\Local\Programs\Python\Python312\Lib\site-packages\channels\routing.py", line 136, in __call__
+    raise ValueError("No route found for path %r." % path)
+ValueError: No route found for path 'ws/notifications/1/'.
+WARNING 2025-06-30 16:21:31,216 log Not Found: /favicon.ico
+WARNING 2025-06-30 16:21:31,217 runserver HTTP GET /favicon.ico 404 [0.07, 127.0.0.1:54413]
