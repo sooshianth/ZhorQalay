@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تراکنش جدید{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'fledger/css/fledger.css' %}">
+
+<div class="fledger-container">
+    <div class="fledger-header">
+        <h1>
+            <i class="fas fa-plus-circle"></i>
+            تراکنش جدید
+        </h1>
+    </div>
+
+    <div class="fledger-form">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">{{ form.wallet.label }}</label>
+                {{ form.wallet }}
+                {% if form.wallet.errors %}
+                    <div class="text-danger">{{ form.wallet.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">{{ form.transaction_type.label }}</label>
+                {{ form.transaction_type }}
+                {% if form.transaction_type.errors %}
+                    <div class="text-danger">{{ form.transaction_type.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">{{ form.amount.label }}</label>
+                {{ form.amount }}
+                {% if form.amount.errors %}
+                    <div class="text-danger">{{ form.amount.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">{{ form.description.label }}</label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <div class="text-danger">{{ form.description.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">{{ form.file.label }}</label>
+                {{ form.file }}
+                {% if form.file.errors %}
+                    <div class="text-danger">{{ form.file.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <a href="{% url 'fledger:fledger_dashboard' %}" class="btn-fledger btn-fledger-secondary">
+                    <i class="fas fa-times"></i>
+                    انصراف
+                </a>
+                <button type="submit" class="btn-fledger btn-fledger-success">
+                    <i class="fas fa-save"></i>
+                    ذخیره تراکنش
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %} 

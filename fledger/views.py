@@ -11,6 +11,7 @@ from core.decorators.decorators import role_required
 from core.PurchaseModel import Purchase
 from core.CargoProductModel import VaredKonandeh
 from fledger.models import Wallet, Transaction, LedgerEntry
+from fledger.forms import TransactionForm
 
 
 # if wallet_index is 0, then the weight should be calculated based on the order_weight of the purchase else it should be calculated based on the delivery_weight of the purchase
@@ -120,36 +121,29 @@ def create_transaction(request):
     ایجاد تراکنش جدید
     """
     if request.method == 'POST':
-        wallet_id = request.POST.get('wallet_id')
-        transaction_type = request.POST.get('transaction_type')
-        amount = request.POST.get('amount')
-        description = request.POST.get('description', '')
-        file = request.FILES.get('file')
+        form = TransactionForm(request.POST, request.FILES)
         
-        try:
-            wallet = get_object_or_404(Wallet, id=wallet_id)
-            
-            with transaction.atomic():
-                new_transaction = Transaction.objects.create(
-                    wallet=wallet,
-                    transaction_type=transaction_type,
-                    amount=float(amount),
-                    description=description,
-                    file=file,
-                    created_by=request.user,
-                    status='pending'
-                )
-                
-                messages.success(request, f'تراکنش {new_transaction.get_transaction_type_display()} با موفقیت ایجاد شد.')
-                
-        except Exception as e:
-            messages.error(request, f'خطا در ایجاد تراکنش: {str(e)}')
-            
-        return redirect('fledger:wallet_detail', wallet_id=wallet_id)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    new_transaction = form.save(commit=False)
+                    new_transaction.created_by = request.user
+                    new_transaction.status = 'pending'
+                    # اطمینان از اینکه amount یک integer است
+                    new_transaction.amount = int(new_transaction.amount)
+                    new_transaction.save()
+                    
+                    messages.success(request, f'تراکنش {new_transaction.get_transaction_type_display()} با موفقیت ایجاد شد.')
+                    return redirect('fledger:wallet_detail', wallet_id=new_transaction.wallet.id)
+                    
+            except Exception as e:
+                messages.error(request, f'خطا در ایجاد تراکنش: {str(e)}')
+        else:
+            messages.error(request, 'لطفاً خطاهای فرم را برطرف کنید.')
+    else:
+        form = TransactionForm()
     
-    # GET request - نمایش فرم
-    wallets = Wallet.objects.select_related('varedkonandeh').all()
-    context = {'wallets': wallets}
+    context = {'form': form}
     return render(request, 'fledger/create_transaction.html', context)
 
 
@@ -159,19 +153,31 @@ def approve_transaction(request, transaction_id):
     """
     تایید تراکنش
     """
-    trans = get_object_or_404(Transaction, id=transaction_id)
-    
-    if trans.status == 'pending':
-        trans.status = 'approved'
-        trans.approved_by = request.user
-        trans.approved_at = timezone.now()
-        trans.save()  # این خودکار calculate_balance را فراخوانی می‌کند
+    try:
+        trans = get_object_or_404(Transaction, id=transaction_id)
         
-        messages.success(request, f'تراکنش شماره {trans.id} تایید شد.')
-    else:
-        messages.warning(request, 'این تراکنش قبلاً تایید یا لغو شده است.')
-    
-    return redirect('fledger:wallet_detail', wallet_id=trans.wallet.id)
+        print(f"📝 Approving transaction {transaction_id} by user {request.user}")
+        print(f"📊 Transaction status: {trans.status}")
+        
+        if trans.status == 'pending':
+            with transaction.atomic():
+                trans.status = 'approved'
+                trans.approved_by = request.user
+                trans.approved_at = timezone.now()
+                trans.save()  # این خودکار calculate_balance را فراخوانی می‌کند
+                
+                messages.success(request, f'✅ تراکنش شماره {trans.id} با موفقیت تایید شد.')
+                print(f"✅ Transaction {transaction_id} approved successfully")
+        else:
+            messages.warning(request, 'این تراکنش قبلاً تایید یا لغو شده است.')
+            print(f"⚠️ Transaction {transaction_id} already processed: {trans.status}")
+        
+        return redirect('fledger:wallet_detail', wallet_id=trans.wallet.id)
+        
+    except Exception as e:
+        print(f"❌ Error approving transaction {transaction_id}: {str(e)}")
+        messages.error(request, f'خطا در تایید تراکنش: {str(e)}')
+        return redirect('fledger:transaction_list')
 
 
 @role_required('admin', 'financial_manager')
@@ -180,19 +186,31 @@ def reject_transaction(request, transaction_id):
     """
     لغو تراکنش
     """
-    trans = get_object_or_404(Transaction, id=transaction_id)
-    
-    if trans.status == 'pending':
-        trans.status = 'rejected'
-        trans.approved_by = request.user
-        trans.approved_at = timezone.now()
-        trans.save()
+    try:
+        trans = get_object_or_404(Transaction, id=transaction_id)
         
-        messages.success(request, f'تراکنش شماره {trans.id} لغو شد.')
-    else:
-        messages.warning(request, 'این تراکنش قبلاً تایید یا لغو شده است.')
-    
-    return redirect('fledger:wallet_detail', wallet_id=trans.wallet.id)
+        print(f"🚫 Rejecting transaction {transaction_id} by user {request.user}")
+        print(f"📊 Transaction status: {trans.status}")
+        
+        if trans.status == 'pending':
+            with transaction.atomic():
+                trans.status = 'rejected'
+                trans.approved_by = request.user
+                trans.approved_at = timezone.now()
+                trans.save()
+                
+                messages.success(request, f'❌ تراکنش شماره {trans.id} لغو شد.')
+                print(f"🚫 Transaction {transaction_id} rejected successfully")
+        else:
+            messages.warning(request, 'این تراکنش قبلاً تایید یا لغو شده است.')
+            print(f"⚠️ Transaction {transaction_id} already processed: {trans.status}")
+        
+        return redirect('fledger:wallet_detail', wallet_id=trans.wallet.id)
+        
+    except Exception as e:
+        print(f"❌ Error rejecting transaction {transaction_id}: {str(e)}")
+        messages.error(request, f'خطا در لغو تراکنش: {str(e)}')
+        return redirect('fledger:transaction_list')
 
 
 @role_required('admin', 'financial_manager')
@@ -296,6 +314,12 @@ def ledger_entries(request):
             Q(purchase__invoice_id__icontains=search_query)
         )
     
+    # محاسبه آمار کلی
+    all_entries = entries  # کل ثبت‌های فیلتر شده
+    total_amount = all_entries.aggregate(total=Sum('total_amount'))['total'] or 0
+    total_weight = all_entries.aggregate(total=Sum('weight'))['total'] or 0
+    unique_vendors = all_entries.values('varedkonandeh').distinct().count()
+    
     # صفحه‌بندی
     paginator = Paginator(entries, 25)
     page_number = request.GET.get('page')
@@ -304,6 +328,9 @@ def ledger_entries(request):
     context = {
         'page_obj': page_obj,
         'search_query': search_query,
+        'total_amount': total_amount,
+        'total_weight': total_weight,
+        'unique_vendors': unique_vendors,
     }
     
     return render(request, 'fledger/ledger_entries.html', context)
@@ -317,6 +344,65 @@ def calculate_weight(purchase):
         return purchase.order_weight or 0
     else:
         return purchase.delivered_weight or 0
+
+
+@role_required('admin', 'financial_manager')
+def edit_transaction(request, transaction_id):
+    """
+    ویرایش تراکنش
+    """
+    transaction_obj = get_object_or_404(Transaction, id=transaction_id)
+    
+    # فقط تراکنش‌های در انتظار قابل ویرایش هستند
+    if transaction_obj.status != 'pending':
+        messages.error(request, 'فقط تراکنش‌های در انتظار تایید قابل ویرایش هستند.')
+        return redirect('fledger:wallet_detail', wallet_id=transaction_obj.wallet.id)
+    
+    if request.method == 'POST':
+        form = TransactionForm(request.POST, request.FILES, instance=transaction_obj)
+        
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    form.save()
+                    
+                    messages.success(request, 'تراکنش با موفقیت ویرایش شد.')
+                    return redirect('fledger:wallet_detail', wallet_id=transaction_obj.wallet.id)
+                    
+            except Exception as e:
+                messages.error(request, f'خطا در ویرایش تراکنش: {str(e)}')
+        else:
+            messages.error(request, 'لطفاً خطاهای فرم را برطرف کنید.')
+    else:
+        form = TransactionForm(instance=transaction_obj)
+    
+    context = {
+        'form': form,
+        'transaction': transaction_obj,
+        'wallet': transaction_obj.wallet,
+    }
+    
+    return render(request, 'fledger/edit_transaction.html', context)
+
+
+@role_required('admin', 'financial_manager')
+@require_POST
+def delete_transaction(request, transaction_id):
+    """
+    حذف تراکنش
+    """
+    transaction_obj = get_object_or_404(Transaction, id=transaction_id)
+    
+    # فقط تراکنش‌های در انتظار یا لغو شده قابل حذف هستند
+    if transaction_obj.status == 'approved':
+        messages.error(request, 'تراکنش‌های تایید شده قابل حذف نیستند.')
+        return redirect('fledger:wallet_detail', wallet_id=transaction_obj.wallet.id)
+    
+    wallet_id = transaction_obj.wallet.id
+    transaction_obj.delete()
+    
+    messages.success(request, 'تراکنش با موفقیت حذف شد.')
+    return redirect('fledger:wallet_detail', wallet_id=wallet_id)
 
 
 @role_required('admin', 'financial_manager')  

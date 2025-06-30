@@ -1,243 +1,599 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load custom_filters %}
 
 {% block title %}داشبورد مدیریت کیف پول واردکنندگان{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="{% static 'css/style.css' %}">
 <style>
-    .stats-card {
-        background: white;
-        border-radius: 10px;
-        padding: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-        text-align: center;
-    }
-    .stats-card h3 {
-        color: #2c3e50;
-        margin-bottom: 10px;
-        font-size: 2rem;
-    }
-    .stats-card p {
-        color: #7f8c8d;
-        margin: 0;
-        font-size: 0.9rem;
-    }
-    .balance-positive { color: #27ae60; }
-    .balance-negative { color: #e74c3c; }
-    .balance-zero { color: #95a5a6; }
-    
-    .action-buttons {
-        margin: 20px 0;
-    }
-    .action-buttons .btn {
-        margin: 5px;
-    }
-    
-    .table-container {
-        background: white;
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-    }
-    
-    .table-header {
-        background: #3498db;
+    /* Custom CSS for Dashboard */
+    .dashboard-hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 3rem 2rem;
+        border-radius: 1.5rem;
+        margin-bottom: 2.5rem;
         color: white;
-        padding: 15px 20px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
+    }
+
+    .dashboard-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+
+    .dashboard-hero::after {
+        content: '';
+        position: absolute;
+        bottom: -30%;
+        left: -5%;
+        width: 150px;
+        height: 150px;
+        background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 2.5rem;
+        border-radius: 1.25rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #4f46e5, #06b6d4);
+    }
+
+    .stat-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+        color: white;
+    }
+
+    .stat-icon.wallets {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    }
+
+    .stat-icon.transactions {
+        background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .stat-icon.balance {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+    }
+
+    .stat-icon.pending {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #1e293b, #374151);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.3;
+        word-break: break-all;
+        overflow-wrap: break-word;
+        min-height: 2.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+        hyphens: auto;
+    }
+    
+    .stat-value small {
+        font-size: 0.5rem !important;
+        line-height: 1.3 !important;
+        display: block !important;
+        margin-top: 0.2rem !important;
+        color: #64748b !important;
+        background: none !important;
+        -webkit-text-fill-color: #64748b !important;
+        opacity: 0.8;
+        word-break: normal;
+        hyphens: none;
+    }
+
+    .stat-label {
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.95rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+
+    .action-btn {
+        background: white;
+        border: 2px solid #e2e8f0;
+        padding: 1.5rem;
+        border-radius: 1rem;
+        text-decoration: none;
+        color: #1e293b;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .action-btn:hover {
+        border-color: #4f46e5;
+        color: #4f46e5;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(79, 70, 229, 0.15);
+        text-decoration: none;
+    }
+
+    .action-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 0.75rem;
+        background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #4f46e5;
+        font-size: 1.25rem;
+    }
+
+    .data-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+
+    .data-card {
+        background: white;
+        border-radius: 1.25rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        border: 1px solid #f1f5f9;
+    }
+
+    .data-card-header {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .data-card-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1e293b;
         margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .data-table {
+        width: 100%;
+    }
+
+    .data-table tbody tr {
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.2s ease;
+    }
+
+    .data-table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+
+    .data-table td {
+        padding: 1rem 2rem;
+        vertical-align: middle;
+    }
+
+    .wallet-name {
+        font-weight: 600;
+        color: #1e293b;
+        text-decoration: none;
+    }
+
+    .wallet-name:hover {
+        color: #4f46e5;
+        text-decoration: none;
+    }
+
+    .balance-value {
+        font-weight: 700;
         font-size: 1.1rem;
+    }
+
+    .balance-positive {
+        color: #10b981;
+    }
+
+    .balance-negative {
+        color: #ef4444;
+    }
+
+    .transaction-badge {
+        padding: 0.375rem 0.875rem;
+        border-radius: 0.75rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .badge-deposit {
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        color: #047857;
+    }
+
+    .badge-withdrawal {
+        background: linear-gradient(135deg, #fed7d7, #feb2b2);
+        color: #c53030;
+    }
+
+    .badge-adjustment {
+        background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+        color: #1d4ed8;
+    }
+
+    .refresh-indicator {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        background: #4f46e5;
+        color: white;
+        padding: 1rem;
+        border-radius: 50%;
+        box-shadow: 0 8px 25px rgba(79, 70, 229, 0.3);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        z-index: 1000;
+    }
+
+    .refresh-indicator:hover {
+        transform: scale(1.1);
+        box-shadow: 0 12px 35px rgba(79, 70, 229, 0.4);
+    }
+
+    @media (max-width: 768px) {
+        .data-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .quick-actions {
+            grid-template-columns: 1fr;
+        }
+        
+        .dashboard-hero {
+            padding: 2rem 1.5rem;
+        }
+        
+        .stat-value {
+            font-size: 1.4rem;
+            min-height: 2rem;
+        }
     }
 </style>
 
-<div class="container-fluid" style="padding: 20px;">
-    <div class="row">
-        <div class="col-12">
-            <h1 class="mb-4">داشبورد مدیریت کیف پول واردکنندگان</h1>
+<div class="fledger-container">
+    <!-- Hero Section -->
+    <div class="dashboard-hero">
+        <div class="hero-content">
+            <h1 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <i class="fas fa-wallet" style="margin-left: 1rem;"></i>
+                داشبورد مدیریت کیف پول
+            </h1>
+            <p style="font-size: 1.25rem; opacity: 0.9; margin: 0;">
+                مدیریت جامع کیف پول‌های واردکنندگان و تراکنش‌های مالی
+            </p>
         </div>
     </div>
 
-    <!-- آمار کلی -->
-    <div class="row">
-        <div class="col-md-3">
-            <div class="stats-card">
-                <h3>{{ total_wallets }}</h3>
-                <p>کل کیف پول‌ها</p>
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon wallets">
+                <i class="fas fa-briefcase"></i>
             </div>
+            <div class="stat-value">{{ total_wallets|to_persian_digits }}</div>
+            <div class="stat-label">کل کیف پول‌ها</div>
         </div>
-        <div class="col-md-3">
-            <div class="stats-card">
-                <h3>{{ total_transactions }}</h3>
-                <p>تراکنش‌های تایید شده</p>
+
+        <div class="stat-card">
+            <div class="stat-icon transactions">
+                <i class="fas fa-exchange-alt"></i>
             </div>
+            <div class="stat-value">{{ total_transactions|to_persian_digits }}</div>
+            <div class="stat-label">تراکنش‌های تایید شده</div>
         </div>
-        <div class="col-md-3">
-            <div class="stats-card">
-                <h3 class="{% if total_balance >= 0 %}balance-positive{% else %}balance-negative{% endif %}">
-                    {{ total_balance|floatformat:0 }} ریال
-                </h3>
-                <p>کل موجودی سیستم</p>
+
+        <div class="stat-card">
+            <div class="stat-icon balance">
+                <i class="fas fa-chart-line"></i>
             </div>
+            <div class="stat-value {% if total_balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                {{ total_balance|format_rial_amount }}
+            </div>
+            <div class="stat-label">کل موجودی سیستم</div>
         </div>
-        <div class="col-md-3">
-            <div class="stats-card">
-                <h3 class="{% if pending_transactions > 0 %}balance-negative{% else %}balance-positive{% endif %}">
-                    {{ pending_transactions }}
-                </h3>
-                <p>تراکنش‌های در انتظار</p>
+
+        <div class="stat-card">
+            <div class="stat-icon pending">
+                <i class="fas fa-clock"></i>
             </div>
+            <div class="stat-value">{{ pending_transactions|to_persian_digits }}</div>
+            <div class="stat-label">تراکنش‌های در انتظار</div>
         </div>
     </div>
 
-    <!-- دکمه‌های عملیات -->
-    <div class="row">
-        <div class="col-12">
-            <div class="action-buttons text-center">
-                <a href="{% url 'fledger:wallet_list' %}" class="btn btn-primary">
-                    <i class="fas fa-wallet"></i> مدیریت کیف پول‌ها
-                </a>
-                <a href="{% url 'fledger:transaction_list' %}" class="btn btn-success">
-                    <i class="fas fa-exchange-alt"></i> مدیریت تراکنش‌ها
-                </a>
-                <a href="{% url 'fledger:ledger_entries' %}" class="btn btn-info">
-                    <i class="fas fa-book"></i> دفتر کل
-                </a>
-                <form method="post" action="{% url 'fledger:recalculate_wallets' %}" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-warning" onclick="return confirm('آیا از محاسبه مجدد تمام کیف پول‌ها اطمینان دارید؟')">
-                        <i class="fas fa-calculator"></i> محاسبه مجدد موجودی‌ها
-                    </button>
-                </form>
-                <form method="post" action="{% url 'fledger:sync_purchases' %}" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-secondary" onclick="return confirm('آیا از همگام‌سازی خریدها با دفتر کل اطمینان دارید؟')">
-                        <i class="fas fa-sync"></i> همگام‌سازی خریدها
-                    </button>
-                </form>
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <a href="{% url 'fledger:wallet_list' %}" class="action-btn">
+            <div class="action-icon">
+                <i class="fas fa-wallet"></i>
             </div>
-        </div>
+            <span>مدیریت کیف پول‌ها</span>
+        </a>
+
+        <a href="{% url 'fledger:transaction_list' %}" class="action-btn">
+            <div class="action-icon">
+                <i class="fas fa-exchange-alt"></i>
+            </div>
+            <span>مدیریت تراکنش‌ها</span>
+        </a>
+
+        <a href="{% url 'fledger:create_transaction' %}" class="action-btn">
+            <div class="action-icon">
+                <i class="fas fa-plus"></i>
+            </div>
+            <span>تراکنش جدید</span>
+        </a>
+
+        <a href="{% url 'fledger:ledger_entries' %}" class="action-btn">
+            <div class="action-icon">
+                <i class="fas fa-book"></i>
+            </div>
+            <span>دفتر کل</span>
+        </a>
     </div>
 
-    <div class="row">
-        <!-- واردکنندگان با بیشترین بدهی -->
+    <!-- Data Grid -->
+    <div class="data-grid">
+        <!-- Top Debtors -->
         {% if top_debtors %}
-        <div class="col-md-6">
-            <div class="table-container">
-                <h4 class="table-header">بیشترین بدهی‌ها</h4>
-                <div class="table-responsive">
-                    <table class="table table-striped mb-0">
-                        <thead>
-                            <tr>
-                                <th>واردکننده</th>
-                                <th>موجودی</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for wallet in top_debtors %}
-                            <tr>
-                                <td>
-                                    <a href="{% url 'fledger:wallet_detail' wallet.id %}">
-                                        {{ wallet.varedkonandeh.name }}
-                                    </a>
-                                </td>
-                                <td class="balance-negative">
-                                    {{ wallet.balance|floatformat:0 }} ریال
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+        <div class="data-card">
+            <div class="data-card-header">
+                <h3 class="data-card-title">
+                    <i class="fas fa-arrow-down text-danger"></i>
+                    بیشترین بدهی‌ها
+                </h3>
             </div>
+            <table class="data-table">
+                <tbody>
+                    {% for wallet in top_debtors %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'fledger:wallet_detail' wallet.id %}" class="wallet-name">
+                                {{ wallet.varedkonandeh.name }}
+                            </a>
+                        </td>
+                        <td class="text-left">
+                            <span class="balance-value balance-negative">
+                                {{ wallet.balance|format_rial_amount }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
         {% endif %}
 
-        <!-- واردکنندگان با بیشترین موجودی مثبت -->
+        <!-- Top Creditors -->
         {% if top_creditors %}
-        <div class="col-md-6">
-            <div class="table-container">
-                <h4 class="table-header">بیشترین موجودی‌ها</h4>
-                <div class="table-responsive">
-                    <table class="table table-striped mb-0">
-                        <thead>
-                            <tr>
-                                <th>واردکننده</th>
-                                <th>موجودی</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for wallet in top_creditors %}
-                            <tr>
-                                <td>
-                                    <a href="{% url 'fledger:wallet_detail' wallet.id %}">
-                                        {{ wallet.varedkonandeh.name }}
-                                    </a>
-                                </td>
-                                <td class="balance-positive">
-                                    {{ wallet.balance|floatformat:0 }} ریال
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+        <div class="data-card">
+            <div class="data-card-header">
+                <h3 class="data-card-title">
+                    <i class="fas fa-arrow-up text-success"></i>
+                    بیشترین موجودی‌ها
+                </h3>
             </div>
+            <table class="data-table">
+                <tbody>
+                    {% for wallet in top_creditors %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'fledger:wallet_detail' wallet.id %}" class="wallet-name">
+                                {{ wallet.varedkonandeh.name }}
+                            </a>
+                        </td>
+                        <td class="text-left">
+                            <span class="balance-value balance-positive">
+                                {{ wallet.balance|format_rial_amount }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
         {% endif %}
     </div>
 
-    <!-- تراکنش‌های اخیر -->
+    <!-- Recent Transactions -->
     {% if recent_transactions %}
-    <div class="row">
-        <div class="col-12">
-            <div class="table-container">
-                <h4 class="table-header">تراکنش‌های اخیر</h4>
-                <div class="table-responsive">
-                    <table class="table table-striped mb-0">
-                        <thead>
-                            <tr>
-                                <th>واردکننده</th>
-                                <th>نوع</th>
-                                <th>مبلغ</th>
-                                <th>توضیحات</th>
-                                <th>تاریخ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for transaction in recent_transactions %}
-                            <tr>
-                                <td>
-                                    <a href="{% url 'fledger:wallet_detail' transaction.wallet.id %}">
-                                        {{ transaction.wallet.varedkonandeh.name }}
-                                    </a>
-                                </td>
-                                <td>
-                                    <span class="badge badge-{% if transaction.transaction_type == 'deposit' %}success{% elif transaction.transaction_type == 'withdrawal' %}danger{% else %}info{% endif %}">
-                                        {{ transaction.get_transaction_type_display }}
-                                    </span>
-                                </td>
-                                <td class="{% if transaction.transaction_type == 'deposit' %}balance-positive{% else %}balance-negative{% endif %}">
-                                    {{ transaction.amount|floatformat:0 }} ریال
-                                </td>
-                                <td>{{ transaction.description|default:"-"|truncatechars:50 }}</td>
-                                <td>{{ transaction.created_at }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+    <div class="data-card">
+        <div class="data-card-header">
+            <h3 class="data-card-title">
+                <i class="fas fa-history text-info"></i>
+                تراکنش‌های اخیر
+            </h3>
+        </div>
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                <thead style="background: #f8fafc;">
+                    <tr>
+                        <th style="padding: 1rem 2rem; text-align: right; font-weight: 600; color: #475569;">واردکننده</th>
+                        <th style="padding: 1rem 2rem; text-align: right; font-weight: 600; color: #475569;">نوع</th>
+                        <th style="padding: 1rem 2rem; text-align: right; font-weight: 600; color: #475569;">مبلغ</th>
+                        <th style="padding: 1rem 2rem; text-align: right; font-weight: 600; color: #475569;">توضیحات</th>
+                        <th style="padding: 1rem 2rem; text-align: right; font-weight: 600; color: #475569;">تاریخ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in recent_transactions %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'fledger:wallet_detail' transaction.wallet.id %}" class="wallet-name">
+                                {{ transaction.wallet.varedkonandeh.name }}
+                            </a>
+                        </td>
+                        <td>
+                            <span class="transaction-badge badge-{{ transaction.transaction_type }}">
+                                {{ transaction.get_transaction_type_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="balance-value {% if transaction.transaction_type == 'deposit' %}balance-positive{% else %}balance-negative{% endif %}">
+                                {{ transaction.amount|format_rial_amount }}
+                            </span>
+                        </td>
+                        <td>
+                            <span style="color: #64748b;">
+                                {{ transaction.description|default:"-"|truncatechars:40 }}
+                            </span>
+                        </td>
+                        <td style="color: #64748b; font-size: 0.9rem;">
+                            {{ transaction.created_at }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
     {% endif %}
+
+    <!-- System Actions -->
+    <div style="margin-top: 3rem; padding: 2rem; background: linear-gradient(135deg, #fef7cd, #fef3c7); border-radius: 1rem; border: 1px solid #f59e0b;">
+        <h4 style="color: #92400e; margin-bottom: 1.5rem; font-weight: 700;">
+            <i class="fas fa-tools" style="margin-left: 0.5rem;"></i>
+            عملیات سیستمی
+        </h4>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <form method="post" action="{% url 'fledger:recalculate_wallets' %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn-fledger btn-fledger-warning" onclick="return confirm('آیا از محاسبه مجدد تمام کیف پول‌ها اطمینان دارید؟')">
+                    <i class="fas fa-calculator"></i>
+                    محاسبه مجدد موجودی‌ها
+                </button>
+            </form>
+            
+            <form method="post" action="{% url 'fledger:sync_purchases' %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn-fledger btn-fledger-info" onclick="return confirm('آیا از همگام‌سازی خریدها با دفتر کل اطمینان دارید؟')">
+                    <i class="fas fa-sync"></i>
+                    همگام‌سازی خریدها
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Refresh Indicator -->
+<div class="refresh-indicator" onclick="window.location.reload()" title="به‌روزرسانی داده‌ها">
+    <i class="fas fa-sync-alt"></i>
 </div>
 
 <script>
-    // هر 30 ثانیه، صفحه را رفرش کن برای بروزرسانی آمار
-    setTimeout(function() {
-        window.location.reload();
-    }, 30000);
+// Auto refresh every 2 minutes
+setTimeout(function() {
+    window.location.reload();
+}, 120000);
+
+// Add loading state to buttons
+document.addEventListener('DOMContentLoaded', function() {
+    const buttons = document.querySelectorAll('button[type="submit"]');
+    buttons.forEach(button => {
+        button.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            const originalClass = icon.className;
+            icon.className = 'fas fa-spinner fa-spin';
+            
+            setTimeout(() => {
+                icon.className = originalClass;
+            }, 2000);
+        });
+    });
+});
+
+// Animate stat cards on load
+window.addEventListener('load', function() {
+    const statCards = document.querySelectorAll('.stat-card');
+    statCards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.6s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
 </script>
 {% endblock %} 

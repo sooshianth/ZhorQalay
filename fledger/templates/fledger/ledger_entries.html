@@ -1,0 +1,326 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}دفتر کل{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'fledger/css/fledger.css' %}">
+
+<style>
+    .ledger-header {
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        padding: 2.5rem 2rem;
+        border-radius: 1.5rem;
+        margin-bottom: 2.5rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(139, 92, 246, 0.3);
+    }
+
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-item {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 1rem;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #8b5cf6;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        color: #64748b;
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
+
+    .ledger-table {
+        background: white;
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .table-header {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        color: white;
+        padding: 1rem;
+        font-weight: 600;
+    }
+
+    .entry-row {
+        padding: 1rem;
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.2s ease;
+    }
+
+    .entry-row:hover {
+        background: #f8fafc;
+    }
+
+    .entry-row:last-child {
+        border-bottom: none;
+    }
+
+    .entry-info {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .purchase-link {
+        color: #8b5cf6;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .purchase-link:hover {
+        text-decoration: underline;
+    }
+
+    .weight-display {
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .amount-display {
+        font-weight: 700;
+        color: #dc2626;
+    }
+
+    .index-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .index-order {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .index-delivery {
+        background: #d1fae5;
+        color: #047857;
+    }
+
+
+
+    @media (max-width: 768px) {
+        .entry-info {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+        
+        .stats-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="fledger-container">
+    <!-- Header -->
+    <div class="ledger-header">
+        <div style="text-align: center; position: relative; z-index: 2;">
+            <h1 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem;">
+                <i class="fas fa-book" style="margin-left: 0.75rem;"></i>
+                دفتر کل
+            </h1>
+            <p style="opacity: 0.9; margin: 0; font-size: 1.125rem;">
+                ثبت‌های خودکار خریدها در دفتر کل سیستم
+            </p>
+        </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stats-row">
+        <div class="stat-item">
+            <div class="stat-value">{{ total_entries|to_persian_digits }}</div>
+            <div class="stat-label">کل ثبت‌ها</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">{{ total_weight|format_weight }}</div>
+            <div class="stat-label">کل وزن سیستم</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">{{ total_amount|format_rial_amount }}</div>
+            <div class="stat-label">کل مبلغ سیستم</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="fledger-card">
+        <div class="fledger-card-header">
+            <h3 class="fledger-card-title">
+                <i class="fas fa-filter"></i>
+                فیلترها
+            </h3>
+        </div>
+        <div class="fledger-card-body">
+            <form method="get" style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1rem; align-items: end;">
+                <div class="form-group-fledger">
+                    <label class="form-label-fledger">جستجو در کد خرید</label>
+                    <input type="text" class="form-control-fledger" name="search" value="{{ search_query }}" placeholder="کد خرید یا شماره خرید...">
+                </div>
+                
+                <div class="form-group-fledger">
+                    <label class="form-label-fledger">نوع محاسبه</label>
+                    <select class="form-control-fledger" name="index_filter">
+                        <option value="all" {% if index_filter == 'all' %}selected{% endif %}>همه</option>
+                        <option value="0" {% if index_filter == '0' %}selected{% endif %}>وزن سفارش</option>
+                        <option value="1" {% if index_filter == '1' %}selected{% endif %}>وزن تحویلی</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn-fledger">
+                    <i class="fas fa-search"></i>
+                    جستجو
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Ledger Entries -->
+    {% if page_obj %}
+    <div class="ledger-table">
+        <div class="table-header">
+            <div class="entry-info">
+                <div>خرید</div>
+                <div>وزن</div>
+                <div>فی کیلو</div>
+                <div>مبلغ کل</div>
+                <div>نوع محاسبه</div>
+                <div>تاریخ</div>
+            </div>
+        </div>
+        
+        {% for entry in page_obj %}
+        <div class="entry-row">
+            <div class="entry-info">
+                <div>
+                    <a href="#" class="purchase-link" title="مشاهده جزئیات خرید">
+                        {{ entry.purchase.invoice_id }}
+                    </a>
+                    {% if entry.purchase.purchase_number %}
+                    <br><small style="color: #64748b;">{{ entry.purchase.purchase_number }}</small>
+                    {% endif %}
+                </div>
+                                        <div class="weight-display">{{ entry.weight|format_weight }}</div>
+                                    <div>{{ entry.price_per_kg|format_rial_amount }}</div>
+                    <div class="amount-display">{{ entry.total_amount|format_rial_amount }}</div>
+                <div>
+                    <span class="index-badge {% if entry.wallet_index_used == '0' %}index-order{% else %}index-delivery{% endif %}">
+                        {{ entry.get_wallet_index_used_display }}
+                    </span>
+                </div>
+                <div style="color: #64748b; font-size: 0.875rem;">{{ entry.created_at|date:"Y/m/d" }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="fledger-pagination">
+        {% if page_obj.has_previous %}
+            <a class="pagination-btn" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if index_filter != 'all' %}index_filter={{ index_filter }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        {% else %}
+            <span class="pagination-btn" style="opacity: 0.5;">
+                <i class="fas fa-chevron-right"></i>
+            </span>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <span class="pagination-btn active">{{ num|to_persian_digits }}</span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a class="pagination-btn" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if index_filter != 'all' %}index_filter={{ index_filter }}&{% endif %}page={{ num }}">
+                    {{ num|to_persian_digits }}
+                </a>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <a class="pagination-btn" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if index_filter != 'all' %}index_filter={{ index_filter }}&{% endif %}page={{ page_obj.next_page_number }}">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+        {% else %}
+            <span class="pagination-btn" style="opacity: 0.5;">
+                <i class="fas fa-chevron-left"></i>
+            </span>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="empty-state" style="text-align: center; padding: 4rem; color: #64748b;">
+        <div style="font-size: 4rem; color: #cbd5e1; margin-bottom: 1rem;">
+            <i class="fas fa-book"></i>
+        </div>
+        <h3 style="margin-bottom: 1rem; color: #475569;">
+            {% if search_query %}
+                ثبتی با عبارت "{{ search_query }}" یافت نشد
+            {% else %}
+                هیچ ثبت دفتری وجود ندارد
+            {% endif %}
+        </h3>
+        <p>
+            {% if search_query %}
+                لطفاً عبارت جستجوی دیگری امتحان کنید
+            {% else %}
+                ثبت‌های دفتر به صورت خودکار از خریدها ایجاد می‌شوند
+            {% endif %}
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- Back Button -->
+    <div style="text-align: center; margin-top: 2rem;">
+        <a href="{% url 'fledger:fledger_dashboard' %}" class="btn-fledger btn-fledger-secondary">
+            <i class="fas fa-arrow-right"></i>
+            بازگشت به داشبورد
+        </a>
+    </div>
+</div>
+
+<script>
+// Auto-submit form on filter change
+document.querySelector('select[name="index_filter"]').addEventListener('change', function() {
+    this.form.submit();
+});
+
+// Animate entries on load
+window.addEventListener('load', function() {
+    const entries = document.querySelectorAll('.entry-row');
+    entries.forEach((entry, index) => {
+        entry.style.opacity = '0';
+        entry.style.transform = 'translateX(20px)';
+        
+        setTimeout(() => {
+            entry.style.transition = 'all 0.6s ease';
+            entry.style.opacity = '1';
+            entry.style.transform = 'translateX(0)';
+        }, index * 50);
+    });
+});
+</script>
+{% endblock %} 

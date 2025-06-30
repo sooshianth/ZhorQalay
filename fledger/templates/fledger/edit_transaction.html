@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ویرایش تراکنش{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'fledger/css/fledger.css' %}">
+
+<div class="fledger-container">
+    <div class="fledger-header">
+        <h1>
+            <i class="fas fa-edit"></i>
+            ویرایش تراکنش #{{ transaction.id }}
+        </h1>
+        <p>واردکننده: {{ transaction.wallet.varedkonandeh.name }}</p>
+    </div>
+
+    <div class="fledger-form">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">کیف پول</label>
+                <div class="info-card" style="padding: 1rem; background: #f8fafc; border-radius: 0.5rem;">
+                    {{ transaction.wallet.varedkonandeh.name }} - موجودی: {{ transaction.wallet.balance|format_rial_amount }}
+                </div>
+            </div>
+
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">نوع تراکنش</label>
+                {{ form.transaction_type }}
+            </div>
+
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">مبلغ (ریال)</label>
+                {{ form.amount }}
+            </div>
+
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">توضیحات</label>
+                {{ form.description }}
+            </div>
+
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">فایل جدید (اختیاری)</label>
+                {% if transaction.file %}
+                <div style="margin-bottom: 1rem; padding: 1rem; background: #f0fdfa; border: 1px solid #10b981; border-radius: 0.5rem;">
+                    فایل فعلی: <a href="{{ transaction.file.url }}" target="_blank" style="color: #10b981;">مشاهده فایل</a>
+                </div>
+                {% endif %}
+                {{ form.file }}
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <a href="{% url 'fledger:wallet_detail' transaction.wallet.id %}" class="btn-fledger btn-fledger-secondary">
+                    <i class="fas fa-times"></i>
+                    انصراف
+                </a>
+                <button type="submit" class="btn-fledger btn-fledger-success">
+                    <i class="fas fa-save"></i>
+                    ذخیره تغییرات
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %} 
