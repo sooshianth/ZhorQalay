@@ -374,6 +374,10 @@ def update_purchase(purchase, purchase_data):
         purchase.tracking_number = trace_code
         purchase.code_melli_tahvil = receiver_id
         
+        # تنظیم فیلد bazaargah_customer نیز برای خریدهای موجود
+        if purchase.customer and not purchase.bazaargah_customer:
+            purchase.bazaargah_customer = purchase.customer
+        
         # Don't overwrite order_weight and delivered_weight here
         # They will be calculated from the sum of all entries in process_grouped_purchase_data
         
@@ -558,6 +562,7 @@ def create_purchase(purchase_data):
         purchase_params = {
             'purchase_number': purchase_number,
             'customer': customer,
+            'bazaargah_customer': customer,  # اضافه کردن مشتری به فیلد bazaargah_customer نیز
             'cargo': cargo,
             'buyer_name': buyer_name,
             'bazaargah_phone_number': buyer_phone,

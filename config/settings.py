@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'table_filter.apps.TableFilterConfig',
     'bi.apps.BIConfig',
     'fledger.apps.FledgerConfig',
+    'crm_api.apps.CrmApiConfig',
 ]
 
 MIDDLEWARE = [
