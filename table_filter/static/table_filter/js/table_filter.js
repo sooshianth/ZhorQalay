@@ -1045,7 +1045,7 @@ class TableFilter {
         
         if (Object.keys(this.activeFilters).length === 0) {
             // اگر فیلتری نیست، اطلاع دادن به pagination که همه ردیف‌ها قابل نمایش هستند
-            document.dispatchEvent(new CustomEvent('tableFilterApplied', {
+            document.dispatchEvent(new CustomEvent('tableFiltered', {
                 detail: {
                     activeFilters: this.activeFilters,
                     hasActiveFilters: false
@@ -1090,7 +1090,7 @@ class TableFilter {
         });
         
         // اطلاع دادن به pagination که فیلتر اعمال شده
-        document.dispatchEvent(new CustomEvent('tableFilterApplied', {
+        document.dispatchEvent(new CustomEvent('tableFiltered', {
             detail: {
                 activeFilters: this.activeFilters,
                 hasActiveFilters: true
@@ -1312,9 +1312,10 @@ class TableFilter {
         });
         
         // ارسال event برای اطلاع سایر کامپوننت‌ها
-        document.dispatchEvent(new CustomEvent('tableFiltersCleared', {
+        document.dispatchEvent(new CustomEvent('tableFiltered', {
             detail: {
-                activeFilters: this.activeFilters
+                activeFilters: this.activeFilters,
+                hasActiveFilters: false
             }
         }));
         

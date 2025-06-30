@@ -518,3 +518,104 @@ body {
         padding: 4px 10px;
     }
 }
+
+.financial-field {
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.financial-field:hover {
+    background-color: #f0f8ff !important;
+    border-color: #007bff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+
+.financial-value.blurred {
+    filter: blur(8px);
+    user-select: none;
+    transition: filter 0.3s ease;
+}
+
+.financial-value.revealed {
+    filter: blur(0px);
+    user-select: text;
+}
+
+.financial-field.blurred::after {
+    content: "🔒 کلیک کنید";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 123, 255, 0.9);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    pointer-events: none;
+    z-index: 10;
+    white-space: nowrap;
+}
+
+.financial-field.revealed::after {
+    content: "🔓 کلیک برای مخفی کردن";
+    background-color: rgba(40, 167, 69, 0.9);
+}
+
+/* انیمیشن برای نمایش/مخفی کردن */
+.financial-field {
+    overflow: hidden;
+}
+
+.lock-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: #007bff;
+    font-size: 1.2rem;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+/* اضافه کردن !important برای اطمینان از اعمال blur */
+.financial-value.blurred {
+    filter: blur(8px) !important;
+    user-select: none !important;
+    transition: filter 0.3s ease !important;
+    pointer-events: none !important;
+}
+
+.financial-value.revealed {
+    filter: blur(0px) !important;
+    user-select: text !important;
+    pointer-events: auto !important;
+}
+
+/* تضمین نمایش آیکون کلیک */
+.financial-field.blurred::after {
+    display: block !important;
+    visibility: visible !important;
+}
+
+.financial-field.revealed::after {
+    display: block !important;
+    visibility: visible !important;
+}
+
+/* CSS مخصوص برای کادر سود */
+#profit.financial-value.blurred {
+    filter: blur(8px) !important;
+    user-select: none !important;
+    transition: filter 0.3s ease !important;
+    pointer-events: none !important;
+}
+
+#profit.financial-value.revealed {
+    filter: blur(0px) !important;
+    user-select: text !important;
+    pointer-events: auto !important;
+    transition: filter 0.3s ease !important;
+}

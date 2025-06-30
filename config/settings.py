@@ -223,6 +223,11 @@ CHANNEL_LAYERS = {
     },
 }
 
+# دیتا بیشتری آپلود کنیم
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 100000  # افزایش از 1000 به 10000
+DATA_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50 MB (در صورت نیاز)
+
+
 # SMS API Settings
 SMS_API_KEY = os.environ.get('SMS_API_KEY', '')
 SMS_LINE_NUMBER = int(os.environ.get('SMS_LINE_NUMBER', '0'))

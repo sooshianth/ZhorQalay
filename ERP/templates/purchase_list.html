@@ -20,28 +20,6 @@
     <script>
     let archivedLoaded = false;
     
-    function togglePurchaseSection(section) {
-        const content = document.getElementById(section + 'Content');
-        const icon = document.getElementById(section + 'Icon');
-        
-        if (section === 'archived' && !archivedLoaded) {
-            // اولین بار که آرشیو باز می‌شود، داده‌ها را لود کنیم
-                loadArchivedData();
-            archivedLoaded = true;
-        }
-        
-        // Toggle content visibility
-        if (content.style.display === 'none') {
-            content.style.display = 'block';
-            icon.classList.remove('fa-chevron-down');
-            icon.classList.add('fa-chevron-up');
-        } else {
-            content.style.display = 'none';
-            icon.classList.remove('fa-chevron-up');
-            icon.classList.add('fa-chevron-down');
-        }
-    }
-    
     function loadArchivedData() {
         const spinner = document.getElementById('archivedLoadingSpinner');
         const container = document.getElementById('archivedTableContainer');
@@ -128,19 +106,29 @@
          data-download-template-url="{% url 'table_filter:bulk_edit_template' %}"
          data-history-api-url="{% url 'table_filter:edit_history_api' %}"
          data-restore-value-api-url="{% url 'table_filter:restore_value_api' %}"
+         data-export-purchases-url="{% url 'export_purchases' %}"
+         data-purchase-aggregated-stats-url="{% url 'purchase_aggregated_stats' %}"
+         data-per-page="{% if search_params.per_page %}{{ search_params.per_page }}{% else %}100{% endif %}"
          style="display: none;"></div>
 
 <!-- script برای تنظیم configuration در window -->
 <script>
-    // تنظیم configuration برای JavaScript
-    window.PurchaseListConfig = {
-        updateColumnsUrl: "{% url 'update_columns' %}",
-        exportPurchasesUrl: "{% url 'export_purchases' %}",
-        purchaseAggregatedStatsUrl: "{% url 'purchase_aggregated_stats' %}",
-        hideSensitiveInfo: {% if hide_sensitive_info %}true{% else %}false{% endif %}
-    };
-    
-    console.log('Purchase List Config loaded:', window.PurchaseListConfig);
+    document.addEventListener('DOMContentLoaded', function() {
+        // دریافت تنظیمات از data attributes
+        const configEl = document.getElementById('purchase-list-config');
+        
+        // تنظیم configuration برای JavaScript
+        window.PurchaseListConfig = {
+            updateColumnsUrl: configEl.dataset.updateColumnsUrl,
+            exportPurchasesUrl: configEl.dataset.exportPurchasesUrl,
+            purchaseAggregatedStatsUrl: configEl.dataset.purchaseAggregatedStatsUrl,
+            hideSensitiveInfo: configEl.dataset.hideSensitiveInfo === 'true',
+            perPage: parseInt(configEl.dataset.perPage) || 100,
+            perPageOptions: [5, 10, 25, 50, 100, 200]
+        };
+        
+        console.log('Purchase List Config loaded:', window.PurchaseListConfig);
+    });
 </script>
 
 {% endblock %}
@@ -160,6 +148,14 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Column management initialized');
         } else {
             console.error('initializeColumnManagement function not found');
+        }
+        
+        // راه‌اندازی pagination manager
+        if (typeof PurchasePagination !== 'undefined') {
+            window.purchasePagination = new PurchasePagination();
+            console.log('Pagination manager initialized');
+        } else {
+            console.error('PurchasePagination class not found');
         }
         
         // اضافه کردن event listener برای دکمه پاک کردن cache
@@ -496,6 +492,123 @@ document.addEventListener('DOMContentLoaded', function() {
         font-size: 1rem;
     }
 }
+
+/* Pagination Styles */
+.pagination-container {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.pagination-info {
+    padding: 15px 0;
+}
+
+.pagination-details {
+    font-size: 14px;
+    color: #6c757d;
+}
+
+.pagination-per-page {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pagination-per-page select {
+    min-width: 80px;
+}
+
+.pagination {
+    margin: 0;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.pagination .page-link {
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    color: #495057;
+    padding: 8px 12px;
+    margin: 0 2px;
+    transition: all 0.2s ease;
+}
+
+.pagination .page-link:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+    color: #495057;
+    transform: translateY(-1px);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+    font-weight: bold;
+}
+
+.pagination .page-item.disabled .page-link {
+    color: #6c757d;
+    background-color: #fff;
+    border-color: #dee2e6;
+    cursor: not-allowed;
+}
+
+.pagination .page-link i {
+    font-size: 12px;
+}
+
+/* Responsive pagination */
+@media (max-width: 768px) {
+    .pagination-info {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start !important;
+    }
+    
+    .pagination-per-page {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .pagination {
+        justify-content: center;
+        margin-top: 15px;
+    }
+    
+    .pagination .page-link {
+        padding: 6px 10px;
+        font-size: 14px;
+    }
+}
+
+/* Loading state for pagination */
+.pagination-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.pagination-loading::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
 </style>
 
 <!-- نوار جستجوی اصلی -->
@@ -540,7 +653,76 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 <div id="pendingContent" style="display: none;">
 
-{% if pending_payment_purchases %}
+<!-- آمار اجماعی - منتقل شده به بالای خریدهای در انتظار پرداخت -->
+{% if not hide_sensitive_info %}
+<div id="aggregatedStats" class="card mb-4 shadow-sm" style="display: none;">
+    <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold text-primary">
+            <i class="fas fa-chart-pie me-2"></i> آمار خریدهای انتخاب شده
+            <span id="selectedRowsCount" class="badge bg-primary ms-2">0</span>
+        </h5>
+        <button id="closeAggregatedStats" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3 mb-3">
+                <div class="border rounded p-3 h-100 bg-light">
+                    <h6 class="text-muted mb-2">مجموع وزن سفارشات</h6>
+                    <h4 class="fw-bold text-primary" id="totalOrderWeight">0 <small>کیلوگرم</small></h4>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="border rounded p-3 h-100 bg-light">
+                    <h6 class="text-muted mb-2">مجموع وزن بارنامه شده</h6>
+                    <h4 class="fw-bold text-success" id="totalDeliveredWeight">0 <small>کیلوگرم</small></h4>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="border rounded p-3 h-100 bg-light financial-field" title="برای مشاهده کلیک کنید">
+                    <h6 class="text-muted mb-2">میانگین قیمت خرید</h6>
+                    <h4 class="fw-bold text-danger financial-value blurred" id="avgCompanyPrice">0 <small>ریال</small></h4>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="border rounded p-3 h-100 bg-light financial-field" title="برای مشاهده کلیک کنید">
+                    <h6 class="text-muted mb-2">میانگین قیمت فروش</h6>
+                    <h4 class="fw-bold text-success financial-value blurred" id="avgCustomerPrice">0 <small>ریال</small></h4>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-3 mb-3">
+                <div class="border rounded p-3 h-100 bg-light financial-field" title="برای مشاهده کلیک کنید">
+                    <h6 class="text-muted mb-2">مجموع مبلغ پرداختی</h6>
+                    <h4 class="fw-bold text-primary financial-value blurred" id="totalAmountPaid">0 <small>ریال</small></h4>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="border rounded p-3 h-100 bg-light financial-field" title="برای مشاهده کلیک کنید">
+                    <h6 class="text-muted mb-2">فاکتور خرید مبنا</h6>
+                    <h4 class="fw-bold text-danger financial-value blurred" id="purchaseBaseInvoice">0 <small>ریال</small></h4>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="border rounded p-3 h-100 bg-light financial-field" title="برای مشاهده کلیک کنید">
+                    <h6 class="text-muted mb-2">فاکتور فروش مبنا</h6>
+                    <h4 class="fw-bold text-success financial-value blurred" id="salesBaseInvoice">0 <small>ریال</small></h4>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="border rounded p-3 h-100 bg-light financial-field" title="برای مشاهده کلیک کنید">
+                    <h6 class="text-muted mb-2">سود</h6>
+                    <h4 class="fw-bold text-info financial-value blurred" id="profit">0 <small>ریال</small></h4>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if pending_payment_purchases.object_list %}
 <div class="table-responsive shadow-sm rounded">
 <table class="table table-bordered table-striped align-middle text-center enable-filter" id="pendingPurchasesTable">
     <thead class="table-light sticky-header">
@@ -628,10 +810,89 @@ document.addEventListener('DOMContentLoaded', function() {
                     </td>
                     {% elif column.id == 'status' %}
                     <td class="column-{{ column.id }}">
-                        {% if purchase.state == 'INITIATED' %}
+                        {% if purchase.state == 'ARCHIVED' or purchase.is_archived %}
+                            <span class="table-status-badge bg-secondary text-white">آرشیو شده</span>
+                        {% elif purchase.state == 'CANCELED' or purchase.is_canceled %}
+                            <span class="table-status-badge bg-danger text-white">لغو شده</span>
+                        {% elif purchase.is_urgent %}
+                            <span class="table-status-badge bg-danger text-white">فوری</span>
+                        {% elif purchase.state == 'INITIATED' %}
                             <span class="table-status-badge bg-light text-dark">شروع شده</span>
                         {% elif purchase.state == 'SMS_SENT' %}
-                            <span class="table-status-badge bg-warning text-dark">پیامک ارسال شده</span>
+                            <span class="table-status-badge bg-purple text-white">پیامک ارسال شده</span>
+                        {% elif purchase.state == 'PAYMENT_VERIFIED' %}
+                            <span class="table-status-badge bg-warning text-dark">ثبت خرید در بازارگاه</span>
+                        {% elif purchase.state == 'ALLOCATION_APPROVED' %}
+                            <span class="table-status-badge bg-navy text-white">ثبت تخصیص در بازارگاه</span>
+                        {% elif purchase.state == 'ADDRESS_SENT' %}
+                            <span class="table-status-badge bg-teal text-white">ارسال آدرس به واردکننده</span>
+                        {% elif purchase.state == 'WAITING_FOR_BARNAMEH' %}
+                            <span class="table-status-badge bg-primary text-white">در انتظار بارنامه</span>
+                        {% elif purchase.state == 'BARNAMEH_INCOMPLETE' %}
+                            <span class="table-status-badge bg-orange text-dark">صدور بارنامه (ناقص)</span>
+                        {% elif purchase.state == 'BARNAMEH_ISSUED' %}
+                            <span class="table-status-badge bg-blue text-white">صدور بارنامه</span>
+                        {% elif purchase.state == 'PURCHASE_CLOSED' %}
+                            <span class="table-status-badge bg-pink text-white">بستن خرید در بازارگاه</span>
+                        {% elif purchase.state == 'PAY_KASRI' %}
+                            <div class="status-container">
+                                {% if purchase.is_factored %}
+                                    <span class="invoice-badge invoice-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر شده
+                                    </span>
+                                {% else %}
+                                    <span class="invoice-badge invoice-not-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر نشده
+                                    </span>
+                                {% endif %}
+                                <span class="table-status-badge bg-secondary text-white">پرداخت کسری</span>
+                            </div>
+                        {% elif purchase.state == 'RECIEVE_SARAK' %}
+                            <div class="status-container">
+                                {% if purchase.is_factored %}
+                                    <span class="invoice-badge invoice-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر شده
+                                    </span>
+                                {% else %}
+                                    <span class="invoice-badge invoice-not-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر نشده
+                                    </span>
+                                {% endif %}
+                                <span class="table-status-badge bg-danger text-white">دریافت سرک</span>
+                            </div>
+                        {% elif purchase.state == 'DIFFERENCE_APPROVED' %}
+                            <div class="status-container">
+                                {% if purchase.is_factored %}
+                                    <span class="invoice-badge invoice-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر شده
+                                    </span>
+                                {% else %}
+                                    <span class="invoice-badge invoice-not-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر نشده
+                                    </span>
+                                {% endif %}
+                                <span class="table-status-badge bg-brown text-white">پرداخت کسری / دریافت سرک</span>
+                            </div>
+                        {% elif purchase.state == 'FULLY_SETTLED' %}
+                            <div class="status-container">
+                                {% if purchase.is_factored %}
+                                    <span class="invoice-badge invoice-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر شده
+                                    </span>
+                                {% else %}
+                                    <span class="invoice-badge invoice-not-issued">
+                                        <i class="fas fa-file-invoice me-1"></i> فاکتور صادر نشده
+                                    </span>
+                                {% endif %}
+                                <span class="table-status-badge bg-success text-white">تسویه کامل</span>
+                            </div>
+                        {% elif purchase.state == 'INVOICE_ISSUED' %}
+                            <div class="status-container">
+                                <span class="invoice-badge invoice-issued">
+                                    <i class="fas fa-file-invoice me-1"></i> فاکتور صادر شده
+                                </span>
+                                <span class="table-status-badge bg-indigo text-white">صدور فاکتور</span>
+                            </div>
                         {% else %}
                             <span class="table-status-badge bg-light text-dark">{{ purchase.get_state_display }}</span>
                         {% endif %}
@@ -648,6 +909,58 @@ document.addEventListener('DOMContentLoaded', function() {
                             </button>
                         </div>
                     </td>
+                    {% elif column.id == 'address' %}
+                    <td class="column-{{ column.id }}">{{ purchase.address|default:"-" }}</td>
+                    {% elif column.id == 'description' %}
+                    <td class="column-{{ column.id }}">{{ purchase.description|default:"-" }}</td>
+                    {% elif column.id == 'company_price' %}
+                    <td class="column-{{ column.id }}">{{ purchase.company_price|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'factor_code' %}
+                    <td class="column-{{ column.id }}">{% if purchase.factor_code %}1{% else %}0{% endif %}</td>
+                    {% elif column.id == 'tracking_number' %}
+                    <td class="column-{{ column.id }}">{{ purchase.tracking_number|default:"-" }}</td>
+                    {% elif column.id == 'code_melli_tahvil' %}
+                    <td class="column-{{ column.id }}">{{ purchase.code_melli_tahvil|default:"-" }}</td>
+                    {% elif column.id == 'bazaargah_phone_number' %}
+                    <td class="column-{{ column.id }}">{{ purchase.bazaargah_phone_number|default:"-" }}</td>
+                    {% elif column.id == 'tahvil_phone_number' %}
+                    <td class="column-{{ column.id }}">{{ purchase.tahvil_phone_number|default:"-" }}</td>
+                    {% elif column.id == 'send_cottage_sms' %}
+                    <td class="column-{{ column.id }}">{% if purchase.send_cottage_sms %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'total_weight' %}
+                    <td class="column-{{ column.id }}">{{ purchase.total_weight|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'type' %}
+                    <td class="column-{{ column.id }}">{{ purchase.get_type_display|default:"-" }}</td>
+                    {% elif column.id == 'amount_paid' %}
+                    <td class="column-{{ column.id }}">{{ purchase.amount_paid|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'payment_method' %}
+                    <td class="column-{{ column.id }}">{{ purchase.get_payment_method_display|default:"-" }}</td>
+                    {% elif column.id == 'updated_at' %}
+                    <td class="column-{{ column.id }}">{{ purchase.updated_at|date:"Y/m/d"|default:"-" }}</td>
+                    {% elif column.id == 'is_weight_costed' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_weight_costed %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_ap_af' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_ap_af %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'extelaf_type' %}
+                    <td class="column-{{ column.id }}">{{ purchase.get_extelaf_type_display|default:"-" }}</td>
+                    {% elif column.id == 'extelaf_weight' %}
+                    <td class="column-{{ column.id }}">{{ purchase.extelaf_weight|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'extelaf_amount' %}
+                    <td class="column-{{ column.id }}">{{ purchase.extelaf_amount|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'is_urgent' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_urgent %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_canceled' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_canceled %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_archived' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_archived %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_fully_tasvied' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_fully_tasvied %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_factored' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_factored %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'priority' %}
+                    <td class="column-{{ column.id }}">{{ purchase.priority|default:"-" }}</td>
+                    {% elif column.id == 'priority_reason' %}
+                    <td class="column-{{ column.id }}">{{ purchase.priority_reason|default:"-" }}</td>
                     {% endif %}
                 {% endif %}
             {% endfor %}
@@ -656,6 +969,73 @@ document.addEventListener('DOMContentLoaded', function() {
     </tbody>
 </table>
 </div>
+
+<!-- Pagination for pending purchases -->
+{% if pending_payment_purchases.object_list %}
+<div class="pagination-container mt-4" id="pendingPagination">
+    <div class="pagination-info d-flex justify-content-between align-items-center mb-3">
+        <div class="pagination-details">
+            <span class="text-muted">نمایش {{ pending_payment_purchases.start_index }} تا {{ pending_payment_purchases.end_index }} از {{ pagination.pending.paginator.count }} خرید در انتظار پرداخت</span>
+        </div>
+        <div class="pagination-per-page">
+            <label for="pendingPerPage" class="form-label me-2">تعداد در هر صفحه:</label>
+            <select id="pendingPerPage" class="form-select form-select-sm d-inline-block w-auto">
+                <option value="5" {% if search_params.per_page == 5 %}selected{% endif %}>5</option>
+                <option value="10" {% if search_params.per_page == 10 %}selected{% endif %}>10</option>
+                <option value="25" {% if search_params.per_page == 25 %}selected{% endif %}>25</option>
+                <option value="50" {% if search_params.per_page == 50 %}selected{% endif %}>50</option>
+                <option value="100" {% if search_params.per_page == 100 or not search_params.per_page %}selected{% endif %}>100</option>
+                <option value="200" {% if search_params.per_page == 200 %}selected{% endif %}>200</option>
+            </select>
+        </div>
+    </div>
+    
+    {% if pagination.pending.paginator.num_pages > 1 %}
+    <nav aria-label="صفحه‌بندی خریدهای در انتظار پرداخت">
+        <ul class="pagination justify-content-center">
+            {% if pagination.pending.page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="1" data-section="pending">
+                        <i class="fas fa-angle-double-right"></i> اول
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="{{ pagination.pending.page_obj.previous_page_number }}" data-section="pending">
+                        <i class="fas fa-angle-right"></i> قبلی
+                    </a>
+                </li>
+            {% endif %}
+            
+            {% for page_num in pagination.pending.page_obj.paginator.get_elided_page_range %}
+                {% if page_num == pagination.pending.page_obj.paginator.ELLIPSIS %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                {% else %}
+                    <li class="page-item {% if page_num == pagination.pending.page_obj.number %}active{% endif %}">
+                        <a class="page-link" href="#" data-page="{{ page_num }}" data-section="pending">{{ page_num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if pagination.pending.page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="{{ pagination.pending.page_obj.next_page_number }}" data-section="pending">
+                        بعدی <i class="fas fa-angle-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="{{ pagination.pending.paginator.num_pages }}" data-section="pending">
+                        آخر <i class="fas fa-angle-double-left"></i>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endif %}
+
 {% else %}
 <div class="empty-state">
     <i class="fas fa-clock"></i>
@@ -663,6 +1043,9 @@ document.addEventListener('DOMContentLoaded', function() {
     <p>در حال حاضر هیچ خرید در انتظار پرداختی وجود ندارد</p>
 </div>
 {% endif %}
+
+
+
 </div>
 </div>
 
@@ -676,76 +1059,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 <div id="activeContent" style="display: block;">
 
-<!-- Sección de estadísticas agregadas -->
-{% if not hide_sensitive_info %}
-<div id="aggregatedStats" class="card mb-4 shadow-sm" style="display: none;">
-    <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 fw-bold text-primary">
-            <i class="fas fa-chart-pie me-2"></i> آمار خریدهای انتخاب شده
-            <span id="selectedRowsCount" class="badge bg-primary ms-2">0</span>
-        </h5>
-        <button id="closeAggregatedStats" class="btn btn-sm btn-outline-secondary">
-            <i class="fas fa-times"></i>
-        </button>
-    </div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-3 mb-3">
-                <div class="border rounded p-3 h-100 bg-light">
-                    <h6 class="text-muted mb-2">مجموع وزن سفارشات</h6>
-                    <h4 class="fw-bold text-primary" id="totalOrderWeight">0 <small>کیلوگرم</small></h4>
-                </div>
-            </div>
-            <div class="col-md-3 mb-3">
-                <div class="border rounded p-3 h-100 bg-light">
-                    <h6 class="text-muted mb-2">مجموع وزن بارنامه شده</h6>
-                    <h4 class="fw-bold text-success" id="totalDeliveredWeight">0 <small>کیلوگرم</small></h4>
-                </div>
-            </div>
-            <div class="col-md-3 mb-3">
-                <div class="border rounded p-3 h-100 bg-light">
-                    <h6 class="text-muted mb-2">میانگین قیمت خرید</h6>
-                    <h4 class="fw-bold text-danger" id="avgCompanyPrice">0 <small>ریال</small></h4>
-                </div>
-            </div>
-            <div class="col-md-3 mb-3">
-                <div class="border rounded p-3 h-100 bg-light">
-                    <h6 class="text-muted mb-2">میانگین قیمت فروش</h6>
-                    <h4 class="fw-bold text-success" id="avgCustomerPrice">0 <small>ریال</small></h4>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-3 mb-3">
-                <div class="border rounded p-3 h-100 bg-light">
-                    <h6 class="text-muted mb-2">مجموع مبلغ پرداختی</h6>
-                    <h4 class="fw-bold text-primary" id="totalAmountPaid">0 <small>ریال</small></h4>
-                </div>
-            </div>
-            <div class="col-md-3 mb-3">
-                <div class="border rounded p-3 h-100 bg-light">
-                    <h6 class="text-muted mb-2">فاکتور خرید مبنا</h6>
-                    <h4 class="fw-bold text-danger" id="purchaseBaseInvoice">0 <small>ریال</small></h4>
-                </div>
-            </div>
-            <div class="col-md-3 mb-3">
-                <div class="border rounded p-3 h-100 bg-light">
-                    <h6 class="text-muted mb-2">فاکتور فروش مبنا</h6>
-                    <h4 class="fw-bold text-success" id="salesBaseInvoice">0 <small>ریال</small></h4>
-                </div>
-            </div>
-            <div class="col-md-3 mb-3">
-                <div class="border rounded p-3 h-100 bg-light">
-                    <h6 class="text-muted mb-2">سود</h6>
-                    <h4 class="fw-bold text-info" id="profit">0 <small>ریال</small></h4>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-{% if active_purchases %}
+{% if active_purchases.object_list %}
 
 
 
@@ -857,30 +1171,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="column-{{ column.id }}">{% if purchase.factor_code %}1{% else %}0{% endif %}</td>
                     {% elif column.id == 'tracking_number' %}
                     <td class="column-{{ column.id }}">{{ purchase.tracking_number|default:"-" }}</td>
-                    {% elif column.id == 'shenase_takhsis' %}
-                    <td class="column-{{ column.id }}">
-                        {% if purchase.shenase_takhsis_set.exists %}
-                            {% for shenase in purchase.shenase_takhsis_set.all %}
-                                <span class="badge bg-info text-white me-1 mb-1">{{ shenase.code }}</span>
-                            {% endfor %}
-                        {% else %}
-                            -
-                        {% endif %}
-                    </td>
                     {% elif column.id == 'code_melli_tahvil' %}
                     <td class="column-{{ column.id }}">{{ purchase.code_melli_tahvil|default:"-" }}</td>
                     {% elif column.id == 'bazaargah_phone_number' %}
                     <td class="column-{{ column.id }}">{{ purchase.bazaargah_phone_number|default:"-" }}</td>
-                    {% elif column.id == 'buyer_name' %}
-                    <td class="column-{{ column.id }}">{{ purchase.buyer_name|default:"-" }}</td>
                     {% elif column.id == 'tahvil_phone_number' %}
                     <td class="column-{{ column.id }}">{{ purchase.tahvil_phone_number|default:"-" }}</td>
                     {% elif column.id == 'send_cottage_sms' %}
                     <td class="column-{{ column.id }}">{% if purchase.send_cottage_sms %}بله{% else %}خیر{% endif %}</td>
                     {% elif column.id == 'total_weight' %}
                     <td class="column-{{ column.id }}">{{ purchase.total_weight|default:"-"|add_commas }}</td>
-                    {% elif column.id == 'delivered_weight' %}
-                    <td class="column-{{ column.id }}">{{ purchase.delivered_weight|default:"-"|add_commas }}</td>
                     {% elif column.id == 'type' %}
                     <td class="column-{{ column.id }}">{{ purchase.get_type_display|default:"-" }}</td>
                     {% elif column.id == 'amount_paid' %}
@@ -913,6 +1213,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="column-{{ column.id }}">{{ purchase.priority|default:"-" }}</td>
                     {% elif column.id == 'priority_reason' %}
                     <td class="column-{{ column.id }}">{{ purchase.priority_reason|default:"-" }}</td>
+                    {% elif column.id == 'shenase_takhsis' %}
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.shenase_takhsis_set.exists %}
+                            {% for shenase in purchase.shenase_takhsis_set.all %}
+                                <span class="badge bg-info text-white me-1 mb-1">{{ shenase.code }}</span>
+                            {% endfor %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    {% elif column.id == 'buyer_name' %}
+                    <td class="column-{{ column.id }}">{{ purchase.buyer_name|default:"-" }}</td>
+                    {% elif column.id == 'delivered_weight' %}
+                    <td class="column-{{ column.id }}">{{ purchase.delivered_weight|default:"-"|add_commas }}</td>
                     {% elif column.id == 'status' %}
                     <td class="column-{{ column.id }}">
                         {% if purchase.state == 'ARCHIVED' or purchase.is_archived %}
@@ -1014,6 +1328,58 @@ document.addEventListener('DOMContentLoaded', function() {
                             </button>
                         </div>
                     </td>
+                    {% elif column.id == 'address' %}
+                    <td class="column-{{ column.id }}">{{ purchase.address|default:"-" }}</td>
+                    {% elif column.id == 'description' %}
+                    <td class="column-{{ column.id }}">{{ purchase.description|default:"-" }}</td>
+                    {% elif column.id == 'company_price' %}
+                    <td class="column-{{ column.id }}">{{ purchase.company_price|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'factor_code' %}
+                    <td class="column-{{ column.id }}">{% if purchase.factor_code %}1{% else %}0{% endif %}</td>
+                    {% elif column.id == 'tracking_number' %}
+                    <td class="column-{{ column.id }}">{{ purchase.tracking_number|default:"-" }}</td>
+                    {% elif column.id == 'code_melli_tahvil' %}
+                    <td class="column-{{ column.id }}">{{ purchase.code_melli_tahvil|default:"-" }}</td>
+                    {% elif column.id == 'bazaargah_phone_number' %}
+                    <td class="column-{{ column.id }}">{{ purchase.bazaargah_phone_number|default:"-" }}</td>
+                    {% elif column.id == 'tahvil_phone_number' %}
+                    <td class="column-{{ column.id }}">{{ purchase.tahvil_phone_number|default:"-" }}</td>
+                    {% elif column.id == 'send_cottage_sms' %}
+                    <td class="column-{{ column.id }}">{% if purchase.send_cottage_sms %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'total_weight' %}
+                    <td class="column-{{ column.id }}">{{ purchase.total_weight|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'type' %}
+                    <td class="column-{{ column.id }}">{{ purchase.get_type_display|default:"-" }}</td>
+                    {% elif column.id == 'amount_paid' %}
+                    <td class="column-{{ column.id }}">{{ purchase.amount_paid|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'payment_method' %}
+                    <td class="column-{{ column.id }}">{{ purchase.get_payment_method_display|default:"-" }}</td>
+                    {% elif column.id == 'updated_at' %}
+                    <td class="column-{{ column.id }}">{{ purchase.updated_at|date:"Y/m/d"|default:"-" }}</td>
+                    {% elif column.id == 'is_weight_costed' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_weight_costed %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_ap_af' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_ap_af %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'extelaf_type' %}
+                    <td class="column-{{ column.id }}">{{ purchase.get_extelaf_type_display|default:"-" }}</td>
+                    {% elif column.id == 'extelaf_weight' %}
+                    <td class="column-{{ column.id }}">{{ purchase.extelaf_weight|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'extelaf_amount' %}
+                    <td class="column-{{ column.id }}">{{ purchase.extelaf_amount|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'is_urgent' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_urgent %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_canceled' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_canceled %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_archived' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_archived %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_fully_tasvied' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_fully_tasvied %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_factored' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_factored %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'priority' %}
+                    <td class="column-{{ column.id }}">{{ purchase.priority|default:"-" }}</td>
+                    {% elif column.id == 'priority_reason' %}
+                    <td class="column-{{ column.id }}">{{ purchase.priority_reason|default:"-" }}</td>
                     {% endif %}
                 {% endif %}
             {% endfor %}
@@ -1022,6 +1388,73 @@ document.addEventListener('DOMContentLoaded', function() {
     </tbody>
 </table>
 </div>
+
+<!-- Pagination for active purchases -->
+{% if active_purchases.object_list %}
+<div class="pagination-container mt-4" id="activePagination">
+    <div class="pagination-info d-flex justify-content-between align-items-center mb-3">
+        <div class="pagination-details">
+            <span class="text-muted">نمایش {{ active_purchases.start_index }} تا {{ active_purchases.end_index }} از {{ pagination.active.paginator.count }} خرید فعال</span>
+        </div>
+        <div class="pagination-per-page">
+            <label for="activePerPage" class="form-label me-2">تعداد در هر صفحه:</label>
+            <select id="activePerPage" class="form-select form-select-sm d-inline-block w-auto">
+                <option value="5" {% if search_params.per_page == 5 %}selected{% endif %}>5</option>
+                <option value="10" {% if search_params.per_page == 10 %}selected{% endif %}>10</option>
+                <option value="25" {% if search_params.per_page == 25 %}selected{% endif %}>25</option>
+                <option value="50" {% if search_params.per_page == 50 %}selected{% endif %}>50</option>
+                <option value="100" {% if search_params.per_page == 100 or not search_params.per_page %}selected{% endif %}>100</option>
+                <option value="200" {% if search_params.per_page == 200 %}selected{% endif %}>200</option>
+            </select>
+        </div>
+    </div>
+    
+    {% if pagination.active.paginator.num_pages > 1 %}
+    <nav aria-label="صفحه‌بندی خریدهای فعال">
+        <ul class="pagination justify-content-center">
+            {% if pagination.active.page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="1" data-section="active">
+                        <i class="fas fa-angle-double-right"></i> اول
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="{{ pagination.active.page_obj.previous_page_number }}" data-section="active">
+                        <i class="fas fa-angle-right"></i> قبلی
+                    </a>
+                </li>
+            {% endif %}
+            
+            {% for page_num in pagination.active.page_obj.paginator.get_elided_page_range %}
+                {% if page_num == pagination.active.page_obj.paginator.ELLIPSIS %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                {% else %}
+                    <li class="page-item {% if page_num == pagination.active.page_obj.number %}active{% endif %}">
+                        <a class="page-link" href="#" data-page="{{ page_num }}" data-section="active">{{ page_num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if pagination.active.page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="{{ pagination.active.page_obj.next_page_number }}" data-section="active">
+                        بعدی <i class="fas fa-angle-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="{{ pagination.active.paginator.num_pages }}" data-section="active">
+                        آخر <i class="fas fa-angle-double-left"></i>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endif %}
+
 {% else %}
 <div class="empty-state">
     <i class="fas fa-inbox"></i>
@@ -1029,10 +1462,10 @@ document.addEventListener('DOMContentLoaded', function() {
     <p>در حال حاضر هیچ خرید فعالی وجود ندارد</p>
 </div>
 {% endif %}
-</div>
-</div>
 
 
+</div>
+</div>
 
 <!-- Archived Purchases Section (بسته به صورت پیش‌فرض) -->
 <div class="purchase-section mt-4">
@@ -1043,14 +1476,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <i class="fas fa-chevron-down text-secondary purchase-icon" id="archivedIcon"></i>
 </div>
 <div id="archivedContent" style="display: none;">
-<div id="archivedLoadingSpinner" class="text-center py-5">
-    <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">در حال بارگذاری...</span>
-    </div>
-    <p class="mt-2">در حال بارگذاری خریدهای آرشیو شده...</p>
-</div>
-<div id="archivedTableContainer" style="display: none;">
-{% if archived_count > 0 %}
+{% if archived_purchases.object_list %}
 
 
 
@@ -1125,30 +1551,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="column-{{ column.id }}">{% if purchase.factor_code %}1{% else %}0{% endif %}</td>
                     {% elif column.id == 'tracking_number' %}
                     <td class="column-{{ column.id }}">{{ purchase.tracking_number|default:"-" }}</td>
-                    {% elif column.id == 'shenase_takhsis' %}
-                    <td class="column-{{ column.id }}">
-                        {% if purchase.shenase_takhsis_set.exists %}
-                            {% for shenase in purchase.shenase_takhsis_set.all %}
-                                <span class="badge bg-info text-white me-1 mb-1">{{ shenase.code }}</span>
-                            {% endfor %}
-                        {% else %}
-                            -
-                        {% endif %}
-                    </td>
                     {% elif column.id == 'code_melli_tahvil' %}
                     <td class="column-{{ column.id }}">{{ purchase.code_melli_tahvil|default:"-" }}</td>
                     {% elif column.id == 'bazaargah_phone_number' %}
                     <td class="column-{{ column.id }}">{{ purchase.bazaargah_phone_number|default:"-" }}</td>
-                    {% elif column.id == 'buyer_name' %}
-                    <td class="column-{{ column.id }}">{{ purchase.buyer_name|default:"-" }}</td>
                     {% elif column.id == 'tahvil_phone_number' %}
                     <td class="column-{{ column.id }}">{{ purchase.tahvil_phone_number|default:"-" }}</td>
                     {% elif column.id == 'send_cottage_sms' %}
                     <td class="column-{{ column.id }}">{% if purchase.send_cottage_sms %}بله{% else %}خیر{% endif %}</td>
                     {% elif column.id == 'total_weight' %}
                     <td class="column-{{ column.id }}">{{ purchase.total_weight|default:"-"|add_commas }}</td>
-                    {% elif column.id == 'delivered_weight' %}
-                    <td class="column-{{ column.id }}">{{ purchase.delivered_weight|default:"-"|add_commas }}</td>
                     {% elif column.id == 'type' %}
                     <td class="column-{{ column.id }}">{{ purchase.get_type_display|default:"-" }}</td>
                     {% elif column.id == 'amount_paid' %}
@@ -1181,6 +1593,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="column-{{ column.id }}">{{ purchase.priority|default:"-" }}</td>
                     {% elif column.id == 'priority_reason' %}
                     <td class="column-{{ column.id }}">{{ purchase.priority_reason|default:"-" }}</td>
+                    {% elif column.id == 'shenase_takhsis' %}
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.shenase_takhsis_set.exists %}
+                            {% for shenase in purchase.shenase_takhsis_set.all %}
+                                <span class="badge bg-info text-white me-1 mb-1">{{ shenase.code }}</span>
+                            {% endfor %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    {% elif column.id == 'buyer_name' %}
+                    <td class="column-{{ column.id }}">{{ purchase.buyer_name|default:"-" }}</td>
+                    {% elif column.id == 'delivered_weight' %}
+                    <td class="column-{{ column.id }}">{{ purchase.delivered_weight|default:"-"|add_commas }}</td>
                     {% elif column.id == 'status' %}
                     <td class="column-{{ column.id }}">
                         {% if purchase.state == 'ARCHIVED' or purchase.is_archived %}
@@ -1282,6 +1708,58 @@ document.addEventListener('DOMContentLoaded', function() {
                             </button>
                         </div>
                     </td>
+                    {% elif column.id == 'address' %}
+                    <td class="column-{{ column.id }}">{{ purchase.address|default:"-" }}</td>
+                    {% elif column.id == 'description' %}
+                    <td class="column-{{ column.id }}">{{ purchase.description|default:"-" }}</td>
+                    {% elif column.id == 'company_price' %}
+                    <td class="column-{{ column.id }}">{{ purchase.company_price|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'factor_code' %}
+                    <td class="column-{{ column.id }}">{% if purchase.factor_code %}1{% else %}0{% endif %}</td>
+                    {% elif column.id == 'tracking_number' %}
+                    <td class="column-{{ column.id }}">{{ purchase.tracking_number|default:"-" }}</td>
+                    {% elif column.id == 'code_melli_tahvil' %}
+                    <td class="column-{{ column.id }}">{{ purchase.code_melli_tahvil|default:"-" }}</td>
+                    {% elif column.id == 'bazaargah_phone_number' %}
+                    <td class="column-{{ column.id }}">{{ purchase.bazaargah_phone_number|default:"-" }}</td>
+                    {% elif column.id == 'tahvil_phone_number' %}
+                    <td class="column-{{ column.id }}">{{ purchase.tahvil_phone_number|default:"-" }}</td>
+                    {% elif column.id == 'send_cottage_sms' %}
+                    <td class="column-{{ column.id }}">{% if purchase.send_cottage_sms %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'total_weight' %}
+                    <td class="column-{{ column.id }}">{{ purchase.total_weight|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'type' %}
+                    <td class="column-{{ column.id }}">{{ purchase.get_type_display|default:"-" }}</td>
+                    {% elif column.id == 'amount_paid' %}
+                    <td class="column-{{ column.id }}">{{ purchase.amount_paid|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'payment_method' %}
+                    <td class="column-{{ column.id }}">{{ purchase.get_payment_method_display|default:"-" }}</td>
+                    {% elif column.id == 'updated_at' %}
+                    <td class="column-{{ column.id }}">{{ purchase.updated_at|date:"Y/m/d"|default:"-" }}</td>
+                    {% elif column.id == 'is_weight_costed' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_weight_costed %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_ap_af' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_ap_af %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'extelaf_type' %}
+                    <td class="column-{{ column.id }}">{{ purchase.get_extelaf_type_display|default:"-" }}</td>
+                    {% elif column.id == 'extelaf_weight' %}
+                    <td class="column-{{ column.id }}">{{ purchase.extelaf_weight|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'extelaf_amount' %}
+                    <td class="column-{{ column.id }}">{{ purchase.extelaf_amount|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'is_urgent' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_urgent %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_canceled' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_canceled %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_archived' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_archived %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_fully_tasvied' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_fully_tasvied %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'is_factored' %}
+                    <td class="column-{{ column.id }}">{% if purchase.is_factored %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'priority' %}
+                    <td class="column-{{ column.id }}">{{ purchase.priority|default:"-" }}</td>
+                    {% elif column.id == 'priority_reason' %}
+                    <td class="column-{{ column.id }}">{{ purchase.priority_reason|default:"-" }}</td>
                     {% endif %}
                 {% endif %}
             {% endfor %}
@@ -1290,6 +1768,73 @@ document.addEventListener('DOMContentLoaded', function() {
     </tbody>
 </table>
 </div>
+
+<!-- Pagination for archived purchases -->
+{% if archived_purchases.object_list %}
+<div class="pagination-container mt-4" id="archivedPagination">
+    <div class="pagination-info d-flex justify-content-between align-items-center mb-3">
+        <div class="pagination-details">
+            <span class="text-muted">نمایش {{ archived_purchases.start_index }} تا {{ archived_purchases.end_index }} از {{ pagination.archived.paginator.count }} خرید آرشیو شده</span>
+        </div>
+        <div class="pagination-per-page">
+            <label for="archivedPerPage" class="form-label me-2">تعداد در هر صفحه:</label>
+            <select id="archivedPerPage" class="form-select form-select-sm d-inline-block w-auto">
+                <option value="5" {% if search_params.per_page == 5 %}selected{% endif %}>5</option>
+                <option value="10" {% if search_params.per_page == 10 %}selected{% endif %}>10</option>
+                <option value="25" {% if search_params.per_page == 25 %}selected{% endif %}>25</option>
+                <option value="50" {% if search_params.per_page == 50 %}selected{% endif %}>50</option>
+                <option value="100" {% if search_params.per_page == 100 or not search_params.per_page %}selected{% endif %}>100</option>
+                <option value="200" {% if search_params.per_page == 200 %}selected{% endif %}>200</option>
+            </select>
+        </div>
+    </div>
+    
+    {% if pagination.archived.paginator.num_pages > 1 %}
+    <nav aria-label="صفحه‌بندی خریدهای آرشیو شده">
+        <ul class="pagination justify-content-center">
+            {% if pagination.archived.page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="1" data-section="archived">
+                        <i class="fas fa-angle-double-right"></i> اول
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="{{ pagination.archived.page_obj.previous_page_number }}" data-section="archived">
+                        <i class="fas fa-angle-right"></i> قبلی
+                    </a>
+                </li>
+            {% endif %}
+            
+            {% for page_num in pagination.archived.page_obj.paginator.get_elided_page_range %}
+                {% if page_num == pagination.archived.page_obj.paginator.ELLIPSIS %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                {% else %}
+                    <li class="page-item {% if page_num == pagination.archived.page_obj.number %}active{% endif %}">
+                        <a class="page-link" href="#" data-page="{{ page_num }}" data-section="archived">{{ page_num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if pagination.archived.page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="{{ pagination.archived.page_obj.next_page_number }}" data-section="archived">
+                        بعدی <i class="fas fa-angle-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="{{ pagination.archived.paginator.num_pages }}" data-section="archived">
+                        آخر <i class="fas fa-angle-double-left"></i>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endif %}
+
 {% else %}
 <div class="empty-state">
     <i class="fas fa-archive"></i>
