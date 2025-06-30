@@ -1299,6 +1299,7 @@ def edit_history_api(request):
     action_type = request.GET.get('action_type', '')
     field_name = request.GET.get('field_name', '')
     date_str = request.GET.get('date', '')
+    customer = request.GET.get('customer', '')  # اضافه کردن فیلتر مشتری
     
     # ساخت کوئری
     logs = BulkEditLog.objects.all().order_by('-timestamp')
@@ -1322,6 +1323,16 @@ def edit_history_api(request):
         except ValueError:
             pass
     
+    # اگر فیلتر مشتری داشتیم، رکوردهای مربوط به آن مشتری را فیلتر کنیم
+    if customer and model_name.lower() == 'purchase':
+        try:
+            from django.apps import apps
+            Purchase = apps.get_model('core', 'Purchase')
+            purchase_ids = Purchase.objects.filter(customer_id=customer).values_list('id', flat=True)
+            logs = logs.filter(object_id__in=list(map(str, purchase_ids)))
+        except Exception as e:
+            print(f"خطا در فیلتر کردن مشتری: {e}")
+    
     # پارامترهای pagination
     from django.core.paginator import Paginator
     page = int(request.GET.get('page', 1))
@@ -1331,6 +1342,10 @@ def edit_history_api(request):
     
     # تبدیل به فرمت JSON
     results = []
+    
+    # دیکشنری برای ذخیره و کش کردن نام مشتریان
+    customer_cache = {}
+    
     for log in logs_page:
         # دریافت نام کاربر
         user_name = ''
@@ -1340,6 +1355,22 @@ def edit_history_api(request):
                 user_name = user.get_full_name() or user.username
             except User.DoesNotExist:
                 user_name = f'کاربر {log.user_id}'
+        
+        # دریافت نام مشتری برای خریدها
+        customer_name = '-'
+        if log.model_name.lower() == 'purchase' and log.object_id:
+            if log.object_id in customer_cache:
+                customer_name = customer_cache[log.object_id]
+            else:
+                try:
+                    from django.apps import apps
+                    Purchase = apps.get_model('core', 'Purchase')
+                    purchase = Purchase.objects.select_related('customer').filter(id=log.object_id).first()
+                    if purchase and purchase.customer:
+                        customer_name = purchase.customer.name
+                        customer_cache[log.object_id] = customer_name
+                except Exception as e:
+                    print(f"خطا در دریافت نام مشتری: {e}")
         
         results.append({
             'id': log.id,
@@ -1352,12 +1383,14 @@ def edit_history_api(request):
             'old_value': log.old_value,
             'new_value': log.new_value,
             'action_type': log.action_type,
-            'timestamp': log.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            'timestamp': log.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'customer_name': customer_name  # اضافه کردن نام مشتری به نتایج
         })
     
-    # لیست کاربران و فیلدها برای فیلتر
+    # لیست کاربران، فیلدها و مشتریان برای فیلتر
     users = []
     fields = []
+    customers = []
     
     if page == 1:  # فقط در صفحه اول لیست‌ها را ارسال کن
         users_ids = BulkEditLog.objects.filter(
@@ -1383,6 +1416,20 @@ def edit_history_api(request):
             Q(model_name=model_name) if model_name else Q()
         ).values_list('field_name', flat=True).distinct()
         fields = sorted(list(set(fields)))
+        
+        # اضافه کردن لیست مشتریان برای فیلتر
+        if model_name.lower() == 'purchase':
+            try:
+                from django.apps import apps
+                Customer = apps.get_model('core', 'Customer')
+                customer_objects = Customer.objects.all().order_by('name')
+                for customer_obj in customer_objects:
+                    customers.append({
+                        'id': customer_obj.id,
+                        'name': customer_obj.name
+                    })
+            except Exception as e:
+                print(f"خطا در دریافت لیست مشتریان: {e}")
     
     # ارسال پاسخ
     response_data = {
@@ -1392,7 +1439,8 @@ def edit_history_api(request):
         'current_page': page,
         'results': results,
         'users': users,
-        'fields': fields
+        'fields': fields,
+        'customers': customers  # اضافه کردن لیست مشتریان به پاسخ
     }
     
     return JsonResponse(response_data)

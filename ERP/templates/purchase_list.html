@@ -4,17 +4,18 @@
 {% load table_filter_tags %}
 
 {% block head_styles %}
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=1748703972">
-    <link rel="stylesheet" href="{% static 'css_files/purchase_list_style.css' %}?v=1748703972">
-    <link rel="stylesheet" href="{% static 'css/table_pagination.css' %}?v=1748703972">
-    <link rel="stylesheet" href="{% static 'css/purchase_list_styles.css' %}?v=1748703972">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css_files/purchase_list_style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/purchase_list_styles.css' %}">
     {% table_filter_scripts %}
     {% bulk_edit_scripts %}
     {% edit_history_scripts %}
+    <!-- اطمینان از لود شدن اسکریپت edit_history.js -->
+    <script src="{% static 'table_filter/js/edit_history.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'js/drag_and_drop_columns.js' %}?v=1748703972" defer></script>
     <script src="{% static 'js/purchase_aggregated_stats.js' %}?v=1748703972" defer></script>
 
-    <script src="{% static 'js/purchase_list_scripts.js' %}?v=1748703972"></script>
+    <script src="{% static 'js/purchase_list_scripts.js' %}"></script>
     
     <!-- Purchase Sections Management Script -->
     <script>
@@ -211,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
     {% endif %}
     
     <!-- دکمه تاریخچه تغییرات -->
-    <button class="btn btn-warning text-white shadow-sm" data-bs-toggle="modal" data-bs-target="#historyModal">
+    <button class="btn btn-warning text-white shadow-sm" id="showHistoryBtn" data-bs-toggle="modal" data-bs-target="#historyModal">
         <i class="fas fa-history me-2"></i> تاریخچه تغییرات
     </button>
     
@@ -286,330 +287,6 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 </div>
-
-<style>
-/* استایل برای مدال ستون‌ها */
-#columnsModal .modal-content {
-    border: none;
-    border-radius: 12px;
-    overflow: hidden;
-}
-
-#columnsModal .modal-header {
-    padding: 18px 24px;
-}
-
-#columnsModal .modal-body {
-    padding: 24px 30px;
-}
-
-#columnsModal .modal-footer {
-    padding: 18px 24px;
-    border-top: 1px solid #eee;
-}
-
-.section-container {
-    position: relative;
-}
-
-.section-container::after {
-    content: '';
-    display: block;
-    width: 100%;
-    height: 1px;
-    background-color: #eee;
-    margin-top: 35px;
-}
-
-.section-container:last-child::after {
-    display: none;
-}
-
-.section-header {
-    margin-bottom: 20px;
-}
-
-.section-body {
-    padding: 15px 5px;
-}
-
-/* استایل چک‌باکس‌های ستون */
-.column-checkbox {
-    border: 1px solid #eaeaea;
-    border-radius: 10px;
-    transition: all 0.2s;
-    margin: 0;
-    background-color: #f9f9f9;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    height: 100%;
-    display: flex;
-    align-items: center;
-    padding: 15px 20px;
-}
-
-.column-checkbox:hover {
-    background-color: #f2f7ff;
-    border-color: #cce5ff;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-.column-checkbox .form-check-input {
-    width: 22px;
-    height: 22px;
-    margin-top: 0;
-    cursor: pointer;
-    flex-shrink: 0;
-}
-
-.column-checkbox .form-check-label {
-    cursor: pointer;
-    font-size: 1.05rem;
-    user-select: none;
-    margin-top: 1px;
-    margin-right: 15px;
-    margin-left: 15px !important;
-}
-
-.column-checkbox .form-check-input:checked ~ .form-check-label {
-    font-weight: 500;
-    color: #0d6efd;
-}
-
-.column-checkbox:has(.form-check-input:checked) {
-    border-color: #9ec5fe;
-    background-color: #e6f0ff;
-}
-
-/* سبک‌سازی دکمه‌ها */
-#columnsModal .btn {
-    transition: all 0.2s ease;
-    border-radius: 6px;
-}
-
-#columnsModal .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 3px 5px rgba(0,0,0,0.1);
-}
-
-#columnsModal .btn-sm {
-    font-size: 0.9rem;
-}
-
-/* استایل برای هاور روی سطرها */
-.form-check:hover {
-    background-color: rgba(13, 110, 253, 0.05);
-    border-radius: 5px;
-}
-
-/* تنظیمات پاسخگویی */
-@media (max-width: 768px) {
-    #columnsForm {
-        grid-template-columns: 1fr;
-    }
-    
-    .section-header {
-        flex-direction: column;
-        gap: 10px;
-        align-items: flex-start;
-    }
-    
-    .column-checkbox {
-        padding: 12px 15px;
-    }
-}
-
-/* استایل برای جداول dropdown */
-.purchase-tables-container {
-    margin: 2rem 0;
-}
-
-.purchase-section {
-    margin-bottom: 2rem;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.purchase-toggle {
-    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    padding: 1.2rem 1.5rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border-radius: 12px 12px 0 0;
-    border: none;
-    display: flex;
-    justify-content: between;
-    align-items: center;
-    user-select: none;
-}
-
-.purchase-toggle:hover {
-    background: linear-gradient(135deg, #e9ecef, #dee2e6);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.purchase-toggle.active-section {
-    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
-}
-
-.purchase-toggle.active-section:hover {
-    background: linear-gradient(135deg, #bbdefb, #90caf9);
-}
-
-.purchase-icon {
-    transition: transform 0.3s ease;
-    font-size: 1.2rem;
-    margin-right: auto;
-}
-
-.purchase-toggle h3 {
-    margin: 0;
-    flex-grow: 1;
-}
-
-/* استایل خاص برای خریدهای در انتظار پرداخت */
-.pending-payment-row {
-    background-color: rgba(255, 243, 205, 0.3) !important;
-}
-
-.pending-payment-row:hover {
-    background-color: rgba(255, 243, 205, 0.6) !important;
-}
-
-/* بهبود responsive */
-@media (max-width: 768px) {
-    .purchase-toggle {
-        padding: 1rem;
-    }
-    
-    .purchase-toggle h3 {
-        font-size: 1.1rem;
-    }
-    
-    .purchase-icon {
-        font-size: 1rem;
-    }
-}
-
-/* Pagination Styles */
-.pagination-container {
-    background: #f8f9fa;
-    border-radius: 10px;
-    padding: 20px;
-    margin-top: 20px;
-    border: 1px solid #e9ecef;
-}
-
-.pagination-info {
-    padding: 15px 0;
-}
-
-.pagination-details {
-    font-size: 14px;
-    color: #6c757d;
-}
-
-.pagination-per-page {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.pagination-per-page select {
-    min-width: 80px;
-}
-
-.pagination {
-    margin: 0;
-    flex-wrap: wrap;
-    gap: 5px;
-}
-
-.pagination .page-link {
-    border-radius: 8px;
-    border: 1px solid #dee2e6;
-    color: #495057;
-    padding: 8px 12px;
-    margin: 0 2px;
-    transition: all 0.2s ease;
-}
-
-.pagination .page-link:hover {
-    background-color: #e9ecef;
-    border-color: #adb5bd;
-    color: #495057;
-    transform: translateY(-1px);
-}
-
-.pagination .page-item.active .page-link {
-    background-color: #007bff;
-    border-color: #007bff;
-    color: white;
-    font-weight: bold;
-}
-
-.pagination .page-item.disabled .page-link {
-    color: #6c757d;
-    background-color: #fff;
-    border-color: #dee2e6;
-    cursor: not-allowed;
-}
-
-.pagination .page-link i {
-    font-size: 12px;
-}
-
-/* Responsive pagination */
-@media (max-width: 768px) {
-    .pagination-info {
-        flex-direction: column;
-        gap: 15px;
-        align-items: flex-start !important;
-    }
-    
-    .pagination-per-page {
-        width: 100%;
-        justify-content: space-between;
-    }
-    
-    .pagination {
-        justify-content: center;
-        margin-top: 15px;
-    }
-    
-    .pagination .page-link {
-        padding: 6px 10px;
-        font-size: 14px;
-    }
-}
-
-/* Loading state for pagination */
-.pagination-loading {
-    opacity: 0.6;
-    pointer-events: none;
-}
-
-.pagination-loading::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 20px;
-    height: 20px;
-    border: 2px solid #f3f3f3;
-    border-top: 2px solid #007bff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: translate(-50%, -50%) rotate(0deg); }
-    100% { transform: translate(-50%, -50%) rotate(360deg); }
-}
-</style>
 
 <!-- نوار جستجوی اصلی -->
 <div class="search-panel mb-4 shadow-sm">
@@ -904,7 +581,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <i class="fas fa-eye me-1"></i> مشاهده
                             </a>
                             <button type="button" class="btn btn-outline-success btn-sm item-history-btn" 
-                                    data-id="{{ purchase.id }}" title="تاریخچه تغییرات">
+                                    data-id="{{ purchase.id }}"
+                                    data-customer-id="{{ purchase.customer.id }}"
+                                    data-customer-name="{{ purchase.customer.name }}"
+                                    title="تاریخچه تغییرات {{ purchase.customer.name }}">
                                 <i class="fas fa-history"></i>
                             </button>
                         </div>
@@ -1323,7 +1003,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <i class="fas fa-eye me-1"></i> مشاهده
                             </a>
                             <button type="button" class="btn btn-outline-success btn-sm item-history-btn" 
-                                    data-id="{{ purchase.id }}" title="تاریخچه تغییرات">
+                                    data-id="{{ purchase.id }}"
+                                    data-customer-id="{{ purchase.customer.id }}"
+                                    data-customer-name="{{ purchase.customer.name }}"
+                                    title="تاریخچه تغییرات {{ purchase.customer.name }}">
                                 <i class="fas fa-history"></i>
                             </button>
                         </div>
@@ -1703,7 +1386,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <i class="fas fa-eye me-1"></i> مشاهده
                             </a>
                             <button type="button" class="btn btn-outline-success btn-sm item-history-btn" 
-                                    data-id="{{ purchase.id }}" title="تاریخچه تغییرات">
+                                    data-id="{{ purchase.id }}"
+                                    data-customer-id="{{ purchase.customer.id }}"
+                                    data-customer-name="{{ purchase.customer.name }}"
+                                    title="تاریخچه تغییرات {{ purchase.customer.name }}">
                                 <i class="fas fa-history"></i>
                             </button>
                         </div>
@@ -1871,6 +1557,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </select>
                             </div>
                             <div class="col-md-3">
+                                <label for="historyCustomerFilter" class="form-label">مشتری:</label>
+                                <select class="form-select" id="historyCustomerFilter">
+                                    <option value="">همه مشتریان</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
                                 <label for="historyActionFilter" class="form-label">نوع عملیات:</label>
                                 <select class="form-select" id="historyActionFilter">
                                     <option value="">همه عملیات‌ها</option>
@@ -1908,6 +1600,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <th>شناسه</th>
                                     <th>کاربر</th>
                                     <th>مدل</th>
+                                    <th>نام مشتری</th>
                                     <th>شناسه آبجکت</th>
                                     <th>فیلد</th>
                                     <th>مقدار قبلی</th>
@@ -1961,6 +1654,68 @@ document.addEventListener('DOMContentLoaded', function() {
 {% enable_table_filter %}
 {% enable_bulk_edit %}
 {% enable_edit_history "core" "Purchase" %}
+
+<!-- اسکریپت برای تنظیم آدرس‌های API تاریخچه تغییرات -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // اطمینان از لود شدن تمام اسکریپت‌ها
+    setTimeout(function() {
+        if (typeof editHistoryManager !== 'undefined') {
+            const configEl = document.getElementById('purchase-list-config');
+            if (configEl) {
+                // تنظیم مسیر API ها از تنظیمات صفحه
+                if (configEl.dataset.historyApiUrl) {
+                    editHistoryManager.config.historyApiUrl = configEl.dataset.historyApiUrl;
+                }
+                if (configEl.dataset.restoreValueApiUrl) {
+                    editHistoryManager.config.restoreValueApiUrl = configEl.dataset.restoreValueApiUrl;
+                }
+                
+                // تنظیم فیلدهای مدل و اپلیکیشن
+                editHistoryManager.filters.app_name = "core";
+                editHistoryManager.filters.model_name = "Purchase";
+                console.log('تنظیمات مسیر API تاریخچه بروزرسانی شد:', editHistoryManager.config);
+                
+                // اضافه کردن رویداد کلیک برای دکمه تاریخچه
+                const historyBtn = document.getElementById('showHistoryBtn');
+                if (historyBtn) {
+                    historyBtn.addEventListener('click', function() {
+                        console.log('دکمه تاریخچه کلیک شد');
+                        // تنظیم مجدد همه فیلترها و لود داده‌ها
+                        setTimeout(() => {
+                            // ریست کامل همه فیلترها
+                            editHistoryManager.filters = {
+                                app_name: 'core',
+                                model_name: 'Purchase',
+                                user: '',
+                                action_type: '',  
+                                field_name: '',
+                                date: '',
+                                object_id: '',
+                                customer: ''
+                            };
+                            
+                            // ریست المان‌های فرم
+                            if (editHistoryManager.userFilter) editHistoryManager.userFilter.value = '';
+                            if (editHistoryManager.actionFilter) editHistoryManager.actionFilter.value = '';
+                            if (editHistoryManager.fieldFilter) editHistoryManager.fieldFilter.value = '';
+                            if (editHistoryManager.dateFilter) editHistoryManager.dateFilter.value = '';
+                            if (editHistoryManager.customerFilter) editHistoryManager.customerFilter.value = '';
+                            
+                            editHistoryManager.loadHistoryData();
+                            console.log('فیلترهای تاریخچه ریست شدند');
+                        }, 300);
+                    });
+                }
+            } else {
+                console.error('المان تنظیمات یافت نشد!');
+            }
+        } else {
+            console.error('کلاس مدیریت تاریخچه تغییرات هنوز بارگذاری نشده است!');
+        }
+    }, 1000);
+});
+</script>
 
 <!-- اضافه کردن script کامل برای مدیریت دکمه خروجی اکسل -->
 <script>
