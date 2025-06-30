@@ -98,9 +98,18 @@
         position: relative;
     }
 
+    .transaction-card:nth-child(even) {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+
+    .transaction-card:nth-child(odd) {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    }
+
     .transaction-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        border-color: #4f46e5;
     }
 
     .transaction-card-header {
@@ -172,14 +181,44 @@
         color: #047857;
     }
 
+    .amount-positive small {
+        color: #047857 !important;
+        opacity: 1 !important;
+        font-size: 0.7rem !important;
+        font-weight: 600 !important;
+        display: block !important;
+        margin-top: 0.2rem !important;
+        line-height: 1.2 !important;
+    }
+
     .amount-negative {
         background: linear-gradient(135deg, #fed7d7, #feb2b2);
         color: #c53030;
     }
 
+    .amount-negative small {
+        color: #991b1b !important;
+        opacity: 1 !important;
+        font-size: 0.7rem !important;
+        font-weight: 600 !important;
+        display: block !important;
+        margin-top: 0.2rem !important;
+        line-height: 1.2 !important;
+    }
+
     .amount-neutral {
         background: linear-gradient(135deg, #dbeafe, #bfdbfe);
         color: #1d4ed8;
+    }
+
+    .amount-neutral small {
+        color: #1e3a8a !important;
+        opacity: 1 !important;
+        font-size: 0.7rem !important;
+        font-weight: 600 !important;
+        display: block !important;
+        margin-top: 0.2rem !important;
+        line-height: 1.2 !important;
     }
 
     .transaction-type-badge {
@@ -319,6 +358,21 @@
         font-size: 4rem;
         color: #cbd5e1;
         margin-bottom: 1rem;
+    }
+
+    /* Force light mode */
+    body {
+        background-color: #f8fafc !important;
+        color: #1e293b !important;
+    }
+
+    .filter-section {
+        background: white !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+
+    .transaction-card-header {
+        color: #1e293b !important;
     }
 
     @media (max-width: 768px) {

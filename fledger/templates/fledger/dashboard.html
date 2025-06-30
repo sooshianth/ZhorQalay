@@ -229,8 +229,18 @@
         transition: all 0.2s ease;
     }
 
-    .data-table tbody tr:hover {
+    .data-table tbody tr:nth-child(even) {
         background-color: #f8fafc;
+    }
+
+    .data-table tbody tr:nth-child(odd) {
+        background-color: #ffffff;
+    }
+
+    .data-table tbody tr:hover {
+        background-color: #e0f2fe !important;
+        transform: scale(1.01);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .data-table td {
@@ -256,10 +266,59 @@
 
     .balance-positive {
         color: #10b981;
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        padding: 0.3rem 0.8rem;
+        border-radius: 0.6rem;
+        display: inline-block;
+        font-weight: 800;
+    }
+
+    .balance-positive small {
+        color: #047857 !important;
+        opacity: 1 !important;
+        font-size: 0.7rem !important;
+        font-weight: 600 !important;
+        display: block !important;
+        margin-top: 0.2rem !important;
+        line-height: 1.2 !important;
     }
 
     .balance-negative {
         color: #ef4444;
+        background: linear-gradient(135deg, #fed7d7, #feb2b2);
+        padding: 0.3rem 0.8rem;
+        border-radius: 0.6rem;
+        display: inline-block;
+        font-weight: 800;
+    }
+
+    .balance-negative small {
+        color: #991b1b !important;
+        opacity: 1 !important;
+        font-size: 0.7rem !important;
+        font-weight: 600 !important;
+        display: block !important;
+        margin-top: 0.2rem !important;
+        line-height: 1.2 !important;
+    }
+
+    .amount-display {
+        font-weight: 700;
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        color: #92400e;
+        padding: 0.3rem 0.8rem;
+        border-radius: 0.6rem;
+        display: inline-block;
+    }
+
+    .amount-display small {
+        color: #92400e !important;
+        opacity: 1 !important;
+        font-size: 0.7rem !important;
+        font-weight: 600 !important;
+        display: block !important;
+        margin-top: 0.2rem !important;
+        line-height: 1.2 !important;
     }
 
     .transaction-badge {
@@ -326,6 +385,22 @@
             font-size: 1.4rem;
             min-height: 2rem;
         }
+    }
+
+    /* Force light mode */
+    body {
+        background-color: #f8fafc !important;
+        color: #1e293b !important;
+    }
+
+    .data-card {
+        background: white !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+
+    .data-card-header {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+        color: #1e293b !important;
     }
 </style>
 
@@ -550,6 +625,15 @@
                     همگام‌سازی خریدها
                 </button>
             </form>
+        </div>
+        
+        <!-- نمایش وضعیت سیستم -->
+        <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(255,255,255,0.7); border-radius: 0.5rem;">
+            <p style="margin: 0; color: #92400e; font-size: 0.9rem;">
+                <i class="fas fa-info-circle" style="margin-left: 0.5rem;"></i>
+                <strong>توضیح:</strong> محاسبه موجودی بر اساس خریدهایی انجام می‌شود که آدرس آنها به واردکننده ارسال شده باشد.
+                همگام‌سازی خریدها، ثبت‌های دفتر کل را بروزرسانی می‌کند.
+            </p>
         </div>
     </div>
 </div>

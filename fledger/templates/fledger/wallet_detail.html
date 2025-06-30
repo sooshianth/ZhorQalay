@@ -263,14 +263,29 @@
         font-size: 0.875rem;
     }
 
-    .transaction-table td {
-        padding: 1rem;
+    .transaction-table tbody tr {
         border-bottom: 1px solid #f1f5f9;
-        vertical-align: middle;
+        transition: all 0.2s ease;
     }
 
-    .transaction-table tr:hover {
-        background: #f8fafc;
+    .transaction-table tbody tr:nth-child(even) {
+        background-color: #f8fafc;
+    }
+
+    .transaction-table tbody tr:nth-child(odd) {
+        background-color: #ffffff;
+    }
+
+    .transaction-table tbody tr:hover {
+        background-color: #e0f2fe !important;
+        transform: scale(1.005);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .transaction-table td {
+        padding: 1rem 2rem;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
     }
 
     .transaction-badge {
@@ -398,14 +413,29 @@
         font-size: 0.875rem;
     }
 
+    .ledger-table tbody tr {
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.2s ease;
+    }
+
+    .ledger-table tbody tr:nth-child(even) {
+        background-color: #f0f9ff;
+    }
+
+    .ledger-table tbody tr:nth-child(odd) {
+        background-color: #ffffff;
+    }
+
+    .ledger-table tbody tr:hover {
+        background-color: #dbeafe !important;
+        transform: scale(1.005);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
     .ledger-table td {
         padding: 1rem;
         border-bottom: 1px solid #f1f5f9;
         vertical-align: middle;
-    }
-
-    .ledger-table tr:hover {
-        background: #f8fafc;
     }
 
     .purchase-link {
@@ -435,6 +465,67 @@
         color: #047857;
     }
 
+    .balance-value {
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+
+    .balance-positive {
+        color: #10b981;
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.5rem;
+        display: inline-block;
+    }
+
+    .balance-positive small {
+        color: #047857 !important;
+        opacity: 1 !important;
+        font-size: 0.7rem !important;
+        font-weight: 600 !important;
+        display: block !important;
+        margin-top: 0.2rem !important;
+        line-height: 1.2 !important;
+    }
+
+    .balance-negative {
+        color: #ef4444;
+        background: linear-gradient(135deg, #fed7d7, #feb2b2);
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.5rem;
+        display: inline-block;
+    }
+
+    .balance-negative small {
+        color: #991b1b !important;
+        opacity: 1 !important;
+        font-size: 0.7rem !important;
+        font-weight: 600 !important;
+        display: block !important;
+        margin-top: 0.2rem !important;
+        line-height: 1.2 !important;
+    }
+
+    .weight-display {
+        font-weight: 700;
+        color: #059669;
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.5rem;
+        font-size: 0.95rem;
+        display: inline-block;
+    }
+
+    .weight-display small {
+        color: #047857 !important;
+        opacity: 1 !important;
+        font-size: 0.7rem !important;
+        font-weight: 600 !important;
+        display: block !important;
+        margin-top: 0.2rem !important;
+        line-height: 1.2 !important;
+    }
+
     @media (max-width: 768px) {
         .hero-grid {
             grid-template-columns: 1fr;
@@ -456,6 +547,35 @@
         .action-buttons {
             justify-content: center;
         }
+    }
+
+    /* Force light mode */
+    body {
+        background-color: #f8fafc !important;
+        color: #1e293b !important;
+    }
+
+    .summary-card {
+        background: white !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+
+    .summary-header {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+        color: #1e293b !important;
+    }
+
+    .tabs-container {
+        background: white !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+
+    .tab-nav {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+    }
+
+    .tab-content {
+        background: white !important;
     }
 </style>
 
@@ -709,11 +829,11 @@
                         {% for entry in ledger_entries %}
                         <tr>
                             <td>
-                                <a href="#" class="purchase-link" title="مشاهده جزئیات خرید">
-                                    {{ entry.purchase.invoice_id }}
+                                <a href="{% url 'purchase_CRUD' entry.purchase.id %}" class="purchase-link" title="مشاهده جزئیات خرید {{ entry.purchase.invoice_id }}">
+                                    <strong>{{ entry.purchase.invoice_id }}</strong>
                                 </a>
                                 {% if entry.purchase.purchase_number %}
-                                <br><small style="color: #64748b;">{{ entry.purchase.purchase_number }}</small>
+                                <br><small style="color: #64748b;">بازارگاه: {{ entry.purchase.purchase_number }}</small>
                                 {% endif %}
                             </td>
                             <td>

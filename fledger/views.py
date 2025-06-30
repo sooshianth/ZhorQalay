@@ -11,7 +11,7 @@ from core.decorators.decorators import role_required
 from core.PurchaseModel import Purchase
 from core.CargoProductModel import VaredKonandeh
 from fledger.models import Wallet, Transaction, LedgerEntry
-from fledger.forms import TransactionForm
+from fledger.forms import TransactionForm, TransactionEditForm
 
 
 # if wallet_index is 0, then the weight should be calculated based on the order_weight of the purchase else it should be calculated based on the delivery_weight of the purchase
@@ -102,8 +102,11 @@ def wallet_detail(request, wallet_id):
     # خلاصه خریدها
     purchase_summary = wallet.get_purchase_summary()
     
-    # ثبت‌های دفتر
-    ledger_entries = LedgerEntry.objects.filter(varedkonandeh=wallet.varedkonandeh).order_by('-created_at')[:20]
+    # ثبت‌های دفتر - فقط خریدهایی که آدرس ارسال شده باشد
+    ledger_entries = LedgerEntry.objects.filter(
+        varedkonandeh=wallet.varedkonandeh,
+        purchase__is_address_sent__in=['1', 'True']  # پشتیبانی از هر دو فرمت
+    ).order_by('-created_at')[:20]
     
     context = {
         'wallet': wallet,
@@ -241,11 +244,20 @@ def sync_purchases_to_ledger(request):
     """
     try:
         synced_count = 0
+        cleaned_count = 0
+        
+        # حذف LedgerEntry هایی که برای خریدهای بدون آدرس ارسال شده ایجاد شده‌اند
+        invalid_entries = LedgerEntry.objects.exclude(purchase__is_address_sent__in=['1', 'True'])
+        cleaned_count = invalid_entries.count()
+        invalid_entries.delete()
+        
+        # همگام‌سازی خریدهای معتبر
         purchases = Purchase.objects.filter(
             cargo__isnull=False,
             cargo__vared_konandeh__isnull=False,
             is_canceled=False,
-            is_archived=False
+            is_archived=False,
+            is_address_sent__in=['1', 'True']  # فقط خریدهایی که آدرس ارسال شده
         )
         
         for purchase in purchases:
@@ -253,7 +265,7 @@ def sync_purchases_to_ledger(request):
             if entry:
                 synced_count += 1
                 
-        messages.success(request, f'{synced_count} خرید با دفتر کل همگام‌سازی شد.')
+        messages.success(request, f'{synced_count} خرید با دفتر کل همگام‌سازی شد. {cleaned_count} ثبت نامعتبر حذف شد.')
         
     except Exception as e:
         messages.error(request, f'خطا در همگام‌سازی: {str(e)}')
@@ -305,14 +317,22 @@ def ledger_entries(request):
     نمایش ثبت‌های دفتر کل
     """
     search_query = request.GET.get('search', '')
+    index_filter = request.GET.get('index_filter', 'all')
     
-    entries = LedgerEntry.objects.select_related('varedkonandeh', 'purchase').all()
+    # فقط خریدهایی که آدرس ارسال شده باشد نمایش داده شوند
+    entries = LedgerEntry.objects.select_related('varedkonandeh', 'purchase').filter(
+        purchase__is_address_sent__in=['1', 'True']  # پشتیبانی از هر دو فرمت
+    )
     
     if search_query:
         entries = entries.filter(
             Q(varedkonandeh__name__icontains=search_query) |
-            Q(purchase__invoice_id__icontains=search_query)
+            Q(purchase__invoice_id__icontains=search_query) |
+            Q(purchase__purchase_number__icontains=search_query)
         )
+    
+    if index_filter != 'all':
+        entries = entries.filter(wallet_index_used=index_filter)
     
     # محاسبه آمار کلی
     all_entries = entries  # کل ثبت‌های فیلتر شده
@@ -328,6 +348,8 @@ def ledger_entries(request):
     context = {
         'page_obj': page_obj,
         'search_query': search_query,
+        'index_filter': index_filter,
+        'total_entries': entries.count(),
         'total_amount': total_amount,
         'total_weight': total_weight,
         'unique_vendors': unique_vendors,
@@ -359,22 +381,47 @@ def edit_transaction(request, transaction_id):
         return redirect('fledger:wallet_detail', wallet_id=transaction_obj.wallet.id)
     
     if request.method == 'POST':
-        form = TransactionForm(request.POST, request.FILES, instance=transaction_obj)
+        form = TransactionEditForm(request.POST, request.FILES, instance=transaction_obj)
+        
+        # Debug: نمایش اطلاعات POST
+        print(f"🔍 POST data: {request.POST}")
+        print(f"📁 FILES data: {request.FILES}")
         
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    form.save()
+                    updated_transaction = form.save()
                     
-                    messages.success(request, 'تراکنش با موفقیت ویرایش شد.')
-                    return redirect('fledger:wallet_detail', wallet_id=transaction_obj.wallet.id)
+                print(f"✅ Transaction {transaction_id} updated successfully")
+                messages.success(request, 'تراکنش با موفقیت ویرایش شد.')
+                return redirect('fledger:wallet_detail', wallet_id=transaction_obj.wallet.id)
                     
             except Exception as e:
+                print(f"❌ Error updating transaction {transaction_id}: {str(e)}")
                 messages.error(request, f'خطا در ویرایش تراکنش: {str(e)}')
         else:
-            messages.error(request, 'لطفاً خطاهای فرم را برطرف کنید.')
+            # Debug: نمایش خطاهای فرم
+            print(f"❌ Form validation failed for transaction {transaction_id}")
+            print(f"📝 Form errors: {form.errors}")
+            print(f"📝 Form non-field errors: {form.non_field_errors}")
+            
+            # ایجاد پیغام خطای تفصیلی
+            error_messages = []
+            for field, errors in form.errors.items():
+                for error in errors:
+                    if field == '__all__':
+                        error_messages.append(f"خطای عمومی: {error}")
+                    else:
+                        field_label = form[field].label if hasattr(form[field], 'label') else field
+                        error_messages.append(f"{field_label}: {error}")
+            
+            if error_messages:
+                messages.error(request, "خطاهای فرم: " + " | ".join(error_messages))
+            else:
+                messages.error(request, 'لطفاً خطاهای فرم را برطرف کنید.')
     else:
-        form = TransactionForm(instance=transaction_obj)
+        form = TransactionEditForm(instance=transaction_obj)
+        print(f"🔍 Editing transaction {transaction_id} - current data: amount={transaction_obj.amount}, type={transaction_obj.transaction_type}")
     
     context = {
         'form': form,

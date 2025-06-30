@@ -401,17 +401,25 @@ def merge_purchases_view(request):
                 'error': f'خرید بازارگاه با شناسه {api_purchase_id} یافت نشد'
             }, status=404)
         
-        # بررسی داشتن/نداشتن شماره خرید
-        if agent_purchase.purchase_number:
+        # تشخیص خودکار کدام خرید دستی است و کدام API
+        # خرید دستی: بدون شماره خرید
+        # خرید API: دارای شماره خرید
+        if agent_purchase.purchase_number and not api_purchase.purchase_number:
+            # سوئیچ کردن خریدها - خرید دوم (api_purchase) دستی است
+            agent_purchase, api_purchase = api_purchase, agent_purchase
+            agent_purchase_id, api_purchase_id = api_purchase_id, agent_purchase_id
+        elif not agent_purchase.purchase_number and api_purchase.purchase_number:
+            # ترتیب صحیح است - خرید اول دستی، خرید دوم API
+            pass
+        elif agent_purchase.purchase_number and api_purchase.purchase_number:
             return JsonResponse({
                 'success': False,
-                'error': f'خرید {agent_purchase_id} دارای شماره خرید بازارگاه است و نمی‌تواند به عنوان خرید دستی ادغام شود'
+                'error': 'هر دو خرید دارای شماره خرید بازارگاه هستند. یکی باید دستی باشد'
             }, status=400)
-        
-        if not api_purchase.purchase_number:
+        elif not agent_purchase.purchase_number and not api_purchase.purchase_number:
             return JsonResponse({
                 'success': False,
-                'error': f'خرید {api_purchase_id} فاقد شماره خرید بازارگاه است و نمی‌تواند به عنوان خرید API ادغام شود'
+                'error': 'هر دو خرید فاقد شماره خرید بازارگاه هستند. یکی باید API باشد'
             }, status=400)
         
         # بررسی اینکه آیا خرید API قبلاً ادغام شده است یا نه

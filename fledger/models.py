@@ -30,11 +30,12 @@ class Wallet(models.Model):
         
         total_debt = 0
         
-        # تمام خریدهایی که کارگو آنها متعلق به این واردکننده است
+        # تمام خریدهایی که کارگو آنها متعلق به این واردکننده است و آدرس ارسال شده باشد
         purchases = Purchase.objects.filter(
             cargo__vared_konandeh=self.varedkonandeh,
             is_canceled=False,
-            is_archived=False
+            is_archived=False,
+            is_address_sent__in=['1', 'True']  # پشتیبانی از هر دو فرمت برای backward compatibility
         )
         
         for purchase in purchases:
@@ -70,7 +71,8 @@ class Wallet(models.Model):
         purchases = Purchase.objects.filter(
             cargo__vared_konandeh=self.varedkonandeh,
             is_canceled=False,
-            is_archived=False
+            is_archived=False,
+            is_address_sent__in=['1', 'True']  # پشتیبانی از هر دو فرمت برای backward compatibility
         )
         
         summary = {
@@ -188,6 +190,10 @@ class LedgerEntry(models.Model):
         """
         if not purchase.cargo or not purchase.cargo.vared_konandeh:
             return None
+        
+        # بررسی اینکه آیا آدرس ارسال شده است یا نه
+        if purchase.is_address_sent not in ['1', 'True']:
+            return None
             
         # تعیین وزن بر اساس wallet_index
         if purchase.wallet_index == '0':
@@ -234,7 +240,7 @@ def update_wallet_on_purchase_change(sender, instance, created, **kwargs):
             instance.cargo.vared_konandeh and 
             not instance.is_canceled and 
             not instance.is_archived and
-            instance.is_address_sent == '1'):
+            instance.is_address_sent in ['1', 'True']):
             
             # ایجاد یا بروزرسانی ثبت دفتر
             LedgerEntry.create_or_update_entry(instance)
