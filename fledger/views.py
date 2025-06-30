@@ -212,7 +212,7 @@ def recalculate_all_wallets(request):
     except Exception as e:
         messages.error(request, f'خطا در بروزرسانی: {str(e)}')
     
-    return redirect('fledger:dashboard')
+    return redirect('fledger:fledger_dashboard')
 
 
 @role_required('admin', 'financial_manager')
@@ -240,7 +240,7 @@ def sync_purchases_to_ledger(request):
     except Exception as e:
         messages.error(request, f'خطا در همگام‌سازی: {str(e)}')
     
-    return redirect('fledger:dashboard')
+    return redirect('fledger:fledger_dashboard')
 
 
 @role_required('admin', 'financial_manager')

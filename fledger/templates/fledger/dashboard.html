@@ -3,7 +3,7 @@
 
 {% block title %}داشبورد مدیریت کیف پول واردکنندگان{% endblock %}
 
-{% block extra_css %}
+{% block content %}
 <link rel="stylesheet" href="{% static 'css/style.css' %}">
 <style>
     .stats-card {
@@ -51,9 +51,7 @@
         font-size: 1.1rem;
     }
 </style>
-{% endblock %}
 
-{% block content %}
 <div class="container-fluid" style="padding: 20px;">
     <div class="row">
         <div class="col-12">
@@ -235,9 +233,7 @@
     </div>
     {% endif %}
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
     // هر 30 ثانیه، صفحه را رفرش کن برای بروزرسانی آمار
     setTimeout(function() {

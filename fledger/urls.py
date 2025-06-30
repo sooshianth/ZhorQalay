@@ -5,7 +5,7 @@ app_name = 'fledger'
 
 urlpatterns = [
     # داشبورد اصلی
-    path('', views.fledger_dashboard, name='dashboard'),
+    path('', views.fledger_dashboard, name='fledger_dashboard'),
     
     # مدیریت کیف پول‌ها
     path('wallets/', views.wallet_list, name='wallet_list'),
