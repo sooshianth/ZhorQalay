@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'table_filter.apps.TableFilterConfig',
     'bi.apps.BIConfig',
     'fledger.apps.FledgerConfig',
+    'crm_api.apps.CrmApiConfig',
 ]
 
 MIDDLEWARE = [
@@ -186,12 +187,12 @@ LOGGING = {
     },
     'handlers': {
         'console': {
-            'level': 'DEBUG',
+            'level': 'DEBUG',  # Shows everything in the console
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
         'file': {
-            'level': 'DEBUG',
+            'level': 'WARNING',  # Only WARNING and above go to debug.log
             'class': 'logging.FileHandler',
             'filename': os.path.join(BASE_DIR, 'debug.log'),
             'formatter': 'verbose',
@@ -203,11 +204,10 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
-        'excel_manager': {
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
+    },
+    'root': {
+        'handlers': ['console', 'file'],  # Both handlers here
+        'level': 'DEBUG',  # Set to lowest level you want to capture
     },
 }
 
