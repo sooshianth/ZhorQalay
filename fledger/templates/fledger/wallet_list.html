@@ -3,7 +3,7 @@
 
 {% block title %}لیست کیف پول‌ها{% endblock %}
 
-{% block extra_css %}
+{% block content %}
 <link rel="stylesheet" href="{% static 'css/style.css' %}">
 <style>
     .search-container {
@@ -43,15 +43,13 @@
         font-size: 0.8rem;
     }
 </style>
-{% endblock %}
 
-{% block content %}
 <div class="container-fluid" style="padding: 20px;">
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1>لیست کیف پول‌ها</h1>
-                <a href="{% url 'fledger:dashboard' %}" class="btn btn-secondary">
+                <a href="{% url 'fledger:fledger_dashboard' %}" class="btn btn-secondary">
                     <i class="fas fa-arrow-right"></i> بازگشت به داشبورد
                 </a>
             </div>
@@ -220,9 +218,7 @@
     </div>
     {% endif %}
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
     // Auto-submit form on filter change
     document.getElementById('balance_filter').addEventListener('change', function() {

@@ -496,6 +496,108 @@ document.addEventListener('DOMContentLoaded', function() {
         font-size: 1rem;
     }
 }
+
+/* استایل‌های فیلدهای مالی با blur */
+.financial-field {
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.financial-field:hover {
+    background-color: #f0f8ff !important;
+    border-color: #007bff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+
+.financial-value.blurred {
+    filter: blur(8px);
+    user-select: none;
+    transition: filter 0.3s ease;
+}
+
+.financial-value.revealed {
+    filter: blur(0px);
+    user-select: text;
+}
+
+.financial-field.blurred::after {
+    content: "🔒 کلیک کنید";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 123, 255, 0.9);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    pointer-events: none;
+    z-index: 10;
+    white-space: nowrap;
+}
+
+.financial-field.revealed::after {
+    content: "🔓 کلیک برای مخفی کردن";
+    background-color: rgba(40, 167, 69, 0.9);
+}
+
+/* انیمیشن برای نمایش/مخفی کردن */
+.financial-field {
+    overflow: hidden;
+}
+
+.lock-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: #007bff;
+    font-size: 1.2rem;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+/* اضافه کردن !important برای اطمینان از اعمال blur */
+.financial-value.blurred {
+    filter: blur(8px) !important;
+    user-select: none !important;
+    transition: filter 0.3s ease !important;
+    pointer-events: none !important;
+}
+
+.financial-value.revealed {
+    filter: blur(0px) !important;
+    user-select: text !important;
+    pointer-events: auto !important;
+}
+
+/* تضمین نمایش آیکون کلیک */
+.financial-field.blurred::after {
+    display: block !important;
+    visibility: visible !important;
+}
+
+.financial-field.revealed::after {
+    display: block !important;
+    visibility: visible !important;
+}
+
+/* CSS مخصوص برای کادر سود */
+#profit.financial-value.blurred {
+    filter: blur(8px) !important;
+    user-select: none !important;
+    transition: filter 0.3s ease !important;
+    pointer-events: none !important;
+}
+
+#profit.financial-value.revealed {
+    filter: blur(0px) !important;
+    user-select: text !important;
+    pointer-events: auto !important;
+    transition: filter 0.3s ease !important;
+}
 </style>
 
 <!-- نوار جستجوی اصلی -->
@@ -703,41 +805,41 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
             <div class="col-md-3 mb-3">
-                <div class="border rounded p-3 h-100 bg-light">
+                <div class="border rounded p-3 h-100 bg-light financial-field" title="برای مشاهده کلیک کنید">
                     <h6 class="text-muted mb-2">میانگین قیمت خرید</h6>
-                    <h4 class="fw-bold text-danger" id="avgCompanyPrice">0 <small>ریال</small></h4>
+                    <h4 class="fw-bold text-danger financial-value blurred" id="avgCompanyPrice">0 <small>ریال</small></h4>
                 </div>
             </div>
             <div class="col-md-3 mb-3">
-                <div class="border rounded p-3 h-100 bg-light">
+                <div class="border rounded p-3 h-100 bg-light financial-field" title="برای مشاهده کلیک کنید">
                     <h6 class="text-muted mb-2">میانگین قیمت فروش</h6>
-                    <h4 class="fw-bold text-success" id="avgCustomerPrice">0 <small>ریال</small></h4>
+                    <h4 class="fw-bold text-success financial-value blurred" id="avgCustomerPrice">0 <small>ریال</small></h4>
                 </div>
             </div>
         </div>
         <div class="row">
             <div class="col-md-3 mb-3">
-                <div class="border rounded p-3 h-100 bg-light">
+                <div class="border rounded p-3 h-100 bg-light financial-field" title="برای مشاهده کلیک کنید">
                     <h6 class="text-muted mb-2">مجموع مبلغ پرداختی</h6>
-                    <h4 class="fw-bold text-primary" id="totalAmountPaid">0 <small>ریال</small></h4>
+                    <h4 class="fw-bold text-primary financial-value blurred" id="totalAmountPaid">0 <small>ریال</small></h4>
                 </div>
             </div>
             <div class="col-md-3 mb-3">
-                <div class="border rounded p-3 h-100 bg-light">
+                <div class="border rounded p-3 h-100 bg-light financial-field" title="برای مشاهده کلیک کنید">
                     <h6 class="text-muted mb-2">فاکتور خرید مبنا</h6>
-                    <h4 class="fw-bold text-danger" id="purchaseBaseInvoice">0 <small>ریال</small></h4>
+                    <h4 class="fw-bold text-danger financial-value blurred" id="purchaseBaseInvoice">0 <small>ریال</small></h4>
                 </div>
             </div>
             <div class="col-md-3 mb-3">
-                <div class="border rounded p-3 h-100 bg-light">
+                <div class="border rounded p-3 h-100 bg-light financial-field" title="برای مشاهده کلیک کنید">
                     <h6 class="text-muted mb-2">فاکتور فروش مبنا</h6>
-                    <h4 class="fw-bold text-success" id="salesBaseInvoice">0 <small>ریال</small></h4>
+                    <h4 class="fw-bold text-success financial-value blurred" id="salesBaseInvoice">0 <small>ریال</small></h4>
                 </div>
             </div>
             <div class="col-md-3 mb-3">
-                <div class="border rounded p-3 h-100 bg-light">
+                <div class="border rounded p-3 h-100 bg-light financial-field" title="برای مشاهده کلیک کنید">
                     <h6 class="text-muted mb-2">سود</h6>
-                    <h4 class="fw-bold text-info" id="profit">0 <small>ریال</small></h4>
+                    <h4 class="fw-bold text-info financial-value blurred" id="profit">0 <small>ریال</small></h4>
                 </div>
             </div>
         </div>
@@ -1416,6 +1518,255 @@ document.addEventListener('DOMContentLoaded', function() {
 {% enable_table_filter %}
 {% enable_bulk_edit %}
 {% enable_edit_history "core" "Purchase" %}
+
+<!-- اضافه کردن script برای مدیریت blur فیلدهای مالی -->
+<script>
+// مدیریت blur فیلدهای مالی
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔒 راه‌اندازی سیستم blur فیلدهای مالی...');
+    
+    // تابع برای toggle کردن blur
+    function toggleFinancialFieldBlur(fieldElement) {
+        const valueElement = fieldElement.querySelector('.financial-value');
+        
+        console.log('🖱️ کلیک روی فیلد مالی:', fieldElement.querySelector('h6').textContent.trim());
+        console.log('📊 کلاس‌های فعلی valueElement:', valueElement.className);
+        console.log('📊 کلاس‌های فعلی fieldElement:', fieldElement.className);
+        
+        if (valueElement.classList.contains('blurred')) {
+            // نمایش دادن
+            valueElement.classList.remove('blurred');
+            valueElement.classList.add('revealed');
+            fieldElement.classList.remove('blurred');
+            fieldElement.classList.add('revealed');
+            console.log('🔓 فیلد مالی نمایش داده شد - کلاس‌های جدید:', valueElement.className);
+        } else {
+            // مخفی کردن
+            valueElement.classList.remove('revealed');
+            valueElement.classList.add('blurred');
+            fieldElement.classList.remove('revealed');
+            fieldElement.classList.add('blurred');
+            console.log('🔒 فیلد مالی مخفی شد - کلاس‌های جدید:', valueElement.className);
+        }
+    }
+    
+    // اضافه کردن event listener به همه فیلدهای مالی (به جز سود)
+    function initializeFinancialFields() {
+        const financialFields = document.querySelectorAll('.financial-field');
+        
+        console.log(`🔍 پیدا شد ${financialFields.length} فیلد مالی`);
+        
+        financialFields.forEach(function(field, index) {
+            const valueElement = field.querySelector('.financial-value');
+            const titleElement = field.querySelector('h6');
+            
+            if (!valueElement || !titleElement) {
+                console.log(`❌ فیلد ${index + 1} ساختار نامعتبر دارد`);
+                return;
+            }
+            
+            // اگر این کادر سود است، آن را skip کنیم
+            if (valueElement.id === 'profit') {
+                console.log(`💰 کادر سود skip شد - مدیریت جداگانه دارد`);
+                return;
+            }
+            
+            // حذف event listener های قبلی
+            field.removeEventListener('click', toggleFinancialFieldBlur);
+            
+            // ابتدا همه فیلدها را blur می‌کنیم
+            valueElement.classList.remove('revealed');
+            valueElement.classList.add('blurred');
+            field.classList.remove('revealed'); 
+            field.classList.add('blurred');
+            
+            // اضافه کردن event listener برای کلیک
+            const clickHandler = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🖱️ کلیک شناسایی شد روی:', titleElement.textContent.trim());
+                toggleFinancialFieldBlur(field);
+            };
+            
+            field.addEventListener('click', clickHandler);
+            
+            // آیکون نشانگر برای مشاهده بهتر
+            field.style.position = 'relative';
+            
+            console.log(`✅ فیلد مالی ${index + 1} راه‌اندازی شد:`, titleElement.textContent.trim());
+        });
+        
+        console.log(`✅ ${financialFields.length} فیلد مالی راه‌اندازی شدند (به جز سود)`);
+    }
+    
+    // راه‌اندازی اولیه با تأخیر کوتاه
+    setTimeout(function() {
+        initializeFinancialFields();
+    }, 1000);
+    
+    // راه‌اندازی مجدد پس از بارگذاری آمار جدید
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList' || mutation.type === 'attributes') {
+                const aggregatedStats = document.getElementById('aggregatedStats');
+                if (aggregatedStats && aggregatedStats.style.display !== 'none') {
+                    console.log('🔄 باکس آمار نمایش داده شد - راه‌اندازی مجدد blur');
+                    setTimeout(initializeFinancialFields, 500);
+                }
+            }
+        });
+    });
+    
+    // نظارت بر تغییرات در باکس آمار
+    const aggregatedStats = document.getElementById('aggregatedStats');
+    if (aggregatedStats) {
+        observer.observe(aggregatedStats, { 
+            childList: true, 
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['style']
+        });
+        console.log('👁️ نظارت بر باکس آمار فعال شد');
+    }
+    
+    // اضافه کردن نظارت بر تغییرات کل صفحه برای catch کردن آپدیت‌های دیرهنگام
+    const bodyObserver = new MutationObserver(function(mutations) {
+        const hasFinancialFields = document.querySelectorAll('.financial-field').length > 0;
+        if (hasFinancialFields) {
+            console.log('🔄 فیلدهای مالی در DOM شناسایی شدند');
+            setTimeout(initializeFinancialFields, 200);
+        }
+    });
+    
+    bodyObserver.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+    
+    
+    
+    // اضافه کردن مدیریت مخصوص کادر سود
+    function setupProfitField() {
+        console.log('💰 راه‌اندازی مخصوص کادر سود...');
+        
+        const profitElement = document.getElementById('profit');
+        const profitField = profitElement ? profitElement.closest('.financial-field') : null;
+        
+        if (profitElement && profitField) {
+            console.log('✅ کادر سود پیدا شد');
+            
+            // حذف تمام event listeners قبلی
+            const clonedField = profitField.cloneNode(true);
+            profitField.parentNode.replaceChild(clonedField, profitField);
+            
+            // references جدید بعد از clone
+            const newProfitElement = document.getElementById('profit');
+            const newProfitField = newProfitElement.closest('.financial-field');
+            
+            // اطمینان از وجود کلاس‌های لازم
+            newProfitElement.classList.add('financial-value', 'blurred');
+            newProfitField.classList.add('financial-field', 'blurred');
+            
+            // اعمال style مستقیم برای اطمینان
+            newProfitElement.style.filter = 'blur(8px)';
+            newProfitElement.style.transition = 'filter 0.3s ease';
+            newProfitElement.style.userSelect = 'none';
+            newProfitElement.style.pointerEvents = 'none';
+            
+            console.log('🔒 blur مستقیم روی کادر سود اعمال شد');
+            
+            // اضافه کردن listener جدید
+            const profitClickHandler = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('🖱️ کلیک روی کادر سود شناسایی شد');
+                console.log('📊 وضعیت فعلی:', {
+                    classes: newProfitElement.className,
+                    style: newProfitElement.style.cssText,
+                    isBlurred: newProfitElement.classList.contains('blurred')
+                });
+                
+                if (newProfitElement.classList.contains('blurred')) {
+                    // نمایش دادن
+                    newProfitElement.classList.remove('blurred');
+                    newProfitElement.classList.add('revealed');
+                    newProfitField.classList.remove('blurred');
+                    newProfitField.classList.add('revealed');
+                    
+                    // حذف blur مستقیم
+                    newProfitElement.style.filter = 'blur(0px)';
+                    newProfitElement.style.userSelect = 'text';
+                    newProfitElement.style.pointerEvents = 'auto';
+                    
+                    console.log('🔓 کادر سود نمایش داده شد');
+                } else {
+                    // مخفی کردن
+                    newProfitElement.classList.remove('revealed');
+                    newProfitElement.classList.add('blurred');
+                    newProfitField.classList.remove('revealed');
+                    newProfitField.classList.add('blurred');
+                    
+                    // اعمال blur مستقیم
+                    newProfitElement.style.filter = 'blur(8px)';
+                    newProfitElement.style.userSelect = 'none';
+                    newProfitElement.style.pointerEvents = 'none';
+                    
+                    console.log('🔒 کادر سود مخفی شد');
+                }
+                
+                // وضعیت جدید
+                console.log('📊 وضعیت جدید:', {
+                    classes: newProfitElement.className,
+                    style: newProfitElement.style.cssText
+                });
+            };
+            
+            newProfitField.addEventListener('click', profitClickHandler);
+            
+            // تنظیم cursor
+            newProfitField.style.cursor = 'pointer';
+            newProfitField.style.position = 'relative';
+            
+            console.log('💰 مدیریت مخصوص کادر سود راه‌اندازی شد');
+            
+            return true;
+        } else {
+            console.log('❌ کادر سود پیدا نشد');
+            return false;
+        }
+    }
+    
+    // تلاش مجدد تا کادر سود پیدا شود
+    function attemptProfitSetup() {
+        if (!setupProfitField()) {
+            console.log('⏳ تلاش مجدد برای راه‌اندازی کادر سود...');
+            setTimeout(attemptProfitSetup, 500);
+        }
+    }
+    
+    setTimeout(attemptProfitSetup, 1000);
+    
+    // محافظت از کادر سود در مقابل تداخلات
+    function protectProfitBlur() {
+        const profitElement = document.getElementById('profit');
+        if (profitElement && profitElement.classList.contains('blurred')) {
+            // اگر کادر سود باید blur باشد اما نیست، دوباره blur کنیم
+            if (profitElement.style.filter !== 'blur(8px)') {
+                console.log('🛡️ محافظت از blur کادر سود - اعمال مجدد');
+                profitElement.style.filter = 'blur(8px)';
+                profitElement.style.userSelect = 'none';
+                profitElement.style.pointerEvents = 'none';
+            }
+        }
+    }
+    
+    // چک کردن هر 2 ثانیه
+    setInterval(protectProfitBlur, 2000);
+    
+    console.log('🔒 سیستم blur فیلدهای مالی آماده است');
+});
+</script>
 
 <!-- اضافه کردن script کامل برای مدیریت دکمه خروجی اکسل -->
 <script>
