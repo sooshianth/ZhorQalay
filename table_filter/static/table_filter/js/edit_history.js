@@ -4,8 +4,8 @@
 class EditHistoryManager {
     constructor(config = {}) {
         this.config = {
-            historyApiUrl: '/table-filter/api/edit-history/',
-            restoreValueApiUrl: '/table-filter/api/restore-value/',
+            historyApiUrl: '/table-filter/edit-history-api/',
+            restoreValueApiUrl: '/table-filter/restore-value-api/',
             modalSelector: '#historyModal',
             tableBodySelector: '#historyTableBody',
             paginationSelector: '#historyPagination',
@@ -14,6 +14,7 @@ class EditHistoryManager {
             actionFilterSelector: '#historyActionFilter',
             fieldFilterSelector: '#historyFieldFilter',
             dateFilterSelector: '#historyDateFilter',
+            customerFilterSelector: '#historyCustomerFilter',
             applyFiltersSelector: '#applyHistoryFilters',
             resetFiltersSelector: '#resetHistoryFilters',
             currentPage: 1,
@@ -21,6 +22,7 @@ class EditHistoryManager {
             ...config
         };
         
+        console.log('EditHistoryManager تنظیمات:', this.config);
         this.historyData = null;
         this.filters = {
             app_name: '',
@@ -29,7 +31,8 @@ class EditHistoryManager {
             action_type: '',
             field_name: '',
             date: '',
-            object_id: ''
+            object_id: '',
+            customer: ''
         };
     }
 
@@ -43,6 +46,7 @@ class EditHistoryManager {
         this.actionFilter = document.querySelector(this.config.actionFilterSelector);
         this.fieldFilter = document.querySelector(this.config.fieldFilterSelector);
         this.dateFilter = document.querySelector(this.config.dateFilterSelector);
+        this.customerFilter = document.querySelector(this.config.customerFilterSelector);
         this.applyFiltersBtn = document.querySelector(this.config.applyFiltersSelector);
         this.resetFiltersBtn = document.querySelector(this.config.resetFiltersSelector);
         
@@ -84,6 +88,10 @@ class EditHistoryManager {
                 if (!this.filters.object_id) {
                     this.resetFilters();
                 }
+                
+                // ریست فیلترهای اضافی برای حل مشکل ماندگاری فیلتر
+                this.filters.object_id = '';
+                this.filters.customer = '';
             });
         }
     }
@@ -110,6 +118,7 @@ class EditHistoryManager {
         this.filters.action_type = this.actionFilter.value;
         this.filters.field_name = this.fieldFilter.value;
         this.filters.date = this.dateFilter.value;
+        this.filters.customer = this.customerFilter ? this.customerFilter.value : '';
         
         this.config.currentPage = 1; // بازگشت به صفحه اول
         this.loadHistoryData();
@@ -121,9 +130,10 @@ class EditHistoryManager {
         if (this.actionFilter) this.actionFilter.value = '';
         if (this.fieldFilter) this.fieldFilter.value = '';
         if (this.dateFilter) this.dateFilter.value = '';
+        if (this.customerFilter) this.customerFilter.value = '';
         
         // ریست فیلترهای داخلی
-        const preserveObjectId = this.filters.object_id; // حفظ فیلتر آبجکت آیدی
+        const preserveObjectId = this.filters.object_id; // حفظ فیلتر آبجکت آیدی در برخی موارد
         
         this.filters = {
             app_name: this.filters.app_name,
@@ -132,7 +142,8 @@ class EditHistoryManager {
             action_type: '',
             field_name: '',
             date: '',
-            object_id: preserveObjectId // بازیابی فیلتر آبجکت آیدی
+            object_id: preserveObjectId, // بازیابی فیلتر آبجکت آیدی
+            customer: ''
         };
         
         // بارگیری مجدد با فیلترهای جدید
@@ -149,7 +160,7 @@ class EditHistoryManager {
         if (this.tableBody) {
             this.tableBody.innerHTML = `
                 <tr>
-                    <td colspan="10" class="text-center py-4">
+                    <td colspan="11" class="text-center py-4">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">در حال بارگذاری...</span>
                         </div>
@@ -173,16 +184,22 @@ class EditHistoryManager {
         if (this.filters.field_name) params.append('field_name', this.filters.field_name);
         if (this.filters.date) params.append('date', this.filters.date);
         if (this.filters.object_id) params.append('object_id', this.filters.object_id);
+        if (this.filters.customer) params.append('customer', this.filters.customer);
+        
+        const apiUrl = `${this.config.historyApiUrl}?${params.toString()}`;
+        console.log('درخواست API تاریخچه به آدرس:', apiUrl);
         
         // ارسال درخواست به API
-        fetch(`${this.config.historyApiUrl}?${params.toString()}`)
+        fetch(apiUrl)
             .then(response => {
+                console.log('وضعیت پاسخ API:', response.status, response.statusText);
                 if (!response.ok) {
-                    throw new Error('خطا در دریافت اطلاعات تاریخچه');
+                    throw new Error(`خطا در دریافت اطلاعات تاریخچه: ${response.status} ${response.statusText}`);
                 }
                 return response.json();
             })
             .then(data => {
+                console.log('داده‌های دریافتی از API:', data);
                 this.historyData = data;
                 this.renderHistoryData();
                 
@@ -220,15 +237,31 @@ class EditHistoryManager {
                         this.fieldFilter.appendChild(option);
                     });
                 }
+                
+                // پر کردن لیست مشتریان (اگر بار اول است)
+                if (this.customerFilter && this.filters.customer === '' && data.customers && Array.isArray(data.customers)) {
+                    // حذف همه گزینه‌ها به جز اولی
+                    while (this.customerFilter.options.length > 1) {
+                        this.customerFilter.remove(1);
+                    }
+                    // اضافه کردن گزینه‌های جدید
+                    data.customers.forEach(customer => {
+                        const option = document.createElement('option');
+                        option.value = customer.id;
+                        option.textContent = customer.name;
+                        this.customerFilter.appendChild(option);
+                    });
+                }
             })
             .catch(error => {
-                console.error('Error loading history data:', error);
+                console.error('خطا در بارگیری داده‌های تاریخچه:', error);
                 if (this.tableBody) {
                     this.tableBody.innerHTML = `
                         <tr>
-                            <td colspan="10" class="text-center py-4 text-danger">
+                            <td colspan="11" class="text-center py-4 text-danger">
                                 <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
                                 <p>خطا در دریافت اطلاعات: ${error.message}</p>
+                                <p>لطفا کنسول مرورگر را برای جزئیات بیشتر بررسی کنید</p>
                             </td>
                         </tr>
                     `;
@@ -246,7 +279,7 @@ class EditHistoryManager {
         if (!this.historyData.results.length) {
             tableContent = `
                 <tr>
-                    <td colspan="10" class="text-center py-4">
+                    <td colspan="11" class="text-center py-4">
                         <div class="text-muted">
                             <i class="fas fa-info-circle fs-4 mb-3 d-block"></i>
                             <p>هیچ رکوردی یافت نشد.</p>
@@ -269,6 +302,7 @@ class EditHistoryManager {
                     <td>${item.id}</td>
                     <td>${item.user_name || '-'}</td>
                     <td>${item.model_name || '-'}</td>
+                    <td>${item.customer_name || '-'}</td>
                     <td>${item.object_id || '-'}</td>
                     <td>${item.field_name || '-'}</td>
                     <td class="text-wrap" style="max-width: 200px;">
@@ -504,6 +538,13 @@ class EditHistoryManager {
     }
 
     getCsrfToken() {
+        // اول از المان meta با نام csrf-token استفاده می‌کنیم که اولویت بالاتری دارد
+        const metaTag = document.querySelector('meta[name="csrf-token"]');
+        if (metaTag) {
+            return metaTag.getAttribute('content');
+        }
+        
+        // اگر المان meta یافت نشد از کوکی استفاده می‌کنیم
         const cookies = document.cookie.split(';');
         for (let cookie of cookies) {
             const [name, value] = cookie.trim().split('=');
@@ -511,13 +552,15 @@ class EditHistoryManager {
                 return value;
             }
         }
+        console.warn('توکن CSRF یافت نشد! ممکن است درخواست‌های POST با خطا مواجه شوند.');
         return '';
     }
 
-    openHistoryModal(appName, modelName, objectId) {
+    openHistoryModal(appName, modelName, objectId, customerId = null) {
         this.filters.app_name = appName || '';
         this.filters.model_name = modelName || '';
         this.filters.object_id = objectId || '';
+        this.filters.customer = customerId || '';
         
         // باز کردن مدال
         if (this.modal) {

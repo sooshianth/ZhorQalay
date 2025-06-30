@@ -53,22 +53,41 @@ function viewEditHistory() {
 }
 
 // تابع نمایش تاریخچه تغییرات یک خرید خاص
-function showPurchaseHistory(purchaseId) {
+function showPurchaseHistory(purchaseId, customerId = null, customerName = '') {
     // باز کردن مدال تاریخچه
     const historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
     historyModal.show();
     
     // تنظیم فیلترها
     if (typeof editHistoryManager !== 'undefined') {
-        // تنظیم فیلترها برای نمایش تاریخچه خرید خاص
-        editHistoryManager.filters.object_id = purchaseId;
+        // ریست کامل فیلترها قبل از تنظیم فیلتر جدید
+        editHistoryManager.filters = {
+            app_name: 'core',
+            model_name: 'Purchase',
+            user: '',
+            action_type: '',  
+            field_name: '',
+            date: '',
+            object_id: purchaseId,
+            customer: customerId || ''
+        };
         
         // بارگیری داده‌ها
         editHistoryManager.loadHistoryData();
         
         // تغییر عنوان مدال
-        document.querySelector('#historyModal .modal-title').innerHTML = 
-            '<i class="fas fa-history me-2"></i>تاریخچه تغییرات خرید شماره ' + purchaseId;
+        let title = '<i class="fas fa-history me-2"></i>تاریخچه تغییرات خرید شماره ' + purchaseId;
+        if (customerName) {
+            title += ' - مشتری: ' + customerName;
+        }
+        
+        document.querySelector('#historyModal .modal-title').innerHTML = title;
+        
+        // مخفی کردن فیلترها در حالت نمایش تاریخچه یک خرید خاص
+        const filterSection = document.querySelector('#historyModal .filter-section');
+        if (filterSection) {
+            filterSection.style.display = 'none';
+        }
     }
 }
 
@@ -623,7 +642,11 @@ function initializeEditHistory() {
     document.querySelectorAll('.item-history-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const purchaseId = this.getAttribute('data-id');
-            showPurchaseHistory(purchaseId);
+            const customerId = this.getAttribute('data-customer-id');
+            const customerName = this.getAttribute('data-customer-name');
+            
+            console.log(`نمایش تاریخچه خرید ${purchaseId} - مشتری: ${customerName} (${customerId})`);
+            showPurchaseHistory(purchaseId, customerId, customerName);
         });
     });
 }

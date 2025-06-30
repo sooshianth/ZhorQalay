@@ -19,8 +19,6 @@ class DebugMiddleware:
             DebugMiddleware.handler_added = True
 
     def __call__(self, request):
-        # ثبت اطلاعات درخواست
-        logger.debug(f"Processing request: {request.path}")
         if request.path == '/hr/attendance/pending/':
             logger.debug("Processing pending attendance request")
             
