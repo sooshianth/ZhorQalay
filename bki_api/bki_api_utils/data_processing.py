@@ -14,7 +14,9 @@ from .helpers import clean_phone_number, determine_product_type, update_incorrec
 from .location import get_province_name
 import jdatetime
 from django.utils import timezone
+import logging
 
+logger = logging.getLogger("bki_api_data_processing")
 
 def get_state_priority(state):
     """
@@ -128,9 +130,9 @@ def log_state_change_attempt(purchase_number, current_state, suggested_state, al
     suggested_display = get_state_display_name(suggested_state)
     
     if allowed:
-        print(f"✅ خرید {purchase_number}: وضعیت از '{current_display}' به '{suggested_display}' تغییر کرد")
+        logger.info(f"✅ خرید {purchase_number}: وضعیت از '{current_display}' به '{suggested_display}' تغییر کرد")
     else:
-        print(f"⚠️ خرید {purchase_number}: تغییر وضعیت از '{current_display}' به '{suggested_display}' مجاز نیست {reason}")
+        logger.warning(f"⚠️ خرید {purchase_number}: تغییر وضعیت از '{current_display}' به '{suggested_display}' مجاز نیست {reason}")
 
 
 def get_state_display_name(state):
@@ -182,7 +184,7 @@ def create_or_get_customer(buyer_name, buyer_phone, buyer_address, province_code
     # Clean the phone number
     clean_phone, error = clean_phone_number(buyer_phone)
     if error:
-        print(f"توجه: {error}")
+        logger.warning(f"توجه: {error}")
     
     # Search for the customer by phone number
     customer = None
@@ -260,10 +262,10 @@ def assign_default_sales_agent(customer):
             )
             # Add the sales agent to the customer
             customer.sales_agent.add(admin_agent)
-            print(f"کارشناس فروش مدیریت به مشتری {customer.name} اضافه شد")
+            logger.info(f"کارشناس فروش مدیریت به مشتری {customer.name} اضافه شد")
             return True
     except Exception as e:
-        print(f"خطا در اختصاص کارشناس فروش به مشتری: {str(e)}")
+        logger.error(f"خطا در اختصاص کارشناس فروش به مشتری: {str(e)}")
         return False
 
 
@@ -304,7 +306,7 @@ def create_or_get_product(product_name, goodtag, fee):
                     country='australia'  # Default to Australia
                 )
                 created = True
-                print(f"محصول جدید با کوتاژ {goodtag} و نوع {product_type} ایجاد شد")
+                logger.info(f"محصول جدید با کوتاژ {goodtag} و نوع {product_type} ایجاد شد")
         except Exception as e:
             return None, False, f"خطا در ایجاد محصول با کوتاژ {goodtag}: {str(e)}"
     
@@ -400,7 +402,7 @@ def update_purchase(purchase, purchase_data):
                         tzinfo=now.tzinfo
                     )
             except Exception as e:
-                print(f"خطا در تبدیل تاریخ: {str(e)}")
+                logger.error(f"خطا در تبدیل تاریخ: {str(e)}")
         
         # اگر کارشناس فروش یکتا تنظیم نشده، آن را به مدیریت تنظیم کن
         if not purchase.unique_sales_agent:
@@ -419,7 +421,7 @@ def update_purchase(purchase, purchase_data):
                     purchase.unique_sales_agent = admin_sales_agent
                     purchase.unique_sales_agent_code = admin_sales_agent.factor_code
             except Exception as e:
-                print(f"خطا در تنظیم کارشناس فروش مدیریت برای خرید موجود: {str(e)}")
+                logger.error(f"خطا در تنظیم کارشناس فروش مدیریت برای خرید موجود: {str(e)}")
 
         # Save changes
         purchase.save()
@@ -514,7 +516,7 @@ def create_purchase(purchase_data):
                 purchase_state = 'INITIATED'  # حالت اولیه
             else:
                 purchase_state = 'PAYMENT_VERIFIED'  # حالت پیش‌فرض امن
-            print(f"⚠️ API وضعیت اپراتور-محور {api_determined_state} پیشنهاد داد، به جای آن {purchase_state} تنظیم شد")
+            logger.warning(f"⚠️ API وضعیت اپراتور-محور {api_determined_state} پیشنهاد داد، به جای آن {purchase_state} تنظیم شد")
         else:
             purchase_state = api_determined_state
         
@@ -556,7 +558,7 @@ def create_purchase(purchase_data):
                 )
                 admin_sales_agent_name = admin_sales_agent.name
         except Exception as e:
-            print(f"خطا در پیدا کردن کارشناس فروش مدیریت: {str(e)}")
+            logger.error(f"خطا در پیدا کردن کارشناس فروش مدیریت: {str(e)}")
 
         # تنظیم پارامترهای پایه برای ایجاد خرید - بدون تنظیم وزن‌ها
         purchase_params = {
@@ -604,7 +606,7 @@ def create_purchase(purchase_data):
                         tzinfo=now.tzinfo
                     )
             except Exception as e:
-                print(f"خطا در تبدیل تاریخ: {str(e)}")
+                logger.error(f"خطا در تبدیل تاریخ: {str(e)}")
         
         # Create a new purchase
         purchase = Purchase.objects.create(**purchase_params)
@@ -664,7 +666,7 @@ def determine_purchase_state(purchase_data):
             # in process_grouped_purchase_data with the correct logic
             if totalweight > 0 and totalweight == wbarnameshode:
                 purchase_state = 'PURCHASE_CLOSED'
-                print(f"Debug - Purchase state determined as CLOSED: totalweight={totalweight}, wbarnameshode={wbarnameshode}")
+                logger.debug(f"Debug - Purchase state determined as CLOSED: totalweight={totalweight}, wbarnameshode={wbarnameshode}")
     
     return purchase_state
 
@@ -687,7 +689,7 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
     if isinstance(purchase_data, dict):
         updated_count, error_count = update_incorrect_phone_numbers(purchase_data)
         if updated_count > 0:
-            print(f"تعداد {updated_count} شماره تلفن نادرست به‌روزرسانی شد")
+            logger.info(f"تعداد {updated_count} شماره تلفن نادرست به‌روزرسانی شد")
     
     # If purchase_data is a list, process it as a group
     if isinstance(purchase_data, list):
@@ -695,7 +697,7 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
         for item in purchase_data:
             updated_count, error_count = update_incorrect_phone_numbers(item)
             if updated_count > 0:
-                print(f"تعداد {updated_count} شماره تلفن نادرست به‌روزرسانی شد")
+                logger.info(f"تعداد {updated_count} شماره تلفن نادرست به‌روزرسانی شد")
         
         return process_grouped_purchase_data(purchase_data, create_if_not_exists)
     
@@ -745,16 +747,16 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
     total_delivered_weight = sum(int(entry.get('wbarnameshode', 0) or 0) for entry in purchase_data_list)
     
     # Print debug information
-    print(f"Debug - Purchase {purchase_number}: {len(purchase_data_list)} allocation records")
-    print(f"Debug - Total order weight (sum of qty): {total_order_weight}")
-    print(f"Debug - Total delivered weight (sum of wbarnameshode): {total_delivered_weight}")
+    logger.debug(f"Debug - Purchase {purchase_number}: {len(purchase_data_list)} allocation records")
+    logger.debug(f"Debug - Total order weight (sum of qty): {total_order_weight}")
+    logger.debug(f"Debug - Total delivered weight (sum of wbarnameshode): {total_delivered_weight}")
     
     for i, entry in enumerate(purchase_data_list):
         takhsisid = entry.get('allocationid')
         qty = int(entry.get('qty', 0) or 0)
         wbarnameshode = int(entry.get('wbarnameshode', 0) or 0)
         totalweight = int(entry.get('totalweight', 0) or 0)
-        print(f"Debug - Entry {i+1}: allocationid={takhsisid}, qty={qty}, wbarnameshode={wbarnameshode}, totalweight={totalweight}")
+        logger.debug(f"Debug - Entry {i+1}: allocationid={takhsisid}, qty={qty}, wbarnameshode={wbarnameshode}, totalweight={totalweight}")
     
     try:
         # Search for existing purchase
@@ -786,7 +788,7 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
         suggested_state = None
         if totalweight > 0 and totalweight == total_delivered_weight:
             suggested_state = 'PURCHASE_CLOSED'
-            print(f"Debug - API suggests PURCHASE_CLOSED for {purchase_number}: totalweight={totalweight}, total_delivered_weight={total_delivered_weight}")
+            logger.debug(f"Debug - API suggests PURCHASE_CLOSED for {purchase_number}: totalweight={totalweight}, total_delivered_weight={total_delivered_weight}")
         else:
             # Check if all entries have allocation IDs
             all_have_allocation = all(
@@ -817,7 +819,7 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
                     reason = "(تغییر پیشرفت محسوب نمی‌شود)"
                 log_state_change_attempt(purchase_number, purchase.state, suggested_state, False, reason)
         else:
-            print(f"ℹ️ هیچ تغییر وضعیت برای خرید {purchase_number} پیشنهاد نشد")
+            logger.info(f"ℹ️ هیچ تغییر وضعیت برای خرید {purchase_number} پیشنهاد نشد")
         
         # Save changes
         purchase.save()
@@ -857,7 +859,7 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
         suggested_state = None
         if totalweight > 0 and totalweight == total_delivered_weight:
             suggested_state = 'PURCHASE_CLOSED'
-            print(f"Debug - API suggests PURCHASE_CLOSED for new purchase {purchase_number}: totalweight={totalweight}, total_delivered_weight={total_delivered_weight}")
+            logger.debug(f"Debug - API suggests PURCHASE_CLOSED for new purchase {purchase_number}: totalweight={totalweight}, total_delivered_weight={total_delivered_weight}")
         
         # فقط در صورتی که تغییر وضعیت پیشرفت باشد، آن را اعمال کن
         if suggested_state:

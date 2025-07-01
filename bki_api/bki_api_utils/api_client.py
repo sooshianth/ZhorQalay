@@ -12,10 +12,12 @@ import urllib3
 from django.conf import settings
 from ..models import BKILog
 from .data_processing import process_purchase_data, group_purchase_data_by_id, process_grouped_purchase_data
+import logging
 
 # Disable SSL warnings for compatibility with the API
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+logger = logging.getLogger("bki_api_client")
 
 def get_bki_credentials():
     """
@@ -29,11 +31,11 @@ def get_bki_credentials():
     
     # Validate username and password
     if not username or username.strip() == '':
-        print("خطا: نام کاربری API بازارگاه تنظیم نشده است")
+        logger.error("خطا: نام کاربری API بازارگاه تنظیم نشده است")
         return None, None
         
     if not password or password.strip() == '':
-        print("خطا: رمز عبور API بازارگاه تنظیم نشده است")
+        logger.error("خطا: رمز عبور API بازارگاه تنظیم نشده است")
         return None, None
     
     return username, password
@@ -71,6 +73,17 @@ def send_soap_request(kharid_id):
   </soap:Body>
 </soap:Envelope>"""
 
+    soap_redacted_request = f"""<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <getKharidInfo xmlns="http://tempuri.org/">
+      <userName>***</userName>
+      <pass>***</pass>
+      <kharidId>{kharid_id}</kharidId>
+    </getKharidInfo>
+  </soap:Body>
+</soap:Envelope>"""
+
     # Set request headers
     headers = {
         'Content-Type': 'text/xml; charset=utf-8',
@@ -81,7 +94,7 @@ def send_soap_request(kharid_id):
     # Create a log entry for the request
     log_entry = BKILog(
         request_type='getKharidInfo',
-        request_data=soap_request
+        request_data=soap_redacted_request
     )
 
     try:
@@ -95,6 +108,7 @@ def send_soap_request(kharid_id):
             log_entry.is_successful = False
             log_entry.error_message = f"خطای HTTP: {response.status_code}"
             log_entry.save()
+            logger.error(f"خطای HTTP: {response.status_code} - {response.text}")
             return None, log_entry, f"خطای HTTP: {response.status_code}"
         
         # Parse the XML response
@@ -107,6 +121,7 @@ def send_soap_request(kharid_id):
             if not result or not isinstance(result, dict):
                 log_entry.is_successful = False
                 log_entry.error_message = "فرمت پاسخ نامعتبر است"
+                logger.error(f"فرمت پاسخ نامعتبر است: {response.text}")
                 log_entry.save()
                 return None, log_entry, "فرمت پاسخ نامعتبر است"
             
@@ -129,18 +144,21 @@ def send_soap_request(kharid_id):
             # If we got here, the expected data was not found
             log_entry.is_successful = False
             log_entry.error_message = "هیچ داده خرید در پاسخ یافت نشد"
+            logger.error(f"هیچ داده خرید در پاسخ یافت نشد: {response.text}")
             log_entry.save()
             return None, log_entry, "هیچ داده خرید در پاسخ یافت نشد"
         
         except Exception as e:
             log_entry.is_successful = False
             log_entry.error_message = f"خطا در تجزیه پاسخ: {str(e)}"
+            logger.error(f"خطا در تجزیه پاسخ: {str(e)}")
             log_entry.save()
             return None, log_entry, f"خطا در تجزیه پاسخ: {str(e)}"
     
     except Exception as e:
         log_entry.is_successful = False
         log_entry.error_message = f"خطا در ارسال درخواست: {str(e)}"
+        logger.error(f"خطا در ارسال درخواست: {str(e)}")
         log_entry.save()
         return None, log_entry, f"خطا در ارسال درخواست: {str(e)}"
 
@@ -339,6 +357,16 @@ def get_all_bazaargah_purchases():
     </GetKharidList>
   </soap:Body>
 </soap:Envelope>"""
+
+        soap_redacted_request = f"""<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <GetKharidList xmlns="http://tempuri.org/">
+      <userName>***</userName>
+      <pass>***</pass>
+    </GetKharidList>
+  </soap:Body>
+</soap:Envelope>"""
         
         # Set request headers
         headers = {
@@ -351,7 +379,7 @@ def get_all_bazaargah_purchases():
         from bki_api.models import BKILog
         log_entry = BKILog(
             request_type='GetKharidList',
-            request_data=soap_request
+            request_data=soap_redacted_request
         )
         
         # Send the request
@@ -363,6 +391,7 @@ def get_all_bazaargah_purchases():
             log_entry.is_successful = False
             log_entry.error_message = error_message
             log_entry.save()
+            logger.error(f"خطا در ارسال درخواست GetKharidList: {error_message}, {response.text}")
             return 0, 0, 0, 0, 0, [error_message]
         
         # Parse the XML response
@@ -373,6 +402,7 @@ def get_all_bazaargah_purchases():
                 log_entry.is_successful = False
                 log_entry.error_message = f"خطا در تحلیل پاسخ: {analysis['error']}"
                 log_entry.save()
+                logger.error(f"خطا در تحلیل پاسخ: {analysis['error']}, {response.text}")
                 return 0, 0, 0, 0, 0, [f"خطا در تحلیل پاسخ: {analysis['error']}"]
             
             # Parse the XML response
@@ -400,29 +430,30 @@ def get_all_bazaargah_purchases():
             log_entry.save()
             
         except Exception as e:
-            error_message = f"خطا در تجزیه پاسخ: {str(e)}"
+            error_message = f"خطا در تجزیه پاسخ:"
             log_entry.is_successful = False
             log_entry.error_message = error_message
             log_entry.save()
+            logger.error(f"خطا در تجزیه پاسخ: {error_message}, {str(e)}")
             return 0, 0, 0, 0, 0, [error_message]
     
     except Exception as e:
-        error_message = f"خطا در ارسال درخواست: {str(e)}"
-        return 0, 0, 0, 0, 0, [error_message]
+        # Log the exception type for debugging but don't expose sensitive data
+        safe_error_message = "خطا در ارسال درخواست به API بازارگاه"
+        logger.error(f"خطا در ارسال درخواست GetKharidList: {type(e).__name__}")
+        return 0, 0, 0, 0, 0, [safe_error_message]
     
     # Check if no purchase data was found
     if not purchases_data:
-        print("هیچ داده خرید در پاسخ یافت نشد")
         return 0, 0, 0, 0, 0, ["هیچ داده خرید در پاسخ یافت نشد"]
     
-    # Print the number of purchases found for debugging
-    print(f"تعداد خریدهای یافت شده: {len(purchases_data)}")
+    logger.info(f"تعداد خریدهای یافت شده: {len(purchases_data)}")
     
     # Group purchases by purchase ID
     from .data_processing import group_purchase_data_by_id, process_grouped_purchase_data
     
     grouped_data = group_purchase_data_by_id(purchases_data)
-    print(f"خریدها به {len(grouped_data)} گروه تقسیم شدند")
+    logger.info(f"خریدها به {len(grouped_data)} گروه تقسیم شدند")
     
     # Process grouped purchase data
     total_count = len(grouped_data)
@@ -435,7 +466,6 @@ def get_all_bazaargah_purchases():
     # Process each group
     for purchase_id, entries in grouped_data.items():
         try:
-            print(f"پردازش گروه خرید با شناسه: {purchase_id} (تعداد رکورد: {len(entries)})")
             
             # Process the group
             purchase, created, error = process_grouped_purchase_data(entries, create_if_not_exists=True)
@@ -443,19 +473,15 @@ def get_all_bazaargah_purchases():
                 success_count += 1
                 if created:
                     created_count += 1
-                    print(f"خرید جدید ایجاد شد: {purchase_id}")
                 else:
                     updated_count += 1
-                    print(f"خرید موجود به‌روزرسانی شد: {purchase_id}")
             else:
                 failed_count += 1
                 if error:
                     errors.append(f"خطا در پردازش خرید {purchase_id}: {error}")
-                    print(f"خطا در پردازش خرید {purchase_id}: {error}")
         except Exception as e:
             failed_count += 1
             errors.append(f"خطا در پردازش خرید {purchase_id}: {str(e)}")
-            print(f"خطا در پردازش خرید {purchase_id}: {str(e)}")
     
-    print(f"نتیجه نهایی: کل={total_count}, موفق={success_count}, جدید={created_count}, بروزرسانی={updated_count}, خطا={failed_count}")
+    logger.info(f"نتیجه نهایی: کل={total_count}, موفق={success_count}, جدید={created_count}, بروزرسانی={updated_count}, خطا={failed_count}")
     return total_count, success_count, created_count, updated_count, failed_count, errors 

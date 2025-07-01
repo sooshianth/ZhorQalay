@@ -8,6 +8,9 @@ This module contains utility functions for cleaning and validating data.
 import re
 from django.utils import timezone
 from django_jalali.db import models as jmodels
+import logging
+
+logger = logging.getLogger("bki_api_helpers")
 
 
 def clean_phone_number(phone):
@@ -120,12 +123,12 @@ def update_incorrect_phone_numbers(purchase_data):
                 phone.number = clean_phone
                 phone.save()
                 updated_count += 1
-                print(f"شماره تلفن مشتری {buyer_name} از 9000000000 به {clean_phone} به‌روزرسانی شد")
+                logger.info(f"شماره تلفن مشتری {buyer_name} از 9000000000 به {clean_phone} به‌روزرسانی شد")
         
         return updated_count, error_count
     
     except Exception as e:
-        print(f"خطا در به‌روزرسانی شماره‌های تلفن نادرست: {str(e)}")
+        logger.error(f"خطا در به‌روزرسانی شماره‌های تلفن نادرست: {str(e)}")
         return updated_count, error_count + 1
 
 
@@ -167,7 +170,7 @@ def convert_persian_date_to_gregorian(persian_date_str):
         
         return gregorian_date
     except Exception as e:
-        print(f"خطا در تبدیل تاریخ شمسی به میلادی: {str(e)}")
+        logger.error(f"خطا در تبدیل تاریخ شمسی به میلادی: {str(e)}")
         return None
 
 

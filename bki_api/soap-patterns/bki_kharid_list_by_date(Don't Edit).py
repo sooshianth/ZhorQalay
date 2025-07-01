@@ -39,7 +39,6 @@ headers = {
 
 def main():
     print("Sending request to Bank Keshavarzi API (getKharidListByDate SOAP 1.1 over HTTPS)...")
-    print(f"Username: {username}")
     print(f"Date Range: {from_date} to {to_date}")
     
     try:
