@@ -196,11 +196,6 @@ def get_all_purchases_by_date_range(start_date, end_date):
     failed_count = 0
     errors = []
     
-    # چاپ اطلاعات خریدها
-    logger.info("\nاطلاعات خریدها (اولین ردیف از هر گروه):")
-    logger.info("-" * 100)
-    logger.info(f"{'شناسه خرید':<15} {'نام مشتری':<25} {'نوع محصول':<15} {'تعداد تخصیص':<15} {'کوتاژ':<15} {'مجموع وزن سفارش':<20} {'مجموع وزن تحویلی':<20}")
-    logger.info("-" * 100)
     
     for purchase_id, entries in grouped_data.items():
         # استخراج اطلاعات از اولین ردیف هر گروه
@@ -212,8 +207,6 @@ def get_all_purchases_by_date_range(start_date, end_date):
         # محاسبه مجموع وزن‌ها
         total_order_weight = sum(int(entry.get('qty', 0) or 0) for entry in entries)
         total_delivered_weight = sum(int(entry.get('wbarnameshode', 0) or 0) for entry in entries)
-        
-        logger.info(f"{purchase_id:<15} {customer_name[:23]:<25} {product_type[:13]:<15} {len(entries):<15} {goodtag:<15} {total_order_weight:<20} {total_delivered_weight:<20}")
         
         try:
             # پردازش گروه داده‌های خرید

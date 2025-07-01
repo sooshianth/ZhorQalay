@@ -14,9 +14,12 @@ import os
 from django.conf import settings
 import pandas as pd
 import jdatetime
+import logging
 
 # توابع اکسل به فولدر excel_management منتقل شده‌اند
 from .excel_management.views import upload_excel_view, download_excel_template, export_excel_view
+
+logger = logging.getLogger('bki_barnameh_views')
 
 def update_barnameh(barnameh_id, data):
     """
@@ -75,6 +78,7 @@ def update_barnameh(barnameh_id, data):
                 else:
                     barnameh.barnameh_date = data['barnameh_date']
             except Exception as e:
+                logger.error(f"خطا در تبدیل تاریخ: {str(e)}")
                 return {
                     'success': False,
                     'message': f'خطا در تبدیل تاریخ: {str(e)}'
@@ -102,11 +106,13 @@ def update_barnameh(barnameh_id, data):
         }
         
     except Barnameh.DoesNotExist:
+        logger.error(f"بارنامه مورد نظر یافت نشد.")
         return {
             'success': False,
             'message': 'بارنامه مورد نظر یافت نشد.'
         }
     except Exception as e:
+        logger.error(f"خطا در بروزرسانی بارنامه: {str(e)}")
         return {
             'success': False,
             'message': f'خطا در بروزرسانی بارنامه: {str(e)}'
@@ -127,6 +133,7 @@ def delete_barnameh(barnameh_id):
         
         # Check if barnameh is already sent to BKI
         if barnameh.is_sent_to_bki:
+            logger.error(f"بارنامه {barnameh_id} قبلاً به بازارگاه ارسال شده است و قابل حذف نیست.")
             return {
                 'success': False,
                 'message': 'این بارنامه قبلاً به بازارگاه ارسال شده است و قابل حذف نیست.'
@@ -140,11 +147,13 @@ def delete_barnameh(barnameh_id):
         }
         
     except Barnameh.DoesNotExist:
+        logger.error(f"بارنامه {barnameh_id} یافت نشد.")
         return {
             'success': False,
             'message': 'بارنامه مورد نظر یافت نشد.'
         }
     except Exception as e:
+        logger.error(f"خطا در حذف بارنامه: {str(e)}")
         return {
             'success': False,
             'message': f'خطا در حذف بارنامه: {str(e)}'
@@ -414,6 +423,7 @@ def barnameh_api(request):
                 }
                 return JsonResponse({'success': True, 'data': data})
             except Barnameh.DoesNotExist:
+                logger.error(f"بارنامه {barnameh_id} یافت نشد.")
                 return JsonResponse({'success': False, 'message': 'بارنامه مورد نظر یافت نشد.'})
         else:
             barnamehs = Barnameh.objects.all().order_by('-barnameh_created_at')
@@ -469,11 +479,13 @@ def barnameh_api(request):
             barnameh_id = data.get('id')
             
             if not barnameh_id:
+                logger.error('شناسه بارنامه مشخص نشده است.')
                 return JsonResponse({'success': False, 'message': 'شناسه بارنامه مشخص نشده است.'})
             
             result = delete_barnameh(barnameh_id)
             return JsonResponse(result)
         except Exception as e:
+            logger.error(f'خطا در حذف بارنامه: {str(e)}')
             return JsonResponse({'success': False, 'message': f'خطا: {str(e)}'})
     
     return JsonResponse({'success': False, 'message': 'درخواست نامعتبر است.'})
@@ -555,6 +567,7 @@ def bulk_edit(request):
                                     'serial': barnameh.serial,
                                     'error': error_message
                                 })
+                                logger.error(f"مقدار وارد شده برای وزن معتبر نیست: {new_value}")
                                 continue
                         
                         elif field_to_update == 'barnameh_date':
@@ -574,6 +587,7 @@ def bulk_edit(request):
                                         'serial': barnameh.serial,
                                         'error': error_message
                                     })
+                                    logger.error(f"فرمت تاریخ معتبر نیست: {new_value}. از فرمت 1402/01/01 استفاده کنید.")
                                     continue
                             except Exception as e:
                                 error_count += 1
@@ -585,6 +599,7 @@ def bulk_edit(request):
                                     'serial': barnameh.serial,
                                     'error': error_message
                                 })
+                                logger.error(f"خطا در تبدیل تاریخ: {str(e)}")
                                 continue
                         
                         # بروزرسانی فیلد مورد نظر
@@ -615,6 +630,7 @@ def bulk_edit(request):
                             'serial': barnameh.serial,
                             'error': error_message
                         })
+                        logger.error(f"خطا در بروزرسانی بارنامه {barnameh.number}/{barnameh.serial}: {str(e)}")
                 else:
                     error_count += 1
                     error_message = f'بارنامه {barnameh.number}/{barnameh.serial} قبلاً به بازارگاه ارسال شده است و قابل ویرایش نیست.'
@@ -625,7 +641,7 @@ def bulk_edit(request):
                         'serial': barnameh.serial,
                         'error': error_message
                     })
-            
+                    logger.error(f"بارنامه {barnameh.number}/{barnameh.serial} قبلاً به بازارگاه ارسال شده است و قابل ویرایش نیست.")
             # ذخیره نتایج در سشن برای نمایش در صفحه نتایج
             request.session['bulk_edit_results'] = {
                 'field': field_to_update,

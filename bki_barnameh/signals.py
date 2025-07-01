@@ -6,8 +6,7 @@ from sms_api.models import SmsTemplate
 import logging
 from .models.BarnamehModel import Barnameh
 
-logger = logging.getLogger(__name__)
-
+logger = logging.getLogger('bki_barnameh_signals')
 
 @receiver(post_save, sender=Barnameh)
 def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
@@ -171,4 +170,4 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
             logger.warning(f"Failed to queue SMS for any numbers for barnameh {instance.id}")
     
     except Exception as e:
-        logger.exception(f"Error processing SMS for new barnameh {instance.id}: {str(e)}") 
+        logger.error(f"Error processing SMS for new barnameh {instance.id}: {str(e)}") 

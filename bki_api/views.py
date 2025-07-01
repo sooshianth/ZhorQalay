@@ -82,6 +82,7 @@ def credentials_view(request):
             if is_successful:
                 messages.success(request, 'اتصال با سرویس BKI با موفقیت برقرار شد.')
             else:
+                logger.error(f"خطا در اتصال به سرویس BKI: {error_message}")
                 messages.error(request, f'خطا در اتصال به سرویس BKI: {error_message}')
         else:
             # به‌روزرسانی اطلاعات اعتباری
@@ -116,6 +117,7 @@ def test_kharid_info(request):
     
     if not username or not password:
         messages.error(request, 'اطلاعات کاربری BKI تنظیم نشده است.')
+        logger.error('اطلاعات کاربری BKI تنظیم نشده است.')
         return redirect('bki_api:credentials')
     
     # تست API
@@ -138,6 +140,7 @@ def update_purchase_info(request):
     password = settings.BKI_PASSWORD
     
     if not username or not password:
+        logger.error('اطلاعات کاربری BKI تنظیم نشده است.')
         return JsonResponse({'error': 'اطلاعات کاربری BKI تنظیم نشده است.'}, status=400)
     
     # دریافت شناسه خرید
@@ -155,11 +158,13 @@ def update_purchase_info(request):
         kharid_id = request.GET.get('kharid_id')
     
     if not kharid_id:
+        logger.error('شناسه خرید الزامی است.')
         return JsonResponse({'error': 'شناسه خرید الزامی است.'}, status=400)
     
     # تست اتصال به API
     is_successful, message = test_api_connection()
     if not is_successful:
+        logger.error(f"خطا در اتصال به سرویس BKI: {message}")
         return JsonResponse({'success': False, 'error': message}, status=400)
     
     # این تابع صرفاً برای تست است و عملیات واقعی انجام نمی‌دهد

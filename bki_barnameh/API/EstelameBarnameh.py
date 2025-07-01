@@ -4,6 +4,9 @@ from django.conf import settings
 from ..models.BarnamehModel import Barnameh
 from ..models.ApiLogModel import BKIApiLog
 import jdatetime
+import logging
+
+logger = logging.getLogger('bki_api_estelame_barnameh')
 
 def estelame_barnameh(barnameh_id, from_date=None, to_date=None):
     """
@@ -83,12 +86,29 @@ def estelame_barnameh(barnameh_id, from_date=None, to_date=None):
     </EstelameBarname>
   </soap:Body>
 </soap:Envelope>"""
+
+        # Create SOAP request
+        soap_redacted_request = f"""<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <EstelameBarname xmlns="http://tempuri.org/">
+      <userName>***</userName>
+      <pass>***</pass>
+      <fromDate>{from_date}</fromDate>
+      <toDate>{to_date}</toDate>
+      <kharidId>{kharid_id}</kharidId>
+      <TakhsisId>{takhsis_id}</TakhsisId>
+      <KutajNumber></KutajNumber>
+      <IdHaml></IdHaml>
+    </EstelameBarname>
+  </soap:Body>
+</soap:Envelope>"""
         
         # Create log entry
         log_entry = BKIApiLog(
             barnameh=barnameh,
             request_type='EstelameBarname',
-            request_data=soap_request
+            request_data=soap_redacted_request
         )
         
         # Send request to BKI API
@@ -109,6 +129,7 @@ def estelame_barnameh(barnameh_id, from_date=None, to_date=None):
                 log_entry.is_successful = False
                 log_entry.error_message = f"خطای HTTP: {response.status_code}"
                 log_entry.save()
+                logger.error(f"خطای HTTP: {response.status_code}, {response.text}")
                 return {
                     'success': False,
                     'message': f"خطای HTTP: {response.status_code}"
@@ -146,6 +167,7 @@ def estelame_barnameh(barnameh_id, from_date=None, to_date=None):
                 log_entry.is_successful = False
                 log_entry.error_message = "داده‌ای در پاسخ یافت نشد."
                 log_entry.save()
+                logger.error(f"داده‌ای در پاسخ یافت نشد.")
                 
                 return {
                     'success': False,
@@ -156,7 +178,7 @@ def estelame_barnameh(barnameh_id, from_date=None, to_date=None):
                 log_entry.is_successful = False
                 log_entry.error_message = f"خطا در تجزیه پاسخ: {str(e)}"
                 log_entry.save()
-                
+                logger.error(f"خطا در تجزیه پاسخ: {str(e)}")
                 return {
                     'success': False,
                     'message': f"خطا در تجزیه پاسخ: {str(e)}"
@@ -164,12 +186,13 @@ def estelame_barnameh(barnameh_id, from_date=None, to_date=None):
                 
         except Exception as e:
             log_entry.is_successful = False
-            log_entry.error_message = f"خطا در ارسال درخواست: {str(e)}"
+            log_entry.error_message = f"خطا در ارسال درخواست: "
             log_entry.save()
-            
+            logger.error(f"خطا در ارسال درخواست: {str(e)}")
+
             return {
                 'success': False,
-                'message': f"خطا در ارسال درخواست: {str(e)}"
+                'message': f"خطا در ارسال درخواست: "
             }
             
     except Barnameh.DoesNotExist:
@@ -180,5 +203,6 @@ def estelame_barnameh(barnameh_id, from_date=None, to_date=None):
     except Exception as e:
         return {
             'success': False,
-            'message': f"خطا: {str(e)}"
+            'message': f"خطا: "
+            logger.error(f"خطا: {str(e)}")
         }

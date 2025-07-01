@@ -3,6 +3,10 @@ from django_jalali.db import models as jmodels
 from django.utils import timezone
 from core.PurchaseModel import Purchase, ShenaseTakhsis
 
+import logging
+
+logger = logging.getLogger('bki_barnameh_models')
+
 class Barnameh(models.Model):
     STATUS_CHOICES = [
         ('BARNAMEH_INCOMPLETE', 'بارنامه ناقص'),
@@ -53,7 +57,7 @@ class Barnameh(models.Model):
             if self.purchase_number:
                 self.purchase = Purchase.objects.get(purchase_number=self.purchase_number)
         except Exception as e:
-            print(f"Error setting the purchase and shenase takhsis: {e}")
+            logger.error(f"Error setting the purchase and shenase takhsis: {e}")
             
 
     def set_the_purchase_number_and_shenase_takhsis_code(self):
@@ -63,7 +67,7 @@ class Barnameh(models.Model):
             if self.purchase:
                 self.purchase_number=self.purchase.purchase_number
         except Exception as e:
-            print(f"Error setting the purchase number and shenase takhsis code: {e}")
+            logger.error(f"Error setting the purchase number and shenase takhsis code: {e}")
 
 
     def log_barnameh_edit(self, request):
@@ -79,7 +83,7 @@ class Barnameh(models.Model):
                 self.purchase_number=purchase.purchase_number
                 self.purchase=purchase
         except:
-            print('خطا در پر کردن شناسه خرید با اینکه شناسه تخصیص داریم')
+            logger.error('خطا در پر کردن شناسه خرید با اینکه شناسه تخصیص داریم')
 
     def save(self, *args, **kwargs):
         is_new = False if self.pk else True
