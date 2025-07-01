@@ -257,3 +257,1198 @@ WARNING 2025-06-30 22:55:53,492 log Not Found: /favicon.ico
 WARNING 2025-06-30 22:55:53,495 runserver [33mHTTP GET /favicon.ico 404 [0.03, 127.0.0.1:6577][0m
 ERROR 2025-06-30 23:01:33,355 log Internal Server Error: /sales/get-related-products/
 ERROR 2025-06-30 23:01:33,357 runserver [35;1mHTTP GET /sales/get-related-products/?customer_id=12 500 [0.03, 127.0.0.1:6737][0m
+ERROR 2025-07-01 10:40:56,595 server Exception inside application: No route found for path 'ws/notifications/1/'.
+Traceback (most recent call last):
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\contrib\staticfiles\handlers.py", line 101, in __call__
+    return await self.application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\channels\routing.py", line 48, in __call__
+    return await application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\channels\security\websocket.py", line 37, in __call__
+    return await self.application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\channels\routing.py", line 136, in __call__
+    raise ValueError("No route found for path %r." % path)
+ValueError: No route found for path 'ws/notifications/1/'.
+WARNING 2025-07-01 10:41:09,084 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.03, 127.0.0.1:1391][0m
+WARNING 2025-07-01 10:41:14,602 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 10:41:14,603 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:1391][0m
+WARNING 2025-07-01 10:48:42,322 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 10:48:42,324 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:1717][0m
+WARNING 2025-07-01 10:50:12,351 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.04, 127.0.0.1:1839][0m
+WARNING 2025-07-01 10:50:15,289 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 10:50:15,292 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:1717][0m
+WARNING 2025-07-01 10:50:22,893 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 10:50:22,895 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:1717][0m
+WARNING 2025-07-01 10:50:33,954 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 10:50:33,956 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:1717][0m
+WARNING 2025-07-01 10:50:42,002 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.02, 127.0.0.1:1800][0m
+WARNING 2025-07-01 10:50:44,493 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 10:50:44,495 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:1800][0m
+WARNING 2025-07-01 10:50:46,485 log Not Found: /erp/purchases/get-all-ids/
+WARNING 2025-07-01 10:50:46,487 runserver [33mHTTP GET /erp/purchases/get-all-ids/ 404 [0.03, 127.0.0.1:1800][0m
+WARNING 2025-07-01 10:50:46,516 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 10:50:46,518 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:1800][0m
+WARNING 2025-07-01 10:50:55,669 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 10:50:55,671 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:1800][0m
+WARNING 2025-07-01 10:52:01,176 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 10:52:01,179 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:1946][0m
+WARNING 2025-07-01 10:52:09,730 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:1949][0m
+WARNING 2025-07-01 10:52:12,692 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:1950][0m
+WARNING 2025-07-01 10:52:14,815 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:1949][0m
+WARNING 2025-07-01 10:54:09,376 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.04, 127.0.0.1:2021][0m
+WARNING 2025-07-01 10:54:14,259 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 10:54:14,261 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:2023][0m
+WARNING 2025-07-01 10:54:21,722 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 10:54:21,725 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:2023][0m
+WARNING 2025-07-01 10:54:24,264 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 10:54:24,266 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:2023][0m
+WARNING 2025-07-01 10:54:33,356 log Not Found: /erp/purchases/get-active-ids/
+WARNING 2025-07-01 10:54:33,358 runserver [33mHTTP GET /erp/purchases/get-active-ids/ 404 [0.03, 127.0.0.1:2023][0m
+WARNING 2025-07-01 10:54:33,389 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 10:54:33,392 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:2023][0m
+WARNING 2025-07-01 10:54:38,573 log Not Found: /erp/purchases/get-active-ids/
+WARNING 2025-07-01 10:54:38,574 runserver [33mHTTP GET /erp/purchases/get-active-ids/ 404 [0.03, 127.0.0.1:2023][0m
+WARNING 2025-07-01 10:54:38,599 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 10:54:38,601 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:2023][0m
+WARNING 2025-07-01 10:54:40,904 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 10:54:40,906 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:2023][0m
+WARNING 2025-07-01 10:54:42,572 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 10:54:42,575 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:2023][0m
+WARNING 2025-07-01 10:54:49,815 log Not Found: /erp/purchases/get-active-ids/
+WARNING 2025-07-01 10:54:49,818 runserver [33mHTTP GET /erp/purchases/get-active-ids/ 404 [0.03, 127.0.0.1:2023][0m
+WARNING 2025-07-01 10:54:49,848 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 10:54:49,851 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:2023][0m
+WARNING 2025-07-01 10:57:43,292 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.02, 127.0.0.1:2102][0m
+WARNING 2025-07-01 11:02:46,860 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:2263][0m
+WARNING 2025-07-01 11:07:52,542 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.04, 127.0.0.1:2438][0m
+WARNING 2025-07-01 11:07:55,576 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:07:55,579 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:2439][0m
+WARNING 2025-07-01 11:09:48,801 log Not Found: /api/notifications/
+WARNING 2025-07-01 11:09:48,804 runserver [33mHTTP GET /api/notifications/ 404 [0.02, 127.0.0.1:2482][0m
+WARNING 2025-07-01 11:11:27,853 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.04, 127.0.0.1:2575][0m
+WARNING 2025-07-01 11:12:50,907 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.04, 127.0.0.1:2632][0m
+WARNING 2025-07-01 11:12:54,867 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:12:54,869 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:2633][0m
+WARNING 2025-07-01 11:13:02,502 log Not Found: /erp/purchases/get-active-ids/
+WARNING 2025-07-01 11:13:02,504 runserver [33mHTTP GET /erp/purchases/get-active-ids/ 404 [0.03, 127.0.0.1:2633][0m
+WARNING 2025-07-01 11:13:02,531 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:13:02,533 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:2633][0m
+WARNING 2025-07-01 11:13:07,704 log Not Found: /erp/purchases/get-pending-ids/
+WARNING 2025-07-01 11:13:07,707 runserver [33mHTTP GET /erp/purchases/get-pending-ids/ 404 [0.03, 127.0.0.1:2633][0m
+WARNING 2025-07-01 11:13:07,734 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:13:07,737 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:2633][0m
+WARNING 2025-07-01 11:13:18,216 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.02, 127.0.0.1:2635][0m
+WARNING 2025-07-01 11:13:20,843 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.02, 127.0.0.1:2630][0m
+WARNING 2025-07-01 11:13:23,810 log Not Found: /erp/purchases/get-pending-ids/
+WARNING 2025-07-01 11:13:23,812 runserver [33mHTTP GET /erp/purchases/get-pending-ids/ 404 [0.03, 127.0.0.1:2630][0m
+WARNING 2025-07-01 11:13:23,841 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:13:23,843 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:2630][0m
+WARNING 2025-07-01 11:14:33,148 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:14:33,150 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:2665][0m
+WARNING 2025-07-01 11:14:35,935 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:14:35,938 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:2665][0m
+WARNING 2025-07-01 11:14:48,113 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:14:48,116 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:2665][0m
+WARNING 2025-07-01 11:15:00,744 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:15:00,747 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:2665][0m
+WARNING 2025-07-01 11:15:06,792 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:15:06,794 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:2665][0m
+WARNING 2025-07-01 11:15:56,160 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.03, 127.0.0.1:2766][0m
+WARNING 2025-07-01 11:19:32,447 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.03, 127.0.0.1:2924][0m
+WARNING 2025-07-01 11:19:37,569 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:19:37,572 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:2921][0m
+WARNING 2025-07-01 11:19:44,857 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:19:44,860 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:2921][0m
+WARNING 2025-07-01 11:19:53,238 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:19:53,241 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:2921][0m
+WARNING 2025-07-01 11:20:05,842 log Not Found: /favicon.ico
+WARNING 2025-07-01 11:20:05,845 runserver [33mHTTP GET /favicon.ico 404 [0.02, 127.0.0.1:2921][0m
+ERROR 2025-07-01 11:20:28,984 server Exception inside application: No route found for path 'ws/notifications/1/'.
+Traceback (most recent call last):
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\django\contrib\staticfiles\handlers.py", line 101, in __call__
+    return await self.application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\channels\routing.py", line 48, in __call__
+    return await application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\channels\security\websocket.py", line 37, in __call__
+    return await self.application(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Programs\Python\Python313\Lib\site-packages\channels\routing.py", line 136, in __call__
+    raise ValueError("No route found for path %r." % path)
+ValueError: No route found for path 'ws/notifications/1/'.
+WARNING 2025-07-01 11:20:31,637 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:2925][0m
+WARNING 2025-07-01 11:23:45,903 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:23:45,906 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:3031][0m
+WARNING 2025-07-01 11:24:30,804 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.03, 127.0.0.1:3060][0m
+WARNING 2025-07-01 11:24:36,460 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.02, 127.0.0.1:3055][0m
+WARNING 2025-07-01 11:24:39,153 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:24:39,156 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:3055][0m
+WARNING 2025-07-01 11:24:39,165 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:24:39,169 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3060][0m
+WARNING 2025-07-01 11:24:39,202 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:24:39,205 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3063][0m
+WARNING 2025-07-01 11:24:39,210 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:24:39,214 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3085][0m
+WARNING 2025-07-01 11:24:39,222 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:24:39,224 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:3062][0m
+WARNING 2025-07-01 11:24:39,229 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:24:39,232 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.11, 127.0.0.1:3031][0m
+WARNING 2025-07-01 11:26:02,734 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:26:02,737 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:3154][0m
+WARNING 2025-07-01 11:26:13,424 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:26:13,427 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:3154][0m
+WARNING 2025-07-01 11:26:19,678 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:26:19,684 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3154][0m
+WARNING 2025-07-01 11:26:19,699 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:26:19,703 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3185][0m
+WARNING 2025-07-01 11:26:19,714 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:26:19,727 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3186][0m
+WARNING 2025-07-01 11:26:19,740 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:26:19,745 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3188][0m
+WARNING 2025-07-01 11:26:19,746 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:26:19,748 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3189][0m
+WARNING 2025-07-01 11:26:19,751 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:26:19,752 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:3187][0m
+WARNING 2025-07-01 11:27:43,582 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.03, 127.0.0.1:3234][0m
+WARNING 2025-07-01 11:27:48,102 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:48,108 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3236][0m
+WARNING 2025-07-01 11:27:48,119 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:48,131 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3235][0m
+WARNING 2025-07-01 11:27:48,138 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:48,140 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3228][0m
+WARNING 2025-07-01 11:27:48,145 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:48,148 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3234][0m
+WARNING 2025-07-01 11:27:48,155 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:48,157 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:3229][0m
+WARNING 2025-07-01 11:27:48,807 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:48,810 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3236][0m
+WARNING 2025-07-01 11:27:48,812 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:48,815 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3228][0m
+WARNING 2025-07-01 11:27:48,819 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:48,822 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3235][0m
+WARNING 2025-07-01 11:27:48,828 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:48,830 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3229][0m
+WARNING 2025-07-01 11:27:48,841 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:48,844 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:3234][0m
+WARNING 2025-07-01 11:27:50,007 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:50,015 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:3234][0m
+WARNING 2025-07-01 11:27:50,028 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:50,031 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3229][0m
+WARNING 2025-07-01 11:27:50,036 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:50,039 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3235][0m
+WARNING 2025-07-01 11:27:53,801 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:53,805 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3228][0m
+WARNING 2025-07-01 11:27:53,806 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:53,809 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3236][0m
+WARNING 2025-07-01 11:27:53,816 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:53,819 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3229][0m
+WARNING 2025-07-01 11:27:53,824 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:53,827 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:3235][0m
+WARNING 2025-07-01 11:27:53,833 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:53,837 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:3234][0m
+WARNING 2025-07-01 11:27:55,521 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:55,523 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3235][0m
+WARNING 2025-07-01 11:27:55,528 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:55,530 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3234][0m
+WARNING 2025-07-01 11:27:55,542 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:55,544 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3229][0m
+WARNING 2025-07-01 11:27:55,551 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:55,553 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:3236][0m
+WARNING 2025-07-01 11:27:55,558 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:55,560 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:3228][0m
+WARNING 2025-07-01 11:27:57,617 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,620 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3236][0m
+WARNING 2025-07-01 11:27:57,622 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,626 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3229][0m
+WARNING 2025-07-01 11:27:57,632 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,635 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3235][0m
+WARNING 2025-07-01 11:27:57,639 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,641 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:3228][0m
+WARNING 2025-07-01 11:27:57,647 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,656 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:3234][0m
+WARNING 2025-07-01 11:27:57,662 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,670 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:3237][0m
+WARNING 2025-07-01 11:27:57,675 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,692 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3236][0m
+WARNING 2025-07-01 11:27:57,702 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,707 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3229][0m
+WARNING 2025-07-01 11:27:57,712 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,721 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3235][0m
+WARNING 2025-07-01 11:27:57,723 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,730 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3234][0m
+WARNING 2025-07-01 11:27:57,747 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,754 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.11, 127.0.0.1:3228][0m
+WARNING 2025-07-01 11:27:57,755 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,756 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3237][0m
+WARNING 2025-07-01 11:27:57,764 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,774 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3229][0m
+WARNING 2025-07-01 11:27:57,776 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,788 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:3236][0m
+WARNING 2025-07-01 11:27:57,793 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,803 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,805 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3235][0m
+WARNING 2025-07-01 11:27:57,808 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3234][0m
+WARNING 2025-07-01 11:27:57,810 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,818 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3237][0m
+WARNING 2025-07-01 11:27:57,821 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,832 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3228][0m
+WARNING 2025-07-01 11:27:57,844 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,847 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3229][0m
+WARNING 2025-07-01 11:27:57,852 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,853 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:3235][0m
+WARNING 2025-07-01 11:27:57,857 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:27:57,858 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3236][0m
+WARNING 2025-07-01 11:28:04,896 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:04,899 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3235][0m
+WARNING 2025-07-01 11:28:04,903 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:04,905 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3228][0m
+WARNING 2025-07-01 11:28:04,912 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:04,914 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3237][0m
+WARNING 2025-07-01 11:28:04,919 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:04,921 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3229][0m
+WARNING 2025-07-01 11:28:04,931 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:04,934 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:3236][0m
+WARNING 2025-07-01 11:28:05,732 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:05,742 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3236][0m
+WARNING 2025-07-01 11:28:05,745 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:05,747 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3228][0m
+WARNING 2025-07-01 11:28:05,754 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:05,756 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3235][0m
+WARNING 2025-07-01 11:28:05,761 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:05,763 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3237][0m
+WARNING 2025-07-01 11:28:05,769 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:05,771 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3229][0m
+WARNING 2025-07-01 11:28:05,981 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:05,984 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3228][0m
+WARNING 2025-07-01 11:28:05,989 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:05,992 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3229][0m
+WARNING 2025-07-01 11:28:05,997 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:06,000 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3235][0m
+WARNING 2025-07-01 11:28:06,006 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:06,008 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:3237][0m
+WARNING 2025-07-01 11:28:06,013 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:06,014 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:3236][0m
+WARNING 2025-07-01 11:28:06,163 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:06,166 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3237][0m
+WARNING 2025-07-01 11:28:06,173 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:06,176 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3236][0m
+WARNING 2025-07-01 11:28:06,182 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:06,185 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3229][0m
+WARNING 2025-07-01 11:28:06,190 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:06,192 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3228][0m
+WARNING 2025-07-01 11:28:06,198 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:06,201 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:3235][0m
+WARNING 2025-07-01 11:28:08,681 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:08,684 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3229][0m
+WARNING 2025-07-01 11:28:08,691 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:08,694 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3235][0m
+WARNING 2025-07-01 11:28:08,710 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:08,712 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3228][0m
+WARNING 2025-07-01 11:28:12,020 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:12,023 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:3229][0m
+WARNING 2025-07-01 11:28:12,027 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:12,029 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3228][0m
+WARNING 2025-07-01 11:28:12,033 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:12,036 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3235][0m
+WARNING 2025-07-01 11:28:13,389 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:13,392 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3229][0m
+WARNING 2025-07-01 11:28:13,398 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:13,400 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3237][0m
+WARNING 2025-07-01 11:28:13,407 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:13,409 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3228][0m
+WARNING 2025-07-01 11:28:13,413 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:13,415 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3236][0m
+WARNING 2025-07-01 11:28:13,426 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:28:13,428 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:3235][0m
+WARNING 2025-07-01 11:33:51,034 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.19, 127.0.0.1:3400][0m
+WARNING 2025-07-01 11:33:53,544 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:33:53,549 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3403][0m
+WARNING 2025-07-01 11:33:53,579 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:33:53,581 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3400][0m
+WARNING 2025-07-01 11:33:53,585 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:33:53,588 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3399][0m
+WARNING 2025-07-01 11:33:53,594 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:33:53,598 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:3402][0m
+WARNING 2025-07-01 11:33:53,607 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:33:53,610 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:3401][0m
+WARNING 2025-07-01 11:33:59,314 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:33:59,317 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3402][0m
+WARNING 2025-07-01 11:33:59,322 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:33:59,324 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3401][0m
+WARNING 2025-07-01 11:33:59,330 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:33:59,333 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3403][0m
+WARNING 2025-07-01 11:33:59,339 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:33:59,342 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3399][0m
+WARNING 2025-07-01 11:33:59,352 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:33:59,355 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:3400][0m
+WARNING 2025-07-01 11:34:03,091 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:34:03,094 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:3400][0m
+WARNING 2025-07-01 11:34:03,123 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:34:03,126 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3403][0m
+WARNING 2025-07-01 11:34:03,130 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:34:03,133 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3399][0m
+WARNING 2025-07-01 11:34:06,615 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:34:06,618 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:3399][0m
+WARNING 2025-07-01 11:34:06,625 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:34:06,627 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:3403][0m
+WARNING 2025-07-01 11:34:06,634 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:34:06,638 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3400][0m
+WARNING 2025-07-01 11:34:09,655 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:34:09,659 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3400][0m
+WARNING 2025-07-01 11:34:09,662 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:34:09,664 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3399][0m
+WARNING 2025-07-01 11:34:09,668 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:34:09,670 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3403][0m
+WARNING 2025-07-01 11:34:16,687 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.02, 127.0.0.1:3399][0m
+WARNING 2025-07-01 11:38:21,528 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.03, 127.0.0.1:3512][0m
+WARNING 2025-07-01 11:38:26,002 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.02, 127.0.0.1:3515][0m
+WARNING 2025-07-01 11:38:27,697 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:38:27,706 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3514][0m
+WARNING 2025-07-01 11:38:27,708 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:38:27,710 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3510][0m
+WARNING 2025-07-01 11:38:27,713 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:38:27,716 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3511][0m
+WARNING 2025-07-01 11:38:27,724 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:38:27,727 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3512][0m
+WARNING 2025-07-01 11:38:27,745 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:38:27,748 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:3515][0m
+WARNING 2025-07-01 11:39:03,978 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:03,982 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:3515][0m
+WARNING 2025-07-01 11:39:03,984 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:03,986 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:3511][0m
+WARNING 2025-07-01 11:39:03,991 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:03,995 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:3512][0m
+WARNING 2025-07-01 11:39:04,002 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:04,007 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:3514][0m
+WARNING 2025-07-01 11:39:04,018 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:04,023 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.12, 127.0.0.1:3510][0m
+WARNING 2025-07-01 11:39:09,191 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:09,197 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:3510][0m
+WARNING 2025-07-01 11:39:09,202 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:09,205 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:3514][0m
+WARNING 2025-07-01 11:39:09,210 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:09,213 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3512][0m
+WARNING 2025-07-01 11:39:10,632 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:10,638 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:3512][0m
+WARNING 2025-07-01 11:39:10,643 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:10,645 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:3514][0m
+WARNING 2025-07-01 11:39:10,655 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:10,657 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3510][0m
+WARNING 2025-07-01 11:39:12,433 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:12,442 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3510][0m
+WARNING 2025-07-01 11:39:12,445 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:12,447 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3514][0m
+WARNING 2025-07-01 11:39:12,451 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:12,453 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3511][0m
+WARNING 2025-07-01 11:39:12,458 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:12,461 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3512][0m
+WARNING 2025-07-01 11:39:12,468 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:12,471 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3515][0m
+WARNING 2025-07-01 11:39:16,484 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:16,487 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:3512][0m
+WARNING 2025-07-01 11:39:16,493 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:16,496 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:3514][0m
+WARNING 2025-07-01 11:39:16,503 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:16,506 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:3511][0m
+WARNING 2025-07-01 11:39:16,510 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:16,513 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:3515][0m
+WARNING 2025-07-01 11:39:16,521 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:39:16,524 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:3510][0m
+WARNING 2025-07-01 11:39:39,595 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:3515][0m
+WARNING 2025-07-01 11:51:00,071 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.03, 127.0.0.1:4755][0m
+WARNING 2025-07-01 11:51:02,475 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:02,478 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:4755][0m
+WARNING 2025-07-01 11:51:02,480 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:02,483 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:4757][0m
+WARNING 2025-07-01 11:51:02,489 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:02,490 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:4758][0m
+WARNING 2025-07-01 11:51:56,124 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:56,127 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:4752][0m
+WARNING 2025-07-01 11:51:56,131 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:56,135 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4751][0m
+WARNING 2025-07-01 11:51:56,139 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:56,142 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:4755][0m
+WARNING 2025-07-01 11:51:56,148 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:56,153 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:4756][0m
+WARNING 2025-07-01 11:51:56,158 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:56,163 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.11, 127.0.0.1:4758][0m
+WARNING 2025-07-01 11:51:56,175 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:56,187 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.13, 127.0.0.1:4757][0m
+WARNING 2025-07-01 11:51:56,192 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:56,197 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:4752][0m
+WARNING 2025-07-01 11:51:56,205 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:56,209 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:4751][0m
+WARNING 2025-07-01 11:51:56,217 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:56,221 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:4755][0m
+WARNING 2025-07-01 11:51:58,165 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.04, 127.0.0.1:4752][0m
+WARNING 2025-07-01 11:51:59,713 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:59,718 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:4757][0m
+WARNING 2025-07-01 11:51:59,740 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:59,742 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:4752][0m
+WARNING 2025-07-01 11:51:59,743 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:59,748 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:4756][0m
+WARNING 2025-07-01 11:51:59,757 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:59,767 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:4758][0m
+WARNING 2025-07-01 11:51:59,770 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:59,782 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.11, 127.0.0.1:4751][0m
+WARNING 2025-07-01 11:51:59,787 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:59,789 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.11, 127.0.0.1:4755][0m
+WARNING 2025-07-01 11:51:59,793 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:59,795 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:4752][0m
+WARNING 2025-07-01 11:51:59,803 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:59,805 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:4756][0m
+WARNING 2025-07-01 11:51:59,813 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:51:59,816 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:4757][0m
+WARNING 2025-07-01 11:52:00,526 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:00,530 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:4757][0m
+WARNING 2025-07-01 11:52:00,534 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:00,537 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:4758][0m
+WARNING 2025-07-01 11:52:00,542 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:00,545 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:4755][0m
+WARNING 2025-07-01 11:52:00,554 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:00,556 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4752][0m
+WARNING 2025-07-01 11:52:00,580 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:00,583 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.11, 127.0.0.1:4751][0m
+WARNING 2025-07-01 11:52:00,589 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:00,591 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:4757][0m
+WARNING 2025-07-01 11:52:00,595 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:00,598 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:4755][0m
+WARNING 2025-07-01 11:52:00,606 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:00,609 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.14, 127.0.0.1:4756][0m
+WARNING 2025-07-01 11:52:00,614 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:00,617 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4758][0m
+WARNING 2025-07-01 11:52:01,497 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:01,499 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:4758][0m
+WARNING 2025-07-01 11:52:06,537 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:06,540 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:4758][0m
+WARNING 2025-07-01 11:52:06,558 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:06,561 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:4756][0m
+WARNING 2025-07-01 11:52:06,574 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:06,591 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4752][0m
+WARNING 2025-07-01 11:52:06,597 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:06,601 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4751][0m
+WARNING 2025-07-01 11:52:06,608 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:06,621 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.12, 127.0.0.1:4755][0m
+WARNING 2025-07-01 11:52:06,624 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:06,640 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.13, 127.0.0.1:4757][0m
+WARNING 2025-07-01 11:52:06,644 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:06,648 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:06,651 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.11, 127.0.0.1:4758][0m
+WARNING 2025-07-01 11:52:06,654 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:4756][0m
+WARNING 2025-07-01 11:52:06,657 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:06,665 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:4751][0m
+WARNING 2025-07-01 11:52:06,672 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:06,674 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4752][0m
+WARNING 2025-07-01 11:52:06,681 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:06,685 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:4755][0m
+WARNING 2025-07-01 11:52:06,692 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:06,694 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:4757][0m
+WARNING 2025-07-01 11:52:06,702 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:06,704 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:4758][0m
+WARNING 2025-07-01 11:52:12,660 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,676 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:4758][0m
+WARNING 2025-07-01 11:52:12,679 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,692 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:4757][0m
+WARNING 2025-07-01 11:52:12,700 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,703 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4756][0m
+WARNING 2025-07-01 11:52:12,706 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,710 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:4752][0m
+WARNING 2025-07-01 11:52:12,719 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,733 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.12, 127.0.0.1:4751][0m
+WARNING 2025-07-01 11:52:12,745 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,753 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,756 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.15, 127.0.0.1:4755][0m
+WARNING 2025-07-01 11:52:12,758 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4758][0m
+WARNING 2025-07-01 11:52:12,761 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,767 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:4752][0m
+WARNING 2025-07-01 11:52:12,774 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,777 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:4756][0m
+WARNING 2025-07-01 11:52:12,781 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,793 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:4757][0m
+WARNING 2025-07-01 11:52:12,827 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,829 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:4752][0m
+WARNING 2025-07-01 11:52:12,839 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,841 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4758][0m
+WARNING 2025-07-01 11:52:12,856 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,863 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.13, 127.0.0.1:4751][0m
+WARNING 2025-07-01 11:52:12,867 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,871 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.11, 127.0.0.1:4755][0m
+WARNING 2025-07-01 11:52:12,872 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,875 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:4757][0m
+WARNING 2025-07-01 11:52:12,882 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,890 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:4752][0m
+WARNING 2025-07-01 11:52:12,895 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,903 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.12, 127.0.0.1:4756][0m
+WARNING 2025-07-01 11:52:12,908 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,910 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:4758][0m
+WARNING 2025-07-01 11:52:12,918 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,921 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:4751][0m
+WARNING 2025-07-01 11:52:12,964 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,971 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4752][0m
+WARNING 2025-07-01 11:52:12,973 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,975 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:4758][0m
+WARNING 2025-07-01 11:52:12,980 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,984 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:4757][0m
+WARNING 2025-07-01 11:52:12,986 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:12,991 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:4751][0m
+WARNING 2025-07-01 11:52:12,999 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:13,004 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:4756][0m
+WARNING 2025-07-01 11:52:13,009 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:13,026 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.15, 127.0.0.1:4755][0m
+WARNING 2025-07-01 11:52:13,029 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:13,041 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:4752][0m
+WARNING 2025-07-01 11:52:13,048 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:13,053 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:4757][0m
+WARNING 2025-07-01 11:52:13,059 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:13,062 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4758][0m
+WARNING 2025-07-01 11:52:13,071 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:13,080 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:4751][0m
+WARNING 2025-07-01 11:52:13,122 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:13,125 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4752][0m
+WARNING 2025-07-01 11:52:13,136 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:13,140 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.11, 127.0.0.1:4755][0m
+WARNING 2025-07-01 11:52:13,141 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:13,144 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.13, 127.0.0.1:4756][0m
+WARNING 2025-07-01 11:52:13,152 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:13,155 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:4751][0m
+WARNING 2025-07-01 11:52:13,164 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:13,169 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:4758][0m
+WARNING 2025-07-01 11:52:13,175 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:13,179 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:4752][0m
+WARNING 2025-07-01 11:52:13,184 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:13,187 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.13, 127.0.0.1:4757][0m
+WARNING 2025-07-01 11:52:13,192 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:52:13,194 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:4755][0m
+WARNING 2025-07-01 11:55:59,142 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.04, 127.0.0.1:4940][0m
+WARNING 2025-07-01 11:56:01,735 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:01,739 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:4940][0m
+WARNING 2025-07-01 11:56:01,746 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:01,750 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4942][0m
+WARNING 2025-07-01 11:56:01,756 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:01,760 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4943][0m
+WARNING 2025-07-01 11:56:01,767 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:01,778 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.11, 127.0.0.1:4941][0m
+WARNING 2025-07-01 11:56:01,791 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:01,793 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.12, 127.0.0.1:4936][0m
+WARNING 2025-07-01 11:56:01,798 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:01,801 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:4943][0m
+WARNING 2025-07-01 11:56:01,809 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:01,812 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:4942][0m
+WARNING 2025-07-01 11:56:01,824 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:01,826 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4940][0m
+WARNING 2025-07-01 11:56:01,839 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:01,842 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.18, 127.0.0.1:4937][0m
+WARNING 2025-07-01 11:56:02,693 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:02,697 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:4937][0m
+WARNING 2025-07-01 11:56:11,034 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.02, 127.0.0.1:4940][0m
+WARNING 2025-07-01 11:56:14,597 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:14,600 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:4942][0m
+WARNING 2025-07-01 11:56:14,605 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:14,608 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:4943][0m
+WARNING 2025-07-01 11:56:14,629 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:14,632 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:4940][0m
+WARNING 2025-07-01 11:56:14,652 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:14,654 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.11, 127.0.0.1:4936][0m
+WARNING 2025-07-01 11:56:14,672 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:14,674 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.13, 127.0.0.1:4941][0m
+WARNING 2025-07-01 11:56:17,168 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,172 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:4936][0m
+WARNING 2025-07-01 11:56:17,194 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,200 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:4941][0m
+WARNING 2025-07-01 11:56:17,204 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,207 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4942][0m
+WARNING 2025-07-01 11:56:17,214 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,222 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:4943][0m
+WARNING 2025-07-01 11:56:17,223 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,230 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:4964][0m
+WARNING 2025-07-01 11:56:17,249 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,253 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,256 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4936][0m
+WARNING 2025-07-01 11:56:17,260 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.14, 127.0.0.1:4940][0m
+WARNING 2025-07-01 11:56:17,270 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,283 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4941][0m
+WARNING 2025-07-01 11:56:17,285 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,292 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4942][0m
+WARNING 2025-07-01 11:56:17,305 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,316 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:4943][0m
+WARNING 2025-07-01 11:56:17,318 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,328 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4964][0m
+WARNING 2025-07-01 11:56:17,331 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,341 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4936][0m
+WARNING 2025-07-01 11:56:17,342 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,348 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4940][0m
+WARNING 2025-07-01 11:56:17,353 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,366 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4941][0m
+WARNING 2025-07-01 11:56:17,367 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,379 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4942][0m
+WARNING 2025-07-01 11:56:17,389 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,395 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:4943][0m
+WARNING 2025-07-01 11:56:17,406 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,408 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:4964][0m
+WARNING 2025-07-01 11:56:17,410 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,420 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:4936][0m
+WARNING 2025-07-01 11:56:17,431 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,434 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:4940][0m
+WARNING 2025-07-01 11:56:17,435 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,437 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:4941][0m
+WARNING 2025-07-01 11:56:17,441 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 11:56:17,444 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:4942][0m
+WARNING 2025-07-01 12:01:31,504 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.04, 127.0.0.1:5134][0m
+WARNING 2025-07-01 12:01:34,270 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:01:34,273 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5135][0m
+WARNING 2025-07-01 12:01:34,274 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:01:34,276 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5134][0m
+WARNING 2025-07-01 12:01:34,281 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:01:34,283 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5137][0m
+WARNING 2025-07-01 12:01:34,291 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:01:34,293 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5136][0m
+WARNING 2025-07-01 12:01:34,301 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:01:34,303 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:5133][0m
+WARNING 2025-07-01 12:01:37,089 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:01:37,091 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5133][0m
+WARNING 2025-07-01 12:01:37,097 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:01:37,099 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5135][0m
+WARNING 2025-07-01 12:01:37,104 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:01:37,108 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5136][0m
+WARNING 2025-07-01 12:01:37,113 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:01:37,116 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5137][0m
+WARNING 2025-07-01 12:01:37,121 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:01:37,123 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:5134][0m
+WARNING 2025-07-01 12:01:37,856 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:01:37,858 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5137][0m
+WARNING 2025-07-01 12:01:37,863 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:01:37,864 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5133][0m
+WARNING 2025-07-01 12:01:37,871 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:01:37,872 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5136][0m
+WARNING 2025-07-01 12:01:37,881 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:01:37,883 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:5135][0m
+WARNING 2025-07-01 12:01:37,896 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:01:37,898 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:5134][0m
+WARNING 2025-07-01 12:01:39,846 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:01:39,849 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:5134][0m
+WARNING 2025-07-01 12:01:47,886 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:01:47,889 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:5134][0m
+WARNING 2025-07-01 12:01:51,579 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:01:51,581 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:5134][0m
+WARNING 2025-07-01 12:02:16,563 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:16,567 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5134][0m
+WARNING 2025-07-01 12:02:16,569 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:16,575 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:5135][0m
+WARNING 2025-07-01 12:02:16,577 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:16,585 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5132][0m
+WARNING 2025-07-01 12:02:16,587 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:16,595 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5137][0m
+WARNING 2025-07-01 12:02:16,614 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:16,619 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.12, 127.0.0.1:5136][0m
+WARNING 2025-07-01 12:02:16,628 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:16,633 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5134][0m
+WARNING 2025-07-01 12:02:16,646 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:16,653 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:5135][0m
+WARNING 2025-07-01 12:02:16,670 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:16,673 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.17, 127.0.0.1:5133][0m
+WARNING 2025-07-01 12:02:16,675 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:16,677 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5132][0m
+WARNING 2025-07-01 12:02:16,685 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:16,687 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5137][0m
+WARNING 2025-07-01 12:02:16,697 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:16,701 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:5136][0m
+WARNING 2025-07-01 12:02:18,613 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:18,619 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:18,621 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5137][0m
+WARNING 2025-07-01 12:02:18,624 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5136][0m
+WARNING 2025-07-01 12:02:18,628 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:18,637 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:5133][0m
+WARNING 2025-07-01 12:02:18,643 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:18,649 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5134][0m
+WARNING 2025-07-01 12:02:18,650 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:18,658 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:5135][0m
+WARNING 2025-07-01 12:02:18,665 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:18,686 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.13, 127.0.0.1:5132][0m
+WARNING 2025-07-01 12:02:18,696 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:18,699 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5136][0m
+WARNING 2025-07-01 12:02:18,715 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:18,724 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:5137][0m
+WARNING 2025-07-01 12:02:18,730 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:18,735 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5133][0m
+WARNING 2025-07-01 12:02:18,743 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:18,745 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:5135][0m
+WARNING 2025-07-01 12:02:18,750 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:18,753 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:5134][0m
+WARNING 2025-07-01 12:02:19,523 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:19,526 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5134][0m
+WARNING 2025-07-01 12:02:19,533 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:19,537 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5135][0m
+WARNING 2025-07-01 12:02:19,542 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:19,546 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:5133][0m
+WARNING 2025-07-01 12:02:19,552 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:19,558 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5132][0m
+WARNING 2025-07-01 12:02:19,574 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:19,585 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.12, 127.0.0.1:5136][0m
+WARNING 2025-07-01 12:02:19,591 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:19,596 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5135][0m
+WARNING 2025-07-01 12:02:19,601 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:19,605 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:5134][0m
+WARNING 2025-07-01 12:02:19,613 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:19,616 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.15, 127.0.0.1:5137][0m
+WARNING 2025-07-01 12:02:19,623 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:19,628 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5132][0m
+WARNING 2025-07-01 12:02:19,633 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:19,637 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5133][0m
+WARNING 2025-07-01 12:02:19,642 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:19,644 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5136][0m
+WARNING 2025-07-01 12:02:21,425 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:21,427 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:21,429 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5133][0m
+WARNING 2025-07-01 12:02:21,432 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5135][0m
+WARNING 2025-07-01 12:02:21,436 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:21,442 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5136][0m
+WARNING 2025-07-01 12:02:21,444 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:21,452 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5137][0m
+WARNING 2025-07-01 12:02:21,459 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:21,469 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.11, 127.0.0.1:5132][0m
+WARNING 2025-07-01 12:02:21,480 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:21,495 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.13, 127.0.0.1:5134][0m
+WARNING 2025-07-01 12:02:21,506 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:21,511 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:5133][0m
+WARNING 2025-07-01 12:02:21,514 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:21,522 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5137][0m
+WARNING 2025-07-01 12:02:21,527 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:21,530 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5135][0m
+WARNING 2025-07-01 12:02:21,534 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:21,538 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5136][0m
+WARNING 2025-07-01 12:02:21,542 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:02:21,544 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5132][0m
+WARNING 2025-07-01 12:06:11,142 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.03, 127.0.0.1:5258][0m
+WARNING 2025-07-01 12:06:13,508 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:13,511 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5260][0m
+WARNING 2025-07-01 12:06:13,516 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:13,519 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5259][0m
+WARNING 2025-07-01 12:06:13,525 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:13,528 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5258][0m
+WARNING 2025-07-01 12:06:13,537 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:13,541 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5257][0m
+WARNING 2025-07-01 12:06:13,557 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:13,560 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:5256][0m
+WARNING 2025-07-01 12:06:14,132 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:14,136 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5256][0m
+WARNING 2025-07-01 12:06:14,139 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:14,141 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5260][0m
+WARNING 2025-07-01 12:06:14,147 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:14,149 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:5259][0m
+WARNING 2025-07-01 12:06:14,155 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:14,157 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5258][0m
+WARNING 2025-07-01 12:06:14,164 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:14,169 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:5257][0m
+WARNING 2025-07-01 12:06:14,372 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:14,375 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5259][0m
+WARNING 2025-07-01 12:06:14,380 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:14,383 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5258][0m
+WARNING 2025-07-01 12:06:14,387 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:14,390 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5256][0m
+WARNING 2025-07-01 12:06:14,395 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:14,398 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:5257][0m
+WARNING 2025-07-01 12:06:14,413 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:14,418 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.10, 127.0.0.1:5260][0m
+WARNING 2025-07-01 12:06:15,843 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:15,846 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.31, 127.0.0.1:5260][0m
+WARNING 2025-07-01 12:06:15,869 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:15,871 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.33, 127.0.0.1:5257][0m
+WARNING 2025-07-01 12:06:15,876 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:15,879 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.33, 127.0.0.1:5256][0m
+WARNING 2025-07-01 12:06:19,341 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:19,343 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5260][0m
+WARNING 2025-07-01 12:06:19,349 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:19,352 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5257][0m
+WARNING 2025-07-01 12:06:19,360 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:19,362 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5259][0m
+WARNING 2025-07-01 12:06:19,370 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:19,373 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:5258][0m
+WARNING 2025-07-01 12:06:19,379 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:19,382 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5256][0m
+WARNING 2025-07-01 12:06:21,314 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:21,318 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:5256][0m
+WARNING 2025-07-01 12:06:21,323 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:21,325 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5259][0m
+WARNING 2025-07-01 12:06:21,332 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:21,335 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5258][0m
+WARNING 2025-07-01 12:06:24,223 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:24,226 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5259][0m
+WARNING 2025-07-01 12:06:24,230 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:24,232 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5256][0m
+WARNING 2025-07-01 12:06:24,247 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:06:24,249 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5258][0m
+WARNING 2025-07-01 12:10:36,642 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.04, 127.0.0.1:5367][0m
+WARNING 2025-07-01 12:10:40,782 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:40,787 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5367][0m
+WARNING 2025-07-01 12:10:40,791 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:40,793 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5369][0m
+WARNING 2025-07-01 12:10:40,799 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:40,802 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5364][0m
+WARNING 2025-07-01 12:10:40,807 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:40,810 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5370][0m
+WARNING 2025-07-01 12:10:40,814 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:40,816 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5368][0m
+WARNING 2025-07-01 12:10:41,348 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:41,352 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5364][0m
+WARNING 2025-07-01 12:10:41,357 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:41,359 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5369][0m
+WARNING 2025-07-01 12:10:41,368 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:41,371 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5367][0m
+WARNING 2025-07-01 12:10:41,376 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:41,378 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:5368][0m
+WARNING 2025-07-01 12:10:41,386 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:41,388 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5370][0m
+WARNING 2025-07-01 12:10:41,559 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:41,561 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5369][0m
+WARNING 2025-07-01 12:10:41,566 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:41,568 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5370][0m
+WARNING 2025-07-01 12:10:41,575 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:41,578 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5364][0m
+WARNING 2025-07-01 12:10:41,584 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:41,585 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:5368][0m
+WARNING 2025-07-01 12:10:41,597 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:41,598 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5367][0m
+WARNING 2025-07-01 12:10:41,704 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:41,707 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5368][0m
+WARNING 2025-07-01 12:10:41,712 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:41,714 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5369][0m
+WARNING 2025-07-01 12:10:41,719 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:41,721 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5370][0m
+WARNING 2025-07-01 12:10:41,725 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:41,727 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5364][0m
+WARNING 2025-07-01 12:10:41,738 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:41,740 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5367][0m
+WARNING 2025-07-01 12:10:42,330 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:42,333 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5367][0m
+WARNING 2025-07-01 12:10:42,338 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:42,341 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5370][0m
+WARNING 2025-07-01 12:10:42,348 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:42,351 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5364][0m
+WARNING 2025-07-01 12:10:47,183 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:47,186 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5394][0m
+WARNING 2025-07-01 12:10:47,187 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:47,190 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5397][0m
+WARNING 2025-07-01 12:10:47,193 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:47,196 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5396][0m
+WARNING 2025-07-01 12:10:47,199 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:47,202 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5393][0m
+WARNING 2025-07-01 12:10:47,209 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:47,212 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:5395][0m
+WARNING 2025-07-01 12:10:48,464 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:48,469 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5393][0m
+WARNING 2025-07-01 12:10:48,471 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:48,474 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5396][0m
+WARNING 2025-07-01 12:10:48,479 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:48,482 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5394][0m
+WARNING 2025-07-01 12:10:48,487 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:48,489 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5395][0m
+WARNING 2025-07-01 12:10:48,511 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:48,514 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5397][0m
+WARNING 2025-07-01 12:10:49,737 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:49,740 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5395][0m
+WARNING 2025-07-01 12:10:49,747 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:49,750 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5393][0m
+WARNING 2025-07-01 12:10:49,758 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:49,761 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:5397][0m
+WARNING 2025-07-01 12:10:49,766 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:49,768 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:5396][0m
+WARNING 2025-07-01 12:10:49,775 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:49,777 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:5394][0m
+WARNING 2025-07-01 12:10:51,168 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:51,171 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5396][0m
+WARNING 2025-07-01 12:10:51,176 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:51,179 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5397][0m
+WARNING 2025-07-01 12:10:51,184 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:51,186 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5394][0m
+WARNING 2025-07-01 12:10:53,701 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:5397][0m
+WARNING 2025-07-01 12:10:55,186 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:55,188 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:5395][0m
+WARNING 2025-07-01 12:10:55,193 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:55,196 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:5396][0m
+WARNING 2025-07-01 12:10:55,201 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:55,204 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5393][0m
+WARNING 2025-07-01 12:10:55,208 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:10:55,210 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:5397][0m
+WARNING 2025-07-01 12:10:56,901 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.02, 127.0.0.1:5393][0m
+WARNING 2025-07-01 12:12:39,394 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.03, 127.0.0.1:5465][0m
+WARNING 2025-07-01 12:12:44,102 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:12:44,104 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:5467][0m
+WARNING 2025-07-01 12:13:50,155 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.04, 127.0.0.1:5506][0m
+WARNING 2025-07-01 12:13:55,539 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:13:55,542 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:5502][0m
+WARNING 2025-07-01 12:20:56,352 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.04, 127.0.0.1:5726][0m
+WARNING 2025-07-01 12:21:00,612 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.03, 127.0.0.1:5727][0m
+WARNING 2025-07-01 12:21:03,432 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:21:03,434 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:5723][0m
+WARNING 2025-07-01 12:21:10,455 log Not Found: /erp/purchases/get-pending-ids/
+WARNING 2025-07-01 12:21:10,457 runserver [33mHTTP GET /erp/purchases/get-pending-ids/ 404 [0.02, 127.0.0.1:5723][0m
+WARNING 2025-07-01 12:21:10,486 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:21:10,488 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:5723][0m
+WARNING 2025-07-01 12:21:24,278 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:21:24,280 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:5723][0m
+WARNING 2025-07-01 12:21:33,169 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:21:33,172 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:5723][0m
+WARNING 2025-07-01 12:21:36,592 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:21:36,596 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:5723][0m
+WARNING 2025-07-01 12:23:38,181 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.04, 127.0.0.1:5810][0m
+WARNING 2025-07-01 12:23:44,405 log Not Found: /erp/purchases/get-pending-ids/
+WARNING 2025-07-01 12:23:44,407 runserver [33mHTTP GET /erp/purchases/get-pending-ids/ 404 [0.03, 127.0.0.1:5812][0m
+WARNING 2025-07-01 12:23:44,441 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:23:44,444 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:5812][0m
+WARNING 2025-07-01 12:28:20,610 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.05, 127.0.0.1:5951][0m
+WARNING 2025-07-01 12:28:24,588 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:28:24,591 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:5954][0m
+WARNING 2025-07-01 12:28:29,410 log Not Found: /erp/purchases/get-section-ids/
+WARNING 2025-07-01 12:28:29,413 runserver [33mHTTP GET /erp/purchases/get-section-ids/?section=pending 404 [0.03, 127.0.0.1:5954][0m
+WARNING 2025-07-01 12:28:29,445 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:28:29,448 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:5954][0m
+WARNING 2025-07-01 12:28:55,813 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.04, 127.0.0.1:5952][0m
+WARNING 2025-07-01 12:28:59,008 log Not Found: /erp/purchases/get-section-ids/
+WARNING 2025-07-01 12:28:59,012 runserver [33mHTTP GET /erp/purchases/get-section-ids/?section=pending 404 [0.03, 127.0.0.1:5952][0m
+WARNING 2025-07-01 12:28:59,051 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:28:59,054 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:5952][0m
+WARNING 2025-07-01 12:29:04,922 log Not Found: /erp/purchases/get-section-ids/
+WARNING 2025-07-01 12:29:04,925 runserver [33mHTTP GET /erp/purchases/get-section-ids/?section=pending 404 [0.03, 127.0.0.1:5952][0m
+WARNING 2025-07-01 12:29:04,955 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:29:04,958 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:5952][0m
+WARNING 2025-07-01 12:30:32,999 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.04, 127.0.0.1:6063][0m
+WARNING 2025-07-01 12:30:34,798 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:30:34,801 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6062][0m
+WARNING 2025-07-01 12:36:45,703 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.05, 127.0.0.1:6282][0m
+WARNING 2025-07-01 12:36:48,243 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:36:48,246 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6282][0m
+WARNING 2025-07-01 12:36:57,351 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:36:57,355 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6282][0m
+WARNING 2025-07-01 12:37:06,753 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:37:06,756 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6282][0m
+WARNING 2025-07-01 12:37:18,381 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:37:18,384 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6282][0m
+WARNING 2025-07-01 12:37:26,689 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:37:26,693 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:6282][0m
+WARNING 2025-07-01 12:37:30,387 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:37:30,390 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6282][0m
+WARNING 2025-07-01 12:37:32,773 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:37:32,777 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6282][0m
+WARNING 2025-07-01 12:39:24,733 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:39:24,737 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6366][0m
+WARNING 2025-07-01 12:39:30,344 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:39:30,347 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6366][0m
+WARNING 2025-07-01 12:45:19,069 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:6592][0m
+WARNING 2025-07-01 12:45:49,101 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:6595][0m
+WARNING 2025-07-01 12:45:51,680 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:45:51,681 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:6592][0m
+WARNING 2025-07-01 12:45:51,776 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:45:51,777 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.12, 127.0.0.1:6621][0m
+WARNING 2025-07-01 12:45:51,786 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:45:51,787 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.13, 127.0.0.1:6622][0m
+WARNING 2025-07-01 12:45:58,213 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:45:58,215 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6621][0m
+WARNING 2025-07-01 12:45:58,218 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:45:58,219 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6622][0m
+WARNING 2025-07-01 12:46:01,525 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:46:01,526 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:6592][0m
+WARNING 2025-07-01 12:46:01,532 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:46:01,533 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6621][0m
+WARNING 2025-07-01 12:46:01,571 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:46:01,573 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6622][0m
+WARNING 2025-07-01 12:46:01,577 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:46:01,579 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:6621][0m
+WARNING 2025-07-01 12:46:05,352 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:46:05,353 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6621][0m
+WARNING 2025-07-01 12:46:05,357 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:46:05,358 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6622][0m
+WARNING 2025-07-01 12:46:16,415 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:46:16,417 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:6622][0m
+WARNING 2025-07-01 12:46:18,342 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:46:18,343 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6592][0m
+WARNING 2025-07-01 12:46:18,347 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:46:18,348 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:6621][0m
+WARNING 2025-07-01 12:46:18,363 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:46:18,365 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:6622][0m
+WARNING 2025-07-01 12:46:34,710 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:46:34,711 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:6621][0m
+WARNING 2025-07-01 12:46:39,414 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:46:39,415 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:6591][0m
+WARNING 2025-07-01 12:46:39,418 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:46:39,419 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:6592][0m
+WARNING 2025-07-01 12:46:39,424 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:46:39,425 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:6621][0m
+WARNING 2025-07-01 12:46:49,816 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:46:49,818 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6592][0m
+WARNING 2025-07-01 12:46:49,821 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:46:49,823 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:6591][0m
+WARNING 2025-07-01 12:46:49,827 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:46:49,828 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:6621][0m
+WARNING 2025-07-01 12:49:51,070 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:6762][0m
+WARNING 2025-07-01 12:49:56,044 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:49:56,045 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:6764][0m
+WARNING 2025-07-01 12:49:56,049 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:49:56,051 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:6763][0m
+WARNING 2025-07-01 12:49:56,055 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:49:56,056 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:6765][0m
+WARNING 2025-07-01 12:50:01,373 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:50:01,375 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6765][0m
+WARNING 2025-07-01 12:50:01,392 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:50:01,394 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:6764][0m
+WARNING 2025-07-01 12:50:01,441 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:50:01,442 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:6763][0m
+WARNING 2025-07-01 12:50:01,447 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:50:01,448 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6764][0m
+WARNING 2025-07-01 12:50:13,060 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:50:13,062 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:6764][0m
+WARNING 2025-07-01 12:50:15,683 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:6763][0m
+WARNING 2025-07-01 12:50:18,856 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:50:18,857 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:6763][0m
+WARNING 2025-07-01 12:50:18,901 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:50:18,902 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6763][0m
+WARNING 2025-07-01 12:50:18,906 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:50:18,907 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6765][0m
+WARNING 2025-07-01 12:50:23,528 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:50:23,530 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:6757][0m
+WARNING 2025-07-01 12:50:23,534 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:50:23,535 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:6765][0m
+WARNING 2025-07-01 12:50:23,540 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:50:23,540 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:6758][0m
+WARNING 2025-07-01 12:50:23,551 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:50:23,552 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:6762][0m
+WARNING 2025-07-01 12:50:23,557 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:50:23,558 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.09, 127.0.0.1:6763][0m
+WARNING 2025-07-01 12:50:30,108 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:50:30,110 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:6763][0m
+WARNING 2025-07-01 12:51:21,200 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:21,201 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6763][0m
+WARNING 2025-07-01 12:51:21,205 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:21,207 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6762][0m
+WARNING 2025-07-01 12:51:21,210 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:21,210 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:6758][0m
+WARNING 2025-07-01 12:51:28,661 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:28,662 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:6841][0m
+WARNING 2025-07-01 12:51:28,668 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:28,669 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:6763][0m
+WARNING 2025-07-01 12:51:28,675 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:28,676 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:6758][0m
+WARNING 2025-07-01 12:51:28,679 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:28,680 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:6840][0m
+WARNING 2025-07-01 12:51:28,685 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:28,686 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:6762][0m
+WARNING 2025-07-01 12:51:32,127 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.02, 127.0.0.1:6758][0m
+WARNING 2025-07-01 12:51:36,344 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:36,345 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:6758][0m
+WARNING 2025-07-01 12:51:36,390 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:36,391 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6840][0m
+WARNING 2025-07-01 12:51:36,395 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:36,397 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6758][0m
+WARNING 2025-07-01 12:51:49,363 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:49,364 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6840][0m
+WARNING 2025-07-01 12:51:49,369 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:49,371 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6758][0m
+WARNING 2025-07-01 12:51:53,363 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:53,365 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:6758][0m
+WARNING 2025-07-01 12:51:53,368 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:53,370 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:6840][0m
+WARNING 2025-07-01 12:51:53,373 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:53,374 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.06, 127.0.0.1:6847][0m
+WARNING 2025-07-01 12:51:53,379 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:53,380 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.07, 127.0.0.1:6763][0m
+WARNING 2025-07-01 12:51:53,386 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:53,388 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.08, 127.0.0.1:6762][0m
+WARNING 2025-07-01 12:51:56,410 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:56,411 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6762][0m
+WARNING 2025-07-01 12:51:59,113 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:59,116 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:6763][0m
+WARNING 2025-07-01 12:51:59,140 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:59,142 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6762][0m
+WARNING 2025-07-01 12:51:59,146 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:51:59,148 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:6847][0m
+WARNING 2025-07-01 12:52:06,846 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:52:06,848 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.20, 127.0.0.1:6847][0m
+WARNING 2025-07-01 12:52:06,853 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:52:06,854 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.21, 127.0.0.1:6840][0m
+WARNING 2025-07-01 12:52:06,859 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:52:06,860 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.21, 127.0.0.1:6763][0m
+WARNING 2025-07-01 12:52:06,864 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:52:06,865 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.22, 127.0.0.1:6758][0m
+WARNING 2025-07-01 12:52:06,870 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:52:06,871 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.22, 127.0.0.1:6762][0m
+WARNING 2025-07-01 12:52:11,760 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:52:11,762 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6762][0m
+WARNING 2025-07-01 12:52:47,698 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:52:47,700 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:6762][0m
+WARNING 2025-07-01 12:52:47,703 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:52:47,705 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:6758][0m
+WARNING 2025-07-01 12:52:47,710 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:52:47,712 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:6763][0m
+WARNING 2025-07-01 12:53:17,287 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:53:17,290 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6763][0m
+WARNING 2025-07-01 12:53:17,321 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:53:17,322 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:6763][0m
+WARNING 2025-07-01 12:53:17,367 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:53:17,369 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:6758][0m
+WARNING 2025-07-01 12:53:17,373 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:53:17,374 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:6763][0m
+WARNING 2025-07-01 12:53:22,240 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:53:22,242 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:6762][0m
+WARNING 2025-07-01 12:53:22,247 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:53:22,248 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:6758][0m
+WARNING 2025-07-01 12:53:22,251 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 12:53:22,253 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:6763][0m
+WARNING 2025-07-01 13:00:10,252 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:7113][0m
+WARNING 2025-07-01 13:05:47,966 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:7389][0m
+WARNING 2025-07-01 13:06:08,036 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:7390][0m
+WARNING 2025-07-01 13:11:20,760 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.02, 127.0.0.1:7540][0m
+WARNING 2025-07-01 13:18:38,984 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:7740][0m
+WARNING 2025-07-01 13:35:41,192 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.04, 127.0.0.1:8169][0m
+WARNING 2025-07-01 13:36:22,052 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:8163][0m
+WARNING 2025-07-01 13:36:24,009 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:36:24,011 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:8170][0m
+WARNING 2025-07-01 13:36:24,014 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:36:24,015 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:8162][0m
+WARNING 2025-07-01 13:36:24,021 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:36:24,022 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:8169][0m
+WARNING 2025-07-01 13:36:28,250 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:36:28,253 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:8169][0m
+WARNING 2025-07-01 13:36:28,271 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:36:28,272 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:8170][0m
+WARNING 2025-07-01 13:36:28,309 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:36:28,311 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:8162][0m
+WARNING 2025-07-01 13:36:28,315 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:36:28,315 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:8170][0m
+WARNING 2025-07-01 13:36:36,397 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:8162][0m
+WARNING 2025-07-01 13:36:38,444 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:36:38,445 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:8162][0m
+WARNING 2025-07-01 13:36:38,450 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:36:38,451 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:8163][0m
+WARNING 2025-07-01 13:36:38,457 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:36:38,459 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:8169][0m
+WARNING 2025-07-01 13:36:40,627 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:36:40,628 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:8169][0m
+WARNING 2025-07-01 13:36:40,658 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:36:40,659 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:8169][0m
+WARNING 2025-07-01 13:36:40,693 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:36:40,694 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:8163][0m
+WARNING 2025-07-01 13:36:40,698 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:36:40,700 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:8169][0m
+WARNING 2025-07-01 13:50:28,840 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:8723][0m
+WARNING 2025-07-01 13:50:35,882 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:8724][0m
+WARNING 2025-07-01 13:50:38,386 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:50:38,387 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:8718][0m
+WARNING 2025-07-01 13:50:38,392 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:50:38,393 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.04, 127.0.0.1:8717][0m
+WARNING 2025-07-01 13:50:38,399 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:50:38,400 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.05, 127.0.0.1:8724][0m
+WARNING 2025-07-01 13:50:42,683 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:50:42,685 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:8724][0m
+WARNING 2025-07-01 13:50:42,722 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:50:42,723 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:8724][0m
+WARNING 2025-07-01 13:50:42,738 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:50:42,739 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.02, 127.0.0.1:8718][0m
+WARNING 2025-07-01 13:50:42,745 log Not Found: /purchases/aggregated-stats/
+WARNING 2025-07-01 13:50:42,747 runserver [33mHTTP POST /purchases/aggregated-stats/ 404 [0.03, 127.0.0.1:8717][0m
+WARNING 2025-07-01 13:54:18,444 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.02, 127.0.0.1:8877][0m
+WARNING 2025-07-01 13:54:21,745 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:8879][0m
+WARNING 2025-07-01 13:54:35,949 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:8878][0m
+WARNING 2025-07-01 13:54:37,988 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.01, 127.0.0.1:8879][0m
+WARNING 2025-07-01 14:04:03,048 runserver [33mHTTP GET /static/css/purchase_list_styles.css 404 [0.02, 127.0.0.1:9160][0m

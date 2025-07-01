@@ -7,6 +7,30 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'css_files/purchase_list_style.css' %}">
     <link rel="stylesheet" href="{% static 'css/purchase_list_styles.css' %}">
+    
+    <!-- Styles for checkbox dropdown -->
+    <style>
+    .dropdown-toggle {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    .dropdown-toggle:focus {
+        box-shadow: none !important;
+    }
+    .dropdown-menu {
+        font-size: 13px;
+        min-width: 200px;
+    }
+    .dropdown-item {
+        padding: 8px 12px;
+    }
+    .dropdown-item:hover {
+        background-color: #f8f9fa;
+    }
+    .global-selection-info {
+        transition: all 0.3s ease;
+    }
+    </style>
     {% table_filter_scripts %}
     {% bulk_edit_scripts %}
     {% edit_history_scripts %}
@@ -320,17 +344,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Purchase Tables Section -->
 <div class="purchase-tables-container">
 
-<!-- Pending Payment Purchases Section (بسته به صورت پیش‌فرض) -->
-<div class="purchase-section mt-4">
-<div class="purchase-toggle shadow-sm" onclick="togglePurchaseSection('pending')">
-<h3 class="mb-0 fw-bold text-warning">
-    <i class="fas fa-clock me-2"></i>خریدهای در انتظار پرداخت
-</h3>
-<i class="fas fa-chevron-down text-warning purchase-icon" id="pendingIcon"></i>
-</div>
-<div id="pendingContent" style="display: none;">
-
-<!-- آمار اجماعی - منتقل شده به بالای خریدهای در انتظار پرداخت -->
+<!-- آمار اجماعی - بالای تمام بخش‌ها -->
 {% if not hide_sensitive_info %}
 <div id="aggregatedStats" class="card mb-4 shadow-sm" style="display: none;">
     <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center">
@@ -399,6 +413,27 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 {% endif %}
 
+<!-- شمارنده انتخاب کلی -->
+<div class="global-selection-info mb-4 shadow-sm bg-light p-2 rounded text-center" id="globalSelectionInfo" style="display: none;">
+    <div class="text-primary fw-bold">
+        <i class="fas fa-check-square me-2"></i>تعداد خریدهای انتخاب شده: 
+        <span class="badge bg-primary" id="globalSelectionCount">0</span>
+        <button class="btn btn-sm btn-outline-secondary ms-3" id="clearAllSelections">
+            <i class="fas fa-times me-1"></i>لغو همه انتخاب‌ها
+        </button>
+    </div>
+</div>
+
+<!-- Pending Payment Purchases Section (بسته به صورت پیش‌فرض) -->
+<div class="purchase-section mt-4">
+<div class="purchase-toggle shadow-sm" onclick="togglePurchaseSection('pending')">
+<h3 class="mb-0 fw-bold text-warning">
+    <i class="fas fa-clock me-2"></i>خریدهای در انتظار پرداخت
+</h3>
+<i class="fas fa-chevron-down text-warning purchase-icon" id="pendingIcon"></i>
+</div>
+<div id="pendingContent" style="display: none;">
+
 {% if pending_payment_purchases.object_list %}
 <div class="table-responsive shadow-sm rounded">
 <table class="table table-bordered table-striped align-middle text-center enable-filter" id="pendingPurchasesTable">
@@ -406,8 +441,33 @@ document.addEventListener('DOMContentLoaded', function() {
         <tr>
             <!-- Columna para checkboxes de selección -->
             <th class="text-center" style="width: 50px;">
-                <div class="d-flex justify-content-center">
-                    <input type="checkbox" class="select-all-checkbox-pending" style="width: 20px; height: 20px; cursor: pointer;">
+                <div class="d-flex justify-content-center align-items-center">
+                    <div class="dropdown">
+                        <input type="checkbox" class="select-all-checkbox-pending" 
+                               style="width: 20px; height: 20px; cursor: pointer;" 
+                               title="کلیک: انتخاب همه در صفحه | راست کلیک: انتخاب همه در بخش"
+                               oncontextmenu="return false;">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle ms-1" 
+                                type="button" 
+                                data-bs-toggle="dropdown" 
+                                aria-expanded="false"
+                                style="padding: 1px 4px; font-size: 10px;"
+                                title="گزینه‌های انتخاب">
+                            <i class="fas fa-caret-down"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item select-page-pending" href="#" data-section="pending">
+                                <i class="fas fa-check me-2"></i>انتخاب همه در صفحه
+                            </a></li>
+                            <li><a class="dropdown-item select-section-pending" href="#" data-section="pending">
+                                <i class="fas fa-check-double me-2"></i>انتخاب همه در بخش
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item clear-selection-pending" href="#" data-section="pending">
+                                <i class="fas fa-times me-2"></i>لغو انتخاب‌ها
+                            </a></li>
+                        </ul>
+                    </div>
                 </div>
             </th>
             {% for column in all_columns %}
@@ -776,8 +836,33 @@ document.addEventListener('DOMContentLoaded', function() {
         <tr>
             <!-- Columna para checkboxes de selección -->
             <th class="text-center" style="width: 50px;">
-                <div class="d-flex justify-content-center">
-                    <input type="checkbox" class="select-all-checkbox" style="width: 20px; height: 20px; cursor: pointer;">
+                <div class="d-flex justify-content-center align-items-center">
+                    <div class="dropdown">
+                        <input type="checkbox" class="select-all-checkbox" 
+                               style="width: 20px; height: 20px; cursor: pointer;" 
+                               title="کلیک: انتخاب همه در صفحه | راست کلیک: انتخاب همه در بخش"
+                               oncontextmenu="return false;">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle ms-1" 
+                                type="button" 
+                                data-bs-toggle="dropdown" 
+                                aria-expanded="false"
+                                style="padding: 1px 4px; font-size: 10px;"
+                                title="گزینه‌های انتخاب">
+                            <i class="fas fa-caret-down"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item select-page-active" href="#" data-section="active">
+                                <i class="fas fa-check me-2"></i>انتخاب همه در صفحه
+                            </a></li>
+                            <li><a class="dropdown-item select-section-active" href="#" data-section="active">
+                                <i class="fas fa-check-double me-2"></i>انتخاب همه در بخش
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item clear-selection-active" href="#" data-section="active">
+                                <i class="fas fa-times me-2"></i>لغو انتخاب‌ها
+                            </a></li>
+                        </ul>
+                    </div>
                 </div>
             </th>
             {% for column in all_columns %}
@@ -1169,8 +1254,33 @@ document.addEventListener('DOMContentLoaded', function() {
         <tr>
             <!-- Columna para checkboxes de selección -->
             <th class="text-center" style="width: 50px;">
-                <div class="d-flex justify-content-center">
-                    <input type="checkbox" class="select-all-checkbox-archived" style="width: 20px; height: 20px; cursor: pointer;">
+                <div class="d-flex justify-content-center align-items-center">
+                    <div class="dropdown">
+                        <input type="checkbox" class="select-all-checkbox-archived" 
+                               style="width: 20px; height: 20px; cursor: pointer;" 
+                               title="کلیک: انتخاب همه در صفحه | راست کلیک: انتخاب همه در بخش"
+                               oncontextmenu="return false;">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle ms-1" 
+                                type="button" 
+                                data-bs-toggle="dropdown" 
+                                aria-expanded="false"
+                                style="padding: 1px 4px; font-size: 10px;"
+                                title="گزینه‌های انتخاب">
+                            <i class="fas fa-caret-down"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item select-page-archived" href="#" data-section="archived">
+                                <i class="fas fa-check me-2"></i>انتخاب همه در صفحه
+                            </a></li>
+                            <li><a class="dropdown-item select-section-archived" href="#" data-section="archived">
+                                <i class="fas fa-check-double me-2"></i>انتخاب همه در بخش
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item clear-selection-archived" href="#" data-section="archived">
+                                <i class="fas fa-times me-2"></i>لغو انتخاب‌ها
+                            </a></li>
+                        </ul>
+                    </div>
                 </div>
             </th>
             {% for column in all_columns %}
@@ -1727,8 +1837,15 @@ window.updateExportButton = function() {
         return;
     }
     
-    const selectedRows = document.querySelectorAll('.row-checkbox:checked');
-    const selectedCount = selectedRows.length;
+    // استفاده از selectedPurchases برای تعداد دقیق انتخاب شده‌ها
+    let selectedCount = 0;
+    if (window.purchaseAggregatedStats && window.purchaseAggregatedStats.selectedPurchases) {
+        selectedCount = window.purchaseAggregatedStats.selectedPurchases.size;
+    } else {
+        // fallback: استفاده از checkbox های checked در صفحه
+        const selectedRows = document.querySelectorAll('.row-checkbox:checked');
+        selectedCount = selectedRows.length;
+    }
     
     console.log(`📊 تعداد خریدهای انتخاب شده: ${selectedCount}`);
     
@@ -1778,15 +1895,20 @@ document.addEventListener('DOMContentLoaded', function() {
             exportBtn.addEventListener('click', function() {
                 console.log('🖱️ کلیک روی دکمه خروجی اکسل');
                 
-                const selectedRows = document.querySelectorAll('.row-checkbox:checked');
+                // استفاده از selectedPurchases برای دریافت همه آیدی‌های انتخاب شده (از همه صفحات)
+                let selectedIds = [];
+                if (window.purchaseAggregatedStats && window.purchaseAggregatedStats.selectedPurchases) {
+                    selectedIds = Array.from(window.purchaseAggregatedStats.selectedPurchases);
+                } else {
+                    // fallback: استفاده از checkbox های checked در صفحه
+                    const selectedRows = document.querySelectorAll('.row-checkbox:checked');
+                    selectedIds = Array.from(selectedRows).map(checkbox => checkbox.getAttribute('data-id'));
+                }
                 
-                if (selectedRows.length === 0) {
+                if (selectedIds.length === 0) {
                     alert('هیچ خریدی انتخاب نشده است!');
                     return;
                 }
-                
-                // جمع‌آوری آیدی‌های خریدهای انتخاب شده
-                const selectedIds = Array.from(selectedRows).map(checkbox => checkbox.getAttribute('data-id'));
                 
                 // دریافت ستون‌های انتخاب شده از کوکی
                 const cookieColumns = getCookie('selected_columns');
@@ -1836,6 +1958,20 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.target && e.target.classList.contains('row-checkbox')) {
                 console.log('🔄 تغییر در چک‌باکس ردیف');
                 window.updateExportButton();
+                // همگام‌سازی با purchaseStatsManager
+                if (window.purchaseStatsManager) {
+                    window.purchaseStatsManager.updateGlobalSelectionCount();
+                }
+                
+                // بروزرسانی رنگ سطر بر اساس انتخاب
+                const row = e.target.closest('tr');
+                if (row) {
+                    if (e.target.checked) {
+                        row.classList.add('table-warning', 'selected-row');
+                    } else {
+                        row.classList.remove('table-warning', 'selected-row');
+                    }
+                }
             }
             
             // مدیریت چک‌باکس‌های انتخاب همه
@@ -1843,11 +1979,46 @@ document.addEventListener('DOMContentLoaded', function() {
                             e.target.classList.contains('select-all-checkbox-pending') ||
                             e.target.classList.contains('select-all-checkbox-archived'))) {
                 console.log('🔄 تغییر در چک‌باکس انتخاب همه');
-                setTimeout(window.updateExportButton, 100);
+                setTimeout(() => {
+                    window.updateExportButton();
+                    // همگام‌سازی با purchaseStatsManager
+                    if (window.purchaseStatsManager) {
+                        window.purchaseStatsManager.updateGlobalSelectionCount();
+                    }
+                    
+                    // بروزرسانی رنگ سطرها
+                    document.querySelectorAll('.row-checkbox').forEach(checkbox => {
+                        const row = checkbox.closest('tr');
+                        if (row) {
+                            if (checkbox.checked) {
+                                row.classList.add('table-warning', 'selected-row');
+                            } else {
+                                row.classList.remove('table-warning', 'selected-row');
+                            }
+                        }
+                    });
+                }, 100);
             }
         });
         
         console.log('✅ راه‌اندازی دکمه خروجی اکسل کامل شد');
+        
+        // راه‌اندازی bulk edit manager
+        if (typeof BulkEditManager !== 'undefined') {
+            window.bulkEditManager = new BulkEditManager();
+            window.bulkEditManager.init();
+            console.log('✅ Bulk Edit Manager راه‌اندازی شد');
+        } else {
+            console.log('❌ BulkEditManager کلاس یافت نشد');
+        }
+        
+        // راه‌اندازی purchase aggregated stats
+        if (typeof PurchaseAggregatedStats !== 'undefined') {
+            window.purchaseAggregatedStats = new PurchaseAggregatedStats();
+            console.log('✅ Purchase Aggregated Stats راه‌اندازی شد');
+        } else {
+            console.log('❌ PurchaseAggregatedStats کلاس یافت نشد');
+        }
         
     }, 1000);
 });
@@ -1865,4 +2036,8 @@ document.addEventListener('DOMContentLoaded', function() {
     {% endfor %}
 </div>
 {% endif %}
+
+{% enable_table_filter %}
+{% enable_bulk_edit %}
+{% enable_edit_history "core" "Purchase" %}
 {% endblock %}

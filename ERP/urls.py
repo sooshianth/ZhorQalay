@@ -25,6 +25,7 @@ urlpatterns = [
     path('purchases/export/', purchase_list_view.export_to_excel, name='export_purchases'),
 
     path('purchases/aggregated-stats/', purchase_list_view.get_purchase_aggregated_stats, name='purchase_aggregated_stats'),
+    path('purchases/section-ids/', purchase_list_view.get_section_purchase_ids, name='get_section_purchase_ids'),
     path('cargo-products/list/', purchase_list_view.cargo_products_list, name='cargo_products_list'),
     path('cargo-product/details/', purchase_list_view.cargo_product_details, name='cargo_product_details'),
     path('bulk-edit-cargo/', purchase_list_view.bulk_edit_cargo, name='bulk_edit_cargo'),
