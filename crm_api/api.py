@@ -12,6 +12,8 @@ from core.CustomerModel import Customer, CrmAccessNumbers, PhoneNumber
 from django.core.exceptions import ValidationError
 import logging
 from django.db import models
+from django.db.models import Q
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -214,7 +216,7 @@ class PurchaseInfoAPI(View):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CustomerPurchasesAPI(View):
-    """API برای دریافت لیست خریدهای یک مشتری"""
+    """API برای دریافت لیست خریدهای یک مشتری بر اساس شماره تلفن"""
     
     def post(self, request):
         try:
@@ -235,39 +237,108 @@ class CustomerPurchasesAPI(View):
                     'error': 'شماره تلفن نامعتبر است'
                 }, status=400)
             
-            # جستجو برای مشتری با روش‌های مختلف
-            customer = None
+            # مجموعه‌ای برای نگهداری ID های خریدهای یکتا
+            purchase_ids = set()
+            customers_found = []
             
-            # راه اول: جستجو در CrmAccessNumbers
-            crm_access = CrmAccessNumbers.objects.filter(
+            # 1. جستجو در CrmAccessNumbers - همه مشتریانی که این شماره دسترسی دارند
+            crm_accesses = CrmAccessNumbers.objects.filter(
                 phone_number=clean_phone,
                 customer__isnull=False
-            ).first()
+            )
             
-            if crm_access:
+            for crm_access in crm_accesses:
                 customer = crm_access.customer
-            else:
-                # راه دوم: جستجو مستقیم در PhoneNumber
-                phone_record = PhoneNumber.objects.filter(number=clean_phone).first()
-                if phone_record:
-                    customer = phone_record.customer
-                else:
-                    # راه سوم: جستجو در فیلد phone_number قدیمی Customer
-                    customer = Customer.objects.filter(phone_number=clean_phone).first()
+                customers_found.append({
+                    'customer': customer,
+                    'access_type': 'CRM Access'
+                })
+                
+                # همه خریدهای این مشتری (هم customer و هم bazaargah_customer)
+                customer_purchases = Purchase.objects.filter(
+                    models.Q(customer=customer) | models.Q(bazaargah_customer=customer)
+                )
+                
+                for purchase in customer_purchases:
+                    purchase_ids.add(purchase.id)
             
-            if not customer:
+            # 2. جستجو در bazaargah_phone_number با فرمت‌های مختلف
+            phone_variations = [
+                clean_phone,
+                f"0{clean_phone}",
+                f"98{clean_phone}"
+            ]
+            
+            # جستجو در bazaargah_phone_number
+            bazaargah_query = Q()
+            for phone_var in phone_variations:
+                bazaargah_query |= Q(bazaargah_phone_number=phone_var)
+            
+            bazaargah_purchases = Purchase.objects.filter(bazaargah_query)
+            for purchase in bazaargah_purchases:
+                purchase_ids.add(purchase.id)
+                # اضافه کردن اطلاعات مشتری اگر قبلاً نیافته
+                if purchase.customer and not any(cf['customer'].id == purchase.customer.id for cf in customers_found):
+                    customers_found.append({
+                        'customer': purchase.customer,
+                        'access_type': 'Bazaargah Phone'
+                    })
+                if purchase.bazaargah_customer and not any(cf['customer'].id == purchase.bazaargah_customer.id for cf in customers_found):
+                    customers_found.append({
+                        'customer': purchase.bazaargah_customer,
+                        'access_type': 'Bazaargah Phone'
+                    })
+            
+            # 3. جستجو در tahvil_phone_number
+            tahvil_query = Q()
+            for phone_var in phone_variations:
+                tahvil_query |= Q(tahvil_phone_number=phone_var)
+                
+            tahvil_purchases = Purchase.objects.filter(tahvil_query)
+            for purchase in tahvil_purchases:
+                purchase_ids.add(purchase.id)
+                # اضافه کردن اطلاعات مشتری اگر قبلاً نیافته
+                if purchase.customer and not any(cf['customer'].id == purchase.customer.id for cf in customers_found):
+                    customers_found.append({
+                        'customer': purchase.customer,
+                        'access_type': 'Tahvil Phone'
+                    })
+                if purchase.bazaargah_customer and not any(cf['customer'].id == purchase.bazaargah_customer.id for cf in customers_found):
+                    customers_found.append({
+                        'customer': purchase.bazaargah_customer,
+                        'access_type': 'Tahvil Phone'
+                    })
+            
+            # اگر هیچ خریدی یافت نشد
+            if not purchase_ids:
                 return JsonResponse({
                     'success': False,
-                    'error': 'شماره تلفن در سیستم یافت نشد'
-                }, status=403)
+                    'error': 'هیچ خریدی برای این شماره تلفن یافت نشد'
+                }, status=404)
             
-            # دریافت خریدهای مشتری
+            # دریافت خریدهای یکتا
             purchases = Purchase.objects.filter(
-                models.Q(customer=customer) | models.Q(bazaargah_customer=customer)
+                id__in=purchase_ids
             ).order_by('-created_at')
             
             purchases_data = []
             for purchase in purchases:
+                # تشخیص نوع دسترسی برای این خرید
+                access_types = []
+                
+                # بررسی آیا از طریق CrmAccessNumbers دسترسی دارد
+                if any(crm.customer and (purchase.customer == crm.customer or purchase.bazaargah_customer == crm.customer) 
+                       for crm in crm_accesses):
+                    access_types.append('CRM Access')
+                
+                # بررسی آیا از طریق bazaargah_phone_number دسترسی دارد
+                if purchase.bazaargah_phone_number and clean_phone_number(purchase.bazaargah_phone_number) == clean_phone:
+                    access_types.append('Bazaargah Phone')
+                
+                # بررسی آیا از طریق tahvil_phone_number دسترسی دارد
+                if purchase.tahvil_phone_number and clean_phone_number(purchase.tahvil_phone_number) == clean_phone:
+                    access_types.append('Tahvil Phone')
+                
                 purchases_data.append({
                     'purchase_number': purchase.purchase_number,
                     'invoice_id': purchase.invoice_id,
@@ -278,18 +349,35 @@ class CustomerPurchasesAPI(View):
                     'amount_paid': purchase.amount_paid,
                     'created_at': purchase.created_at.isoformat() if purchase.created_at else None,
                     'cargo_cottage': purchase.cargo.cottage if purchase.cargo else None,
+                    'customer_name': purchase.customer.name if purchase.customer else None,
+                    'bazaargah_customer_name': purchase.bazaargah_customer.name if purchase.bazaargah_customer else None,
+                    'access_types': access_types,  # نشان می‌دهد از کدام مسیر دسترسی پیدا شده
+                })
+            
+            # تهیه اطلاعات خلاصه مشتریان
+            customers_summary = []
+            for customer_info in customers_found:
+                customer = customer_info['customer']
+                customers_summary.append({
+                    'name': customer.name,
+                    'city': customer.city,
+                    'phone_number': customer.get_primary_phone(),
+                    'access_type': customer_info['access_type']
                 })
             
             return JsonResponse({
                 'success': True,
                 'data': {
-                    'customer': {
-                        'name': customer.name,
-                        'city': customer.city,
-                        'phone_number': customer.get_primary_phone(),
-                    },
+                    'phone_number': clean_phone,
+                    'customers': customers_summary,
                     'purchases': purchases_data,
-                    'total_purchases': len(purchases_data)
+                    'total_purchases': len(purchases_data),
+                    'summary': {
+                        'total_customers_found': len(customers_found),
+                        'crm_access_count': len(crm_accesses),
+                        'bazaargah_phone_count': len(bazaargah_purchases),
+                        'tahvil_phone_count': len(tahvil_purchases),
+                    }
                 }
             })
             
@@ -305,3 +393,172 @@ class CustomerPurchasesAPI(View):
                 'success': False,
                 'error': 'خطای داخلی سرور'
             }, status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class PhoneValidationAPI(View):
+    """API برای احراز هویت شماره تلفن و بررسی اجازه دسترسی به CRM"""
+    
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            phone_number = data.get('phone_number')
+            
+            if not phone_number:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'شماره تلفن الزامی است'
+                }, status=400)
+            
+            # تمیز کردن شماره تلفن
+            clean_phone = clean_phone_number(phone_number)
+            if not clean_phone:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'شماره تلفن نامعتبر است'
+                }, status=400)
+            
+            has_access = False
+            access_methods = []
+            customers_info = []
+            
+            # 1. بررسی دسترسی از طریق CrmAccessNumbers
+            crm_accesses = CrmAccessNumbers.objects.filter(
+                phone_number=clean_phone,
+                customer__isnull=False
+            )
+            
+            if crm_accesses.exists():
+                has_access = True
+                access_methods.append('CRM Access')
+                for crm_access in crm_accesses:
+                    customer = crm_access.customer
+                    customers_info.append({
+                        'id': customer.id,
+                        'name': customer.name,
+                        'city': customer.city,
+                        'access_type': 'CRM Access'
+                    })
+            
+            # 2. بررسی وجود خرید با bazaargah_phone_number
+            phone_variations = [
+                clean_phone,
+                f"0{clean_phone}",
+                f"98{clean_phone}"
+            ]
+            
+            bazaargah_query = Q()
+            for phone_var in phone_variations:
+                bazaargah_query |= Q(bazaargah_phone_number=phone_var)
+                
+            bazaargah_purchases_count = Purchase.objects.filter(bazaargah_query).count()
+            
+            if bazaargah_purchases_count > 0:
+                has_access = True
+                access_methods.append('Bazaargah Phone')
+            
+            # 3. بررسی وجود خرید با tahvil_phone_number
+            tahvil_query = Q()
+            for phone_var in phone_variations:
+                tahvil_query |= Q(tahvil_phone_number=phone_var)
+                
+            tahvil_purchases_count = Purchase.objects.filter(tahvil_query).count()
+            
+            if tahvil_purchases_count > 0:
+                has_access = True
+                access_methods.append('Tahvil Phone')
+            
+            # 4. بررسی در PhoneNumber model (برای مشتریان که شماره‌شان در سیستم ثبت است)
+            phone_records = PhoneNumber.objects.filter(number=clean_phone)
+            if phone_records.exists():
+                has_access = True
+                access_methods.append('Customer Phone')
+                for phone_record in phone_records:
+                    customer = phone_record.customer
+                    if not any(c['id'] == customer.id for c in customers_info):
+                        customers_info.append({
+                            'id': customer.id,
+                            'name': customer.name,
+                            'city': customer.city,
+                            'access_type': 'Customer Phone'
+                        })
+            
+            # 5. بررسی در فیلد phone_number قدیمی Customer
+            customers_old_phone = Customer.objects.filter(phone_number=clean_phone)
+            if customers_old_phone.exists():
+                has_access = True
+                access_methods.append('Legacy Phone')
+                for customer in customers_old_phone:
+                    if not any(c['id'] == customer.id for c in customers_info):
+                        customers_info.append({
+                            'id': customer.id,
+                            'name': customer.name,
+                            'city': customer.city,
+                            'access_type': 'Legacy Phone'
+                        })
+            
+            return JsonResponse({
+                'success': True,
+                'data': {
+                    'phone_number': clean_phone,
+                    'has_access': has_access,
+                    'access_methods': access_methods,
+                    'customers': customers_info,
+                    'statistics': {
+                        'crm_access_count': len(crm_accesses),
+                        'bazaargah_purchases_count': bazaargah_purchases_count,
+                        'tahvil_purchases_count': tahvil_purchases_count,
+                        'phone_records_count': len(phone_records),
+                        'legacy_customers_count': len(customers_old_phone),
+                    }
+                }
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'error': 'فرمت JSON نامعتبر است'
+            }, status=400)
+            
+        except Exception as e:
+            logger.error(f"خطا در API احراز هویت: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'error': 'خطای داخلی سرور'
+            }, status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class HealthCheckAPI(View):
+    """API برای بررسی وضعیت سلامت سرویس"""
+    
+    def get(self, request):
+        try:
+            # بررسی اتصال به دیتابیس
+            customers_count = Customer.objects.count()
+            purchases_count = Purchase.objects.count()
+            crm_access_count = CrmAccessNumbers.objects.count()
+            
+            return JsonResponse({
+                'success': True,
+                'status': 'healthy',
+                'message': 'سرویس CRM API به درستی کار می‌کند',
+                'statistics': {
+                    'customers_count': customers_count,
+                    'purchases_count': purchases_count,
+                    'crm_access_count': crm_access_count,
+                },
+                'version': '2.0',
+                'timestamp': timezone.now().isoformat()
+            })
+            
+        except Exception as e:
+            logger.error(f"خطا در بررسی سلامت سرویس: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'status': 'unhealthy',
+                'error': 'خطا در اتصال به دیتابیس',
+                'timestamp': timezone.now().isoformat()
+            }, status=500)
+    
+    def post(self, request):
+        # همان response برای POST requests
+        return self.get(request)
