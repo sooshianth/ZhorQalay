@@ -1067,3 +1067,137 @@ def clear_column_cache(request):
         return response
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@login_required
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+def get_section_purchase_ids(request):
+    """
+    API برای دریافت تمام ID های خریدهای یک بخش خاص (فعال، در انتظار پرداخت، آرشیو)
+    """
+    try:
+        section = request.GET.get('section', 'active')  # active, pending, archived
+        
+        # تشخیص نقش کاربر
+        user_role = determine_user_role(request.user)
+        
+        # دریافت همان فیلترهای صفحه اصلی
+        global_search = request.GET.get('global_search', '')
+        customer = request.GET.get('customer', '')
+        sales_agent = request.GET.get('sales_agent', '')
+        invoice_id = request.GET.get('invoice_id', '')
+        purchase_number = request.GET.get('purchase_number', '')
+        cottage = request.GET.get('cottage', '')
+        state = request.GET.get('state', '')
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        is_archived = request.GET.get('is_archived', '')
+        is_factored = request.GET.get('is_factored', '')
+        is_urgent = request.GET.get('is_urgent', '')
+        
+        # ایجاد QuerySet پایه - فقط ID ها
+        base_queryset = Purchase.objects.only('id').order_by('-created_at')
+        
+        # تقسیم‌بندی خریدها به سه دسته بر اساس section
+        if section == 'active':
+            # خریدهای فعال (به جز آرشیو و در انتظار پرداخت)
+            queryset = base_queryset.exclude(state='ARCHIVED')\
+                .exclude(is_archived=True)\
+                .exclude(state__in=['SMS_SENT', 'INITIATED'])
+        elif section == 'pending':
+            # خریدهای در انتظار پرداخت
+            queryset = base_queryset.filter(state__in=['SMS_SENT', 'INITIATED'])\
+                .exclude(is_archived=True)
+        elif section == 'archived':
+            # خریدهای آرشیو شده
+            queryset = base_queryset.filter(Q(state='ARCHIVED') | Q(is_archived=True))
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'بخش نامعتبر است'
+            }, status=400)
+        
+        # فیلتر برای کارشناس فروش
+        if user_role == 'sales_agent':
+            if hasattr(request.user, 'sales_agent') and request.user.sales_agent:
+                queryset = queryset.filter(unique_sales_agent=request.user.sales_agent)
+            else:
+                queryset = Purchase.objects.none()
+        
+        # اگر فیلتر وضعیت آرشیو انتخاب شده است
+        if is_archived != '':
+            if is_archived == '1' and section != 'archived':
+                queryset = Purchase.objects.none()
+            elif is_archived == '0' and section == 'archived':
+                queryset = Purchase.objects.none()
+        
+        # اعمال فیلترهای پیشرفته (همان فیلترهای صفحه اصلی)
+        filters = Q()
+        
+        if customer:
+            filters &= Q(customer__name__icontains=customer)
+        
+        if sales_agent:
+            filters &= Q(unique_sales_agent__name__icontains=sales_agent)
+        
+        if invoice_id:
+            filters &= Q(invoice_id__icontains=invoice_id)
+        
+        if purchase_number:
+            filters &= Q(purchase_number__icontains=purchase_number)
+        
+        if cottage:
+            filters &= Q(cargo__cottage__icontains=cottage)
+        
+        if state:
+            filters &= Q(state=state)
+        
+        # فیلتر تاریخ
+        if date_from:
+            try:
+                date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+                filters &= Q(created_at__date__gte=date_from_obj)
+            except ValueError:
+                pass
+        
+        if date_to:
+            try:
+                date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+                filters &= Q(created_at__date__lte=date_to_obj)
+            except ValueError:
+                pass
+        
+        # فیلترهای اضافی
+        if is_factored != '':
+            filters &= Q(is_factored=(is_factored == '1'))
+        
+        if is_urgent == '1':
+            filters &= Q(is_urgent=True)
+        
+        # اعمال فیلتر جستجوی سریع
+        if global_search:
+            filters &= (
+                Q(customer__name__icontains=global_search) |
+                Q(purchase_number__icontains=global_search) |
+                Q(invoice_id__icontains=global_search) |
+                Q(cargo__cottage__icontains=global_search)
+            )
+        
+        # اعمال همه فیلترها
+        if filters:
+            queryset = queryset.filter(filters)
+        
+        # دریافت تمام ID ها (محدودیت برای جلوگیری از overload)
+        purchase_ids = list(queryset.values_list('id', flat=True)[:5000])  # حداکثر 5000
+        
+        return JsonResponse({
+            'status': 'success',
+            'purchase_ids': purchase_ids,
+            'count': len(purchase_ids),
+            'section': section
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'خطا در دریافت لیست خریدها: {str(e)}'
+        }, status=500)

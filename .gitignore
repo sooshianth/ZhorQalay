@@ -83,3 +83,6 @@ bki_api/__pycache__
 
 soap11_https_response.xml
 kharid_list_response.xml
+
+debug.log
+*.log

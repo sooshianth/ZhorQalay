@@ -5,11 +5,13 @@ from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator, MaxValueValidator
 from core.CargoProductModel import CargoProduct, VaredKonandeh, Barbary
 from django.db.models import Sum, Q, F
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 
 class Wallet(models.Model):
     varedkonandeh = models.ForeignKey(VaredKonandeh, on_delete=models.CASCADE, related_name='wallet', verbose_name=_('وارد کننده'))
     description = models.TextField(_('توضیحات'), blank=True, null=True)
-    balance = models.DecimalField(_('موجودی (ریال)'), max_digits=15, decimal_places=2, default=0)
+    balance = models.BigIntegerField(_('موجودی (ریال)'), default=0)
     created_at = jmodels.jDateTimeField(_('تاریخ ایجاد'), auto_now_add=True)
     updated_at = jmodels.jDateTimeField(_('تاریخ بروزرسانی'), auto_now=True)
 
@@ -28,11 +30,12 @@ class Wallet(models.Model):
         
         total_debt = 0
         
-        # تمام خریدهایی که کارگو آنها متعلق به این واردکننده است
+        # تمام خریدهایی که کارگو آنها متعلق به این واردکننده است و آدرس ارسال شده باشد
         purchases = Purchase.objects.filter(
             cargo__vared_konandeh=self.varedkonandeh,
             is_canceled=False,
-            is_archived=False
+            is_archived=False,
+            is_address_sent__in=['1', 'True']  # پشتیبانی از هر دو فرمت برای backward compatibility
         )
         
         for purchase in purchases:
@@ -68,7 +71,8 @@ class Wallet(models.Model):
         purchases = Purchase.objects.filter(
             cargo__vared_konandeh=self.varedkonandeh,
             is_canceled=False,
-            is_archived=False
+            is_archived=False,
+            is_address_sent__in=['1', 'True']  # پشتیبانی از هر دو فرمت برای backward compatibility
         )
         
         summary = {
@@ -131,7 +135,7 @@ class Transaction(models.Model):
 
     wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='transactions', verbose_name=_('کیف پول'))
     transaction_type = models.CharField(_('نوع تراکنش'), max_length=20, choices=TRANSACTION_TYPES, default='deposit')
-    amount = models.DecimalField(_('مقدار (ریال)'), max_digits=15, decimal_places=2, default=0)
+    amount = models.BigIntegerField(_('مقدار (ریال)'), default=0)
     description = models.TextField(_('توضیحات'), blank=True, null=True)
     file = models.FileField(_('فایل پیوست'), upload_to='fledger_transactions/', blank=True, null=True)
     status = models.CharField(_('وضعیت'), max_length=20, choices=STATUS_CHOICES, default='pending')
@@ -165,7 +169,7 @@ class LedgerEntry(models.Model):
     purchase = models.ForeignKey('core.Purchase', on_delete=models.CASCADE, verbose_name=_('خرید'))
     weight = models.PositiveIntegerField(_('وزن (کیلوگرم)'), default=0)
     price_per_kg = models.PositiveIntegerField(_('فی هر کیلو (ریال)'), default=0)
-    total_amount = models.DecimalField(_('مبلغ کل (ریال)'), max_digits=15, decimal_places=2, default=0)
+    total_amount = models.BigIntegerField(_('مبلغ کل (ریال)'), default=0)
     wallet_index_used = models.CharField(_('شاخص محاسبه'), max_length=1, choices=[('0', 'وزن سفارش'), ('1', 'وزن تحویلی')])
     created_at = jmodels.jDateTimeField(_('تاریخ ایجاد'), auto_now_add=True)
     notes = models.TextField(_('یادداشت'), blank=True, null=True)
@@ -185,6 +189,10 @@ class LedgerEntry(models.Model):
         ایجاد یا بروزرسانی ثبت دفتر برای یک خرید
         """
         if not purchase.cargo or not purchase.cargo.vared_konandeh:
+            return None
+        
+        # بررسی اینکه آیا آدرس ارسال شده است یا نه
+        if purchase.is_address_sent not in ['1', 'True']:
             return None
             
         # تعیین وزن بر اساس wallet_index
@@ -218,4 +226,62 @@ class LedgerEntry(models.Model):
         wallet.calculate_balance()
         
         return entry
+
+
+# سیگنال‌ها برای بروزرسانی خودکار کیف پول‌ها
+@receiver(post_save, sender='core.Purchase')
+def update_wallet_on_purchase_change(sender, instance, created, **kwargs):
+    """
+    بروزرسانی کیف پول هنگام ایجاد یا تغییر خرید
+    """
+    try:
+        # بررسی اینکه آیا خرید شرایط لازم را دارد
+        if (instance.cargo and 
+            instance.cargo.vared_konandeh and 
+            not instance.is_canceled and 
+            not instance.is_archived and
+            instance.is_address_sent in ['1', 'True']):
+            
+            # ایجاد یا بروزرسانی ثبت دفتر
+            LedgerEntry.create_or_update_entry(instance)
+            
+    except Exception as e:
+        # در صورت خطا، آن را لاگ کن اما سیستم را متوقف نکن
+        print(f"خطا در بروزرسانی کیف پول برای خرید {instance.id}: {str(e)}")
+
+
+@receiver(post_delete, sender='core.Purchase')
+def cleanup_wallet_on_purchase_delete(sender, instance, **kwargs):
+    """
+    پاکسازی ثبت‌های دفتر هنگام حذف خرید
+    """
+    try:
+        if instance.cargo and instance.cargo.vared_konandeh:
+            # حذف ثبت‌های دفتر مربوط به این خرید
+            LedgerEntry.objects.filter(
+                varedkonandeh=instance.cargo.vared_konandeh,
+                purchase=instance
+            ).delete()
+            
+            # بروزرسانی موجودی کیف پول
+            wallet = Wallet.objects.filter(
+                varedkonandeh=instance.cargo.vared_konandeh
+            ).first()
+            if wallet:
+                wallet.calculate_balance()
+                
+    except Exception as e:
+        print(f"خطا در پاکسازی ثبت‌های دفتر برای خرید {instance.id}: {str(e)}")
+
+
+@receiver(post_save, sender=Transaction)
+def update_wallet_on_transaction_approve(sender, instance, created, **kwargs):
+    """
+    بروزرسانی کیف پول هنگام تایید تراکنش
+    """
+    try:
+        if instance.status == 'approved' and not created:
+            instance.wallet.calculate_balance()
+    except Exception as e:
+        print(f"خطا در بروزرسانی کیف پول برای تراکنش {instance.id}: {str(e)}")
     

@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}ویرایش تراکنش{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'fledger/css/fledger.css' %}">
+
+<style>
+    .alert {
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid;
+    }
+    
+    .alert-danger {
+        background: #fed7d7;
+        color: #c53030;
+        border-color: #feb2b2;
+    }
+    
+    .text-danger {
+        color: #dc2626 !important;
+    }
+    
+    .mt-1 {
+        margin-top: 0.25rem;
+    }
+    
+    .form-error {
+        border-color: #dc2626 !important;
+        background-color: #fef2f2 !important;
+    }
+    
+    .error-message {
+        background: #fed7d7;
+        color: #991b1b;
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+        border: 1px solid #fecaca;
+    }
+</style>
+
+<div class="fledger-container">
+    <div class="fledger-header">
+        <h1>
+            <i class="fas fa-edit"></i>
+            ویرایش تراکنش #{{ transaction.id }}
+        </h1>
+        <p>واردکننده: {{ transaction.wallet.varedkonandeh.name }}</p>
+    </div>
+
+    <div class="fledger-form">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">کیف پول</label>
+                <div class="info-card" style="padding: 1rem; background: #f8fafc; border-radius: 0.5rem;">
+                    {{ transaction.wallet.varedkonandeh.name }} - موجودی: {{ transaction.wallet.balance|format_rial_amount }}
+                </div>
+            </div>
+
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">{{ form.transaction_type.label }}</label>
+                {{ form.transaction_type }}
+                {% if form.transaction_type.errors %}
+                    <div class="text-danger mt-1">
+                        {% for error in form.transaction_type.errors %}
+                            <small>{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">{{ form.amount.label }}</label>
+                {{ form.amount }}
+                <!-- Debug: مقدار فعلی amount -->
+                <small style="color: #666;">مقدار فعلی: {{ transaction.amount }}</small>
+                {% if form.amount.errors %}
+                    <div class="text-danger mt-1">
+                        {% for error in form.amount.errors %}
+                            <small>{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">{{ form.description.label }}</label>
+                {{ form.description }}
+                <!-- Debug: مقدار فعلی description -->
+                <small style="color: #666;">مقدار فعلی: "{{ transaction.description|default:"خالی" }}"</small>
+                {% if form.description.errors %}
+                    <div class="text-danger mt-1">
+                        {% for error in form.description.errors %}
+                            <small>{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">{{ form.file.label }}</label>
+                {% if transaction.file %}
+                <div style="margin-bottom: 1rem; padding: 1rem; background: #f0fdfa; border: 1px solid #10b981; border-radius: 0.5rem;">
+                    فایل فعلی: <a href="{{ transaction.file.url }}" target="_blank" style="color: #10b981;">مشاهده فایل</a>
+                </div>
+                {% endif %}
+                {{ form.file }}
+                {% if form.file.errors %}
+                    <div class="text-danger mt-1">
+                        {% for error in form.file.errors %}
+                            <small>{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <a href="{% url 'fledger:wallet_detail' transaction.wallet.id %}" class="btn-fledger btn-fledger-secondary">
+                    <i class="fas fa-times"></i>
+                    انصراف
+                </a>
+                <button type="submit" class="btn-fledger btn-fledger-success">
+                    <i class="fas fa-save"></i>
+                    ذخیره تغییرات
+                </button>
+            </div>
+        </form>
+    </div>
+
+<script>
+// Debug: لاگ کردن validation در browser
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const inputs = form.querySelectorAll('input, select, textarea');
+    
+    console.log('🔍 Form inputs found:', inputs.length);
+    
+    inputs.forEach(input => {
+        console.log(`📝 Input: ${input.name} = "${input.value}" (required: ${input.required})`);
+        
+        input.addEventListener('invalid', function(e) {
+            console.log(`❌ Validation failed for ${input.name}: ${input.validationMessage}`);
+        });
+    });
+    
+    form.addEventListener('submit', function(e) {
+        console.log('📋 Form submit event triggered');
+        
+        // Check form validity
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            console.log('❌ Form validation failed on client side');
+            
+            inputs.forEach(input => {
+                if (!input.validity.valid) {
+                    console.log(`❌ Invalid field: ${input.name} - ${input.validationMessage}`);
+                }
+            });
+        } else {
+            console.log('✅ Form passed client-side validation');
+        }
+    });
+});
+</script>
+</div>
+{% endblock %} 

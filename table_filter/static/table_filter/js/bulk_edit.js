@@ -299,7 +299,13 @@ class BulkEditManager {
     }
 
     updateControlPanel() {
-        const count = this.selectedIds.size;
+        // استفاده از selectedPurchases اگر موجود باشد، در غیر این صورت selectedIds
+        let count = this.selectedIds.size;
+        if (window.purchaseAggregatedStats && window.purchaseAggregatedStats.selectedPurchases) {
+            count = window.purchaseAggregatedStats.selectedPurchases.size;
+            // همگام‌سازی selectedIds با selectedPurchases
+            this.selectedIds = new Set(window.purchaseAggregatedStats.selectedPurchases);
+        }
         
         this.controlPanels.forEach(panel => {
             const countElement = panel.querySelector('.count');
@@ -404,13 +410,18 @@ class BulkEditManager {
     }
 
     openBulkEditPage() {
-        if (this.selectedIds.size === 0) {
+        // استفاده از selectedPurchases اگر موجود باشد
+        let selectedIdsArray = Array.from(this.selectedIds);
+        if (window.purchaseAggregatedStats && window.purchaseAggregatedStats.selectedPurchases) {
+            selectedIdsArray = Array.from(window.purchaseAggregatedStats.selectedPurchases);
+        }
+        
+        if (selectedIdsArray.length === 0) {
             this.showToast('لطفاً ابتدا موارد مورد نظر را انتخاب کنید', 'warning');
             return;
         }
 
         const tableType = this.detectTableType();
-        const selectedIdsArray = Array.from(this.selectedIds);
         
         const params = new URLSearchParams({
             ids: selectedIdsArray.join(','),
@@ -424,8 +435,14 @@ class BulkEditManager {
     }
 
     openExcelEditPage() {
-        const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
-        const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.getAttribute('data-id')).filter(id => id);
+        // استفاده از selectedPurchases اگر موجود باشد
+        let selectedIds = [];
+        if (window.purchaseAggregatedStats && window.purchaseAggregatedStats.selectedPurchases) {
+            selectedIds = Array.from(window.purchaseAggregatedStats.selectedPurchases);
+        } else {
+            const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+            selectedIds = Array.from(selectedCheckboxes).map(cb => cb.getAttribute('data-id')).filter(id => id);
+        }
         
         if (selectedIds.length === 0) {
             this.showToast('لطفاً حداقل یک مورد را انتخاب کنید', 'warning');
@@ -470,8 +487,14 @@ class BulkEditManager {
     }
 
     downloadExcelTemplate() {
-        const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
-        const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.getAttribute('data-id')).filter(id => id);
+        // استفاده از selectedPurchases اگر موجود باشد
+        let selectedIds = [];
+        if (window.purchaseAggregatedStats && window.purchaseAggregatedStats.selectedPurchases) {
+            selectedIds = Array.from(window.purchaseAggregatedStats.selectedPurchases);
+        } else {
+            const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+            selectedIds = Array.from(selectedCheckboxes).map(cb => cb.getAttribute('data-id')).filter(id => id);
+        }
         
         if (selectedIds.length === 0) {
             this.showToast('لطفاً حداقل یک مورد را انتخاب کنید', 'warning');

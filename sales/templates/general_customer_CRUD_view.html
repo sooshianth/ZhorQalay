@@ -1336,8 +1336,8 @@
                             {% if purchase.customer and purchase.customer.id != customer.id %}
                             <p><strong>مشتری:</strong> <a href="{% url 'general_customer_CRUD' %}?customer_id={{ purchase.customer.id }}">{{ purchase.customer }} ({{ purchase.customer.get_primary_phone }})</a></p>
                             {% endif %}
-                            <p><strong>شماره خرید:</strong> {% if purchase.purchase_number %}{{ purchase.purchase_number }}{% else %}<span class="text-muted">تعیین نشده</span>{% endif %}</p>
-                            <p><strong>کوتاژ:</strong> {{ purchase.cottage_number }} {{ purchase.cargo.get_product_type_display }} {{ purchase.cargo.get_country_display }}</p>
+                            {% comment %} <p><strong>شماره خرید:</strong> {% if purchase.purchase_number %}{{ purchase.purchase_number }}{% else %}<span class="text-muted">تعیین نشده</span>{% endif %}</p> {% endcomment %}
+                            <p><strong>کوتاژ:</strong> {{ purchase.cargo.cottage }} {{ purchase.cargo.get_product_type_display }} {{ purchase.cargo.get_country_display }}</p>
                             <p><strong>وزن:</strong> {{ purchase.order_weight|add_commas }} کیلوگرم</p>
                             <p><strong>وضعیت:</strong> 
                                 {% if purchase.state == 'ARCHIVED' or purchase.is_archived %}

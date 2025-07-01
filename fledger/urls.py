@@ -14,6 +14,8 @@ urlpatterns = [
     # مدیریت تراکنش‌ها
     path('transactions/', views.transaction_list, name='transaction_list'),
     path('transactions/create/', views.create_transaction, name='create_transaction'),
+    path('transactions/<int:transaction_id>/edit/', views.edit_transaction, name='edit_transaction'),
+    path('transactions/<int:transaction_id>/delete/', views.delete_transaction, name='delete_transaction'),
     path('transactions/<int:transaction_id>/approve/', views.approve_transaction, name='approve_transaction'),
     path('transactions/<int:transaction_id>/reject/', views.reject_transaction, name='reject_transaction'),
     

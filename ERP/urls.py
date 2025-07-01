@@ -25,6 +25,7 @@ urlpatterns = [
     path('purchases/export/', purchase_list_view.export_to_excel, name='export_purchases'),
 
     path('purchases/aggregated-stats/', purchase_list_view.get_purchase_aggregated_stats, name='purchase_aggregated_stats'),
+    path('purchases/section-ids/', purchase_list_view.get_section_purchase_ids, name='get_section_purchase_ids'),
     path('cargo-products/list/', purchase_list_view.cargo_products_list, name='cargo_products_list'),
     path('cargo-product/details/', purchase_list_view.cargo_product_details, name='cargo_product_details'),
     path('bulk-edit-cargo/', purchase_list_view.bulk_edit_cargo, name='bulk_edit_cargo'),
@@ -34,6 +35,7 @@ urlpatterns = [
     path('purchase_pdf/<int:purchase_id>/', purchase_CRUD_view.generate_purchase_pdf, name='purchase_pdf'),
     path('upload_purchase_document/<int:purchase_id>/', purchase_CRUD_view.upload_purchase_document, name='upload_purchase_document'),
     path('link_bazaargah_purchase/<int:purchase_id>/', purchase_CRUD_view.link_bazaargah_purchase, name='link_bazaargah_purchase'),
+    path('link_manual_purchase/<int:purchase_id>/', purchase_CRUD_view.link_manual_purchase, name='link_manual_purchase'),
 
     path('purchase_CRUD/notifications/', notification_view.get_notifications, name='get_notifications'),
     path('purchase_CRUD/notifications/<int:notification_id>/read/', notification_view.mark_notification_read, name='mark_notification_read'),

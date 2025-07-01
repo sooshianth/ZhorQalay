@@ -110,17 +110,54 @@ class Purchase(models.Model):
     def is_merged_purchase(self):
         """
         بررسی اینکه آیا این خرید بازارگاه قبلاً با خرید دستی ادغام شده است یا نه
-        اگر خرید دارای purchase_number باشد و bazaargah_customer مقدار داشته باشد،
-        یعنی این خرید قبلاً ادغام شده است
+        
+        منطق جدید:
+        - خرید دستی (بدون purchase_number) هیچ‌وقت ادغام شده نیست چون خودش ماده اولیه ادغام است
+        - خرید API (دارای purchase_number):
+          * اگر unique_sales_agent نداشته باشد = ادغام نشده
+          * اگر unique_sales_agent ادمین (سوپریوزر) باشد = ادغام نشده (فقط API تخصیص داده)
+          * اگر unique_sales_agent کارشناس فروش عادی باشد = ادغام شده
         """
-        return bool(self.purchase_number and self.bazaargah_customer)
+        if not self.purchase_number:
+            # خرید دستی - هیچ‌وقت ادغام شده نیست
+            return False
+        else:
+            # خرید API - بررسی وضعیت unique_sales_agent
+            if not self.unique_sales_agent:
+                # هیچ کارشناس فروشی تخصیص نیافته = ادغام نشده
+                return False
+            elif self.unique_sales_agent.user and self.unique_sales_agent.user.is_superuser:
+                # کارشناس فروش ادمین است = ادغام نشده (فقط API تخصیص داده)
+                return False
+            else:
+                # کارشناس فروش عادی = ادغام شده
+                return True
     
     def can_be_merged(self):
         """
         بررسی اینکه آیا این خرید می‌تواند ادغام شود یا نه
-        خریدهای API (دارای purchase_number) که قبلاً ادغام نشده‌اند می‌توانند ادغام شوند
+        
+        منطق جدید:
+        - خرید دستی (بدون purchase_number) همیشه می‌تواند ادغام شود
+        - خرید API (دارای purchase_number):
+          * اگر unique_sales_agent نداشته باشد = قابل ادغام
+          * اگر unique_sales_agent ادمین (سوپریوزر) باشد = قابل ادغام
+          * اگر unique_sales_agent کارشناس فروش عادی باشد = غیرقابل ادغام (قبلاً ادغام شده)
         """
-        return bool(self.purchase_number and not self.bazaargah_customer)
+        if not self.purchase_number:
+            # خرید دستی - همیشه می‌تواند ادغام شود
+            return True
+        else:
+            # خرید API - بررسی وضعیت unique_sales_agent
+            if not self.unique_sales_agent:
+                # هیچ کارشناس فروشی تخصیص نیافته = قابل ادغام
+                return True
+            elif self.unique_sales_agent.user and self.unique_sales_agent.user.is_superuser:
+                # کارشناس فروش ادمین است = قابل ادغام (فقط API تخصیص داده)
+                return True
+            else:
+                # کارشناس فروش عادی = غیرقابل ادغام (قبلاً ادغام شده)
+                return False
 
     def change_state(self, new_state, user, notes=None):
         """
@@ -690,8 +727,8 @@ class Purchase(models.Model):
             except Exception as e:
                 print(f"❌ خطا در اضافه کردن شماره تلفن به CRM: {str(e)}")
 
-        if not self.state in ['INITIAED', 'SMS_SENT', 'PAYMENT_VERIFIED', 'ALLOCATION_APPROVED']:
-            self.is_address_sent = True
+        if not self.state in ['INITIATED', 'SMS_SENT', 'PAYMENT_VERIFIED', 'ALLOCATION_APPROVED']:
+            self.is_address_sent = '1'  # اصلاح: استفاده از string '1' به جای boolean True
             super().save(update_fields=['is_address_sent'])
 
     def send_notification(self, user, title, message, notification_type='purchase', priority='medium'):

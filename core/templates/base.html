@@ -160,7 +160,22 @@
                 </div>
                 {% endif %}
                 
-                <!-- دسته پنجم: هوش تجاری -->
+                <!-- دسته پنجم: امور مالی -->
+                {% if request.user.is_superuser or request.user.is_staff or request.user.financial_manager %}
+                <div class="menu-category">
+                    <div class="category-title" data-toggle="collapse" data-target="financial-management">
+                        <i class="fas fa-coins category-icon"></i>
+                        <span>امور مالی</span>
+                        <i class="fas fa-chevron-down category-arrow"></i>
+                    </div>
+                    
+                    <div class="submenu-container collapsed" id="financial-management">
+                        <li><a href="{% url 'fledger:fledger_dashboard' %}"><i class="fas fa-wallet"></i> داشبورد مالی</a></li>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- دسته ششم: هوش تجاری -->
                 {% if request.user.is_superuser or request.user.is_staff or request.user.financial_manager or request.user.logistics_manager %}
                 <div class="menu-category">
                     <div class="category-title" data-toggle="collapse" data-target="business-intelligence">
@@ -175,7 +190,7 @@
                 </div>
                 {% endif %}
                 
-                <!-- دسته ششم: منابع انسانی -->
+                <!-- دسته هفتم: منابع انسانی -->
                 <div class="menu-category">
                     <div class="category-title" data-toggle="collapse" data-target="reports-management">
                         <i class="fas fa-user-tie category-icon"></i>

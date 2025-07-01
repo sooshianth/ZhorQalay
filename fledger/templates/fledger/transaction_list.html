@@ -1,0 +1,738 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}لیست تراکنش‌ها{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'fledger/css/fledger.css' %}">
+
+<style>
+    .transaction-hero {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        padding: 3rem 2rem;
+        border-radius: 1.5rem;
+        margin-bottom: 2.5rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(16, 185, 129, 0.3);
+    }
+
+    .transaction-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+
+    .filter-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 1.25rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        margin-bottom: 2rem;
+        border: 1px solid #f1f5f9;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+        gap: 1.5rem;
+        align-items: end;
+    }
+
+    .filter-tabs {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-tab {
+        padding: 0.75rem 1.5rem;
+        border: 2px solid #e2e8f0;
+        background: white;
+        border-radius: 2rem;
+        color: #64748b;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        font-size: 0.875rem;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-tab:hover {
+        border-color: #10b981;
+        color: #10b981;
+        text-decoration: none;
+        transform: translateY(-1px);
+    }
+
+    .filter-tab.active {
+        background: linear-gradient(135deg, #10b981, #059669);
+        border-color: #10b981;
+        color: white;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .transaction-grid {
+        display: grid;
+        gap: 1.5rem;
+    }
+
+    .transaction-card {
+        background: white;
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+    }
+
+    .transaction-card:nth-child(even) {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+
+    .transaction-card:nth-child(odd) {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .transaction-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        border-color: #4f46e5;
+    }
+
+    .transaction-card-header {
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .transaction-vendor {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .transaction-id {
+        color: #64748b;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .transaction-body {
+        padding: 1.5rem;
+    }
+
+    .transaction-info {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .info-label {
+        color: #64748b;
+        font-size: 0.8rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .info-value {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 1rem;
+    }
+
+    .amount-display {
+        font-size: 1.5rem;
+        font-weight: 800;
+        text-align: center;
+        padding: 1rem;
+        border-radius: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .amount-positive {
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        color: #047857;
+    }
+
+    .amount-positive small {
+        color: #047857 !important;
+        opacity: 1 !important;
+        font-size: 0.7rem !important;
+        font-weight: 600 !important;
+        display: block !important;
+        margin-top: 0.2rem !important;
+        line-height: 1.2 !important;
+    }
+
+    .amount-negative {
+        background: linear-gradient(135deg, #fed7d7, #feb2b2);
+        color: #c53030;
+    }
+
+    .amount-negative small {
+        color: #991b1b !important;
+        opacity: 1 !important;
+        font-size: 0.7rem !important;
+        font-weight: 600 !important;
+        display: block !important;
+        margin-top: 0.2rem !important;
+        line-height: 1.2 !important;
+    }
+
+    .amount-neutral {
+        background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+        color: #1d4ed8;
+    }
+
+    .amount-neutral small {
+        color: #1e3a8a !important;
+        opacity: 1 !important;
+        font-size: 0.7rem !important;
+        font-weight: 600 !important;
+        display: block !important;
+        margin-top: 0.2rem !important;
+        line-height: 1.2 !important;
+    }
+
+    .transaction-type-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 0.75rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    .badge-deposit {
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        color: #047857;
+    }
+
+    .badge-withdrawal {
+        background: linear-gradient(135deg, #fed7d7, #feb2b2);
+        color: #c53030;
+    }
+
+    .badge-adjustment {
+        background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+        color: #1d4ed8;
+    }
+
+    .badge-purchase_debt {
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        color: #92400e;
+    }
+
+    .status-indicator {
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .status-pending {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .status-approved {
+        background: #d1fae5;
+        color: #047857;
+    }
+
+    .status-rejected {
+        background: #fed7d7;
+        color: #c53030;
+    }
+
+    .transaction-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #f1f5f9;
+    }
+
+    .action-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        border: none;
+        cursor: pointer;
+        flex: 1;
+        justify-content: center;
+    }
+
+    .btn-edit {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+    }
+
+    .btn-approve {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+    }
+
+    .btn-reject {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+    }
+
+    .btn-file {
+        background: linear-gradient(135deg, #06b6d4, #0891b2);
+        color: white;
+    }
+
+    .btn-view {
+        background: linear-gradient(135deg, #4f46e5, #3730a3);
+        color: white;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-1px);
+        text-decoration: none;
+        color: white;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .description-box {
+        background: #f8fafc;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid #e2e8f0;
+        margin-top: 1rem;
+    }
+
+    .description-text {
+        color: #64748b;
+        font-size: 0.9rem;
+        line-height: 1.4;
+        margin: 0;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #64748b;
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        color: #cbd5e1;
+        margin-bottom: 1rem;
+    }
+
+    /* Force light mode */
+    body {
+        background-color: #f8fafc !important;
+        color: #1e293b !important;
+    }
+
+    .filter-section {
+        background: white !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+
+    .transaction-card-header {
+        color: #1e293b !important;
+    }
+
+    @media (max-width: 768px) {
+        .filter-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .transaction-info {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .transaction-actions {
+            flex-direction: column;
+        }
+        
+        .filter-tabs {
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="fledger-container">
+    <!-- Hero Section -->
+    <div class="transaction-hero">
+        <div style="display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 2;">
+            <div>
+                <h1 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem;">
+                    <i class="fas fa-exchange-alt" style="margin-left: 0.75rem;"></i>
+                    لیست تراکنش‌ها
+                </h1>
+                <p style="opacity: 0.9; margin: 0; font-size: 1.125rem;">
+                    مدیریت و بررسی تمام تراکنش‌های مالی
+                </p>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <a href="{% url 'fledger:create_transaction' %}" class="btn-fledger btn-fledger-success">
+                    <i class="fas fa-plus"></i>
+                    تراکنش جدید
+                </a>
+                <a href="{% url 'fledger:fledger_dashboard' %}" class="btn-fledger btn-fledger-secondary">
+                    <i class="fas fa-arrow-right"></i>
+                    بازگشت به داشبورد
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-section">
+        <form method="get" class="filter-grid">
+            <div class="form-group-fledger">
+                <label for="search" class="form-label-fledger">
+                    <i class="fas fa-search" style="margin-left: 0.5rem;"></i>
+                    جستجو
+                </label>
+                <input 
+                    type="text" 
+                    class="form-control-fledger" 
+                    id="search" 
+                    name="search" 
+                    value="{{ search_query }}" 
+                    placeholder="نام واردکننده یا توضیحات..."
+                    autocomplete="off"
+                >
+            </div>
+            
+            <div class="form-group-fledger">
+                <label for="status" class="form-label-fledger">
+                    <i class="fas fa-flag" style="margin-left: 0.5rem;"></i>
+                    وضعیت
+                </label>
+                <select class="form-control-fledger" id="status" name="status">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>همه</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>در انتظار</option>
+                    <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>تایید شده</option>
+                    <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>لغو شده</option>
+                </select>
+            </div>
+            
+            <div class="form-group-fledger">
+                <label for="type" class="form-label-fledger">
+                    <i class="fas fa-tag" style="margin-left: 0.5rem;"></i>
+                    نوع تراکنش
+                </label>
+                <select class="form-control-fledger" id="type" name="type">
+                    <option value="all" {% if type_filter == 'all' %}selected{% endif %}>همه</option>
+                    <option value="deposit" {% if type_filter == 'deposit' %}selected{% endif %}>واریز</option>
+                    <option value="withdrawal" {% if type_filter == 'withdrawal' %}selected{% endif %}>برداشت</option>
+                    <option value="adjustment" {% if type_filter == 'adjustment' %}selected{% endif %}>تعدیل</option>
+                    <option value="purchase_debt" {% if type_filter == 'purchase_debt' %}selected{% endif %}>بدهی خرید</option>
+                </select>
+            </div>
+            
+            <div class="form-group-fledger">
+                <label>&nbsp;</label>
+                <button type="submit" class="btn-fledger" style="width: 100%;">
+                    <i class="fas fa-search"></i>
+                    جستجو
+                </button>
+            </div>
+        </form>
+        
+        <!-- Filter Tabs -->
+        <div class="filter-tabs">
+            <a href="?status=all" class="filter-tab {% if status_filter == 'all' %}active{% endif %}">
+                <i class="fas fa-list"></i>
+                همه ({{ page_obj.paginator.count }})
+            </a>
+            <a href="?status=pending" class="filter-tab {% if status_filter == 'pending' %}active{% endif %}">
+                <i class="fas fa-clock"></i>
+                در انتظار
+            </a>
+            <a href="?status=approved" class="filter-tab {% if status_filter == 'approved' %}active{% endif %}">
+                <i class="fas fa-check"></i>
+                تایید شده
+            </a>
+            <a href="?status=rejected" class="filter-tab {% if status_filter == 'rejected' %}active{% endif %}">
+                <i class="fas fa-times"></i>
+                لغو شده
+            </a>
+        </div>
+    </div>
+
+    <!-- Transactions Grid -->
+    {% if page_obj %}
+        <div class="transaction-grid">
+            {% for transaction in page_obj %}
+            <div class="transaction-card">
+                <!-- Card Header -->
+                <div class="transaction-card-header">
+                    <div>
+                        <div class="transaction-vendor">
+                            <i class="fas fa-building"></i>
+                            {{ transaction.wallet.varedkonandeh.name }}
+                        </div>
+                        <div class="transaction-id">تراکنش #{{ transaction.id }}</div>
+                    </div>
+                    <div class="status-indicator status-{{ transaction.status }}">
+                        {{ transaction.get_status_display }}
+                    </div>
+                </div>
+
+                <!-- Card Body -->
+                <div class="transaction-body">
+                    <!-- Amount Display -->
+                    <div class="amount-display {% if transaction.transaction_type == 'deposit' %}amount-positive{% elif transaction.transaction_type == 'withdrawal' %}amount-negative{% else %}amount-neutral{% endif %}">
+                        {{ transaction.amount|format_rial_amount }}
+                    </div>
+
+                    <!-- Transaction Info -->
+                    <div class="transaction-info">
+                        <div class="info-item">
+                            <span class="info-label">نوع تراکنش</span>
+                            <div class="transaction-type-badge badge-{{ transaction.transaction_type }}">
+                                {% if transaction.transaction_type == 'deposit' %}
+                                    <i class="fas fa-arrow-down"></i>
+                                {% elif transaction.transaction_type == 'withdrawal' %}
+                                    <i class="fas fa-arrow-up"></i>
+                                {% elif transaction.transaction_type == 'adjustment' %}
+                                    <i class="fas fa-adjust"></i>
+                                {% else %}
+                                    <i class="fas fa-shopping-cart"></i>
+                                {% endif %}
+                                {{ transaction.get_transaction_type_display }}
+                            </div>
+                        </div>
+
+                        <div class="info-item">
+                            <span class="info-label">ایجاد کننده</span>
+                            <span class="info-value">
+                                {% if transaction.created_by %}
+                                    {{ transaction.created_by.get_full_name|default:transaction.created_by.username }}
+                                {% else %}
+                                    سیستم
+                                {% endif %}
+                            </span>
+                        </div>
+
+                        <div class="info-item">
+                            <span class="info-label">تاریخ ایجاد</span>
+                            <span class="info-value">{{ transaction.created_at|date:"Y/m/d H:i" }}</span>
+                        </div>
+
+                        {% if transaction.approved_by and transaction.status != 'pending' %}
+                        <div class="info-item">
+                            <span class="info-label">تایید/لغو شده توسط</span>
+                            <span class="info-value">{{ transaction.approved_by.get_full_name|default:transaction.approved_by.username }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Description -->
+                    {% if transaction.description %}
+                    <div class="description-box">
+                        <p class="description-text">{{ transaction.description }}</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Actions -->
+                    <div class="transaction-actions">
+                        <a href="{% url 'fledger:wallet_detail' transaction.wallet.id %}" class="action-btn btn-view">
+                            <i class="fas fa-eye"></i>
+                            مشاهده کیف پول
+                        </a>
+
+                        {% if transaction.status == 'pending' %}
+                        <a href="{% url 'fledger:edit_transaction' transaction.id %}" class="action-btn btn-edit">
+                            <i class="fas fa-edit"></i>
+                            ویرایش
+                        </a>
+                        <form method="post" action="{% url 'fledger:approve_transaction' transaction.id %}" style="flex: 1;">
+                            {% csrf_token %}
+                            <button type="submit" class="action-btn btn-approve" style="width: 100%;">
+                                <i class="fas fa-check"></i>
+                                تایید
+                            </button>
+                        </form>
+                        <form method="post" action="{% url 'fledger:reject_transaction' transaction.id %}" style="flex: 1;">
+                            {% csrf_token %}
+                            <button type="submit" class="action-btn btn-reject" style="width: 100%;">
+                                <i class="fas fa-times"></i>
+                                لغو
+                            </button>
+                        </form>
+                        {% elif transaction.file %}
+                        <a href="{{ transaction.file.url }}" target="_blank" class="action-btn btn-file">
+                            <i class="fas fa-file"></i>
+                            مشاهده فایل
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="fledger-pagination">
+            {% if page_obj.has_previous %}
+                <a class="pagination-btn" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if status_filter != 'all' %}status={{ status_filter }}&{% endif %}{% if type_filter != 'all' %}type={{ type_filter }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            {% else %}
+                <span class="pagination-btn" style="opacity: 0.5;">
+                    <i class="fas fa-chevron-right"></i>
+                </span>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <span class="pagination-btn active">{{ num|to_persian_digits }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a class="pagination-btn" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if status_filter != 'all' %}status={{ status_filter }}&{% endif %}{% if type_filter != 'all' %}type={{ type_filter }}&{% endif %}page={{ num }}">
+                        {{ num|to_persian_digits }}
+                    </a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a class="pagination-btn" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if status_filter != 'all' %}status={{ status_filter }}&{% endif %}{% if type_filter != 'all' %}type={{ type_filter }}&{% endif %}page={{ page_obj.next_page_number }}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            {% else %}
+                <span class="pagination-btn" style="opacity: 0.5;">
+                    <i class="fas fa-chevron-left"></i>
+                </span>
+            {% endif %}
+        </div>
+        {% endif %}
+
+    {% else %}
+        <!-- Empty State -->
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-exchange-alt"></i>
+            </div>
+            <h3 style="margin-bottom: 1rem; color: #475569;">
+                {% if search_query %}
+                    تراکنشی با عبارت "{{ search_query }}" یافت نشد
+                {% else %}
+                    هیچ تراکنشی یافت نشد
+                {% endif %}
+            </h3>
+            <p style="margin-bottom: 2rem;">
+                {% if search_query %}
+                    لطفاً عبارت جستجوی دیگری امتحان کنید
+                {% else %}
+                    هنوز هیچ تراکنشی ثبت نشده است
+                {% endif %}
+            </p>
+            {% if not search_query %}
+            <a href="{% url 'fledger:create_transaction' %}" class="btn-fledger btn-fledger-success">
+                <i class="fas fa-plus"></i>
+                اولین تراکنش را ثبت کنید
+            </a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+<script>
+// Auto-submit form on filter change
+document.getElementById('status').addEventListener('change', function() {
+    this.form.submit();
+});
+
+document.getElementById('type').addEventListener('change', function() {
+    this.form.submit();
+});
+
+// Search functionality
+const searchInput = document.getElementById('search');
+let searchTimeout;
+
+searchInput.addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        if (this.value.length === 0 || this.value.length >= 2) {
+            this.form.submit();
+        }
+    }, 500);
+});
+
+// Add loading state to buttons - temporarily disabled for debugging
+/*
+document.addEventListener('DOMContentLoaded', function() {
+    const buttons = document.querySelectorAll('button[type="submit"]');
+    buttons.forEach(button => {
+        button.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            const originalClass = icon.className;
+            
+            icon.className = 'fas fa-spinner fa-spin';
+            this.disabled = true;
+            
+            setTimeout(() => {
+                icon.className = originalClass;
+                this.disabled = false;
+            }, 2000);
+        });
+    });
+});
+*/
+
+// Animate cards on load
+window.addEventListener('load', function() {
+    const cards = document.querySelectorAll('.transaction-card');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.6s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 50);
+    });
+});
+</script>
+{% endblock %} 

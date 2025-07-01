@@ -53,22 +53,41 @@ function viewEditHistory() {
 }
 
 // تابع نمایش تاریخچه تغییرات یک خرید خاص
-function showPurchaseHistory(purchaseId) {
+function showPurchaseHistory(purchaseId, customerId = null, customerName = '') {
     // باز کردن مدال تاریخچه
     const historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
     historyModal.show();
     
     // تنظیم فیلترها
     if (typeof editHistoryManager !== 'undefined') {
-        // تنظیم فیلترها برای نمایش تاریخچه خرید خاص
-        editHistoryManager.filters.object_id = purchaseId;
+        // ریست کامل فیلترها قبل از تنظیم فیلتر جدید
+        editHistoryManager.filters = {
+            app_name: 'core',
+            model_name: 'Purchase',
+            user: '',
+            action_type: '',  
+            field_name: '',
+            date: '',
+            object_id: purchaseId,
+            customer: customerId || ''
+        };
         
         // بارگیری داده‌ها
         editHistoryManager.loadHistoryData();
         
         // تغییر عنوان مدال
-        document.querySelector('#historyModal .modal-title').innerHTML = 
-            '<i class="fas fa-history me-2"></i>تاریخچه تغییرات خرید شماره ' + purchaseId;
+        let title = '<i class="fas fa-history me-2"></i>تاریخچه تغییرات خرید شماره ' + purchaseId;
+        if (customerName) {
+            title += ' - مشتری: ' + customerName;
+        }
+        
+        document.querySelector('#historyModal .modal-title').innerHTML = title;
+        
+        // مخفی کردن فیلترها در حالت نمایش تاریخچه یک خرید خاص
+        const filterSection = document.querySelector('#historyModal .filter-section');
+        if (filterSection) {
+            filterSection.style.display = 'none';
+        }
     }
 }
 
@@ -473,12 +492,19 @@ function initializeQuickSearch() {
 }
 
 // تابع بروزرسانی وضعیت دکمه خروجی اکسل (global)
-function updateExportButton() {
+window.updateExportButton = function() {
     const exportBtn = document.getElementById('exportBtn');
     if (!exportBtn) return;
     
-    const selectedRows = document.querySelectorAll('.row-checkbox:checked');
-    const selectedCount = selectedRows.length;
+    // استفاده از purchaseAggregatedStats برای تعداد دقیق انتخاب شده‌ها
+    let selectedCount = 0;
+    if (window.purchaseAggregatedStats && window.purchaseAggregatedStats.selectedPurchases) {
+        selectedCount = window.purchaseAggregatedStats.selectedPurchases.size;
+    } else {
+        // fallback: استفاده از checkbox های checked در صفحه
+        const selectedRows = document.querySelectorAll('.row-checkbox:checked');
+        selectedCount = selectedRows.length;
+    }
     
     console.log(`📊 تعداد خریدهای انتخاب شده: ${selectedCount}`);
     
@@ -494,6 +520,12 @@ function updateExportButton() {
         exportBtn.innerHTML = '<i class="fas fa-file-excel me-2"></i>خروجی اکسل';
         exportBtn.classList.remove('btn-success');
         exportBtn.classList.add('btn-secondary');
+    }
+    
+    // به‌روزرسانی شمارنده کلی انتخاب
+    const globalCount = document.getElementById('globalSelectionCount');
+    if (globalCount) {
+        globalCount.textContent = selectedCount;
     }
     
     console.log(`🔘 وضعیت دکمه - disabled: ${exportBtn.disabled}, text: ${exportBtn.textContent}`);
@@ -513,15 +545,20 @@ function initializeExportButton() {
     exportBtn.addEventListener('click', function() {
         console.log('🖱️ کلیک روی دکمه خروجی اکسل');
         
-        const selectedRows = document.querySelectorAll('.row-checkbox:checked');
+        // استفاده از purchaseAggregatedStats برای دریافت همه آیدی‌های انتخاب شده (از همه صفحات)
+        let selectedIds = [];
+        if (window.purchaseAggregatedStats && window.purchaseAggregatedStats.selectedPurchases) {
+            selectedIds = Array.from(window.purchaseAggregatedStats.selectedPurchases);
+        } else {
+            // fallback: استفاده از checkbox های checked در صفحه
+            const selectedRows = document.querySelectorAll('.row-checkbox:checked');
+            selectedIds = Array.from(selectedRows).map(checkbox => checkbox.getAttribute('data-id'));
+        }
         
-        if (selectedRows.length === 0) {
+        if (selectedIds.length === 0) {
             alert('هیچ خریدی انتخاب نشده است!');
             return;
         }
-        
-        // جمع‌آوری آیدی‌های خریدهای انتخاب شده
-        const selectedIds = Array.from(selectedRows).map(checkbox => checkbox.getAttribute('data-id'));
         
         // دریافت ستون‌های انتخاب شده
         const selectedColumns = [];
@@ -573,12 +610,12 @@ function initializeExportButton() {
         setTimeout(() => {
             exportBtn.innerHTML = originalText;
             exportBtn.disabled = false;
-            updateExportButton(); // بروزرسانی دکمه براساس انتخاب‌ها
+            window.updateExportButton(); // بروزرسانی دکمه براساس انتخاب‌ها
         }, 3000);
     });
     
     // بروزرسانی اولیه
-    updateExportButton();
+    window.updateExportButton();
     
     // اضافه کردن visual feedback برای دکمه
     exportBtn.addEventListener('mouseenter', function() {
@@ -623,7 +660,11 @@ function initializeEditHistory() {
     document.querySelectorAll('.item-history-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const purchaseId = this.getAttribute('data-id');
-            showPurchaseHistory(purchaseId);
+            const customerId = this.getAttribute('data-customer-id');
+            const customerName = this.getAttribute('data-customer-name');
+            
+            console.log(`نمایش تاریخچه خرید ${purchaseId} - مشتری: ${customerName} (${customerId})`);
+            showPurchaseHistory(purchaseId, customerId, customerName);
         });
     });
 }
@@ -1385,16 +1426,19 @@ function initializePurchaseListPage() {
     // بازیابی وضعیت بخش‌ها
     restoreSectionStates();
     
-    // انتظار کوتاه برای اطمینان از بارگیری table filter
+    // راه‌اندازی Table Filter برای جداول
     setTimeout(() => {
-        if (typeof window.tableFilter === 'undefined' && typeof TableFilter !== 'undefined') {
+        if (typeof TableFilter !== 'undefined') {
             window.tableFilter = new TableFilter({
-                tableSelector: 'table',
+                tableSelector: '.enable-filter',
                 enableToast: true,
                 enableIndicators: true,
                 enableSummary: true,
                 enableClearAll: true
             });
+            console.log('✅ Table Filter initialized for purchase tables');
+        } else {
+            console.error('❌ TableFilter class not found');
         }
     }, 100);
     

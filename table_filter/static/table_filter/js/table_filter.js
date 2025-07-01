@@ -321,6 +321,10 @@ class TableFilter {
         const dropdown = this.createModalFilterDropdown(columnId, tableId, headerElement);
         if (!dropdown) return;
         
+        // بررسی مجدد مقادیر فیلتر براساس فیلترهای فعال
+        // این باعث می‌شود که فقط مقادیر موجود در جدول فعلی نمایش داده شوند
+        this.refreshFilterValues(columnId, tableId, dropdown);
+        
         // موقعیت‌دهی dropdown به نزدیک ستون
         this.positionDropdownNearColumn(dropdown, headerElement, buttonElement);
         
@@ -561,6 +565,14 @@ class TableFilter {
             }
         }
     }
+    
+    refreshFilterValues(columnId, tableId, dropdown) {
+        // این تابع مقادیر فیلتر را با توجه به وضعیت فعلی جدول بروزرسانی می‌کند
+        console.log(`Refreshing filter values for column ${columnId}`);
+        
+        // همیشه مقادیر را بروزرسانی کنیم تا مطمئن شویم دقیقاً منعکس‌کننده وضعیت فعلی جدول هستند
+        this.loadColumnValues(columnId, tableId, dropdown);
+    }
 
     getUniqueColumnValues(columnId, tableId) {
         const table = document.getElementById(tableId);
@@ -568,9 +580,21 @@ class TableFilter {
         
         const values = new Set();
         
-        // همیشه از originalRows استفاده کن تا همه مقادیر نمایش داده شوند
-        // حتی اگر در حال حاضر با فیلتر مخفی شده باشند
-        const rowsToCheck = this.originalRows[tableId] || table.querySelectorAll('tbody tr');
+        // بررسی وجود فیلترهای فعال (به جز فیلتر روی ستون فعلی)
+        const hasOtherActiveFilters = Object.keys(this.activeFilters).some(key => 
+            key !== `${tableId}-${columnId}` && key.startsWith(`${tableId}-`)
+        );
+        
+        let rowsToCheck;
+        
+        if (hasOtherActiveFilters) {
+            // اگر فیلترهای دیگری روی جدول اعمال شده‌اند، فقط سطرهای قابل نمایش را بررسی کنیم
+            console.log(`Loading values for ${columnId} with active filters: showing only visible values`);
+            rowsToCheck = Array.from(table.querySelectorAll('tbody tr')).filter(row => row.style.display !== 'none');
+        } else {
+            // اگر فیلتری نیست یا فقط همین ستون فیلتر شده، تمام سطرها را بررسی کنیم
+            rowsToCheck = this.originalRows[tableId] || table.querySelectorAll('tbody tr');
+        }
         
         rowsToCheck.forEach(row => {
             // فقط ردیف‌های خالی یا colspan دار را رد کن
@@ -754,14 +778,58 @@ class TableFilter {
         const filterKey = `${tableId}-${columnId}`;
         const currentFilters = this.activeFilters[filterKey]?.values || [];
         
+        // بررسی وجود فیلترهای دیگر (به جز روی ستون فعلی)
+        const hasOtherActiveFilters = Object.keys(this.activeFilters).some(key => 
+            key !== filterKey && key.startsWith(`${tableId}-`)
+        );
+        
+        // اگر فیلترهای دیگر فعال هستند، باید مقادیر موجود در جدول را بررسی کنیم
+        // تا فقط گزینه‌های موجود در نتایج فعلی را تیک بزنیم
+        let currentlyVisibleValues = new Set();
+        
+        if (hasOtherActiveFilters) {
+            console.log(`Finding visible values for column ${columnId} with active filters`);
+            
+            // پیدا کردن مقادیر موجود در جدول فیلتر شده فعلی
+            const table = document.getElementById(tableId);
+            if (table) {
+                const visibleRows = Array.from(table.querySelectorAll('tbody tr')).filter(row => 
+                    row.style.display !== 'none'
+                );
+                
+                visibleRows.forEach(row => {
+                    const cell = row.querySelector(`.column-${columnId}`);
+                    if (cell) {
+                        const cellValue = this.extractCellValue(cell, columnId);
+                        if (cellValue) {
+                            currentlyVisibleValues.add(cellValue);
+                        }
+                    }
+                });
+                
+                console.log(`Found ${currentlyVisibleValues.size} visible values for column ${columnId}`);
+            }
+        }
+        
         let html = '';
         values.forEach(value => {
-            const isChecked = currentFilters.length === 0 || currentFilters.includes(value);
+            // اگر فیلترهای دیگر فعال هستند، فقط مقادیری که در جدول فعلی وجود دارند تیک بخورند
+            const isCurrentlyVisible = !hasOtherActiveFilters || currentlyVisibleValues.has(value);
+            
+            // اگر این مقدار در فیلتر فعلی انتخاب شده، یا هیچ فیلتری روی این ستون نیست، آن را تیک بزنیم
+            const isChecked = (currentFilters.length === 0 && isCurrentlyVisible) || 
+                              (currentFilters.includes(value) && isCurrentlyVisible);
+            
             html += `
-                <div class="filter-value-item">
+                <div class="filter-value-item ${!isCurrentlyVisible ? 'not-available' : ''}">
                     <input type="checkbox" id="filter-${tableId}-${columnId}-${this.sanitizeId(value)}" 
-                           ${isChecked ? 'checked' : ''} value="${this.escapeHtml(value)}">
-                    <label for="filter-${tableId}-${columnId}-${this.sanitizeId(value)}">${this.escapeHtml(value)}</label>
+                           ${isChecked ? 'checked' : ''} 
+                           value="${this.escapeHtml(value)}"
+                           ${!isCurrentlyVisible ? 'disabled' : ''}>
+                    <label for="filter-${tableId}-${columnId}-${this.sanitizeId(value)}" 
+                           ${!isCurrentlyVisible ? 'style="opacity:0.5; text-decoration:line-through;"' : ''}>
+                           ${this.escapeHtml(value)}
+                    </label>
                 </div>
             `;
         });
@@ -837,8 +905,21 @@ class TableFilter {
         
         const columnIndex = this.columnMappings[tableId][columnId]?.index;
         if (columnIndex === -1 || columnIndex === undefined) return;
-
-        this.sortTableByColumn(tableId, columnIndex, direction, columnId);
+        
+        // مهم: اول فیلترها را اعمال کنیم و سپس مرتب‌سازی را انجام دهیم
+        // اگر فیلترهای فعال داریم، اول آنها را اعمال کنیم
+        if (Object.keys(this.activeFilters).length > 0) {
+            console.log(`Applying sort with active filters - preserving filters`);
+            
+            // بجای این خط:
+            // this.restoreAllRows();
+            
+            // مرتب‌سازی روی داده‌های فیلتر شده
+            this.sortTableByColumn(tableId, columnIndex, direction, columnId);
+        } else {
+            // اگر هیچ فیلتری فعال نیست، مرتب‌سازی معمولی انجام دهیم
+            this.sortTableByColumn(tableId, columnIndex, direction, columnId);
+        }
         
         // بستن تمام dropdown ها بعد از sorting
         this.closeAllDropdowns();
@@ -869,20 +950,32 @@ class TableFilter {
         const tbody = table.querySelector('tbody');
         if (!tbody) return;
 
-        // استفاده از originalRows به جای ردیف‌های مرئی فعلی
-        // تا تمام داده‌ها مرتب شوند نه فقط صفحه جاری
-        const rows = [...this.originalRows[tableId]];
+        // بررسی وجود فیلترهای فعال
+        const hasActiveFilters = Object.keys(this.activeFilters).length > 0;
         
-        if (!rows || rows.length === 0) {
-            console.warn(`No original rows found for table ${tableId}`);
-            // فال بک: استفاده از ردیف‌های موجود در جدول
-            const fallbackRows = Array.from(tbody.querySelectorAll('tr'));
-            if (fallbackRows.length === 0) {
-                console.error(`No rows found at all in table ${tableId}`);
-                return;
+        // اگر فیلتر فعال داریم، فقط ردیف‌های قابل مشاهده را مرتب کنیم
+        // در غیر این صورت، تمام ردیف‌ها را مرتب می‌کنیم
+        let rows;
+        
+        if (hasActiveFilters) {
+            // فقط ردیف‌های قابل مشاهده را انتخاب کنیم
+            rows = Array.from(tbody.querySelectorAll('tr')).filter(row => row.style.display !== 'none');
+            console.log(`Sorting ${rows.length} visible rows (with active filters) for column ${columnId}`);
+        } else {
+            // اگر فیلتری نیست، تمام ردیف‌ها را مرتب کنیم
+            rows = [...this.originalRows[tableId]];
+            
+            if (!rows || rows.length === 0) {
+                console.warn(`No original rows found for table ${tableId}`);
+                // فال بک: استفاده از ردیف‌های موجود در جدول
+                const fallbackRows = Array.from(tbody.querySelectorAll('tr'));
+                if (fallbackRows.length === 0) {
+                    console.error(`No rows found at all in table ${tableId}`);
+                    return;
+                }
+                rows.splice(0, rows.length, ...fallbackRows);
+                console.log(`Using fallback: ${rows.length} rows`);
             }
-            rows.splice(0, rows.length, ...fallbackRows);
-            console.log(`Using fallback: ${rows.length} rows`);
         }
         
         console.log(`Sorting ${rows.length} total rows for column ${columnId} in ${direction} order`);
@@ -921,8 +1014,10 @@ class TableFilter {
         // بروزرسانی originalRows با ترتیب جدید
         this.originalRows[tableId] = [...rows];
         
-        // اعمال مجدد فیلترهای فعال
-        this.applyAllFilters();
+        // اعمال مجدد فیلترهای فعال - اما بدون پاک کردن مرتب‌سازی
+        if (Object.keys(this.activeFilters).length > 0) {
+            this.applyFiltersToRows(); // فقط فیلترها را اعمال کن، نه مرتب‌سازی را
+        }
         
         // اطلاع دادن به pagination که داده‌ها تغییر کرده‌اند
         document.dispatchEvent(new CustomEvent('tableSorted', {
@@ -965,7 +1060,26 @@ class TableFilter {
             delete this.activeFilters[filterKey];
         }
 
+        // اعمال فیلترها
         this.applyAllFilters();
+        
+        // بروزرسانی لیست مقادیر در سایر ستون‌ها
+        // برای هر ستونی که در حال حاضر درپ‌داون‌ باز است (به جز ستون فعلی)
+        document.querySelectorAll('.filter-dropdown').forEach(otherDropdown => {
+            const dropdownColumnId = otherDropdown.getAttribute('data-column-id');
+            const dropdownTableId = otherDropdown.getAttribute('data-table-id');
+            
+            if (dropdownColumnId && dropdownTableId && 
+                (dropdownColumnId !== columnId || dropdownTableId !== tableId)) {
+                console.log(`Refreshing filter values for column ${dropdownColumnId} after filtering`);
+                
+                // بروزرسانی مقادیر قابل دسترس در درپ‌داون‌های باز
+                this.loadColumnValues(dropdownColumnId, dropdownTableId, otherDropdown);
+            }
+        });
+        
+        // ذخیره وضعیت فیلترها برای استفاده‌های بعدی
+        this.storeFilterState();
         
         if (this.config.enableIndicators) {
             this.updateFilterIndicators();
@@ -998,15 +1112,17 @@ class TableFilter {
 
     clearColumnFilter(columnId, tableId, dropdown) {
         const filterKey = `${tableId}-${columnId}`;
-        const sortKey = `${tableId}-${columnId}`;
+        
+        // حفظ وضعیت مرتب‌سازی فعلی - فقط فیلتر را پاک کنیم، نه مرتب‌سازی
+        const currentSortState = {...this.sortState};
         
         delete this.activeFilters[filterKey];
-        delete this.sortState[sortKey];
         
         // تغییر: بعد از پاک کردن فیلتر، مقادیر را دوباره بارگذاری کن
         // تا همه گزینه‌ها نمایش داده شوند
         this.loadColumnValues(columnId, tableId, dropdown);
         
+        // فقط آیکون مرتب‌سازی فعال را در درپ‌داون غیرفعال کنیم
         dropdown.querySelectorAll('.sort-option').forEach(option => {
             option.classList.remove('active');
         });
@@ -1041,6 +1157,9 @@ class TableFilter {
     }
 
     applyAllFilters() {
+        // حفظ وضعیت فعلی مرتب‌سازی قبل از بازگرداندن همه ردیف‌ها
+        const currentSortState = {...this.sortState};
+        
         this.restoreAllRows();
         
         if (Object.keys(this.activeFilters).length === 0) {
@@ -1053,7 +1172,34 @@ class TableFilter {
             }));
             return;
         }
-
+        
+        // اعمال فیلترها
+        this.applyFiltersToRows();
+        
+        // اعمال مجدد مرتب‌سازی بر روی داده‌های فیلتر شده
+        if (Object.keys(currentSortState).length > 0) {
+            for (const sortKey in currentSortState) {
+                const [tableId, columnId] = sortKey.split('-');
+                const direction = currentSortState[sortKey];
+                const columnIndex = this.columnMappings[tableId]?.[columnId]?.index;
+                
+                if (columnIndex !== undefined) {
+                    console.log(`Re-applying sort for column ${columnId} in ${direction} order after filtering`);
+                    this.sortTableByColumn(tableId, columnIndex, direction, columnId);
+                }
+            }
+        }
+        
+        // اطلاع دادن به pagination که فیلتر اعمال شده
+        document.dispatchEvent(new CustomEvent('tableFiltered', {
+            detail: {
+                activeFilters: this.activeFilters,
+                hasActiveFilters: true
+            }
+        }));
+    }
+    
+    applyFiltersToRows() {
         this.tableIds.forEach(tableId => {
             const table = document.getElementById(tableId);
             if (!table) return;
@@ -1111,6 +1257,23 @@ class TableFilter {
             });
         });
     }
+    
+    storeFilterState() {
+        // ذخیره وضعیت فعلی فیلترها و مرتب‌سازی در localStorage
+        // برای استفاده در بارگذاری‌های بعدی
+        try {
+            const filterState = {
+                activeFilters: this.activeFilters,
+                sortState: this.sortState,
+                timestamp: new Date().getTime()
+            };
+            
+            localStorage.setItem('table_filter_state', JSON.stringify(filterState));
+            console.log('وضعیت فیلتر ذخیره شد');
+        } catch (e) {
+            console.error('خطا در ذخیره وضعیت فیلتر:', e);
+        }
+    }
 
     updateFilterIndicators() {
         this.tableIds.forEach(tableId => {
@@ -1163,7 +1326,10 @@ class TableFilter {
         
         if (!summary || !content) return;
         
-        const totalActiveFilters = Object.keys(this.activeFilters).length + Object.keys(this.sortState).length;
+        // جدا کردن فیلترها و مرتب‌سازی‌ها برای نمایش صحیح
+        const activeFilterCount = Object.keys(this.activeFilters).length;
+        const activeSortCount = Object.keys(this.sortState).length;
+        const totalActiveFilters = activeFilterCount + activeSortCount;
         
         if (totalActiveFilters === 0) {
             summary.classList.remove('show');
@@ -1280,8 +1446,8 @@ class TableFilter {
     }
 
     clearAllFilters() {
+        // فقط فیلترها را پاک کنیم، وضعیت مرتب‌سازی را حفظ کنیم
         this.activeFilters = {};
-        this.sortState = {};
         
         this.restoreAllRows();
         

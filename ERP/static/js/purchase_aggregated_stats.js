@@ -51,6 +51,12 @@ class PurchaseAggregatedStats {
                 this.clearAllSelections();
             }
         });
+
+        // دکمه‌های انتخاب کلی جدید
+        this.initGlobalSelectionButtons();
+        
+        // راه‌اندازی دکمه‌های dropdown انتخاب
+        this.initDropdownSelectionButtons();
         
         // گوش دادن به تغییرات فیلتر
         document.addEventListener('tableFilterApplied', () => {
@@ -65,6 +71,374 @@ class PurchaseAggregatedStats {
             this.updateStatsAfterFilter();
         });
     }
+
+    initGlobalSelectionButtons() {
+        // دکمه لغو همه انتخاب‌ها
+        const clearAllBtn = document.getElementById('clearAllSelections');
+        if (clearAllBtn) {
+            clearAllBtn.addEventListener('click', () => {
+                this.clearAllSelections();
+            });
+        }
+    }
+
+    initDropdownSelectionButtons() {
+        // راه‌اندازی دکمه‌های dropdown برای انتخاب صفحه و بخش
+        
+        // انتخاب همه در صفحه (active)
+        const selectPageActive = document.querySelector('.select-page-active');
+        if (selectPageActive) {
+            selectPageActive.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.selectCurrentPageSection('active');
+            });
+        }
+        
+        // انتخاب همه در بخش (active)
+        const selectSectionActive = document.querySelector('.select-section-active');
+        if (selectSectionActive) {
+            selectSectionActive.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.selectAllInSection('active');
+            });
+        }
+        
+        // پاک کردن انتخاب‌ها (active)
+        const clearSelectionActive = document.querySelector('.clear-selection-active');
+        if (clearSelectionActive) {
+            clearSelectionActive.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.clearSectionSelection('active');
+            });
+        }
+        
+        // انتخاب همه در صفحه (pending)
+        const selectPagePending = document.querySelector('.select-page-pending');
+        if (selectPagePending) {
+            selectPagePending.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.selectCurrentPageSection('pending');
+            });
+        }
+        
+        // انتخاب همه در بخش (pending)
+        const selectSectionPending = document.querySelector('.select-section-pending');
+        if (selectSectionPending) {
+            selectSectionPending.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.selectAllInSection('pending');
+            });
+        }
+        
+        // پاک کردن انتخاب‌ها (pending)
+        const clearSelectionPending = document.querySelector('.clear-selection-pending');
+        if (clearSelectionPending) {
+            clearSelectionPending.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.clearSectionSelection('pending');
+            });
+        }
+        
+        // انتخاب همه در صفحه (archived)
+        const selectPageArchived = document.querySelector('.select-page-archived');
+        if (selectPageArchived) {
+            selectPageArchived.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.selectCurrentPageSection('archived');
+            });
+        }
+        
+        // انتخاب همه در بخش (archived)
+        const selectSectionArchived = document.querySelector('.select-section-archived');
+        if (selectSectionArchived) {
+            selectSectionArchived.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.selectAllInSection('archived');
+            });
+        }
+        
+        // پاک کردن انتخاب‌ها (archived)
+        const clearSelectionArchived = document.querySelector('.clear-selection-archived');
+        if (clearSelectionArchived) {
+            clearSelectionArchived.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.clearSectionSelection('archived');
+            });
+        }
+    }
+
+    selectCurrentPageSection(section) {
+        // انتخاب فقط خریدهای نمایش داده شده در صفحه فعلی یک بخش خاص
+        // ابتدا تمام انتخاب‌های قبلی را بدون پیام پاک می‌کنیم
+        this.clearAllSelectionsSilent();
+        
+        const tableMap = {
+            'active': 'activePurchasesTable',
+            'pending': 'pendingPurchasesTable', 
+            'archived': 'archivedPurchasesTable'
+        };
+        
+        const tableId = tableMap[section];
+        if (!tableId) return;
+        
+        const checkboxes = document.querySelectorAll(`#${tableId} tbody tr:not([style*="display: none"]) .row-checkbox`);
+        let selectedCount = 0;
+        
+        checkboxes.forEach(checkbox => {
+            const purchaseId = checkbox.getAttribute('data-id');
+            this.selectedPurchases.add(purchaseId);
+            checkbox.checked = true;
+            selectedCount++;
+            
+            // بروزرسانی رنگ سطر
+            const row = checkbox.closest('tr');
+            if (row) {
+                row.classList.add('table-warning', 'selected-row');
+            }
+        });
+
+        // بروزرسانی چک‌باکس سرستون
+        this.updateSelectAllCheckboxes();
+        this.updateStats();
+        this.updateGlobalSelectionCount();
+        
+        // بروزرسانی export button و bulk edit manager
+        if (window.updateExportButton) {
+            window.updateExportButton();
+        }
+        
+        if (window.bulkEditManager) {
+            window.bulkEditManager.updateControlPanel();
+        }
+        
+        // نمایش پیام
+        this.showSuccessMessage(`${selectedCount} خرید از صفحه فعلی بخش ${this.getSectionTitle(section)} انتخاب شد`);
+    }
+
+    selectAllInSection(section) {
+        // انتخاب تمام خریدهای یک بخش (تمام صفحات)
+        // ابتدا تمام انتخاب‌های قبلی را بدون پیام پاک می‌کنیم
+        this.clearAllSelectionsSilent();
+        
+        const btn = document.querySelector(`.select-section-${section}`);
+        const originalText = btn ? btn.innerHTML : '';
+        
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>در حال انتخاب...';
+            btn.style.pointerEvents = 'none';
+        }
+
+        // ساخت URL با فیلترهای فعلی و Table Filter
+        const currentUrl = new URL(window.location);
+        const params = new URLSearchParams(currentUrl.search);
+        params.set('section', section);
+        
+        // اضافه کردن فیلترهای Table Filter
+        if (window.tableFilter && typeof window.tableFilter.getActiveFilters === 'function') {
+            const tableFilters = window.tableFilter.getActiveFilters();
+            Object.keys(tableFilters).forEach(key => {
+                if (tableFilters[key] && tableFilters[key].length > 0) {
+                    params.set(key, tableFilters[key].join(','));
+                }
+            });
+        }
+        
+        fetch(`/erp/purchases/section-ids/?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': this.getCSRFToken()
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // انتخاب تمام خریدهای بخش
+                data.purchase_ids.forEach(id => {
+                    this.selectedPurchases.add(id.toString());
+                });
+
+                // بروزرسانی چک‌باکس‌های نمایش داده شده
+                document.querySelectorAll('.row-checkbox').forEach(checkbox => {
+                    const purchaseId = checkbox.getAttribute('data-id');
+                    if (this.selectedPurchases.has(purchaseId)) {
+                        checkbox.checked = true;
+                        
+                        // بروزرسانی رنگ سطر
+                        const row = checkbox.closest('tr');
+                        if (row) {
+                            row.classList.add('table-warning', 'selected-row');
+                        }
+                    }
+                });
+
+                // بروزرسانی وضعیت‌ها
+                this.updateSelectAllCheckboxes();
+                this.updateStats();
+                this.updateGlobalSelectionCount();
+
+                // بروزرسانی دکمه‌های bulk edit و export
+                if (window.updateExportButton) {
+                    window.updateExportButton();
+                }
+                
+                // بروزرسانی bulk edit manager اگر موجود باشد
+                if (window.bulkEditManager) {
+                    window.bulkEditManager.updateControlPanel();
+                }
+
+                // نمایش پیام موفقیت
+                this.showSuccessMessage(`${data.count} خرید از تمام صفحات بخش ${this.getSectionTitle(section)} انتخاب شد`);
+            } else {
+                console.error('خطا در دریافت لیست خریدها:', data.message);
+                this.showErrorMessage('خطا در انتخاب کل بخش');
+            }
+        })
+        .catch(error => {
+            console.error('خطا در ارتباط با سرور:', error);
+            this.showErrorMessage('خطا در ارتباط با سرور');
+        })
+        .finally(() => {
+            // بازگردانی وضعیت دکمه
+            if (btn) {
+                btn.innerHTML = originalText;
+                btn.style.pointerEvents = 'auto';
+            }
+        });
+    }
+
+    clearSectionSelection(section) {
+        // پاک کردن انتخاب‌های یک بخش خاص
+        const tableMap = {
+            'active': 'activePurchasesTable',
+            'pending': 'pendingPurchasesTable', 
+            'archived': 'archivedPurchasesTable'
+        };
+        
+        const tableId = tableMap[section];
+        if (!tableId) return;
+        
+        const checkboxes = document.querySelectorAll(`#${tableId} .row-checkbox`);
+        let clearedCount = 0;
+        
+        checkboxes.forEach(checkbox => {
+            const purchaseId = checkbox.getAttribute('data-id');
+            if (this.selectedPurchases.has(purchaseId)) {
+                this.selectedPurchases.delete(purchaseId);
+                checkbox.checked = false;
+                clearedCount++;
+                
+                // حذف رنگ سطر
+                const row = checkbox.closest('tr');
+                if (row) {
+                    row.classList.remove('table-warning', 'selected-row');
+                }
+            }
+        });
+
+        // بروزرسانی چک‌باکس سرستون
+        this.updateSelectAllCheckboxes();
+        this.updateStats();
+        this.updateGlobalSelectionCount();
+        
+        // نمایش پیام
+        if (clearedCount > 0) {
+            this.showSuccessMessage(`${clearedCount} خرید از بخش ${this.getSectionTitle(section)} انتخاب لغو شد`);
+        }
+    }
+
+    getSectionTitle(section) {
+        const titles = {
+            'active': 'خریدهای فعال',
+            'pending': 'در انتظار پرداخت',
+            'archived': 'آرشیو شده'
+        };
+        return titles[section] || section;
+    }
+
+
+
+    updateSelectAllCheckboxes() {
+        // بروزرسانی وضعیت چک‌باکس‌های سرستون
+        const tables = ['activePurchasesTable', 'pendingPurchasesTable', 'archivedPurchasesTable'];
+        
+        tables.forEach(tableId => {
+            const table = document.getElementById(tableId);
+            if (!table) return;
+
+            const allCheckboxes = table.querySelectorAll('tbody .row-checkbox');
+            const checkedCheckboxes = table.querySelectorAll('tbody .row-checkbox:checked');
+            const selectAllCheckbox = table.querySelector('thead .select-all-checkbox, thead .select-all-checkbox-pending, thead .select-all-checkbox-archived');
+
+            if (selectAllCheckbox) {
+                if (allCheckboxes.length === checkedCheckboxes.length && allCheckboxes.length > 0) {
+                    selectAllCheckbox.checked = true;
+                    selectAllCheckbox.indeterminate = false;
+                } else if (checkedCheckboxes.length > 0) {
+                    selectAllCheckbox.checked = false;
+                    selectAllCheckbox.indeterminate = true;
+                } else {
+                    selectAllCheckbox.checked = false;
+                    selectAllCheckbox.indeterminate = false;
+                }
+            }
+        });
+    }
+
+    updateGlobalSelectionCount() {
+        const countElement = document.getElementById('globalSelectionCount');
+        const infoElement = document.getElementById('globalSelectionInfo');
+        
+        if (countElement) {
+            countElement.textContent = this.selectedPurchases.size;
+        }
+        
+        // نمایش یا مخفی کردن شمارنده بر اساس تعداد انتخاب‌ها
+        if (infoElement) {
+            if (this.selectedPurchases.size > 0) {
+                infoElement.style.display = 'block';
+            } else {
+                infoElement.style.display = 'none';
+            }
+        }
+    }
+
+    showSuccessMessage(message) {
+        // نمایش پیام موفقیت
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed';
+        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        alertDiv.innerHTML = `
+            <i class="fas fa-check-circle me-2"></i>${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+
+        // حذف خودکار بعد از 3 ثانیه
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.parentNode.removeChild(alertDiv);
+            }
+        }, 3000);
+    }
+
+    showErrorMessage(message) {
+        // نمایش پیام خطا
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-danger alert-dismissible fade show position-fixed';
+        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        alertDiv.innerHTML = `
+            <i class="fas fa-exclamation-circle me-2"></i>${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+
+        // حذف خودکار بعد از 5 ثانیه
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.parentNode.removeChild(alertDiv);
+            }
+        }, 5000);
+    }
     
     handleRowSelection(checkbox) {
         const purchaseId = checkbox.getAttribute('data-id');
@@ -75,7 +449,18 @@ class PurchaseAggregatedStats {
             this.selectedPurchases.delete(purchaseId);
         }
         
+        this.updateSelectAllCheckboxes();
         this.updateStats();
+        this.updateGlobalSelectionCount();
+        
+        // بروزرسانی export button و bulk edit manager
+        if (window.updateExportButton) {
+            window.updateExportButton();
+        }
+        
+        if (window.bulkEditManager) {
+            window.bulkEditManager.updateControlPanel();
+        }
     }
     
     handleSelectAll(selectAllCheckbox) {
@@ -93,9 +478,19 @@ class PurchaseAggregatedStats {
             }
         });
         
-        this.updateStats();
+                this.updateStats();
+        this.updateGlobalSelectionCount();
+        
+        // بروزرسانی export button و bulk edit manager
+        if (window.updateExportButton) {
+            window.updateExportButton();
+        }
+        
+        if (window.bulkEditManager) {
+            window.bulkEditManager.updateControlPanel();
+        }
     }
-    
+
     handleSelectAllArchived(selectAllCheckbox) {
         const tableId = 'archivedPurchasesTable';
         const checkboxes = document.querySelectorAll(`#${tableId} tbody tr:not([style*="display: none"]) .row-checkbox`);
@@ -111,9 +506,19 @@ class PurchaseAggregatedStats {
             }
         });
         
-        this.updateStats();
+                this.updateStats();
+        this.updateGlobalSelectionCount();
+        
+        // بروزرسانی export button و bulk edit manager
+        if (window.updateExportButton) {
+            window.updateExportButton();
+        }
+        
+        if (window.bulkEditManager) {
+            window.bulkEditManager.updateControlPanel();
+        }
     }
-    
+
     handleSelectAllPending(selectAllCheckbox) {
         const tableId = 'pendingPurchasesTable';
         const checkboxes = document.querySelectorAll(`#${tableId} tbody tr:not([style*="display: none"]) .row-checkbox`);
@@ -129,10 +534,22 @@ class PurchaseAggregatedStats {
             }
         });
         
-        this.updateStats();
+                this.updateStats();
+        this.updateGlobalSelectionCount();
+        
+        // بروزرسانی export button و bulk edit manager
+        if (window.updateExportButton) {
+            window.updateExportButton();
+        }
+        
+        if (window.bulkEditManager) {
+            window.bulkEditManager.updateControlPanel();
+        }
     }
-    
+
     updateStats() {
+        this.updateGlobalSelectionCount();
+        
         if (this.selectedPurchases.size === 0) {
             this.hideStats();
             return;
@@ -145,7 +562,8 @@ class PurchaseAggregatedStats {
     showStats() {
         if (this.statsContainer) {
             this.statsContainer.style.display = 'block';
-            this.statsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            // حذف اسکرول خودکار تا کاربر در همان موقعیت بماند
+            // this.statsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
     }
     
@@ -161,13 +579,66 @@ class PurchaseAggregatedStats {
         // پاک کردن تمام چک‌باکس‌ها
         document.querySelectorAll('.row-checkbox').forEach(checkbox => {
             checkbox.checked = false;
+            
+            // حذف رنگ سطر
+            const row = checkbox.closest('tr');
+            if (row) {
+                row.classList.remove('table-warning', 'selected-row');
+            }
         });
         
         document.querySelectorAll('.select-all-checkbox, .select-all-checkbox-archived, .select-all-checkbox-pending').forEach(checkbox => {
             checkbox.checked = false;
+            checkbox.indeterminate = false;
         });
         
         this.hideStats();
+        this.updateGlobalSelectionCount();
+        
+        // بروزرسانی export button و bulk edit manager
+        if (window.updateExportButton) {
+            window.updateExportButton();
+        }
+        
+        if (window.bulkEditManager) {
+            window.bulkEditManager.updateControlPanel();
+        }
+        
+        // نمایش پیام
+        this.showSuccessMessage('تمام انتخاب‌ها پاک شد');
+    }
+    
+    clearAllSelectionsSilent() {
+        // پاک کردن تمام انتخاب‌ها بدون نمایش پیام
+        this.selectedPurchases.clear();
+        
+        // پاک کردن تمام چک‌باکس‌ها
+        document.querySelectorAll('.row-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+            
+            // حذف رنگ سطر
+            const row = checkbox.closest('tr');
+            if (row) {
+                row.classList.remove('table-warning', 'selected-row');
+            }
+        });
+        
+        document.querySelectorAll('.select-all-checkbox, .select-all-checkbox-archived, .select-all-checkbox-pending').forEach(checkbox => {
+            checkbox.checked = false;
+            checkbox.indeterminate = false;
+        });
+        
+        this.hideStats();
+        this.updateGlobalSelectionCount();
+        
+        // بروزرسانی export button و bulk edit manager
+        if (window.updateExportButton) {
+            window.updateExportButton();
+        }
+        
+        if (window.bulkEditManager) {
+            window.bulkEditManager.updateControlPanel();
+        }
     }
     
     calculateAndDisplayStats() {
@@ -189,7 +660,7 @@ class PurchaseAggregatedStats {
         this.showLoadingStats();
         
         // ساخت URL به صورت پویا
-        const apiUrl = '/purchases/aggregated-stats/';
+        const apiUrl = window.PurchaseListConfig?.purchaseAggregatedStatsUrl || '/erp/purchases/aggregated-stats/';
         
         fetch(apiUrl, {
             method: 'POST',
@@ -518,11 +989,26 @@ class PurchaseAggregatedStats {
             }
         });
         
+        // اگر همه انتخاب‌ها پاک شدند، آمار را مخفی کن
+        if (visibleSelectedPurchases.size === 0) {
+            this.selectedPurchases = visibleSelectedPurchases;
+            this.hideStats();
+            this.updateGlobalSelectionCount();
+            return;
+        }
+        
         // بروزرسانی لیست انتخاب‌ها
         this.selectedPurchases = visibleSelectedPurchases;
         
-        // بروزرسانی آمار
+        // اگر انتخاب‌هایی باقی مانده‌اند، آمار را با API محاسبه کن
+        // تا آمار دقیق کل خریدهای فیلتر شده ارائه شود
         this.updateStats();
+        this.updateGlobalSelectionCount();
+        
+        // بروزرسانی دکمه خروجی اکسل
+        if (window.updateExportButton) {
+            window.updateExportButton();
+        }
     }
     
     // متد جدید: همگام‌سازی با bulk edit manager
