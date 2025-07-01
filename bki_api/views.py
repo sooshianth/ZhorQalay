@@ -19,6 +19,9 @@ from django.utils import timezone
 import datetime
 import json
 import traceback  # For detailed error logging
+import logging
+
+logger = logging.getLogger("bki_api_views")
 
 def update_env_file(key, value):
     """به‌روزرسانی یک کلید مشخص در فایل .env"""
@@ -338,6 +341,7 @@ def get_all_bazaargah_purchases_view(request):
             error_message=f"خطا در اجرای تابع: {str(e)}\n{error_details}"
         )
         log_entry.save()
+        logger.error(f"خطا در اجرای تابع دریافت خریدها: {str(e)}\n{error_details}")
         
         return redirect('bki_api:credentials')
 
@@ -506,7 +510,7 @@ def merge_purchases_view(request):
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
-        print(f"خطا در ادغام خریدها: {str(e)}\n{error_details}")
+        logger.error(f"خطا در ادغام خریدها: {str(e)}\n{error_details}")
         return JsonResponse({
             'success': False,
             'error': f'خطا در ادغام خریدها: {str(e)}'
@@ -582,7 +586,7 @@ def get_purchases_last_day_view(request):
             error_message=f"خطا در اجرای تابع: {str(e)}\n{error_details}"
         )
         log_entry.save()
-        
+        logger.error(f"خطا در اجرای تابع دریافت خریدهای یک هفته گذشته: {str(e)}\n{error_details}")
         return redirect('bki_api:credentials')
 
 @role_required('admin')
@@ -655,6 +659,7 @@ def get_purchases_last_week_view(request):
             error_message=f"خطا در اجرای تابع: {str(e)}\n{error_details}"
         )
         log_entry.save()
+        logger.error(f"خطا در اجرای تابع دریافت خریدهای یک هفته گذشته: {str(e)}\n{error_details}")
         
         return redirect('bki_api:credentials')
 

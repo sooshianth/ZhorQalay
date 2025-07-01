@@ -131,3 +131,35 @@ django.db.utils.OperationalError: no such column: core_purchase.is_address_sent
 ERROR 2025-06-30 16:59:59,935 runserver HTTP GET /sales/profile/ 500 [0.58, 127.0.0.1:56895]
 WARNING 2025-06-30 17:00:00,166 log Not Found: /favicon.ico
 WARNING 2025-06-30 17:00:00,168 runserver HTTP GET /favicon.ico 404 [0.04, 127.0.0.1:56895]
+WARNING 2025-06-30 18:36:45,167 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:36:47,594 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:36:50,038 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:36:52,524 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:36:53,334 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:36:54,261 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:36:54,947 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:36:55,478 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:36:56,098 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:08,943 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:09,382 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:09,528 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:09,739 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:09,932 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:10,361 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:10,497 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:10,768 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:11,065 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:11,210 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:11,655 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:11,952 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:12,167 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:12,518 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:12,779 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:12,933 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:13,109 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:13,307 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:13,447 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:13,610 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:13,866 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:14,018 forms phone: 09003603000 - current_attempts: 10
+WARNING 2025-06-30 18:37:14,093 forms phone: 09003603000 - current_attempts: 10

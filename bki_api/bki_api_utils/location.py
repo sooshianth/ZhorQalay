@@ -7,6 +7,9 @@ Functions for handling and converting location-related data like province codes.
 
 import os
 import xml.etree.ElementTree as ET
+import logging
+
+logger = logging.getLogger("bki_api_location")
 
 
 # Cache for province mappings to avoid repeated file reads
