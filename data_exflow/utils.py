@@ -8,6 +8,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import transaction, models, connections
 from django.db.models import Q
 from django.core.cache import cache
+from django.conf import settings
 from .models import ImportExportSession, ImportExportLog, ImportRecord
 from django.core.exceptions import ValidationError, FieldDoesNotExist
 from django.utils.translation import gettext_lazy as _
@@ -1294,22 +1295,65 @@ def process_export(content_types, field_mapping, user, format='xlsx'):
         else:
             final_df = pd.DataFrame()
         
-        # Create the export file
-        file_path = f"media/data_exflow/files/export_{session.id}.{format}"
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        
-        # Save based on format
-        if format.lower() == 'xlsx':
-            final_df.to_excel(file_path, index=False)
-        elif format.lower() == 'csv':
-            final_df.to_csv(file_path, index=False)
-        else:
-            # Default to Excel
-            final_df.to_excel(file_path, index=False)
+        # Create the export file using Django settings
+        try:
+            export_dir = os.path.join(settings.MEDIA_ROOT, 'data_exflow', 'files')
+            os.makedirs(export_dir, exist_ok=True)
+            file_path = os.path.join(export_dir, f"export_{session.id}.{format}")
+            
+            # Save based on format
+            if format.lower() == 'xlsx':
+                final_df.to_excel(file_path, index=False)
+            elif format.lower() == 'csv':
+                final_df.to_csv(file_path, index=False)
+            else:
+                # Default to Excel
+                final_df.to_excel(file_path, index=False)
+                
+        except PermissionError as e:
+            error_msg = f"Permission denied creating export file. Please check IIS AppPool permissions for MEDIA_ROOT: {settings.MEDIA_ROOT}"
+            ImportExportLog.objects.create(
+                session=session,
+                log_level=ImportExportLog.ERROR,
+                message=error_msg
+            )
+            raise PermissionError(error_msg) from e
+        except OSError as e:
+            error_msg = f"OS error creating export file in {export_dir}: {str(e)}"
+            ImportExportLog.objects.create(
+                session=session,
+                log_level=ImportExportLog.ERROR,
+                message=error_msg
+            )
+            raise OSError(error_msg) from e
         
         # Update the session with the file
-        with open(file_path, 'rb') as f:
-            session.file.save(f"export_{session.id}.{format}", f)
+        try:
+            with open(file_path, 'rb') as f:
+                session.file.save(f"export_{session.id}.{format}", f)
+        except PermissionError as e:
+            error_msg = f"Permission denied saving export file to Django FileField. Please check IIS AppPool permissions for MEDIA_ROOT: {settings.MEDIA_ROOT}"
+            ImportExportLog.objects.create(
+                session=session,
+                log_level=ImportExportLog.ERROR,
+                message=error_msg
+            )
+            raise PermissionError(error_msg) from e
+        except OSError as e:
+            error_msg = f"OS error saving export file to Django FileField: {str(e)}"
+            ImportExportLog.objects.create(
+                session=session,
+                log_level=ImportExportLog.ERROR,
+                message=error_msg
+            )
+            raise OSError(error_msg) from e
+        finally:
+            # Clean up temporary file if it exists
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except:
+                pass  # Ignore cleanup errors
         
         session.record_count = len(final_df)
         session.processed_count = len(final_df)
