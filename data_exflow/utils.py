@@ -1240,6 +1240,42 @@ def process_export(content_types, field_mapping, user, format='xlsx'):
                 for field_name, export_name in model_fields.items():
                     try:
                         value = getattr(instance, field_name)
+                        
+                        # Convert DateTime and timezone fields to string for Excel compatibility
+                        if value is not None:
+                            # Get the field object to check its type
+                            try:
+                                field_obj = model_class._meta.get_field(field_name)
+                                
+                                # Check if it's a DateTime field
+                                if isinstance(field_obj, (models.DateTimeField, models.DateField, models.TimeField)):
+                                    # Convert to string in a readable format
+                                    if isinstance(field_obj, models.DateTimeField):
+                                        # Format: YYYY-MM-DD HH:MM:SS
+                                        value = value.strftime('%Y-%m-%d %H:%M:%S') if value else None
+                                    elif isinstance(field_obj, models.DateField):
+                                        # Format: YYYY-MM-DD
+                                        value = value.strftime('%Y-%m-%d') if value else None
+                                    elif isinstance(field_obj, models.TimeField):
+                                        # Format: HH:MM:SS
+                                        value = value.strftime('%H:%M:%S') if value else None
+                                
+                                # Handle timezone-aware datetime fields
+                                elif hasattr(value, 'tzinfo') and value.tzinfo is not None:
+                                    # Convert timezone-aware datetime to string
+                                    value = value.strftime('%Y-%m-%d %H:%M:%S %Z') if value else None
+                                    
+                            except FieldDoesNotExist:
+                                # If field doesn't exist in model, check if value is datetime-like
+                                if hasattr(value, 'strftime'):
+                                    if hasattr(value, 'hour'):  # DateTime or Time
+                                        if hasattr(value, 'date'):  # DateTime
+                                            value = value.strftime('%Y-%m-%d %H:%M:%S')
+                                        else:  # Time only
+                                            value = value.strftime('%H:%M:%S')
+                                    else:  # Date only
+                                        value = value.strftime('%Y-%m-%d')
+                        
                         row[export_name] = value
                     except AttributeError:
                         row[export_name] = None
@@ -1283,7 +1319,7 @@ def process_export(content_types, field_mapping, user, format='xlsx'):
         ImportExportLog.objects.create(
             session=session,
             log_level=ImportExportLog.INFO,
-            message=f"Export completed. {session.processed_count} records exported."
+            message=f"Export completed. {session.processed_count} records exported. DateTime and timezone fields converted to string format for Excel compatibility."
         )
         
         return session
