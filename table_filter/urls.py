@@ -4,7 +4,6 @@ from . import views, filter_views
 app_name = 'table_filter'
 
 urlpatterns = [
-    path('demo/', views.table_filter_demo, name='demo'),
     path('bulk-edit/', views.bulk_edit_view, name='bulk_edit'),
     path('bulk-edit-excel/', views.bulk_edit_excel_view, name='bulk_edit_excel'),
     path('bulk-edit-template/', views.download_excel_template_view, name='bulk_edit_template'),
@@ -51,7 +50,4 @@ urlpatterns = [
     path('api/delete-preset/<int:preset_id>/', filter_views.delete_filter_preset, name='delete_filter_preset'),
     path('api/apply-preset/<int:preset_id>/', filter_views.apply_filter_preset, name='apply_filter_preset'),
     
-    # صفحات کمکی
-    path('filter-demo/', filter_views.table_filter_demo, name='filter_demo'),
-    path('excel-demo/', views.excel_filter_demo, name='excel_filter_demo'),
 ] 

@@ -26,11 +26,7 @@ from .models import TableFilterConfiguration, UserTableFilterState, TableFilterS
 
 # Create your views here.
 
-def table_filter_demo(request):
-    """
-    نمایش صفحه نمونه برای فیلتر جداول
-    """
-    return render(request, 'table_filter/demo.html')
+# Demo view removed
 
 @role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
@@ -2430,23 +2426,4 @@ def reset_column_order(request):
         }, status=500)
 
 
-# =================== HELPER VIEWS ===================
-
-@login_required
-def table_filter_demo(request):
-    """صفحه دمو سیستم فیلتر جدول"""
-    return render(request, 'table_filter/demo.html')
-
-
-@login_required
-def table_filter_documentation(request):
-    """مستندات سیستم فیلتر جدول"""
-    return render(request, 'table_filter/documentation.html')
-
-def excel_filter_demo(request):
-    """نمایش صفحه نمونه فیلتر اکسلی"""
-    return render(request, 'table_filter/excel_filter_demo.html')
-
-def quick_guide(request):
-    """نمایش راهنمای سریع فیلتر اکسلی"""
-    return render(request, 'table_filter/quick_guide.html')
+# Helper views removed - demo files deleted

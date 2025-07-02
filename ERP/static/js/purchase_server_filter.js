@@ -113,16 +113,13 @@ class PurchaseServerFilter {
     }
     
     async showFilterModal(columnId, columnType, headerElement) {
-        console.log(`📂 نمایش فیلتر برای ستون: ${columnId}`);
         
         try {
             // دریافت مقادیر موجود در جدول فعلی
             const currentValues = await this.getCurrentTableValues(columnId);
-            console.log(`📊 مقادیر موجود در جدول: ${currentValues.length}`);
             
             // دریافت همه مقادیر ممکن از سرور
             const allValues = await this.getColumnValues(columnId);
-            console.log(`🌐 همه مقادیر از سرور: ${allValues.length}`);
             
             // ایجاد مودال
             this.createFilterModal(columnId, columnType, currentValues, allValues, headerElement);
