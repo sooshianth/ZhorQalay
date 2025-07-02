@@ -32,14 +32,36 @@ from .models import TableFilterConfiguration, UserTableFilterState, TableFilterS
 @login_required
 def bulk_edit_page(request):
     """نمایش صفحه ویرایش گروهی"""
-    selected_ids = request.GET.get('ids', '').split(',')
-    selected_ids = [id.strip() for id in selected_ids if id.strip()]
     
-    model_name = request.GET.get('model', '')
-    app_name = request.GET.get('app', 'core')
-    table_type = request.GET.get('table_type', '')
+    # پردازش داده‌ها از هر دو GET و POST
+    if request.method == 'POST':
+        # دریافت از POST (ارسال از JavaScript)
+        selected_ids_raw = request.POST.get('selected_ids', '')
+        model_name = request.POST.get('model_name', '')
+        app_name = request.POST.get('app_name', 'core')
+        section = request.POST.get('section', '')
+        
+        # پردازش selected_ids (ممکن است JSON باشد)
+        try:
+            if selected_ids_raw.startswith('['):
+                # اگر JSON array باشد
+                selected_ids = json.loads(selected_ids_raw)
+            else:
+                # اگر string با کاما باشد
+                selected_ids = [id.strip() for id in selected_ids_raw.split(',') if id.strip()]
+        except (json.JSONDecodeError, AttributeError):
+            selected_ids = []
+            
+    else:
+        # دریافت از GET (برای سازگاری با روش‌های قدیمی)
+        selected_ids = request.GET.get('ids', '').split(',')
+        selected_ids = [id.strip() for id in selected_ids if id.strip()]
+        model_name = request.GET.get('model', '')
+        app_name = request.GET.get('app', 'core')
+        section = request.GET.get('section', '')
     
-    print(f"DEBUG - Received parameters: model_name={model_name}, app_name={app_name}, table_type={table_type}, selected_ids={selected_ids}")
+    print(f"DEBUG - Method: {request.method}")
+    print(f"DEBUG - Received parameters: model_name={model_name}, app_name={app_name}, section={section}, selected_ids={selected_ids}")
     
     if not selected_ids:
         return render(request, 'table_filter/bulk_edit_error.html', {
@@ -47,6 +69,7 @@ def bulk_edit_page(request):
         })
     
     # تشخیص مدل
+    table_type = ''
     if not model_name:
         referer = request.META.get('HTTP_REFERER', '')
         print(f"DEBUG - Referer URL: {referer}")
@@ -69,7 +92,7 @@ def bulk_edit_page(request):
         elif model_name == 'CargoProduct':
             table_type = 'cargo_product'
     
-    print(f"DEBUG - Final parameters: model_name={model_name}, app_name={app_name}, table_type={table_type}")
+    print(f"DEBUG - Final parameters: model_name={model_name}, app_name={app_name}, table_type={table_type}, section={section}")
     
     try:
         model = apps.get_model(app_name, model_name)
@@ -94,6 +117,7 @@ def bulk_edit_page(request):
         'model_name': model_name,
         'app_name': app_name,
         'table_type': table_type,
+        'section': section,
         'editable_fields': editable_fields,
         'selected_count': len(selected_ids),
         'selected_ids': selected_ids,
@@ -332,14 +356,36 @@ def get_editable_fields(model, table_type, selected_ids=None):
 @login_required
 def bulk_edit_excel_page(request):
     """نمایش صفحه ویرایش با اکسل"""
-    selected_ids = request.GET.get('selected_ids', '').split()
-    selected_ids = [id.strip() for id in selected_ids if id.strip()]
     
-    model_name = request.GET.get('model', '')
-    app_name = request.GET.get('app', 'core')
-    table_type = request.GET.get('table_type', '')
+    # پردازش داده‌ها از هر دو GET و POST
+    if request.method == 'POST':
+        # دریافت از POST (ارسال از JavaScript)
+        selected_ids_raw = request.POST.get('selected_ids', '')
+        model_name = request.POST.get('model_name', '')
+        app_name = request.POST.get('app_name', 'core')
+        section = request.POST.get('section', '')
+        
+        # پردازش selected_ids (ممکن است JSON باشد)
+        try:
+            if selected_ids_raw.startswith('['):
+                # اگر JSON array باشد
+                selected_ids = json.loads(selected_ids_raw)
+            else:
+                # اگر string با کاما باشد
+                selected_ids = [id.strip() for id in selected_ids_raw.split(',') if id.strip()]
+        except (json.JSONDecodeError, AttributeError):
+            selected_ids = []
+            
+    else:
+        # دریافت از GET (برای سازگاری با روش‌های قدیمی)
+        selected_ids = request.GET.get('selected_ids', '').split()
+        selected_ids = [id.strip() for id in selected_ids if id.strip()]
+        model_name = request.GET.get('model', '')
+        app_name = request.GET.get('app', 'core')
+        section = request.GET.get('section', '')
     
-    print(f"DEBUG - Excel page: model_name={model_name}, app_name={app_name}, table_type={table_type}")
+    print(f"DEBUG - Excel page Method: {request.method}")
+    print(f"DEBUG - Excel page parameters: model_name={model_name}, app_name={app_name}, section={section}")
     print(f"DEBUG - Selected IDs: {selected_ids}")
     
     if not selected_ids:
@@ -348,6 +394,7 @@ def bulk_edit_excel_page(request):
         })
     
     # تشخیص مدل
+    table_type = ''
     if not model_name:
         referer = request.META.get('HTTP_REFERER', '')
         print(f"DEBUG - Excel page referer: {referer}")
@@ -390,6 +437,7 @@ def bulk_edit_excel_page(request):
         'model_name': model_name,
         'app_name': app_name,
         'table_type': table_type,
+        'section': section,
     }
     
     return render(request, 'table_filter/bulk_edit_excel.html', context)

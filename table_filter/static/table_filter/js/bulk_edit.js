@@ -310,7 +310,7 @@ class BulkEditManager {
             alert('لطفاً حداقل یک مورد انتخاب کنید');
             return;
         }
-
+        
         const tableType = this.detectTableType();
         const form = document.createElement('form');
         form.method = 'POST';
@@ -340,7 +340,7 @@ class BulkEditManager {
         csrfInput.name = 'csrfmiddlewaretoken';
         csrfInput.value = this.getCSRFToken();
         form.appendChild(csrfInput);
-
+        
         document.body.appendChild(form);
         form.submit();
     }
@@ -574,6 +574,13 @@ document.head.appendChild(style);
 
 // ایجاد instance global
 window.bulkEditManager = new BulkEditManager();
+
+// راه‌اندازی خودکار
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.bulkEditManager) {
+        window.bulkEditManager.init();
+    }
+});
 
 // Export برای استفاده در سایر فایل‌ها
 if (typeof module !== 'undefined' && module.exports) {

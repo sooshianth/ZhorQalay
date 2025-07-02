@@ -994,8 +994,8 @@ class PurchaseAggregatedStats {
         
         // به‌روزرسانی وضعیت checkboxها
         currentTableRows.forEach(row => {
-            const checkbox = row.querySelector('.row-checkbox');
-            if (checkbox) {
+                const checkbox = row.querySelector('.row-checkbox');
+                if (checkbox) {
                 const purchaseId = checkbox.getAttribute('data-id') || checkbox.value;
                 if (this.selectedPurchases.has(purchaseId)) {
                     checkbox.checked = true;
