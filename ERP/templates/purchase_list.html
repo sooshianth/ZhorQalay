@@ -438,6 +438,34 @@ document.addEventListener('DOMContentLoaded', function() {
 <div id="pendingContent" style="display: none;">
 
 {% if pending_payment_purchases.object_list %}
+
+<!-- Bulk Edit Controls Panel for Pending -->
+<div class="bulk-edit-controls bulk-edit-controls-pending" style="display: none;">
+    <div class="bulk-edit-toolbar">
+        <div class="selected-count">
+            <i class="fas fa-check-square"></i>
+            <span class="count">0</span> مورد انتخاب شده
+        </div>
+        <div class="bulk-edit-actions">
+            <button class="btn btn-primary bulk-edit-btn" data-action="edit" data-section="pending">
+                <i class="fas fa-edit"></i> ویرایش گروهی
+            </button>
+            <button class="btn btn-success bulk-edit-excel-btn" data-action="excel" data-section="pending">
+                <i class="fas fa-file-excel"></i> ویرایش با اکسل
+            </button>
+            <button class="btn btn-info download-template-btn" data-action="template" data-section="pending">
+                <i class="fas fa-download"></i> دانلود قالب اکسل
+            </button>
+            <button class="btn btn-warning history-btn" onclick="viewEditHistory()">
+                <i class="fas fa-history"></i> تاریخچه تغییرات
+            </button>
+            <button class="btn btn-secondary clear-selection-btn" data-action="clear" data-section="pending">
+                <i class="fas fa-times"></i> لغو انتخاب
+            </button>
+        </div>
+    </div>
+</div>
+
 <div class="table-responsive shadow-sm rounded">
 <table class="table table-bordered table-striped align-middle text-center python-excel-filter" id="pendingPurchasesTable" 
        data-filter-url="{% url 'apply_purchase_filter' %}"
@@ -814,26 +842,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 <!-- Bulk Edit Controls Panel -->
-<div class="bulk-edit-controls" style="display: none;">
+<div class="bulk-edit-controls bulk-edit-controls-active" style="display: none;">
     <div class="bulk-edit-toolbar">
         <div class="selected-count">
             <i class="fas fa-check-square"></i>
             <span class="count">0</span> مورد انتخاب شده
         </div>
         <div class="bulk-edit-actions">
-            <button class="btn btn-primary bulk-edit-btn" data-action="edit">
+            <button class="btn btn-primary bulk-edit-btn" data-action="edit" data-section="active">
                 <i class="fas fa-edit"></i> ویرایش گروهی
             </button>
-            <button class="btn btn-success bulk-edit-excel-btn" data-action="excel">
+            <button class="btn btn-success bulk-edit-excel-btn" data-action="excel" data-section="active">
                 <i class="fas fa-file-excel"></i> ویرایش با اکسل
             </button>
-            <button class="btn btn-info download-template-btn" data-action="template">
+            <button class="btn btn-info download-template-btn" data-action="template" data-section="active">
                 <i class="fas fa-download"></i> دانلود قالب اکسل
             </button>
             <button class="btn btn-warning history-btn" onclick="viewEditHistory()">
                 <i class="fas fa-history"></i> تاریخچه تغییرات
             </button>
-            <button class="btn btn-secondary clear-selection-btn" data-action="clear">
+            <button class="btn btn-secondary clear-selection-btn" data-action="clear" data-section="active">
                 <i class="fas fa-times"></i> لغو انتخاب
             </button>
         </div>
@@ -1119,6 +1147,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="column-{{ column.id }}">{{ purchase.description|default:"-" }}</td>
                     {% elif column.id == 'company_price' %}
                     <td class="column-{{ column.id }}">{{ purchase.company_price|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'customer_price' %}
+                    <td class="column-{{ column.id }}">{{ purchase.customer_price|default:"-"|add_commas }}</td>
                     {% elif column.id == 'factor_code' %}
                     <td class="column-{{ column.id }}">{% if purchase.factor_code %}1{% else %}0{% endif %}</td>
                     {% elif column.id == 'tracking_number' %}
@@ -1263,7 +1293,32 @@ document.addEventListener('DOMContentLoaded', function() {
 <div id="archivedContent" style="display: none;">
 {% if archived_purchases.object_list %}
 
-
+<!-- Bulk Edit Controls Panel for Archived -->
+<div class="bulk-edit-controls bulk-edit-controls-archived" style="display: none;">
+    <div class="bulk-edit-toolbar">
+        <div class="selected-count">
+            <i class="fas fa-check-square"></i>
+            <span class="count">0</span> مورد انتخاب شده
+        </div>
+        <div class="bulk-edit-actions">
+            <button class="btn btn-primary bulk-edit-btn" data-action="edit" data-section="archived">
+                <i class="fas fa-edit"></i> ویرایش گروهی
+            </button>
+            <button class="btn btn-success bulk-edit-excel-btn" data-action="excel" data-section="archived">
+                <i class="fas fa-file-excel"></i> ویرایش با اکسل
+            </button>
+            <button class="btn btn-info download-template-btn" data-action="template" data-section="archived">
+                <i class="fas fa-download"></i> دانلود قالب اکسل
+            </button>
+            <button class="btn btn-warning history-btn" onclick="viewEditHistory()">
+                <i class="fas fa-history"></i> تاریخچه تغییرات
+            </button>
+            <button class="btn btn-secondary clear-selection-btn" data-action="clear" data-section="archived">
+                <i class="fas fa-times"></i> لغو انتخاب
+            </button>
+        </div>
+    </div>
+</div>
 
 <div class="table-responsive shadow-sm rounded">
 <table class="table table-bordered table-striped align-middle text-center python-excel-filter" 
@@ -1531,6 +1586,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="column-{{ column.id }}">{{ purchase.description|default:"-" }}</td>
                     {% elif column.id == 'company_price' %}
                     <td class="column-{{ column.id }}">{{ purchase.company_price|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'customer_price' %}
+                    <td class="column-{{ column.id }}">{{ purchase.customer_price|default:"-"|add_commas }}</td>
                     {% elif column.id == 'factor_code' %}
                     <td class="column-{{ column.id }}">{% if purchase.factor_code %}1{% else %}0{% endif %}</td>
                     {% elif column.id == 'tracking_number' %}
@@ -2144,4 +2201,44 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-{% endblock %}
+{% load static %}
+<script src="{% static 'table_filter/js/bulk_edit.js' %}?v={% now 'U' %}" defer></script>
+
+<script>
+    // راه‌اندازی اولیه
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('📊 شروع راه‌اندازی آمار تجمعی خریدها...');
+        
+        // debug: نمایش تمام اسکریپت‌های لود شده
+        console.log('🔍 بررسی کلاس‌های موجود:');
+        console.log('- PurchaseAggregatedStats:', typeof PurchaseAggregatedStats !== 'undefined');
+        console.log('- BulkEditManager:', typeof BulkEditManager !== 'undefined');
+        console.log('- PurchaseServerFilter:', typeof PurchaseServerFilter !== 'undefined');
+        
+        if (typeof PurchaseAggregatedStats !== 'undefined') {
+            window.purchaseAggregatedStats = new PurchaseAggregatedStats();
+            window.purchaseAggregatedStats.init();
+            console.log('✅ آمار تجمعی خریدها راه‌اندازی شد');
+        } else {
+            console.warn('⚠️ PurchaseAggregatedStats یافت نشد');
+        }
+        
+        if (typeof BulkEditManager !== 'undefined') {
+            window.bulkEditManager = new BulkEditManager();
+            window.bulkEditManager.init();
+            console.log('✅ ویرایش گروهی راه‌اندازی شد');
+        } else {
+            console.warn('⚠️ BulkEditManager یافت نشد');
+        }
+        
+        // تست اتصال فیلتر
+        setTimeout(() => {
+            const tables = document.querySelectorAll('.python-excel-filter');
+            console.log(`🔍 جداول با فیلتر: ${tables.length}`);
+            tables.forEach((table, index) => {
+                console.log(`  - جدول ${index + 1}: ${table.id}`);
+            });
+        }, 1000);
+    });
+</script>
+{% endblock content %}

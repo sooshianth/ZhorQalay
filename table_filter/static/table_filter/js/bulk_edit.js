@@ -3,363 +3,211 @@
  */
 class BulkEditManager {
     constructor(config = {}) {
+        this.selectedIds = new Set();
+        this.currentSection = 'active'; // بخش فعلی
         this.config = {
-            tableSelector: '.enable-filter',
-            controlPanelClass: 'bulk-edit-controls',
-            selectedClass: 'bulk-selected',
-            bulkEditPageUrl: '/table_filter/bulk-edit-page/',
-            excelEditPageUrl: '/table_filter/bulk-edit-excel-page/',
-            downloadTemplateUrl: '/table_filter/bulk-edit-template/',
+            bulkEditPageUrl: '/table-filter/bulk-edit-page/',
+            excelEditPageUrl: '/table-filter/bulk-edit-excel-page/',
+            downloadTemplateUrl: '/table-filter/bulk-edit-template/',
             ...config
         };
         
-        this.selectedIds = new Set();
-        this.tables = [];
-        this.controlPanels = [];
-        // اضافه کردن state برای تشخیص نوع انتخاب
-        this.selectionType = 'partial'; // 'partial', 'all-visible', 'all-data'
+        // نگهداری reference به control panelهای مختلف
+        this.controlPanels = {
+            active: document.querySelector('.bulk-edit-controls-active'),
+            pending: document.querySelector('.bulk-edit-controls-pending'), 
+            archived: document.querySelector('.bulk-edit-controls-archived')
+        };
+        
+        // حذف control panelهای null
+        Object.keys(this.controlPanels).forEach(key => {
+            if (!this.controlPanels[key]) {
+                delete this.controlPanels[key];
+            }
+        });
+        
+        this.currentActiveTab = this.detectActiveTab();
     }
 
     init() {
-        this.findTables();
-        this.createBulkEditControls();
         this.attachEventListeners();
+        this.detectCurrentSection();
+        console.log('✅ BulkEditManager راه‌اندازی شد');
     }
-
-    findTables() {
-        this.tables = document.querySelectorAll(this.config.tableSelector);
-        console.log('پیدا شده جداول:', this.tables.length);
-    }
-
-    createBulkEditControls() {
-        this.tables.forEach(table => {
-            const controlPanel = this.createControlPanel(table);
-            if (controlPanel) {
-                this.controlPanels.push(controlPanel);
-                table.parentNode.insertBefore(controlPanel, table);
-            }
-        });
-    }
-
-    createControlPanel(table) {
-        const existingPanel = table.parentNode.querySelector('.bulk-edit-controls');
-        if (existingPanel) {
-            return existingPanel;
+    
+    detectActiveTab() {
+        // تشخیص تب فعال بر اساس نمایش عناصر
+        if (document.getElementById('pendingContent') && 
+            getComputedStyle(document.getElementById('pendingContent')).display !== 'none') {
+            return 'pending';
+        } else if (document.getElementById('archivedContent') && 
+            getComputedStyle(document.getElementById('archivedContent')).display !== 'none') {
+            return 'archived';
+        } else {
+            return 'active';
         }
-
-        const panel = document.createElement('div');
-        panel.className = 'bulk-edit-controls';
-        panel.style.display = 'none';
-        panel.innerHTML = `
-            <div class="bulk-edit-toolbar">
-                <div class="selected-count">
-                    <i class="fas fa-check-square"></i>
-                    <span class="count">0</span> مورد انتخاب شده
-                    <span class="selection-type"></span>
-                </div>
-                <div class="bulk-edit-actions">
-                    <button class="btn btn-primary bulk-edit-btn" data-action="edit">
-                        <i class="fas fa-edit"></i> ویرایش گروهی
-                    </button>
-                    <button class="btn btn-success bulk-edit-excel-btn" data-action="excel">
-                        <i class="fas fa-file-excel"></i> ویرایش با اکسل
-                    </button>
-                    <button class="btn btn-info download-template-btn" data-action="template">
-                        <i class="fas fa-download"></i> دانلود قالب اکسل
-                    </button>
-                    <button class="btn btn-secondary clear-selection-btn" data-action="clear">
-                        <i class="fas fa-times"></i> لغو انتخاب
-                    </button>
-                </div>
-            </div>
-        `;
-
-        return panel;
+    }
+    
+    detectCurrentSection() {
+        this.currentActiveTab = this.detectActiveTab();
+        this.currentSection = this.currentActiveTab;
+        console.log(`📍 بخش فعال: ${this.currentSection}`);
     }
 
     attachEventListeners() {
+        // گوش دادن به تغییرات انتخاب سطرها
         document.addEventListener('change', (e) => {
             if (e.target.classList.contains('row-checkbox')) {
                 this.handleRowSelection(e.target);
             } else if (e.target.classList.contains('select-all-checkbox') || 
-                      e.target.classList.contains('select-all-checkbox-archived')) {
+                      e.target.classList.contains('select-all-checkbox-archived') ||
+                      e.target.classList.contains('select-all-checkbox-pending')) {
                 this.handleSelectAll(e.target);
             }
         });
 
         document.addEventListener('click', (e) => {
+            // دکمه‌های ویرایش گروهی
             if (e.target.classList.contains('bulk-edit-btn') || 
                 e.target.closest('.bulk-edit-btn')) {
-                this.openBulkEditPage();
+                const section = e.target.dataset.section || e.target.closest('.bulk-edit-btn').dataset.section;
+                this.openBulkEditPage(section);
             } else if (e.target.classList.contains('bulk-edit-excel-btn') || 
                       e.target.closest('.bulk-edit-excel-btn')) {
-                this.openExcelEditPage();
+                const section = e.target.dataset.section || e.target.closest('.bulk-edit-excel-btn').dataset.section;
+                this.openExcelEditPage(section);
             } else if (e.target.classList.contains('download-template-btn') || 
                       e.target.closest('.download-template-btn')) {
-                this.downloadExcelTemplate();
+                const section = e.target.dataset.section || e.target.closest('.download-template-btn').dataset.section;
+                this.downloadTemplate(section);
             } else if (e.target.classList.contains('clear-selection-btn') || 
                       e.target.closest('.clear-selection-btn')) {
-                this.clearSelection();
+                const section = e.target.dataset.section || e.target.closest('.clear-selection-btn').dataset.section;
+                this.clearSelection(section);
+            }
+            
+            // دکمه‌های تب‌ها
+            if (e.target.closest('.nav-link')) {
+                setTimeout(() => {
+                    this.detectCurrentSection();
+                    this.updateAllControlPanels();
+                }, 100);
             }
         });
-
-        // اضافه کردن listener برای تغییرات فیلتر
-        document.addEventListener('tableFilterApplied', () => {
-            this.updateSelectionAfterFilter();
+        
+        // گوش دادن به رویداد فیلتر جدول
+        document.addEventListener('tableFilterApplied', (e) => {
+            console.log('🔄 فیلتر جدول اعمال شد، بروزرسانی panel کنترل...');
+            this.detectCurrentSection();
+            this.updateAllControlPanels();
         });
     }
 
     handleRowSelection(checkbox) {
-        const rowId = checkbox.getAttribute('data-id');
+        const id = checkbox.dataset.id;
         
         if (checkbox.checked) {
-            this.selectedIds.add(rowId);
-            checkbox.closest('tr').classList.add(this.config.selectedClass);
+            this.selectedIds.add(id);
+            console.log(`✅ انتخاب سطر: ${id}`);
         } else {
-            this.selectedIds.delete(rowId);
-            checkbox.closest('tr').classList.remove(this.config.selectedClass);
+            this.selectedIds.delete(id);
+            console.log(`❌ حذف انتخاب سطر: ${id}`);
         }
         
-        // تعیین نوع انتخاب
-        this.determineSelectionType();
-        this.updateControlPanel();
+        // همگام‌سازی با آمار تجمعی اگر موجود باشد
+        if (window.purchaseAggregatedStats) {
+            if (checkbox.checked) {
+                window.purchaseAggregatedStats.selectedPurchases.add(id);
+            } else {
+                window.purchaseAggregatedStats.selectedPurchases.delete(id);
+            }
+            window.purchaseAggregatedStats.updateSelectedPurchases();
+        }
+        
+        this.updateAllControlPanels();
     }
 
     handleSelectAll(checkbox) {
-        const table = checkbox.closest('table');
-        const rowCheckboxes = table.querySelectorAll('.row-checkbox');
+        const isChecked = checkbox.checked;
+        let checkboxes = [];
         
-        if (checkbox.checked) {
-            // بررسی وضعیت فیلتر
-            const hasActiveFilters = this.hasActiveFilters();
+        // تشخیص نوع checkbox و یافتن checkboxهای مربوطه
+        if (checkbox.classList.contains('select-all-checkbox-pending')) {
+            checkboxes = document.querySelectorAll('#pendingPurchasesTable .row-checkbox');
+        } else if (checkbox.classList.contains('select-all-checkbox-archived')) {
+            checkboxes = document.querySelectorAll('#archivedPurchasesTable .row-checkbox');
+        } else {
+            checkboxes = document.querySelectorAll('#activePurchasesTable .row-checkbox');
+        }
+        
+        checkboxes.forEach(cb => {
+            cb.checked = isChecked;
+            const id = cb.dataset.id;
             
-            if (hasActiveFilters) {
-                // نمایش پیام انتخاب و گزینه‌ها
-                this.showSelectAllOptions(table, checkbox);
-                return;
+            if (isChecked) {
+                this.selectedIds.add(id);
             } else {
-                // انتخاب همه (بدون فیلتر)
-                this.selectAllRows(table, 'all-data');
-            }
-        } else {
-            // لغو انتخاب همه
-            this.deselectAllRows(table);
-        }
-        
-        this.updateControlPanel();
-    }
-
-    showSelectAllOptions(table, checkbox) {
-        // ایجاد مدال یا dropdown برای انتخاب نوع
-        const modal = document.createElement('div');
-        modal.className = 'select-all-modal';
-        modal.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 9999;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        `;
-
-        const modalContent = document.createElement('div');
-        modalContent.style.cssText = `
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            max-width: 400px;
-            text-align: center;
-        `;
-
-        modalContent.innerHTML = `
-            <h5 style="margin-bottom: 15px;">انتخاب همه موارد</h5>
-            <p style="margin-bottom: 20px;">میخواهید کدام موارد را انتخاب کنید؟</p>
-            <div style="display: flex; gap: 10px; justify-content: center;">
-                <button class="btn btn-primary select-visible-btn">
-                    فقط موارد نمایش داده شده (${this.getVisibleRowsCount(table)})
-                </button>
-                <button class="btn btn-success select-all-data-btn">
-                    همه موارد (${this.getAllRowsCount(table)})
-                </button>
-                <button class="btn btn-secondary cancel-btn">
-                    انصراف
-                </button>
-            </div>
-        `;
-
-        modal.appendChild(modalContent);
-        document.body.appendChild(modal);
-
-        // Event listeners برای دکمه‌ها
-        modalContent.querySelector('.select-visible-btn').addEventListener('click', () => {
-            this.selectAllRows(table, 'all-visible');
-            document.body.removeChild(modal);
-            this.updateControlPanel();
-        });
-
-        modalContent.querySelector('.select-all-data-btn').addEventListener('click', () => {
-            this.selectAllRows(table, 'all-data');
-            document.body.removeChild(modal);
-            this.updateControlPanel();
-        });
-
-        modalContent.querySelector('.cancel-btn').addEventListener('click', () => {
-            checkbox.checked = false;
-            document.body.removeChild(modal);
-        });
-
-        // بستن با کلیک روی backdrop
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                checkbox.checked = false;
-                document.body.removeChild(modal);
+                this.selectedIds.delete(id);
             }
         });
-    }
-
-    selectAllRows(table, type) {
-        let rowCheckboxes;
         
-        if (type === 'all-visible') {
-            // فقط ردیف‌های نمایش داده شده
-            rowCheckboxes = table.querySelectorAll('tbody tr:not([style*="display: none"]) .row-checkbox');
-            this.selectionType = 'all-visible';
-        } else if (type === 'all-data') {
-            // همه ردیف‌ها (حتی فیلتر شده‌ها)
-            rowCheckboxes = table.querySelectorAll('.row-checkbox');
-            this.selectionType = 'all-data';
-        }
-
-        rowCheckboxes.forEach(rowCheckbox => {
-            const rowId = rowCheckbox.getAttribute('data-id');
-            rowCheckbox.checked = true;
-            this.selectedIds.add(rowId);
-            rowCheckbox.closest('tr').classList.add(this.config.selectedClass);
-        });
-
-        // تنظیم checkbox انتخاب همه
-        const selectAllCheckbox = table.querySelector('.select-all-checkbox, .select-all-checkbox-archived');
-        if (selectAllCheckbox) {
-            selectAllCheckbox.checked = true;
-        }
-    }
-
-    deselectAllRows(table) {
-        const rowCheckboxes = table.querySelectorAll('.row-checkbox');
-        
-        rowCheckboxes.forEach(rowCheckbox => {
-            const rowId = rowCheckbox.getAttribute('data-id');
-            rowCheckbox.checked = false;
-            this.selectedIds.delete(rowId);
-            rowCheckbox.closest('tr').classList.remove(this.config.selectedClass);
-        });
-
-        this.selectionType = 'partial';
-    }
-
-    determineSelectionType() {
-        // تعیین نوع انتخاب بر اساس موارد انتخاب شده
-        const allRowsCount = this.getAllRowsCount();
-        const visibleRowsCount = this.getVisibleRowsCount();
-        const selectedCount = this.selectedIds.size;
-
-        if (selectedCount === 0) {
-            this.selectionType = 'partial';
-        } else if (selectedCount === allRowsCount) {
-            this.selectionType = 'all-data';
-        } else if (selectedCount === visibleRowsCount && this.hasActiveFilters()) {
-            this.selectionType = 'all-visible';
-        } else {
-            this.selectionType = 'partial';
-        }
-    }
-
-    updateSelectionAfterFilter() {
-        // بعد از اعمال فیلتر، بررسی کنیم که آیا انتخاب‌ها هنوز معتبر هستند
-        if (this.selectionType === 'all-visible') {
-            // اگر قبلاً همه موارد نمایش داده شده انتخاب شده بودند،
-            // باید موارد جدید نمایش داده شده را هم انتخاب کنیم
-            this.tables.forEach(table => {
-                const visibleCheckboxes = table.querySelectorAll('tbody tr:not([style*="display: none"]) .row-checkbox');
-                visibleCheckboxes.forEach(checkbox => {
-                    const rowId = checkbox.getAttribute('data-id');
-                    checkbox.checked = true;
-                    this.selectedIds.add(rowId);
-                    checkbox.closest('tr').classList.add(this.config.selectedClass);
+        // همگام‌سازی با آمار تجمعی
+        if (window.purchaseAggregatedStats) {
+            if (isChecked) {
+                checkboxes.forEach(cb => {
+                    window.purchaseAggregatedStats.selectedPurchases.add(cb.dataset.id);
                 });
-            });
-        }
-        
-        this.updateControlPanel();
-    }
-
-    updateControlPanel() {
-        // استفاده از selectedPurchases اگر موجود باشد، در غیر این صورت selectedIds
-        let count = this.selectedIds.size;
-        if (window.purchaseAggregatedStats && window.purchaseAggregatedStats.selectedPurchases) {
-            count = window.purchaseAggregatedStats.selectedPurchases.size;
-            // همگام‌سازی selectedIds با selectedPurchases
-            this.selectedIds = new Set(window.purchaseAggregatedStats.selectedPurchases);
-        }
-        
-        this.controlPanels.forEach(panel => {
-            const countElement = panel.querySelector('.count');
-            const selectionTypeElement = panel.querySelector('.selection-type');
-            
-            if (countElement) {
-                countElement.textContent = count;
+            } else {
+                checkboxes.forEach(cb => {
+                    window.purchaseAggregatedStats.selectedPurchases.delete(cb.dataset.id);
+                });
             }
-            
-            if (selectionTypeElement) {
-                let typeText = '';
-                if (this.selectionType === 'all-data') {
-                    typeText = '(همه موارد)';
-                } else if (this.selectionType === 'all-visible') {
-                    typeText = '(موارد نمایش داده شده)';
-                }
-                selectionTypeElement.textContent = typeText;
-            }
-            
-            panel.style.display = count > 0 ? 'block' : 'none';
-        });
-        
-        // همگام‌سازی با آمار اجماعی خریدها
-        this.syncWithAggregatedStats();
-    }
-
-    // متد جدید: همگام‌سازی با آمار اجماعی
-    syncWithAggregatedStats() {
-        if (window.purchaseAggregatedStats) {
-            // به‌روزرسانی لیست انتخاب‌ها در آمار اجماعی
-            window.purchaseAggregatedStats.selectedPurchases = new Set(this.selectedIds);
-            window.purchaseAggregatedStats.updateStats();
+            window.purchaseAggregatedStats.updateSelectedPurchases();
         }
+        
+        this.updateAllControlPanels();
     }
-
-    clearSelection() {
-        this.selectedIds.clear();
-        this.selectionType = 'partial';
-        
-        document.querySelectorAll('.row-checkbox').forEach(checkbox => {
-            checkbox.checked = false;
-            checkbox.closest('tr').classList.remove(this.config.selectedClass);
+    
+    updateAllControlPanels() {
+        // بروزرسانی همه control panelها
+        Object.keys(this.controlPanels).forEach(section => {
+            this.updateControlPanel(section);
         });
+    }
+    
+    updateControlPanel(section = null) {
+        const targetSection = section || this.currentSection;
+        const panel = this.controlPanels[targetSection];
         
-        document.querySelectorAll('.select-all-checkbox, .select-all-checkbox-archived').forEach(checkbox => {
-            checkbox.checked = false;
-        });
+        if (!panel) return;
         
-        this.updateControlPanel();
+        // محاسبه تعداد انتخاب‌های مربوط به این بخش
+        let sectionCount = 0;
+        let tableSelector = '';
         
-        // همگام‌سازی با آمار اجماعی خریدها
-        if (window.purchaseAggregatedStats) {
-            window.purchaseAggregatedStats.clearAllSelections();
+        switch(targetSection) {
+            case 'pending':
+                tableSelector = '#pendingPurchasesTable .row-checkbox:checked';
+                break;
+            case 'archived':
+                tableSelector = '#archivedPurchasesTable .row-checkbox:checked';
+                break;
+            default:
+                tableSelector = '#activePurchasesTable .row-checkbox:checked';
         }
+        
+        sectionCount = document.querySelectorAll(tableSelector).length;
+        
+        const countElement = panel.querySelector('.count');
+        if (countElement) {
+            countElement.textContent = sectionCount;
+        }
+        
+        // نمایش/مخفی کردن panel بر اساس انتخاب‌ها و تب فعال
+        const shouldShow = sectionCount > 0 && this.currentActiveTab === targetSection;
+        panel.style.display = shouldShow ? 'block' : 'none';
+        
+        console.log(`📊 Panel ${targetSection}: ${sectionCount} انتخاب، نمایش: ${shouldShow}`);
     }
 
     // متدهای کمکی
@@ -395,152 +243,145 @@ class BulkEditManager {
 
     detectTableType() {
         const url = window.location.pathname;
-        if (url.includes('purchase')) {
+        if (url.includes('cargo-product') || url.includes('cargo_product')) {
+            return 'cargo_product';
+        } else if (url.includes('purchase')) {
             return 'purchase';
         } else if (url.includes('customer')) {
             return 'customer';
-        } else if (url.includes('barbary')) {
-            return 'barbary';
-        } else if (url.includes('vared_konandeh')) {
-            return 'vared_konandeh';
-        } else if (url.includes('cargo_product') || url.includes('cargo-product')) {
-            return 'cargo_product';
         }
-        return 'generic';
+        return 'purchase'; // پیش‌فرض
     }
 
-    openBulkEditPage() {
-        // استفاده از selectedPurchases اگر موجود باشد
-        let selectedIdsArray = Array.from(this.selectedIds);
-        if (window.purchaseAggregatedStats && window.purchaseAggregatedStats.selectedPurchases) {
-            selectedIdsArray = Array.from(window.purchaseAggregatedStats.selectedPurchases);
-        }
-        
-        if (selectedIdsArray.length === 0) {
-            this.showToast('لطفاً ابتدا موارد مورد نظر را انتخاب کنید', 'warning');
-            return;
-        }
-
-        const tableType = this.detectTableType();
-        
-        const params = new URLSearchParams({
-            ids: selectedIdsArray.join(','),
-            table_type: tableType,
-            model: this.getModelName(tableType),
-            app: this.getAppName(tableType),
-            selection_type: this.selectionType
-        });
-
-        window.open(`${this.config.bulkEditPageUrl}?${params.toString()}`, '_blank');
-    }
-
-    openExcelEditPage() {
-        // استفاده از selectedPurchases اگر موجود باشد
+    openBulkEditPage(section = null) {
+        const targetSection = section || this.currentSection;
         let selectedIds = [];
-        if (window.purchaseAggregatedStats && window.purchaseAggregatedStats.selectedPurchases) {
-            selectedIds = Array.from(window.purchaseAggregatedStats.selectedPurchases);
-        } else {
-            const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
-            selectedIds = Array.from(selectedCheckboxes).map(cb => cb.getAttribute('data-id')).filter(id => id);
-        }
+        
+        // جمع‌آوری آیدی‌های انتخاب شده برای بخش مشخص
+        const tableMap = {
+            pending: '#pendingPurchasesTable .row-checkbox:checked',
+            archived: '#archivedPurchasesTable .row-checkbox:checked',
+            active: '#activePurchasesTable .row-checkbox:checked'
+        };
+        
+        const checkboxes = document.querySelectorAll(tableMap[targetSection]);
+        selectedIds = Array.from(checkboxes).map(cb => cb.dataset.id);
         
         if (selectedIds.length === 0) {
-            this.showToast('لطفاً حداقل یک مورد را انتخاب کنید', 'warning');
+            alert('لطفاً حداقل یک مورد انتخاب کنید');
+            return;
+        }
+
+        const tableType = this.detectTableType();
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = this.config.bulkEditPageUrl;
+
+        const data = {
+            'selected_ids': selectedIds,
+            'app_name': this.getAppName(tableType),
+            'model_name': this.getModelName(tableType),
+            'section': targetSection
+        };
+
+        Object.keys(data).forEach(key => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            if (Array.isArray(data[key])) {
+                input.value = JSON.stringify(data[key]);
+            } else {
+                input.value = data[key];
+            }
+            form.appendChild(input);
+        });
+
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = this.getCSRFToken();
+        form.appendChild(csrfInput);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    openExcelEditPage(section = null) {
+        const targetSection = section || this.currentSection;
+        let selectedIds = [];
+        
+        // جمع‌آوری آیدی‌های انتخاب شده برای بخش مشخص
+        const tableMap = {
+            pending: '#pendingPurchasesTable .row-checkbox:checked',
+            archived: '#archivedPurchasesTable .row-checkbox:checked',
+            active: '#activePurchasesTable .row-checkbox:checked'
+        };
+        
+        const checkboxes = document.querySelectorAll(tableMap[targetSection]);
+        selectedIds = Array.from(checkboxes).map(cb => cb.dataset.id);
+        
+        if (selectedIds.length === 0) {
+            alert('لطفاً حداقل یک مورد انتخاب کنید');
             return;
         }
         
-        console.log('Selected IDs for Excel edit:', selectedIds);
-        
-        // تشخیص نوع مدل
         const tableType = this.detectTableType();
-        const modelName = this.getModelName(tableType);
-        const appName = this.getAppName(tableType);
-        
-        console.log('Model info:', { tableType, modelName, appName });
-        
-        // ایجاد فرم برای ارسال داده‌ها
         const form = document.createElement('form');
-        form.method = 'GET';
+        form.method = 'POST';
         form.action = this.config.excelEditPageUrl;
-        form.style.display = 'none';
-        
-        // اضافه کردن پارامترها
-        const params = [
-            { name: 'selected_ids', value: selectedIds.join(' ') },
-            { name: 'model', value: modelName },
-            { name: 'app', value: appName },
-            { name: 'table_type', value: tableType }
-        ];
-        
-        params.forEach(param => {
+
+        const data = {
+            'selected_ids': selectedIds,
+            'app_name': this.getAppName(tableType),
+            'model_name': this.getModelName(tableType),
+            'section': targetSection
+        };
+
+        Object.keys(data).forEach(key => {
             const input = document.createElement('input');
             input.type = 'hidden';
-            input.name = param.name;
-            input.value = param.value;
+            input.name = key;
+            if (Array.isArray(data[key])) {
+                input.value = JSON.stringify(data[key]);
+            } else {
+                input.value = data[key];
+            }
             form.appendChild(input);
-            console.log(`Added param: ${param.name} = ${param.value}`);
         });
+
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = this.getCSRFToken();
+        form.appendChild(csrfInput);
         
         document.body.appendChild(form);
         form.submit();
-        document.body.removeChild(form);
     }
 
-    downloadExcelTemplate() {
-        // استفاده از selectedPurchases اگر موجود باشد
-        let selectedIds = [];
-        if (window.purchaseAggregatedStats && window.purchaseAggregatedStats.selectedPurchases) {
-            selectedIds = Array.from(window.purchaseAggregatedStats.selectedPurchases);
-        } else {
-            const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
-            selectedIds = Array.from(selectedCheckboxes).map(cb => cb.getAttribute('data-id')).filter(id => id);
-        }
-        
-        if (selectedIds.length === 0) {
-            this.showToast('لطفاً حداقل یک مورد را انتخاب کنید', 'warning');
-            return;
-        }
-        
-        console.log('Selected IDs for template download:', selectedIds);
-        
-        // تشخیص نوع مدل
+    downloadTemplate(section = null) {
         const tableType = this.detectTableType();
-        const modelName = this.getModelName(tableType);
-        const appName = this.getAppName(tableType);
+        const url = `${this.config.downloadTemplateUrl}?app_name=${this.getAppName(tableType)}&model_name=${this.getModelName(tableType)}`;
         
-        console.log('Template model info:', { tableType, modelName, appName });
-        
-        // ساخت URL برای دانلود قالب
-        const params = new URLSearchParams({
-            selected_ids: selectedIds.join(' '),
-            table_type: tableType,
-            model: modelName,
-            app: appName
-        });
-        
-        const downloadUrl = `${this.config.downloadTemplateUrl}?${params.toString()}`;
-        console.log('Template download URL:', downloadUrl);
-        
-        // باز کردن در تب جدید برای دانلود
-        window.open(downloadUrl, '_blank');
-        
-        // نمایش پیام موفقیت
-        this.showToast(`در حال دانلود قالب اکسل برای ${selectedIds.length} مورد انتخاب شده...`, 'success');
+        window.open(url, '_blank');
     }
 
     getModelName(tableType) {
         const modelMap = {
             'purchase': 'Purchase',
             'customer': 'Customer',
-            'barbary': 'Barbary',
-            'vared_konandeh': 'VaredKonandeh',
             'cargo_product': 'CargoProduct'
         };
-        return modelMap[tableType] || 'Unknown';
+        return modelMap[tableType] || 'Purchase';
     }
     
     getAppName(tableType) {
         return 'core';
+    }
+
+    getCSRFToken() {
+        const token = document.querySelector('[name=csrfmiddlewaretoken]');
+        return token ? token.value : '';
     }
 
     showToast(message, type = 'info') {
@@ -569,6 +410,52 @@ class BulkEditManager {
                 toast.remove();
             }
         }, 5000);
+    }
+
+    clearSelection(section = null) {
+        const targetSection = section || this.currentSection;
+        let checkboxes = [];
+        
+        // یافتن checkboxهای مربوط به بخش
+        switch(targetSection) {
+            case 'pending':
+                checkboxes = document.querySelectorAll('#pendingPurchasesTable .row-checkbox');
+                break;
+            case 'archived':
+                checkboxes = document.querySelectorAll('#archivedPurchasesTable .row-checkbox');
+                break;
+            default:
+                checkboxes = document.querySelectorAll('#activePurchasesTable .row-checkbox');
+        }
+        
+        // پاک کردن انتخاب‌ها
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+            const id = checkbox.dataset.id;
+            this.selectedIds.delete(id);
+        });
+        
+        // پاک کردن select all checkbox
+        const selectAllMap = {
+            pending: '.select-all-checkbox-pending',
+            archived: '.select-all-checkbox-archived',
+            active: '.select-all-checkbox'
+        };
+        
+        const selectAllCheckbox = document.querySelector(selectAllMap[targetSection]);
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = false;
+        }
+        
+        // همگام‌سازی با آمار تجمعی
+        if (window.purchaseAggregatedStats) {
+            checkboxes.forEach(checkbox => {
+                window.purchaseAggregatedStats.selectedPurchases.delete(checkbox.dataset.id);
+            });
+            window.purchaseAggregatedStats.updateSelectedPurchases();
+        }
+        
+        this.updateAllControlPanels();
     }
 }
 

@@ -334,6 +334,28 @@ def apply_purchase_filter(request):
                 'sales_agent': purchase.unique_sales_agent.name if purchase.unique_sales_agent else '-',
                 'weight': f"{purchase.order_weight:,}" if purchase.order_weight else '0',
                 'cargo': purchase.cargo.cottage if purchase.cargo else '-',
+                'barbary': purchase.cargo.barbary.name if purchase.cargo and purchase.cargo.barbary else '-',
+                'importer': purchase.cargo.vared_konandeh.name if purchase.cargo and purchase.cargo.vared_konandeh else '-',
+                'address': purchase.address or '-',
+                'description': purchase.description or '-',
+                'factor_code': '1' if purchase.factor_code else '0',
+                'tracking_number': purchase.tracking_number or '-',
+                'code_melli_tahvil': purchase.code_melli_tahvil or '-',
+                'bazaargah_phone_number': purchase.bazaargah_phone_number or '-',
+                'tahvil_phone_number': purchase.tahvil_phone_number or '-',
+                'send_cottage_sms': 'بله' if purchase.send_cottage_sms else 'خیر',
+                'total_weight': f"{purchase.total_weight:,}" if purchase.total_weight else '-',
+                'type': purchase.get_type_display() if purchase.type else '-',
+                'payment_method': purchase.get_payment_method_display() if purchase.payment_method else '-',
+                'updated_at': purchase.updated_at.strftime("%Y/%m/%d") if purchase.updated_at else '-',
+                'is_weight_costed': 'بله' if purchase.is_weight_costed else 'خیر',
+                'is_ap_af': 'بله' if purchase.is_ap_af else 'خیر',
+                'extelaf_type': purchase.get_extelaf_type_display() if purchase.extelaf_type else '-',
+                'extelaf_weight': f"{purchase.extelaf_weight:,}" if purchase.extelaf_weight else '-',
+                'extelaf_amount': f"{purchase.extelaf_amount:,}" if purchase.extelaf_amount else '-',
+                'is_fully_tasvied': 'بله' if purchase.is_fully_tasvied else 'خیر',
+                'priority': purchase.priority or '-',
+                'priority_reason': purchase.priority_reason or '-',
                 'status': purchase.get_state_display() if purchase.state else '-',
                 'delivered_weight': f"{purchase.delivered_weight:,}" if purchase.delivered_weight else '0',
                 'is_factored': 'بله' if purchase.is_factored else 'خیر',
@@ -341,6 +363,12 @@ def apply_purchase_filter(request):
                 'is_canceled': 'بله' if purchase.is_canceled else 'خیر',
                 'is_archived': 'بله' if purchase.is_archived else 'خیر',
                 'buyer_name': purchase.buyer_name or '-',
+                # shenase_takhsis - نیاز به پردازش خاص دارد
+                'shenase_takhsis': ', '.join([s.code for s in purchase.shenase_takhsis_set.all()]) if purchase.shenase_takhsis_set.exists() else '-',
+                # اضافه کردن داده‌های raw برای محاسبات
+                'raw_order_weight': purchase.order_weight or 0,
+                'raw_delivered_weight': purchase.delivered_weight or 0,
+                'raw_is_factored': purchase.is_factored,
             }
             
             # فیلدهای حساس فقط برای نقش‌های مجاز
@@ -349,10 +377,14 @@ def apply_purchase_filter(request):
                     'company_price': f"{purchase.company_price:,}" if purchase.company_price else '0',
                     'customer_price': f"{purchase.customer_price:,}" if purchase.customer_price else '0',
                     'amount_paid': f"{purchase.amount_paid:,}" if purchase.amount_paid else '0',
+                    'raw_company_price': purchase.company_price or 0,
+                    'raw_customer_price': purchase.customer_price or 0,
+                    'raw_amount_paid': purchase.amount_paid or 0,
                 })
             else:
                 data.update({
                     'customer_price': f"{purchase.customer_price:,}" if purchase.customer_price else '0',
+                    'raw_customer_price': purchase.customer_price or 0,
                 })
             
             purchases_data.append(data)

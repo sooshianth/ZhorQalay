@@ -463,6 +463,7 @@ class PurchaseServerFilter {
         
         try {
             console.log(`🔍 اعمال فیلتر برای جدول ${this.tableId}:`, this.currentFilters);
+            console.log(`📄 صفحه فعلی: ${this.currentPage}، تعداد در صفحه: ${this.perPage}`);
             
             const formData = new FormData();
             formData.append('filters', JSON.stringify(this.currentFilters));
@@ -484,9 +485,11 @@ class PurchaseServerFilter {
             }
             
             const data = await response.json();
+            console.log('📊 پاسخ سرور:', data);
             
             if (data.status === 'success') {
                 console.log(`✅ دریافت ${data.data.length} رکورد برای ${this.tableId}`);
+                console.log('📄 اطلاعات صفحه‌بندی:', data.pagination);
                 this.updateTableContent(data.data, data.pagination);
                 this.updateFilterIndicators();
                 this.showToast(`${data.data.length} رکورد بارگذاری شد`, 'success');
@@ -515,6 +518,10 @@ class PurchaseServerFilter {
             noDataRow.className = 'no-data-row';
             noDataRow.innerHTML = `<td colspan="100%" class="text-center py-4">هیچ رکوردی یافت نشد</td>`;
             tbody.appendChild(noDataRow);
+            
+            // پاک کردن pagination
+            this.updatePagination(null);
+            this.updateRowCounter(null);
             return;
         }
         
@@ -529,17 +536,92 @@ class PurchaseServerFilter {
         
         // بروزرسانی شمارنده
         this.updateRowCounter(pagination);
+        
+        // اتصال event listenerهای لازم برای آمار تجمعی و ویرایش گروهی
+        this.connectEventListeners();
+        
+        // dispatch custom event برای اطلاع سایر اجزا
+        document.dispatchEvent(new CustomEvent('tableFilterApplied', {
+            detail: {
+                tableId: this.tableId,
+                section: this.section,
+                filteredCount: pagination ? pagination.count : data.length
+            }
+        }));
+    }
+    
+    connectEventListeners() {
+        // اتصال event listenerهای آمار تجمعی
+        if (window.purchaseAggregatedStats) {
+            const checkboxes = this.tableElement.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    window.purchaseAggregatedStats.handleRowSelection(e.target);
+                });
+            });
+            
+            // اتصال select all checkbox
+            const selectAllCheckbox = this.tableElement.querySelector('.select-all-checkbox, .select-all-checkbox-archived');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.addEventListener('change', (e) => {
+                    if (this.section === 'archived') {
+                        window.purchaseAggregatedStats.handleSelectAllArchived(e.target);
+                    } else {
+                        window.purchaseAggregatedStats.handleSelectAll(e.target);
+                    }
+                });
+            }
+        }
+        
+        // اتصال event listenerهای ویرایش گروهی
+        if (window.bulkEditManager) {
+            window.bulkEditManager.updateControlPanel();
+        }
+    }
+    
+    getStatusBadgeClass(statusText) {
+        // نقشه‌برداری وضعیت‌ها به کلاس‌های رنگ Bootstrap
+        const statusMap = {
+            'آرشیو شده': 'table-status-badge bg-secondary text-white',
+            'لغو شده': 'table-status-badge bg-danger text-white',
+            'فوری': 'table-status-badge bg-danger text-white',
+            'شروع شده': 'table-status-badge bg-light text-dark',
+            'پیامک ارسال شده': 'table-status-badge bg-purple text-white',
+            'ثبت خرید در بازارگاه': 'table-status-badge bg-warning text-dark',
+            'ثبت تخصیص در بازارگاه': 'table-status-badge bg-navy text-white',
+            'ارسال آدرس به واردکننده': 'table-status-badge bg-teal text-white',
+            'در انتظار بارنامه': 'table-status-badge bg-primary text-white',
+            'صدور بارنامه (ناقص)': 'table-status-badge bg-orange text-dark',
+            'صدور بارنامه': 'table-status-badge bg-blue text-white',
+            'بستن خرید در بازارگاه': 'table-status-badge bg-pink text-white',
+            'پرداخت کسری': 'table-status-badge bg-secondary text-white',
+            'دریافت سرک': 'table-status-badge bg-danger text-white',
+            'پرداخت کسری / دریافت سرک': 'table-status-badge bg-brown text-white',
+            'تسویه کامل': 'table-status-badge bg-success text-white',
+            'صدور فاکتور': 'table-status-badge bg-indigo text-white'
+        };
+        
+        return statusMap[statusText] || 'table-status-badge bg-light text-dark';
     }
     
     createTableRow(purchase) {
         const row = document.createElement('tr');
+        
+        // اضافه کردن data attributes لازم برای آمار تجمعی
+        row.setAttribute('data-id', purchase.id);
+        row.setAttribute('data-order-weight', purchase.raw_order_weight || 0);
+        row.setAttribute('data-delivered-weight', purchase.raw_delivered_weight || 0);
+        row.setAttribute('data-company-price', purchase.raw_company_price || 0);
+        row.setAttribute('data-customer-price', purchase.raw_customer_price || 0);
+        row.setAttribute('data-amount-paid', purchase.raw_amount_paid || 0);
+        row.setAttribute('data-is-factored', purchase.raw_is_factored ? 'true' : 'false');
         
         // تشخیص ستون‌های مورد نیاز بر اساس جدول
         const headers = this.tableElement.querySelectorAll('th[data-column-id]');
         
         // checkbox
         const checkboxCell = document.createElement('td');
-        checkboxCell.innerHTML = `<input type="checkbox" class="row-checkbox" value="${purchase.id}">`;
+        checkboxCell.innerHTML = `<input type="checkbox" class="row-checkbox" data-id="${purchase.id}" value="${purchase.id}">`;
         row.appendChild(checkboxCell);
         
         // سایر ستون‌ها
@@ -551,7 +633,7 @@ class PurchaseServerFilter {
             
             // فرمت‌بندی خاص برای انواع مختلف
             if (columnId === 'status') {
-                cell.innerHTML = `<span class="badge badge-info">${cellValue}</span>`;
+                cell.innerHTML = `<span class="badge ${this.getStatusBadgeClass(cellValue)}">${cellValue}</span>`;
             } else if (['is_factored', 'is_urgent', 'is_canceled', 'is_archived'].includes(columnId)) {
                 const icon = cellValue === 'بله' ? '✓' : '✗';
                 const colorClass = cellValue === 'بله' ? 'text-success' : 'text-danger';
@@ -612,8 +694,143 @@ class PurchaseServerFilter {
     }
     
     updatePagination(pagination) {
-        // این متد pagination را بروزرسانی می‌کند
-        // فعلاً اختیاری است
+        console.log(`🔄 بروزرسانی pagination برای ${this.tableId}:`, pagination);
+        
+        // پیدا کردن یا ایجاد container صفحه‌بندی
+        let paginationContainer = document.querySelector(`#pagination-${this.tableId.replace('#', '')}`);
+        
+        if (!paginationContainer) {
+            paginationContainer = document.createElement('div');
+            paginationContainer.id = `pagination-${this.tableId.replace('#', '')}`;
+            paginationContainer.className = 'pagination-container mt-3';
+            
+            // اضافه کردن بعد از جدول
+            const tableContainer = this.tableElement.closest('.table-responsive, .card-body') || this.tableElement.parentNode;
+            tableContainer.appendChild(paginationContainer);
+            console.log(`✅ ایجاد pagination container برای ${this.tableId}`);
+        }
+        
+        if (!pagination || pagination.num_pages <= 1) {
+            paginationContainer.innerHTML = '';
+            console.log(`❌ بدون pagination (تعداد صفحات: ${pagination ? pagination.num_pages : 'نامشخص'})`);
+            return;
+        }
+        
+        console.log(`📊 نمایش pagination: صفحه ${pagination.number} از ${pagination.num_pages}`);
+        
+        // ساخت HTML صفحه‌بندی
+        let paginationHTML = `
+            <nav aria-label="صفحه‌بندی ${this.section}">
+                <ul class="pagination justify-content-center">
+        `;
+        
+        // دکمه صفحه قبلی
+        if (pagination.has_previous) {
+            paginationHTML += `
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="${pagination.number - 1}" data-section="${this.section}">قبلی</a>
+                </li>
+            `;
+        } else {
+            paginationHTML += `
+                <li class="page-item disabled">
+                    <span class="page-link">قبلی</span>
+                </li>
+            `;
+        }
+        
+        // شماره صفحات
+        const startPage = Math.max(1, pagination.number - 2);
+        const endPage = Math.min(pagination.num_pages, pagination.number + 2);
+        
+        // اگر صفحه اول در نظر نیست، آن را اضافه کن
+        if (startPage > 1) {
+            paginationHTML += `
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="1" data-section="${this.section}">1</a>
+                </li>
+            `;
+            if (startPage > 2) {
+                paginationHTML += `
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                `;
+            }
+        }
+        
+        // صفحات اطراف صفحه فعلی
+        for (let i = startPage; i <= endPage; i++) {
+            const isActive = i === pagination.number;
+            paginationHTML += `
+                <li class="page-item ${isActive ? 'active' : ''}">
+                    <a class="page-link" href="#" data-page="${i}" data-section="${this.section}">${i}</a>
+                </li>
+            `;
+        }
+        
+        // اگر صفحه آخر در نظر نیست، آن را اضافه کن
+        if (endPage < pagination.num_pages) {
+            if (endPage < pagination.num_pages - 1) {
+                paginationHTML += `
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                `;
+            }
+            paginationHTML += `
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="${pagination.num_pages}" data-section="${this.section}">${pagination.num_pages}</a>
+                </li>
+            `;
+        }
+        
+        // دکمه صفحه بعدی
+        if (pagination.has_next) {
+            paginationHTML += `
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="${pagination.number + 1}" data-section="${this.section}">بعدی</a>
+                </li>
+            `;
+        } else {
+            paginationHTML += `
+                <li class="page-item disabled">
+                    <span class="page-link">بعدی</span>
+                </li>
+            `;
+        }
+        
+        paginationHTML += `
+                </ul>
+            </nav>
+            <div class="pagination-info text-center mt-2">
+                <small class="text-muted">
+                    صفحه ${pagination.number} از ${pagination.num_pages} 
+                    (مجموع ${pagination.count} رکورد)
+                </small>
+            </div>
+        `;
+        
+        paginationContainer.innerHTML = paginationHTML;
+        
+        // اضافه کردن event listenerها
+        paginationContainer.querySelectorAll('.page-link[data-page]').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const pageNum = parseInt(link.dataset.page);
+                const section = link.dataset.section;
+                
+                console.log(`🔄 تغییر صفحه: ${pageNum} برای بخش ${section}`);
+                
+                // بررسی اینکه لینک مربوط به همین بخش باشد
+                if (section === this.section && pageNum && pageNum !== this.currentPage) {
+                    this.currentPage = pageNum;
+                    this.applyFilters();
+                }
+            });
+        });
+        
+        console.log(`✅ Pagination بروزرسانی شد برای ${this.section}`);
     }
     
     updateRowCounter(pagination) {
