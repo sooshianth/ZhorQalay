@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="{% static 'css_files/purchase_list_style.css' %}">
     <link rel="stylesheet" href="{% static 'css/purchase_list_styles.css' %}">
     
+    <!-- بارگذاری CSS فیلتر پایتونی -->
+    {% load_table_filter %}
+    
     <!-- Styles for checkbox dropdown -->
     <style>
     .dropdown-toggle {
@@ -31,13 +34,13 @@
         transition: all 0.3s ease;
     }
     </style>
-    {% table_filter_scripts %}
     {% bulk_edit_scripts %}
     {% edit_history_scripts %}
     <!-- اطمینان از لود شدن اسکریپت edit_history.js -->
     <script src="{% static 'table_filter/js/edit_history.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'js/drag_and_drop_columns.js' %}?v=1748703972" defer></script>
     <script src="{% static 'js/purchase_aggregated_stats.js' %}?v=1748703972" defer></script>
+    <script src="{% static 'js/purchase_server_filter.js' %}?v={% now 'U' %}" defer></script>
 
     <script src="{% static 'js/purchase_list_scripts.js' %}"></script>
     
@@ -436,7 +439,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {% if pending_payment_purchases.object_list %}
 <div class="table-responsive shadow-sm rounded">
-<table class="table table-bordered table-striped align-middle text-center enable-filter" id="pendingPurchasesTable">
+<table class="table table-bordered table-striped align-middle text-center python-excel-filter" id="pendingPurchasesTable" 
+       data-filter-url="{% url 'apply_purchase_filter' %}"
+       data-column-values-url="{% url 'purchase_column_values' %}"
+       data-section="pending">
     <thead class="table-light sticky-header">
         <tr>
             <!-- Columna para checkboxes de selección -->
@@ -472,7 +478,11 @@ document.addEventListener('DOMContentLoaded', function() {
             </th>
             {% for column in all_columns %}
                 {% if column.id in selected_columns %}
-                <th class="column-{{ column.id }}" data-column-type="{% if column.id == 'date' or column.id == 'updated_at' %}date{% elif column.id == 'weight' or column.id == 'delivered_weight' or column.id == 'extelaf_weight' or column.id == 'total_weight' or column.id == 'company_price' or column.id == 'customer_price' or column.id == 'amount_paid' %}number{% else %}text{% endif %}">
+                {% filter_column_class column.id column.name as col_class %}
+                {% filter_column_attrs column.id column.name as col_attrs %}
+                <th class="{{ col_class }}" {{ col_attrs|safe }}
+                    data-column-id="{{ column.id }}"
+                    data-column-type="{% if column.id == 'date' or column.id == 'updated_at' %}date{% elif column.id == 'weight' or column.id == 'delivered_weight' or column.id == 'extelaf_weight' or column.id == 'total_weight' or column.id == 'company_price' or column.id == 'customer_price' or column.id == 'amount_paid' %}number{% elif column.id == 'status' %}choice{% elif column.id == 'is_factored' or column.id == 'is_urgent' or column.id == 'is_canceled' or column.id == 'is_archived' %}boolean{% else %}text{% endif %}">
                     {{ column.name }}
                 </th>
                 {% endif %}
@@ -831,7 +841,10 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <div class="table-responsive shadow-sm rounded">
-<table class="table table-bordered table-striped align-middle text-center enable-filter" id="activePurchasesTable">
+<table class="table table-bordered table-striped align-middle text-center python-excel-filter" id="activePurchasesTable"
+       data-filter-url="{% url 'apply_purchase_filter' %}"
+       data-column-values-url="{% url 'purchase_column_values' %}"
+       data-section="active">
     <thead class="table-light sticky-header">
         <tr>
             <!-- Columna para checkboxes de selección -->
@@ -867,7 +880,11 @@ document.addEventListener('DOMContentLoaded', function() {
             </th>
             {% for column in all_columns %}
                 {% if column.id in selected_columns %}
-                <th class="column-{{ column.id }}" data-column-type="{% if column.id == 'date' or column.id == 'updated_at' %}date{% elif column.id == 'weight' or column.id == 'delivered_weight' or column.id == 'extelaf_weight' or column.id == 'total_weight' or column.id == 'company_price' or column.id == 'customer_price' or column.id == 'amount_paid' %}number{% else %}text{% endif %}">
+                {% filter_column_class column.id column.name as col_class %}
+                {% filter_column_attrs column.id column.name as col_attrs %}
+                <th class="{{ col_class }}" {{ col_attrs|safe }}
+                    data-column-id="{{ column.id }}"
+                    data-column-type="{% if column.id == 'date' or column.id == 'updated_at' %}date{% elif column.id == 'weight' or column.id == 'delivered_weight' or column.id == 'extelaf_weight' or column.id == 'total_weight' or column.id == 'company_price' or column.id == 'customer_price' or column.id == 'amount_paid' %}number{% elif column.id == 'status' %}choice{% elif column.id == 'is_factored' or column.id == 'is_urgent' or column.id == 'is_canceled' or column.id == 'is_archived' %}boolean{% else %}text{% endif %}">
                     {{ column.name }}
                 </th>
                 {% endif %}
@@ -1249,7 +1266,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 <div class="table-responsive shadow-sm rounded">
-<table class="table table-bordered table-striped align-middle text-center enable-filter" id="archivedPurchasesTable">
+<table class="table table-bordered table-striped align-middle text-center python-excel-filter" 
+       id="archivedPurchasesTable"
+       data-filter-url="{% url 'apply_purchase_filter' %}"
+       data-column-values-url="{% url 'purchase_column_values' %}"
+       data-section="archived">
     <thead class="table-light sticky-header">
         <tr>
             <!-- Columna para checkboxes de selección -->
@@ -1285,7 +1306,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </th>
             {% for column in all_columns %}
                 {% if column.id in selected_columns %}
-                <th class="column-{{ column.id }}" data-column-type="{% if column.id == 'date' or column.id == 'updated_at' %}date{% elif column.id == 'weight' or column.id == 'delivered_weight' or column.id == 'extelaf_weight' or column.id == 'total_weight' or column.id == 'company_price' or column.id == 'customer_price' or column.id == 'amount_paid' %}number{% else %}text{% endif %}">
+                <th {% filter_column_class column.id %} {% filter_column_attrs column.id %}>
                     {{ column.name }}
                 </th>
                 {% endif %}
@@ -2037,7 +2058,90 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 {% endif %}
 
-{% enable_table_filter %}
+<!-- فیلتر سمت سرور توسط اسکریپت خودکار راه‌اندازی می‌شود -->
+
 {% enable_bulk_edit %}
 {% enable_edit_history "core" "Purchase" %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // تنظیم callback برای بروزرسانی جدول پس از فیلتر
+    if (window.TableFilter) {
+        window.TableFilter.onFilterApplied = function(tableId, data) {
+            console.log('فیلتر اعمال شد:', tableId, data);
+            
+            // بروزرسانی pagination اگر داده شده باشد
+            if (data.pagination) {
+                updatePaginationAfterFilter(tableId, data.pagination);
+            }
+            
+            // بروزرسانی تعداد نتایج
+            updateResultsCount(tableId, data.filtered_count, data.total_count);
+        };
+    }
+    
+    function updatePaginationAfterFilter(tableId, pagination) {
+        // پیدا کردن بخش pagination مربوطه
+        let section = 'active';
+        if (tableId.includes('pending')) section = 'pending';
+        else if (tableId.includes('archived')) section = 'archived';
+        
+        const paginationContainer = document.querySelector(`#${section}PaginationContainer`);
+        if (paginationContainer && pagination) {
+            // بروزرسانی pagination UI
+            // این قسمت بسته به ساختار pagination شما باید تکمیل شود
+        }
+    }
+    
+    function updateResultsCount(tableId, filteredCount, totalCount) {
+        // نمایش تعداد نتایج فیلتر شده
+        let section = 'active';
+        if (tableId.includes('pending')) section = 'pending';
+        else if (tableId.includes('archived')) section = 'archived';
+        
+        // نمایش پیام تعداد نتایج
+        if (filteredCount !== totalCount) {
+            showFilteredResultsMessage(section, filteredCount, totalCount);
+        }
+    }
+    
+    function showFilteredResultsMessage(section, filteredCount, totalCount) {
+        const tableContainer = document.querySelector(`#${section}PurchasesTable`).closest('.table-responsive');
+        
+        // حذف پیام قبلی اگر وجود دارد
+        const existingMessage = tableContainer.querySelector('.filter-results-message');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+        
+        // ایجاد پیام جدید
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'filter-results-message alert alert-info mt-2';
+        messageDiv.innerHTML = `
+            <i class="fas fa-filter me-2"></i>
+            نمایش ${filteredCount.toLocaleString('fa-IR')} مورد از مجموع ${totalCount.toLocaleString('fa-IR')} خرید
+            <button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="clearTableFilters('${section}')">
+                <i class="fas fa-times me-1"></i>پاک کردن فیلترها
+            </button>
+        `;
+        
+        tableContainer.insertBefore(messageDiv, tableContainer.firstChild);
+    }
+    
+    // تابع برای پاک کردن فیلترها
+    window.clearTableFilters = function(section) {
+        const tableId = `#${section}PurchasesTable`;
+        if (window.TableFilter && window.TableFilter.instances[tableId]) {
+            window.TableFilter.instances[tableId].clearAllFilters();
+            
+            // حذف پیام نتایج
+            const messageDiv = document.querySelector(`${tableId}`).closest('.table-responsive').querySelector('.filter-results-message');
+            if (messageDiv) {
+                messageDiv.remove();
+            }
+        }
+    };
+});
+</script>
+
 {% endblock %}
