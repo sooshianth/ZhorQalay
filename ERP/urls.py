@@ -7,7 +7,6 @@ from .views import (
     managers_profile_view, 
     purchase_list_view,
     notification_view,
-    bulk_purchase_edit,
     purchase_filter_api,
 )
 
@@ -46,9 +45,4 @@ urlpatterns = [
     path('purchase_CRUD/notifications/', notification_view.get_notifications, name='get_notifications'),
     path('purchase_CRUD/notifications/<int:notification_id>/read/', notification_view.mark_notification_read, name='mark_notification_read'),
 
-    path('bulk-purchase-edit/', bulk_purchase_edit.bulk_purchase_edit, name='bulk_purchase_edit'),
-    path('bulk-purchase-edit/upload-excel/', bulk_purchase_edit.upload_excel, name='bulk_purchase_upload_excel'),
-    path('bulk-purchase-edit/apply/', bulk_purchase_edit.apply_bulk_edit, name='bulk_purchase_apply_edit'),
-    path('bulk-purchase-edit/details/<int:purchase_id>/', bulk_purchase_edit.get_purchase_details, name='bulk_purchase_details'),
-    path('bulk-purchase-edit/export/', bulk_purchase_edit.export_purchase_list, name='bulk_purchase_export'),
 ]

@@ -81,12 +81,22 @@ def apply_purchase_filter(request):
         # دریافت پارامترهای فیلتر
         filters = json.loads(request.POST.get('filters', '{}'))
         sort_config = json.loads(request.POST.get('sort', '{}'))
-        page = int(request.POST.get('page', 1))
-        per_page = int(request.POST.get('per_page', 50))
+        # دریافت پارامترهای pagination با validation بیشتر
+        page_param = request.POST.get('page', '1')
+        per_page_param = request.POST.get('per_page', '50')
         section = request.POST.get('section', 'active')  # active, pending, archived
         
+        try:
+            page = int(page_param)
+            per_page = int(per_page_param)
+        except (ValueError, TypeError):
+            print(f"❌ مقادیر pagination نامعتبر: page={page_param}, per_page={per_page_param}")
+            page = 1
+            per_page = 50
+        
         print(f"🔍 فیلتر درخواستی: {filters}")
-        print(f"📄 section: {section}, page: {page}")
+        print(f"📄 section: {section}, page: {page}, per_page: {per_page}")
+        print(f"📝 پارامترهای خام: page_param='{page_param}', per_page_param='{per_page_param}'")
         
         # تشخیص نقش کاربر
         user_role = determine_user_role(request.user)
@@ -301,6 +311,10 @@ def apply_purchase_filter(request):
                 'is_urgent': 'is_urgent',
                 'is_canceled': 'is_canceled',
                 'is_archived': 'is_archived',
+                'details': 'id',  # مرتب‌سازی بر اساس ID
+                'جزئیات': 'id',  # مرتب‌سازی بر اساس ID
+                'actions': 'id',  # مرتب‌سازی بر اساس ID
+                'عملیات': 'id',  # مرتب‌سازی بر اساس ID
             }
             
             sort_field = sort_mapping.get(column, column)
@@ -312,19 +326,26 @@ def apply_purchase_filter(request):
             # مرتب‌سازی پیش‌فرض
             queryset = queryset.order_by('-created_at')
         
-        # Pagination
+        # Pagination - درست اعمال pagination
+        total_count_before_pagination = queryset.count()
+        print(f"🔢 تعداد کل قبل از pagination: {total_count_before_pagination}")
+        print(f"📄 درخواست صفحه: {page}، تعداد در صفحه: {per_page}")
+        
         paginator = Paginator(queryset, per_page)
+        print(f"📊 Paginator: تعداد کل صفحات: {paginator.num_pages}")
         
         try:
             page_obj = paginator.page(page)
         except (PageNotAnInteger, EmptyPage):
+            print(f"⚠️ صفحه {page} نامعتبر، برگشت به صفحه 1")
             page_obj = paginator.page(1)
         
-        print(f"📄 صفحه {page_obj.number} از {paginator.num_pages}")
+        print(f"📄 صفحه فعلی: {page_obj.number} از {paginator.num_pages}")
+        print(f"📋 تعداد آیتم‌ها در این صفحه: {len(page_obj.object_list)}")
         
-        # تبدیل داده‌ها به JSON
+        # تبدیل داده‌ها به JSON - فقط آیتم‌های صفحه فعلی
         purchases_data = []
-        for purchase in page_obj:
+        for purchase in page_obj.object_list:
             data = {
                 'id': purchase.id,
                 'purchase_number': purchase.purchase_number or 'تعیین نشده',
@@ -365,6 +386,11 @@ def apply_purchase_filter(request):
                 'buyer_name': purchase.buyer_name or '-',
                 # shenase_takhsis - نیاز به پردازش خاص دارد
                 'shenase_takhsis': ', '.join([s.code for s in purchase.shenase_takhsis_set.all()]) if purchase.shenase_takhsis_set.exists() else '-',
+                # ستون جزئیات - فقط برای شناسایی در frontend
+                'details': f'جزئیات خرید {purchase.id}',
+                'جزئیات': f'جزئیات خرید {purchase.id}',
+                'actions': f'عملیات خرید {purchase.id}',
+                'عملیات': f'عملیات خرید {purchase.id}',
                 # اضافه کردن داده‌های raw برای محاسبات
                 'raw_order_weight': purchase.order_weight or 0,
                 'raw_delivered_weight': purchase.delivered_weight or 0,

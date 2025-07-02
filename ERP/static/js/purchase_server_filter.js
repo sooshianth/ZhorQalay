@@ -31,13 +31,35 @@ class PurchaseServerFilter {
         this.currentFilters = {};
         this.currentSort = {};
         this.currentPage = 1;
-        this.perPage = 50;
+        this.perPage = this.getInitialPerPage(); // دریافت perPage از selector
         this.isLoading = false;
         
         // Cache برای مقادیر ستون‌ها
         this.columnValuesCache = {};
         
         this.init();
+    }
+    
+    getInitialPerPage() {
+        // پیدا کردن per-page selector مربوط به این بخش
+        let perPageSelector = null;
+        
+        if (this.section === 'pending') {
+            perPageSelector = document.querySelector('#pending-per-page, #pendingPerPage');
+        } else if (this.section === 'archived') {
+            perPageSelector = document.querySelector('#archived-per-page, #archivedPerPage');
+        } else {
+            perPageSelector = document.querySelector('#active-per-page, #activePerPage, #perPage');
+        }
+        
+        if (perPageSelector && perPageSelector.value) {
+            const value = parseInt(perPageSelector.value);
+            console.log(`📄 تنظیم اولیه per-page برای ${this.section}: ${value}`);
+            return value;
+        }
+        
+        console.log(`⚠️ per-page selector برای ${this.section} پیدا نشد، استفاده از پیش‌فرض: 25`);
+        return 25; // پیش‌فرض
     }
     
     init() {
@@ -47,7 +69,38 @@ class PurchaseServerFilter {
         }
         
         this.setupFilterButtons();
+        this.setupPerPageSelector();
         this.loadInitialData();
+    }
+    
+    setupPerPageSelector() {
+        // پیدا کردن per-page selector مربوط به این بخش
+        let perPageSelector = null;
+        
+        if (this.section === 'pending') {
+            perPageSelector = document.querySelector('#pending-per-page, #pendingPerPage');
+        } else if (this.section === 'archived') {
+            perPageSelector = document.querySelector('#archived-per-page, #archivedPerPage');
+        } else {
+            perPageSelector = document.querySelector('#active-per-page, #activePerPage, #perPage');
+        }
+        
+        if (perPageSelector) {
+            console.log(`✅ پیدا کردن per-page selector برای ${this.section}:`, perPageSelector.id);
+            
+            perPageSelector.addEventListener('change', (e) => {
+                const newPerPage = parseInt(e.target.value);
+                console.log(`📄 تغییر per-page برای ${this.section}: ${this.perPage} → ${newPerPage}`);
+                
+                if (newPerPage && newPerPage !== this.perPage) {
+                    this.perPage = newPerPage;
+                    this.currentPage = 1; // برگشت به صفحه اول
+                    this.applyFilters();
+                }
+            });
+        } else {
+            console.warn(`⚠️ per-page selector برای ${this.section} پیدا نشد`);
+        }
     }
     
     setupFilterButtons() {
@@ -464,13 +517,20 @@ class PurchaseServerFilter {
         try {
             console.log(`🔍 اعمال فیلتر برای جدول ${this.tableId}:`, this.currentFilters);
             console.log(`📄 صفحه فعلی: ${this.currentPage}، تعداد در صفحه: ${this.perPage}`);
+            console.log(`🎯 بخش: ${this.section}`);
             
             const formData = new FormData();
             formData.append('filters', JSON.stringify(this.currentFilters));
             formData.append('sort', JSON.stringify(this.currentSort));
-            formData.append('page', this.currentPage);
-            formData.append('per_page', this.perPage);
+            formData.append('page', this.currentPage.toString());
+            formData.append('per_page', this.perPage.toString());
             formData.append('section', this.section);
+            
+            // لاگ FormData
+            console.log('📝 FormData ارسالی:');
+            for (let [key, value] of formData.entries()) {
+                console.log(`  ${key}: ${value}`);
+            }
             
             const response = await fetch(this.filterUrl, {
                 method: 'POST',
@@ -508,7 +568,14 @@ class PurchaseServerFilter {
     
     updateTableContent(data, pagination) {
         const tbody = this.tableElement.querySelector('tbody');
-        if (!tbody) return;
+        if (!tbody) {
+            console.error('❌ tbody پیدا نشد');
+            return;
+        }
+        
+        console.log(`🔄 بروزرسانی محتوای جدول ${this.tableId}:`);
+        console.log(`📊 تعداد داده دریافتی: ${data.length}`);
+        console.log(`📄 اطلاعات pagination:`, pagination);
         
         // پاک کردن محتوای قبلی
         tbody.innerHTML = '';
@@ -525,8 +592,10 @@ class PurchaseServerFilter {
             return;
         }
         
-        // اضافه کردن رکوردهای جدید
-        data.forEach(purchase => {
+        // اضافه کردن فقط رکوردهای صفحه فعلی (که از سرور آمده‌اند)
+        console.log(`➕ اضافه کردن ${data.length} رکورد به جدول`);
+        data.forEach((purchase, index) => {
+            console.log(`  ${index + 1}. خرید ID: ${purchase.id}`);
             const row = this.createTableRow(purchase);
             tbody.appendChild(row);
         });
@@ -634,6 +703,22 @@ class PurchaseServerFilter {
             // فرمت‌بندی خاص برای انواع مختلف
             if (columnId === 'status') {
                 cell.innerHTML = `<span class="badge ${this.getStatusBadgeClass(cellValue)}">${cellValue}</span>`;
+            } else if (columnId === 'details' || columnId === 'جزئیات' || columnId === 'actions' || columnId === 'عملیات') {
+                // ستون جزئیات/عملیات با لینک به صفحه purchase_CRUD
+                cell.innerHTML = `
+                    <div class="btn-group">
+                        <a href="/erp/purchase_CRUD/${purchase.id}/" 
+                           class="btn btn-sm btn-info" 
+                           title="مشاهده جزئیات خرید">
+                            <i class="fas fa-eye"></i> مشاهده
+                        </a>
+                        <button type="button" class="btn btn-outline-success btn-sm item-history-btn" 
+                                data-id="${purchase.id}"
+                                title="تاریخچه تغییرات">
+                            <i class="fas fa-history"></i>
+                        </button>
+                    </div>
+                `;
             } else if (['is_factored', 'is_urgent', 'is_canceled', 'is_archived'].includes(columnId)) {
                 const icon = cellValue === 'بله' ? '✓' : '✗';
                 const colorClass = cellValue === 'بله' ? 'text-success' : 'text-danger';

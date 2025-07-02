@@ -6,9 +6,9 @@ class BulkEditManager {
         this.selectedIds = new Set();
         this.currentSection = 'active'; // بخش فعلی
         this.config = {
-            bulkEditPageUrl: '/table-filter/bulk-edit-page/',
-            excelEditPageUrl: '/table-filter/bulk-edit-excel-page/',
-            downloadTemplateUrl: '/table-filter/bulk-edit-template/',
+            bulkEditPageUrl: '/table_filter/bulk-edit-page/',
+            excelEditPageUrl: '/table_filter/bulk-edit-excel-page/',
+            downloadTemplateUrl: '/table_filter/bulk-edit-template/',
             ...config
         };
         
@@ -33,6 +33,18 @@ class BulkEditManager {
         this.attachEventListeners();
         this.detectCurrentSection();
         console.log('✅ BulkEditManager راه‌اندازی شد');
+        
+        // Debug: نمایش همه جداول موجود
+        console.log('🔍 Debug: جداول موجود در صفحه:');
+        document.querySelectorAll('table').forEach((table, index) => {
+            console.log(`  ${index + 1}. Table ID: ${table.id}, Classes: ${table.className}`);
+        });
+        
+        // Debug: نمایش همه checkbox های موجود
+        console.log('🔍 Debug: checkbox های موجود:');
+        document.querySelectorAll('input[type="checkbox"]').forEach((checkbox, index) => {
+            console.log(`  ${index + 1}. Class: ${checkbox.className}, ID: ${checkbox.id}, Data-ID: ${checkbox.dataset.id}`);
+        });
     }
     
     detectActiveTab() {
@@ -49,9 +61,23 @@ class BulkEditManager {
     }
     
     detectCurrentSection() {
+        const previousSection = this.currentSection;
         this.currentActiveTab = this.detectActiveTab();
         this.currentSection = this.currentActiveTab;
-        console.log(`📍 بخش فعال: ${this.currentSection}`);
+        
+        console.log(`📍 تشخیص بخش: ${previousSection} → ${this.currentSection}`);
+        
+        // بررسی وجود جداول مورد نظر
+        const tableSelectors = {
+            active: '#activePurchasesTable',
+            pending: '#pendingPurchasesTable', 
+            archived: '#archivedPurchasesTable'
+        };
+        
+        Object.keys(tableSelectors).forEach(section => {
+            const table = document.querySelector(tableSelectors[section]);
+            console.log(`  ${section}: ${table ? '✅ موجود' : '❌ نامعلوم'}`);
+        });
     }
 
     attachEventListeners() {
@@ -257,6 +283,8 @@ class BulkEditManager {
         const targetSection = section || this.currentSection;
         let selectedIds = [];
         
+        console.log(`🎯 درخواست ویرایش گروهی برای بخش: ${targetSection}`);
+        
         // جمع‌آوری آیدی‌های انتخاب شده برای بخش مشخص
         const tableMap = {
             pending: '#pendingPurchasesTable .row-checkbox:checked',
@@ -264,10 +292,21 @@ class BulkEditManager {
             active: '#activePurchasesTable .row-checkbox:checked'
         };
         
-        const checkboxes = document.querySelectorAll(tableMap[targetSection]);
-        selectedIds = Array.from(checkboxes).map(cb => cb.dataset.id);
+        const selector = tableMap[targetSection];
+        console.log(`🔍 انتخاب checkboxها با selector: ${selector}`);
+        
+        const checkboxes = document.querySelectorAll(selector);
+        console.log(`📋 تعداد checkbox های انتخاب شده: ${checkboxes.length}`);
+        
+        selectedIds = Array.from(checkboxes).map(cb => {
+            console.log(`  - ID: ${cb.dataset.id}, Value: ${cb.value}`);
+            return cb.dataset.id || cb.value;
+        });
+        
+        console.log(`✅ آیدی‌های جمع‌آوری شده:`, selectedIds);
         
         if (selectedIds.length === 0) {
+            console.error('❌ هیچ موردی انتخاب نشده');
             alert('لطفاً حداقل یک مورد انتخاب کنید');
             return;
         }
@@ -310,6 +349,8 @@ class BulkEditManager {
         const targetSection = section || this.currentSection;
         let selectedIds = [];
         
+        console.log(`📊 درخواست ویرایش اکسلی برای بخش: ${targetSection}`);
+        
         // جمع‌آوری آیدی‌های انتخاب شده برای بخش مشخص
         const tableMap = {
             pending: '#pendingPurchasesTable .row-checkbox:checked',
@@ -317,10 +358,21 @@ class BulkEditManager {
             active: '#activePurchasesTable .row-checkbox:checked'
         };
         
-        const checkboxes = document.querySelectorAll(tableMap[targetSection]);
-        selectedIds = Array.from(checkboxes).map(cb => cb.dataset.id);
+        const selector = tableMap[targetSection];
+        console.log(`🔍 انتخاب checkboxها با selector: ${selector}`);
+        
+        const checkboxes = document.querySelectorAll(selector);
+        console.log(`📋 تعداد checkbox های انتخاب شده: ${checkboxes.length}`);
+        
+        selectedIds = Array.from(checkboxes).map(cb => {
+            console.log(`  - ID: ${cb.dataset.id}, Value: ${cb.value}`);
+            return cb.dataset.id || cb.value;
+        });
+        
+        console.log(`✅ آیدی‌های جمع‌آوری شده:`, selectedIds);
         
         if (selectedIds.length === 0) {
+            console.error('❌ هیچ موردی انتخاب نشده');
             alert('لطفاً حداقل یک مورد انتخاب کنید');
             return;
         }
