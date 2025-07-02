@@ -65,6 +65,9 @@ class WeeklyAttendance(models.Model):
     
     # فیلد برای نشان‌دادن اینکه آیا پس از رد، ویرایش شده یا نه
     revised_after_rejection = models.BooleanField(default=False, verbose_name="پس از رد ویرایش شده")
+    
+    # فیلد برای تشخیص ناهنجاری در ساعات کاری
+    anomaly_detected = models.BooleanField(default=False, verbose_name="ناهنجاری تشخیص داده شده")
 
     def calculate_total_hours(self):
         # جمع ساعات روزانه، با اطمینان از اینکه مقادیر None به 0 تبدیل شوند
