@@ -380,7 +380,7 @@ class PurchaseServerFilter {
         includeInput.checked = true;
         
         const includeLabel = document.createElement('label');
-        includeLabel.className = 'btn btn-outline-success';
+        includeLabel.className = 'btn btn-outline-success filter-type-btn';
         includeLabel.htmlFor = 'includeFilter';
         includeLabel.innerHTML = '<i class="fas fa-check me-1"></i>نمایش موارد انتخاب شده';
         
@@ -392,7 +392,7 @@ class PurchaseServerFilter {
         excludeInput.id = 'excludeFilter';
         
         const excludeLabel = document.createElement('label');
-        excludeLabel.className = 'btn btn-outline-danger';
+        excludeLabel.className = 'btn btn-outline-danger filter-type-btn';
         excludeLabel.htmlFor = 'excludeFilter';
         excludeLabel.innerHTML = '<i class="fas fa-times me-1"></i>مخفی کردن موارد انتخاب شده';
         
@@ -427,8 +427,14 @@ class PurchaseServerFilter {
         searchInputGroup.appendChild(searchInput);
         searchInputGroup.appendChild(searchIcon);
         
+        // نتایج جستجو
+        const searchResults = document.createElement('small');
+        searchResults.id = 'filterSearchResults';
+        searchResults.className = 'text-muted mt-1';
+        
         searchContainer.appendChild(searchLabel);
         searchContainer.appendChild(searchInputGroup);
+        searchContainer.appendChild(searchResults);
         
         // لیست مقادیر
         const valuesContainer = document.createElement('div');
@@ -531,10 +537,13 @@ class PurchaseServerFilter {
         
         // Event listeners
         
-        // انتخاب همه
+        // انتخاب همه (فقط موارد visible)
         selectAllCheckbox.addEventListener('change', function() {
-            const checkboxes = valuesList.querySelectorAll('input[type="checkbox"]:not(#selectAll)');
-            checkboxes.forEach(cb => {
+            const visibleCheckboxes = Array.from(valuesList.querySelectorAll('.filter-value-item:not(:first-child)'))
+                .filter(container => container.style.display !== 'none')
+                .map(container => container.querySelector('input[type="checkbox"]'));
+            
+            visibleCheckboxes.forEach(cb => {
                 cb.checked = this.checked;
                 // بروزرسانی ظاهر
                 const container = cb.closest('.filter-value-item');
@@ -566,26 +575,70 @@ class PurchaseServerFilter {
         
         // جستجو
         searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
+            const searchTerm = this.value.toLowerCase().trim();
             const containers = valuesList.querySelectorAll('.filter-value-item:not(:first-child)');
+            let visibleCount = 0;
+            let totalCount = containers.length;
             
             containers.forEach(container => {
                 const label = container.querySelector('label');
-                const text = label.textContent.toLowerCase();
-                container.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+                // استخراج متن خام بدون HTML tags و icons
+                const text = label.textContent
+                    .replace(/[🔽🔼]/g, '')
+                    .replace(/[✓×]/g, '')
+                    .replace(/\s+/g, ' ')
+                    .trim()
+                    .toLowerCase();
+                const isVisible = !searchTerm || text.includes(searchTerm);
+                
+                container.style.display = isVisible ? 'flex' : 'none';
+                if (isVisible) visibleCount++;
             });
+            
+            // بروزرسانی تعداد نتایج
+            const resultsLabel = document.querySelector('#filterSearchResults');
+            if (resultsLabel) {
+                if (searchTerm) {
+                    resultsLabel.textContent = `${visibleCount} از ${totalCount} مورد یافت شد`;
+                    resultsLabel.style.color = visibleCount > 0 ? '#1e6135' : '#dc3545';
+                } else {
+                    resultsLabel.textContent = `${totalCount} مورد موجود`;
+                    resultsLabel.style.color = '#6c757d';
+                }
+            }
+            
+            // بروزرسانی وضعیت select all checkbox بر اساس موارد visible
+            const visibleCheckboxes = Array.from(containers)
+                .filter(container => container.style.display !== 'none')
+                .map(container => container.querySelector('input[type="checkbox"]'));
+            
+            const checkedVisibleCount = visibleCheckboxes.filter(cb => cb.checked).length;
+            
+            if (visibleCheckboxes.length > 0) {
+                selectAllCheckbox.checked = checkedVisibleCount === visibleCheckboxes.length;
+                selectAllCheckbox.indeterminate = checkedVisibleCount > 0 && checkedVisibleCount < visibleCheckboxes.length;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            }
         });
         
         // عملکرد دکمه‌ها
         applyBtn.addEventListener('click', () => {
-            const selectedValues = Array.from(valuesList.querySelectorAll('input[type="checkbox"]:not(#selectAll):checked'))
-                .map(cb => cb.value);
+            // فقط مقادیر visible و checked را در نظر بگیریم
+            const visibleCheckedValues = Array.from(valuesList.querySelectorAll('.filter-value-item:not(:first-child)'))
+                .filter(item => {
+                    const checkbox = item.querySelector('input[type="checkbox"]');
+                    const isVisible = item.style.display !== 'none';
+                    return isVisible && checkbox && checkbox.checked;
+                })
+                .map(item => item.querySelector('input[type="checkbox"]').value);
             
             const filterType = modal.querySelector('input[name="filterType"]:checked').value;
             
-            if (selectedValues.length > 0) {
+            if (visibleCheckedValues.length > 0) {
                 this.currentFilters[columnId] = {
-                    values: selectedValues,
+                    values: visibleCheckedValues,
                     type: filterType
                 };
             } else {
@@ -858,7 +911,7 @@ class PurchaseServerFilter {
             
             if (filterBtn) {
                 if (this.currentFilters[columnId]) {
-                    filterBtn.style.background = '#007bff';
+                    filterBtn.style.background = '#1e6135';
                     filterBtn.style.color = 'white';
                     filterBtn.title = `فیلتر فعال: ${this.currentFilters[columnId].values.length} مورد`;
                 } else {
@@ -883,11 +936,175 @@ class PurchaseServerFilter {
                 const targetBtn = header.querySelector(this.currentSort.direction === 'asc' ? 
                     '.sort-btn .fa-sort-up' : '.sort-btn .fa-sort-down').closest('.sort-btn');
                 if (targetBtn) {
-                    targetBtn.style.background = '#28a745';
+                    targetBtn.style.background = '#1e6135';
                     targetBtn.style.color = 'white';
                 }
             }
         });
+        
+        // بروزرسانی باکس وضعیت فیلتر
+        this.updateFilterStatusBox();
+    }
+    
+    updateFilterStatusBox() {
+        // پیدا کردن یا ایجاد container برای باکس فیلتر
+        let filterStatusContainer = document.querySelector(`#${this.section}FilterStatus`);
+        
+        if (!filterStatusContainer) {
+            filterStatusContainer = document.createElement('div');
+            filterStatusContainer.id = `${this.section}FilterStatus`;
+            filterStatusContainer.className = 'filter-status-container mb-3';
+            
+            // قرار دادن قبل از جدول
+            const tableContainer = this.tableElement.closest('.table-responsive, .card-body') || this.tableElement.parentNode;
+            tableContainer.insertBefore(filterStatusContainer, this.tableElement);
+        }
+        
+        // بررسی وجود فیلتر فعال
+        const activeFiltersCount = Object.keys(this.currentFilters).length;
+        const hasSort = this.currentSort.column !== null;
+        
+        if (activeFiltersCount === 0 && !hasSort) {
+            filterStatusContainer.style.display = 'none';
+            return;
+        }
+        
+        filterStatusContainer.style.display = 'block';
+        
+        // ایجاد محتوای باکس
+        let filtersHTML = '';
+        let totalFilteredItems = 0;
+        
+        // نمایش فیلترهای فعال با جزئیات کامل
+        Object.entries(this.currentFilters).forEach(([columnId, filterData]) => {
+            const header = this.tableElement.querySelector(`th[data-column-id="${columnId}"]`);
+            const columnName = header ? header.textContent.replace(/[🔽🔼]/g, '').trim() : columnId;
+            const typeText = filterData.type === 'include' ? 'شامل' : 'حذف';
+            const typeIcon = filterData.type === 'include' ? 'fa-check-circle' : 'fa-times-circle';
+            const typeClass = filterData.type === 'include' ? 'filter-type-include' : 'filter-type-exclude';
+            
+            totalFilteredItems += filterData.values.length;
+            
+            // نمایش تمام مقادیر در tooltip اگر بیش از 3 تا باشند
+            const allValuesText = filterData.values.join('، ');
+            const displayValuesText = filterData.values.length > 2 
+                ? `${filterData.values.slice(0, 2).join('، ')} و ${filterData.values.length - 2} مورد دیگر`
+                : filterData.values.join('، ');
+            
+            filtersHTML += `
+                <div class="filter-status-item" data-filter-column="${columnId}">
+                    <div class="filter-item-header">
+                        <i class="fas fa-filter filter-icon"></i>
+                        <span class="filter-column-name">${columnName}</span>
+                        <span class="filter-type ${typeClass}">
+                            <i class="fas ${typeIcon} me-1"></i>${typeText}
+                        </span>
+                        <span class="filter-count">(${filterData.values.length})</span>
+                    </div>
+                    <div class="filter-item-body">
+                        <span class="filter-values" title="${allValuesText}">${displayValuesText}</span>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger remove-filter-btn" 
+                            data-column-id="${columnId}" title="حذف این فیلتر">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            `;
+        });
+        
+        // نمایش مرتب‌سازی فعال با جزئیات
+        if (hasSort) {
+            const header = this.tableElement.querySelector(`th[data-column-id="${this.currentSort.column}"]`);
+            const columnName = header ? header.textContent.replace(/[🔽🔼]/g, '').trim() : this.currentSort.column;
+            const sortText = this.currentSort.direction === 'asc' ? 'صعودی' : 'نزولی';
+            const sortIcon = this.currentSort.direction === 'asc' ? 'fa-sort-amount-up' : 'fa-sort-amount-down';
+            
+            filtersHTML += `
+                <div class="filter-status-item sort-status-item" data-sort-column="${this.currentSort.column}">
+                    <div class="filter-item-header">
+                        <i class="fas fa-sort-amount-down filter-icon sort-icon"></i>
+                        <span class="filter-column-name">مرتب‌سازی</span>
+                        <span class="sort-type">
+                            <i class="fas ${sortIcon} me-1"></i>${sortText}
+                        </span>
+                    </div>
+                    <div class="filter-item-body">
+                        <span class="sort-column">${columnName}</span>
+                    </div>
+                    <button class="btn btn-sm btn-outline-warning remove-sort-btn" title="حذف مرتب‌سازی">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            `;
+        }
+        
+        // محاسبه آمار کلی
+        const totalActiveItems = activeFiltersCount + (hasSort ? 1 : 0);
+        
+        filterStatusContainer.innerHTML = `
+            <div class="filter-status-box">
+                <div class="filter-status-header">
+                    <div class="header-left">
+                        <h6 class="filter-status-title">
+                            <i class="fas fa-sliders-h me-2"></i>
+                            فیلترها و تنظیمات فعال
+                        </h6>
+                        <div class="filter-status-summary">
+                            <span class="active-filters-count">${totalActiveItems} مورد فعال</span>
+                            ${totalFilteredItems > 0 ? `<span class="filtered-items-count">${totalFilteredItems} گزینه فیلتر</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="header-right">
+                        <button class="btn btn-sm btn-outline-secondary clear-all-filters-btn" title="پاک کردن همه فیلترها و تنظیمات">
+                            <i class="fas fa-broom me-1"></i>
+                            پاک کردن همه
+                        </button>
+                    </div>
+                </div>
+                <div class="filter-status-content">
+                    ${filtersHTML}
+                </div>
+            </div>
+        `;
+        
+        // اضافه کردن event listeners
+        this.attachFilterStatusEventListeners(filterStatusContainer);
+    }
+    
+    attachFilterStatusEventListeners(container) {
+        // حذف فیلتر تکی
+        container.querySelectorAll('.remove-filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const columnId = btn.dataset.columnId;
+                delete this.currentFilters[columnId];
+                this.currentPage = 1;
+                this.applyFilters();
+            });
+        });
+        
+        // حذف مرتب‌سازی
+        const removeSortBtn = container.querySelector('.remove-sort-btn');
+        if (removeSortBtn) {
+            removeSortBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.currentSort = { column: null, direction: 'asc' };
+                this.currentPage = 1;
+                this.applyFilters();
+            });
+        }
+        
+        // پاک کردن همه
+        const clearAllBtn = container.querySelector('.clear-all-filters-btn');
+        if (clearAllBtn) {
+            clearAllBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.currentFilters = {};
+                this.currentSort = { column: null, direction: 'asc' };
+                this.currentPage = 1;
+                this.applyFilters();
+            });
+        }
     }
     
     updatePagination(pagination) {
