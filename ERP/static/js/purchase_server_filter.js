@@ -3,35 +3,35 @@
  */
 class PurchaseServerFilter {
     constructor(tableSelector) {
+        this.tableId = tableSelector;
         this.tableElement = document.querySelector(tableSelector);
+        
         if (!this.tableElement) {
-            console.error('Table not found:', tableSelector);
+            console.error(`❌ جدول یافت نشد: ${tableSelector}`);
             return;
         }
         
-        this.tableSelector = tableSelector;
-        this.tableId = this.tableElement.id;
+        // تشخیص بخش بر اساس نام جدول
+        if (tableSelector.includes('pending') || tableSelector.includes('Pending')) {
+            this.section = 'pending';
+        } else if (tableSelector.includes('archived') || tableSelector.includes('Archived')) {
+            this.section = 'archived';
+        } else if (tableSelector.includes('active') || tableSelector.includes('Active')) {
+            this.section = 'active';
+        } else {
+            // fallback: تشخیص بر اساس data-section attribute
+            this.section = this.tableElement.dataset.section || 'active';
+        }
+        
         this.filterUrl = this.tableElement.dataset.filterUrl;
         this.columnValuesUrl = this.tableElement.dataset.columnValuesUrl;
         
-        // تشخیص section از table ID
-        if (this.tableId.includes('active')) {
-            this.section = 'active';
-        } else if (this.tableId.includes('pending')) {
-            this.section = 'pending';
-        } else if (this.tableId.includes('archived')) {
-            this.section = 'archived';
-        } else {
-            this.section = 'active';
-        }
-        
-        console.log(`🔧 راه‌اندازی فیلتر برای جدول: ${this.tableId}, section: ${this.section}`);
-        
-        // State جداگانه برای هر جدول
+        // Initialize state
         this.currentFilters = {};
-        this.currentSort = {};
+        this.currentSort = { column: null, direction: 'asc' };
         this.currentPage = 1;
-        this.perPage = this.getInitialPerPage(); // دریافت perPage از selector
+        this.perPage = this.getInitialPerPage();
+        
         this.isLoading = false;
         
         // Cache برای مقادیر ستون‌ها
@@ -41,24 +41,13 @@ class PurchaseServerFilter {
     }
     
     getInitialPerPage() {
-        // پیدا کردن per-page selector مربوط به این بخش
-        let perPageSelector = null;
-        
-        if (this.section === 'pending') {
-            perPageSelector = document.querySelector('#pending-per-page, #pendingPerPage');
-        } else if (this.section === 'archived') {
-            perPageSelector = document.querySelector('#archived-per-page, #archivedPerPage');
-        } else {
-            perPageSelector = document.querySelector('#active-per-page, #activePerPage, #perPage');
-        }
-        
+        // بررسی selector موجود در template
+        const perPageSelector = document.querySelector(`#${this.section}PerPage`);
         if (perPageSelector && perPageSelector.value) {
             const value = parseInt(perPageSelector.value);
-            console.log(`📄 تنظیم اولیه per-page برای ${this.section}: ${value}`);
             return value;
         }
         
-        console.log(`⚠️ per-page selector برای ${this.section} پیدا نشد، استفاده از پیش‌فرض: 25`);
         return 25; // پیش‌فرض
     }
     
@@ -68,39 +57,86 @@ class PurchaseServerFilter {
             return;
         }
         
+        // غیرفعال کردن traditional pagination برای این جدول
+        this.disableTraditionalPagination();
+        
         this.setupFilterButtons();
         this.setupPerPageSelector();
         this.loadInitialData();
     }
     
-    setupPerPageSelector() {
-        // پیدا کردن per-page selector مربوط به این بخش
-        let perPageSelector = null;
+    disableTraditionalPagination() {
+        // علامت‌گذاری جدول به عنوان دارای server filter
+        this.tableElement.setAttribute('data-server-filter-active', 'true');
         
-        if (this.section === 'pending') {
-            perPageSelector = document.querySelector('#pending-per-page, #pendingPerPage');
-        } else if (this.section === 'archived') {
-            perPageSelector = document.querySelector('#archived-per-page, #archivedPerPage');
-        } else {
-            perPageSelector = document.querySelector('#active-per-page, #activePerPage, #perPage');
-        }
+        // غیرفعال کردن traditional pagination links
+        const section = this.section;
+        const traditionalPaginationContainer = document.querySelector(`#${section}Pagination`);
         
-        if (perPageSelector) {
-            console.log(`✅ پیدا کردن per-page selector برای ${this.section}:`, perPageSelector.id);
-            
-            perPageSelector.addEventListener('change', (e) => {
-                const newPerPage = parseInt(e.target.value);
-                console.log(`📄 تغییر per-page برای ${this.section}: ${this.perPage} → ${newPerPage}`);
-                
-                if (newPerPage && newPerPage !== this.perPage) {
-                    this.perPage = newPerPage;
-                    this.currentPage = 1; // برگشت به صفحه اول
-                    this.applyFilters();
-                }
+        if (traditionalPaginationContainer) {
+            // پنهان کردن pagination links موجود که توسط Django template ایجاد شده‌اند
+            const traditionalNavs = traditionalPaginationContainer.querySelectorAll('nav:not([data-server-filter])');
+            traditionalNavs.forEach(nav => {
+                nav.style.display = 'none';
+                nav.setAttribute('data-traditional-pagination', 'disabled');
             });
-        } else {
-            console.warn(`⚠️ per-page selector برای ${this.section} پیدا نشد`);
         }
+        
+        // غیرفعال کردن traditional per-page selectors
+        const traditionalPerPageSelect = document.querySelector(`#${section}PerPage:not([data-server-filter-listener])`);
+        if (traditionalPerPageSelect && !traditionalPerPageSelect.hasAttribute('data-server-filter-listener')) {
+            traditionalPerPageSelect.style.display = 'none';
+        }
+    }
+    
+    setupPerPageSelector() {
+        // پیدا کردن per page selector موجود در template
+        const existingSelector = document.querySelector(`#${this.section}PerPage`);
+        if (existingSelector) {
+            // تنظیم مقدار فعلی
+            existingSelector.value = this.perPage;
+            
+            // اضافه کردن event listener اگر قبلاً اضافه نشده
+            if (!existingSelector.hasAttribute('data-server-filter-listener')) {
+                existingSelector.setAttribute('data-server-filter-listener', 'true');
+                existingSelector.addEventListener('change', (e) => {
+                    const newPerPage = parseInt(e.target.value);
+                    this.perPage = newPerPage;
+                    this.currentPage = 1; // بازگشت به صفحه اول
+                    this.applyFilters();
+                });
+            }
+            
+            return;
+        }
+        
+        // اگر selector موجود نبود، یکی ایجاد کن (fallback)
+        const tableContainer = this.tableElement.closest('.table-responsive') || this.tableElement.parentNode;
+        
+        const perPageContainer = document.createElement('div');
+        perPageContainer.className = 'per-page-container mb-3 d-flex align-items-center';
+        perPageContainer.innerHTML = `
+            <label for="${this.section}PerPageFilter" class="form-label me-2">تعداد در هر صفحه:</label>
+            <select id="${this.section}PerPageFilter" class="form-select form-select-sm w-auto">
+                <option value="5" ${this.perPage === 5 ? 'selected' : ''}>5</option>
+                <option value="10" ${this.perPage === 10 ? 'selected' : ''}>10</option>
+                <option value="25" ${this.perPage === 25 ? 'selected' : ''}>25</option>
+                <option value="50" ${this.perPage === 50 ? 'selected' : ''}>50</option>
+                <option value="100" ${this.perPage === 100 ? 'selected' : ''}>100</option>
+                <option value="200" ${this.perPage === 200 ? 'selected' : ''}>200</option>
+            </select>
+        `;
+        
+        tableContainer.insertBefore(perPageContainer, tableContainer.firstChild);
+        
+        // اضافه کردن event listener
+        const select = perPageContainer.querySelector('select');
+        select.addEventListener('change', (e) => {
+            const newPerPage = parseInt(e.target.value);
+            this.perPage = newPerPage;
+            this.currentPage = 1; // بازگشت به صفحه اول
+            this.applyFilters();
+        });
     }
     
     setupFilterButtons() {
@@ -110,58 +146,80 @@ class PurchaseServerFilter {
             const columnId = header.dataset.columnId;
             const columnType = header.dataset.columnType || 'text';
             
+            // بررسی اینکه آیا قبلاً filter button اضافه شده یا نه
+            if (header.querySelector('.filter-controls')) {
+                return;
+            }
+            
+            // ایجاد container برای کنترل‌های فیلتر
+            const controlsContainer = document.createElement('div');
+            controlsContainer.className = 'filter-controls d-flex align-items-center justify-content-between';
+            
+            // متن اصلی header
+            const headerText = header.textContent.trim();
+            
+            // ایجاد span برای متن
+            const textSpan = document.createElement('span');
+            textSpan.textContent = headerText;
+            textSpan.className = 'header-text';
+            
             // ایجاد container برای دکمه‌ها
-            const buttonContainer = document.createElement('div');
-            buttonContainer.className = 'filter-buttons-container';
-            buttonContainer.style.cssText = 'display: inline-flex; gap: 5px; margin-right: 8px; align-items: center;';
+            const buttonsContainer = document.createElement('div');
+            buttonsContainer.className = 'filter-buttons d-flex';
             
             // دکمه فیلتر
             const filterBtn = document.createElement('button');
-            filterBtn.type = 'button';
-            filterBtn.className = 'filter-btn btn btn-sm';
+            filterBtn.className = 'btn btn-sm btn-outline-primary filter-btn me-1';
             filterBtn.innerHTML = '<i class="fas fa-filter"></i>';
-            filterBtn.title = 'فیلتر';
-            filterBtn.style.cssText = 'padding: 2px 6px; border: 1px solid #ddd; background: white; cursor: pointer;';
+            filterBtn.title = `فیلتر ${headerText}`;
+            filterBtn.setAttribute('data-column-id', columnId);
+            filterBtn.setAttribute('data-column-type', columnType);
             
+            // دکمه‌های مرتب‌سازی (فقط یک جفت)
+            const sortUpBtn = document.createElement('button');
+            sortUpBtn.className = 'btn btn-sm btn-outline-secondary sort-btn me-1';
+            sortUpBtn.innerHTML = '<i class="fas fa-sort-up"></i>';
+            sortUpBtn.title = `مرتب‌سازی صعودی ${headerText}`;
+            sortUpBtn.setAttribute('data-column-id', columnId);
+            sortUpBtn.setAttribute('data-direction', 'asc');
+            
+            const sortDownBtn = document.createElement('button');
+            sortDownBtn.className = 'btn btn-sm btn-outline-secondary sort-btn';
+            sortDownBtn.innerHTML = '<i class="fas fa-sort-down"></i>';
+            sortDownBtn.title = `مرتب‌سازی نزولی ${headerText}`;
+            sortDownBtn.setAttribute('data-column-id', columnId);
+            sortDownBtn.setAttribute('data-direction', 'desc');
+            
+            // اضافه کردن event listeners
             filterBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 this.showFilterModal(columnId, columnType, header);
             });
             
-            // دکمه مرتب‌سازی صعودی
-            const sortAscBtn = document.createElement('button');
-            sortAscBtn.type = 'button';
-            sortAscBtn.className = 'sort-btn btn btn-sm';
-            sortAscBtn.innerHTML = '<i class="fas fa-sort-up"></i>';
-            sortAscBtn.title = 'مرتب‌سازی صعودی';
-            sortAscBtn.style.cssText = 'padding: 2px 6px; border: 1px solid #ddd; background: white; cursor: pointer;';
-            
-            sortAscBtn.addEventListener('click', (e) => {
+            sortUpBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 this.toggleSort(columnId, 'asc');
             });
             
-            // دکمه مرتب‌سازی نزولی
-            const sortDescBtn = document.createElement('button');
-            sortDescBtn.type = 'button';
-            sortDescBtn.className = 'sort-btn btn btn-sm';
-            sortDescBtn.innerHTML = '<i class="fas fa-sort-down"></i>';
-            sortDescBtn.title = 'مرتب‌سازی نزولی';
-            sortDescBtn.style.cssText = 'padding: 2px 6px; border: 1px solid #ddd; background: white; cursor: pointer;';
-            
-            sortDescBtn.addEventListener('click', (e) => {
+            sortDownBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 this.toggleSort(columnId, 'desc');
             });
             
-            buttonContainer.appendChild(filterBtn);
-            buttonContainer.appendChild(sortAscBtn);
-            buttonContainer.appendChild(sortDescBtn);
+            // ترکیب کردن عناصر
+            buttonsContainer.appendChild(filterBtn);
+            buttonsContainer.appendChild(sortUpBtn);
+            buttonsContainer.appendChild(sortDownBtn);
             
-            header.appendChild(buttonContainer);
+            controlsContainer.appendChild(textSpan);
+            controlsContainer.appendChild(buttonsContainer);
+            
+            // پاک کردن محتوای قبلی header و اضافه کردن controls جدید
+            header.innerHTML = '';
+            header.appendChild(controlsContainer);
         });
     }
     
@@ -174,7 +232,7 @@ class PurchaseServerFilter {
             // دریافت همه مقادیر ممکن از سرور
             const allValues = await this.getColumnValues(columnId);
             
-            // ایجاد مودال
+            // ایجاد مودال با Bootstrap classes
             this.createFilterModal(columnId, columnType, currentValues, allValues, headerElement);
             
         } catch (error) {
@@ -264,137 +322,168 @@ class PurchaseServerFilter {
             existingModal.remove();
         }
         
-        // ایجاد مودال
+        // ایجاد مودال با Bootstrap classes
         const modal = document.createElement('div');
         modal.id = 'filterModal';
-        modal.className = 'filter-modal';
-        modal.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-        `;
+        modal.className = 'modal fade filter-modal';
+        modal.style.display = 'flex';
+        modal.setAttribute('tabindex', '-1');
+        modal.setAttribute('aria-labelledby', 'filterModalLabel');
+        modal.setAttribute('aria-hidden', 'true');
+        
+        const modalDialog = document.createElement('div');
+        modalDialog.className = 'modal-dialog modal-dialog-centered';
         
         const modalContent = document.createElement('div');
-        modalContent.className = 'filter-modal-content';
-        modalContent.style.cssText = `
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            width: 400px;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        `;
+        modalContent.className = 'modal-content';
         
-        // header مودال
-        const header = document.createElement('div');
-        header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;';
+        // Header مودال
+        const modalHeader = document.createElement('div');
+        modalHeader.className = 'modal-header';
         
-        const title = document.createElement('h5');
-        title.textContent = `فیلتر ${headerElement.textContent.replace(/[🔽🔼]/g, '').trim()}`;
-        title.style.margin = '0';
+        const modalTitle = document.createElement('h5');
+        modalTitle.className = 'modal-title';
+        modalTitle.id = 'filterModalLabel';
+        modalTitle.innerHTML = `<i class="fas fa-filter me-2"></i>فیلتر ${headerElement.textContent.replace(/[🔽🔼]/g, '').trim()}`;
         
         const closeBtn = document.createElement('button');
-        closeBtn.innerHTML = '×';
-        closeBtn.style.cssText = 'background: none; border: none; font-size: 24px; cursor: pointer; padding: 0; width: 30px; height: 30px;';
+        closeBtn.type = 'button';
+        closeBtn.className = 'btn-close';
+        closeBtn.setAttribute('aria-label', 'Close');
         closeBtn.onclick = () => modal.remove();
         
-        header.appendChild(title);
-        header.appendChild(closeBtn);
+        modalHeader.appendChild(modalTitle);
+        modalHeader.appendChild(closeBtn);
+        
+        // Body مودال
+        const modalBody = document.createElement('div');
+        modalBody.className = 'modal-body';
         
         // نوع فیلتر
         const filterTypeContainer = document.createElement('div');
-        filterTypeContainer.style.cssText = 'margin-bottom: 15px;';
+        filterTypeContainer.className = 'mb-3';
         
-        const includeRadio = document.createElement('input');
-        includeRadio.type = 'radio';
-        includeRadio.name = 'filterType';
-        includeRadio.value = 'include';
-        includeRadio.id = 'includeFilter';
-        includeRadio.checked = true;
+        const filterTypeLabel = document.createElement('label');
+        filterTypeLabel.className = 'form-label fw-bold';
+        filterTypeLabel.textContent = 'نوع فیلتر:';
+        
+        const filterTypeGroup = document.createElement('div');
+        filterTypeGroup.className = 'btn-group w-100 mt-2';
+        filterTypeGroup.setAttribute('role', 'group');
+        
+        const includeInput = document.createElement('input');
+        includeInput.type = 'radio';
+        includeInput.className = 'btn-check';
+        includeInput.name = 'filterType';
+        includeInput.value = 'include';
+        includeInput.id = 'includeFilter';
+        includeInput.checked = true;
         
         const includeLabel = document.createElement('label');
+        includeLabel.className = 'btn btn-outline-success';
         includeLabel.htmlFor = 'includeFilter';
-        includeLabel.textContent = ' نمایش موارد انتخاب شده';
-        includeLabel.style.marginLeft = '15px';
+        includeLabel.innerHTML = '<i class="fas fa-check me-1"></i>نمایش موارد انتخاب شده';
         
-        const excludeRadio = document.createElement('input');
-        excludeRadio.type = 'radio';
-        excludeRadio.name = 'filterType';
-        excludeRadio.value = 'exclude';
-        excludeRadio.id = 'excludeFilter';
+        const excludeInput = document.createElement('input');
+        excludeInput.type = 'radio';
+        excludeInput.className = 'btn-check';
+        excludeInput.name = 'filterType';
+        excludeInput.value = 'exclude';
+        excludeInput.id = 'excludeFilter';
         
         const excludeLabel = document.createElement('label');
+        excludeLabel.className = 'btn btn-outline-danger';
         excludeLabel.htmlFor = 'excludeFilter';
-        excludeLabel.textContent = ' مخفی کردن موارد انتخاب شده';
+        excludeLabel.innerHTML = '<i class="fas fa-times me-1"></i>مخفی کردن موارد انتخاب شده';
         
-        filterTypeContainer.appendChild(includeRadio);
-        filterTypeContainer.appendChild(includeLabel);
-        filterTypeContainer.appendChild(excludeRadio);
-        filterTypeContainer.appendChild(excludeLabel);
+        filterTypeGroup.appendChild(includeInput);
+        filterTypeGroup.appendChild(includeLabel);
+        filterTypeGroup.appendChild(excludeInput);
+        filterTypeGroup.appendChild(excludeLabel);
+        
+        filterTypeContainer.appendChild(filterTypeLabel);
+        filterTypeContainer.appendChild(filterTypeGroup);
         
         // جستجو
+        const searchContainer = document.createElement('div');
+        searchContainer.className = 'mb-3';
+        
+        const searchLabel = document.createElement('label');
+        searchLabel.className = 'form-label fw-bold';
+        searchLabel.textContent = 'جستجو در مقادیر:';
+        
+        const searchInputGroup = document.createElement('div');
+        searchInputGroup.className = 'input-group';
+        
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
+        searchInput.className = 'form-control filter-search';
         searchInput.placeholder = 'جستجو...';
-        searchInput.className = 'form-control';
-        searchInput.style.cssText = 'margin-bottom: 15px; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px;';
+        
+        const searchIcon = document.createElement('span');
+        searchIcon.className = 'input-group-text';
+        searchIcon.innerHTML = '<i class="fas fa-search"></i>';
+        
+        searchInputGroup.appendChild(searchInput);
+        searchInputGroup.appendChild(searchIcon);
+        
+        searchContainer.appendChild(searchLabel);
+        searchContainer.appendChild(searchInputGroup);
         
         // لیست مقادیر
-        const valuesList = document.createElement('div');
-        valuesList.style.cssText = 'max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 10px;';
+        const valuesContainer = document.createElement('div');
+        valuesContainer.className = 'mb-3';
         
-        // ایجاد چک‌باکس‌ها - ابتدا مقادیر موجود در جدول فعلی، سپس سایر مقادیر
-        const displayValues = [...new Set([...currentValues, ...allValues])];
+        const valuesLabel = document.createElement('label');
+        valuesLabel.className = 'form-label fw-bold';
+        valuesLabel.textContent = `مقادیر موجود (${[...new Set([...currentValues, ...allValues])].length} مورد):`;
+        
+        const valuesList = document.createElement('div');
+        valuesList.className = 'filter-values-list';
         
         // کنترل انتخاب همه
         const selectAllContainer = document.createElement('div');
-        selectAllContainer.style.cssText = 'margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eee;';
+        selectAllContainer.className = 'filter-value-item d-flex align-items-center mb-2 p-2 border-bottom';
         
         const selectAllCheckbox = document.createElement('input');
         selectAllCheckbox.type = 'checkbox';
+        selectAllCheckbox.className = 'form-check-input me-2';
         selectAllCheckbox.id = 'selectAll';
-        selectAllCheckbox.checked = true; // همه مقادیر موجود در جدول پیش‌فرض انتخاب شده باشند
+        selectAllCheckbox.checked = true;
         
         const selectAllLabel = document.createElement('label');
+        selectAllLabel.className = 'form-check-label fw-bold flex-grow-1';
         selectAllLabel.htmlFor = 'selectAll';
-        selectAllLabel.textContent = ' انتخاب همه';
-        selectAllLabel.style.fontWeight = 'bold';
+        selectAllLabel.innerHTML = '<i class="fas fa-check-double me-1"></i>انتخاب همه';
         
         selectAllContainer.appendChild(selectAllCheckbox);
         selectAllContainer.appendChild(selectAllLabel);
         
         valuesList.appendChild(selectAllContainer);
         
-        // ایجاد چک‌باکس‌ها
+        // ایجاد آیتم‌های مقادیر
+        const displayValues = [...new Set([...currentValues, ...allValues])];
         displayValues.forEach((value, index) => {
             const container = document.createElement('div');
-            container.style.cssText = 'margin-bottom: 5px; display: flex; align-items: center;';
+            container.className = 'filter-value-item d-flex align-items-center';
             
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
+            checkbox.className = 'form-check-input me-2';
             checkbox.value = value;
             checkbox.id = `filter_${columnId}_${index}`;
-            
-            // مقادیر موجود در جدول فعلی پیش‌فرض انتخاب شده باشند
             checkbox.checked = currentValues.includes(value);
             
             const label = document.createElement('label');
+            label.className = 'form-check-label flex-grow-1';
             label.htmlFor = checkbox.id;
-            label.textContent = ` ${value}`;
-            label.style.cssText = 'cursor: pointer; margin-right: 8px; flex: 1;';
             
-            // اگر مقدار در جدول فعلی وجود دارد، با رنگ متفاوت نمایش داده شود
             if (currentValues.includes(value)) {
-                label.style.fontWeight = 'bold';
-                label.style.color = '#007bff';
+                label.innerHTML = `<i class="fas fa-eye text-primary me-1"></i><strong>${value}</strong>`;
+                label.title = 'این مقدار در جدول فعلی موجود است';
+            } else {
+                label.innerHTML = `<i class="fas fa-circle-dot text-muted me-1"></i>${value}`;
+                label.title = 'این مقدار در سایر رکوردها موجود است';
             }
             
             container.appendChild(checkbox);
@@ -402,16 +491,83 @@ class PurchaseServerFilter {
             valuesList.appendChild(container);
         });
         
-        // عملکرد انتخاب همه
+        valuesContainer.appendChild(valuesLabel);
+        valuesContainer.appendChild(valuesList);
+        
+        modalBody.appendChild(filterTypeContainer);
+        modalBody.appendChild(searchContainer);
+        modalBody.appendChild(valuesContainer);
+        
+        // Footer مودال
+        const modalFooter = document.createElement('div');
+        modalFooter.className = 'modal-footer';
+        
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'btn btn-secondary';
+        clearBtn.innerHTML = '<i class="fas fa-eraser me-1"></i>پاک کردن فیلتر';
+        
+        const applyBtn = document.createElement('button');
+        applyBtn.type = 'button';
+        applyBtn.className = 'btn btn-primary';
+        applyBtn.innerHTML = '<i class="fas fa-check me-1"></i>اعمال فیلتر';
+        
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'btn btn-light';
+        cancelBtn.innerHTML = '<i class="fas fa-times me-1"></i>انصراف';
+        
+        modalFooter.appendChild(clearBtn);
+        modalFooter.appendChild(applyBtn);
+        modalFooter.appendChild(cancelBtn);
+        
+        // ترکیب کردن عناصر
+        modalContent.appendChild(modalHeader);
+        modalContent.appendChild(modalBody);
+        modalContent.appendChild(modalFooter);
+        modalDialog.appendChild(modalContent);
+        modal.appendChild(modalDialog);
+        document.body.appendChild(modal);
+        
+        // Event listeners
+        
+        // انتخاب همه
         selectAllCheckbox.addEventListener('change', function() {
             const checkboxes = valuesList.querySelectorAll('input[type="checkbox"]:not(#selectAll)');
-            checkboxes.forEach(cb => cb.checked = this.checked);
+            checkboxes.forEach(cb => {
+                cb.checked = this.checked;
+                // بروزرسانی ظاهر
+                const container = cb.closest('.filter-value-item');
+                if (cb.checked) {
+                    container.classList.add('selected');
+                } else {
+                    container.classList.remove('selected');
+                }
+            });
+        });
+        
+        // تغییر وضعیت چک‌باکس‌های فردی
+        valuesList.addEventListener('change', function(e) {
+            if (e.target.type === 'checkbox' && e.target.id !== 'selectAll') {
+                const container = e.target.closest('.filter-value-item');
+                if (e.target.checked) {
+                    container.classList.add('selected');
+                } else {
+                    container.classList.remove('selected');
+                }
+                
+                // بروزرسانی وضعیت انتخاب همه
+                const allCheckboxes = valuesList.querySelectorAll('input[type="checkbox"]:not(#selectAll)');
+                const checkedCheckboxes = valuesList.querySelectorAll('input[type="checkbox"]:not(#selectAll):checked');
+                selectAllCheckbox.checked = allCheckboxes.length === checkedCheckboxes.length;
+                selectAllCheckbox.indeterminate = checkedCheckboxes.length > 0 && checkedCheckboxes.length < allCheckboxes.length;
+            }
         });
         
         // جستجو
         searchInput.addEventListener('input', function() {
             const searchTerm = this.value.toLowerCase();
-            const containers = valuesList.querySelectorAll('div:not(:first-child)');
+            const containers = valuesList.querySelectorAll('.filter-value-item:not(:first-child)');
             
             containers.forEach(container => {
                 const label = container.querySelector('label');
@@ -419,25 +575,6 @@ class PurchaseServerFilter {
                 container.style.display = text.includes(searchTerm) ? 'flex' : 'none';
             });
         });
-        
-        // دکمه‌های عملیات
-        const buttonsContainer = document.createElement('div');
-        buttonsContainer.style.cssText = 'margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;';
-        
-        const applyBtn = document.createElement('button');
-        applyBtn.textContent = 'اعمال فیلتر';
-        applyBtn.className = 'btn btn-primary';
-        applyBtn.style.cssText = 'padding: 8px 16px;';
-        
-        const clearBtn = document.createElement('button');
-        clearBtn.textContent = 'پاک کردن';
-        clearBtn.className = 'btn btn-secondary';
-        clearBtn.style.cssText = 'padding: 8px 16px;';
-        
-        const cancelBtn = document.createElement('button');
-        cancelBtn.textContent = 'انصراف';
-        cancelBtn.className = 'btn btn-light';
-        cancelBtn.style.cssText = 'padding: 8px 16px;';
         
         // عملکرد دکمه‌ها
         applyBtn.addEventListener('click', () => {
@@ -471,31 +608,25 @@ class PurchaseServerFilter {
             modal.remove();
         });
         
-        buttonsContainer.appendChild(cancelBtn);
-        buttonsContainer.appendChild(clearBtn);
-        buttonsContainer.appendChild(applyBtn);
-        
-        // ترکیب کردن همه قسمت‌ها
-        modalContent.appendChild(header);
-        modalContent.appendChild(filterTypeContainer);
-        modalContent.appendChild(searchInput);
-        modalContent.appendChild(valuesList);
-        modalContent.appendChild(buttonsContainer);
-        
-        modal.appendChild(modalContent);
-        
-        // اضافه کردن به صفحه
-        document.body.appendChild(modal);
-        
-        // focus روی جستجو
-        searchInput.focus();
-        
-        // بستن با کلیک خارج از مودال
+        // بستن با کلیک روی backdrop
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 modal.remove();
             }
         });
+        
+        // بستن با ESC
+        document.addEventListener('keydown', function escapeHandler(e) {
+            if (e.key === 'Escape') {
+                modal.remove();
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        });
+        
+        // اضافه کردن انیمیشن نمایش
+        setTimeout(() => {
+            modal.classList.add('show');
+        }, 10);
     }
     
     toggleSort(columnId, direction) {
@@ -515,22 +646,12 @@ class PurchaseServerFilter {
         this.showLoading();
         
         try {
-            console.log(`🔍 اعمال فیلتر برای جدول ${this.tableId}:`, this.currentFilters);
-            console.log(`📄 صفحه فعلی: ${this.currentPage}، تعداد در صفحه: ${this.perPage}`);
-            console.log(`🎯 بخش: ${this.section}`);
-            
             const formData = new FormData();
             formData.append('filters', JSON.stringify(this.currentFilters));
             formData.append('sort', JSON.stringify(this.currentSort));
             formData.append('page', this.currentPage.toString());
             formData.append('per_page', this.perPage.toString());
             formData.append('section', this.section);
-            
-            // لاگ FormData
-            console.log('📝 FormData ارسالی:');
-            for (let [key, value] of formData.entries()) {
-                console.log(`  ${key}: ${value}`);
-            }
             
             const response = await fetch(this.filterUrl, {
                 method: 'POST',
@@ -545,11 +666,8 @@ class PurchaseServerFilter {
             }
             
             const data = await response.json();
-            console.log('📊 پاسخ سرور:', data);
             
             if (data.status === 'success') {
-                console.log(`✅ دریافت ${data.data.length} رکورد برای ${this.tableId}`);
-                console.log('📄 اطلاعات صفحه‌بندی:', data.pagination);
                 this.updateTableContent(data.data, data.pagination);
                 this.updateFilterIndicators();
                 this.showToast(`${data.data.length} رکورد بارگذاری شد`, 'success');
@@ -573,10 +691,6 @@ class PurchaseServerFilter {
             return;
         }
         
-        console.log(`🔄 بروزرسانی محتوای جدول ${this.tableId}:`);
-        console.log(`📊 تعداد داده دریافتی: ${data.length}`);
-        console.log(`📄 اطلاعات pagination:`, pagination);
-        
         // پاک کردن محتوای قبلی
         tbody.innerHTML = '';
         
@@ -593,9 +707,7 @@ class PurchaseServerFilter {
         }
         
         // اضافه کردن فقط رکوردهای صفحه فعلی (که از سرور آمده‌اند)
-        console.log(`➕ اضافه کردن ${data.length} رکورد به جدول`);
         data.forEach((purchase, index) => {
-            console.log(`  ${index + 1}. خرید ID: ${purchase.id}`);
             const row = this.createTableRow(purchase);
             tbody.appendChild(row);
         });
@@ -779,133 +891,138 @@ class PurchaseServerFilter {
     }
     
     updatePagination(pagination) {
-        console.log(`🔄 بروزرسانی pagination برای ${this.tableId}:`, pagination);
-        
-        // پیدا کردن یا ایجاد container صفحه‌بندی
-        let paginationContainer = document.querySelector(`#pagination-${this.tableId.replace('#', '')}`);
+        // پیدا کردن pagination container موجود در template
+        const sectionName = this.section;
+        let paginationContainer = document.querySelector(`#${sectionName}Pagination`);
         
         if (!paginationContainer) {
+            // fallback: ایجاد container جدید اگر موجود نبود
             paginationContainer = document.createElement('div');
-            paginationContainer.id = `pagination-${this.tableId.replace('#', '')}`;
+            paginationContainer.id = `${sectionName}Pagination`;
             paginationContainer.className = 'pagination-container mt-3';
             
             // اضافه کردن بعد از جدول
             const tableContainer = this.tableElement.closest('.table-responsive, .card-body') || this.tableElement.parentNode;
             tableContainer.appendChild(paginationContainer);
-            console.log(`✅ ایجاد pagination container برای ${this.tableId}`);
         }
         
         if (!pagination || pagination.num_pages <= 1) {
-            paginationContainer.innerHTML = '';
-            console.log(`❌ بدون pagination (تعداد صفحات: ${pagination ? pagination.num_pages : 'نامشخص'})`);
+            // حذف nav elements موجود که توسط server filter ایجاد شده‌اند
+            const serverNavs = paginationContainer.querySelectorAll('nav[data-server-filter]');
+            serverNavs.forEach(nav => nav.remove());
             return;
         }
         
-        console.log(`📊 نمایش pagination: صفحه ${pagination.number} از ${pagination.num_pages}`);
+        // بروزرسانی pagination info
+        this.updatePaginationInfo(paginationContainer, pagination);
+        
+        // حذف nav elements قبلی که توسط server filter ایجاد شده‌اند
+        const existingServerNavs = paginationContainer.querySelectorAll('nav[data-server-filter]');
+        existingServerNavs.forEach(nav => nav.remove());
+        
+        // ایجاد nav element جدید
+        const navElement = document.createElement('nav');
+        navElement.setAttribute('aria-label', `صفحه‌بندی ${sectionName}`);
+        navElement.setAttribute('data-server-filter', 'true'); // علامت‌گذاری برای تشخیص
         
         // ساخت HTML صفحه‌بندی
-        let paginationHTML = `
-            <nav aria-label="صفحه‌بندی ${this.section}">
-                <ul class="pagination justify-content-center">
-        `;
+        let paginationHTML = `<ul class="pagination justify-content-center">`;
         
         // دکمه صفحه قبلی
         if (pagination.has_previous) {
             paginationHTML += `
                 <li class="page-item">
-                    <a class="page-link" href="#" data-page="${pagination.number - 1}" data-section="${this.section}">قبلی</a>
+                    <a class="page-link" href="#" data-page="1" data-section="${this.section}">
+                        <i class="fas fa-angle-double-right"></i> اول
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="${pagination.number - 1}" data-section="${this.section}">
+                        <i class="fas fa-angle-right"></i> قبلی
+                    </a>
                 </li>
             `;
         } else {
             paginationHTML += `
                 <li class="page-item disabled">
-                    <span class="page-link">قبلی</span>
+                    <span class="page-link"><i class="fas fa-angle-double-right"></i> اول</span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="fas fa-angle-right"></i> قبلی</span>
                 </li>
             `;
         }
         
-        // شماره صفحات
-        const startPage = Math.max(1, pagination.number - 2);
-        const endPage = Math.min(pagination.num_pages, pagination.number + 2);
-        
-        // اگر صفحه اول در نظر نیست، آن را اضافه کن
-        if (startPage > 1) {
-            paginationHTML += `
-                <li class="page-item">
-                    <a class="page-link" href="#" data-page="1" data-section="${this.section}">1</a>
-                </li>
-            `;
-            if (startPage > 2) {
+        // شماره صفحات با الگوی موجود در template
+        if (pagination.page_range && Array.isArray(pagination.page_range)) {
+            pagination.page_range.forEach(pageNum => {
+                if (pageNum === '...' || pageNum === -1) {
+                    paginationHTML += `
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    `;
+                } else {
+                    const isActive = pageNum === pagination.number;
+                    paginationHTML += `
+                        <li class="page-item ${isActive ? 'active' : ''}">
+                            <a class="page-link" href="#" data-page="${pageNum}" data-section="${this.section}">${pageNum}</a>
+                        </li>
+                    `;
+                }
+            });
+        } else {
+            // fallback: نمایش صفحات بدون page_range
+            const startPage = Math.max(1, pagination.number - 2);
+            const endPage = Math.min(pagination.num_pages, pagination.number + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === pagination.number;
                 paginationHTML += `
-                    <li class="page-item disabled">
-                        <span class="page-link">...</span>
+                    <li class="page-item ${isActive ? 'active' : ''}">
+                        <a class="page-link" href="#" data-page="${i}" data-section="${this.section}">${i}</a>
                     </li>
                 `;
             }
-        }
-        
-        // صفحات اطراف صفحه فعلی
-        for (let i = startPage; i <= endPage; i++) {
-            const isActive = i === pagination.number;
-            paginationHTML += `
-                <li class="page-item ${isActive ? 'active' : ''}">
-                    <a class="page-link" href="#" data-page="${i}" data-section="${this.section}">${i}</a>
-                </li>
-            `;
-        }
-        
-        // اگر صفحه آخر در نظر نیست، آن را اضافه کن
-        if (endPage < pagination.num_pages) {
-            if (endPage < pagination.num_pages - 1) {
-                paginationHTML += `
-                    <li class="page-item disabled">
-                        <span class="page-link">...</span>
-                    </li>
-                `;
-            }
-            paginationHTML += `
-                <li class="page-item">
-                    <a class="page-link" href="#" data-page="${pagination.num_pages}" data-section="${this.section}">${pagination.num_pages}</a>
-                </li>
-            `;
         }
         
         // دکمه صفحه بعدی
         if (pagination.has_next) {
             paginationHTML += `
                 <li class="page-item">
-                    <a class="page-link" href="#" data-page="${pagination.number + 1}" data-section="${this.section}">بعدی</a>
+                    <a class="page-link" href="#" data-page="${pagination.number + 1}" data-section="${this.section}">
+                        بعدی <i class="fas fa-angle-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="${pagination.num_pages}" data-section="${this.section}">
+                        آخر <i class="fas fa-angle-double-left"></i>
+                    </a>
                 </li>
             `;
         } else {
             paginationHTML += `
                 <li class="page-item disabled">
-                    <span class="page-link">بعدی</span>
+                    <span class="page-link">بعدی <i class="fas fa-angle-left"></i></span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">آخر <i class="fas fa-angle-double-left"></i></span>
                 </li>
             `;
         }
         
-        paginationHTML += `
-                </ul>
-            </nav>
-            <div class="pagination-info text-center mt-2">
-                <small class="text-muted">
-                    صفحه ${pagination.number} از ${pagination.num_pages} 
-                    (مجموع ${pagination.count} رکورد)
-                </small>
-            </div>
-        `;
+        paginationHTML += `</ul>`;
+        navElement.innerHTML = paginationHTML;
         
-        paginationContainer.innerHTML = paginationHTML;
+        // اضافه کردن nav به container
+        paginationContainer.appendChild(navElement);
         
         // اضافه کردن event listenerها
-        paginationContainer.querySelectorAll('.page-link[data-page]').forEach(link => {
+        navElement.querySelectorAll('.page-link[data-page]').forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 const pageNum = parseInt(link.dataset.page);
                 const section = link.dataset.section;
-                
-                console.log(`🔄 تغییر صفحه: ${pageNum} برای بخش ${section}`);
                 
                 // بررسی اینکه لینک مربوط به همین بخش باشد
                 if (section === this.section && pageNum && pageNum !== this.currentPage) {
@@ -914,13 +1031,62 @@ class PurchaseServerFilter {
                 }
             });
         });
+    }
+    
+    updatePaginationInfo(paginationContainer, pagination) {
+        // بروزرسانی pagination-info
+        let paginationInfo = paginationContainer.querySelector('.pagination-info');
+        if (!paginationInfo) {
+            paginationInfo = document.createElement('div');
+            paginationInfo.className = 'pagination-info d-flex justify-content-between align-items-center mb-3';
+            paginationContainer.insertBefore(paginationInfo, paginationContainer.firstChild);
+        }
         
-        console.log(`✅ Pagination بروزرسانی شد برای ${this.section}`);
+        // محاسبه شاخص‌ها
+        const startIndex = ((pagination.number - 1) * this.perPage) + 1;
+        const endIndex = Math.min(pagination.number * this.perPage, pagination.count);
+        
+        // نام بخش برای نمایش
+        const sectionNames = {
+            'active': 'خرید فعال',
+            'pending': 'خرید در انتظار پرداخت', 
+            'archived': 'خرید آرشیو شده'
+        };
+        const sectionName = sectionNames[this.section] || 'خرید';
+        
+        paginationInfo.innerHTML = `
+            <div class="pagination-details">
+                <span class="text-muted">نمایش ${startIndex} تا ${endIndex} از ${pagination.count} ${sectionName}</span>
+            </div>
+            <div class="pagination-per-page">
+                <label for="${this.section}PerPageFilter" class="form-label me-2">تعداد در هر صفحه:</label>
+                <select id="${this.section}PerPageFilter" class="form-select form-select-sm d-inline-block w-auto">
+                    <option value="5" ${this.perPage == 5 ? 'selected' : ''}>5</option>
+                    <option value="10" ${this.perPage == 10 ? 'selected' : ''}>10</option>
+                    <option value="25" ${this.perPage == 25 ? 'selected' : ''}>25</option>
+                    <option value="50" ${this.perPage == 50 ? 'selected' : ''}>50</option>
+                    <option value="100" ${this.perPage == 100 ? 'selected' : ''}>100</option>
+                    <option value="200" ${this.perPage == 200 ? 'selected' : ''}>200</option>
+                </select>
+            </div>
+        `;
+        
+        // Event listener برای تغییر per page
+        const perPageSelect = paginationInfo.querySelector(`#${this.section}PerPageFilter`);
+        if (perPageSelect && !perPageSelect.hasAttribute('data-listener-added')) {
+            perPageSelect.setAttribute('data-listener-added', 'true');
+            perPageSelect.addEventListener('change', (e) => {
+                this.perPage = parseInt(e.target.value);
+                this.currentPage = 1; // بازگشت به صفحه اول
+                this.applyFilters();
+            });
+        }
     }
     
     updateRowCounter(pagination) {
         // بروزرسانی شمارنده رکوردها
-        const counter = document.querySelector(`#${this.tableId} + .row-counter, .${this.tableId}-counter`);
+        const tableId = this.tableId.replace('#', ''); // حذف # اگر وجود دارد
+        const counter = document.querySelector(`#${tableId} + .row-counter, .${tableId}-counter`);
         if (counter && pagination) {
             counter.textContent = `نمایش ${pagination.count} رکورد`;
         }
@@ -943,38 +1109,56 @@ class PurchaseServerFilter {
     }
     
     showToast(message, type = 'info') {
-        // ایجاد Toast notification ساده
+        // ایجاد Toast notification با انیمیشن و استایل حرفه‌ای
         const toast = document.createElement('div');
-        toast.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            padding: 12px 20px;
-            border-radius: 4px;
-            color: white;
-            z-index: 10001;
-            font-size: 14px;
-            min-width: 200px;
-            text-align: center;
-        `;
+        toast.className = `toast-notification toast-${type}`;
         
+        // اضافه کردن آیکون مناسب
+        let icon = '';
         switch(type) {
             case 'success':
-                toast.style.backgroundColor = '#28a745';
+                icon = '<i class="fas fa-check-circle me-2"></i>';
                 break;
             case 'error':
-                toast.style.backgroundColor = '#dc3545';
+                icon = '<i class="fas fa-exclamation-circle me-2"></i>';
+                break;
+            case 'warning':
+                icon = '<i class="fas fa-exclamation-triangle me-2"></i>';
                 break;
             default:
-                toast.style.backgroundColor = '#17a2b8';
+                icon = '<i class="fas fa-info-circle me-2"></i>';
         }
         
-        toast.textContent = message;
+        toast.innerHTML = `
+            <div class="d-flex align-items-center">
+                ${icon}
+                <span>${message}</span>
+                <button type="button" class="btn-close btn-close-white ms-auto" aria-label="Close"></button>
+            </div>
+        `;
+        
         document.body.appendChild(toast);
         
+        // Event listener برای دکمه بستن
+        const closeBtn = toast.querySelector('.btn-close');
+        closeBtn.addEventListener('click', () => {
+            toast.style.animation = 'slideOutRight 0.3s ease-in forwards';
+            setTimeout(() => toast.remove(), 300);
+        });
+        
+        // حذف خودکار بعد از 4 ثانیه
         setTimeout(() => {
-            toast.remove();
-        }, 3000);
+            if (toast.parentNode) {
+                toast.style.animation = 'slideOutRight 0.3s ease-in forwards';
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, 4000);
+        
+        // انیمیشن کلیک برای بستن
+        toast.addEventListener('click', () => {
+            toast.style.animation = 'slideOutRight 0.3s ease-in forwards';
+            setTimeout(() => toast.remove(), 300);
+        });
     }
     
     getCSRFToken() {
@@ -985,8 +1169,6 @@ class PurchaseServerFilter {
 
 // راه‌اندازی خودکار
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 راه‌اندازی فیلترهای خرید...');
-    
     // راه‌اندازی فیلتر برای هر جدول به صورت جداگانه
     const tables = [
         '#activePurchasesTable',
@@ -997,7 +1179,6 @@ document.addEventListener('DOMContentLoaded', function() {
     tables.forEach(tableSelector => {
         const tableElement = document.querySelector(tableSelector);
         if (tableElement && tableElement.classList.contains('python-excel-filter')) {
-            console.log(`📊 راه‌اندازی فیلتر برای: ${tableSelector}`);
             new PurchaseServerFilter(tableSelector);
         }
     });

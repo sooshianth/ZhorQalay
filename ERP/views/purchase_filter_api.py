@@ -94,9 +94,7 @@ def apply_purchase_filter(request):
             page = 1
             per_page = 50
         
-        print(f"🔍 فیلتر درخواستی: {filters}")
-        print(f"📄 section: {section}, page: {page}, per_page: {per_page}")
-        print(f"📝 پارامترهای خام: page_param='{page_param}', per_page_param='{per_page_param}'")
+        
         
         # تشخیص نقش کاربر
         user_role = determine_user_role(request.user)
@@ -139,7 +137,7 @@ def apply_purchase_filter(request):
             else:
                 queryset = Purchase.objects.none()
         
-        print(f"📊 تعداد کل قبل از فیلتر: {queryset.count()}")
+
         
         # اعمال فیلترها - فقط اگر فیلتر وجود داشته باشد
         if filters:
@@ -152,7 +150,7 @@ def apply_purchase_filter(request):
                 values = filter_data['values']
                 filter_type = filter_data.get('type', 'include')
                 
-                print(f"🔧 اعمال فیلتر {column_id}: {values}")
+
                 
                 if column_id == 'purchase_number':
                     # حذف مقادیر خالی
@@ -255,7 +253,7 @@ def apply_purchase_filter(request):
                                 filter_conditions &= ~Q(**{f'{field_name}__in': numeric_values})
                                 
                     except (ValueError, TypeError) as e:
-                        print(f"❌ خطا در فیلتر عددی {column_id}: {e}")
+
                         continue
                         
                 elif column_id == 'date':
@@ -280,13 +278,12 @@ def apply_purchase_filter(request):
                                 filter_conditions &= ~date_conditions
                                 
                     except (ValueError, TypeError) as e:
-                        print(f"❌ خطا در فیلتر تاریخی: {e}")
+
                         continue
             
             # اعمال فیلترها اگر وجود داشته باشند
             if filter_conditions:
                 queryset = queryset.filter(filter_conditions)
-                print(f"🔍 تعداد بعد از فیلتر: {queryset.count()}")
         
         # اعمال مرتب‌سازی
         if sort_config.get('column') and sort_config.get('direction'):
@@ -328,20 +325,21 @@ def apply_purchase_filter(request):
         
         # Pagination - درست اعمال pagination
         total_count_before_pagination = queryset.count()
-        print(f"🔢 تعداد کل قبل از pagination: {total_count_before_pagination}")
-        print(f"📄 درخواست صفحه: {page}، تعداد در صفحه: {per_page}")
         
         paginator = Paginator(queryset, per_page)
-        print(f"📊 Paginator: تعداد کل صفحات: {paginator.num_pages}")
         
         try:
             page_obj = paginator.page(page)
-        except (PageNotAnInteger, EmptyPage):
-            print(f"⚠️ صفحه {page} نامعتبر، برگشت به صفحه 1")
+        except (PageNotAnInteger, EmptyPage) as e:
             page_obj = paginator.page(1)
+            page = 1
         
-        print(f"📄 صفحه فعلی: {page_obj.number} از {paginator.num_pages}")
-        print(f"📋 تعداد آیتم‌ها در این صفحه: {len(page_obj.object_list)}")
+        # بررسی اضافی برای اطمینان از صحت pagination
+        if page_obj.object_list.count() == 0 and page > 1:
+            try:
+                page_obj = paginator.page(paginator.num_pages)
+            except EmptyPage:
+                page_obj = paginator.page(1)
         
         # تبدیل داده‌ها به JSON - فقط آیتم‌های صفحه فعلی
         purchases_data = []
@@ -415,28 +413,43 @@ def apply_purchase_filter(request):
             
             purchases_data.append(data)
         
-        print(f"✅ برگشت {len(purchases_data)} خرید")
+
+        
+        # ایجاد pagination response با اطلاعات کامل
+        pagination_response = {
+            'has_previous': page_obj.has_previous(),
+            'has_next': page_obj.has_next(),
+            'number': page_obj.number,
+            'num_pages': paginator.num_pages,
+            'count': paginator.count,
+        }
+        
+        # اضافه کردن page_range برای pagination UI
+        try:
+            pagination_response['page_range'] = list(paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1))
+        except Exception as e:
+            # fallback: محدوده ساده
+            start_page = max(1, page_obj.number - 2)
+            end_page = min(paginator.num_pages, page_obj.number + 2)
+            pagination_response['page_range'] = list(range(start_page, end_page + 1))
         
         return JsonResponse({
             'status': 'success',
             'data': purchases_data,
-            'pagination': {
-                'has_previous': page_obj.has_previous(),
-                'has_next': page_obj.has_next(),
-                'number': page_obj.number,
-                'num_pages': paginator.num_pages,
-                'count': paginator.count,
-                'page_range': list(paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1)),
-            },
+            'pagination': pagination_response,
             'total_count': queryset.count(),
             'filtered_count': paginator.count,
-            'section': section
+            'section': section,
+            'debug': {
+                'requested_page': page,
+                'actual_page': page_obj.number,
+                'per_page': per_page,
+                'total_pages': paginator.num_pages,
+                'items_in_page': len(purchases_data)
+            }
         })
         
     except Exception as e:
-        import traceback
-        print(f"❌ خطا در apply_purchase_filter: {str(e)}")
-        print(traceback.format_exc())
         return JsonResponse({
             'status': 'error',
             'message': str(e)
@@ -455,7 +468,7 @@ def get_purchase_column_values(request):
         section = request.POST.get('section', 'active')
         search_term = request.POST.get('search', '')
         
-        print(f"🔍 درخواست مقادیر ستون: {column_id}, section: {section}")
+
         
         if not column_id:
             return JsonResponse({
@@ -489,7 +502,7 @@ def get_purchase_column_values(request):
             else:
                 queryset = Purchase.objects.none()
         
-        print(f"📊 تعداد کل رکوردها قبل از استخراج مقادیر: {queryset.count()}")
+
         
         # استخراج مقادیر بر اساس نوع ستون
         values = set()
@@ -585,7 +598,7 @@ def get_purchase_column_values(request):
         # محدود کردن تعداد برای کارایی بهتر
         values_list = values_list[:200]
         
-        print(f"✅ پیدا شد {len(values_list)} مقدار برای ستون {column_id}")
+
         
         return JsonResponse({
             'status': 'success',
@@ -596,9 +609,6 @@ def get_purchase_column_values(request):
         })
         
     except Exception as e:
-        import traceback
-        print(f"❌ خطا در get_purchase_column_values: {str(e)}")
-        print(traceback.format_exc())
         return JsonResponse({
             'status': 'error',
             'message': str(e)

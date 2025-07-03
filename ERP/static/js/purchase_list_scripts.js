@@ -990,6 +990,14 @@ class PurchasePagination {
                 const page = link.getAttribute('data-page');
                 const section = link.getAttribute('data-section');
                 
+                // بررسی اینکه آیا جدول مربوطه server filter دارد یا نه
+                const tableElement = document.querySelector(`#${section}PurchasesTable`);
+                if (tableElement && tableElement.classList.contains('python-excel-filter')) {
+                    // این جدول server filter دارد، نباید دخالت کنیم
+                    console.log(`⚠️ Table ${section} has server filter, skipping traditional pagination`);
+                    return;
+                }
+                
                 if (!this.isLoading && page && section) {
                     console.log(`👆 Clicked on page ${page} for section ${section}`);
                     this.loadPage(page, section);
@@ -1003,6 +1011,15 @@ class PurchasePagination {
             if (select) {
                 select.addEventListener('change', (e) => {
                     const section = selectId.replace('PerPage', '');
+                    
+                    // بررسی اینکه آیا جدول مربوطه server filter دارد یا نه
+                    const tableElement = document.querySelector(`#${section}PurchasesTable`);
+                    if (tableElement && tableElement.classList.contains('python-excel-filter')) {
+                        // این جدول server filter دارد، نباید دخالت کنیم
+                        console.log(`⚠️ Table ${section} has server filter, skipping per-page change`);
+                        return;
+                    }
+                    
                     const perPage = e.target.value;
                     console.log(`📏 Changed items per page to ${perPage} for section ${section}`);
                     this.changePerPage(section, perPage);

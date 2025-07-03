@@ -46,7 +46,7 @@ class BulkEditManager {
             console.log(`  ${index + 1}. Class: ${checkbox.className}, ID: ${checkbox.id}, Data-ID: ${checkbox.dataset.id}`);
         });
     }
-    
+
     detectActiveTab() {
         // تشخیص تب فعال بر اساس نمایش عناصر
         if (document.getElementById('pendingContent') && 
@@ -111,7 +111,7 @@ class BulkEditManager {
                 const section = e.target.dataset.section || e.target.closest('.clear-selection-btn').dataset.section;
                 this.clearSelection(section);
             }
-            
+
             // دکمه‌های تب‌ها
             if (e.target.closest('.nav-link')) {
                 setTimeout(() => {
@@ -176,7 +176,7 @@ class BulkEditManager {
                 this.selectedIds.delete(id);
             }
         });
-        
+
         // همگام‌سازی با آمار تجمعی
         if (window.purchaseAggregatedStats) {
             if (isChecked) {
@@ -190,10 +190,10 @@ class BulkEditManager {
             }
             window.purchaseAggregatedStats.updateSelectedPurchases();
         }
-        
+
         this.updateAllControlPanels();
     }
-    
+
     updateAllControlPanels() {
         // بروزرسانی همه control panelها
         Object.keys(this.controlPanels).forEach(section => {
@@ -225,7 +225,7 @@ class BulkEditManager {
         sectionCount = document.querySelectorAll(tableSelector).length;
         
         const countElement = panel.querySelector('.count');
-        if (countElement) {
+            if (countElement) {
             countElement.textContent = sectionCount;
         }
         
@@ -322,7 +322,7 @@ class BulkEditManager {
             'model_name': this.getModelName(tableType),
             'section': targetSection
         };
-
+        
         Object.keys(data).forEach(key => {
             const input = document.createElement('input');
             input.type = 'hidden';

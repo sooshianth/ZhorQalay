@@ -2231,6 +2231,40 @@ document.addEventListener('DOMContentLoaded', function() {
             console.warn('⚠️ BulkEditManager یافت نشد');
         }
         
+        // راه‌اندازی فیلتر سمت سرور برای جداول
+        if (typeof PurchaseServerFilter !== 'undefined') {
+            const serverFilterTables = document.querySelectorAll('.python-excel-filter');
+            console.log(`🔍 پیدا شد ${serverFilterTables.length} جدول با فیلتر سمت سرور`);
+            
+            // بررسی اینکه آیا قبلاً instances ایجاد شده‌اند
+            if (!window.serverFilterInstances) {
+                window.serverFilterInstances = {};
+            }
+            
+            serverFilterTables.forEach((table, index) => {
+                const tableId = `#${table.id}`;
+                
+                // بررسی اینکه آیا این جدول قبلاً initialize شده یا نه
+                if (window.serverFilterInstances[tableId]) {
+                    console.log(`⚠️ فیلتر سمت سرور برای ${tableId} قبلاً راه‌اندازی شده، نادیده گرفته می‌شود`);
+                    return;
+                }
+                
+                try {
+                    const filterInstance = new PurchaseServerFilter(tableId);
+                    filterInstance.init();
+                    console.log(`✅ فیلتر سمت سرور برای ${tableId} راه‌اندازی شد`);
+                    
+                    // ذخیره نمونه
+                    window.serverFilterInstances[tableId] = filterInstance;
+                } catch (error) {
+                    console.error(`❌ خطا در راه‌اندازی فیلتر سمت سرور برای ${tableId}:`, error);
+                }
+            });
+        } else {
+            console.warn('⚠️ PurchaseServerFilter یافت نشد');
+        }
+        
         // تست اتصال فیلتر
         setTimeout(() => {
             const tables = document.querySelectorAll('.python-excel-filter');

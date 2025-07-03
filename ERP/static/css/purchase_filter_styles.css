@@ -1,0 +1,377 @@
+/* فیلتر Headers */
+.filter-controls {
+    padding: 0.5rem 0.75rem;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.filter-controls:hover {
+    background: linear-gradient(135deg, #e9ecef, #dee2e6);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.header-text {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+.filter-buttons {
+    gap: 4px;
+    opacity: 0;
+    transform: translateX(10px);
+    transition: all 0.3s ease;
+}
+
+.filter-controls:hover .filter-buttons {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* دکمه‌های فیلتر */
+.filter-btn {
+    border: 1px solid #007bff;
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    color: white;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 2px 4px rgba(0,123,255,0.3);
+}
+
+.filter-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 4px 12px rgba(0,123,255,0.4);
+    background: linear-gradient(45deg, #0056b3, #004085);
+}
+
+.filter-btn.active {
+    background: linear-gradient(45deg, #28a745, #1e7e34);
+    border-color: #28a745;
+    box-shadow: 0 0 0 2px rgba(40,167,69,0.2);
+}
+
+/* دکمه‌های مرتب‌سازی */
+.sort-btn {
+    border: 1px solid #6c757d;
+    background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+    color: #495057;
+    border-radius: 4px;
+    padding: 0.25rem 0.4rem;
+    font-size: 0.7rem;
+    transition: all 0.3s ease;
+}
+
+.sort-btn:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(45deg, #e9ecef, #dee2e6);
+    box-shadow: 0 2px 6px rgba(108,117,125,0.3);
+}
+
+.sort-btn.active {
+    background: linear-gradient(45deg, #28a745, #1e7e34);
+    border-color: #28a745;
+    color: white;
+    box-shadow: 0 0 0 2px rgba(40,167,69,0.2);
+}
+
+/* مودال فیلتر */
+.filter-modal {
+    backdrop-filter: blur(10px);
+    background: rgba(0,0,0,0.5);
+}
+
+.filter-modal .modal-content {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    background: linear-gradient(135deg, #ffffff, #f8f9fa);
+}
+
+.filter-modal .modal-header {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    border-radius: 12px 12px 0 0;
+    border: none;
+    padding: 1rem 1.5rem;
+}
+
+.filter-modal .modal-title {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-modal .btn-close {
+    filter: invert(1);
+    opacity: 0.8;
+}
+
+.filter-modal .btn-close:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* فیلدهای جستجو */
+.filter-search {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+    background: linear-gradient(45deg, #ffffff, #f8f9fa);
+}
+
+.filter-search:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+    background: white;
+    transform: translateY(-1px);
+}
+
+/* لیست مقادیر */
+.filter-values-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    background: white;
+    padding: 0.5rem;
+}
+
+.filter-values-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.filter-values-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.filter-values-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.filter-values-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+.filter-value-item {
+    padding: 0.5rem 0.75rem;
+    margin: 0.25rem 0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    background: linear-gradient(45deg, #ffffff, #f8f9fa);
+}
+
+.filter-value-item:hover {
+    background: linear-gradient(45deg, #e3f2fd, #bbdefb);
+    transform: translateX(3px);
+    border-color: #2196f3;
+}
+
+.filter-value-item.selected {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    color: white;
+    border-color: #0056b3;
+    box-shadow: 0 2px 8px rgba(0,123,255,0.3);
+}
+
+/* دکمه‌های مودال */
+.filter-modal .btn-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    border: none;
+    border-radius: 6px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 6px rgba(0,123,255,0.3);
+}
+
+.filter-modal .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,123,255,0.4);
+    background: linear-gradient(45deg, #0056b3, #004085);
+}
+
+.filter-modal .btn-secondary {
+    background: linear-gradient(45deg, #6c757d, #545b62);
+    border: none;
+    border-radius: 6px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.filter-modal .btn-secondary:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(45deg, #545b62, #3d4142);
+}
+
+/* Pagination استایل */
+.pagination-container {
+    background: linear-gradient(135deg, #ffffff, #f8f9fa);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    margin: 1.5rem 0;
+}
+
+.pagination-info {
+    background: linear-gradient(45deg, #e3f2fd, #bbdefb);
+    border-radius: 8px;
+    padding: 1rem;
+    border-left: 4px solid #2196f3;
+}
+
+.pagination .page-link {
+    border: 1px solid #dee2e6;
+    color: #495057;
+    padding: 0.75rem 1rem;
+    margin: 0 2px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    background: linear-gradient(45deg, #ffffff, #f8f9fa);
+}
+
+.pagination .page-link:hover {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    color: white;
+    border-color: #007bff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,123,255,0.3);
+}
+
+.pagination .page-item.active .page-link {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0,123,255,0.2);
+}
+
+.pagination .page-item.disabled .page-link {
+    background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+    opacity: 0.6;
+}
+
+/* انیمیشن‌های Loading */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    z-index: 1000;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Toast Notifications */
+.toast-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    color: white;
+    z-index: 10001;
+    font-weight: 500;
+    min-width: 300px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+.toast-success {
+    background: linear-gradient(45deg, #28a745, #1e7e34);
+}
+
+.toast-error {
+    background: linear-gradient(45deg, #dc3545, #c82333);
+}
+
+.toast-info {
+    background: linear-gradient(45deg, #17a2b8, #117a8b);
+}
+
+/* ریسپانسیو */
+@media (max-width: 768px) {
+    .filter-controls {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .filter-buttons {
+        opacity: 1;
+        transform: none;
+        justify-content: center;
+    }
+    
+    .pagination-info {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .filter-modal .modal-dialog {
+        margin: 1rem;
+    }
+}
+
+/* تم تیره (اختیاری) */
+@media (prefers-color-scheme: dark) {
+    .filter-controls {
+        background: linear-gradient(135deg, #343a40, #495057);
+    }
+    
+    .header-text {
+        color: #f8f9fa;
+    }
+    
+    .filter-modal .modal-content {
+        background: linear-gradient(135deg, #343a40, #495057);
+        color: #f8f9fa;
+    }
+} 
