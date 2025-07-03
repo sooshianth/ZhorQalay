@@ -379,6 +379,16 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
+        'data_exflow_utils': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'data_exflow_views': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
     },
 }
 

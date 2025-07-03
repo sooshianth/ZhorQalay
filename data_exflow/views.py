@@ -26,6 +26,9 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.encoding import smart_str
 import csv
 from openpyxl.utils import get_column_letter
+import logging
+
+logger = logging.getLogger("data_exflow_views")
 
 from .models import ImportExportSession, ImportExportLog, ImportRecord
 from .utils import (
@@ -35,6 +38,36 @@ from .utils import (
 )
 
 # Create your views here.
+
+def get_client_ip(request):
+    """
+    دریافت IP کامل کلاینت (محلی و خارجی، پشتیبانی از proxy و load balancer)
+    """
+    if not request:
+        return "Unknown"
+        
+    # IP مستقیم (از سرور دیده می‌شود)
+    direct_ip = request.META.get('REMOTE_ADDR', 'Unknown')
+        
+    # IP از طریق proxy headers
+    forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    real_ip = request.META.get('HTTP_X_REAL_IP')
+
+    # انتخاب IP اصلی
+    client_ip = direct_ip
+    if forwarded_for:
+        # اولین IP در لیست X-Forwarded-For
+        client_ip = forwarded_for.split(',')[0].strip()
+    elif real_ip:
+        client_ip = real_ip
+        
+    # اگر proxy وجود دارد، هر دو IP را نمایش بده
+    if forwarded_for or real_ip:
+        proxy_info = f" (via {direct_ip})"
+    else:
+        proxy_info = ""
+        
+    return f"{client_ip}-{proxy_info}"
 
 def validate_content_type(content_type_id):
     """Validate a content type ID for security."""
@@ -58,6 +91,7 @@ def validate_content_type(content_type_id):
 @user_passes_test(lambda u: u.is_superuser)
 def index_view(request):
     """نمایش داشبورد اصلی"""
+    logger.warning(f"Index view called by {get_client_ip(request)}, user: {request.user}")
     # دریافت جلسات اخیر
     recent_sessions = ImportExportSession.objects.filter(
         user=request.user
@@ -186,7 +220,7 @@ def import_view(request):
                             'model_verbose_name': model['verbose_name']
                         })
                     except Exception as e:
-                        print(f"خطا در دریافت مدل {app_label}.{model['name']}: {str(e)}")
+                        logger.warning(f"خطا در دریافت مدل {app_label}.{model['name']}: {str(e)}")
                         continue
     
     # Get recent import sessions
@@ -269,6 +303,7 @@ def import_upload(request):
         return redirect('data_exflow:import_preview', session_id=session.id)
     except Exception as e:
         messages.error(request, f'خطا در آپلود فایل: {str(e)}')
+        logger.warning(f"Error in import_upload: {str(e)}")
         return redirect('data_exflow:import')
 
 
@@ -287,14 +322,13 @@ def import_preview(request, session_id):
     file_extension = get_file_extension(session.file_name)
     
     try:
-        print(f"DEBUG: Reading file: {file_path}")
-        print(f"DEBUG: File extension: {file_extension}")
-        
+        logger.info(f"DEBUG: Reading file: {file_path}")
+        logger.info(f"DEBUG: File extension: {file_extension}")
         df = read_file_to_dataframe(file_path, file_extension)
-        print(f"DEBUG: DataFrame shape: {df.shape}")
-        print(f"DEBUG: DataFrame columns: {df.columns.tolist()}")
-        print(f"DEBUG: First few rows:")
-        print(df.head())
+        logger.info(f"DEBUG: DataFrame shape: {df.shape}")
+        logger.info(f"DEBUG: DataFrame columns: {df.columns.tolist()}")
+        logger.info(f"DEBUG: First few rows:")
+        logger.info(df.head())
         
         # Convert dataframe to JSON for template
         preview_data = {
@@ -303,15 +337,15 @@ def import_preview(request, session_id):
             'total_rows': len(df)
         }
         
-        print(f"DEBUG: Preview data columns: {preview_data['columns']}")
-        print(f"DEBUG: Preview data rows count: {len(preview_data['rows'])}")
-        print(f"DEBUG: First row: {preview_data['rows'][0] if preview_data['rows'] else 'No rows'}")
-        
+        logger.info(f"DEBUG: Preview data columns: {preview_data['columns']}")
+        logger.info(f"DEBUG: Preview data rows count: {len(preview_data['rows'])}")
+        logger.info(f"DEBUG: First row: {preview_data['rows'][0] if preview_data['rows'] else 'No rows'}")
+
         # Get model fields for mapping
         model_class = session.get_model_class()
-        print(f"DEBUG: Model class: {model_class}")
+        logger.info(f"DEBUG: Model class: {model_class}")
         fields = get_model_fields(model_class._meta.app_label, model_class.__name__)
-        print(f"DEBUG: Model fields count: {len(fields)}")
+        logger.info(f"DEBUG: Model fields count: {len(fields)}")
         
         context = {
             'title': 'Preview Import Data',
@@ -323,9 +357,8 @@ def import_preview(request, session_id):
         
         return render(request, 'data_exflow/import_preview.html', context)
     except Exception as e:
-        print(f"DEBUG: Error in import_preview: {str(e)}")
         import traceback
-        traceback.print_exc()
+        logger.warning(f"Traceback: {traceback.format_exc()}")
         messages.error(request, f'Error reading file: {str(e)}')
         return redirect('data_exflow:import')
 
@@ -498,6 +531,7 @@ def import_validate(request, session_id):
                 log_level=ImportExportLog.ERROR,
                 message=f"اعتبارسنجی ناموفق با {len(validation_result['errors'])} خطا."
             )
+            logger.warning(f"Validation failed with {len(validation_result['errors'])} errors. user: {request.user}, ip: {get_client_ip(request)}")
             messages.error(request, f"اعتبارسنجی ناموفق با {len(validation_result['errors'])} خطا. لطفا خطاها را برطرف کنید.")
             
             # Log each error
@@ -537,6 +571,7 @@ def import_validate(request, session_id):
             log_level=ImportExportLog.ERROR,
             message=f"خطای اعتبارسنجی: {str(e)}"
         )
+        logger.warning(f"خطای اعتبارسنجی: {str(e)}. user: {request.user}, ip: {get_client_ip(request)}")
         
         messages.error(request, f'خطای اعتبارسنجی: {str(e)}')
         return redirect('data_exflow:import')
@@ -579,6 +614,7 @@ def import_process(request, session_id):
             log_level=ImportExportLog.ERROR,
             message=f"خطا در پردازش ایمپورت: {str(e)}"
         )
+        logger.warning(f"خطای پردازش ایمپورت: {str(e)}.")
         
         session.status = ImportExportSession.FAILED
         session.save()
@@ -593,7 +629,7 @@ def import_process(request, session_id):
             log_level=ImportExportLog.ERROR,
             message=f"خطای پردازش ایمپورت: {str(e)}"
         )
-        
+        logger.warning(f"خطای پردازش ایمپورت: {str(e)}.")
         messages.error(request, f'خطای پردازش ایمپورت: {str(e)}')
         return redirect('data_exflow:import_validate', session_id=session.id)
 
@@ -667,6 +703,7 @@ def import_revert(request, session_id):
             log_level=ImportExportLog.ERROR,
             message=f"خطا در بازگشت ایمپورت: {str(e)}"
         )
+        logger.warning(f"خطای بازگشت ایمپورت: {str(e)}.")
         
         return redirect('data_exflow:import_results', session_id=session.id)
     except Exception as e:
@@ -675,6 +712,7 @@ def import_revert(request, session_id):
             log_level=ImportExportLog.ERROR,
             message=f"خطای بازگشت ایمپورت: {str(e)}"
         )
+
         
         messages.error(request, f'خطای بازگشت ایمپورت: {str(e)}')
         return redirect('data_exflow:import_results', session_id=session.id)
@@ -812,6 +850,7 @@ def export_confirm(request):
 @user_passes_test(lambda u: u.is_superuser)
 def export_download(request, session_id):
     """Show download page for the exported file."""
+    logger.warning(f"Export download called by {get_client_ip(request)}, user: {request.user}")
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
     
     if session.session_type != ImportExportSession.EXPORT:
@@ -1030,7 +1069,7 @@ def api_get_model_fields(request, app_label=None, model_name=None):
                             'display': str(instance)
                         })
                 except Exception as e:
-                    print(f"Error getting sample values for {field.name}: {e}")
+                    logger.info(f"Error getting sample values for {field.name}: {e}")
                 
                 # If the related model has a choices attribute, add them
                 if hasattr(field.related_model, 'CHOICES') or hasattr(field.related_model, 'choices'):
@@ -1052,7 +1091,7 @@ def api_get_model_fields(request, app_label=None, model_name=None):
                     field_info['countries'] = [{'key': str(key), 'display': str(display)} 
                                            for key, display in countries]
                 except Exception as e:
-                    print(f"Error getting CargoProduct info: {e}")
+                    logger.info(f"Error getting CargoProduct info: {e}")
             
             fields.append(field_info)
         
@@ -1084,7 +1123,7 @@ def api_get_model_fields(request, app_label=None, model_name=None):
                         'display': str(instance)
                     })
             except Exception as e:
-                print(f"Error getting sample values for {field.name}: {e}")
+                logger.info(f"Error getting sample values for {field.name}: {e}")
             
             fields.append(field_info)
             
@@ -1115,6 +1154,7 @@ def api_get_model_fields(request, app_label=None, model_name=None):
     except LookupError:
         return JsonResponse({'error': f'Model not found: {app_label}.{model_name}'}, status=404)
     except Exception as e:
+        logger.warning(f"Error in api_get_model_fields: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
 
@@ -1185,6 +1225,7 @@ def api_edit_cell(request, session_id):
                     pass  # Log this error but don't fail if cleanup fails
         
     except Exception as e:
+
         return JsonResponse({'error': str(e)}, status=500)
 
 
@@ -1211,7 +1252,7 @@ def api_list_contenttypes(request):
         return JsonResponse({'contenttypes': data})
     except Exception as e:
         import traceback
-        traceback.print_exc()
+        logger.warning(f"Error in api_list_contenttypes: {str(e)}, traceback: {traceback.format_exc()}")
         return JsonResponse({
             'error': f'Error listing content types: {str(e)}'
         }, status=500)
@@ -1361,6 +1402,6 @@ def download_sample_file(request):
         return response
     except Exception as e:
         import traceback
-        traceback.print_exc()
+        logger.warning(f"Error in download_sample_file: {str(e)}, traceback: {traceback.format_exc()}")
         messages.error(request, f'خطا در ایجاد فایل نمونه: {str(e)}')
         return redirect('data_exflow:import')
