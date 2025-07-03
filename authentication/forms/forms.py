@@ -163,6 +163,49 @@ class OTPLoginForm(forms.Form):
         
         return True
 
+    def get_client_ip(self, request):
+        """
+        دریافت IP کامل کلاینت (محلی و خارجی، پشتیبانی از proxy و load balancer)
+        """
+        if not request:
+            return "Unknown"
+        
+        # IP مستقیم (از سرور دیده می‌شود)
+        direct_ip = request.META.get('REMOTE_ADDR', 'Unknown')
+        
+        # IP از طریق proxy headers
+        forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        real_ip = request.META.get('HTTP_X_REAL_IP')
+        
+        # تشخیص نوع IP (محلی یا خارجی)
+        def is_local_ip(ip):
+            if ip == 'Unknown':
+                return False
+            return (ip.startswith('192.168.') or 
+                   ip.startswith('10.') or 
+                   ip.startswith('172.') or 
+                   ip.startswith('127.') or
+                   ip == 'localhost')
+        
+        # انتخاب IP اصلی
+        client_ip = direct_ip
+        if forwarded_for:
+            # اولین IP در لیست X-Forwarded-For
+            client_ip = forwarded_for.split(',')[0].strip()
+        elif real_ip:
+            client_ip = real_ip
+        
+        # تعیین نوع اتصال
+        ip_type = "local" if is_local_ip(client_ip) else "external"
+        
+        # اگر proxy وجود دارد، هر دو IP را نمایش بده
+        if forwarded_for or real_ip:
+            proxy_info = f" (via {direct_ip})"
+        else:
+            proxy_info = ""
+        
+        return f"{client_ip}({ip_type}){proxy_info}"
+
     def verify_otp(self, request=None):
         phone = self.cleaned_data.get('phone_number')
         code = self.cleaned_data.get('verification_code')
@@ -171,10 +214,13 @@ class OTPLoginForm(forms.Form):
             # Check rate limit for login attempts
             login_attempts_key = f"login_attempts_phone_{phone}"
             current_attempts = cache.get(login_attempts_key, 0)
-            
+            client_ip = self.get_client_ip(request)
+            logger.warning(f"phone: {phone} - current_attempts: {current_attempts} - ip: {client_ip}")
+                
             # If more than 10 attempts, always return false
             if current_attempts >= 10:
-                logger.warning(f"phone: {phone} - current_attempts: {current_attempts}")
+                logger.warning(f"HACK ATTEMPT! phone: {phone} - current_attempts: {current_attempts} - ip: {client_ip}")
+                
                 return {'success': False, 'message': "تعداد تلاش‌های ورود بیش از حد مجاز است. لطفا بعدا تلاش کنید"}
             
             saved_code = cache.get(f"otp_{phone}")

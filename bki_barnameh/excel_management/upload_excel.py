@@ -173,7 +173,7 @@ def process_excel_file(excel_file_id):
         excel_file.processed_rows = processed_rows
         excel_file.processed = True
         excel_file.debug_info = f"تعداد بارنامه‌های بروزرسانی شده: {updated_rows}\nشماره بارنامه‌های بروزرسانی شده: {', '.join(duplicate_numbers)}"
-        logger.warning(f"Excel file {excel_file.name} processed successfully. تعداد بارنامه‌های بروزرسانی شده: {updated_rows}\nشماره بارنامه‌های بروزرسانی شده: {', '.join(duplicate_numbers)}")
+        logger.info(f"Excel file {excel_file.name} processed successfully. تعداد بارنامه‌های بروزرسانی شده: {updated_rows}\nشماره بارنامه‌های بروزرسانی شده: {', '.join(duplicate_numbers)}")
         excel_file.save()
         
         return {

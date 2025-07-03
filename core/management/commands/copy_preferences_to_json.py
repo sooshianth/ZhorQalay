@@ -1,12 +1,15 @@
 from django.core.management.base import BaseCommand
 import json
 from core.CustomerModel import Customer
+import logging
+
+logger = logging.getLogger("core_copy_preferences_to_json")
 
 class Command(BaseCommand):
     help = 'کپی ترجیحات مشتری از فیلدهای ManyToMany به فیلدهای JSON'
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.SUCCESS('شروع کپی ترجیحات مشتری...'))
+        logger.info('شروع کپی ترجیحات مشتری...')
         
         customers = Customer.objects.all()
         count = 0
@@ -29,6 +32,6 @@ class Command(BaseCommand):
                 customer.save(update_fields=['_field_of_activity_json', '_product_preferences_json', '_purchase_preferences_json'])
                 count += 1
             except Exception as e:
-                self.stdout.write(self.style.ERROR(f'خطا در ذخیره ترجیحات برای مشتری {customer.id}: {e}'))
+                logger.error(f'خطا در ذخیره ترجیحات برای مشتری {customer.id}: {e}')
         
-        self.stdout.write(self.style.SUCCESS(f'کپی ترجیحات {count} مشتری با موفقیت انجام شد.')) 
+        logger.info(f'کپی ترجیحات {count} مشتری با موفقیت انجام شد.') 

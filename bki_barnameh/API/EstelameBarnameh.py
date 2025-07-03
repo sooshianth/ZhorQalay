@@ -201,8 +201,8 @@ def estelame_barnameh(barnameh_id, from_date=None, to_date=None):
             'message': 'بارنامه مورد نظر یافت نشد.'
         }
     except Exception as e:
+        logger.error(f"خطا: {str(e)}")
         return {
             'success': False,
-            'message': f"خطا: "
-            logger.error(f"خطا: {str(e)}")
+            'message': f"خطا: ",
         }

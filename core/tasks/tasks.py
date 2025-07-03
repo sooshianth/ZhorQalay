@@ -4,7 +4,7 @@ from datetime import timedelta
 import logging
 from core.PurchaseModel import Purchase
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("core_tasks")
 
 @shared_task
 def purge_unpaid_purchases_task(days=1):

@@ -427,10 +427,11 @@ def send_barnameh_to_bki(barnameh_id):
             'message': 'بارنامه مورد نظر یافت نشد.'
         }
     except Exception as e:
+        logger.error(f"خطا: {str(e)}")
         return {
             'success': False,
-            'message': f"خطا: "
-            logger.error(f"خطا: {str(e)}")
+            'message': f"خطا: ",
+
         }
 
 def send_multiple_barnameh_to_bki(barnameh_ids):

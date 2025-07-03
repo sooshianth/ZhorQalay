@@ -9,7 +9,7 @@ from sms_api.models import SmsTemplate
 import logging
 from core.PurchaseModel import PurchaseStateChange
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("core_zignals")
 
 
 @receiver(post_save, sender=Purchase)
@@ -52,7 +52,7 @@ def send_sms_on_purchase_create(sender, instance, created, **kwargs):
     
     # اگر مشتری وجود ندارد یا تنظیمات sms_preference غیرفعال است، پیامک ارسال نمی‌شود
     if not instance.customer or not instance.customer.sms_preference:
-        logger.warning(f"SMS not sent for purchase {instance.id}: Customer does not exist or SMS preference is disabled")
+        logger.info(f"SMS not sent for purchase {instance.id}: Customer does not exist or SMS preference is disabled")
         return
     
     # بررسی اینکه کارشناسان فروش مشتری فقط ادمین‌ها نباشند
@@ -64,12 +64,12 @@ def send_sms_on_purchase_create(sender, instance, created, **kwargs):
             break
     
     if not has_non_admin:
-        logger.warning(f"SMS not sent for purchase {instance.id}: No non-admin sales agent")
+        logger.info(f"SMS not sent for purchase {instance.id}: No non-admin sales agent")
         return
         
     # فقط برای خریدهایی که تنظیم send_cottage_sms آنها فعال است
     if not instance.send_cottage_sms:
-        logger.warning(f"SMS not sent for purchase {instance.id}: send_cottage_sms is disabled")
+        logger.info(f"SMS not sent for purchase {instance.id}: send_cottage_sms is disabled")
         return
     
     # مشاهده وضعیت فعلی خرید
@@ -81,7 +81,7 @@ def send_sms_on_purchase_create(sender, instance, created, **kwargs):
         template = SmsTemplate.objects.filter(status=current_state, is_active=True).first()
         
         if not template:
-            logger.warning(f"No active SMS template found for state {current_state} (Purchase ID: {instance.id})")
+            logger.info(f"No active SMS template found for state {current_state} (Purchase ID: {instance.id})")
             return False
             
         # پردازش قالب پیام با استفاده از تابع send_purchase_status_notification
@@ -103,7 +103,7 @@ def send_sms_on_purchase_create(sender, instance, created, **kwargs):
             logger.warning(f"Failed to send SMS for new purchase {instance.id}")
     
     except Exception as e:
-        logger.exception(f"Error processing SMS for new purchase {instance.id}: {str(e)}")
+        logger.warning(f"Error processing SMS for new purchase {instance.id}: {str(e)}")
 
 
 @receiver(post_save, sender=PurchaseStateChange)
@@ -142,7 +142,7 @@ def send_sms_on_state_change(sender, instance, created, **kwargs):
         template = SmsTemplate.objects.filter(status=new_state, is_active=True).first()
         
         if not template:
-            logger.warning(f"No active SMS template found for state {new_state} (Purchase ID: {purchase.id})")
+            logger.info(f"No active SMS template found for state {new_state} (Purchase ID: {purchase.id})")
             return
         
         # پردازش قالب پیام و جایگزینی متغیرها
@@ -228,7 +228,7 @@ def send_sms_on_state_change(sender, instance, created, **kwargs):
                 )
                 success_count += 1
             except Exception as e:
-                logger.error(f"Error queuing SMS for {phone} (Purchase ID: {purchase.id}): {str(e)}")
+                logger.warning(f"Error queuing SMS for {phone} (Purchase ID: {purchase.id}): {str(e)}")
         
         if success_count > 0:
             logger.info(f"Successfully queued SMS for state change to {new_state} for purchase {purchase.id} to {success_count} numbers")
@@ -239,4 +239,4 @@ def send_sms_on_state_change(sender, instance, created, **kwargs):
             instance.save(update_fields=['sms_sent', 'sms_sent_at'])
     
     except Exception as e:
-        logger.exception(f"Error processing SMS for state change (Purchase ID: {purchase.id}): {str(e)}")
+        logger.warning(f"Error processing SMS for state change (Purchase ID: {purchase.id}): {str(e)}")

@@ -31,11 +31,11 @@ def get_bki_credentials():
     
     # Validate username and password
     if not username or username.strip() == '':
-        logger.error("خطا: نام کاربری API بازارگاه تنظیم نشده است")
+        logger.warning("خطا: نام کاربری API بازارگاه تنظیم نشده است")
         return None, None
         
     if not password or password.strip() == '':
-        logger.error("خطا: رمز عبور API بازارگاه تنظیم نشده است")
+        logger.warning("خطا: رمز عبور API بازارگاه تنظیم نشده است")
         return None, None
     
     return username, password
@@ -447,13 +447,13 @@ def get_all_bazaargah_purchases():
     if not purchases_data:
         return 0, 0, 0, 0, 0, ["هیچ داده خرید در پاسخ یافت نشد"]
     
-    logger.info(f"تعداد خریدهای یافت شده: {len(purchases_data)}")
+    #logger.info(f"تعداد خریدهای یافت شده: {len(purchases_data)}")
     
     # Group purchases by purchase ID
     from .data_processing import group_purchase_data_by_id, process_grouped_purchase_data
     
     grouped_data = group_purchase_data_by_id(purchases_data)
-    logger.info(f"خریدها به {len(grouped_data)} گروه تقسیم شدند")
+    #logger.info(f"خریدها به {len(grouped_data)} گروه تقسیم شدند")
     
     # Process grouped purchase data
     total_count = len(grouped_data)

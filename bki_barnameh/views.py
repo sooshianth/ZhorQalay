@@ -9,6 +9,7 @@ from core.decorators.decorators import role_required
 from .API.insertBarnameh import send_barnameh_to_bki, send_multiple_barnameh_to_bki
 from .API.EditBarnameh import edit_barnameh_api
 from .API.EstelameBarnameh import estelame_barnameh
+from .excel_management.views import get_client_ip
 import json
 import os
 from django.conf import settings
@@ -20,6 +21,7 @@ import logging
 from .excel_management.views import upload_excel_view, download_excel_template, export_excel_view
 
 logger = logging.getLogger('bki_barnameh_views')
+
 
 def update_barnameh(barnameh_id, data):
     """
@@ -129,6 +131,7 @@ def delete_barnameh(barnameh_id):
         dict: Result of the delete operation
     """
     try:
+        logger.warning(f"حذف بارنامه: {barnameh_id}, ip: {get_client_ip(request)}, user: {request.user}")
         barnameh = Barnameh.objects.get(id=barnameh_id)
         
         # Check if barnameh is already sent to BKI
@@ -164,6 +167,7 @@ def barnameh_list(request):
     """
     نمایش لیست بارنامه ها
     """
+    logger.warning(f"لیست بارنامه ها: {get_client_ip(request)}, user: {request.user}")
     # Get sorting parameters from request
     sort_field = request.GET.get('sort', 'barnameh_created_at')
     direction = request.GET.get('direction', 'desc')
@@ -241,6 +245,7 @@ def barnameh_detail(request, barnameh_id):
     """
     نمایش جزئیات بارنامه
     """
+    logger.warning(f"جزئیات بارنامه: {barnameh_id}, ip: {get_client_ip(request)}, user: {request.user}")
     barnameh = get_object_or_404(Barnameh, id=barnameh_id)
     return render(request, 'bki_barnameh/barnameh_detail.html', {'barnameh': barnameh})
 
@@ -249,6 +254,7 @@ def barnameh_create(request):
     """
     ایجاد بارنامه جدید
     """
+    logger.warning(f"ایجاد بارنامه جدید: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         data = {
             'number': request.POST.get('number'),
@@ -289,6 +295,7 @@ def barnameh_edit(request, barnameh_id):
     """
     ویرایش بارنامه
     """
+    logger.warning(f"ویرایش بارنامه: {barnameh_id}, ip: {get_client_ip(request)}, user: {request.user}")
     barnameh = get_object_or_404(Barnameh, id=barnameh_id)
     
     if request.method == 'POST':
@@ -322,6 +329,7 @@ def barnameh_delete(request, barnameh_id):
     """
     حذف بارنامه
     """
+    logger.warning(f"حذف بارنامه: {barnameh_id}, ip: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         result = delete_barnameh(barnameh_id)
         
@@ -340,6 +348,7 @@ def upload_excel(request):
     """
     آپلود فایل اکسل بارنامه - ریدایرکت به ویو جدید
     """
+    logger.warning(f"آپلود فایل اکسل بارنامه: {get_client_ip(request)}, user: {request.user}")
     return upload_excel_view(request)
 
 @role_required('logistics_manager', 'admin', 'financial_manager')
@@ -347,6 +356,7 @@ def export_excel(request):
     """
     خروجی اکسل از بارنامه‌ها
     """
+    logger.warning(f"خروجی اکسل از بارنامه‌ها: {get_client_ip(request)}, user: {request.user}")
     return export_excel_view(request)
 
 @role_required('logistics_manager', 'admin')
@@ -354,6 +364,7 @@ def send_to_bki(request, barnameh_id):
     """
     ارسال بارنامه به بازارگاه
     """
+    logger.warning(f"ارسال بارنامه به بازارگاه: {barnameh_id}, ip: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         result = send_barnameh_to_bki(barnameh_id)
         
@@ -372,6 +383,7 @@ def bulk_send_to_bki(request):
     """
     ارسال گروهی بارنامه‌ها به بازارگاه
     """
+    logger.warning(f"ارسال گروهی بارنامه‌ها به بازارگاه: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         barnameh_ids = request.POST.getlist('barnameh_ids')
         
@@ -399,6 +411,7 @@ def barnameh_api(request):
     """
     API برای مدیریت بارنامه‌ها
     """
+    logger.warning(f"API برای مدیریت بارنامه‌ها: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'GET':
         barnameh_id = request.GET.get('id')
         
@@ -495,6 +508,7 @@ def edit_barnameh_in_bki(request, barnameh_id):
     """
     ویرایش بارنامه در بازارگاه
     """
+    logger.warning(f"ویرایش بارنامه در بازارگاه: {barnameh_id}, ip: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         result = edit_barnameh_api(barnameh_id)
         
@@ -513,6 +527,7 @@ def bulk_edit(request):
     """
     ویرایش گروهی بارنامه‌ها
     """
+    logger.warning(f"ویرایش گروهی بارنامه‌ها: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         barnameh_ids = request.POST.getlist('barnameh_ids')
         
@@ -674,6 +689,7 @@ def estelame_barnameh_view(request, barnameh_id):
     """
     استعلام بارنامه از بازارگاه
     """
+    logger.warning(f"استعلام بارنامه از بازارگاه: {barnameh_id}, ip: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         # Get date parameters from request
         from_date = request.POST.get('from_date', None)
@@ -701,6 +717,7 @@ def bulk_delete(request):
     """
     حذف گروهی بارنامه‌ها
     """
+    logger.warning(f"حذف گروهی بارنامه‌ها: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         barnameh_ids = request.POST.getlist('barnameh_ids')
         

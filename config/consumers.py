@@ -2,47 +2,52 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.contrib.auth.models import User
 from chat.MessageModel import Message
+import logging
+import html
+
+logger = logging.getLogger("chat_chatBot_view")
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope['user']
-        print('Connecting user:', self.user)
         if not self.user.is_authenticated:
-            print('User not authenticated, closing WebSocket')
+            logger.warning(f"کاربر احراز هویت نشده، بستن WebSocket")
             await self.close()
             return
         self.user_id = self.scope['url_route']['kwargs']['user_id']
         self.room_group_name = f'chat_{self.user_id}'
-        print('Adding to group:', self.room_group_name)
+        #print('Adding to group:', self.room_group_name)
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
     async def disconnect(self, close_code):
-        print('Disconnecting WebSocket, close code:', close_code)
+        #print('Disconnecting WebSocket, close code:', close_code)
         if hasattr(self, 'room_group_name'):
             await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
     async def receive(self, text_data):
         data = json.loads(text_data)
-        print('Received data:', data)
-        receiver_id = data['receiver_id']
+        #print('Received data:', data)
+        receiver_id = data['receiver_id'] 
+        #parse int
+        receiver_id = str(int(receiver_id))
         try:
             receiver = User.objects.get(id=receiver_id)
         except User.DoesNotExist:
-            print(f'Receiver with ID {receiver_id} does not exist')
+            logger.warning(f"کاربر با ID {receiver_id} وجود ندارد")
             return
 
         if data['type'] == 'chat_message':
-            message = data['message']
+            message = html.escape(data['message'])
             try:
                 msg = Message.objects.create(
                     sender=self.user,
                     receiver=receiver,
                     message=message
                 )
-                print('Message saved:', msg)
+                #print('Message saved:', msg)
             except Exception as e:
-                print('Error saving message:', e)
+                logger.error(f"خطای ذخیره پیام: {str(e)}")
                 return
 
             await self.channel_layer.group_send(
@@ -73,9 +78,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     file_url=file_url,
                     file_type=file_type
                 )
-                print('File message saved:', msg)
+                #print('File message saved:', msg)
             except Exception as e:
-                print('Error saving file message:', e)
+                logger.error(f"خطای ذخیره پیام فایل: {str(e)}")
                 return
 
             await self.channel_layer.group_send(
@@ -100,5 +105,5 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
 
     async def chat_message(self, event):
-        print('Sending message to client:', event)
+        #print('Sending message to client:', event)
         await self.send(text_data=json.dumps(event))

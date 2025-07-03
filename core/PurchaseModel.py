@@ -16,6 +16,9 @@ import random
 from django.db.models import Sum, Q, F
 import re
 from core.decorators.det_user_role import determine_user_role
+import logging
+
+logger = logging.getLogger("core_purchase")
 
 
 class Purchase(models.Model):
@@ -601,12 +604,12 @@ class Purchase(models.Model):
                 sales_agent = SalesAgent.objects.filter(factor_code=self.unique_sales_agent_code).first()
                 if sales_agent:
                     self.unique_sales_agent = sales_agent
-                    print(f"✅ کارشناس فروش {sales_agent.name} با کد {sales_agent.factor_code} برای خرید {self.pk or 'جدید'} تنظیم شد")
+                    logger.info(f"✅ کارشناس فروش {sales_agent.name} با کد {sales_agent.factor_code} برای خرید {self.pk or 'جدید'} تنظیم شد")
                 else:
-                    print(f"⚠️ کارشناس فروش با کد '{self.unique_sales_agent_code}' یافت نشد")
+                    logger.warning(f"⚠️ کارشناس فروش با کد '{self.unique_sales_agent_code}' یافت نشد")
                 
         except Exception as e:
-            print(f"❌ خطا در همگام‌سازی کارشناس فروش: {str(e)}")
+            logger.warning(f"❌ خطا در همگام‌سازی کارشناس فروش: {str(e)}")
                 
         if not self.invoice_id:
             factor_code = '99'  # Código por defecto para administrador
@@ -621,7 +624,7 @@ class Purchase(models.Model):
                         if sales_agent and sales_agent.factor_code:
                             factor_code = sales_agent.factor_code
                     except Exception as e:
-                        print(f"Error al obtener factor_code del agente: {str(e)}")
+                        logger.warning(f"Error al obtener factor_code del agente: {str(e)}")
             
             # Generamos el número de factura secuencial
             last_purchase = Purchase.objects.filter(invoice_id__startswith=factor_code).order_by('-invoice_id').first()
@@ -649,7 +652,7 @@ class Purchase(models.Model):
             # بررسی اینکه آیا این کارشناس قبلاً در لیست sales_agent های مشتری هست یا نه
             if not self.customer.sales_agent.filter(id=self.unique_sales_agent.id).exists():
                 self.customer.sales_agent.add(self.unique_sales_agent)
-                print(f"✅ کارشناس فروش {self.unique_sales_agent.name} به لیست کارشناسان مشتری {self.customer.name} اضافه شد")
+                logger.info(f"✅ کارشناس فروش {self.unique_sales_agent.name} به لیست کارشناسان مشتری {self.customer.name} اضافه شد")
         
         # اضافه کردن کاربر فعلی به عنوان کارشناس فروش خرید
         # این قسمت را در view هایی که خرید ایجاد می‌کنند استفاده می‌کنیم
@@ -722,10 +725,10 @@ class Purchase(models.Model):
                         customer=self.bazaargah_customer,
                         phone_number=self.bazaargah_phone_number
                     )
-                    print(f"✅ شماره تلفن {self.bazaargah_phone_number} به CRM مشتری {self.bazaargah_customer.name} اضافه شد")
+                    logger.info(f"✅ شماره تلفن {self.bazaargah_phone_number} به CRM مشتری {self.bazaargah_customer.name} اضافه شد")
                     
             except Exception as e:
-                print(f"❌ خطا در اضافه کردن شماره تلفن به CRM: {str(e)}")
+                logger.warning(f"❌ خطا در اضافه کردن شماره تلفن به CRM: {str(e)}")
 
         if not self.state in ['INITIATED', 'SMS_SENT', 'PAYMENT_VERIFIED', 'ALLOCATION_APPROVED']:
             self.is_address_sent = '1'  # اصلاح: استفاده از string '1' به جای boolean True

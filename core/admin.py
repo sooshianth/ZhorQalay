@@ -27,7 +27,38 @@ from .CargoProductModel import VaredKonandeh, Barbary, VaredKonandehTransaction
 #     list_display = ('user', 'message')
 
 # تنظیمات نمایش مدل CargoProduct در ادمین
+import logging
+logger = logging.getLogger("core_admin")
 
+def get_client_ip(request):
+    """
+    دریافت IP کامل کلاینت (محلی و خارجی، پشتیبانی از proxy و load balancer)
+    """
+    if not request:
+        return "Unknown"
+        
+    # IP مستقیم (از سرور دیده می‌شود)
+    direct_ip = request.META.get('REMOTE_ADDR', 'Unknown')
+        
+    # IP از طریق proxy headers
+    forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    real_ip = request.META.get('HTTP_X_REAL_IP')
+
+    # انتخاب IP اصلی
+    client_ip = direct_ip
+    if forwarded_for:
+        # اولین IP در لیست X-Forwarded-For
+        client_ip = forwarded_for.split(',')[0].strip()
+    elif real_ip:
+        client_ip = real_ip
+        
+    # اگر proxy وجود دارد، هر دو IP را نمایش بده
+    if forwarded_for or real_ip:
+        proxy_info = f" (via {direct_ip})"
+    else:
+        proxy_info = ""
+        
+    return f"{client_ip}-{proxy_info}"
 
 from django.contrib.admin import AdminSite
 
@@ -38,6 +69,7 @@ class AttendanceAdminSite(AdminSite):
 
 # Custom admin action to login as user
 def login_as_user(modeladmin, request, queryset):
+    logger.warning(f"user tried to login as admin as another user. IP: {get_client_ip(request)}, user: {request.user.username}")
     # Only allow one user at a time
     if request.user.is_superuser:    
         if queryset.count() != 1:
@@ -56,7 +88,7 @@ def login_as_user(modeladmin, request, queryset):
         # Redirect to home page
         return HttpResponseRedirect('/')
     else:
-        return HttpResponseRedirect('/')
+         return HttpResponseRedirect('/')
 
 login_as_user.short_description = "ورود به عنوان کاربر انتخاب شده"
 
@@ -242,6 +274,7 @@ class CustomerAdmin(admin.ModelAdmin):
     get_last_purchase_date.short_description = 'آخرین خرید'
 
     def send_custom_sms(self, request, queryset):
+        logger.warning(f"user tried to send custom sms. IP: {get_client_ip(request)}, user: {request.user.username}")
         if 'apply' in request.POST:
             message = request.POST.get('message', '')
             notification_type = request.POST.get('notification_type', 'custom')
@@ -264,19 +297,19 @@ class CustomerAdmin(admin.ModelAdmin):
                     naive_datetime = datetime.datetime.strptime(scheduled_time_str, '%Y-%m-%dT%H:%M')
                     # تبدیل به timezone-aware datetime
                     scheduled_for = timezone.make_aware(naive_datetime)
-                    print(f"زمان ارسال: {scheduled_for}")
+                    logger.info(f"زمان ارسال: {scheduled_for}") 
                 except Exception as e:
-                    print(f"خطا در تبدیل زمان: {e}")
                     scheduled_for = default_time  # استفاده از زمان فعلی در صورت خطا
+                    logger.error(f"خطا در تبدیل زمان: {e}, schedule for: {scheduled_for}")
             
             if not message:
                 self.message_user(request, 'لطفاً متن پیامک را وارد کنید.', level='error')
                 return HttpResponseRedirect(request.get_full_path())
             
             # برای اطمینان از عملکرد فرم
-            print(f"فرم دریافت شد - پیام: {message}, نوع: {notification_type}, معلق: {suspended}")
-            print(f"زمان ارسال: {scheduled_for}")
-            print(f"تعداد مشتریان انتخاب شده: {queryset.count()}")
+            logger.info(f"فرم دریافت شد - پیام: {message}, نوع: {notification_type}, معلق: {suspended}")
+            logger.info(f"زمان ارسال: {scheduled_for}")
+            logger.info(f"تعداد مشتریان انتخاب شده: {queryset.count()}")
             
             # آمار قبل از ایجاد
             before_stats = DebugSmsQueue.print_sms_queue_stats()
@@ -284,12 +317,12 @@ class CustomerAdmin(admin.ModelAdmin):
             for customer in queryset:
                 # دریافت تمام شماره‌های تلفن مشتری
                 phone_numbers = customer.get_all_phone_numbers()
-                print(f"مشتری: {customer.name}, تعداد شماره‌ها: {len(phone_numbers)}")
+                logger.info(f"مشتری: {customer.name}, تعداد شماره‌ها: {len(phone_numbers)}")
                 
                 # اطمینان از وجود حداقل یک شماره تلفن
                 if not phone_numbers:
                     error_message = f"مشتری {customer.name}: هیچ شماره تلفنی یافت نشد"
-                    print(error_message)
+                    logger.info(error_message)
                     error_messages.append(error_message)
                     error_count += 1
                     continue
@@ -312,12 +345,12 @@ class CustomerAdmin(admin.ModelAdmin):
                             else:
                                 # اگر فرمت شماره درست نیست، به شماره بعدی برو
                                 error_message = f"شماره تلفن {phone} برای مشتری {customer.name} نامعتبر است. باید با 09 شروع شود."
-                                print(error_message)
+                                logger.warning(error_message)
                                 continue
                         
                         # ایجاد مستقیم رکورد در دیتابیس با اطمینان از فرمت صحیح
                         status = 'suspended' if suspended else 'pending'
-                        print(f"ایجاد پیامک با شماره: {phone}, وضعیت: {status}")
+                        logger.info(f"ایجاد پیامک با شماره: {phone}, وضعیت: {status}")
                         
                         if len(phone) != 11 or not phone.startswith('09'):
                             raise ValueError(f"شماره تلفن {phone} نامعتبر است. باید 11 رقمی و با 09 شروع شود.")
@@ -333,7 +366,7 @@ class CustomerAdmin(admin.ModelAdmin):
                         )
                         
                         if sms_queue and sms_queue.id:
-                            print(f"پیامک ایجاد شد با شناسه: {sms_queue.id}")
+                            logger.info(f"پیامک ایجاد شد با شناسه: {sms_queue.id}")
                             customer_success += 1
                             sent_count += 1
                         else:
@@ -341,7 +374,6 @@ class CustomerAdmin(admin.ModelAdmin):
                             
                     except Exception as e:
                         error_message = f"مشتری {customer.name} - شماره {phone}: {str(e)}"
-                        print(f"خطا: {error_message}")
                         error_messages.append(error_message)
                         error_count += 1
                 
@@ -353,24 +385,24 @@ class CustomerAdmin(admin.ModelAdmin):
             
             # آمار بعد از ایجاد
             after_stats = DebugSmsQueue.print_sms_queue_stats()
-            print(f"تعداد پیامک‌های اضافه شده: {after_stats[4] - before_stats[4]}")
+            logger.info(f"تعداد پیامک‌های اضافه شده: {after_stats[4] - before_stats[4]}")
             
             # نمایش نتیجه به کاربر
             if sent_count > 0:
                 success_msg = f'پیامک برای {sent_count} شماره تلفن در صف ارسال قرار گرفت.'
                 if scheduled_for:
                     success_msg += f' زمان ارسال: {scheduled_for.strftime("%Y-%m-%d %H:%M")}'
-                print(success_msg)
+                logger.info(success_msg)
                 self.message_user(request, success_msg)
             
             if error_count > 0:
                 error_msg = f'{error_count} خطا در ارسال پیامک رخ داد: {", ".join(error_messages[:5])}'
                 if len(error_messages) > 5:
                     error_msg += "..."
-                print(error_msg)
+                logger.warning(error_msg)
                 self.message_user(request, error_msg, level='error')
             
-            print("بازگشت به صفحه اصلی...")
+            logger.info("بازگشت به صفحه اصلی...")
             return HttpResponseRedirect(request.get_full_path())
             
         return render(request, 'admin/send_custom_sms.html', {
@@ -500,8 +532,8 @@ class DebugSmsQueue:
         suspended = SmsQueue.objects.filter(status='suspended').count()
         total = SmsQueue.objects.count()
         
-        print(f"آمار پیامک‌ها:")
-        print(f"کل: {total}, در انتظار: {pending}, ارسال شده: {sent}, با خطا: {failed}, معلق: {suspended}")
+        logger.info(f"آمار پیامک‌ها:")
+        logger.info(f"کل: {total}, در انتظار: {pending}, ارسال شده: {sent}, با خطا: {failed}, معلق: {suspended}")
         
         return pending, sent, failed, suspended, total
 
