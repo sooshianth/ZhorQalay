@@ -764,6 +764,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <option value="50" {% if search_params.per_page == 50 %}selected{% endif %}>50</option>
                 <option value="100" {% if search_params.per_page == 100 or not search_params.per_page %}selected{% endif %}>100</option>
                 <option value="200" {% if search_params.per_page == 200 %}selected{% endif %}>200</option>
+                <option value="all" {% if search_params.per_page == 'all' %}selected{% endif %}>نمایش همه</option>
             </select>
         </div>
     </div>
@@ -1220,6 +1221,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <option value="50" {% if search_params.per_page == 50 %}selected{% endif %}>50</option>
                 <option value="100" {% if search_params.per_page == 100 or not search_params.per_page %}selected{% endif %}>100</option>
                 <option value="200" {% if search_params.per_page == 200 %}selected{% endif %}>200</option>
+                <option value="all" {% if search_params.per_page == 'all' %}selected{% endif %}>نمایش همه</option>
             </select>
         </div>
     </div>
@@ -1659,6 +1661,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <option value="50" {% if search_params.per_page == 50 %}selected{% endif %}>50</option>
                 <option value="100" {% if search_params.per_page == 100 or not search_params.per_page %}selected{% endif %}>100</option>
                 <option value="200" {% if search_params.per_page == 200 %}selected{% endif %}>200</option>
+                <option value="all" {% if search_params.per_page == 'all' %}selected{% endif %}>نمایش همه</option>
             </select>
         </div>
     </div>

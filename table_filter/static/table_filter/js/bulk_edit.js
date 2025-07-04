@@ -285,23 +285,29 @@ class BulkEditManager {
         
         console.log(`🎯 درخواست ویرایش گروهی برای بخش: ${targetSection}`);
         
-        // جمع‌آوری آیدی‌های انتخاب شده برای بخش مشخص
-        const tableMap = {
-            pending: '#pendingPurchasesTable .row-checkbox:checked',
-            archived: '#archivedPurchasesTable .row-checkbox:checked',
-            active: '#activePurchasesTable .row-checkbox:checked'
-        };
-        
-        const selector = tableMap[targetSection];
-        console.log(`🔍 انتخاب checkboxها با selector: ${selector}`);
-        
-        const checkboxes = document.querySelectorAll(selector);
-        console.log(`📋 تعداد checkbox های انتخاب شده: ${checkboxes.length}`);
-        
-        selectedIds = Array.from(checkboxes).map(cb => {
-            console.log(`  - ID: ${cb.dataset.id}, Value: ${cb.value}`);
-            return cb.dataset.id || cb.value;
-        });
+        // استفاده از selectedPurchases Set اگر موجود باشد (برای انتخاب همه در بخش)
+        if (window.purchaseAggregatedStats && window.purchaseAggregatedStats.selectedPurchases.size > 0) {
+            selectedIds = Array.from(window.purchaseAggregatedStats.selectedPurchases);
+            console.log(`📋 استفاده از selectedPurchases Set: ${selectedIds.length} مورد`);
+        } else {
+            // جمع‌آوری آیدی‌های انتخاب شده از checkbox های صفحه فعلی
+            const tableMap = {
+                pending: '#pendingPurchasesTable .row-checkbox:checked',
+                archived: '#archivedPurchasesTable .row-checkbox:checked',
+                active: '#activePurchasesTable .row-checkbox:checked'
+            };
+            
+            const selector = tableMap[targetSection];
+            console.log(`🔍 انتخاب checkboxها با selector: ${selector}`);
+            
+            const checkboxes = document.querySelectorAll(selector);
+            console.log(`📋 تعداد checkbox های انتخاب شده: ${checkboxes.length}`);
+            
+            selectedIds = Array.from(checkboxes).map(cb => {
+                console.log(`  - ID: ${cb.dataset.id}, Value: ${cb.value}`);
+                return cb.dataset.id || cb.value;
+            });
+        }
         
         console.log(`✅ آیدی‌های جمع‌آوری شده:`, selectedIds);
         
@@ -351,23 +357,29 @@ class BulkEditManager {
         
         console.log(`📊 درخواست ویرایش اکسلی برای بخش: ${targetSection}`);
         
-        // جمع‌آوری آیدی‌های انتخاب شده برای بخش مشخص
-        const tableMap = {
-            pending: '#pendingPurchasesTable .row-checkbox:checked',
-            archived: '#archivedPurchasesTable .row-checkbox:checked',
-            active: '#activePurchasesTable .row-checkbox:checked'
-        };
-        
-        const selector = tableMap[targetSection];
-        console.log(`🔍 انتخاب checkboxها با selector: ${selector}`);
-        
-        const checkboxes = document.querySelectorAll(selector);
-        console.log(`📋 تعداد checkbox های انتخاب شده: ${checkboxes.length}`);
-        
-        selectedIds = Array.from(checkboxes).map(cb => {
-            console.log(`  - ID: ${cb.dataset.id}, Value: ${cb.value}`);
-            return cb.dataset.id || cb.value;
-        });
+        // استفاده از selectedPurchases Set اگر موجود باشد (برای انتخاب همه در بخش)
+        if (window.purchaseAggregatedStats && window.purchaseAggregatedStats.selectedPurchases.size > 0) {
+            selectedIds = Array.from(window.purchaseAggregatedStats.selectedPurchases);
+            console.log(`📋 استفاده از selectedPurchases Set: ${selectedIds.length} مورد`);
+        } else {
+            // جمع‌آوری آیدی‌های انتخاب شده از checkbox های صفحه فعلی
+            const tableMap = {
+                pending: '#pendingPurchasesTable .row-checkbox:checked',
+                archived: '#archivedPurchasesTable .row-checkbox:checked',
+                active: '#activePurchasesTable .row-checkbox:checked'
+            };
+            
+            const selector = tableMap[targetSection];
+            console.log(`🔍 انتخاب checkboxها با selector: ${selector}`);
+            
+            const checkboxes = document.querySelectorAll(selector);
+            console.log(`📋 تعداد checkbox های انتخاب شده: ${checkboxes.length}`);
+            
+            selectedIds = Array.from(checkboxes).map(cb => {
+                console.log(`  - ID: ${cb.dataset.id}, Value: ${cb.value}`);
+                return cb.dataset.id || cb.value;
+            });
+        }
         
         console.log(`✅ آیدی‌های جمع‌آوری شده:`, selectedIds);
         

@@ -43,7 +43,13 @@ def purchase_list(request):
     active_page = request.GET.get('active_page', 1)
     pending_page = request.GET.get('pending_page', 1)
     archived_page = request.GET.get('archived_page', 1)
-    per_page = int(request.GET.get('per_page', 100))  # تغییر پیش‌فرض به 100
+    per_page_param = request.GET.get('per_page', 100)
+    
+    # بررسی گزینه "نمایش همه"
+    if per_page_param == 'all':
+        per_page = 10000  # عدد بزرگ برای نمایش همه
+    else:
+        per_page = int(per_page_param)  # تغییر پیش‌فرض به 100
     
     # پارامترهای فیلتر اضافی
     factor_code = request.GET.get('factor_code', '')
@@ -385,7 +391,7 @@ def purchase_list(request):
             'cottage': cottage,
             'state': state,
             'is_archived': is_archived,
-            'per_page': per_page,
+            'per_page': per_page_param,  # ارسال مقدار اصلی، نه عدد تبدیل شده
         },
         'selected_columns': selected_columns,
         'all_columns': all_columns,

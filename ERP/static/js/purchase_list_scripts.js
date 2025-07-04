@@ -1103,7 +1103,7 @@ class PurchasePagination {
         
         // بروزرسانی تنظیمات در پیکربندی
         if (window.PurchaseListConfig) {
-            window.PurchaseListConfig.perPage = parseInt(perPage);
+            window.PurchaseListConfig.perPage = perPage === 'all' ? 'all' : parseInt(perPage);
         }
         
         // ذخیره وضعیت فعلی بخش‌ها
@@ -1147,12 +1147,21 @@ class PurchasePagination {
         const details = container.querySelector('.pagination-details');
         if (details) {
             const perPage = this.getPerPageValue(section);
-            const startIndex = ((paginationData.number - 1) * perPage) + 1;
-            const endIndex = Math.min(startIndex + perPage - 1, paginationData.count);
             
-            details.innerHTML = `
-                <span class="text-muted">نمایش ${startIndex} تا ${endIndex} از ${paginationData.count} خرید ${this.getSectionTitle(section)}</span>
-            `;
+            if (perPage === 'all') {
+                // برای نمایش همه
+                details.innerHTML = `
+                    <span class="text-muted">نمایش همه ${paginationData.count} خرید ${this.getSectionTitle(section)}</span>
+                `;
+            } else {
+                // برای نمایش عادی
+                const startIndex = ((paginationData.number - 1) * parseInt(perPage)) + 1;
+                const endIndex = Math.min(startIndex + parseInt(perPage) - 1, paginationData.count);
+                
+                details.innerHTML = `
+                    <span class="text-muted">نمایش ${startIndex} تا ${endIndex} از ${paginationData.count} خرید ${this.getSectionTitle(section)}</span>
+                `;
+            }
         }
 
         // بروزرسانی لینک‌های pagination
@@ -1166,8 +1175,9 @@ class PurchasePagination {
             return;
         }
         
-        // فقط اگر بیش از یک صفحه وجود داشته باشد، نمایش دهیم
-        if (paginationData.num_pages <= 1) {
+        // اگر "نمایش همه" انتخاب شده یا فقط یک صفحه وجود دارد، pagination را مخفی کن
+        const perPage = this.getPerPageValue(section);
+        if (perPage === 'all' || paginationData.num_pages <= 1) {
             nav.innerHTML = '';
             return;
         }
