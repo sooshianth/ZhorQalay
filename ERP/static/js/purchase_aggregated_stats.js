@@ -24,6 +24,28 @@ class PurchaseAggregatedStats {
     }
     
     init() {
+        this.initEventListeners();
+        this.initGlobalSelectionButtons();
+        this.initDropdownSelectionButtons();
+        
+        // event listener for table filter updates
+        document.addEventListener('tableFilterApplied', (e) => {
+            console.log('📊 فیلتر جدول اعمال شد، به‌روزرسانی آمار...');
+            setTimeout(() => {
+                this.updateStatsAfterFilter();
+            }, 100); // کمی delay برای اطمینان از render کامل
+        });
+        
+        document.addEventListener('tableFilterCleared', () => {
+            this.updateStatsAfterFilter();
+        });
+        
+        document.addEventListener('tableFiltersCleared', () => {
+            this.updateStatsAfterFilter();
+        });
+    }
+
+    initEventListeners() {
         // گوش دادن به تغییرات انتخاب سطرها
         document.addEventListener('change', (e) => {
             if (e.target.classList.contains('row-checkbox')) {
@@ -50,25 +72,6 @@ class PurchaseAggregatedStats {
             if (e.target.classList.contains('clear-selection-btn')) {
                 this.clearAllSelections();
             }
-        });
-
-        // دکمه‌های انتخاب کلی جدید
-        this.initGlobalSelectionButtons();
-        
-        // راه‌اندازی دکمه‌های dropdown انتخاب
-        this.initDropdownSelectionButtons();
-        
-        // گوش دادن به تغییرات فیلتر
-        document.addEventListener('tableFilterApplied', () => {
-            this.updateStatsAfterFilter();
-        });
-        
-        document.addEventListener('tableFilterCleared', () => {
-            this.updateStatsAfterFilter();
-        });
-        
-        document.addEventListener('tableFiltersCleared', () => {
-            this.updateStatsAfterFilter();
         });
     }
 
@@ -973,42 +976,47 @@ class PurchaseAggregatedStats {
     
     // متد جدید: بروزرسانی آمار بعد از تغییر فیلتر
     updateStatsAfterFilter() {
-        // بررسی کنیم که آیا خریدهای انتخاب شده هنوز نمایش داده می‌شوند یا خیر
-        const visibleSelectedPurchases = new Set();
+        console.log('🔄 به‌روزرسانی آمار بعد از فیلتر...');
         
-        this.selectedPurchases.forEach(purchaseId => {
-            const row = document.querySelector(`tr[data-id="${purchaseId}"]`);
-            // اگر ردیف وجود دارد و نمایش داده می‌شود
-            if (row && row.style.display !== 'none') {
-                visibleSelectedPurchases.add(purchaseId);
-                // مطمئن شویم که checkbox هم چک شده باشد
+        // پاک کردن انتخاب‌های قبلی که ممکن است دیگر در جدول نباشند
+        const currentTableRows = document.querySelectorAll('tbody tr[data-id]');
+        const currentIds = new Set(Array.from(currentTableRows).map(row => row.dataset.id));
+        
+        // حفظ فقط آیدی‌هایی که هنوز در جدول هستند
+        const validSelectedPurchases = new Set();
+        this.selectedPurchases.forEach(id => {
+            if (currentIds.has(id)) {
+                validSelectedPurchases.add(id);
+            }
+        });
+        
+        this.selectedPurchases = validSelectedPurchases;
+        
+        // به‌روزرسانی وضعیت checkboxها
+        currentTableRows.forEach(row => {
                 const checkbox = row.querySelector('.row-checkbox');
                 if (checkbox) {
+                const purchaseId = checkbox.getAttribute('data-id') || checkbox.value;
+                if (this.selectedPurchases.has(purchaseId)) {
                     checkbox.checked = true;
+                    row.classList.add('selected');
+                } else {
+                    checkbox.checked = false;
+                    row.classList.remove('selected');
                 }
             }
         });
         
-        // اگر همه انتخاب‌ها پاک شدند، آمار را مخفی کن
-        if (visibleSelectedPurchases.size === 0) {
-            this.selectedPurchases = visibleSelectedPurchases;
-            this.hideStats();
-            this.updateGlobalSelectionCount();
-            return;
-        }
+        // به‌روزرسانی select all checkboxes
+        this.updateSelectAllCheckboxes();
         
-        // بروزرسانی لیست انتخاب‌ها
-        this.selectedPurchases = visibleSelectedPurchases;
-        
-        // اگر انتخاب‌هایی باقی مانده‌اند، آمار را با API محاسبه کن
-        // تا آمار دقیق کل خریدهای فیلتر شده ارائه شود
+        // به‌روزرسانی آمار
         this.updateStats();
-        this.updateGlobalSelectionCount();
         
-        // بروزرسانی دکمه خروجی اکسل
-        if (window.updateExportButton) {
-            window.updateExportButton();
-        }
+        // همگام‌سازی با bulk edit manager
+        this.syncWithBulkEditManager();
+        
+        console.log(`✅ آمار به‌روزرسانی شد. انتخاب‌های فعلی: ${this.selectedPurchases.size}`);
     }
     
     // متد جدید: همگام‌سازی با bulk edit manager

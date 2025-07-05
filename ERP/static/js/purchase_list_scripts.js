@@ -990,6 +990,14 @@ class PurchasePagination {
                 const page = link.getAttribute('data-page');
                 const section = link.getAttribute('data-section');
                 
+                // بررسی اینکه آیا جدول مربوطه server filter دارد یا نه
+                const tableElement = document.querySelector(`#${section}PurchasesTable`);
+                if (tableElement && tableElement.classList.contains('python-excel-filter')) {
+                    // این جدول server filter دارد، نباید دخالت کنیم
+                    console.log(`⚠️ Table ${section} has server filter, skipping traditional pagination`);
+                    return;
+                }
+                
                 if (!this.isLoading && page && section) {
                     console.log(`👆 Clicked on page ${page} for section ${section}`);
                     this.loadPage(page, section);
@@ -1003,6 +1011,15 @@ class PurchasePagination {
             if (select) {
                 select.addEventListener('change', (e) => {
                     const section = selectId.replace('PerPage', '');
+                    
+                    // بررسی اینکه آیا جدول مربوطه server filter دارد یا نه
+                    const tableElement = document.querySelector(`#${section}PurchasesTable`);
+                    if (tableElement && tableElement.classList.contains('python-excel-filter')) {
+                        // این جدول server filter دارد، نباید دخالت کنیم
+                        console.log(`⚠️ Table ${section} has server filter, skipping per-page change`);
+                        return;
+                    }
+                    
                     const perPage = e.target.value;
                     console.log(`📏 Changed items per page to ${perPage} for section ${section}`);
                     this.changePerPage(section, perPage);
@@ -1086,7 +1103,7 @@ class PurchasePagination {
         
         // بروزرسانی تنظیمات در پیکربندی
         if (window.PurchaseListConfig) {
-            window.PurchaseListConfig.perPage = parseInt(perPage);
+            window.PurchaseListConfig.perPage = perPage === 'all' ? 'all' : parseInt(perPage);
         }
         
         // ذخیره وضعیت فعلی بخش‌ها
@@ -1130,12 +1147,21 @@ class PurchasePagination {
         const details = container.querySelector('.pagination-details');
         if (details) {
             const perPage = this.getPerPageValue(section);
-            const startIndex = ((paginationData.number - 1) * perPage) + 1;
-            const endIndex = Math.min(startIndex + perPage - 1, paginationData.count);
             
-            details.innerHTML = `
-                <span class="text-muted">نمایش ${startIndex} تا ${endIndex} از ${paginationData.count} خرید ${this.getSectionTitle(section)}</span>
-            `;
+            if (perPage === 'all') {
+                // برای نمایش همه
+                details.innerHTML = `
+                    <span class="text-muted">نمایش همه ${paginationData.count} خرید ${this.getSectionTitle(section)}</span>
+                `;
+            } else {
+                // برای نمایش عادی
+                const startIndex = ((paginationData.number - 1) * parseInt(perPage)) + 1;
+                const endIndex = Math.min(startIndex + parseInt(perPage) - 1, paginationData.count);
+                
+                details.innerHTML = `
+                    <span class="text-muted">نمایش ${startIndex} تا ${endIndex} از ${paginationData.count} خرید ${this.getSectionTitle(section)}</span>
+                `;
+            }
         }
 
         // بروزرسانی لینک‌های pagination
@@ -1149,8 +1175,9 @@ class PurchasePagination {
             return;
         }
         
-        // فقط اگر بیش از یک صفحه وجود داشته باشد، نمایش دهیم
-        if (paginationData.num_pages <= 1) {
+        // اگر "نمایش همه" انتخاب شده یا فقط یک صفحه وجود دارد، pagination را مخفی کن
+        const perPage = this.getPerPageValue(section);
+        if (perPage === 'all' || paginationData.num_pages <= 1) {
             nav.innerHTML = '';
             return;
         }

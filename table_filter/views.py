@@ -16,27 +16,52 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 import logging
 import pandas as pd
+from django.core.paginator import Paginator
+from django.db.models import QuerySet
+from .utils import (
+    TableFilterProcessor, ColumnTypeDetector, FilterConfigurationManager,
+    UserFilterStateManager, get_model_from_table_name
+)
+from .models import TableFilterConfiguration, UserTableFilterState, TableFilterStats
 
 # Create your views here.
 
-def table_filter_demo(request):
-    """
-    نمایش صفحه نمونه برای فیلتر جداول
-    """
-    return render(request, 'table_filter/demo.html')
+# Demo view removed
 
 @role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 def bulk_edit_page(request):
     """نمایش صفحه ویرایش گروهی"""
-    selected_ids = request.GET.get('ids', '').split(',')
-    selected_ids = [id.strip() for id in selected_ids if id.strip()]
     
-    model_name = request.GET.get('model', '')
-    app_name = request.GET.get('app', 'core')
-    table_type = request.GET.get('table_type', '')
+    # پردازش داده‌ها از هر دو GET و POST
+    if request.method == 'POST':
+        # دریافت از POST (ارسال از JavaScript)
+        selected_ids_raw = request.POST.get('selected_ids', '')
+        model_name = request.POST.get('model_name', '')
+        app_name = request.POST.get('app_name', 'core')
+        section = request.POST.get('section', '')
+        
+        # پردازش selected_ids (ممکن است JSON باشد)
+        try:
+            if selected_ids_raw.startswith('['):
+                # اگر JSON array باشد
+                selected_ids = json.loads(selected_ids_raw)
+            else:
+                # اگر string با کاما باشد
+                selected_ids = [id.strip() for id in selected_ids_raw.split(',') if id.strip()]
+        except (json.JSONDecodeError, AttributeError):
+            selected_ids = []
+            
+    else:
+        # دریافت از GET (برای سازگاری با روش‌های قدیمی)
+        selected_ids = request.GET.get('ids', '').split(',')
+        selected_ids = [id.strip() for id in selected_ids if id.strip()]
+        model_name = request.GET.get('model', '')
+        app_name = request.GET.get('app', 'core')
+        section = request.GET.get('section', '')
     
-    print(f"DEBUG - Received parameters: model_name={model_name}, app_name={app_name}, table_type={table_type}, selected_ids={selected_ids}")
+    print(f"DEBUG - Method: {request.method}")
+    print(f"DEBUG - Received parameters: model_name={model_name}, app_name={app_name}, section={section}, selected_ids={selected_ids}")
     
     if not selected_ids:
         return render(request, 'table_filter/bulk_edit_error.html', {
@@ -44,6 +69,7 @@ def bulk_edit_page(request):
         })
     
     # تشخیص مدل
+    table_type = ''
     if not model_name:
         referer = request.META.get('HTTP_REFERER', '')
         print(f"DEBUG - Referer URL: {referer}")
@@ -66,7 +92,7 @@ def bulk_edit_page(request):
         elif model_name == 'CargoProduct':
             table_type = 'cargo_product'
     
-    print(f"DEBUG - Final parameters: model_name={model_name}, app_name={app_name}, table_type={table_type}")
+    print(f"DEBUG - Final parameters: model_name={model_name}, app_name={app_name}, table_type={table_type}, section={section}")
     
     try:
         model = apps.get_model(app_name, model_name)
@@ -91,6 +117,7 @@ def bulk_edit_page(request):
         'model_name': model_name,
         'app_name': app_name,
         'table_type': table_type,
+        'section': section,
         'editable_fields': editable_fields,
         'selected_count': len(selected_ids),
         'selected_ids': selected_ids,
@@ -329,14 +356,36 @@ def get_editable_fields(model, table_type, selected_ids=None):
 @login_required
 def bulk_edit_excel_page(request):
     """نمایش صفحه ویرایش با اکسل"""
-    selected_ids = request.GET.get('selected_ids', '').split()
-    selected_ids = [id.strip() for id in selected_ids if id.strip()]
     
-    model_name = request.GET.get('model', '')
-    app_name = request.GET.get('app', 'core')
-    table_type = request.GET.get('table_type', '')
+    # پردازش داده‌ها از هر دو GET و POST
+    if request.method == 'POST':
+        # دریافت از POST (ارسال از JavaScript)
+        selected_ids_raw = request.POST.get('selected_ids', '')
+        model_name = request.POST.get('model_name', '')
+        app_name = request.POST.get('app_name', 'core')
+        section = request.POST.get('section', '')
+        
+        # پردازش selected_ids (ممکن است JSON باشد)
+        try:
+            if selected_ids_raw.startswith('['):
+                # اگر JSON array باشد
+                selected_ids = json.loads(selected_ids_raw)
+            else:
+                # اگر string با کاما باشد
+                selected_ids = [id.strip() for id in selected_ids_raw.split(',') if id.strip()]
+        except (json.JSONDecodeError, AttributeError):
+            selected_ids = []
+            
+    else:
+        # دریافت از GET (برای سازگاری با روش‌های قدیمی)
+        selected_ids = request.GET.get('selected_ids', '').split()
+        selected_ids = [id.strip() for id in selected_ids if id.strip()]
+        model_name = request.GET.get('model', '')
+        app_name = request.GET.get('app', 'core')
+        section = request.GET.get('section', '')
     
-    print(f"DEBUG - Excel page: model_name={model_name}, app_name={app_name}, table_type={table_type}")
+    print(f"DEBUG - Excel page Method: {request.method}")
+    print(f"DEBUG - Excel page parameters: model_name={model_name}, app_name={app_name}, section={section}")
     print(f"DEBUG - Selected IDs: {selected_ids}")
     
     if not selected_ids:
@@ -345,6 +394,7 @@ def bulk_edit_excel_page(request):
         })
     
     # تشخیص مدل
+    table_type = ''
     if not model_name:
         referer = request.META.get('HTTP_REFERER', '')
         print(f"DEBUG - Excel page referer: {referer}")
@@ -387,6 +437,7 @@ def bulk_edit_excel_page(request):
         'model_name': model_name,
         'app_name': app_name,
         'table_type': table_type,
+        'section': section,
     }
     
     return render(request, 'table_filter/bulk_edit_excel.html', context)
@@ -1835,36 +1886,592 @@ def _process_field_value_simple(obj, field_name, value, model):
 @role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 def debug_excel_processing(request):
-    """تابع debug برای بررسی مشکل پردازش اکسل"""
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Only POST method allowed'})
-    
+    """دیباگ پردازش اکسل"""
+    return render(request, 'table_filter/debug_excel.html')
+
+
+# =================== NEW TABLE FILTER API VIEWS ===================
+
+@login_required
+@require_http_methods(["GET"])
+def get_table_configuration(request, table_name):
+    """دریافت تنظیمات فیلتر جدول"""
     try:
-        # تست با یک فایل نمونه
-        excel_file = request.FILES.get('excel_file')
-        if not excel_file:
-            return JsonResponse({'error': 'No Excel file provided'})
+        config_manager = FilterConfigurationManager(table_name)
+        configurations = config_manager.get_table_configuration()
         
-        # خواندن فایل
-        df = pd.read_excel(excel_file, engine='openpyxl')
-        
-        debug_info = {
-            'file_name': excel_file.name,
-            'shape': df.shape,
-            'columns': list(df.columns),
-            'sample_data': df.head(2).to_dict('records'),
-            'dtypes': df.dtypes.to_dict(),
-            'null_counts': df.isnull().sum().to_dict()
-        }
+        config_data = []
+        for config in configurations:
+            config_data.append({
+                'column_id': config.column_id,
+                'column_name': config.column_name,
+                'column_type': config.column_type,
+                'is_filterable': config.is_filterable,
+                'is_sortable': config.is_sortable,
+                'is_visible': config.is_visible,
+                'column_order': config.column_order,
+                'choices': config.choices_list if config.column_type == 'choice' else None,
+            })
         
         return JsonResponse({
-            'status': 'success',
-            'debug_info': debug_info
+            'success': True,
+            'configurations': config_data
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def apply_table_filter(request):
+    """اعمال فیلتر روی جدول"""
+    try:
+        data = json.loads(request.body)
+        table_name = data.get('table_name')
+        filter_config = data.get('filter_config', {})
+        sort_config = data.get('sort_config', {})
+        page = data.get('page', 1)
+        page_size = data.get('page_size', 50)
+        save_state = data.get('save_state', True)
+        
+        if not table_name:
+            return JsonResponse({
+                'success': False,
+                'error': 'نام جدول الزامی است'
+            }, status=400)
+        
+        # دریافت مدل مربوطه
+        model = get_model_from_table_name(table_name)
+        if not model:
+            return JsonResponse({
+                'success': False,
+                'error': 'مدل مربوط به جدول یافت نشد'
+            }, status=404)
+        
+        # ایجاد queryset اولیه
+        queryset = model.objects.all()
+        
+        # اعمال فیلتر
+        processor = TableFilterProcessor(queryset, table_name)
+        
+        if filter_config:
+            queryset = processor.apply_filters(filter_config)
+        
+        if sort_config:
+            queryset = processor.apply_sorting(sort_config)
+        
+        # ذخیره وضعیت کاربر
+        if save_state:
+            state_manager = UserFilterStateManager(request.user, table_name)
+            state_manager.save_filter_state(filter_config, sort_config)
+        
+        # ثبت آمار استفاده
+        for column_id, filter_data in filter_config.items():
+            if filter_data and filter_data.get('values'):
+                for value in filter_data['values']:
+                    TableFilterStats.record_usage(table_name, column_id, value, request.user)
+        
+        # صفحه‌بندی
+        paginator = Paginator(queryset, page_size)
+        page_obj = paginator.get_page(page)
+        
+        # تبدیل نتایج به JSON
+        results = []
+        for obj in page_obj:
+            obj_data = {}
+            for field in model._meta.fields:
+                value = getattr(obj, field.name)
+                if value is not None:
+                    if hasattr(value, 'strftime'):  # تاریخ
+                        obj_data[field.name] = value.strftime('%Y-%m-%d')
+                    elif isinstance(value, bool):  # بولین
+                        obj_data[field.name] = 'بله' if value else 'خیر'
+                    else:
+                        obj_data[field.name] = str(value)
+                else:
+                    obj_data[field.name] = ''
+            
+            obj_data['id'] = obj.id
+            results.append(obj_data)
+        
+        return JsonResponse({
+            'success': True,
+            'results': results,
+            'pagination': {
+                'current_page': page_obj.number,
+                'total_pages': paginator.num_pages,
+                'total_count': paginator.count,
+                'has_next': page_obj.has_next(),
+                'has_previous': page_obj.has_previous(),
+                'page_size': page_size
+            },
+            'filter_applied': bool(filter_config),
+            'sort_applied': bool(sort_config)
         })
         
     except Exception as e:
         return JsonResponse({
-            'status': 'error',
-            'message': str(e),
-            'type': type(e).__name__
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_column_values(request, table_name, column_id):
+    """دریافت مقادیر منحصر به فرد یک ستون"""
+    try:
+        # دریافت مدل
+        model = get_model_from_table_name(table_name)
+        if not model:
+            return JsonResponse({
+                'success': False,
+                'error': 'مدل مربوط به جدول یافت نشد'
+            }, status=404)
+        
+        # پارامترهای فیلتر فعلی (برای نمایش مقادیر فیلتر شده)
+        current_filters = request.GET.get('current_filters')
+        if current_filters:
+            try:
+                current_filters = json.loads(current_filters)
+                # حذف فیلتر ستون فعلی از فیلترهای موجود
+                current_filters.pop(column_id, None)
+            except:
+                current_filters = {}
+        else:
+            current_filters = {}
+        
+        # ایجاد queryset
+        queryset = model.objects.all()
+        
+        # اعمال فیلترهای فعلی (به جز ستون فعلی)
+        if current_filters:
+            processor = TableFilterProcessor(queryset, table_name)
+            queryset = processor.apply_filters(current_filters)
+        
+        # دریافت مقادیر ستون
+        processor = TableFilterProcessor(queryset, table_name)
+        column_values = processor.get_column_values(column_id, limit=500)
+        
+        return JsonResponse({
+            'success': True,
+            'values': column_values,
+            'total_count': len(column_values)
         })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def save_user_filter_state(request):
+    """ذخیره وضعیت فیلتر کاربر"""
+    try:
+        data = json.loads(request.body)
+        table_name = data.get('table_name')
+        filter_state = data.get('filter_state', {})
+        sort_state = data.get('sort_state', {})
+        column_visibility = data.get('column_visibility', {})
+        
+        if not table_name:
+            return JsonResponse({
+                'success': False,
+                'error': 'نام جدول الزامی است'
+            }, status=400)
+        
+        state_manager = UserFilterStateManager(request.user, table_name)
+        state_manager.save_filter_state(filter_state, sort_state, column_visibility)
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'وضعیت فیلتر ذخیره شد'
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_user_filter_state(request, table_name):
+    """دریافت وضعیت فیلتر کاربر"""
+    try:
+        state_manager = UserFilterStateManager(request.user, table_name)
+        filter_state, sort_state, column_visibility = state_manager.get_filter_state()
+        
+        return JsonResponse({
+            'success': True,
+            'filter_state': filter_state,
+            'sort_state': sort_state,
+            'column_visibility': column_visibility
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def clear_user_filter_state(request, table_name):
+    """پاک کردن وضعیت فیلتر کاربر"""
+    try:
+        state_manager = UserFilterStateManager(request.user, table_name)
+        state_manager.clear_filter_state()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'وضعیت فیلتر پاک شد'
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def update_column_configuration(request):
+    """بروزرسانی تنظیمات ستون"""
+    try:
+        data = json.loads(request.body)
+        table_name = data.get('table_name')
+        column_id = data.get('column_id')
+        updates = data.get('updates', {})
+        
+        if not all([table_name, column_id]):
+            return JsonResponse({
+                'success': False,
+                'error': 'نام جدول و شناسه ستون الزامی است'
+            }, status=400)
+        
+        # بروزرسانی تنظیمات
+        config = TableFilterConfiguration.objects.get(
+            table_name=table_name,
+            column_id=column_id
+        )
+        
+        for key, value in updates.items():
+            if hasattr(config, key):
+                setattr(config, key, value)
+        
+        config.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'تنظیمات ستون بروزرسانی شد'
+        })
+    
+    except TableFilterConfiguration.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'تنظیمات ستون یافت نشد'
+        }, status=404)
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def bulk_update_column_visibility(request):
+    """بروزرسانی گروهی نمایش ستون‌ها"""
+    try:
+        data = json.loads(request.body)
+        table_name = data.get('table_name')
+        column_visibility = data.get('column_visibility', {})
+        
+        if not table_name:
+            return JsonResponse({
+                'success': False,
+                'error': 'نام جدول الزامی است'
+            }, status=400)
+        
+        config_manager = FilterConfigurationManager(table_name)
+        
+        for column_id, is_visible in column_visibility.items():
+            config_manager.toggle_column_visibility(column_id, is_visible)
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'نمایش ستون‌ها بروزرسانی شد'
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def update_column_order(request):
+    """بروزرسانی ترتیب ستون‌ها"""
+    try:
+        data = json.loads(request.body)
+        table_name = data.get('table_name')
+        column_orders = data.get('column_orders', {})
+        
+        if not table_name:
+            return JsonResponse({
+                'success': False,
+                'error': 'نام جدول الزامی است'
+            }, status=400)
+        
+        config_manager = FilterConfigurationManager(table_name)
+        config_manager.update_column_order(column_orders)
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'ترتیب ستون‌ها بروزرسانی شد'
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_table_stats(request, table_name):
+    """دریافت آمار جدول"""
+    try:
+        model = get_model_from_table_name(table_name)
+        if not model:
+            return JsonResponse({
+                'success': False,
+                'error': 'مدل مربوط به جدول یافت نشد'
+            }, status=404)
+        
+        queryset = model.objects.all()
+        processor = TableFilterProcessor(queryset, table_name)
+        stats = processor.get_table_stats()
+        
+        return JsonResponse({
+            'success': True,
+            'stats': stats
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def detect_column_type(request, table_name, column_id):
+    """تشخیص نوع ستون"""
+    try:
+        model = get_model_from_table_name(table_name)
+        if not model:
+            return JsonResponse({
+                'success': False,
+                'error': 'مدل مربوط به جدول یافت نشد'
+            }, status=404)
+        
+        # تشخیص نوع بر اساس مدل
+        field_type = ColumnTypeDetector.detect_field_type(model, column_id)
+        
+        # در صورت نیاز، تشخیص بر اساس نمونه داده‌ها
+        if field_type == 'text':
+            try:
+                sample_values = list(
+                    model.objects.exclude(**{f'{column_id}__isnull': True})
+                    .values_list(column_id, flat=True)[:10]
+                )
+                if sample_values:
+                    field_type = ColumnTypeDetector.detect_by_sample_data(sample_values)
+            except:
+                pass
+        
+        return JsonResponse({
+            'success': True,
+            'column_type': field_type
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_filter_stats(request, table_name):
+    """دریافت آمار استفاده از فیلترها"""
+    try:
+        # آمار استفاده کاربر فعلی
+        user_stats = TableFilterStats.objects.filter(
+            table_name=table_name,
+            user=request.user
+        ).order_by('-usage_count', '-last_used')[:20]
+        
+        # آمار عمومی محبوب‌ترین فیلترها
+        popular_stats = TableFilterStats.objects.filter(
+            table_name=table_name
+        ).values('column_id', 'filter_value').annotate(
+            total_usage=Count('usage_count')
+        ).order_by('-total_usage')[:10]
+        
+        user_data = []
+        for stat in user_stats:
+            user_data.append({
+                'column_id': stat.column_id,
+                'filter_value': stat.filter_value,
+                'usage_count': stat.usage_count,
+                'last_used': stat.last_used.isoformat()
+            })
+        
+        popular_data = []
+        for stat in popular_stats:
+            popular_data.append({
+                'column_id': stat['column_id'],
+                'filter_value': stat['filter_value'],
+                'total_usage': stat['total_usage']
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'user_stats': user_data,
+            'popular_stats': popular_data
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def setup_table_configuration(request):
+    """تنظیم اولیه پیکربندی جدول"""
+    try:
+        data = json.loads(request.body)
+        table_name = data.get('table_name')
+        model_name = data.get('model_name')  # optional: app_label.model_name
+        columns = data.get('columns', [])
+        
+        if not table_name:
+            return JsonResponse({
+                'success': False,
+                'error': 'نام جدول الزامی است'
+            }, status=400)
+        
+        # تلاش برای یافتن مدل
+        model = None
+        if model_name:
+            model = get_model_from_table_name(model_name)
+        else:
+            model = get_model_from_table_name(table_name)
+        
+        config_manager = FilterConfigurationManager(table_name)
+        
+        created_configs = []
+        for i, column_info in enumerate(columns):
+            column_id = column_info.get('id')
+            column_name = column_info.get('name', column_id)
+            
+            if not column_id:
+                continue
+            
+            config = config_manager.get_or_create_column_config(
+                column_id=column_id,
+                column_name=column_name,
+                model_class=model
+            )
+            
+            # تنظیم ترتیب
+            config.column_order = i
+            config.save()
+            
+            created_configs.append({
+                'column_id': config.column_id,
+                'column_name': config.column_name,
+                'column_type': config.column_type,
+                'column_order': config.column_order
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'پیکربندی جدول {table_name} با موفقیت انجام شد',
+            'configurations': created_configs
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+@csrf_exempt
+def reset_column_order(request):
+    """بازگشت به ترتیب پیش‌فرض ستون‌ها"""
+    try:
+        data = json.loads(request.body)
+        table_name = data.get('table_name')
+        
+        if not table_name:
+            return JsonResponse({
+                'success': False,
+                'error': 'نام جدول الزامی است'
+            }, status=400)
+        
+        # بازنشانی ترتیب ستون‌ها به حالت پیش‌فرض
+        configs = TableFilterConfiguration.objects.filter(
+            table_name=table_name
+        ).order_by('id')  # یا هر ترتیب پیش‌فرض دیگری
+        
+        for i, config in enumerate(configs):
+            config.column_order = i
+            config.is_visible = True  # نمایش همه ستون‌ها
+            config.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'ترتیب ستون‌ها به حالت پیش‌فرض بازگردانده شد'
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+# Helper views removed - demo files deleted
