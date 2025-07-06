@@ -2,6 +2,8 @@ from django.db import models
 import json
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
 
 # Create your models here.
 
@@ -114,3 +116,208 @@ class BulkEditLog(models.Model):
             return True, f"فیلد {self.field_name} به مقدار قبلی بازگردانده شد"
         except Exception as e:
             return False, f"خطا در بازگرداندن مقدار: {str(e)}"
+
+
+class TableFilterConfiguration(models.Model):
+    """مدل تنظیمات فیلتر جدول"""
+    
+    COLUMN_TYPE_CHOICES = [
+        ('text', 'متن'),
+        ('number', 'عدد'),
+        ('date', 'تاریخ'),
+        ('boolean', 'بولین'),
+        ('status', 'وضعیت'),
+        ('choice', 'انتخابی'),
+    ]
+    
+    table_name = models.CharField(max_length=100, verbose_name="نام جدول")
+    column_id = models.CharField(max_length=100, verbose_name="شناسه ستون")
+    column_name = models.CharField(max_length=100, verbose_name="نام ستون")
+    column_type = models.CharField(max_length=20, choices=COLUMN_TYPE_CHOICES, default='text', verbose_name="نوع ستون")
+    is_filterable = models.BooleanField(default=True, verbose_name="قابل فیلتر")
+    is_sortable = models.BooleanField(default=True, verbose_name="قابل مرتب‌سازی")
+    is_visible = models.BooleanField(default=True, verbose_name="قابل نمایش")
+    column_order = models.PositiveIntegerField(default=0, verbose_name="ترتیب ستون")
+    
+    # تنظیمات اضافی برای انواع مختلف ستون‌ها
+    choices_json = models.TextField(blank=True, null=True, verbose_name="گزینه‌های انتخابی (JSON)")
+    date_format = models.CharField(max_length=50, blank=True, null=True, verbose_name="فرمت تاریخ")
+    number_format = models.CharField(max_length=50, blank=True, null=True, verbose_name="فرمت عدد")
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاریخ بروزرسانی")
+    
+    class Meta:
+        verbose_name = "تنظیمات فیلتر جدول"
+        verbose_name_plural = "تنظیمات فیلتر جداول"
+        unique_together = ['table_name', 'column_id']
+        ordering = ['table_name', 'column_order', 'column_id']
+        indexes = [
+            models.Index(fields=['table_name']),
+            models.Index(fields=['table_name', 'column_id']),
+        ]
+    
+    def __str__(self):
+        return f"{self.table_name} - {self.column_name}"
+    
+    @property
+    def choices_list(self):
+        """بازگرداندن لیست گزینه‌های انتخابی"""
+        if self.choices_json:
+            try:
+                return json.loads(self.choices_json)
+            except json.JSONDecodeError:
+                return []
+        return []
+    
+    @choices_list.setter
+    def choices_list(self, value):
+        """تنظیم لیست گزینه‌های انتخابی"""
+        if value:
+            self.choices_json = json.dumps(value, ensure_ascii=False)
+        else:
+            self.choices_json = None
+
+
+class UserTableFilterState(models.Model):
+    """مدل ذخیره وضعیت فیلتر کاربر"""
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کاربر")
+    table_name = models.CharField(max_length=100, verbose_name="نام جدول")
+    filter_state_json = models.TextField(verbose_name="وضعیت فیلتر (JSON)")
+    sort_state_json = models.TextField(blank=True, null=True, verbose_name="وضعیت مرتب‌سازی (JSON)")
+    column_visibility_json = models.TextField(blank=True, null=True, verbose_name="نمایش ستون‌ها (JSON)")
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاریخ بروزرسانی")
+    
+    class Meta:
+        verbose_name = "وضعیت فیلتر کاربر"
+        verbose_name_plural = "وضعیت‌های فیلتر کاربران"
+        unique_together = ['user', 'table_name']
+        indexes = [
+            models.Index(fields=['user', 'table_name']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.table_name}"
+    
+    @property
+    def filter_state(self):
+        """بازگرداندن وضعیت فیلتر"""
+        try:
+            return json.loads(self.filter_state_json) if self.filter_state_json else {}
+        except json.JSONDecodeError:
+            return {}
+    
+    @filter_state.setter
+    def filter_state(self, value):
+        """تنظیم وضعیت فیلتر"""
+        self.filter_state_json = json.dumps(value, ensure_ascii=False)
+    
+    @property
+    def sort_state(self):
+        """بازگرداندن وضعیت مرتب‌سازی"""
+        try:
+            return json.loads(self.sort_state_json) if self.sort_state_json else {}
+        except json.JSONDecodeError:
+            return {}
+    
+    @sort_state.setter
+    def sort_state(self, value):
+        """تنظیم وضعیت مرتب‌سازی"""
+        self.sort_state_json = json.dumps(value, ensure_ascii=False)
+    
+    @property
+    def column_visibility(self):
+        """بازگرداندن وضعیت نمایش ستون‌ها"""
+        try:
+            return json.loads(self.column_visibility_json) if self.column_visibility_json else {}
+        except json.JSONDecodeError:
+            return {}
+    
+    @column_visibility.setter
+    def column_visibility(self, value):
+        """تنظیم وضعیت نمایش ستون‌ها"""
+        self.column_visibility_json = json.dumps(value, ensure_ascii=False)
+
+
+class TableFilterPreset(models.Model):
+    """مدل پیش‌تنظیمات فیلتر جدول"""
+    
+    name = models.CharField(max_length=100, verbose_name="نام پیش‌تنظیم")
+    description = models.TextField(blank=True, null=True, verbose_name="توضیحات")
+    table_name = models.CharField(max_length=100, verbose_name="نام جدول")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کاربر")
+    is_public = models.BooleanField(default=False, verbose_name="عمومی")
+    is_default = models.BooleanField(default=False, verbose_name="پیش‌فرض")
+    
+    filter_config_json = models.TextField(verbose_name="تنظیمات فیلتر (JSON)")
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاریخ بروزرسانی")
+    
+    class Meta:
+        verbose_name = "پیش‌تنظیم فیلتر جدول"
+        verbose_name_plural = "پیش‌تنظیمات فیلتر جداول"
+        unique_together = ['user', 'table_name', 'name']
+        ordering = ['table_name', 'name']
+        indexes = [
+            models.Index(fields=['table_name', 'user']),
+            models.Index(fields=['table_name', 'is_public']),
+        ]
+    
+    def __str__(self):
+        return f"{self.table_name} - {self.name} ({self.user.username})"
+    
+    @property
+    def filter_config(self):
+        """بازگرداندن تنظیمات فیلتر"""
+        try:
+            return json.loads(self.filter_config_json) if self.filter_config_json else {}
+        except json.JSONDecodeError:
+            return {}
+    
+    @filter_config.setter
+    def filter_config(self, value):
+        """تنظیم تنظیمات فیلتر"""
+        self.filter_config_json = json.dumps(value, ensure_ascii=False)
+
+
+class TableFilterStats(models.Model):
+    """مدل آمار استفاده از فیلترها"""
+    
+    table_name = models.CharField(max_length=100, verbose_name="نام جدول")
+    column_id = models.CharField(max_length=100, verbose_name="شناسه ستون")
+    filter_value = models.TextField(verbose_name="مقدار فیلتر")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کاربر")
+    usage_count = models.PositiveIntegerField(default=1, verbose_name="تعداد استفاده")
+    last_used = models.DateTimeField(auto_now=True, verbose_name="آخرین استفاده")
+    
+    class Meta:
+        verbose_name = "آمار فیلتر جدول"
+        verbose_name_plural = "آمار فیلترهای جداول"
+        unique_together = ['table_name', 'column_id', 'filter_value', 'user']
+        ordering = ['-usage_count', '-last_used']
+        indexes = [
+            models.Index(fields=['table_name', 'column_id']),
+            models.Index(fields=['user', 'last_used']),
+        ]
+    
+    def __str__(self):
+        return f"{self.table_name}.{self.column_id}: {self.filter_value[:50]}"
+    
+    @classmethod
+    def record_usage(cls, table_name, column_id, filter_value, user):
+        """ثبت استفاده از فیلتر"""
+        obj, created = cls.objects.get_or_create(
+            table_name=table_name,
+            column_id=column_id,
+            filter_value=filter_value,
+            user=user,
+            defaults={'usage_count': 1}
+        )
+        if not created:
+            obj.usage_count += 1
+            obj.save(update_fields=['usage_count', 'last_used'])
+        return obj

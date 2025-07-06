@@ -7,6 +7,207 @@ register = template.Library()
 
 
 @register.simple_tag
+def load_table_filter():
+    """بارگذاری فایل‌های CSS و JS فیلتر جدول"""
+    return mark_safe('''
+        <link rel="stylesheet" href="/static/table_filter/css/table_filter.css">
+        <script src="/static/table_filter/js/table_filter.js"></script>
+    ''')
+
+
+@register.simple_tag
+def table_filter_init(table_selector, config=None):
+    """راه‌اندازی فیلتر برای جدول مشخص"""
+    if config is None:
+        config = {}
+    
+    default_config = {
+        'tableSelector': table_selector,
+        'enableToast': True,
+        'enableIndicators': True,
+        'enableSummary': True,
+        'enableClearAll': True,
+        'autoDetectColumns': True
+    }
+    
+    # ترکیب تنظیمات پیش‌فرض با تنظیمات سفارشی
+    final_config = {**default_config, **config}
+    
+    script = f'''
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {{
+        const tableFilter = new TableFilter({json.dumps(final_config)});
+        console.log('فیلتر اکسلی راه‌اندازی شد برای: {table_selector}');
+    }});
+    </script>
+    '''
+    
+    return mark_safe(script)
+
+
+@register.simple_tag
+def excel_filter_table(table_id, columns=None, extra_config=None):
+    """
+    ایجاد کامل فیلتر اکسلی برای جدول
+    
+    Usage:
+    {% excel_filter_table 'myTable' columns='id:number,name:text,date:date' %}
+    """
+    config = {
+        'tableSelector': f'#{table_id}',
+        'enableToast': True,
+        'enableIndicators': True,
+        'enableSummary': True,
+        'enableClearAll': True,
+        'autoDetectColumns': True
+    }
+    
+    # پردازش تنظیمات ستون‌ها
+    if columns:
+        column_config = {}
+        for column in columns.split(','):
+            if ':' in column:
+                col_id, col_type = column.strip().split(':')
+                column_config[col_id] = {
+                    'type': col_type,
+                    'filterable': True,
+                    'sortable': True
+                }
+        config['columnConfig'] = column_config
+    
+    # اضافه کردن تنظیمات اضافی
+    if extra_config:
+        config.update(extra_config)
+    
+    # ایجاد اسکریپت
+    script = f'''
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {{
+        // اطمینان از بارگذاری کامل TableFilter
+        if (typeof TableFilter !== 'undefined') {{
+            const filter_{table_id.replace('-', '_')} = new TableFilter({json.dumps(config)});
+            console.log('فیلتر اکسلی راه‌اندازی شد برای #{table_id}');
+        }} else {{
+            console.error('TableFilter class یافت نشد. مطمئن شوید که table_filter.js بارگذاری شده است.');
+        }}
+    }});
+    </script>
+    '''
+    
+    return mark_safe(script)
+
+
+@register.inclusion_tag('table_filter/filter_header.html')
+def table_header(columns):
+    """
+    ایجاد header جدول با تنظیمات فیلتر
+    
+    Usage:
+    {% table_header columns %}
+    
+    columns format: [
+        {'id': 'name', 'title': 'نام', 'type': 'text'},
+        {'id': 'amount', 'title': 'مبلغ', 'type': 'number'},
+    ]
+    """
+    return {'columns': columns}
+
+
+@register.simple_tag
+def filter_column_class(column_id, column_type=None):
+    """ایجاد کلاس‌های مناسب برای ستون جدول"""
+    classes = f'column-{column_id}'
+    return classes
+
+
+@register.simple_tag
+def filter_column_attrs(column_id, column_type=None, column_name=None):
+    """ایجاد attribute های مناسب برای ستون جدول"""
+    attrs = []
+    
+    if column_type:
+        attrs.append(f'data-column-type="{column_type}"')
+    
+    if column_id:
+        attrs.append(f'data-column-id="{column_id}"')
+    
+    if column_name:
+        attrs.append(f'data-column-name="{column_name}"')
+    
+    return mark_safe(' '.join(attrs))
+
+
+@register.simple_tag
+def filter_demo_data():
+    """داده‌های نمونه برای تست فیلتر"""
+    sample_data = [
+        {
+            'id': 1001,
+            'name': 'علی احمدی',
+            'email': 'ali.ahmadi@email.com',
+            'amount': '2,500,000',
+            'date': '1403/08/15',
+            'status': 'فعال',
+            'city': 'تهران'
+        },
+        {
+            'id': 1002,
+            'name': 'مریم حسینی',
+            'email': 'maryam.hosseini@email.com',
+            'amount': '1,750,000',
+            'date': '1403/08/10',
+            'status': 'در انتظار',
+            'city': 'مشهد'
+        },
+        # می‌توان داده‌های بیشتری اضافه کرد
+    ]
+    
+    return sample_data
+
+
+@register.filter
+def column_type_icon(column_type):
+    """نمایش آیکون مناسب برای نوع ستون"""
+    icons = {
+        'text': 'fas fa-font',
+        'number': 'fas fa-calculator',
+        'date': 'fas fa-calendar',
+        'status': 'fas fa-tag',
+        'boolean': 'fas fa-check-square',
+        'choice': 'fas fa-list'
+    }
+    return icons.get(column_type, 'fas fa-question-circle')
+
+
+@register.simple_tag
+def table_filter_config_js(config_dict):
+    """تبدیل دیکشنری Python به JSON برای استفاده در JavaScript"""
+    return mark_safe(json.dumps(config_dict, ensure_ascii=False))
+
+
+@register.simple_tag
+def auto_table_filter(table_selector):
+    """راه‌اندازی خودکار فیلتر با حداقل تنظیمات"""
+    script = f'''
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {{
+        if (typeof TableFilter !== 'undefined') {{
+            new TableFilter({{
+                tableSelector: '{table_selector}',
+                enableToast: true,
+                enableIndicators: true,
+                enableSummary: true,
+                enableClearAll: true,
+                autoDetectColumns: true
+            }});
+        }}
+    }});
+    </script>
+    '''
+    return mark_safe(script)
+
+
+@register.simple_tag
 def table_filter_scripts():
     """
     Load table filter CSS and JavaScript files

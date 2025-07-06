@@ -682,6 +682,9 @@ $(document).ready(function() {
         
         // محاسبه مجموع ساعات
         calculateTotalHours();
+        
+        // بروزرسانی توضیحات با بازه‌های زمانی
+        updateDescriptionWithTimeRanges();
     }
     
     function addTimeRange(startTime = '', endTime = '') {
@@ -802,16 +805,21 @@ $(document).ready(function() {
         `;
         $('#time-ranges-container').append(newItem);
         calculateTotalHours();
+        updateDescriptionWithTimeRanges();
     });
 
     // حذف بازه زمانی
     $(document).on('click', '.remove-range', function() {
         $(this).closest('.time-range-item').remove();
         calculateTotalHours();
+        updateDescriptionWithTimeRanges();
     });
 
     // محاسبه مجموع ساعات
-    $(document).on('change', '.start-time, .end-time', calculateTotalHours);
+    $(document).on('change', '.start-time, .end-time', function() {
+        calculateTotalHours();
+        updateDescriptionWithTimeRanges();
+    });
 
     function calculateTotalHours() {
         let totalMinutes = 0;
@@ -829,6 +837,32 @@ $(document).ready(function() {
         const totalHours = (totalMinutes / 60).toFixed(2);
         $('#total-hours-display').text(totalHours);
         $('#id_hours').val(totalHours);
+    }
+    
+    // تابع اضافه کردن بازه‌های زمانی به توضیحات
+    function updateDescriptionWithTimeRanges() {
+        let timeRangesText = "\n\nبازه‌های زمانی:\n";
+        let hasValidRanges = false;
+        
+        $('.time-range-item').each(function(index) {
+            const startTime = $(this).find('.start-time').val();
+            const endTime = $(this).find('.end-time').val();
+            if (startTime && endTime) {
+                timeRangesText += `${index + 1}. ${startTime} تا ${endTime}\n`;
+                hasValidRanges = true;
+            }
+        });
+        
+        // دریافت متن توضیحات فعلی و حذف بازه‌های زمانی قبلی (اگر وجود دارد)
+        let currentDescription = $('#id_description').val() || '';
+        currentDescription = currentDescription.replace(/\n\nبازه‌های زمانی:[\s\S]*$/, '');
+        
+        // اضافه کردن بازه‌های زمانی جدید به توضیحات
+        if (hasValidRanges) {
+            $('#id_description').val(currentDescription + timeRangesText);
+        } else {
+            $('#id_description').val(currentDescription);
+        }
     }
     
     // مدیریت نمایش توضیحات در مودال

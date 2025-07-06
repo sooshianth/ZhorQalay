@@ -1,0 +1,10 @@
+{% load table_filter_tags %}
+
+<tr>
+    {% for column in columns %}
+    <th class="{% filter_column_class column.id column.type %}" 
+        {% filter_column_attrs column.id column.type column.title %}>
+        {{ column.title }}
+    </th>
+    {% endfor %}
+</tr> 
