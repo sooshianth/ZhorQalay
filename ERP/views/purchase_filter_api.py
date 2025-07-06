@@ -9,6 +9,10 @@ from core._models import Purchase
 from core.decorators.decorators import role_required
 from core.decorators.det_user_role import determine_user_role
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from .managers_profile_view import get_client_ip
+import logging
+
+logger = logging.getLogger("erp_purchase_filter_api")
 
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
@@ -77,9 +81,11 @@ def apply_purchase_filter(request):
     """
     API برای اعمال فیلتر سمت سرور به خریدها
     """
+    logger.warning(f"درخواست فیلتر خرید توسط {request.user.username} انجام شده. {get_client_ip(request)}")
     try:
         # دریافت پارامترهای فیلتر
         filters = json.loads(request.POST.get('filters', '{}'))
+        logger.warning(f"فیلتر ها: {filters}")
         sort_config = json.loads(request.POST.get('sort', '{}'))
         # دریافت پارامترهای pagination با validation بیشتر
         page_param = request.POST.get('page', '1')
@@ -90,7 +96,7 @@ def apply_purchase_filter(request):
             page = int(page_param)
             per_page = int(per_page_param)
         except (ValueError, TypeError):
-            print(f"❌ مقادیر pagination نامعتبر: page={page_param}, per_page={per_page_param}")
+            logger.error(f"❌ مقادیر pagination نامعتبر: page={page_param}, per_page={per_page_param}")
             page = 1
             per_page = 50
         
@@ -463,6 +469,7 @@ def get_purchase_column_values(request):
     """
     API برای دریافت مقادیر منحصر به فرد یک ستون برای فیلتر
     """
+    logger.warning(f"API برای دریافت مقادیر منحصر به فرد یک ستون برای فیلتر توسط {request.user.username} دسترسی یافت. {get_client_ip(request)}")
     try:
         column_id = request.POST.get('column_id')
         section = request.POST.get('section', 'active')
@@ -501,9 +508,7 @@ def get_purchase_column_values(request):
                 queryset = queryset.filter(unique_sales_agent=request.user.sales_agent)
             else:
                 queryset = Purchase.objects.none()
-        
-
-        
+                
         # استخراج مقادیر بر اساس نوع ستون
         values = set()
         

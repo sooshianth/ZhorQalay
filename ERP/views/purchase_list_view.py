@@ -17,6 +17,7 @@ from django.views.decorators.cache import cache_page
 from django.core.cache import cache
 from core.PurchaseModel import Purchase, PurchaseEditLog
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from .managers_profile_view import get_client_ip
 import logging
 
 logger = logging.getLogger("erp_purchase_list_view")
@@ -24,6 +25,7 @@ logger = logging.getLogger("erp_purchase_list_view")
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
 def purchase_list(request):
+    logger.warning(f"لیست خرید توسط {request.user.username} باز شد با آیپی {get_client_ip(request)}")
     # دریافت پارامترهای فیلتر
     global_search = request.GET.get('global_search', '')
     customer = request.GET.get('customer', '')
@@ -243,9 +245,6 @@ def purchase_list(request):
         # دریافت ستون های انتخاب شده از کوکی فقط برای کاربران محدود
         selected_columns = request.COOKIES.get('selected_columns', '')
         
-        # For debugging
-        print(f"Cookie selected_columns for restricted user: '{selected_columns}'")
-        
         if not selected_columns:
             # پیش‌فرض برای کاربران محدود: نمایش همه ستون‌های مجاز
             selected_columns = allowed_columns
@@ -267,7 +266,8 @@ def purchase_list(request):
         if 'actions' not in selected_columns:
             selected_columns.append('actions')
         
-        print(f"Final selected columns for restricted user: {selected_columns}")
+        logger.warning(f"ستون های انتخابی کاربر محدود {request.user.username}: {selected_columns}")
+        logger.warning(f"ستون های قابل انتخاب کاربر محدود {request.user.username}: {all_columns}")
     else:
         # دریافت ستون های انتخاب شده از کوکی برای کاربران غیرمحدود
         selected_columns = request.COOKIES.get('selected_columns', '')
@@ -342,6 +342,8 @@ def purchase_list(request):
                 {'id': 'company_price', 'name': 'فی خرید', 'field': 'company_price', 'unit': 'ریال'},
                 {'id': 'amount_paid', 'name': 'مبلغ پرداختی', 'field': 'amount_paid', 'unit': 'ریال'},
             ])
+        logger.warning(f"ستون های انتخابی کاربر نامحدود {request.user.username}: {selected_columns}")
+        logger.warning(f"ستون های قابل انتخاب کاربر نامحدود {request.user.username}: {all_columns}")
 
     # اگر درخواست AJAX است، فقط داده‌های JSON برگردان
     if is_ajax:
@@ -427,6 +429,7 @@ def load_archived_purchases(request):
     """
     API برای بارگذاری lazy خریدهای آرشیو شده
     """
+    logger.warning(f"خرید های ارشیو شده توسط {request.user.username} لود شد. {get_client_ip(request)}")
     try:
         # تشخیص نقش کاربر
         user_role = determine_user_role(request.user)
@@ -483,25 +486,21 @@ def update_columns(request):
     """
     به‌روزرسانی ستون‌های انتخاب شده برای نمایش در لیست خریدها
     """
+    logger.warning(f"ستون های لیست خرید اپدیت شدند توسط {request.user.username} و {get_client_ip(request)}")
     try:
         # دریافت ستون‌های انتخاب شده از فرم
         selected_columns = request.POST.getlist('columns[]')
-        
-        # ثبت لاگ برای دیباگ
-        print(f"ستون‌های دریافت شده: {selected_columns}")
-        print(f"داده‌های POST کامل: {dict(request.POST)}")
-        
+
         # بررسی فرمت‌های مختلف داده
         if not selected_columns and 'columns' in request.POST:
             selected_columns = request.POST.getlist('columns')
-            print(f"استفاده از فرمت جایگزین: {selected_columns}")
-        
+
+
         # اگر هنوز ستونی یافت نشد، تلاش برای فرمت رشته‌ای
         if not selected_columns and request.POST.get('columns'):
             columns_str = request.POST.get('columns')
             selected_columns = [c.strip() for c in columns_str.split(',') if c.strip()]
-            print(f"استفاده از رشته جدا شده با کاما: {selected_columns}")
-        
+
         # بررسی وجود ستون‌های انتخاب شده
         if not selected_columns:
             return JsonResponse({
@@ -509,14 +508,16 @@ def update_columns(request):
                 'message': 'هیچ ستونی انتخاب نشده است'
             }, status=400)
         
+        logger.warning(f"ستون‌های دریافت شده: {selected_columns} برای {request.user.username}")
+        
+
         # اطمینان از وجود ستون عملیات
         if 'actions' not in selected_columns:
             selected_columns.append('actions')  # ستون جزئیات همیشه باید نمایش داده شود
         
         # ایجاد پاسخ و تنظیم کوکی
         cookie_value = ','.join(selected_columns)
-        print(f"تنظیم کوکی 'selected_columns' با مقدار: {cookie_value}")
-        
+
         response = JsonResponse({'status': 'success', 'selected_columns': selected_columns})
         
         # تنظیم کوکی با عمر 30 روز
@@ -531,8 +532,7 @@ def update_columns(request):
         return response
     except Exception as e:
         import traceback
-        print(f"خطا در update_columns: {str(e)}")
-        print(traceback.format_exc())
+        logger.warning(f"خطا در update_columns: {str(e)}, {traceback.format_exc()}")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
