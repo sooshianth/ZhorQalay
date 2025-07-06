@@ -254,6 +254,11 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
+        'erp_purchase_list_view': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
     },
 }
 
