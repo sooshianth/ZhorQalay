@@ -279,11 +279,6 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
-        'bki_barnameh_insert_barnameh': {
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
         'bki_barnameh_upload_excel': {
             'handlers': ['console', 'file'],
             'level': 'DEBUG',

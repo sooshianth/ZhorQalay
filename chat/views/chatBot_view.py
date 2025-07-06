@@ -112,7 +112,7 @@ def get_client_ip(request):
 @login_required
 def user_list(request):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک: {str(e)}, ip: {get_client_ip(request)}, user: {request.user}")
+        logger.error(f"خطر هک: , ip: {get_client_ip(request)}, user: {request.user}")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
         users = User.objects.exclude(id=request.user.id).values('id', 'username')
@@ -126,7 +126,7 @@ def user_list(request):
 @login_required
 def get_username(request, user_id):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک: {str(e)}, ip: {get_client_ip(request)}, user: {request.user}")
+        logger.error(f"خطر هک: , ip: {get_client_ip(request)}, user: {request.user}")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
         user = User.objects.get(id=user_id)
@@ -142,7 +142,7 @@ def get_username(request, user_id):
 @login_required
 def chat_history(request, user_id):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک: {str(e)}, ip: {get_client_ip(request)}, user: {request.user}")
+        logger.error(f"خطر هک: , ip: {get_client_ip(request)}, user: {request.user}")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
         messages = Message.objects.filter(
@@ -177,7 +177,7 @@ def chat_history(request, user_id):
 @login_required
 def global_chat_history(request):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک: {str(e)}, ip: {get_client_ip(request)}, user: {request.user}")
+        logger.error(f"خطر هک: , ip: {get_client_ip(request)}, user: {request.user}")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
         messages = Message.objects.filter(
@@ -213,7 +213,7 @@ def global_chat_history(request):
 @login_required
 def upload_file(request):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک: {str(e)}, ip: {get_client_ip(request)}, user: {request.user}")
+        logger.error(f"خطر هک:, ip: {get_client_ip(request)}, user: {request.user}")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     
     try:
@@ -331,7 +331,7 @@ def upload_file(request):
 @login_required
 def online_users(request):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک: {str(e)}, ip: {get_client_ip(request)}, user: {request.user}")
+        logger.error(f"خطر هک:, ip: {get_client_ip(request)}, user: {request.user}")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
         users = User.objects.exclude(id=request.user.id).values('id', 'username')
@@ -345,7 +345,7 @@ def online_users(request):
 @login_required
 def unread_messages_count(request):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک: {str(e)}, ip: {get_client_ip(request)}, user: {request.user}")
+        logger.error(f"خطر هک: , ip: {get_client_ip(request)}, user: {request.user}")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
         unread_messages = Message.objects.filter(
@@ -375,7 +375,7 @@ def unread_messages_count(request):
 @login_required
 def unread_global_messages_count(request):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک: {str(e)}, ip: {get_client_ip(request)}, user: {request.user}")
+        logger.error(f"خطر هک: , ip: {get_client_ip(request)}, user: {request.user}")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
         count = Message.objects.filter(
@@ -395,7 +395,7 @@ def unread_global_messages_count(request):
 @login_required
 def mark_messages_as_read(request):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک: {str(e)}, ip: {get_client_ip(request)}, user: {request.user}")
+        logger.error(f"خطر هک:, ip: {get_client_ip(request)}, user: {request.user}")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
         sender_id = request.data.get('sender_id')
@@ -429,7 +429,7 @@ def mark_messages_as_read(request):
 @login_required
 def send_message(request):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک: {str(e)}, ip: {get_client_ip(request)}, user: {request.user}")
+        logger.error(f"خطر هک:, ip: {get_client_ip(request)}, user: {request.user}")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     
     try:
@@ -499,7 +499,7 @@ def send_message(request):
 @login_required
 def pin_message(request, message_id):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک: {str(e)}, ip: {get_client_ip(request)}, user: {request.user}")
+        logger.error(f"خطر هک:, ip: {get_client_ip(request)}, user: {request.user}")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
         msg = Message.objects.get(id=message_id)
@@ -516,7 +516,7 @@ def pin_message(request, message_id):
 @login_required
 def unpin_message(request, message_id):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک: {str(e)}, ip: {get_client_ip(request)}, user: {request.user}")
+        logger.error(f"خطر هک: , ip: {get_client_ip(request)}, user: {request.user}")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
         msg = Message.objects.get(id=message_id)

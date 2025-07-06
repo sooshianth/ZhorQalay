@@ -131,7 +131,6 @@ def delete_barnameh(barnameh_id):
         dict: Result of the delete operation
     """
     try:
-        logger.warning(f"حذف بارنامه: {barnameh_id}, ip: {get_client_ip(request)}, user: {request.user}")
         barnameh = Barnameh.objects.get(id=barnameh_id)
         
         # Check if barnameh is already sent to BKI
