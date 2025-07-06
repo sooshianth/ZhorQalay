@@ -333,6 +333,7 @@ def purchase_list(request):
             {'id': 'priority', 'name': 'اولویت', 'field': 'priority'},
             {'id': 'priority_reason', 'name': 'دلیل اولویت', 'field': 'priority_reason'},
             {'id': 'barbary', 'name': 'نام باربری', 'field': 'cargo.barbary.name'},
+            {'id': 'customer_price', 'name': 'فی فروش', 'field': 'customer_price', 'unit': 'ریال'},
         ]
         
         # اضافه کردن ستون‌های حساس فقط برای نقش‌های مجاز
