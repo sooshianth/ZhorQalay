@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from core.decorators.decorators import role_required
 from core.decorators.det_user_role import determine_user_role
 from django.db.models import Q
-from cargo_product_CRUD_panel import get_client_ip
+from .cargo_product_CRUD_panel import get_client_ip
 import logging
 
 logger = logging.getLogger("bki_cargos_vared_konandeh_view")

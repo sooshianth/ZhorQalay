@@ -1998,34 +1998,77 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('📤 خروجی خریدها:', selectedIds);
                 console.log('📋 ستون‌ها:', columnsParam);
                 
-                // ایجاد URL برای خروجی اکسل
-                const exportUrl = window.PurchaseListConfig?.exportPurchasesUrl || '/erp/purchases/export/';
-                const params = new URLSearchParams();
-                params.append('ids', selectedIds.join(','));
-                params.append('columns', columnsParam);
-                
-                // باز کردن URL در پنجره جدید یا دانلود مستقیم
-                const fullUrl = `${exportUrl}?${params.toString()}`;
-                
                 // نمایش پیام بارگیری
                 const originalText = exportBtn.innerHTML;
                 exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>در حال ایجاد فایل...';
                 exportBtn.disabled = true;
                 
-                // ایجاد لینک مخفی برای دانلود
-                const downloadLink = document.createElement('a');
-                downloadLink.href = fullUrl;
-                downloadLink.style.display = 'none';
-                document.body.appendChild(downloadLink);
-                downloadLink.click();
-                document.body.removeChild(downloadLink);
+                // ایجاد POST request برای خروجی اکسل
+                const exportUrl = window.PurchaseListConfig?.exportPurchasesUrl || '/erp/purchases/export/';
                 
-                // بازگردانی وضعیت دکمه بعد از 3 ثانیه
-                setTimeout(() => {
+                // دریافت CSRF token
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || getCookie('csrftoken');
+                
+                // ایجاد FormData برای POST request
+                const formData = new FormData();
+                formData.append('csrfmiddlewaretoken', csrfToken);
+                formData.append('ids', selectedIds.join(','));
+                formData.append('columns', columnsParam);
+                
+                // ارسال POST request
+                fetch(exportUrl, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin' // برای ارسال کوکی‌ها
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    // بررسی نوع محتوا
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        // اگر پاسخ JSON باشد (خطا)
+                        return response.json().then(data => {
+                            throw new Error(data.message || 'خطا در ایجاد فایل');
+                        });
+                    }
+                    
+                    // اگر پاسخ فایل باشد
+                    return response.blob();
+                })
+                .then(blob => {
+                    // ایجاد لینک دانلود
+                    const url = window.URL.createObjectURL(blob);
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = url;
+                    downloadLink.download = `purchases_export_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`;
+                    downloadLink.style.display = 'none';
+                    
+                   // document.body.appendChild(downloadLink);
+                   // downloadLink.click();
+                    // document.body.removeChild(downloadLink);
+                    
+                    // پاک کردن URL object
+                    window.URL.revokeObjectURL(url);
+                    
+                    console.log('✅ فایل اکسل با موفقیت ایجاد شد');
+                })
+                .catch(error => {
+                    console.error('❌ خطا در ایجاد فایل اکسل:', error);
+                    alert(`خطا در ایجاد فایل اکسل: ${error.message}`);
+                })
+                .finally(() => {
+                    // بازگردانی وضعیت دکمه
                     exportBtn.innerHTML = originalText;
                     exportBtn.disabled = false;
                     window.updateExportButton(); // بروزرسانی دکمه براساس انتخاب‌ها
-                }, 3000);
+                });
             });
             
             // فراخوانی اولیه برای تنظیم وضعیت دکمه
