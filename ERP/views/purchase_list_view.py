@@ -17,6 +17,9 @@ from django.views.decorators.cache import cache_page
 from django.core.cache import cache
 from core.PurchaseModel import Purchase, PurchaseEditLog
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+import logging
+
+logger = logging.getLogger("erp_purchase_list_view")
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
@@ -536,7 +539,7 @@ def update_columns(request):
 def export_to_excel(request):
     print("=== EXPORT TO EXCEL CALLED ===")
     print(f"Request method: {request.method}")
-    print(f"GET parameters: {dict(request.GET)}")
+    logger.warning(f"GET parameters: {dict(request.GET)}")
     
     purchase_ids = request.GET.get('ids', '').split(',')
     selected_columns = request.GET.get('columns', '')
@@ -560,12 +563,12 @@ def export_to_excel(request):
     print(f"Filtered purchase_ids: {purchase_ids}")
     
     if not purchase_ids:
-        print("ERROR: No purchase IDs!")
+        logger.warning("ERROR: No purchase IDs!")
         return JsonResponse({'status': 'error', 'message': 'هیچ خریدی انتخاب نشده است'}, status=400)
     
     # بررسی تعداد خریدها
     total_count = len(purchase_ids)
-    print(f"Total purchases to export: {total_count}")
+    logger.warning(f"Total purchases to export: {total_count}")
     
     try:
         # استفاده از روش معمولی برای همه خریدها
@@ -574,8 +577,9 @@ def export_to_excel(request):
     except Exception as e:
         # لاگ خطا
         import traceback
-        print(f"Error in export_to_excel: {str(e)}")
-        print(traceback.format_exc())
+        logger.warning(f"Error in export_to_excel: {str(e)}")
+        
+        logger.warning(traceback.format_exc())
         return JsonResponse({'status': 'error', 'message': f'خطا در ایجاد فایل اکسل: {str(e)}'}, status=500)
 
 def _export_regular_excel(purchase_ids, selected_columns):
@@ -586,10 +590,10 @@ def _export_regular_excel(purchase_ids, selected_columns):
         'shenase_takhsis_set', 'cargo__barbary', 'cargo__vared_konandeh', 'customer__sales_agent'
     ).order_by('-created_at')
     
-    print(f"Found {purchases.count()} purchases")
+    logger.warning(f"Found {purchases.count()} purchases")
     
     if purchases.count() == 0:
-        print("ERROR: No purchases found!")
+        logger.warning("ERROR: No purchases found!")
         return JsonResponse({'status': 'error', 'message': 'هیچ خریدی با شناسه‌های داده شده یافت نشد'}, status=400)
     
     wb = Workbook()
@@ -707,6 +711,7 @@ def _export_regular_excel(purchase_ids, selected_columns):
     filename = f"purchases_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     wb.save(response)
+    logger.warning(filename)
     return response
 
 @login_required
