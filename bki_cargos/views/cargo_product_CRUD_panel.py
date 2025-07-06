@@ -6,6 +6,39 @@ from django.http import JsonResponse
 from django.db.models import Q
 from django.db import connection
 from core.decorators.det_user_role import determine_user_role
+import logging
+
+logger = logging.getLogger("bki_cargos_cargo_product_CRUD_panel")
+
+def get_client_ip(request):
+    """
+    دریافت IP کامل کلاینت (محلی و خارجی، پشتیبانی از proxy و load balancer)
+    """
+    if not request:
+        return "Unknown"
+        
+    # IP مستقیم (از سرور دیده می‌شود)
+    direct_ip = request.META.get('REMOTE_ADDR', 'Unknown')
+        
+    # IP از طریق proxy headers
+    forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    real_ip = request.META.get('HTTP_X_REAL_IP')
+
+    # انتخاب IP اصلی
+    client_ip = direct_ip
+    if forwarded_for:
+        # اولین IP در لیست X-Forwarded-For
+        client_ip = forwarded_for.split(',')[0].strip()
+    elif real_ip:
+        client_ip = real_ip
+        
+    # اگر proxy وجود دارد، هر دو IP را نمایش بده
+    if forwarded_for or real_ip:
+        proxy_info = f" (via {direct_ip})"
+    else:
+        proxy_info = ""
+        
+    return f"{client_ip}-{proxy_info}"
 
 @role_required('admin', 'logistics_manager')
 @login_required
@@ -61,6 +94,7 @@ def cargo_product_crud_panel(request, product_id=None):
 @role_required('admin', 'logistics_manager')
 @login_required
 def bulk_edit_cargo_products(request):
+    logger.warning(f"ویرایش گروهی محصولات: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         # اگر از صفحه ویرایش گروهی آمده است
         if 'product_ids_str' in request.POST:
@@ -176,6 +210,8 @@ def bulk_edit_purchase_cargo(request):
     """
     ویرایش گروهی کوتاژ برای خریدهای انتخاب شده
     """
+    logger.warning(f"ویرایش گروهی کوتاژ برای خریدهای انتخاب شده: {get_client_ip(request)}, user: {request.user}")
+    
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'روش درخواست نامعتبر است'}, status=405)
     
@@ -303,8 +339,10 @@ def bulk_edit_purchase_cargo(request):
         })
     
     except ValueError as e:
+        logger.error(f"خطای مقدار: {str(e)}, ip: {get_client_ip(request)}, user: {request.user}")
         return JsonResponse({'status': 'error', 'message': f'خطای مقدار: {str(e)}'}, status=400)
     except Exception as e:
+        logger.error(f"خطای عمومی: {str(e)}, ip: {get_client_ip(request)}, user: {request.user}")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 @login_required
@@ -312,6 +350,7 @@ def get_cargo_product_details(request):
     """
     دریافت اطلاعات کوتاژ براساس شماره کوتاژ
     """
+    logger.warning(f"دریافت اطلاعات کوتاژ: {get_client_ip(request)}, user: {request.user}")
     cottage = request.GET.get('cottage', '')
     
     if not cottage:

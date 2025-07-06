@@ -4,7 +4,7 @@ from datetime import timedelta
 from core.PurchaseModel import Purchase, PurchaseStateChange
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("core_purge_unpaid_purchases")
 
 class Command(BaseCommand):
     help = 'حذف خودکار خریدهایی که بعد از یک روز پرداخت نشده‌اند'
@@ -29,7 +29,7 @@ class Command(BaseCommand):
         start_time = timezone.now()
         cutoff_date = start_time - timedelta(days=days)
         
-        self.stdout.write(f"شروع حذف خریدهای پرداخت نشده قبل از {cutoff_date}")
+        logger.info(f"شروع حذف خریدهای پرداخت نشده قبل از {cutoff_date}")
         
         # پیدا کردن خریدهایی که در مرحله شروع شده یا پیامک ارسال شده یا تایید بازارگاه هستند
         # و بیش از تعداد روز مشخص شده از ایجاد آنها گذشته است
@@ -41,11 +41,9 @@ class Command(BaseCommand):
         count = purchases_to_delete.count()
         
         if dry_run:
-            self.stdout.write(
-                self.style.WARNING(f"حالت آزمایشی: {count} خرید پرداخت نشده یافت شد که حذف نخواهند شد")
-            )
+            logger.info(f"حالت آزمایشی: {count} خرید پرداخت نشده یافت شد که حذف نخواهند شد")
             for purchase in purchases_to_delete:
-                self.stdout.write(f"[آزمایشی] خرید {purchase.invoice_id} - {purchase.customer.name} - وضعیت: {purchase.get_state_display()} - تاریخ ایجاد: {purchase.created_at}")
+                logger.info(f"[آزمایشی] خرید {purchase.invoice_id} - {purchase.customer.name} - وضعیت: {purchase.get_state_display()} - تاریخ ایجاد: {purchase.created_at}")
         else:
             if count > 0:
                 # ثبت لاگ قبل از حذف
@@ -55,12 +53,10 @@ class Command(BaseCommand):
                 # حذف خریدها
                 purchases_to_delete.delete()
                 
-                self.stdout.write(
-                    self.style.SUCCESS(f"{count} خرید پرداخت نشده با موفقیت حذف شد")
-                )
+                logger.info(f"{count} خرید پرداخت نشده با موفقیت حذف شد")
             else:
-                self.stdout.write("هیچ خرید پرداخت نشده‌ای برای حذف یافت نشد")
+                logger.info("هیچ خرید پرداخت نشده‌ای برای حذف یافت نشد")
         
         end_time = timezone.now()
         duration = (end_time - start_time).total_seconds()
-        self.stdout.write(f"پایان عملیات حذف خودکار در {end_time} (زمان: {duration:.2f} ثانیه)") 
+        logger.info(f"پایان عملیات حذف خودکار در {end_time} (زمان: {duration:.2f} ثانیه)") 

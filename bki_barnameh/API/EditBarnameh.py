@@ -4,6 +4,9 @@ import requests
 import xmltodict
 from django.conf import settings
 from ..models.ApiLogModel import BKIApiLog
+import logging
+
+logger = logging.getLogger("bki_barnameh_edit_barnameh_api")
 
 def edit_barnameh_api(barnameh_id):
     """
@@ -68,12 +71,33 @@ def edit_barnameh_api(barnameh_id):
     </EditBarname>
   </soap:Body>
 </soap:Envelope>"""
+
+        # Create SOAP request
+        soap_redacted_request = f"""<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <EditBarname xmlns="http://tempuri.org/">
+      <userName>***</userName>
+      <pass>***</pass>
+      <HamlId>{barnameh.purchase_number}</HamlId>
+      <value>{barnameh.tonnage}</value>
+      <DriverName>{barnameh.driver_name}</DriverName>
+      <CarNo>{barnameh.vehicle_plate}</CarNo>
+      <barnameh>{barnameh.number}</barnameh>
+      <serialNo>{barnameh.serial}</serialNo>
+      <RecieverName>{barnameh.receiver_name}</RecieverName>
+      <IssuDate>{issue_date}</IssuDate>
+      <reciverAddress>{barnameh.destination}</reciverAddress>
+      <recieverPhone>{barnameh.driver_phone}</recieverPhone>
+    </EditBarname>
+  </soap:Body>
+</soap:Envelope>"""
         
         # Create log entry
         log_entry = BKIApiLog(
             barnameh=barnameh,
             request_type='EditBarname',
-            request_data=soap_request
+            request_data=soap_redacted_request
         )
         
         # Send request to BKI API
@@ -94,6 +118,7 @@ def edit_barnameh_api(barnameh_id):
                 log_entry.is_successful = False
                 log_entry.error_message = f"خطای HTTP: {response.status_code}"
                 log_entry.save()
+                logger.error(f"خطای HTTP: {response.status_code}, {response.text}")
                 return {
                     'success': False,
                     'message': f"خطای HTTP: {response.status_code}"
@@ -118,6 +143,7 @@ def edit_barnameh_api(barnameh_id):
                     log_entry.is_successful = False
                     log_entry.error_message = f"خطا در ویرایش بارنامه: {result}"
                     log_entry.save()
+                    logger.error(f"خطا در ویرایش بارنامه: {result}")
                     
                     return {
                         'success': False,
@@ -128,7 +154,7 @@ def edit_barnameh_api(barnameh_id):
                 log_entry.is_successful = False
                 log_entry.error_message = f"خطا در تجزیه پاسخ: {str(e)}"
                 log_entry.save()
-                
+                logger.error(f"خطا در تجزیه پاسخ: {str(e)}")
                 return {
                     'success': False,
                     'message': f"خطا در تجزیه پاسخ: {str(e)}"
@@ -138,6 +164,7 @@ def edit_barnameh_api(barnameh_id):
             log_entry.is_successful = False
             log_entry.error_message = f"خطا در ارسال درخواست: {str(e)}"
             log_entry.save()
+            logger.error(f"خطا در ارسال درخواست: {str(e)}")
             
             return {
                 'success': False,
@@ -150,6 +177,7 @@ def edit_barnameh_api(barnameh_id):
             'message': 'بارنامه مورد نظر یافت نشد.'
         }
     except Exception as e:
+        logger.error(f"خطا: {str(e)}")
         return {
             'success': False,
             'message': f"خطا: {str(e)}"

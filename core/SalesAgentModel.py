@@ -10,7 +10,7 @@ import random
 import string
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("core_sales_agent")
 
 class SalesAgent(models.Model):
     user = models.OneToOneField('auth.User', on_delete=models.CASCADE, related_name='sales_agent')

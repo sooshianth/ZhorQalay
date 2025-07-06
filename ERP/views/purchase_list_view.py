@@ -539,10 +539,16 @@ def update_columns(request):
 def export_to_excel(request):
     print("=== EXPORT TO EXCEL CALLED ===")
     print(f"Request method: {request.method}")
-    logger.warning(f"GET parameters: {dict(request.GET)}")
     
-    purchase_ids = request.GET.get('ids', '').split(',')
-    selected_columns = request.GET.get('columns', '')
+    # Support both GET and POST requests
+    if request.method == 'POST':
+        print(f"POST parameters: {dict(request.POST)}")
+        purchase_ids = request.POST.get('ids', '').split(',')
+        selected_columns = request.POST.get('columns', '')
+    else:
+        print(f"GET parameters: {dict(request.GET)}")
+        purchase_ids = request.GET.get('ids', '').split(',')
+        selected_columns = request.GET.get('columns', '')
     
     print(f"Raw purchase_ids: {purchase_ids}")
     print(f"Raw selected_columns: '{selected_columns}'")

@@ -23,6 +23,49 @@ import logging
 
 logger = logging.getLogger("bki_api_views")
 
+def get_client_ip(request):
+    """
+    دریافت IP کامل کلاینت (محلی و خارجی، پشتیبانی از proxy و load balancer)
+    """
+    if not request:
+        return "Unknown"
+        
+    # IP مستقیم (از سرور دیده می‌شود)
+    direct_ip = request.META.get('REMOTE_ADDR', 'Unknown')
+        
+    # IP از طریق proxy headers
+    forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    real_ip = request.META.get('HTTP_X_REAL_IP')
+        
+        # تشخیص نوع IP (محلی یا خارجی)
+    def is_local_ip(ip):
+        if ip == 'Unknown':
+            return False
+        return (ip.startswith('192.168.') or 
+               ip.startswith('10.') or 
+               ip.startswith('172.') or 
+               ip.startswith('127.') or
+               ip == 'localhost')
+        
+    # انتخاب IP اصلی
+    client_ip = direct_ip
+    if forwarded_for:
+        # اولین IP در لیست X-Forwarded-For
+        client_ip = forwarded_for.split(',')[0].strip()
+    elif real_ip:
+        client_ip = real_ip
+        
+    # تعیین نوع اتصال
+    ip_type = "local" if is_local_ip(client_ip) else "external"
+        
+    # اگر proxy وجود دارد، هر دو IP را نمایش بده
+    if forwarded_for or real_ip:
+        proxy_info = f" (via {direct_ip})"
+    else:
+        proxy_info = ""
+        
+    return f"{client_ip}({ip_type}){proxy_info}"
+
 def update_env_file(key, value):
     """به‌روزرسانی یک کلید مشخص در فایل .env"""
     env_path = os.path.join(settings.BASE_DIR, '.env')
@@ -73,6 +116,7 @@ def credentials_view(request):
             
             # تلاش برای ارتباط با API بازارگاه
             is_successful, error_message = test_api_connection()
+            logger.warning(f"اتصال در حال تست: {is_successful}, خطا: {error_message}, ip: {get_client_ip(request)}, user: {request.user}")
             
             # اضافه کردن نتیجه تست به context
             context['test_connection'] = True
@@ -82,6 +126,7 @@ def credentials_view(request):
             if is_successful:
                 messages.success(request, 'اتصال با سرویس BKI با موفقیت برقرار شد.')
             else:
+                logger.error(f"خطا در اتصال به سرویس BKI: {error_message}, ip: {get_client_ip(request)}, user: {request.user}")
                 messages.error(request, f'خطا در اتصال به سرویس BKI: {error_message}')
         else:
             # به‌روزرسانی اطلاعات اعتباری
@@ -116,10 +161,12 @@ def test_kharid_info(request):
     
     if not username or not password:
         messages.error(request, 'اطلاعات کاربری BKI تنظیم نشده است.')
+        logger.error('اطلاعات کاربری BKI تنظیم نشده است.')
         return redirect('bki_api:credentials')
     
     # تست API
     is_successful, error_message = test_api_connection()
+    logger.warning(f"تست اتصال به سرویس BKI: {is_successful}, خطا: {error_message}, ip: {get_client_ip(request)}, user: {request.user}")
     
     context = {
         'kharid_id': kharid_id,
@@ -138,6 +185,7 @@ def update_purchase_info(request):
     password = settings.BKI_PASSWORD
     
     if not username or not password:
+        logger.error('اطلاعات کاربری BKI تنظیم نشده است.')
         return JsonResponse({'error': 'اطلاعات کاربری BKI تنظیم نشده است.'}, status=400)
     
     # دریافت شناسه خرید
@@ -155,11 +203,14 @@ def update_purchase_info(request):
         kharid_id = request.GET.get('kharid_id')
     
     if not kharid_id:
+        logger.error('شناسه خرید الزامی است.')
         return JsonResponse({'error': 'شناسه خرید الزامی است.'}, status=400)
     
     # تست اتصال به API
     is_successful, message = test_api_connection()
+    logger.warning(f"تست اتصال به سرویس BKI: {is_successful}, خطا: {message}, ip: {get_client_ip(request)}, user: {request.user}")
     if not is_successful:
+        logger.error(f"خطا در اتصال به سرویس BKI: {message}")
         return JsonResponse({'success': False, 'error': message}, status=400)
     
     # این تابع صرفاً برای تست است و عملیات واقعی انجام نمی‌دهد
@@ -277,6 +328,8 @@ def get_all_bazaargah_purchases_view(request):
     # بررسی اعتبارنامه‌های API
     username = settings.BKI_USERNAME
     password = settings.BKI_PASSWORD
+
+    # add ip and user username loggin in log
     
     if not username or not password:
         messages.error(request, 'اطلاعات کاربری BKI تنظیم نشده است.')
@@ -284,6 +337,7 @@ def get_all_bazaargah_purchases_view(request):
     
     # تست اتصال به API بازارگاه
     is_connected, connection_message = test_api_connection()
+    logger.warning(f"تست اتصال به API بازارگاه: {is_connected}, خطا: {connection_message}, ip: {get_client_ip(request)}, user: {request.user}")
     if not is_connected:
         messages.error(request, f'خطا در اتصال به API بازارگاه: {connection_message}')
         return redirect('bki_api:credentials')
@@ -541,6 +595,7 @@ def get_purchases_last_day_view(request):
     
     # تست اتصال به API بازارگاه
     is_connected, connection_message = test_api_connection()
+    logger.warning(f"تست اتصال به API بازارگاه: {is_connected}, خطا: {connection_message}, ip: {get_client_ip(request)}, user: {request.user}")
     if not is_connected:
         messages.error(request, f'خطا در اتصال به API بازارگاه: {connection_message}')
         return redirect('bki_api:credentials')
@@ -614,6 +669,7 @@ def get_purchases_last_week_view(request):
     
     # تست اتصال به API بازارگاه
     is_connected, connection_message = test_api_connection()
+    logger.warning(f"تست اتصال به API بازارگاه: {is_connected}, خطا: {connection_message}, ip: {get_client_ip(request)}, user: {request.user}")
     if not is_connected:
         messages.error(request, f'خطا در اتصال به API بازارگاه: {connection_message}')
         return redirect('bki_api:credentials')

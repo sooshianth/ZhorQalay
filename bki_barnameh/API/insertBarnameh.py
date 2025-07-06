@@ -6,6 +6,9 @@ from ..models.BarnamehModel import Barnameh, BarnamehLog
 from ..models.ApiLogModel import BKIApiLog
 import jdatetime
 from django.utils import timezone
+import logging
+
+logger = logging.getLogger('bki_barnameh_insert_barnameh')
 
 def send_barnameh_to_bki(barnameh_id):
     """
@@ -106,29 +109,21 @@ def send_barnameh_to_bki(barnameh_id):
                 'message': f'خطا در پردازش شناسه خرید یا شناسه تخصیص: {str(e)}'
             }
         
-        # Debug prints
-        print("Debug info:")
-        print(f"purchase_number (original): {barnameh.purchase_number}")
-        print(f"shenase_takhsis_code (original): {barnameh.shenase_takhsis_code}")
-        print(f"kharid_id (cleaned): {kharid_id}")
-        print(f"takhsis_id (cleaned): {takhsis_id}")
         
         # تبدیل وزن به عدد صحیح (بدون اعشار)
         try:
             if barnameh.tonnage:
                 # تبدیل به float و سپس به int برای حذف اعشار
                 weight = str(int(float(barnameh.tonnage)))
-                print(f"وزن بارنامه (تبدیل شده): {weight}")
             else:
                 weight = "0"
-                print(f"وزن بارنامه یافت نشد، استفاده از مقدار پیش‌فرض: {weight}")
         except (ValueError, TypeError) as e:
             # اگر مشکلی در تبدیل وجود داشت، سعی می‌کنیم بهترین عملکرد را داشته باشیم
             try:
                 weight = str(barnameh.tonnage).split('.')[0]  # حذف کامل اعشار
             except:
                 weight = str(barnameh.tonnage)
-            print(f"خطا در تبدیل وزن به عدد صحیح، استفاده از مقدار جایگزین: {weight}")
+                logger.info(f"خطا در تبدیل وزن به عدد صحیح، استفاده از مقدار جایگزین: {weight}")
         
         # تبدیل شماره بارنامه و سریال به صورت عدد صحیح (بدون اعشار)
         try:
@@ -142,12 +137,10 @@ def send_barnameh_to_bki(barnameh_id):
             # سریال بارنامه معمولاً دارای فرمت خاص است (مثل 11/1404)، آن را دست نمی‌زنیم
             serial = barnameh.serial
                 
-            print(f"شماره بارنامه (تبدیل شده): {number}")
-            print(f"سریال بارنامه (اصلی): {serial}")
         except (AttributeError, TypeError, ValueError) as e:
             number = barnameh.number
             serial = barnameh.serial
-            print(f"خطا در پردازش شماره یا سریال بارنامه: {str(e)}")
+            logger.warning(f"خطا در پردازش شماره یا سریال بارنامه: {str(e)}, شماره بارنامه: {barnameh.number}, سریال بارنامه: {barnameh.serial}")
         
         # XML layout exactly matching the template
         soap_request = """<?xml version="1.0" encoding="utf-8"?>
@@ -166,14 +159,29 @@ def send_barnameh_to_bki(barnameh_id):
   </soap:Body>
 </soap:Envelope>"""
 
-        print(f"Request XML: {soap_request}")
+        # XML layout exactly matching the template
+        soap_redacted_request = """<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <insertBarname xmlns="http://tempuri.org/">
+      <userName>***</userName>
+      <pass>***</pass>
+      <BarNumber>""" + number + """</BarNumber>
+      <BarSerial>""" + serial + """</BarSerial>
+      <ISSUDATE>""" + issue_date + """</ISSUDATE>
+      <MerchantDeclaredWeight>""" + weight + """</MerchantDeclaredWeight>
+      <KharidId>""" + str(kharid_id) + """</KharidId>
+      <takhsisId>""" + str(takhsis_id) + """</takhsisId>
+    </insertBarname>
+  </soap:Body>
+</soap:Envelope>"""        
         
         # Create log entry
         log_entry = BKIApiLog(
             barnameh=barnameh,
             request_type='insertBarname',
-            request_data=soap_request,
-            debug_info=f"Original values: purchase_number={barnameh.purchase_number}, shenase_takhsis_code={barnameh.shenase_takhsis_code}, tonnage={barnameh.tonnage}, barnameh_number={barnameh.number}, barnameh_serial={barnameh.serial}\nCleaned values: kharid_id={kharid_id}, takhsis_id={takhsis_id}, weight={weight}, number={number}, serial={serial}\nFull XML:\n{soap_request}"
+            request_data=soap_redacted_request,
+            debug_info=f"Original values: purchase_number={barnameh.purchase_number}, shenase_takhsis_code={barnameh.shenase_takhsis_code}, tonnage={barnameh.tonnage}, barnameh_number={barnameh.number}, barnameh_serial={barnameh.serial}\nCleaned values: kharid_id={kharid_id}, takhsis_id={takhsis_id}, weight={weight}, number={number}, serial={serial}\nFull XML:\n{soap_redacted_request}"
         )
         
         # Send request to BKI API
@@ -197,6 +205,7 @@ def send_barnameh_to_bki(barnameh_id):
                 log_entry.is_successful = False
                 log_entry.error_message = f"خطای HTTP: {response.status_code}"
                 log_entry.save()
+                logger.error(f"خطای HTTP: {response.status_code}, {response.text}")
                 return {
                     'success': False,
                     'message': f"خطای HTTP: {response.status_code}"
@@ -218,9 +227,6 @@ def send_barnameh_to_bki(barnameh_id):
                 error_message = "خطا در ثبت بارنامه"
                 response_xml_info = {}
                 
-                # Log the entire response structure for debugging
-                print("Full response structure:")
-                print(str(response_dict))
                 
                 # Try to extract response data and error messages
                 try:
@@ -271,6 +277,7 @@ def send_barnameh_to_bki(barnameh_id):
                                 error_message = table1['errormsg']
                 except Exception as e:
                     log_entry.debug_info += f"\nError extracting data from response: {str(e)}"
+                    logger.error(f"خطا در استخراج داده از پاسخ: {str(e)}")
                 
                 # Also check for successful string result "1"
                 if isinstance(result, str) and result == "1":
@@ -297,6 +304,7 @@ def send_barnameh_to_bki(barnameh_id):
                             log_entry.debug_info += "\nBARNAMEH ALREADY REGISTERED - TREATING AS SUCCESS"
                 except Exception as e:
                     log_entry.debug_info += f"\nError checking for 'already registered' status: {str(e)}"
+                    logger.error(f"خطا در بررسی ثبت قبلی بارنامه: {str(e)}")
                 
                 # Save detailed information from response
                 log_entry.debug_info += f"\nIs success: {is_success}, Already registered: {already_registered}"
@@ -378,6 +386,7 @@ def send_barnameh_to_bki(barnameh_id):
                     log_entry.is_successful = False
                     log_entry.error_message = error_message
                     log_entry.save()
+                    logger.error(f"خطا در ارسال بارنامه به بازارگاه: {error_message}")
                     
                     return {
                         'success': False,
@@ -388,6 +397,7 @@ def send_barnameh_to_bki(barnameh_id):
                 log_entry.is_successful = False
                 log_entry.error_message = f"خطا در تجزیه پاسخ: {str(e)}"
                 log_entry.save()
+                logger.error(f"خطا در تجزیه پاسخ: {str(e)}")
                 
                 return {
                     'success': False,
@@ -417,9 +427,11 @@ def send_barnameh_to_bki(barnameh_id):
             'message': 'بارنامه مورد نظر یافت نشد.'
         }
     except Exception as e:
+        logger.error(f"خطا: {str(e)}")
         return {
             'success': False,
-            'message': f"خطا: {str(e)}"
+            'message': f"خطا: ",
+
         }
 
 def send_multiple_barnameh_to_bki(barnameh_ids):
@@ -478,6 +490,7 @@ def send_multiple_barnameh_to_bki(barnameh_ids):
         except Barnameh.DoesNotExist:
             results['failed'] += 1
             results['messages'].append(f"بارنامه با شناسه {barnameh_id} یافت نشد.")
+            logger.error(f"بارنامه با شناسه {barnameh_id} یافت نشد.")
         except Exception as e:
             results['failed'] += 1
             results['messages'].append(f"خطا در ارسال بارنامه {barnameh_id}: {str(e)}")
@@ -490,6 +503,7 @@ def send_multiple_barnameh_to_bki(barnameh_ids):
                     log_message=f"خطای سیستمی در ارسال گروهی بارنامه: {str(e)}",
                     log_date=timezone.now()
                 )
+                logger.error(f"خطای سیستمی در ارسال گروهی بارنامه: {str(e)}")
             except:
                 pass
     

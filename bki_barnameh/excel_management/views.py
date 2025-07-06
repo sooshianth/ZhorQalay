@@ -4,6 +4,39 @@ from django.http import HttpResponse
 from core.decorators.decorators import role_required
 from .upload_excel import handle_uploaded_file, process_excel_file
 from .export_excel import export_to_excel
+import logging
+
+logger = logging.getLogger("bki_barnameh_excel_management")
+
+def get_client_ip(request):
+    """
+    دریافت IP کامل کلاینت (محلی و خارجی، پشتیبانی از proxy و load balancer)
+    """
+    if not request:
+        return "Unknown"
+        
+    # IP مستقیم (از سرور دیده می‌شود)
+    direct_ip = request.META.get('REMOTE_ADDR', 'Unknown')
+        
+    # IP از طریق proxy headers
+    forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    real_ip = request.META.get('HTTP_X_REAL_IP')
+
+    # انتخاب IP اصلی
+    client_ip = direct_ip
+    if forwarded_for:
+        # اولین IP در لیست X-Forwarded-For
+        client_ip = forwarded_for.split(',')[0].strip()
+    elif real_ip:
+        client_ip = real_ip
+        
+    # اگر proxy وجود دارد، هر دو IP را نمایش بده
+    if forwarded_for or real_ip:
+        proxy_info = f" (via {direct_ip})"
+    else:
+        proxy_info = ""
+        
+    return f"{client_ip}-{proxy_info}"
 
 @role_required('logistics_manager', 'admin')
 def upload_excel_view(request):
@@ -11,6 +44,7 @@ def upload_excel_view(request):
     آپلود فایل اکسل بارنامه
     """
     if request.method == 'POST' and request.FILES.get('excel_file'):
+        logger.warning(f"آپلود فایل اکسل بارنامه: {get_client_ip(request)}, user: {request.user}")
         excel_file = request.FILES['excel_file']
         
         # Check if file is Excel
@@ -41,7 +75,7 @@ def download_excel_template(request):
     import pandas as pd
     import os
     from django.conf import settings
-    
+
     # Create template DataFrame
     template_data = {
         'شماره بارنامه': [''],
@@ -79,6 +113,7 @@ def export_excel_view(request):
     """
     خروجی اکسل از بارنامه‌ها
     """
+    logger.warning(f"خروجی اکسل از بارنامه‌ها: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         barnameh_ids = request.POST.getlist('barnameh_ids')
         return export_to_excel(barnameh_ids)

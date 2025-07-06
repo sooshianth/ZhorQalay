@@ -5,13 +5,15 @@ from django.apps import apps
 import json
 from core.CustomerModel import ActivityField, ProductPreference, PaymentPreference, Customer, FIELD_OF_ACTIVITY
 from core.CargoProductModel import CargoProduct
+import logging
 
+logger = logging.getLogger("core_migrate_customer_preferences")
 
 class Command(BaseCommand):
     help = 'Migrates Customer JSONFields to ManyToMany models'
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.SUCCESS('Starting Customer preference fields migration'))
+        logger.info('Starting Customer preference fields migration')
         
         # 1. Create the preference models if they don't exist
         self.create_preference_objects()
@@ -20,22 +22,22 @@ class Command(BaseCommand):
         with transaction.atomic():
             self.migrate_customer_json_fields()
         
-        self.stdout.write(self.style.SUCCESS('Migration completed successfully!'))
+        logger.info('Migration completed successfully!')
     
     def create_preference_objects(self):
         """Create the preference objects for all choices"""
-        self.stdout.write('Creating preference objects...')
+        logger.info('Creating preference objects...')
         
         # Create ActivityField objects
         for code, name in FIELD_OF_ACTIVITY:
             ActivityField.objects.get_or_create(code=code)
-        self.stdout.write(self.style.SUCCESS(f'Created {len(FIELD_OF_ACTIVITY)} activity fields'))
+        logger.info(f'Created {len(FIELD_OF_ACTIVITY)} activity fields')
         
         # Create ProductPreference objects
         product_choices = CargoProduct.PRODUCT_TYPES
         for code, name in product_choices:
             ProductPreference.objects.get_or_create(code=code)
-        self.stdout.write(self.style.SUCCESS(f'Created {len(product_choices)} product preferences'))
+        logger.info(f'Created {len(product_choices)} product preferences')
         
         # Create PaymentPreference objects from PAYMENT_PREFERENCE_CHOICES
         payment_choices = [
@@ -47,15 +49,15 @@ class Command(BaseCommand):
         ]
         for code, name in payment_choices:
             PaymentPreference.objects.get_or_create(code=code)
-        self.stdout.write(self.style.SUCCESS(f'Created {len(payment_choices)} payment preferences'))
+        logger.info(f'Created {len(payment_choices)} payment preferences')
     
     def migrate_customer_json_fields(self):
         """Migrate data from JSONFields to ManyToMany relationships"""
-        self.stdout.write('Migrating customer data...')
+        logger.info('Migrating customer data...')
         count = 0
         
         for customer in Customer.objects.all():
-            self.stdout.write(f'Processing customer {customer.id}: {customer.name}')
+            logger.info(f'Processing customer {customer.id}: {customer.name}')
             
             # Field of activity
             if hasattr(customer, 'field_of_activity') and customer.field_of_activity:
@@ -65,9 +67,9 @@ class Command(BaseCommand):
                         activity = ActivityField.objects.get(code=activity_code)
                         customer.field_of_activity.add(activity)
                     except ActivityField.DoesNotExist:
-                        self.stdout.write(self.style.WARNING(
+                        logger.warning(
                             f'Activity field with code {activity_code} does not exist for customer {customer.id}'
-                        ))
+                        )
             
             # Product preferences
             if hasattr(customer, 'product_preferences') and customer.product_preferences:
@@ -77,9 +79,9 @@ class Command(BaseCommand):
                         pref = ProductPreference.objects.get(code=pref_code)
                         customer.product_preferences.add(pref)
                     except ProductPreference.DoesNotExist:
-                        self.stdout.write(self.style.WARNING(
+                        logger.warning(
                             f'Product preference with code {pref_code} does not exist for customer {customer.id}'
-                        ))
+                        )
             
             # Purchase preferences
             if hasattr(customer, 'purchase_preferences') and customer.purchase_preferences:
@@ -89,13 +91,13 @@ class Command(BaseCommand):
                         pref = PaymentPreference.objects.get(code=pref_code)
                         customer.purchase_preferences.add(pref)
                     except PaymentPreference.DoesNotExist:
-                        self.stdout.write(self.style.WARNING(
+                        logger.warning(
                             f'Payment preference with code {pref_code} does not exist for customer {customer.id}'
-                        ))
+                        )
             
             count += 1
         
-        self.stdout.write(self.style.SUCCESS(f'Migrated preferences for {count} customers'))
+        logger.info(f'Migrated preferences for {count} customers')
     
     def _get_list_from_field(self, field_value):
         """Extracts a list from a field value that could be a list, string, or JSON string"""

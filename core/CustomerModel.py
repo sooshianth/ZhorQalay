@@ -8,6 +8,11 @@ from django.contrib.postgres.fields import ArrayField
 from django.db.models import JSONField
 from django.utils import timezone
 from datetime import timedelta
+import logging
+
+logger = logging.getLogger("core_customer")
+
+
 FIELD_OF_ACTIVITY = [
     ('chicken', 'مرغدار'),
     ('livestock', 'دامدار'),
@@ -109,11 +114,11 @@ class PhoneNumber(models.Model):
             # توصیه‌ها به جای اعتبارسنجی اجباری
             if not cleaned_number.startswith('9'):
                 # تنها هشدار بده، اما خطا نده
-                print(f'توجه: شماره تلفن {cleaned_number} با 9 شروع نمی‌شود، اما پذیرفته می‌شود.')
+                logger.info(f'توجه: شماره تلفن {cleaned_number} با 9 شروع نمی‌شود، اما پذیرفته می‌شود.')
                 
             if len(cleaned_number) != 10:
                 # تنها هشدار بده، اما خطا نده
-                print(f'توجه: شماره تلفن {cleaned_number} دقیقاً 10 رقم نیست، اما پذیرفته می‌شود.')
+                logger.info(f'توجه: شماره تلفن {cleaned_number} دقیقاً 10 رقم نیست، اما پذیرفته می‌شود.')
             
             # ذخیره شماره پاکسازی شده
             self.number = cleaned_number

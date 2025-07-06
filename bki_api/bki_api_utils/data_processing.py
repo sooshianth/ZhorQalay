@@ -516,7 +516,7 @@ def create_purchase(purchase_data):
                 purchase_state = 'INITIATED'  # حالت اولیه
             else:
                 purchase_state = 'PAYMENT_VERIFIED'  # حالت پیش‌فرض امن
-            logger.warning(f"⚠️ API وضعیت اپراتور-محور {api_determined_state} پیشنهاد داد، به جای آن {purchase_state} تنظیم شد")
+            logger.info(f"⚠️ API وضعیت اپراتور-محور {api_determined_state} پیشنهاد داد، به جای آن {purchase_state} تنظیم شد")
         else:
             purchase_state = api_determined_state
         

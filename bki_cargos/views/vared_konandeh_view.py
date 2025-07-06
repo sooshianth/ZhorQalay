@@ -4,6 +4,10 @@ from django.contrib.auth.decorators import login_required
 from core.decorators.decorators import role_required
 from core.decorators.det_user_role import determine_user_role
 from django.db.models import Q
+from .cargo_product_CRUD_panel import get_client_ip
+import logging
+
+logger = logging.getLogger("bki_cargos_vared_konandeh_view")
 
 @role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
@@ -11,6 +15,7 @@ def vared_konandeh_list(request):
     """
     لیست واردکنندگان
     """
+    logger.warning(f"لیست واردکنندگان: {get_client_ip(request)}, user: {request.user}")
     user_role = determine_user_role(request.user)
     
     # جستجو
@@ -37,6 +42,7 @@ def vared_konandeh_add(request):
     """
     افزودن واردکننده جدید
     """
+    logger.warning(f"افزودن واردکننده جدید: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         name = request.POST.get('name')
         phone_number = request.POST.get('phone_number')
@@ -62,6 +68,7 @@ def bulk_edit_vared_konandehs(request):
     """
     ویرایش گروهی واردکنندگان
     """
+    logger.warning(f"ویرایش گروهی واردکنندگان: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         selected_vared_konandeh_ids = request.POST.getlist('selected_vared_konandeh_ids')
         

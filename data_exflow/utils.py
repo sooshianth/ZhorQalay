@@ -12,7 +12,9 @@ from django.conf import settings
 from .models import ImportExportSession, ImportExportLog, ImportRecord
 from django.core.exceptions import ValidationError, FieldDoesNotExist
 from django.utils.translation import gettext_lazy as _
+import logging
 
+logger = logging.getLogger("data_exflow_utils")
 
 def test_database_connection():
     """Test that the database connection is working properly."""
@@ -108,7 +110,7 @@ def get_all_registered_models():
                     'content_type_id': content_type.id,
                 })
             except Exception as e:
-                print(f"خطا در دریافت ContentType برای مدل {app_label}.{model_name}: {str(e)}")
+                logger.error(f"خطا در دریافت ContentType برای مدل {app_label}.{model_name}: {str(e)}")
                 # حتی اگر نتوانیم ContentType را دریافت کنیم، مدل را اضافه می‌کنیم
                 result[app_label].append({
                     'name': model_name,
@@ -197,7 +199,7 @@ def get_model_fields(app_label, model_name):
                             'display': str(instance)
                         })
                 except Exception as e:
-                    print(f"Error getting sample values for {field.name}: {e}")
+                    logger.warning(f"Error getting sample values for {field.name}: {e}")
                 
                 # If the related model has a choices attribute, add them
                 if hasattr(field.related_model, 'CHOICES') or hasattr(field.related_model, 'choices'):
@@ -223,7 +225,7 @@ def get_model_fields(app_label, model_name):
                         field_info['countries'] = [{'key': str(key), 'display': str(display)} 
                                                for key, display in countries]
                 except Exception as e:
-                    print(f"Error getting CargoProduct info: {e}")
+                    logger.warning(f"Error getting CargoProduct info: {e}")
             
             fields.append(field_info)
         
@@ -255,13 +257,13 @@ def get_model_fields(app_label, model_name):
                         'display': str(instance)
                     })
             except Exception as e:
-                print(f"Error getting sample values for {field.name}: {e}")
+                logger.warning(f"Error getting sample values for {field.name}: {e}")
             
             fields.append(field_info)
         
         return fields
     except Exception as e:
-        print(f"Error in get_model_fields: {e}")
+        logger.warning(f"Error in get_model_fields: {e}")
         return []
 
 
@@ -911,6 +913,7 @@ def process_import(session):
                                             message=f"ردیف {row_number}: مقدار {value} برای فیلد {model_field_name} پیدا نشد",
                                             row_number=row_number
                                         )
+                                        logger.warning(f"ردیف {row_number}: مقدار {value} برای فیلد {model_field_name} پیدا نشد")
                                         continue
                             # Handle normal fields
                             else:
@@ -978,6 +981,7 @@ def process_import(session):
                                 message=f"ردیف {row_number}: خطا در بروزرسانی رکورد: {str(e)}",
                                 row_number=row_number
                             )
+                            logger.warning(f"ردیف {row_number}: خطا در بروزرسانی رکورد: {str(e)}")
                             error_count += 1
                             raise  # Re-raise to rollback the transaction
                             
@@ -1036,6 +1040,7 @@ def process_import(session):
                                     message=f"ردیف {row_number}: خطای تکراری بودن داده در فیلد {field_name}. مقدار باید منحصر به فرد باشد.",
                                     row_number=row_number
                                 )
+                                logger.warning(f"ردیف {row_number}: خطای تکراری بودن داده در فیلد {field_name}. مقدار باید منحصر به فرد باشد.")
                             else:
                                 ImportExportLog.objects.create(
                                     session=session,
@@ -1043,6 +1048,7 @@ def process_import(session):
                                     message=f"ردیف {row_number}: خطا در ایجاد رکورد: {str(e)}",
                                     row_number=row_number
                                 )
+                                logger.warning(f"ردیف {row_number}: خطا در ایجاد رکورد: {str(e)}")
                             error_count += 1
                             raise  # Re-raise to rollback the transaction
                     
@@ -1057,6 +1063,7 @@ def process_import(session):
                         message=f"خطا در پردازش ردیف {row_number}: {str(e)}",
                         row_number=row_number if 'row_number' in locals() else None
                     )
+                    logger.warning(f"خطا در پردازش ردیف {row_number}: {str(e)}")
                     error_count += 1
                     raise  # Re-raise to rollback the transaction
         
@@ -1093,6 +1100,7 @@ def process_import(session):
             log_level='error',
             message=f"ایمپورت با خطا مواجه شد: {str(e)}"
         )
+
         
         import traceback
         error_trace = traceback.format_exc()
@@ -1101,6 +1109,7 @@ def process_import(session):
             log_level='error',
             message=f"جزئیات خطا: {error_trace[:500]}..."
         )
+        logger.warning(f"ایمپورت با خطا مواجه شد: {str(e)}, جزئیات خطا: {error_trace[:500]}...")
         
         return {
             'success': False,
@@ -1165,6 +1174,7 @@ def revert_import(session):
                     'message': f"Error reverting record with ID {record.object_id}: {str(e)}",
                     'row_number': record.row_number
                 })
+                logger.warning(f"Error reverting record with ID {record.object_id}: {str(e)}")
         
         # Update session status
         session.status = ImportExportSession.REVERTED
@@ -1194,6 +1204,7 @@ def revert_import(session):
             log_level=ImportExportLog.ERROR,
             message=f"Revert failed with error: {str(e)}"
         )
+        logger.warning(f"Revert failed with error: {str(e)}")
         raise
     finally:
         # Always release the lock
@@ -1376,6 +1387,8 @@ def process_export(content_types, field_mapping, user, format='xlsx'):
             log_level=ImportExportLog.ERROR,
             message=f"Export failed: {str(e)}"
         )
+
+        logger.warning(f"Export failed: {str(e)}")
         
         # Re-raise the exception with additional context
         raise ValueError(f"Export operation failed: {str(e)}")

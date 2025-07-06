@@ -6,6 +6,9 @@ from ..models.BarnamehModel import Barnameh
 from django.utils import timezone
 from django_jalali.db import models as jmodels
 import jdatetime
+import logging
+
+logger = logging.getLogger('bki_barnameh_upload_excel')
 
 def handle_uploaded_file(file, file_name):
     """
@@ -105,7 +108,7 @@ def process_excel_file(excel_file_id):
                                 day = int(parts[2])
                                 barnameh_date = jdatetime.date(year, month, day)
                     except Exception as e:
-                        print(f"Error parsing date: {e}")
+                        logger.error(f"Error parsing date in excel file: {e}")
                 
                 # Check if barnameh with this number already exists
                 existing_barnameh = None
@@ -157,19 +160,20 @@ def process_excel_file(excel_file_id):
                         purchase.barnameh_object = barnameh
                         purchase.save()
                     except Purchase.DoesNotExist:
-                        print(f"Purchase with number {purchase_number} not found")
+                        logger.error(f"Purchase with number {purchase_number} not found")
                         # Continue processing without failing
 
                 processed_rows += 1
                 
             except Exception as e:
-                print(f"Error processing row {index}: {e}")
+                logger.error(f"Error processing row {index}: {e}")
                 continue
         
         # Update the processed rows count and add duplicate info
         excel_file.processed_rows = processed_rows
         excel_file.processed = True
         excel_file.debug_info = f"تعداد بارنامه‌های بروزرسانی شده: {updated_rows}\nشماره بارنامه‌های بروزرسانی شده: {', '.join(duplicate_numbers)}"
+        logger.info(f"Excel file {excel_file.name} processed successfully. تعداد بارنامه‌های بروزرسانی شده: {updated_rows}\nشماره بارنامه‌های بروزرسانی شده: {', '.join(duplicate_numbers)}")
         excel_file.save()
         
         return {
