@@ -1439,7 +1439,7 @@ function initializePurchaseListPage() {
     addUnitsToHeaders();
     
     // راه‌اندازی دکمه خروجی اکسل
-    initializeExportButton();
+    //initializeExportButton();
     
     // راه‌اندازی انتخاب سطرها
     initializeRowSelection();
