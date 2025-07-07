@@ -10,6 +10,9 @@ from .API.insertBarnameh import send_barnameh_to_bki, send_multiple_barnameh_to_
 from .API.EditBarnameh import edit_barnameh_api
 from .API.EstelameBarnameh import estelame_barnameh
 from .excel_management.views import get_client_ip
+from django.views.decorators.http import require_http_methods
+from django.core.paginator import Paginator
+from django.db.models import Q
 import json
 import os
 from django.conf import settings
@@ -22,6 +25,224 @@ from .excel_management.views import upload_excel_view, download_excel_template, 
 
 logger = logging.getLogger('bki_barnameh_views')
 
+# Map table name to model for table_filter support
+TABLE_MODEL_MAPPING = {
+    'barnameh': Barnameh,
+}
+
+def get_model_from_table_name(table_name):
+    """Return model class for given table name"""
+    return TABLE_MODEL_MAPPING.get(table_name)
+
+@csrf_exempt  
+@role_required('logistics_manager', 'admin', 'financial_manager')
+@require_http_methods(["POST"])
+def apply_barnameh_filter(request):
+    """API endpoint for applying filters to barnameh table"""
+    try:
+        data = json.loads(request.body)
+        filter_config = data.get('filter_config', {})
+        sort_config = data.get('sort_config', {})
+        page = data.get('page', 1)
+        page_size = data.get('page_size', 50)
+        
+        # Build base queryset
+        queryset = Barnameh.objects.all()
+        
+        # Apply filters based on filter_config
+        for column_id, filter_data in filter_config.items():
+            if filter_data and filter_data.get('values'):
+                values = filter_data['values']
+                filter_type = filter_data.get('type', 'include')
+                
+                if column_id == 'number':
+                    if filter_type == 'include':
+                        queryset = queryset.filter(number__in=values)
+                    else:
+                        queryset = queryset.exclude(number__in=values)
+                elif column_id == 'serial':
+                    if filter_type == 'include':
+                        queryset = queryset.filter(serial__in=values)
+                    else:
+                        queryset = queryset.exclude(serial__in=values)
+                elif column_id == 'status':
+                    if filter_type == 'include':
+                        queryset = queryset.filter(status__in=values)
+                    else:
+                        queryset = queryset.exclude(status__in=values)
+                elif column_id == 'driver_name':
+                    if filter_type == 'include':
+                        queryset = queryset.filter(driver_name__in=values)
+                    else:
+                        queryset = queryset.exclude(driver_name__in=values)
+                elif column_id == 'purchase_number':
+                    if filter_type == 'include':
+                        queryset = queryset.filter(purchase_number__in=values)
+                    else:
+                        queryset = queryset.exclude(purchase_number__in=values)
+                elif column_id == 'shenase_takhsis_code':
+                    if filter_type == 'include':
+                        queryset = queryset.filter(shenase_takhsis_code__in=values)
+                    else:
+                        queryset = queryset.exclude(shenase_takhsis_code__in=values)
+                # Add more filter conditions as needed
+        
+        # Apply sorting
+        if sort_config:
+            sort_field = sort_config.get('field')
+            sort_direction = sort_config.get('direction', 'asc')
+            
+            if sort_field:
+                # Map frontend fields to model fields
+                field_mapping = {
+                    'number': 'number',
+                    'serial': 'serial',
+                    'tonnage': 'tonnage',
+                    'status': 'status',
+                    'driver_name': 'driver_name',
+                    'driver_phone': 'driver_phone',
+                    'vehicle_plate': 'vehicle_plate',
+                    'receiver_name': 'receiver_name',
+                    'destination': 'destination',
+                    'barnameh_date': 'barnameh_date',
+                    'purchase_number': 'purchase_number',
+                    'shenase_takhsis_code': 'shenase_takhsis_code',
+                    'created_at': 'barnameh_created_at',
+                }
+                
+                model_field = field_mapping.get(sort_field, sort_field)
+                if sort_direction == 'desc':
+                    model_field = f'-{model_field}'
+                
+                queryset = queryset.order_by(model_field)
+        else:
+            # Default sorting
+            queryset = queryset.order_by('-barnameh_created_at')
+        
+        # Pagination
+        paginator = Paginator(queryset, page_size)
+        page_obj = paginator.get_page(page)
+        
+        # Prepare results
+        results = []
+        for barnameh in page_obj:
+            # Get logs for barnameh
+            logs = barnameh.barnameh_logs.all().order_by('-log_date')[:3]
+            
+            result = {
+                'id': barnameh.id,
+                'number': barnameh.number or '',
+                'serial': barnameh.serial or '',
+                'tonnage': float(barnameh.tonnage) if barnameh.tonnage else '',
+                'status': barnameh.status,
+                'status_display': barnameh.get_status_display(),
+                'driver_name': barnameh.driver_name or '',
+                'driver_phone': barnameh.driver_phone or '',
+                'vehicle_plate': barnameh.vehicle_plate or '',
+                'receiver_name': barnameh.receiver_name or '',
+                'destination': barnameh.destination or '',
+                'barnameh_date': str(barnameh.barnameh_date) if barnameh.barnameh_date else '',
+                'purchase_number': barnameh.purchase_number or '',
+                'shenase_takhsis_code': barnameh.shenase_takhsis_code or '',
+                'is_sent_to_bki': barnameh.is_sent_to_bki,
+                'logs': [{'log_date': log.log_date.strftime('%Y/%m/%d %H:%M'), 'log_message': log.log_message} for log in logs]
+            }
+            results.append(result)
+        
+        return JsonResponse({
+            'success': True,
+            'results': results,
+            'pagination': {
+                'current_page': page_obj.number,
+                'total_pages': paginator.num_pages,
+                'total_count': paginator.count,
+                'has_next': page_obj.has_next(),
+                'has_previous': page_obj.has_previous(),
+                'page_size': page_size
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"خطا در اعمال فیلتر بارنامه: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@role_required('logistics_manager', 'admin', 'financial_manager')
+@require_http_methods(["GET"])
+def barnameh_column_values(request, column_id):
+    """Get unique values for a specific column in barnameh table"""
+    try:
+        # Get current filters to exclude current column filter
+        current_filters = request.GET.get('current_filters')
+        if current_filters:
+            try:
+                current_filters = json.loads(current_filters)
+                # Remove current column filter
+                current_filters.pop(column_id, None)
+            except:
+                current_filters = {}
+        else:
+            current_filters = {}
+        
+        # Build queryset with current filters
+        queryset = Barnameh.objects.all()
+        
+        # Apply existing filters (excluding current column)
+        for col_id, filter_data in current_filters.items():
+            if filter_data and filter_data.get('values'):
+                values = filter_data['values']
+                filter_type = filter_data.get('type', 'include')
+                
+                if col_id == 'number':
+                    if filter_type == 'include':
+                        queryset = queryset.filter(number__in=values)
+                    else:
+                        queryset = queryset.exclude(number__in=values)
+                elif col_id == 'serial':
+                    if filter_type == 'include':
+                        queryset = queryset.filter(serial__in=values)
+                    else:
+                        queryset = queryset.exclude(serial__in=values)
+                elif col_id == 'status':
+                    if filter_type == 'include':
+                        queryset = queryset.filter(status__in=values)
+                    else:
+                        queryset = queryset.exclude(status__in=values)
+                # Add more as needed
+        
+        # Get unique values for the requested column
+        values = []
+        if column_id in ['number', 'serial', 'driver_name', 'driver_phone', 'vehicle_plate', 
+                         'receiver_name', 'destination', 'purchase_number', 'shenase_takhsis_code']:
+            field_values = queryset.values_list(column_id, flat=True).distinct().order_by(column_id)
+            values = [{'value': val, 'display': val or '-', 'count': 1} for val in field_values if val]
+        elif column_id == 'status':
+            status_values = queryset.values_list('status', flat=True).distinct()
+            for status in status_values:
+                if status:
+                    display = dict(Barnameh.STATUS_CHOICES).get(status, status)
+                    values.append({'value': status, 'display': display, 'count': 1})
+        elif column_id == 'tonnage':
+            tonnage_values = queryset.values_list('tonnage', flat=True).distinct().order_by('tonnage')
+            values = [{'value': str(val), 'display': str(val), 'count': 1} for val in tonnage_values if val is not None]
+        elif column_id == 'barnameh_date':
+            date_values = queryset.values_list('barnameh_date', flat=True).distinct().order_by('barnameh_date')
+            values = [{'value': str(val), 'display': str(val), 'count': 1} for val in date_values if val]
+        
+        return JsonResponse({
+            'success': True,
+            'values': values[:500],  # Limit to 500 values
+            'total_count': len(values)
+        })
+        
+    except Exception as e:
+        logger.error(f"خطا در دریافت مقادیر ستون {column_id}: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
 
 def update_barnameh(barnameh_id, data):
     """
