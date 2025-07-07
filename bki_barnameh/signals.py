@@ -5,29 +5,30 @@ from sms_api.apis import queue_sms
 from sms_api.models import SmsTemplate
 import logging
 from .models.BarnamehModel import Barnameh
+from jdatetime import date as jdate
 
 logger = logging.getLogger('bki_barnameh_signals')
 
 @receiver(post_save, sender=Barnameh)
 def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
     """
-    ارسال پیامک به راننده و مشتری هنگام ایجاد بارنامه جدید
+    ارسال پیامک به مشتری هنگام ایجاد بارنامه جدید
     """
     if not created:  # فقط اگر Barnameh جدید ایجاد شده باشد
         return
     
     logger.info(f"New barnameh created: {instance.id}, checking SMS conditions")
     
-    # جمع‌آوری شماره‌های تلفن برای ارسال پیامک
-    phone_numbers = []
+    # بررسی تاریخ بارنامه - اگر بیشتر از 2 روز با امروز فاصله داشت، ارسال نکن
+    if instance.barnameh_date:
+        today = jdate.today()
+        date_diff = abs((instance.barnameh_date - today).days)
+        if date_diff > 2:
+            logger.info(f"Barnameh {instance.id} date is more than 2 days away from today ({date_diff} days), skipping SMS")
+            return
     
-    # اضافه کردن شماره راننده (اگر وجود دارد)
-    if instance.driver_phone:
-        # پاک کردن فاصله‌ها و کاراکترهای اضافی
-        driver_phone = instance.driver_phone.strip().replace(' ', '').replace('-', '')
-        if driver_phone:
-            phone_numbers.append(driver_phone)
-            logger.info(f"Added driver phone {driver_phone} for barnameh {instance.id}")
+    # جمع‌آوری شماره‌های تلفن مشتری برای ارسال پیامک
+    phone_numbers = []
     
     # اضافه کردن شماره‌های مشتری (از طریق Purchase)
     if instance.purchase and instance.purchase.customer:
@@ -35,23 +36,12 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
         
         # بررسی تنظیمات SMS مشتری
         if customer.sms_preference:
-            # بررسی اینکه کارشناسان فروش مشتری فقط ادمین‌ها نباشند
-            sales_agents = customer.sales_agent.all()
-            has_non_admin = False
-            for agent in sales_agents:
-                if not agent.user.is_superuser:
-                    has_non_admin = True
-                    break
-            
-            if has_non_admin:
-                # اضافه کردن همه شماره‌های مشتری
-                customer_phones = customer.get_all_phone_numbers()
-                for phone in customer_phones:
-                    if phone and phone not in phone_numbers:
-                        phone_numbers.append(phone)
-                        logger.info(f"Added customer phone {phone} for barnameh {instance.id}")
-            else:
-                logger.warning(f"Customer SMS not sent for barnameh {instance.id}: No non-admin sales agent")
+            # اضافه کردن همه شماره‌های مشتری (فارغ از کارشناس فروش)
+            customer_phones = customer.get_all_phone_numbers()
+            for phone in customer_phones:
+                if phone and phone not in phone_numbers:
+                    phone_numbers.append(phone)
+                    logger.info(f"Added customer phone {phone} for barnameh {instance.id}")
         else:
             logger.warning(f"Customer SMS not sent for barnameh {instance.id}: SMS preference is disabled")
     
@@ -154,7 +144,7 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
         for phone in phone_numbers:
             try:
                 queue_sms(
-                    number=pghone,
+                    number=phone,
                     message=message,
                     notification_type='BARNAMEH_CREATED',
                     purchase=instance.purchase  # در صورت وجود
