@@ -109,7 +109,7 @@ def apply_purchase_filter(request):
     try:
         # دریافت پارامترهای فیلتر
         filters = json.loads(request.POST.get('filters', '{}'))
-        logger.warning(f"فیلتر ها: {filters}")
+        
         sort_config = json.loads(request.POST.get('sort', '{}'))
         # دریافت پارامترهای pagination با validation بیشتر
         page_param = request.POST.get('page', '1')
