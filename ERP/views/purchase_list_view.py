@@ -17,6 +17,7 @@ from django.views.decorators.cache import cache_page
 from django.core.cache import cache
 from core.PurchaseModel import Purchase, PurchaseEditLog
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from .managers_profile_view import get_client_ip
 import logging
 
 logger = logging.getLogger("erp_purchase_list_view")
@@ -24,6 +25,7 @@ logger = logging.getLogger("erp_purchase_list_view")
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
 def purchase_list(request):
+    logger.warning(f"لیست خرید توسط {request.user.username} باز شد با آیپی {get_client_ip(request)}")
     # دریافت پارامترهای فیلتر
     global_search = request.GET.get('global_search', '')
     customer = request.GET.get('customer', '')
@@ -267,9 +269,6 @@ def purchase_list(request):
         # دریافت ستون های انتخاب شده از کوکی فقط برای کاربران محدود
         selected_columns = request.COOKIES.get('selected_columns', '')
         
-        # For debugging
-        print(f"Cookie selected_columns for restricted user: '{selected_columns}'")
-        
         if not selected_columns:
             # پیش‌فرض برای کاربران محدود: نمایش همه ستون‌های مجاز
             selected_columns = allowed_columns
@@ -291,7 +290,8 @@ def purchase_list(request):
         if 'actions' not in selected_columns:
             selected_columns.append('actions')
         
-        print(f"Final selected columns for restricted user: {selected_columns}")
+        logger.warning(f"ستون های انتخابی کاربر محدود {request.user.username}: {selected_columns}")
+        logger.warning(f"ستون های قابل انتخاب کاربر محدود {request.user.username}: {all_columns}")
     else:
         # دریافت ستون های انتخاب شده از کوکی برای کاربران غیرمحدود
         selected_columns = request.COOKIES.get('selected_columns', '')
@@ -366,6 +366,8 @@ def purchase_list(request):
                 {'id': 'company_price', 'name': 'فی خرید', 'field': 'company_price', 'unit': 'ریال'},
                 {'id': 'amount_paid', 'name': 'مبلغ پرداختی', 'field': 'amount_paid', 'unit': 'ریال'},
             ])
+        logger.warning(f"ستون های انتخابی کاربر نامحدود {request.user.username}: {selected_columns}")
+        logger.warning(f"ستون های قابل انتخاب کاربر نامحدود {request.user.username}: {all_columns}")
 
     # اگر درخواست AJAX است، فقط داده‌های JSON برگردان
     if is_ajax:
@@ -451,6 +453,7 @@ def load_archived_purchases(request):
     """
     API برای بارگذاری lazy خریدهای آرشیو شده
     """
+    logger.warning(f"خرید های ارشیو شده توسط {request.user.username} لود شد. {get_client_ip(request)}")
     try:
         # تشخیص نقش کاربر
         user_role = determine_user_role(request.user)
@@ -507,25 +510,21 @@ def update_columns(request):
     """
     به‌روزرسانی ستون‌های انتخاب شده برای نمایش در لیست خریدها
     """
+    logger.warning(f"ستون های لیست خرید اپدیت شدند توسط {request.user.username} و {get_client_ip(request)}")
     try:
         # دریافت ستون‌های انتخاب شده از فرم
         selected_columns = request.POST.getlist('columns[]')
-        
-        # ثبت لاگ برای دیباگ
-        print(f"ستون‌های دریافت شده: {selected_columns}")
-        print(f"داده‌های POST کامل: {dict(request.POST)}")
-        
+
         # بررسی فرمت‌های مختلف داده
         if not selected_columns and 'columns' in request.POST:
             selected_columns = request.POST.getlist('columns')
-            print(f"استفاده از فرمت جایگزین: {selected_columns}")
-        
+
+
         # اگر هنوز ستونی یافت نشد، تلاش برای فرمت رشته‌ای
         if not selected_columns and request.POST.get('columns'):
             columns_str = request.POST.get('columns')
             selected_columns = [c.strip() for c in columns_str.split(',') if c.strip()]
-            print(f"استفاده از رشته جدا شده با کاما: {selected_columns}")
-        
+
         # بررسی وجود ستون‌های انتخاب شده
         if not selected_columns:
             return JsonResponse({
@@ -533,14 +532,16 @@ def update_columns(request):
                 'message': 'هیچ ستونی انتخاب نشده است'
             }, status=400)
         
+        logger.warning(f"ستون‌های دریافت شده: {selected_columns} برای {request.user.username}")
+        
+
         # اطمینان از وجود ستون عملیات
         if 'actions' not in selected_columns:
             selected_columns.append('actions')  # ستون جزئیات همیشه باید نمایش داده شود
         
         # ایجاد پاسخ و تنظیم کوکی
         cookie_value = ','.join(selected_columns)
-        print(f"تنظیم کوکی 'selected_columns' با مقدار: {cookie_value}")
-        
+
         response = JsonResponse({'status': 'success', 'selected_columns': selected_columns})
         
         # تنظیم کوکی با عمر 30 روز
@@ -555,8 +556,7 @@ def update_columns(request):
         return response
     except Exception as e:
         import traceback
-        print(f"خطا در update_columns: {str(e)}")
-        print(traceback.format_exc())
+        logger.warning(f"خطا در update_columns: {str(e)}, {traceback.format_exc()}")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
@@ -564,17 +564,15 @@ def update_columns(request):
 def export_to_excel(request):
     print("=== EXPORT TO EXCEL CALLED ===")
     print(f"Request method: {request.method}")
-    
+    logger.warning(f"خروجی اکسل توسط {request.user.username} با متد {request.method} و آی‌پی {get_client_ip(request)} آغاز شد")
     # Support both GET and POST requests
     if request.method == 'POST':
-        print(f"POST parameters: {dict(request.POST)}")
         purchase_ids = request.POST.get('ids', '').split(',')
         selected_columns = request.POST.get('columns', '')
     else:
-        print(f"GET parameters: {dict(request.GET)}")
         purchase_ids = request.GET.get('ids', '').split(',')
         selected_columns = request.GET.get('columns', '')
-    
+    logger.warning(f"raw select columns for user {request.user.username}: {selected_columns}")
     print(f"Raw purchase_ids: {purchase_ids}")
     print(f"Raw selected_columns: '{selected_columns}'")
     
@@ -587,14 +585,12 @@ def export_to_excel(request):
     else:
         selected_columns = ['date', 'customer', 'invoice_id', 'sales_agent', 'purchase_number', 'weight', 'cargo', 'status']
     
-    print(f"Final selected_columns: {selected_columns}")
     
     # فیلتر کردن آیدی‌های خالی
     purchase_ids = [pid.strip() for pid in purchase_ids if pid.strip()]
-    print(f"Filtered purchase_ids: {purchase_ids}")
-    
+
     if not purchase_ids:
-        logger.warning("ERROR: No purchase IDs!")
+        logger.warning("ERROR: No purchase IDs to export excel!")
         return JsonResponse({'status': 'error', 'message': 'هیچ خریدی انتخاب نشده است'}, status=400)
     
     # بررسی تعداد خریدها
@@ -608,10 +604,8 @@ def export_to_excel(request):
     except Exception as e:
         # لاگ خطا
         import traceback
-        logger.warning(f"Error in export_to_excel: {str(e)}")
-        
-        logger.warning(traceback.format_exc())
-        return JsonResponse({'status': 'error', 'message': f'خطا در ایجاد فایل اکسل: {str(e)}'}, status=500)
+        logger.warning(f"Error in export_to_excel: {str(e)}, {traceback.format_exc()}")
+        return JsonResponse({'status': 'error', 'message': f'خطا در ایجاد فایل اکسل:'}, status=500)
 
 def _export_regular_excel(purchase_ids, selected_columns):
     """پردازش معمولی برای تعداد کم خرید"""
@@ -719,7 +713,7 @@ def _export_regular_excel(purchase_ids, selected_columns):
                     value = column_mapping[col][1](purchase)
                     row.append(value)
                 except Exception as e:
-                    print(f"خطا در استخراج مقدار {col} برای خرید {purchase.id}: {str(e)}")
+                    logger.warning(f"خطا در استخراج مقدار {col} برای خرید {purchase.id}: {str(e)}")
                     row.append("-")
         
         ws.append(row)
@@ -751,6 +745,7 @@ def cargo_products_list(request):
     """
     API برای دریافت لیست کوتاژها
     """
+    logger.warning(f"کاربر {request.user.username} درخواست دریافت لیست کوتاژ کرد. {get_client_ip(request)}")
     try:
         # فیلتر بر اساس وضعیت فعال
         active_only = request.GET.get('active_only', '1') == '1'
@@ -790,7 +785,8 @@ def cargo_products_list(request):
         return JsonResponse({'status': 'success', 'cargos': cargos_data})
     
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+        logger.warning(f"error cargo product {str(e)}")
+        return JsonResponse({'status': 'error', 'message': "error"}, status=500)
 
 @login_required
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
@@ -798,6 +794,7 @@ def cargo_product_details(request):
     """
     API برای دریافت جزئیات یک کوتاژ بر اساس شماره کوتاژ
     """
+    logger.warning(f"دریافت جزئیات کوتاز توسط {request.user.username} با آیپی {get_client_ip(request)}")
     try:
         cottage = request.GET.get('cottage', '')
         
@@ -808,7 +805,7 @@ def cargo_product_details(request):
             cargo = CargoProduct.objects.get(cottage=cottage)
         except CargoProduct.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'کوتاژ مورد نظر یافت نشد'}, status=404)
-        
+        logger.warning(f"کوتاز: {cottage}")
         cargo_data = {
             'id': cargo.id,
             'cottage': cargo.cottage,
@@ -827,7 +824,8 @@ def cargo_product_details(request):
         return JsonResponse({'status': 'success', 'cargo': cargo_data})
     
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+        logger.warning(f"error finding cargo product details: {str(e)}")
+        return JsonResponse({'status': 'error', 'message': "error"}, status=500)
 
 @require_POST
 @login_required
@@ -836,6 +834,7 @@ def bulk_edit_cargo(request):
     """
     API برای ویرایش گروهی کوتاژ
     """
+    logger.warning(f"ویرایش گروهی کوتاژ توسط {request.user.username} با ایپی {get_client_ip(request)}")
     try:
         # دریافت لیست خریدهای انتخاب شده
         purchase_ids = request.POST.get('purchase_ids', '').split(',')
@@ -920,6 +919,7 @@ def update_column_order(request):
     """
     ذخیره ترتیب جدید ستون‌ها
     """
+    logger.warning(f"ذخیه ترتیب جدید ستون ها توسط {request.user.username} و آیپی {get_client_ip(request)}")
     try:
         data = json.loads(request.body)
         column_order = data.get('column_order', [])
@@ -933,7 +933,8 @@ def update_column_order(request):
         
         return response
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+        logger.error(f"error update column: {str(e)}")
+        return JsonResponse({'status': 'error', 'message': "error"}, status=500)
 
 @require_POST
 @login_required
@@ -942,6 +943,8 @@ def reset_column_order(request):
     """
     بازگرداندن ترتیب ستون‌ها به حالت پیش‌فرض
     """
+    logger.warning(f"بازگرداندن ترتیب جدید ستون ها توسط {request.user.username} و آیپی {get_client_ip(request)}")
+    
     try:
         # ستون‌های پیش‌فرض اصلی
         default_columns = ['purchase_number', 'date', 'customer', 'invoice_id', 'sales_agent', 'weight', 'cargo', 'status', 'actions']
@@ -961,8 +964,8 @@ def reset_column_order(request):
         
         return response
     except Exception as e:
-        print(f"Error in reset_column_order: {str(e)}")
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+        logger.error(f"Error in reset_column_order: {str(e)}")
+        return JsonResponse({'success': False, 'error': "error"}, status=500)
 
 @require_POST
 @login_required
@@ -971,6 +974,7 @@ def get_purchase_aggregated_stats(request):
     """
     API برای دریافت آمار اجماعی خریدهای انتخاب شده
     """
+    logger.warning(f"دریافت آمار اجماعی خریدهای انتخاب شده توسط {request.user.username} و {get_client_ip(request)}")
     try:
         # تشخیص نقش کاربر
         user_role = determine_user_role(request.user)
@@ -1085,10 +1089,10 @@ def get_purchase_aggregated_stats(request):
         })
         
     except Exception as e:
-        print(f"Error in get_purchase_aggregated_stats: {str(e)}")
+        logger.error(f"Error in get_purchase_aggregated_stats: {str(e)}")
         return JsonResponse({
             'status': 'error', 
-            'message': f'خطا در محاسبه آمار: {str(e)}'
+            'message': f'خطا در محاسبه آمار:'
         }, status=500)
 
 @require_POST
@@ -1098,6 +1102,8 @@ def clear_column_cache(request):
     """
     پاک کردن cache و کوکی‌های مربوط به ستون‌ها
     """
+    logger.warning(f"پاک کردن کش و کوکی ستون ها {request.user.username} و {get_client_ip(request)}")
+    
     try:
         # ایجاد پاسخ
         response = JsonResponse({'status': 'success', 'message': 'کوکی‌ها با موفقیت پاک شدند'})
@@ -1108,7 +1114,8 @@ def clear_column_cache(request):
         
         return response
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+        logger.error(f"error in clearing column cahse: {str(e)}")
+        return JsonResponse({'status': 'error', 'message': "error"}, status=500)
 
 @login_required
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
@@ -1116,6 +1123,7 @@ def get_section_purchase_ids(request):
     """
     API برای دریافت تمام ID های خریدهای یک بخش خاص (فعال، در انتظار پرداخت، آرشیو)
     """
+    logger.warning(f"دریافت آیدی های خرید های بخش خاص توسط {request.user.username} و {get_client_ip(request)}")
     try:
         section = request.GET.get('section', 'active')  # active, pending, archived
         
@@ -1263,6 +1271,7 @@ def get_section_purchase_ids(request):
         })
         
     except Exception as e:
+        logger.error(f"خطا در دریافت ایدی بخش خرید آیدی ها {str(e)}, {section}")
         return JsonResponse({
             'status': 'error',
             'message': f'خطا در دریافت لیست خریدها: {str(e)}'
