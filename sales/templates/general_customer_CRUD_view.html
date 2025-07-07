@@ -731,9 +731,97 @@
             background-color: var(--hover-color);
         }
 
-        /* استایل دکمه شبکه‌های اجتماعی */
-        .social-media-btn {
-            background-color: #8b5cf6;
+        /* استایل دکمه ارسال پیامک اصلی */
+        .sms-main-section {
+            display: flex;
+            justify-content: center;
+            margin: 25px 0 30px 0;
+            position: relative;
+        }
+
+        .sms-main-btn {
+            background: linear-gradient(135deg, #059669, #22c55e);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 18px 35px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 8px 25px rgba(5, 150, 105, 0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+            transform: translateY(0);
+            animation: pulse-glow 2s infinite;
+        }
+
+        .sms-main-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(5, 150, 105, 0.6);
+            background: linear-gradient(135deg, #22c55e, #059669);
+        }
+
+        .sms-main-btn:active {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(5, 150, 105, 0.5);
+        }
+
+        .sms-main-btn i {
+            font-size: 20px;
+            animation: bounce-icon 2s infinite;
+        }
+
+        .sms-main-btn span {
+            font-family: 'Vazir', sans-serif;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-glow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transform: translateX(-100%);
+            animation: shine 3s infinite;
+            border-radius: 15px;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 8px 25px rgba(5, 150, 105, 0.4);
+            }
+            50% {
+                box-shadow: 0 8px 25px rgba(5, 150, 105, 0.6), 0 0 25px rgba(34, 197, 94, 0.3);
+            }
+        }
+
+        @keyframes bounce-icon {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-2px);
+            }
+        }
+
+        @keyframes shine {
+            0% {
+                transform: translateX(-100%);
+            }
+            50%, 100% {
+                transform: translateX(100%);
+            }
+        }
+
+        /* استایل دکمه در پاپ‌آپ */
+        .sms-popup-btn {
+            background-color: #059669;
             color: white;
             border: none;
             border-radius: 6px;
@@ -749,15 +837,268 @@
             justify-content: center;
         }
 
-        .social-media-btn:hover {
-            background-color: #7c3aed;
+        .sms-popup-btn:hover {
+            background-color: var(--hover-color);
         }
 
-        .social-media-section h5 {
-            margin-bottom: 15px;
-            color: #8b5cf6;
-            font-size: 14px;
+        /* استایل‌های پاپ‌آپ SMS */
+        .sms-popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .sms-popup {
+            background-color: white;
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .sms-popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+
+        .sms-popup-title {
+            font-size: 20px;
             font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .sms-popup-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 5px;
+        }
+
+        .sms-popup-close:hover {
+            color: #dc3545;
+        }
+
+        .sms-popup-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .phone-selection-section,
+        .message-type-section {
+            background-color: var(--background-color);
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .phone-checkbox-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .phone-checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background-color: white;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            transition: all 0.3s;
+        }
+
+        .phone-checkbox-item:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 5px rgba(6, 95, 70, 0.1);
+        }
+
+        .phone-checkbox-item input[type="checkbox"] {
+            margin: 0;
+            transform: scale(1.2);
+        }
+
+        .phone-number-text {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            direction: ltr;
+        }
+
+        .phone-type-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+            margin-right: 8px;
+        }
+
+        .message-type-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message-type-option {
+            padding: 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background-color: white;
+        }
+
+        .message-type-option:hover {
+            border-color: var(--primary-color);
+            background-color: var(--background-color);
+        }
+
+        .message-type-option.selected {
+            border-color: var(--button-color);
+            background-color: #dcfce7;
+        }
+
+        .message-option-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: var(--text-color);
+        }
+
+        .message-option-description {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .purchase-form-section {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9ff;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            display: none;
+        }
+
+        .social-preview-section {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .message-preview {
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+
+        .preview-header {
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .preview-content {
+            background-color: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #333;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .custom-message-section {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .custom-message-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .sms-popup-actions {
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .sms-action-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sms-send-btn {
+            background-color: var(--button-color);
+            color: white;
+        }
+
+        .sms-send-btn:hover {
+            background-color: var(--hover-color);
+        }
+
+        .sms-cancel-btn {
+            background-color: #6b7280;
+            color: white;
+        }
+
+        .sms-cancel-btn:hover {
+            background-color: #4b5563;
+        }
+
+        @media (max-width: 768px) {
+            .sms-popup-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .sms-popup {
+                width: 95%;
+                padding: 20px;
+            }
         }
 
         /* استایل شماره‌های خرید */
@@ -1013,17 +1354,7 @@
                             </form>
                         </div>
 
-                        <!-- ارسال لینک شبکه‌های اجتماعی -->
-                        <div class="social-media-section" style="margin-top: 20px; padding-top: 20px; border-top: 2px dashed var(--border-color);">
-                            <h5><i class="fas fa-share-alt"></i> ارسال شبکه‌های اجتماعی</h5>
-                            <form method="post" class="social-media-form">
-                                {% csrf_token %}
-                                <input type="hidden" name="send_social_media_links" value="true">
-                                <button type="submit" class="social-media-btn" onclick="return confirm('آیا مطمئن هستید که می‌خواهید لینک شبکه‌های اجتماعی را به همه شماره‌های فعال این مشتری ارسال کنید؟')">
-                                    <i class="fas fa-paper-plane"></i> ارسال شبکه‌های اجتماعی
-                                </button>
-                            </form>
-                        </div>
+
                     </div>
 
                     <!-- شماره‌های خریدها -->
@@ -1182,6 +1513,15 @@
     <!-- تب‌ها -->
     {% if customer %}
     <div class="tabs-section">
+        <!-- دکمه ارسال پیامک -->
+        <div class="sms-main-section">
+            <button type="button" class="sms-main-btn" onclick="openSmsPopup()">
+                <i class="fas fa-sms"></i>
+                <span>ارسال پیامک</span>
+                <div class="btn-glow"></div>
+            </button>
+        </div>
+        
         <div class="tabs-container mt-8">
             <div class="tab-buttons">
                 <button class="tab-btn active" data-target="tasks">تسک‌ها</button>
@@ -1323,11 +1663,14 @@
                         </div>
                     </div>
             
-                    <button type="submit" name="create_purchase" class="action-button">ارسال پیامک به مشتری</button>
                     <button type="submit" name="create_purchase_without_sms" class="action-button">ایجاد خرید بدون ارسال پیامک</button>
+                    <p style="margin-top: 10px; color: #666; font-size: 14px;">
+                        <i class="fas fa-info-circle"></i>
+                        برای ایجاد خرید همراه با ارسال پیامک، از دکمه "ارسال پیامک" استفاده کنید.
+                    </p>
                 </form>        
             </div>
-            
+
             <div id="purchase_history" class="tab-content">
                 <div class="history-list">
                     {% for purchase in purchases %}
@@ -1433,6 +1776,226 @@
     {% endif %}
     </div>
 </div>
+
+<!-- پاپ‌آپ ارسال پیامک -->
+{% if customer %}
+<div id="sms-popup-overlay" class="sms-popup-overlay">
+    <div class="sms-popup">
+        <div class="sms-popup-header">
+            <h3 class="sms-popup-title">
+                <i class="fas fa-sms"></i>
+                ارسال پیامک به {{ customer.name|default:"مشتری" }}
+            </h3>
+            <button type="button" class="sms-popup-close" onclick="closeSmsPopup()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form id="sms-form" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="sms_action" id="sms-action-input">
+            
+            <div class="sms-popup-content">
+                <!-- بخش انتخاب شماره تلفن -->
+                <div class="phone-selection-section">
+                    <h4 class="section-title">
+                        <i class="fas fa-phone"></i>
+                        انتخاب شماره‌های تلفن
+                    </h4>
+                    
+                    <div class="phone-checkbox-list">
+                        <!-- شماره‌های اصلی مشتری -->
+                        {% for phone in customer.phone_numbers.all %}
+                        <div class="phone-checkbox-item">
+                            <input type="checkbox" 
+                                   name="selected_phones" 
+                                   value="{{ phone.number }}" 
+                                   id="phone-{{ phone.id }}"
+                                   {% if phone.sms_enabled %}checked{% endif %}>
+                            <label for="phone-{{ phone.id }}">
+                                <span class="phone-number-text">{{ phone.number }}</span>
+                                {% if phone.is_primary %}
+                                    <span class="phone-type-badge bg-primary">اصلی</span>
+                                {% endif %}
+                                {% if phone.description %}
+                                    <span class="phone-description">({{ phone.description }})</span>
+                                {% endif %}
+                                {% if not phone.sms_enabled %}
+                                    <span class="phone-type-badge bg-danger">پیامک غیرفعال</span>
+                                {% endif %}
+                            </label>
+                        </div>
+                        {% endfor %}
+                        
+                        <!-- شماره‌های خریدها -->
+                        {% for phone_type, phone_number, purchase_number in purchase_phone_numbers %}
+                        <div class="phone-checkbox-item">
+                            <input type="checkbox" 
+                                   name="selected_phones" 
+                                   value="{{ phone_number }}" 
+                                   id="purchase-phone-{{ forloop.counter }}"
+                                   checked>
+                            <label for="purchase-phone-{{ forloop.counter }}">
+                                <span class="phone-number-text">{{ phone_number }}</span>
+                                <span class="phone-type-badge type-{{ phone_type|lower }}">{{ phone_type }}</span>
+                                <span class="purchase-ref">(خرید: {{ purchase_number }})</span>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- بخش نوع پیامک -->
+                <div class="message-type-section">
+                    <h4 class="section-title">
+                        <i class="fas fa-message"></i>
+                        نوع پیامک
+                    </h4>
+                    
+                    <div class="message-type-options">
+                        <div class="message-type-option" data-type="purchase" onclick="selectMessageType('purchase')">
+                            <div class="message-option-title">
+                                <i class="fas fa-shopping-cart"></i>
+                                ارسال کوتاژ (ایجاد خرید جدید)
+                            </div>
+                            <div class="message-option-description">
+                                ثبت خرید جدید و ارسال اطلاعات کوتاژ به مشتری
+                            </div>
+                        </div>
+                        
+                        <div class="message-type-option" data-type="social" onclick="selectMessageType('social')">
+                            <div class="message-option-title">
+                                <i class="fas fa-share-alt"></i>
+                                ارسال لینک شبکه‌های اجتماعی
+                            </div>
+                            <div class="message-option-description">
+                                ارسال لینک‌های واتساپ، تلگرام، اینستاگرام و سایر شبکه‌ها
+                            </div>
+                        </div>
+                        
+                        <div class="message-type-option" data-type="followup" onclick="selectMessageType('followup')">
+                            <div class="message-option-title">
+                                <i class="fas fa-headset"></i>
+                                ارجاع به پیگیری
+                            </div>
+                            <div class="message-option-description">
+                                اعلام انتقال مشکل به واحد پیگیری
+                            </div>
+                        </div>
+                        
+                        <div class="message-type-option" data-type="custom" onclick="selectMessageType('custom')">
+                            <div class="message-option-title">
+                                <i class="fas fa-edit"></i>
+                                پیامک سفارشی
+                            </div>
+                            <div class="message-option-description">
+                                نوشتن متن پیامک به صورت دستی
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- فرم خرید (نمایش داده می‌شود وقتی گزینه خرید انتخاب شود) -->
+            <div id="purchase-form-section" class="purchase-form-section">
+                <h4 class="section-title">
+                    <i class="fas fa-box"></i>
+                    مشخصات خرید
+                </h4>
+                
+                <div class="form-group">
+                    <label>انتخاب کوتاژ:</label>
+                    <select name="cottage_number" id="popup-cottage-select" onchange="showPopupCargoDetails()">
+                        <option value="">-- انتخاب کنید --</option>
+                        {% for product in active_products %}
+                            <option value="{{ product.cottage }}" 
+                                    data-type="{{ product.get_product_type_display }}"
+                                    data-country="{{ product.get_country_display }}"
+                                    data-loading="{{ product.loading_time }}"
+                                    data-port="{{ product.port }}"
+                                    data-price="{{ product.customer_price }}"
+                                    data-description="{{ product.description }}">
+                                کوتاژ {{ product.cottage }} | {{ product.get_product_type_display }} {{ product.get_country_display }} | {{ product.loading_time }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div id="popup-cargo-details" style="display: none;" class="cargo-details">
+                    <h5>مشخصات محصول:</h5>
+                    <p id="popup-product-type">نوع: </p>
+                    <p id="popup-product-country">کشور: </p>
+                    <p id="popup-product-loading">زمان بارگیری: </p>
+                    <p id="popup-product-loading-place">محل بارگیری: </p>
+                    <p id="popup-product-price">فی فروش: </p>
+                    <p id="popup-product-description">توضیحات: </p>
+                </div>
+
+                <div class="form-group">
+                    <label>وزن احتمالی خرید (کیلوگرم):</label>
+                    <input type="number" name="weight" id="popup-weight" min="100" step="1">
+                </div>
+                
+                <div class="form-group">
+                    <div class="checkbox-label">
+                        <input type="checkbox" id="popup-use-custom-price" name="use_custom_price">
+                        <label for="popup-use-custom-price">استفاده از فی فروش سفارشی</label>
+                    </div>
+                    <div id="popup-custom-price-field" style="display: none; margin-top: 10px;">
+                        <label>فی فروش سفارشی (ریال):</label>
+                        <input type="number" name="custom_price" id="popup-custom-price-input" min="1000" step="10">
+                    </div>
+                </div>
+            </div>
+
+            <!-- پریویو شبکه‌های اجتماعی -->
+            <div id="social-preview-section" class="social-preview-section">
+                <h4 class="section-title">
+                    <i class="fas fa-eye"></i>
+                    پیش‌نمایش پیامک
+                </h4>
+                <div class="message-preview">
+                    <div class="preview-header">متن پیامکی که ارسال خواهد شد:</div>
+                    <div class="preview-content">
+                        لینک شبکه‌های اجتماعی شرکت تأمین نهاده سیمرغ:<br><br>
+                        واتساپ: chat.whatsapp.com/DMqFJ2OUZXb9IA8GUqDMFH<br>
+                        بله: ble.ir/join/baS6duS998<br>
+                        روبیکا: rubika.ir/simurgh360<br>
+                        ایتا: eitaa.com/simurgh360<br>
+                        تلگرام: t.me/simurgh360<br>
+                        اینستاگرام: instagram.com/simurgh360<br>
+                        وبسایت: simurgh360.com
+                    </div>
+                </div>
+            </div>
+
+            <!-- فیلد متن سفارشی (نمایش داده می‌شود وقتی گزینه سفارشی انتخاب شود) -->
+            <div id="custom-message-section" class="custom-message-section">
+                <h4 class="section-title">
+                    <i class="fas fa-keyboard"></i>
+                    متن پیامک
+                </h4>
+                <textarea name="custom_message" 
+                          id="custom-message-textarea" 
+                          class="custom-message-textarea"
+                          placeholder="متن پیامک خود را بنویسید..."></textarea>
+            </div>
+
+            <!-- دکمه‌های عمل -->
+            <div class="sms-popup-actions">
+                <button type="button" class="sms-action-btn sms-cancel-btn" onclick="closeSmsPopup()">
+                    <i class="fas fa-times"></i>
+                    لغو
+                </button>
+                <button type="submit" class="sms-action-btn sms-send-btn" id="sms-send-button">
+                    <i class="fas fa-paper-plane"></i>
+                    ارسال پیامک
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -1911,6 +2474,192 @@ function cancelEditDescription(phoneId) {
     displaySection.style.display = 'flex';
     editSection.style.display = 'none';
 }
+
+// توابع پاپ‌آپ SMS
+function openSmsPopup() {
+    document.getElementById('sms-popup-overlay').style.display = 'flex';
+    document.body.style.overflow = 'hidden'; // جلوگیری از اسکرول صفحه
+}
+
+function closeSmsPopup() {
+    document.getElementById('sms-popup-overlay').style.display = 'none';
+    document.body.style.overflow = 'auto'; // برگرداندن اسکرول صفحه
+    
+    // ریست کردن فرم
+    resetSmsForm();
+}
+
+function resetSmsForm() {
+    // حذف انتخاب نوع پیامک
+    document.querySelectorAll('.message-type-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    // مخفی کردن بخش‌های اضافی
+    document.getElementById('purchase-form-section').style.display = 'none';
+    document.getElementById('social-preview-section').style.display = 'none';
+    document.getElementById('custom-message-section').style.display = 'none';
+    
+    // ریست کردن فیلدها
+    document.getElementById('sms-action-input').value = '';
+    document.getElementById('popup-cottage-select').value = '';
+    document.getElementById('popup-cargo-details').style.display = 'none';
+    document.getElementById('popup-weight').value = '';
+    document.getElementById('popup-use-custom-price').checked = false;
+    document.getElementById('popup-custom-price-field').style.display = 'none';
+    document.getElementById('custom-message-textarea').value = '';
+}
+
+function selectMessageType(type) {
+    // حذف انتخاب قبلی
+    document.querySelectorAll('.message-type-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    // انتخاب گزینه جدید
+    document.querySelector(`[data-type="${type}"]`).classList.add('selected');
+    document.getElementById('sms-action-input').value = type;
+    
+    // مخفی کردن همه بخش‌ها
+    document.getElementById('purchase-form-section').style.display = 'none';
+    document.getElementById('social-preview-section').style.display = 'none';
+    document.getElementById('custom-message-section').style.display = 'none';
+    
+    // نمایش بخش مربوطه
+    if (type === 'purchase') {
+        document.getElementById('purchase-form-section').style.display = 'block';
+    } else if (type === 'social') {
+        document.getElementById('social-preview-section').style.display = 'block';
+    } else if (type === 'custom') {
+        document.getElementById('custom-message-section').style.display = 'block';
+    }
+    
+    // تغییر متن دکمه ارسال
+    const sendButton = document.getElementById('sms-send-button');
+    switch (type) {
+        case 'purchase':
+            sendButton.innerHTML = '<i class="fas fa-shopping-cart"></i> ثبت خرید و ارسال پیامک';
+            break;
+        case 'social':
+            sendButton.innerHTML = '<i class="fas fa-share-alt"></i> ارسال شبکه‌های اجتماعی';
+            break;
+        case 'followup':
+            sendButton.innerHTML = '<i class="fas fa-headset"></i> ارسال پیام پیگیری';
+            break;
+        case 'custom':
+            sendButton.innerHTML = '<i class="fas fa-paper-plane"></i> ارسال پیامک';
+            break;
+        default:
+            sendButton.innerHTML = '<i class="fas fa-paper-plane"></i> ارسال پیامک';
+    }
+}
+
+function showPopupCargoDetails() {
+    const select = document.getElementById('popup-cottage-select');
+    const detailsDiv = document.getElementById('popup-cargo-details');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    if (selectedOption.value) {
+        detailsDiv.style.display = 'block';
+        document.getElementById('popup-product-type').textContent = `نوع: ${selectedOption.dataset.type}`;
+        document.getElementById('popup-product-country').textContent = `کشور: ${selectedOption.dataset.country}`;
+        document.getElementById('popup-product-loading').textContent = `زمان بارگیری: ${selectedOption.dataset.loading}`;
+        document.getElementById('popup-product-loading-place').textContent = `محل بارگیری: ${selectedOption.dataset.port}`;
+        document.getElementById('popup-product-price').textContent = `فی فروش: ${selectedOption.dataset.price}`;
+        document.getElementById('popup-product-description').textContent = `توضیحات: ${selectedOption.dataset.description}`;
+        
+        // تنظیم قیمت پیش‌فرض برای فیلد سفارشی
+        const customPriceInput = document.getElementById('popup-custom-price-input');
+        if (customPriceInput) {
+            customPriceInput.value = selectedOption.dataset.price;
+        }
+    } else {
+        detailsDiv.style.display = 'none';
+    }
+}
+
+// مدیریت چک‌باکس قیمت سفارشی در پاپ‌آپ
+document.addEventListener('DOMContentLoaded', function() {
+    const popupUseCustomPrice = document.getElementById('popup-use-custom-price');
+    const popupCustomPriceField = document.getElementById('popup-custom-price-field');
+    
+    if (popupUseCustomPrice) {
+        popupUseCustomPrice.addEventListener('change', function() {
+            popupCustomPriceField.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+    
+    // مدیریت ارسال فرم SMS
+    const smsForm = document.getElementById('sms-form');
+    if (smsForm) {
+        smsForm.addEventListener('submit', function(e) {
+            const actionType = document.getElementById('sms-action-input').value;
+            const selectedPhones = document.querySelectorAll('input[name="selected_phones"]:checked');
+            
+            // بررسی انتخاب شماره تلفن
+            if (selectedPhones.length === 0) {
+                e.preventDefault();
+                alert('لطفاً حداقل یک شماره تلفن انتخاب کنید');
+                return false;
+            }
+            
+            // بررسی انتخاب نوع پیامک
+            if (!actionType) {
+                e.preventDefault();
+                alert('لطفاً نوع پیامک را انتخاب کنید');
+                return false;
+            }
+            
+            // بررسی‌های خاص هر نوع
+            if (actionType === 'purchase') {
+                const cottage = document.getElementById('popup-cottage-select').value;
+                const weight = document.getElementById('popup-weight').value;
+                
+                if (!cottage) {
+                    e.preventDefault();
+                    alert('لطفاً کوتاژ را انتخاب کنید');
+                    return false;
+                }
+                
+                if (!weight || weight < 100) {
+                    e.preventDefault();
+                    alert('لطفاً وزن معتبر وارد کنید (حداقل 100 کیلوگرم)');
+                    return false;
+                }
+            } else if (actionType === 'custom') {
+                const message = document.getElementById('custom-message-textarea').value.trim();
+                
+                if (!message) {
+                    e.preventDefault();
+                    alert('لطفاً متن پیامک را وارد کنید');
+                    return false;
+                }
+            }
+            
+            // نمایش لودینگ
+            const sendButton = document.getElementById('sms-send-button');
+            sendButton.disabled = true;
+            sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> در حال ارسال...';
+        });
+    }
+    
+    // بستن پاپ‌آپ با کلیک خارج از آن
+    document.getElementById('sms-popup-overlay').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeSmsPopup();
+        }
+    });
+    
+    // بستن پاپ‌آپ با کلید Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const overlay = document.getElementById('sms-popup-overlay');
+            if (overlay.style.display === 'flex') {
+                closeSmsPopup();
+            }
+        }
+    });
+});
 </script>
 
 <script>

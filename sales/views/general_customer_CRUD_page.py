@@ -429,13 +429,12 @@ def general_customer_CRUD_view(request):
                 messages.error(request, "لطفاً تمام فیلدهای ضروری را پر کنید")
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}&active_tab={active_tab}')
         
-        # ثبت خرید جدید
-        elif 'create_purchase' in request.POST or 'create_purchase_without_sms' in request.POST:
+        # ثبت خرید جدید بدون پیامک
+        elif 'create_purchase_without_sms' in request.POST:
             cottage_number = request.POST.get('cottage_number')
             weight = request.POST.get('weight')
             use_custom_price = request.POST.get('use_custom_price')
             custom_price = request.POST.get('custom_price')
-            send_sms = 'create_purchase' in request.POST
             active_tab = request.POST.get('active_tab', 'purchases')
             
             if cottage_number and weight:
@@ -470,18 +469,7 @@ def general_customer_CRUD_view(request):
                     if sales_agent:
                         new_purchase.sales_agent.add(sales_agent)
                     
-                    if send_sms:
-                        # ارسال پیامک به مشتری
-                        try:
-                            from sms_api.apis import queue_sms
-                            phone = customer.get_primary_phone()
-                            message = f"سلام {customer.name}\nخرید شما ثبت شد:\nکوتاژ: {cottage_number}\nوزن: {weight} کیلوگرم\nفی: {customer_price:,} ریال\nکارشناس: {sales_agent.name}"
-                            queue_sms(phone, message, notification_type='purchase_registered')
-                            messages.success(request, "خرید ثبت شد و پیامک ارسال شد")
-                        except Exception as e:
-                            messages.warning(request, f"خرید ثبت شد ولی پیامک ارسال نشد: {e}")
-                    else:
-                        messages.success(request, "خرید با موفقیت ثبت شد")
+                    messages.success(request, "خرید با موفقیت ثبت شد (بدون ارسال پیامک)")
                         
                 except CargoProduct.DoesNotExist:
                     messages.error(request, "کوتاژ انتخاب شده یافت نشد")
@@ -490,7 +478,7 @@ def general_customer_CRUD_view(request):
             else:
                 messages.error(request, "لطفاً تمام فیلدهای ضروری را پر کنید")
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}&active_tab={active_tab}')
-        
+
         # اضافه کردن شماره تلفن جدید
         elif 'add_phone' in request.POST:
             new_phone = request.POST.get('new_phone')
@@ -594,13 +582,80 @@ def general_customer_CRUD_view(request):
                 messages.error(request, "شماره یافت نشد")
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
 
-        # ارسال لینک شبکه‌های اجتماعی
-        elif 'send_social_media_links' in request.POST:
+        # مدیریت پاپ‌آپ SMS
+        elif 'sms_action' in request.POST:
+            sms_action = request.POST.get('sms_action')
+            selected_phones = request.POST.getlist('selected_phones')
+            
+            if not selected_phones:
+                messages.error(request, "لطفاً حداقل یک شماره تلفن انتخاب کنید")
+                return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
+            
             try:
                 from sms_api.apis import queue_sms
+                sent_count = 0
                 
-                # متن پیام شبکه‌های اجتماعی
-                social_media_message = """لینک شبکه‌های اجتماعی شرکت تأمین نهاده سیمرغ:
+                if sms_action == 'purchase':
+                    # ایجاد خرید جدید
+                    cottage_number = request.POST.get('cottage_number')
+                    weight = request.POST.get('weight')
+                    use_custom_price = request.POST.get('use_custom_price')
+                    custom_price = request.POST.get('custom_price')
+                    
+                    if cottage_number and weight:
+                        try:
+                            cargo = CargoProduct.objects.get(cottage=cottage_number, status=True)
+                            
+                            # تعیین قیمت
+                            if use_custom_price and custom_price:
+                                customer_price = int(custom_price)
+                            else:
+                                customer_price = cargo.customer_price
+                            
+                            # ایجاد خرید جدید
+                            from core.PurchaseModel import Purchase
+                            new_purchase = Purchase(
+                                customer=customer,
+                                cargo=cargo,
+                                order_weight=int(weight),
+                                customer_price=customer_price,
+                                state='INITIATED'
+                            )
+                            
+                            # تنظیم کارشناس فروش یکتا
+                            if sales_agent:
+                                new_purchase.unique_sales_agent = sales_agent
+                                new_purchase.unique_sales_agent_code = sales_agent.factor_code
+                            
+                            new_purchase.full_clean()
+                            new_purchase.save()
+                            
+                            # اضافه کردن کارشناس فروش به خرید
+                            if sales_agent:
+                                new_purchase.sales_agent.add(sales_agent)
+                            
+                            # ارسال پیامک خرید به شماره‌های انتخاب شده
+                            message = f"سلام {customer.name}\nخرید شما ثبت شد:\nکوتاژ: {cottage_number}\nوزن: {weight} کیلوگرم\nفی: {customer_price:,} ریال\nکارشناس: {sales_agent.name}"
+                            
+                            for phone in selected_phones:
+                                try:
+                                    queue_sms(phone, message, notification_type='purchase_registered')
+                                    sent_count += 1
+                                except Exception as e:
+                                    print(f"خطا در ارسال پیامک خرید به شماره {phone}: {e}")
+                            
+                            messages.success(request, f"خرید ثبت شد و پیامک به {sent_count} شماره ارسال شد")
+                            
+                        except CargoProduct.DoesNotExist:
+                            messages.error(request, "کوتاژ انتخاب شده یافت نشد")
+                        except (ValueError, ValidationError) as e:
+                            messages.error(request, f"خطا در ثبت خرید: {e}")
+                    else:
+                        messages.error(request, "لطفاً تمام فیلدهای ضروری خرید را پر کنید")
+                        
+                elif sms_action == 'social':
+                    # ارسال لینک شبکه‌های اجتماعی
+                    social_media_message = """لینک شبکه‌های اجتماعی شرکت تأمین نهاده سیمرغ:
 
 واتساپ: chat.whatsapp.com/DMqFJ2OUZXb9IA8GUqDMFH
 بله: ble.ir/join/baS6duS998
@@ -610,25 +665,47 @@ def general_customer_CRUD_view(request):
 اینستاگرام: instagram.com/simurgh360
 وبسایت: simurgh360.com
  """
-
-                # ارسال به همه شماره‌های فعال مشتری
-                phone_numbers = customer.get_all_phone_numbers()
-                sent_count = 0
-                
-                for phone in phone_numbers:
-                    try:
-                        queue_sms(phone, social_media_message, notification_type='social_media_links')
-                        sent_count += 1
-                    except Exception as e:
-                        print(f"خطا در ارسال پیامک به شماره {phone}: {e}")
-                
-                if sent_count > 0:
-                    messages.success(request, f"لینک شبکه‌های اجتماعی به {sent_count} شماره ارسال شد")
-                else:
-                    messages.error(request, "خطا در ارسال پیامک")
                     
+                    for phone in selected_phones:
+                        try:
+                            queue_sms(phone, social_media_message, notification_type='social_media_links')
+                            sent_count += 1
+                        except Exception as e:
+                            print(f"خطا در ارسال پیامک شبکه‌های اجتماعی به شماره {phone}: {e}")
+                    
+                    messages.success(request, f"لینک شبکه‌های اجتماعی به {sent_count} شماره ارسال شد")
+                    
+                elif sms_action == 'followup':
+                    # ارسال پیام پیگیری
+                    followup_message = f"مشتری گرامی {customer.name}\nمشکل شما به واحد پیگیری منتقل شد و به‌زودی با شما تماس خواهیم گرفت.\nشرکت تأمین نهاده سیمرغ"
+                    
+                    for phone in selected_phones:
+                        try:
+                            queue_sms(phone, followup_message, notification_type='followup')
+                            sent_count += 1
+                        except Exception as e:
+                            print(f"خطا در ارسال پیامک پیگیری به شماره {phone}: {e}")
+                    
+                    messages.success(request, f"پیام پیگیری به {sent_count} شماره ارسال شد")
+                    
+                elif sms_action == 'custom':
+                    # ارسال پیامک سفارشی
+                    custom_message = request.POST.get('custom_message', '').strip()
+                    
+                    if custom_message:
+                        for phone in selected_phones:
+                            try:
+                                queue_sms(phone, custom_message, notification_type='custom')
+                                sent_count += 1
+                            except Exception as e:
+                                print(f"خطا در ارسال پیامک سفارشی به شماره {phone}: {e}")
+                        
+                        messages.success(request, f"پیامک سفارشی به {sent_count} شماره ارسال شد")
+                    else:
+                        messages.error(request, "لطفاً متن پیامک را وارد کنید")
+                        
             except Exception as e:
-                messages.error(request, f"خطا در ارسال لینک شبکه‌های اجتماعی: {str(e)}")
+                messages.error(request, f"خطا در ارسال پیامک: {str(e)}")
                 
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
 
