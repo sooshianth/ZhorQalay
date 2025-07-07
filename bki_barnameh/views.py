@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
+from django.utils import timezone
 from .models.BarnamehModel import Barnameh
 from .models.ExcelFileModel import ExcelFile
 from .models.ApiLogModel import BKIApiLog
@@ -19,6 +20,9 @@ from django.conf import settings
 import pandas as pd
 import jdatetime
 import logging
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from django.http import HttpResponse
 
 # توابع اکسل به فولدر excel_management منتقل شده‌اند
 from .excel_management.views import upload_excel_view, download_excel_template, export_excel_view
@@ -969,4 +973,152 @@ def bulk_delete(request):
         return redirect('barnameh_list')
     
     return redirect('barnameh_list')
+
+@role_required('logistics_manager', 'admin', 'financial_manager')
+def export_barnameh_excel(request):
+    """
+    خروجی اکسل از بارنامه‌های انتخاب شده
+    """
+    logger.warning(f"خروجی اکسل بارنامه‌ها توسط {request.user.username} با متد {request.method} و آی‌پی {get_client_ip(request)} آغاز شد")
+    
+    # پشتیبانی از درخواست‌های GET و POST
+    if request.method == 'POST':
+        barnameh_ids = request.POST.get('ids', '').split(',')
+        selected_columns = request.POST.get('columns', '')
+    else:
+        barnameh_ids = request.GET.get('ids', '').split(',')
+        selected_columns = request.GET.get('columns', '')
+    
+    logger.warning(f"raw select columns for user {request.user.username}: {selected_columns}")
+    
+    if selected_columns:
+        # حذف کوتیشن‌های اضافی و decode کردن کاراکترهای escape شده
+        selected_columns = selected_columns.strip('"').replace('\\054', ',').replace('\\\\', '\\')
+        selected_columns = selected_columns.split(',')
+        # حذف فیلدهای خالی
+        selected_columns = [col.strip() for col in selected_columns if col.strip()]
+    else:
+        selected_columns = ['number', 'serial', 'tonnage', 'status', 'driver_name', 'barnameh_date']
+    
+    # فیلتر کردن آیدی‌های خالی
+    barnameh_ids = [bid.strip() for bid in barnameh_ids if bid.strip()]
+
+    if not barnameh_ids:
+        logger.warning("ERROR: No barnameh IDs to export excel!")
+        return JsonResponse({'status': 'error', 'message': 'هیچ بارنامه‌ای انتخاب نشده است'}, status=400)
+    
+    # بررسی تعداد بارنامه‌ها
+    total_count = len(barnameh_ids)
+    logger.warning(f"Total barnamehs to export: {total_count}")
+    
+    try:
+        return _export_barnameh_excel(barnameh_ids, selected_columns)
+            
+    except Exception as e:
+        # لاگ خطا
+        import traceback
+        logger.warning(f"Error in export_barnameh_excel: {str(e)}, {traceback.format_exc()}")
+        return JsonResponse({'status': 'error', 'message': f'خطا در ایجاد فایل اکسل'}, status=500)
+
+def _export_barnameh_excel(barnameh_ids, selected_columns):
+    """پردازش و ایجاد فایل اکسل برای بارنامه‌ها"""
+    barnamehs = Barnameh.objects.filter(id__in=barnameh_ids).order_by('-barnameh_created_at')
+    
+    logger.warning(f"Found {barnamehs.count()} barnamehs")
+    
+    if barnamehs.count() == 0:
+        logger.warning("ERROR: No barnamehs found!")
+        return JsonResponse({'status': 'error', 'message': 'هیچ بارنامه‌ای با شناسه‌های داده شده یافت نشد'}, status=400)
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "لیست بارنامه‌ها"
+    
+    # تنظیم گردش متن از راست به چپ برای کل صفحه
+    ws.sheet_view.rightToLeft = True
+    
+    # تعریف استایل‌ها
+    header_font = Font(name='B Nazanin', size=12, bold=True, color='FFFFFF')
+    header_fill = PatternFill(start_color='38A169', end_color='38A169', fill_type='solid')  # سبز مطابق طرح
+    
+    # تنظیم راست چین و وسط چین
+    alignment = Alignment(horizontal='right', vertical='center', wrap_text=True)
+    
+    # تعریف خطوط جدول
+    thin_border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+    
+    # مپینگ کامل ستون‌ها به فیلدهای مدل بارنامه
+    column_mapping = {
+        'number': ('شماره بارنامه', lambda b: b.number or "تعیین نشده"),
+        'serial': ('سریال', lambda b: b.serial or "تعیین نشده"),
+        'tonnage': ('وزن (کیلوگرم)', lambda b: f"{b.tonnage}" if b.tonnage else "0"),
+        'status': ('وضعیت', lambda b: b.get_status_display() if b.status else "-"),
+        'driver_name': ('نام راننده', lambda b: b.driver_name or "-"),
+        'driver_phone': ('شماره راننده', lambda b: b.driver_phone or "-"),
+        'vehicle_plate': ('پلاک خودرو', lambda b: b.vehicle_plate or "-"),
+        'receiver_name': ('نام گیرنده', lambda b: b.receiver_name or "-"),
+        'destination': ('مقصد', lambda b: b.destination or "-"),
+        'barnameh_date': ('تاریخ بارنامه', lambda b: str(b.barnameh_date) if b.barnameh_date else "-"),
+        'purchase_number': ('شماره خرید', lambda b: b.purchase_number or "-"),
+        'shenase_takhsis_code': ('شناسه تخصیص', lambda b: b.shenase_takhsis_code or "-"),
+        'is_sent_to_bki': ('ارسال به بازارگاه', lambda b: "بله" if b.is_sent_to_bki else "خیر"),
+        'created_at': ('تاریخ ایجاد', lambda b: b.barnameh_created_at.strftime("%Y/%m/%d") if b.barnameh_created_at else "-"),
+    }
+    
+    # فقط ستون‌های انتخاب شده را اضافه می‌کنیم
+    headers = []
+    for col in selected_columns:
+        if col in column_mapping:
+            headers.append(column_mapping[col][0])
+    
+    # افزودن هدرها به اکسل
+    ws.append(headers)
+    
+    # تنظیم استایل برای سطر هدر
+    for i, cell in enumerate(ws[1], 1):
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = alignment
+        cell.border = thin_border
+    
+    # داده‌ها
+    row_idx = 2
+    for barnameh in barnamehs:
+        row = []
+        for col in selected_columns:
+            if col in column_mapping:
+                try:
+                    value = column_mapping[col][1](barnameh)
+                    row.append(value)
+                except Exception as e:
+                    logger.warning(f"خطا در استخراج مقدار {col} برای بارنامه {barnameh.id}: {str(e)}")
+                    row.append("-")
+        
+        ws.append(row)
+        
+        # تنظیم استایل برای سطرهای داده
+        for j, cell in enumerate(ws[row_idx], 1):
+            cell.alignment = alignment
+            cell.border = thin_border
+        
+        row_idx += 1
+    
+    # تنظیم عرض ستون‌ها
+    for i, column in enumerate(ws.columns, 1):
+        ws.column_dimensions[ws.cell(row=1, column=i).column_letter].width = 15
+    
+    # اضافه کردن فریز به سطر هدر
+    ws.freeze_panes = "A2"
+    
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    filename = f"barnameh_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    logger.warning(f"Excel file created: {filename}")
+    return response
 

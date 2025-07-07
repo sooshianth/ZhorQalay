@@ -27,16 +27,16 @@
     .container-fluid {
         padding: 20px !important;
         max-width: 100% !important;
-    }
-    
+        }
+        
     /* Card Styles */
         .card {
         border-radius: 15px !important;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
         border: none !important;
         margin-bottom: 20px !important;
-    }
-    
+        }
+        
     .card-body {
         padding: 25px !important;
     }
@@ -109,8 +109,8 @@
     .btn-danger {
         background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%) !important;
         border: none !important;
-    }
-    
+        }
+        
     .btn-secondary {
         background: linear-gradient(135deg, #a0aec0 0%, #718096 100%) !important;
         border: none !important;
@@ -184,8 +184,8 @@
         align-items: center !important;
         flex-wrap: wrap !important;
         gap: 15px !important;
-    }
-    
+        }
+        
     .selected-count {
         font-weight: 700 !important;
         color: #742a2a !important;
@@ -205,8 +205,8 @@
         background: white !important;
         overflow-x: auto !important;
         max-width: 100% !important;
-    }
-    
+        }
+        
     /* Table Styles */
     .table {
         margin-bottom: 0 !important;
@@ -281,8 +281,8 @@
         max-width: 100px !important;
         padding-left: 15px !important; /* Reset padding for checkbox column */
         padding-right: 15px !important;
-    }
-    
+        }
+        
     .table th:nth-child(2), .table td:nth-child(2) { /* شماره بارنامه */
         width: auto !important;
         min-width: 140px !important;
@@ -375,8 +375,8 @@
     
     .bg-success {
         background: linear-gradient(135deg, #48bb78 0%, #38a169 100%) !important;
-    }
-    
+        }
+        
     /* Dropdown Styles */
     .dropdown-toggle {
         border: none !important;
@@ -428,8 +428,8 @@
         height: 18px !important;
         cursor: pointer !important;
         accent-color: #38a169 !important;
-    }
-    
+        }
+        
     /* Logs Container */
     .logs-container .btn-outline-info {
         font-size: 0.75rem !important;
@@ -502,8 +502,8 @@
         background: rgba(255, 255, 255, 0.2) !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
         color: white !important;
-    }
-    
+        }
+        
     .python-excel-filter th:not(:first-child) .dropdown-toggle:hover {
         background: rgba(255, 255, 255, 0.3) !important;
         border-color: rgba(255, 255, 255, 0.5) !important;
@@ -632,7 +632,7 @@
          data-download-template-url="{% url 'table_filter:bulk_edit_template' %}"
          data-history-api-url="{% url 'table_filter:edit_history_api' %}"
          data-restore-value-api-url="{% url 'table_filter:restore_value_api' %}"
-         data-export-excel-url="{% url 'export_excel' %}"
+         data-export-excel-url="{% url 'export_barnameh_excel' %}"
          style="display: none;"></div>
 
 <script>
@@ -653,7 +653,68 @@
         };
         
         console.log('Barnameh List Config loaded:', window.BarnamehListConfig);
+        
+        // دکمه خروجی اکسل
+        document.getElementById('exportToExcelBtn').addEventListener('click', function() {
+            exportSelectedToExcel();
+        });
     });
+    
+    function exportSelectedToExcel() {
+        // دریافت بارنامه‌های انتخاب شده
+        const selectedCheckboxes = document.querySelectorAll('#barnamehTable .row-checkbox:checked');
+        
+        if (selectedCheckboxes.length === 0) {
+            alert('لطفاً حداقل یک بارنامه انتخاب کنید');
+            return;
+        }
+        
+        // جمع‌آوری آیدی‌های انتخاب شده
+        const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.id || cb.value);
+        
+        // تعریف ستون‌های پیش‌فرض برای خروجی اکسل
+        const defaultColumns = [
+            'number', 'serial', 'tonnage', 'status', 'driver_name', 
+            'driver_phone', 'vehicle_plate', 'receiver_name', 
+            'destination', 'barnameh_date', 'purchase_number', 'shenase_takhsis_code'
+        ];
+        
+        // ایجاد فرم برای ارسال POST
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = window.BarnamehListConfig.exportExcelUrl;
+        
+        // اضافه کردن CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = csrfToken.value;
+            form.appendChild(csrfInput);
+        }
+        
+        // اضافه کردن آیدی‌های انتخاب شده
+        const idsInput = document.createElement('input');
+        idsInput.type = 'hidden';
+        idsInput.name = 'ids';
+        idsInput.value = selectedIds.join(',');
+        form.appendChild(idsInput);
+        
+        // اضافه کردن ستون‌ها
+        const columnsInput = document.createElement('input');
+        columnsInput.type = 'hidden';
+        columnsInput.name = 'columns';
+        columnsInput.value = defaultColumns.join(',');
+        form.appendChild(columnsInput);
+        
+        // ارسال فرم
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+        
+        console.log(`خروجی اکسل برای ${selectedIds.length} بارنامه درخواست شد`);
+    }
 </script>
 
 {% endblock %}
@@ -674,6 +735,10 @@
                                 <h2 class="mb-0 text-dark">لیست بارنامه‌ها</h2>
                             </div>
                             <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-warning" id="exportToExcelBtn">
+                                    <i class="fas fa-file-excel me-2"></i>
+                                    خروجی اکسل
+                                </button>
                                 <a href="{% url 'download_excel_template' %}" class="btn btn-success">
                                     <i class="fas fa-download me-2"></i>
                                     دانلود قالب اکسل
@@ -994,7 +1059,7 @@
         <!-- Barnameh IDs will be added dynamically -->
     </form>
     
-    <form id="bulk-export-form" action="{% url 'export_excel' %}" method="post" style="display: none;">
+    <form id="bulk-export-form" action="{% url 'export_barnameh_excel' %}" method="post" style="display: none;">
         {% csrf_token %}
         <!-- Barnameh IDs will be added dynamically -->
     </form>
@@ -1115,7 +1180,7 @@
                 }
                 
             var formId, needConfirmation = false, message;
-            
+                
             switch(action) {
                 case 'edit':
                     // Redirect to bulk edit page with selected IDs
@@ -1161,8 +1226,8 @@
                 selectAllCheckbox.indeterminate = false;
             }
             updateSelectionCount();
-        });
-    }
+                });
+            }
 });
 
 // Global function for row selection toggle
