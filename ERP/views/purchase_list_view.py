@@ -178,14 +178,38 @@ def purchase_list(request):
     if is_urgent == '1':
         filters &= Q(is_urgent=True)
     
-    # اعمال فیلتر جستجوی سریع
+    # اعمال فیلتر جستجوی سریع - جستجو در همه فیلدهای مهم
     if global_search:
-        filters &= (
+        search_filters = (
+            # اطلاعات اصلی خرید
             Q(customer__name__icontains=global_search) |
             Q(purchase_number__icontains=global_search) |
             Q(invoice_id__icontains=global_search) |
-            Q(cargo__cottage__icontains=global_search)
+            Q(buyer_name__icontains=global_search) |
+            
+            # اطلاعات کوتاژ و حمل‌ونقل
+            Q(cargo__cottage__icontains=global_search) |
+            Q(cargo__vared_konandeh__name__icontains=global_search) |
+            Q(cargo__barbary__name__icontains=global_search) |
+            
+            # اطلاعات تماس و آدرس
+            Q(address__icontains=global_search) |
+            Q(bazaargah_phone_number__icontains=global_search) |
+            Q(tahvil_phone_number__icontains=global_search) |
+            Q(code_melli_tahvil__icontains=global_search) |
+            
+            # اطلاعات ردیابی
+            Q(tracking_number__icontains=global_search) |
+            Q(shenase_takhsis_set__code__icontains=global_search) |
+            
+            # توضیحات و اطلاعات اضافی
+            Q(description__icontains=global_search) |
+            Q(priority_reason__icontains=global_search) |
+            
+            # نماینده فروش
+            Q(unique_sales_agent__name__icontains=global_search)
         )
+        filters &= search_filters
     
     # اعمال همه فیلترها یکجا
     if filters:
@@ -1191,14 +1215,38 @@ def get_section_purchase_ids(request):
         if is_urgent == '1':
             filters &= Q(is_urgent=True)
         
-        # اعمال فیلتر جستجوی سریع
+        # اعمال فیلتر جستجوی سریع - جستجو در همه فیلدهای مهم
         if global_search:
-            filters &= (
+            search_filters = (
+                # اطلاعات اصلی خرید
                 Q(customer__name__icontains=global_search) |
                 Q(purchase_number__icontains=global_search) |
                 Q(invoice_id__icontains=global_search) |
-                Q(cargo__cottage__icontains=global_search)
+                Q(buyer_name__icontains=global_search) |
+                
+                # اطلاعات کوتاژ و حمل‌ونقل
+                Q(cargo__cottage__icontains=global_search) |
+                Q(cargo__vared_konandeh__name__icontains=global_search) |
+                Q(cargo__barbary__name__icontains=global_search) |
+                
+                # اطلاعات تماس و آدرس
+                Q(address__icontains=global_search) |
+                Q(bazaargah_phone_number__icontains=global_search) |
+                Q(tahvil_phone_number__icontains=global_search) |
+                Q(code_melli_tahvil__icontains=global_search) |
+                
+                # اطلاعات ردیابی
+                Q(tracking_number__icontains=global_search) |
+                Q(shenase_takhsis_set__code__icontains=global_search) |
+                
+                # توضیحات و اطلاعات اضافی
+                Q(description__icontains=global_search) |
+                Q(priority_reason__icontains=global_search) |
+                
+                # نماینده فروش
+                Q(unique_sales_agent__name__icontains=global_search)
             )
+            filters &= search_filters
         
         # اعمال همه فیلترها
         if filters:

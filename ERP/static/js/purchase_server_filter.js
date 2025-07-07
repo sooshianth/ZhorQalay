@@ -62,6 +62,7 @@ class PurchaseServerFilter {
         
         this.setupFilterButtons();
         this.setupPerPageSelector();
+        this.setupGlobalSearchHandler();
         this.loadInitialData();
     }
     
@@ -137,6 +138,44 @@ class PurchaseServerFilter {
             this.currentPage = 1; // بازگشت به صفحه اول
             this.applyFilters();
         });
+    }
+    
+    setupGlobalSearchHandler() {
+        // پیدا کردن input جستجوی سریع
+        const globalSearchInput = document.querySelector('#globalSearch, #global_search, [name="global_search"]');
+        
+        if (globalSearchInput && !globalSearchInput.hasAttribute('data-server-filter-listener')) {
+            globalSearchInput.setAttribute('data-server-filter-listener', 'true');
+            
+            let searchTimeout;
+            
+            // event listener برای تایپ در جستجوی سریع
+            globalSearchInput.addEventListener('input', (e) => {
+                // پاک کردن timeout قبلی
+                clearTimeout(searchTimeout);
+                
+                // تنظیم timeout جدید برای جلوگیری از درخواست‌های زیاد
+                searchTimeout = setTimeout(() => {
+                    // بازگشت به صفحه اول وقتی جستجو تغییر میکنه
+                    this.currentPage = 1;
+                    // پاک کردن cache ستون‌ها چون نتایج تغییر کرده
+                    this.columnValuesCache = {};
+                    // اعمال فیلتر
+                    this.applyFilters();
+                }, 500); // 500ms تاخیر
+            });
+            
+            // event listener برای کلید Enter
+            globalSearchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    clearTimeout(searchTimeout);
+                    this.currentPage = 1;
+                    this.columnValuesCache = {};
+                    this.applyFilters();
+                }
+            });
+        }
     }
     
     setupFilterButtons() {
@@ -226,14 +265,11 @@ class PurchaseServerFilter {
     async showFilterModal(columnId, columnType, headerElement) {
         
         try {
-            // دریافت مقادیر موجود در جدول فعلی
-            const currentValues = await this.getCurrentTableValues(columnId);
+            // دریافت همه مقادیر ممکن از سرور (شامل اطلاعات انتخاب)
+            const serverValues = await this.getColumnValues(columnId);
             
-            // دریافت همه مقادیر ممکن از سرور
-            const allValues = await this.getColumnValues(columnId);
-            
-            // ایجاد مودال با Bootstrap classes
-            this.createFilterModal(columnId, columnType, currentValues, allValues, headerElement);
+            // ایجاد مودال با فرمت جدید
+            this.createFilterModal(columnId, columnType, serverValues, headerElement);
             
         } catch (error) {
             console.error('خطا در نمایش فیلتر:', error);
@@ -279,14 +315,19 @@ class PurchaseServerFilter {
     }
     
     async getColumnValues(columnId) {
-        if (this.columnValuesCache[columnId]) {
-            return this.columnValuesCache[columnId];
-        }
-        
+        // برای column values همیشه cache رو نادیده بگیر تا فیلترهای جدید اعمال بشه
         try {
             const formData = new FormData();
             formData.append('column_id', columnId);
             formData.append('section', this.section);
+            formData.append('current_filters', JSON.stringify(this.currentFilters));
+            
+            // دریافت مقدار global_search از input
+            const globalSearchInput = document.querySelector('#globalSearch, #global_search, [name="global_search"]');
+            const globalSearchValue = globalSearchInput ? globalSearchInput.value.trim() : '';
+            if (globalSearchValue) {
+                formData.append('global_search', globalSearchValue);
+            }
             
             const response = await fetch(this.columnValuesUrl, {
                 method: 'POST',
@@ -303,8 +344,14 @@ class PurchaseServerFilter {
             const data = await response.json();
             
             if (data.status === 'success') {
-                this.columnValuesCache[columnId] = data.values;
-                return data.values;
+                // اطلاعات اضافی برای debugging
+                console.log(`📊 Column values for ${columnId}:`, {
+                    total: data.total_available,
+                    shown: data.count,
+                    selected: data.selected_count
+                });
+                
+                return data.values; // حالا هر value شامل {value, selected, display} است
             } else {
                 throw new Error(data.message || 'خطا در دریافت مقادیر');
             }
@@ -315,7 +362,7 @@ class PurchaseServerFilter {
         }
     }
     
-    createFilterModal(columnId, columnType, currentValues, allValues, headerElement) {
+    createFilterModal(columnId, columnType, serverValues, headerElement) {
         // حذف مودال قبلی اگر وجود دارد
         const existingModal = document.getElementById('filterModal');
         if (existingModal) {
@@ -371,13 +418,16 @@ class PurchaseServerFilter {
         filterTypeGroup.className = 'btn-group w-100 mt-2';
         filterTypeGroup.setAttribute('role', 'group');
         
+        // تعیین نوع فیلتر فعلی
+        const currentFilterType = this.currentFilters[columnId]?.type || 'include';
+        
         const includeInput = document.createElement('input');
         includeInput.type = 'radio';
         includeInput.className = 'btn-check';
         includeInput.name = 'filterType';
         includeInput.value = 'include';
         includeInput.id = 'includeFilter';
-        includeInput.checked = true;
+        includeInput.checked = currentFilterType === 'include';
         
         const includeLabel = document.createElement('label');
         includeLabel.className = 'btn btn-outline-success filter-type-btn';
@@ -390,6 +440,7 @@ class PurchaseServerFilter {
         excludeInput.name = 'filterType';
         excludeInput.value = 'exclude';
         excludeInput.id = 'excludeFilter';
+        excludeInput.checked = currentFilterType === 'exclude';
         
         const excludeLabel = document.createElement('label');
         excludeLabel.className = 'btn btn-outline-danger filter-type-btn';
@@ -440,9 +491,20 @@ class PurchaseServerFilter {
         const valuesContainer = document.createElement('div');
         valuesContainer.className = 'mb-3';
         
+        // بررسی فرمت serverValues - آیا array از objects است یا array ساده
+        const isObjectFormat = serverValues.length > 0 && typeof serverValues[0] === 'object' && serverValues[0].hasOwnProperty('value');
+        
+        const totalCount = serverValues.length;
+        // با منطق جدید، همه مقادیر موجود = همه انتخاب شده (تیک خورده)
+        const selectedCount = isObjectFormat ? serverValues.filter(item => item.selected).length : totalCount;
+        
         const valuesLabel = document.createElement('label');
         valuesLabel.className = 'form-label fw-bold';
-        valuesLabel.textContent = `مقادیر موجود (${[...new Set([...currentValues, ...allValues])].length} مورد):`;
+        valuesLabel.textContent = `مقادیر موجود (${totalCount} مورد - بر اساس فیلترهای دیگر):`;
+        
+        const filterHelpText = document.createElement('small');
+        filterHelpText.className = 'text-muted d-block mb-2';
+        filterHelpText.innerHTML = '<i class="fas fa-info-circle me-1"></i>این مقادیر بر اساس فیلترهای دیگر ستون‌ها نمایش داده می‌شوند. همه به طور پیش‌فرض انتخاب شده‌اند.';
         
         const valuesList = document.createElement('div');
         valuesList.className = 'filter-values-list';
@@ -455,6 +517,7 @@ class PurchaseServerFilter {
         selectAllCheckbox.type = 'checkbox';
         selectAllCheckbox.className = 'form-check-input me-2';
         selectAllCheckbox.id = 'selectAll';
+        // همه موجود = همه انتخاب شده
         selectAllCheckbox.checked = true;
         
         const selectAllLabel = document.createElement('label');
@@ -468,28 +531,44 @@ class PurchaseServerFilter {
         valuesList.appendChild(selectAllContainer);
         
         // ایجاد آیتم‌های مقادیر
-        const displayValues = [...new Set([...currentValues, ...allValues])];
-        displayValues.forEach((value, index) => {
+        serverValues.forEach((valueItem, index) => {
             const container = document.createElement('div');
             container.className = 'filter-value-item d-flex align-items-center';
+            
+            // استخراج مقدار و حالت انتخاب
+            let value, isSelected, displayText;
+            
+            if (isObjectFormat) {
+                value = valueItem.value;
+                isSelected = valueItem.selected || false;
+                displayText = valueItem.display || value;
+            } else {
+                // فرمت قدیمی - همه غیر انتخاب شده
+                value = valueItem;
+                isSelected = false;
+                displayText = value;
+            }
             
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.className = 'form-check-input me-2';
             checkbox.value = value;
             checkbox.id = `filter_${columnId}_${index}`;
-            checkbox.checked = currentValues.includes(value);
+            checkbox.checked = isSelected;
             
             const label = document.createElement('label');
             label.className = 'form-check-label flex-grow-1';
             label.htmlFor = checkbox.id;
             
-            if (currentValues.includes(value)) {
-                label.innerHTML = `<i class="fas fa-eye text-primary me-1"></i><strong>${value}</strong>`;
-                label.title = 'این مقدار در جدول فعلی موجود است';
+            // با منطق جدید، همه مقادیر برگشتی "موجود" هستند پس تیک خورده‌اند
+            if (isSelected) {
+                label.innerHTML = `<i class="fas fa-check-square text-success me-1"></i><strong>${displayText}</strong>`;
+                label.title = 'این مقدار در داده‌های فیلتر شده موجود است';
+                container.classList.add('selected');
             } else {
-                label.innerHTML = `<i class="fas fa-circle-dot text-muted me-1"></i>${value}`;
-                label.title = 'این مقدار در سایر رکوردها موجود است';
+                // این حالت دیگه نباید اتفاق بیفته چون همه selected=true برمیگردن
+                label.innerHTML = `<i class="fas fa-square text-muted me-1"></i>${displayText}`;
+                label.title = 'این مقدار در داده‌های فیلتر شده موجود است';
             }
             
             container.appendChild(checkbox);
@@ -498,6 +577,7 @@ class PurchaseServerFilter {
         });
         
         valuesContainer.appendChild(valuesLabel);
+        valuesContainer.appendChild(filterHelpText);
         valuesContainer.appendChild(valuesList);
         
         modalBody.appendChild(filterTypeContainer);
@@ -705,6 +785,13 @@ class PurchaseServerFilter {
             formData.append('page', this.currentPage.toString());
             formData.append('per_page', this.perPage.toString());
             formData.append('section', this.section);
+            
+            // دریافت مقدار global_search از input
+            const globalSearchInput = document.querySelector('#globalSearch, #global_search, [name="global_search"]');
+            const globalSearchValue = globalSearchInput ? globalSearchInput.value.trim() : '';
+            if (globalSearchValue) {
+                formData.append('global_search', globalSearchValue);
+            }
             
             const response = await fetch(this.filterUrl, {
                 method: 'POST',
