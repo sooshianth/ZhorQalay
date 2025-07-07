@@ -244,42 +244,47 @@ def purchase_list(request):
     
     # فهرست وضعیت‌ها برای فیلتر
     all_states = dict(Purchase.STATUS_CHOICES)
-    
-    # تعریف ستون‌های مجاز برای کارشناسان فروش و پیگیری
-    if user_role in ['sales_agent', 'support_agent']:
-        # ستون‌های محدود برای کارشناسان فروش و پیگیری
+
+    if user_role == 'sales_agent':
         all_columns = [
             {'id': 'purchase_number', 'name': 'شماره خرید', 'field': 'purchase_number'},
-            {'id': 'customer', 'name': 'نام مشتری', 'field': 'customer.name'},
-            {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
-            {'id': 'date', 'name': 'تاریخ', 'field': 'created_at', 'format': 'date'},
             {'id': 'shenase_takhsis', 'name': 'شماره تخصیص', 'field': 'shenase_takhsis_set'},
+            {'id': 'date', 'name': 'تاریخ', 'field': 'created_at', 'format': 'date'},
             {'id': 'weight', 'name': 'وزن خرید', 'field': 'order_weight', 'unit': 'کیلوگرم'},
-            {'id': 'customer_price', 'name': 'فی فروش', 'field': 'customer_price', 'unit': 'ریال'},
             {'id': 'delivered_weight', 'name': 'وزن بارنامه شده', 'field': 'delivered_weight', 'unit': 'کیلوگرم'},
-            {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
-            {'id': 'barbary', 'name': 'نام باربری', 'field': 'cargo.barbary.name'},
             {'id': 'status', 'name': 'وضعیت', 'field': 'state'},
-            {'id': 'actions', 'name': 'جزئیات'},
+            {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
+            # نام محصول
+            {'id': 'customer', 'name': 'نام مشتری', 'field': 'customer.name'},
+            # تلفن های مشتری
+            {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
+            # نام تحویل گیرنده
+            # تلفن خریدار
+            {'id': 'tahvil_phone_number', 'name': 'شماره تلفن تحویل', 'field': 'tahvil_phone_number'},        
         ]
+
+        # todo: add the rest of the columns
+        allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight', 'delivered_weight',
+         'status', 'cargo', 'customer', 'buyer_name', 'tahvil_phone_number'] # نام محصول، تلفن های مشتری، تلفن خریدار، نام تحویل گیرنده
         
-        # ستون‌های مجاز برای کاربران محدود
-        allowed_columns = ['purchase_number', 'customer', 'buyer_name', 'date', 'shenase_takhsis', 'weight', 'customer_price', 'delivered_weight', 'cargo', 'barbary', 'status', 'actions']
-        
+                
         # دریافت ستون های انتخاب شده از کوکی فقط برای کاربران محدود
         selected_columns = request.COOKIES.get('selected_columns', '')
         
         if not selected_columns:
             # پیش‌فرض برای کاربران محدود: نمایش همه ستون‌های مجاز
-            selected_columns = allowed_columns
-            print("Using default columns for restricted user")
+            #todo: add the rest of the columns
+            selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight',
+             'delivered_weight', 'status', 'cargo', 'customer', 'buyer_name'] # تلفن های مشتری،  نام محصول
+            logger.info("Using default columns for sales agent")
         else:
             # Make sure we have a string before splitting
             if isinstance(selected_columns, str):
                 selected_columns = selected_columns.split(',')
             else:
-                selected_columns = allowed_columns
-                print("Type error on selected_columns - using defaults for restricted user")
+                selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight',
+                 'delivered_weight', 'status', 'cargo', 'customer', 'buyer_name'] # تلفن های مشتری،  نام محصول
+                logger.error("Type error on selected_columns - using defaults for sales agent")
             
             # فیلتر کردن فقط ستون‌های مجاز
             selected_columns = [col for col in selected_columns if col in allowed_columns]
@@ -290,9 +295,133 @@ def purchase_list(request):
         if 'actions' not in selected_columns:
             selected_columns.append('actions')
         
-        logger.warning(f"ستون های انتخابی کاربر محدود {request.user.username}: {selected_columns}")
-        logger.warning(f"ستون های قابل انتخاب کاربر محدود {request.user.username}: {all_columns}")
-    else:
+        logger.warning(f"ستون های انتخابی مسئول فروش {request.user.username}: {selected_columns}")
+        logger.info(f"ستون های قابل انتخاب مسئول فروش {request.user.username}: {all_columns}")
+
+    if user_role == 'support_agent':
+        all_columns = [
+            {'id': 'purchase_number', 'name': 'شماره خرید', 'field': 'purchase_number'},
+            {'id': 'shenase_takhsis', 'name': 'شماره تخصیص', 'field': 'shenase_takhsis_set'},
+            {'id': 'date', 'name': 'تاریخ', 'field': 'created_at', 'format': 'date'},
+            # کارشناس فروش
+            {'id': 'weight', 'name': 'وزن خرید', 'field': 'order_weight', 'unit': 'کیلوگرم'},
+            {'id': 'delivered_weight', 'name': 'وزن بارنامه شده', 'field': 'delivered_weight', 'unit': 'کیلوگرم'},
+            {'id': 'status', 'name': 'وضعیت', 'field': 'state'},
+            {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
+            # نام محصول
+            {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name'},
+            {'id': 'barbary', 'name': 'نام باربری', 'field': 'cargo.barbary.name'},
+            # شماره باربری محرمانهی
+            # شماره باربری مشتری
+            {'id': 'customer', 'name': 'نام مشتری', 'field': 'customer.name'},
+            {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
+            # نام تحویل گیرنده
+
+        ]
+
+        # todo: add the rest of the columns
+        allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight',
+         'delivered_weight', 'status', 'cargo', 'importer', 'barbary', 'customer',
+          'buyer_name'] # کارشناس فروش، نام محصول، شماره باربری محرمانهی، شماره باربری مشتری، نام تحویل گیرنده
+                
+        # دریافت ستون های انتخاب شده از کوکی فقط برای کاربران محدود
+        selected_columns = request.COOKIES.get('selected_columns', '')
+        
+        if not selected_columns:
+            # پیش‌فرض برای کاربران محدود: نمایش همه ستون‌های مجاز
+            #todo: add the rest of the columns
+            selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight', 
+            'delivered_weight', 'status', 'cargo', 'importer' , 'customer', 'buyer_name'] # نام محصول، کارشناس فروش
+            logger.info("Using default columns for support agent")
+        else:
+            # Make sure we have a string before splitting
+            if isinstance(selected_columns, str):
+                selected_columns = selected_columns.split(',')
+            else:
+                selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight',
+                 'delivered_weight', 'status', 'cargo', 'importer' , 'customer', 'buyer_name'] # نام محصول، کارشناس فروش
+                logger.error("Type error on selected_columns - using defaults for support agent")
+            
+            # فیلتر کردن فقط ستون‌های مجاز
+            selected_columns = [col for col in selected_columns if col in allowed_columns]
+            if not selected_columns:
+                selected_columns = allowed_columns
+        
+        # اطمینان از حضور ستون actions
+        if 'actions' not in selected_columns:
+            selected_columns.append('actions')
+        
+        logger.warning(f"ستون های انتخابی مسئول پیگیری {request.user.username}: {selected_columns}")
+        logger.info(f"ستون های قابل انتخاب مسئول پیگیری {request.user.username}: {all_columns}")
+    if user_role == 'financial_manager':
+        all_columns = [
+            {'id': 'purchase_number', 'name': 'شماره خرید', 'field': 'purchase_number'},
+            {'id': 'shenase_takhsis', 'name': 'شماره تخصیص', 'field': 'shenase_takhsis_set'},
+            {'id': 'date', 'name': 'تاریخ', 'field': 'created_at', 'format': 'date'},
+            # کارشناس فروش
+            {'id': 'company_price', 'name': 'فی خرید', 'field': 'company_price', 'unit': 'ریال'},
+            {'id': 'customer_price', 'name': 'فی فروش', 'field': 'customer_price', 'unit': 'ریال'},
+            {'id': 'weight', 'name': 'وزن خرید', 'field': 'order_weight', 'unit': 'کیلوگرم'},
+            {'id': 'delivered_weight', 'name': 'وزن بارنامه شده', 'field': 'delivered_weight', 'unit': 'کیلوگرم'},
+            # تاریخ اولین بارنامه
+            #تاریخ اخرین بارنامه 
+            {'id': 'extelaf_type', 'name': 'نوع اختلاف', 'field': 'extelaf_type'},
+            {'id': 'extelaf_weight', 'name': 'وزن اختلاف', 'field': 'extelaf_weight', 'unit': 'کیلوگرم'},
+            {'id': 'extelaf_amount', 'name': 'مبلغ اختلاف', 'field': 'extelaf_amount', 'unit': 'ریال'},
+            {'id': 'status', 'name': 'وضعیت', 'field': 'state'},
+            {'id': 'description', 'name': 'توضیحات', 'field': 'description'},
+            {'id': 'is_fully_tasvied', 'name': 'تسویه کامل', 'field': 'is_fully_tasvied'},
+            # اماده فاکتور
+            # صدور فاکتور
+            # فاکتور خرید مبنا
+            # فاکتور فروش مبنا
+            {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
+            # نام محصول
+            {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name'},
+            {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
+            # نام تحویل گیرنده
+            # شناسه ملی خریدار
+            # ادرس خریدار
+            # شناسه یکتا خریدار
+        ]
+
+        # todo: add the rest of the columns
+        allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'company_price', 'customer_price', 'weight',
+         'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
+          'cargo', 'importer', 'buyer_name'] # کارشناس فروش، تاریخ اولین بارنامه، تاریخ اخرین بارنامه، اماده فاکتور، صدور فاکتور، فاکتور خرید مبنا، فاکتور فروش مبنا، نام محصول، 
+          # نام تحویل گیرنده، شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار
+                
+        # دریافت ستون های انتخاب شده از کوکی فقط برای کاربران محدود
+        selected_columns = request.COOKIES.get('selected_columns', '')
+        
+        if not selected_columns:
+            # پیش‌فرض برای کاربران محدود: نمایش همه ستون‌های مجاز
+            #todo: add the rest of the columns
+            selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'company_price', 'customer_price', 'weight',
+             'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
+             'cargo', 'importer', 'buyer_name'] # کارشناس فروش، اماده فاکتور، صدور فاکتور، فاکتور خرید مبنا، فاکتور فروش مبنا، نام محصول، 
+              # نام تحویل گیرنده، شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار
+            logger.info("Using default columns for support agent")
+        else:
+            # Make sure we have a string before splitting
+            if isinstance(selected_columns, str):
+                selected_columns = selected_columns.split(',')
+            else:
+                selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight', 'delivered_weight', 'status', 'cargo', 'customer', 'buyer_name']
+                logger.error("Type error on selected_columns - using defaults for support agent")
+            
+            # فیلتر کردن فقط ستون‌های مجاز
+            selected_columns = [col for col in selected_columns if col in allowed_columns]
+            if not selected_columns:
+                selected_columns = allowed_columns
+        
+        # اطمینان از حضور ستون actions
+        if 'actions' not in selected_columns:
+            selected_columns.append('actions')
+        
+        logger.warning(f"ستون های انتخابی مسئول پیگیری {request.user.username}: {selected_columns}")
+        logger.info(f"ستون های قابل انتخاب مسئول پیگیری {request.user.username}: {all_columns}")
+    if user_role == 'admin':
         # دریافت ستون های انتخاب شده از کوکی برای کاربران غیرمحدود
         selected_columns = request.COOKIES.get('selected_columns', '')
         
