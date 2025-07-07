@@ -49,15 +49,23 @@ class BulkEditManager {
 
     detectActiveTab() {
         // تشخیص تب فعال بر اساس نمایش عناصر
-        if (document.getElementById('pendingContent') && 
-            getComputedStyle(document.getElementById('pendingContent')).display !== 'none') {
-            return 'pending';
-        } else if (document.getElementById('archivedContent') && 
-            getComputedStyle(document.getElementById('archivedContent')).display !== 'none') {
-            return 'archived';
-        } else {
-            return 'active';
-        }
+        const activeContent = document.getElementById('activeContent');
+        const pendingContent = document.getElementById('pendingContent');  
+        const archivedContent = document.getElementById('archivedContent');
+        
+        // بررسی کدام بخش نمایش داده می‌شود
+        const activeVisible = activeContent && getComputedStyle(activeContent).display !== 'none';
+        const pendingVisible = pendingContent && getComputedStyle(pendingContent).display !== 'none';
+        const archivedVisible = archivedContent && getComputedStyle(archivedContent).display !== 'none';
+        
+        console.log(`🔍 وضعیت بخش‌ها: active=${activeVisible}, pending=${pendingVisible}, archived=${archivedVisible}`);
+        
+        if (pendingVisible) return 'pending';
+        if (archivedVisible) return 'archived';
+        if (activeVisible) return 'active';
+        
+        // اگر هیچ کدام نمایش داده نمی‌شود، active را پیش‌فرض در نظر بگیر
+        return 'active';
     }
     
     detectCurrentSection() {
@@ -112,12 +120,12 @@ class BulkEditManager {
                 this.clearSelection(section);
             }
 
-            // دکمه‌های تب‌ها
-            if (e.target.closest('.nav-link')) {
+            // دکمه‌های toggle section (purchase-toggle)
+            if (e.target.closest('.purchase-toggle') || e.target.closest('.nav-link')) {
                 setTimeout(() => {
                     this.detectCurrentSection();
                     this.updateAllControlPanels();
-                }, 100);
+                }, 200); // زمان بیشتر برای انیمیشن
             }
         });
         
@@ -237,11 +245,13 @@ class BulkEditManager {
             countElement.textContent = sectionCount;
         }
         
-        // نمایش/مخفی کردن panel بر اساس انتخاب‌ها و تب فعال
-        const shouldShow = sectionCount > 0 && this.currentActiveTab === targetSection;
+        // نمایش/مخفی کردن panel بر اساس انتخاب‌ها و وضعیت بخش
+        const sectionElement = document.getElementById(`${targetSection}Content`);
+        const isSectionVisible = sectionElement && getComputedStyle(sectionElement).display !== 'none';
+        const shouldShow = sectionCount > 0 && isSectionVisible;
         panel.style.display = shouldShow ? 'block' : 'none';
         
-        console.log(`📊 Panel ${targetSection}: ${sectionCount} انتخاب، نمایش: ${shouldShow}`);
+        console.log(`📊 Panel ${targetSection}: ${sectionCount} انتخاب، بخش نمایان: ${isSectionVisible}, نمایش: ${shouldShow}`);
     }
 
     // متدهای کمکی

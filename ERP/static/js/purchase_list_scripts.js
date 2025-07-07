@@ -962,11 +962,7 @@ function restoreSectionStates() {
     });
 }
 
-// اضافه کردن تابع بازیابی وضعیت به هنگام بارگذاری صفحه
-document.addEventListener('DOMContentLoaded', function() {
-    // بازیابی وضعیت بخش‌ها
-    setTimeout(restoreSectionStates, 100);
-});
+// تابع بازیابی وضعیت بخش‌ها - باید از دیگر محل فراخوانی شود
 
 // Pagination functionality
 class PurchasePagination {

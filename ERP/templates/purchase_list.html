@@ -36,8 +36,6 @@
     </style>
     {% bulk_edit_scripts %}
     {% edit_history_scripts %}
-    <!-- اطمینان از لود شدن اسکریپت edit_history.js -->
-    <script src="{% static 'table_filter/js/edit_history.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'js/drag_and_drop_columns.js' %}?v=1748703972" defer></script>
     <script src="{% static 'js/purchase_aggregated_stats.js' %}?v=1748703972" defer></script>
     <script src="{% static 'js/purchase_server_filter.js' %}?v={% now 'U' %}" defer></script>
@@ -139,25 +137,7 @@
          data-per-page="{% if search_params.per_page %}{{ search_params.per_page }}{% else %}100{% endif %}"
          style="display: none;"></div>
 
-<!-- script برای تنظیم configuration در window -->
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // دریافت تنظیمات از data attributes
-        const configEl = document.getElementById('purchase-list-config');
-        
-        // تنظیم configuration برای JavaScript
-        window.PurchaseListConfig = {
-            updateColumnsUrl: configEl.dataset.updateColumnsUrl,
-            exportPurchasesUrl: configEl.dataset.exportPurchasesUrl,
-            purchaseAggregatedStatsUrl: configEl.dataset.purchaseAggregatedStatsUrl,
-            hideSensitiveInfo: configEl.dataset.hideSensitiveInfo === 'true',
-            perPage: parseInt(configEl.dataset.perPage) || 100,
-            perPageOptions: [5, 10, 25, 50, 100, 200]
-        };
-        
-        console.log('Purchase List Config loaded:', window.PurchaseListConfig);
-    });
-</script>
+<!-- script برای تنظیم configuration در window - حذف شده و به بلوک اصلی منتقل شده -->
 
 {% endblock %}
 
@@ -168,6 +148,21 @@
 <!-- اضافه کردن initialization script -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // دریافت تنظیمات از data attributes
+    const configEl = document.getElementById('purchase-list-config');
+    
+    // تنظیم configuration برای JavaScript
+    window.PurchaseListConfig = {
+        updateColumnsUrl: configEl.dataset.updateColumnsUrl,
+        exportPurchasesUrl: configEl.dataset.exportPurchasesUrl,
+        purchaseAggregatedStatsUrl: configEl.dataset.purchaseAggregatedStatsUrl,
+        hideSensitiveInfo: configEl.dataset.hideSensitiveInfo === 'true',
+        perPage: parseInt(configEl.dataset.perPage) || 100,
+        perPageOptions: [5, 10, 25, 50, 100, 200]
+    };
+    
+    console.log('Purchase List Config loaded:', window.PurchaseListConfig);
+    
     // تأخیر کوتاه برای اطمینان از بارگذاری کامل DOM
     setTimeout(function() {
         // راه‌اندازی مدیریت ستون‌ها
@@ -184,6 +179,21 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Pagination manager initialized');
         } else {
             console.error('PurchasePagination class not found');
+        }
+        
+        // بازیابی وضعیت بخش‌ها
+        if (typeof restoreSectionStates === 'function') {
+            restoreSectionStates();
+            console.log('Section states restored');
+        }
+        
+        // راه‌اندازی Bulk Edit Manager
+        if (typeof BulkEditManager !== 'undefined') {
+            window.bulkEditManager = new BulkEditManager();
+            window.bulkEditManager.init();
+            console.log('Bulk Edit Manager initialized');
+        } else {
+            console.error('BulkEditManager class not found');
         }
         
         // اضافه کردن event listener برای دکمه پاک کردن cache
@@ -739,6 +749,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="column-{{ column.id }}">{{ purchase.priority|default:"-" }}</td>
                     {% elif column.id == 'priority_reason' %}
                     <td class="column-{{ column.id }}">{{ purchase.priority_reason|default:"-" }}</td>
+                    {% elif column.id == 'barbary' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.barbary %}{{ purchase.cargo.barbary.name }}{% else %}-{% endif %}</td>
                     {% endif %}
                 {% endif %}
             {% endfor %}
@@ -1196,6 +1208,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="column-{{ column.id }}">{{ purchase.priority|default:"-" }}</td>
                     {% elif column.id == 'priority_reason' %}
                     <td class="column-{{ column.id }}">{{ purchase.priority_reason|default:"-" }}</td>
+                    {% elif column.id == 'barbary' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.barbary %}{{ purchase.cargo.barbary.name }}{% else %}-{% endif %}</td>
                     {% endif %}
                 {% endif %}
             {% endfor %}
