@@ -6,7 +6,7 @@ Functions for processing purchase data from the BKI API.
 """
 
 from django.contrib.auth.models import User
-from core.PurchaseModel import Purchase, ShenaseTakhsis
+from core.PurchaseModel import Purchase, ShenaseTakhsis, PurchaseStateChange
 from core.CustomerModel import Customer, PhoneNumber
 from core.CargoProductModel import CargoProduct
 from core.SalesAgentModel import SalesAgent
@@ -163,6 +163,40 @@ def get_state_display_name(state):
         'ARCHIVED': 'آرشیو شده',
     }
     return state_names.get(state, state)
+
+
+def create_state_change_record(purchase, previous_state, new_state, notes="تغییر وضعیت توسط API بازارگاه"):
+    """
+    Create a PurchaseStateChange record to trigger SMS signals.
+    
+    Args:
+        purchase: The Purchase object
+        previous_state (str): The previous state of the purchase
+        new_state (str): The new state of the purchase
+        notes (str): Additional notes for the state change
+    """
+    try:
+        # Check if a state change record already exists for this transition
+        existing_record = PurchaseStateChange.objects.filter(
+            purchase=purchase,
+            new_state=new_state,
+            sms_sent=True
+        ).exists()
+        
+        if not existing_record:
+            PurchaseStateChange.objects.create(
+                purchase=purchase,
+                previous_state=previous_state,
+                new_state=new_state,
+                sms_sent=False,  # سیگنال خودش این رو True می‌کنه
+                notes=notes
+            )
+            logger.info(f"✅ رکورد تغییر وضعیت برای خرید {purchase.purchase_number} ایجاد شد: {previous_state} → {new_state}")
+        else:
+            logger.info(f"ℹ️ رکورد تغییر وضعیت برای خرید {purchase.purchase_number} قبلاً موجود است: {new_state}")
+            
+    except Exception as e:
+        logger.error(f"❌ خطا در ایجاد رکورد تغییر وضعیت برای خرید {purchase.purchase_number}: {str(e)}")
 
 
 def create_or_get_customer(buyer_name, buyer_phone, buyer_address, province_code):
@@ -809,8 +843,13 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
         if suggested_state:
             allowed = can_api_update_state(purchase.state, suggested_state)
             if allowed:
+                # ذخیره وضعیت قبلی برای ایجاد رکورد تغییر وضعیت
+                previous_state = purchase.state
                 purchase.state = suggested_state
-                log_state_change_attempt(purchase_number, purchase.state, suggested_state, True)
+                log_state_change_attempt(purchase_number, previous_state, suggested_state, True)
+                
+                # ایجاد رکورد تغییر وضعیت برای فعال‌سازی سیگنال ارسال پیامک
+                create_state_change_record(purchase, previous_state, suggested_state)
             else:
                 reason = ""
                 if purchase.state in {'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'PAY_KASRI', 'RECIEIVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED', 'ARCHIVED'}:
@@ -865,8 +904,13 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
         if suggested_state:
             allowed = can_api_update_state(purchase.state, suggested_state)
             if allowed:
+                # ذخیره وضعیت قبلی برای ایجاد رکورد تغییر وضعیت
+                previous_state = purchase.state
                 purchase.state = suggested_state
-                log_state_change_attempt(purchase_number, purchase.state, suggested_state, True)
+                log_state_change_attempt(purchase_number, previous_state, suggested_state, True)
+                
+                # ایجاد رکورد تغییر وضعیت برای فعال‌سازی سیگنال ارسال پیامک
+                create_state_change_record(purchase, previous_state, suggested_state)
             else:
                 reason = ""
                 if purchase.state in {'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'PAY_KASRI', 'RECIEIVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED', 'ARCHIVED'}:
