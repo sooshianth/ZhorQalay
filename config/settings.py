@@ -203,6 +203,7 @@ LOGGING = {
             'filename': os.path.join(BASE_DIR, 'debug.log'),
             'formatter': 'verbose',
             'filters': ['exclude_runserver_and_http_protocol'],
+            'encoding' : 'utf-8',
         },
         'null': {
             'class': 'logging.NullHandler',  # Ignores messages
