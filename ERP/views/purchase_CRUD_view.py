@@ -1,3 +1,4 @@
+from webbrowser import get
 from django import forms
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
@@ -39,6 +40,11 @@ from django.http import HttpRequest, QueryDict
 import json
 from core.decorators.decorators import role_required
 from core.decorators.det_user_role import determine_user_role
+from .managers_profile_view import get_client_ip
+
+import logging
+
+logger = logging.getLogger("erp_purchase_crude_view")
 
 try:
     import arabic_reshaper
@@ -311,6 +317,7 @@ class RoleBasedPurchaseForm(forms.ModelForm):
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
 def purchase_CRUD_view(request, purchase_id):
+    logger.warning(f"نمای خرید توسط: {request.user.username}, با آیپی IP: {get_client_ip(request)} باز شد")
     purchase = get_object_or_404(Purchase, id=purchase_id)
     user_role = determine_user_role(request.user)
     
@@ -334,6 +341,7 @@ def purchase_CRUD_view(request, purchase_id):
         
         if not has_access:
             messages.error(request, 'شما اجازه دسترسی به این خرید را ندارید.')
+            logger.warning(f"مسئول فروش {request.user.username} به خرید غیر خود درخواست دسترسی داد: {purchase.purchase_number}.")
             return redirect('purchase_list')
     
     history_logs = PurchaseHistory.objects.filter(purchase=purchase).order_by('-timestamp')
@@ -705,6 +713,7 @@ def purchase_CRUD_view(request, purchase_id):
 @login_required
 @role_required('admin', 'logistics_manager', 'sales_agent')
 def delete_purchase_view(request, purchase_id):
+    logger.warning(f"خرید {purchase_id} پاک شد توسط {request.user.username} with ip {get_client_ip(request)}")
     purchase = get_object_or_404(Purchase, id=purchase_id)
     if request.method == 'POST':
         purchase.delete()
@@ -719,6 +728,7 @@ def delete_purchase_view(request, purchase_id):
 @login_required
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent')
 def generate_purchase_pdf(request, purchase_id):
+    logger.warning(f"پی دی اف خرید {purchase_id} توسط {request.user.username} با آیپی {get_client_ip(request)} ایجاد شد")
     user_role = determine_user_role(request.user)
     if user_role == 'support_agent':
         messages.error(request, 'شما اجازه ایجاد گزارش خرید را ندارید')
@@ -1047,6 +1057,7 @@ def generate_purchase_pdf(request, purchase_id):
 @login_required
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent')
 def upload_purchase_document(request, purchase_id):
+    logger.warning(f"دسترسی به آپلود اسناد {purchase_id} توسط {request.user.username} با آیپی {get_client_ip(request)}")
     """
     View for handling document uploads for purchases
     """
@@ -1070,6 +1081,7 @@ def upload_purchase_document(request, purchase_id):
             valid_types.extend(['extelaf_receipt', 'invoice'])
             
         if document_type not in valid_types:
+            logger.warning(f"کاربر {request.user.username} فایل {document_type} را که مجاز به آن نیز درخواست آپلود داد. {get_client_ip(request)}")
             messages.error(request, 'شما اجازه بارگذاری این نوع سند را ندارید')
             return redirect('purchase_CRUD', purchase_id=purchase_id)
         
@@ -1149,6 +1161,7 @@ def link_bazaargah_purchase(request, purchase_id):
     مشتری، شناسه فاکتور و کارشناس فروش از خرید دستی حفظ می‌شود،
     اما سایر اطلاعات از خرید API می‌آید.
     """
+    logger.warning(f"لینک بازارگاه با خرید توسط {request.user.username} با خرید {purchase_id} درخواست شد. {get_client_ip(request)}")
     purchase = get_object_or_404(Purchase, id=purchase_id)
     user_role = determine_user_role(request.user)
     
@@ -1162,6 +1175,7 @@ def link_bazaargah_purchase(request, purchase_id):
     
     # بررسی نوع درخواست
     if request.method != 'POST':
+        logger.warning(f"درخواست نامعتبر برای لینک خرید بازارگاه توسط {request.user.username}. not POST")
         messages.error(request, 'درخواست نامعتبر')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
         
@@ -1200,6 +1214,7 @@ def link_bazaargah_purchase(request, purchase_id):
     # بررسی محدودیت زمانی 24 ساعت
     time_threshold = timezone.now() - datetime.timedelta(hours=24)
     if api_purchase.created_at < time_threshold:
+        logger.warning(f"ادغام خرید بازارگاه با عمر بیش از 24 ساعت توسط {request.user.username} (خرید دستی: {purchase.id})")
         messages.error(request, 'امکان ادغام خرید‌های بازارگاه با عمر بیشتر از 24 ساعت وجود ندارد.')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
     
@@ -1244,8 +1259,8 @@ def link_bazaargah_purchase(request, purchase_id):
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
-        print(f"خطا در ارتباط با سرور: {str(e)}\n{error_details}")
-        messages.error(request, f'خطا در ارتباط با سرور: {str(e)}')
+        logger.error(f"خطا در ارتباط با سرور: {str(e)}\n{error_details}")
+        messages.error(request, f'خطا در ارتباط با سرور: ')
     
     return redirect('purchase_CRUD', purchase_id=purchase_id)
 
@@ -1258,6 +1273,7 @@ def link_manual_purchase(request, purchase_id):
     این تابع برعکس link_bazaargah_purchase کار می‌کند و خرید API را که توسط API ایجاد شده
     با خرید دستی که کارشناس فروش ایجاد کرده ادغام می‌کند.
     """
+    logger.warning(f"لینک خرید دستی با بازارگاه توسط {request.user.username} با خرید {purchase_id} درخواست شد. {get_client_ip(request)}")
     purchase = get_object_or_404(Purchase, id=purchase_id)
     user_role = determine_user_role(request.user)
     
@@ -1278,6 +1294,7 @@ def link_manual_purchase(request, purchase_id):
     
     # بررسی نوع درخواست
     if request.method != 'POST':
+        logger.warning(f"درخواست نامعتبر برای لینک خرید ذستی توسط {request.user.username}. not POST")
         messages.error(request, 'درخواست نامعتبر')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
         
@@ -1314,6 +1331,7 @@ def link_manual_purchase(request, purchase_id):
                 has_access = True
         
         if not has_access:
+            logger.warning(f"کارشناس فروش {request.user.username} تلاش برای دسترسی به خرید دستی شخص دیگر را داشت. ایدی خرید: {purchase_id}")
             messages.error(request, 'شما اجازه دسترسی به خرید دستی انتخاب شده را ندارید')
             return redirect('purchase_CRUD', purchase_id=purchase_id)
     
@@ -1359,7 +1377,7 @@ def link_manual_purchase(request, purchase_id):
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
-        print(f"خطا در ارتباط با سرور: {str(e)}\n{error_details}")
-        messages.error(request, f'خطا در ارتباط با سرور: {str(e)}')
+        logger.error(f"خطا در ارتباط با سرور: {str(e)}\n{error_details}")
+        messages.error(request, f'خطا در ارتباط با سرور:')
     
     return redirect('purchase_CRUD', purchase_id=purchase_id)
