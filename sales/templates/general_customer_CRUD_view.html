@@ -100,18 +100,29 @@
             gap: 10px;
         }
         
-        .search-form button {
+                .search-form button {
             padding: 10px 20px;
             background-color: var(--button-color);
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
         }
-        
+
         .search-form button:hover {
             background-color: var(--hover-color);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+        }
+
+        .search-form button i {
+            font-size: 14px;
         }
         
         /* سایر استایل‌های موجود با تم جدید */
@@ -258,6 +269,75 @@
             padding: 20px;
             box-shadow: 0 2px 10px rgba(6, 95, 70, 0.1);
             margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        /* حالت ایجاد مشتری جدید */
+        .customer-form-section.new-customer-create {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border: 2px solid #22c55e;
+            box-shadow: 0 4px 20px rgba(34, 197, 94, 0.2);
+            transform: scale(1.02);
+            animation: glow-border 2s infinite;
+        }
+
+        @keyframes glow-border {
+            0%, 100% {
+                box-shadow: 0 4px 20px rgba(34, 197, 94, 0.2);
+            }
+            50% {
+                box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4), 0 0 30px rgba(34, 197, 94, 0.1);
+            }
+        }
+
+        .create-customer-alert {
+            background: linear-gradient(135deg, #22c55e, #059669);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .create-customer-alert::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            animation: shine-alert 3s infinite;
+        }
+
+        @keyframes shine-alert {
+            0% {
+                left: -100%;
+            }
+            50%, 100% {
+                left: 100%;
+            }
+        }
+
+        .create-customer-alert i {
+            font-size: 24px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .create-customer-alert h3 {
+            margin: 0 0 10px 0;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .create-customer-alert p {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.9;
         }
         
         .customer-form h2 {
@@ -1004,7 +1084,8 @@
             display: none;
         }
 
-        .social-preview-section {
+        .social-preview-section,
+        .followup-preview-section {
             margin-top: 20px;
             display: none;
         }
@@ -1218,17 +1299,28 @@
             <input type="text" 
                    name="search_query" 
                    id="search-input"
+                   value="{{ search_query|default:'' }}"
                    placeholder="جستجو با نام یا شماره تلفن (مثال: علی یا 9123456789)"
                    autocomplete="off">
             <div id="autocomplete-results" class="autocomplete-results"></div>
         </div>
-        <button type="submit" name="phone_search">جستجو/ایجاد</button>
+        <button type="submit" name="phone_search" title="جستجوی مشتری یا ایجاد مشتری جدید با شماره تلفن">
+            <i class="fas fa-search"></i>
+            جستجو/ایجاد
+        </button>
     </form>
     
     <div class="main-layout">
     {% if form %}
     <!-- فرم مشتری -->
-    <div class="customer-form-section">
+    <div class="customer-form-section {% if search_valid_phone %}new-customer-create{% endif %}">
+    {% if search_valid_phone %}
+        <div class="create-customer-alert">
+            <i class="fas fa-user-plus"></i>
+            <h3>ایجاد مشتری جدید</h3>
+            <p>مشتری با شماره {{ search_query }} پیدا نشد. فرم زیر را برای ایجاد مشتری جدید تکمیل کنید.</p>
+        </div>
+    {% endif %}
     <form method="post" class="customer-form">
         {% csrf_token %}
         
@@ -1969,6 +2061,22 @@
                 </div>
             </div>
 
+            <!-- پریویو ارجاع به پیگیری -->
+            <div id="followup-preview-section" class="followup-preview-section">
+                <h4 class="section-title">
+                    <i class="fas fa-eye"></i>
+                    پیش‌نمایش پیامک
+                </h4>
+                <div class="message-preview">
+                    <div class="preview-header">متن پیامکی که ارسال خواهد شد:</div>
+                    <div class="preview-content" id="followup-preview-content">
+                        مشتری گرامی {{ customer.name|default:"مشتری" }}<br>
+                        مشکل شما به واحد پیگیری منتقل شد و به‌زودی با شما تماس خواهیم گرفت.<br>
+                        شرکت تأمین نهاده سیمرغ
+                    </div>
+                </div>
+            </div>
+
             <!-- فیلد متن سفارشی (نمایش داده می‌شود وقتی گزینه سفارشی انتخاب شود) -->
             <div id="custom-message-section" class="custom-message-section">
                 <h4 class="section-title">
@@ -2498,6 +2606,7 @@ function resetSmsForm() {
     // مخفی کردن بخش‌های اضافی
     document.getElementById('purchase-form-section').style.display = 'none';
     document.getElementById('social-preview-section').style.display = 'none';
+    document.getElementById('followup-preview-section').style.display = 'none';
     document.getElementById('custom-message-section').style.display = 'none';
     
     // ریست کردن فیلدها
@@ -2523,6 +2632,7 @@ function selectMessageType(type) {
     // مخفی کردن همه بخش‌ها
     document.getElementById('purchase-form-section').style.display = 'none';
     document.getElementById('social-preview-section').style.display = 'none';
+    document.getElementById('followup-preview-section').style.display = 'none';
     document.getElementById('custom-message-section').style.display = 'none';
     
     // نمایش بخش مربوطه
@@ -2530,6 +2640,8 @@ function selectMessageType(type) {
         document.getElementById('purchase-form-section').style.display = 'block';
     } else if (type === 'social') {
         document.getElementById('social-preview-section').style.display = 'block';
+    } else if (type === 'followup') {
+        document.getElementById('followup-preview-section').style.display = 'block';
     } else if (type === 'custom') {
         document.getElementById('custom-message-section').style.display = 'block';
     }
