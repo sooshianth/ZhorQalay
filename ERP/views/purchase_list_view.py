@@ -682,7 +682,13 @@ def load_archived_purchases(request):
     """
     API برای بارگذاری lazy خریدهای آرشیو شده
     """
-    logger.warning(f"خرید های ارشیو شده توسط {request.user.username} لود شد. {get_client_ip(request)}")
+    logger.warning(f"هشدار! خرید های ارشیو شده توسط {request.user.username} لود شد. {get_client_ip(request)}")
+    return JsonResponse({
+            'status': 'success',
+            'data': [],
+            'count': 0
+        })
+    
     try:
         # تشخیص نقش کاربر
         user_role = determine_user_role(request.user)
