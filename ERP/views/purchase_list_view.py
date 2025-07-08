@@ -803,7 +803,14 @@ def update_columns(request):
             }, status=400)
         
         logger.warning(f"ستون‌های دریافت شده: {selected_columns} برای {request.user.username}")
-        
+
+        # فیلتر کردن ستون‌های انتخاب شده برای کاربران محدود
+        user_role = determine_user_role(request.user)
+        allowed_columns = get_allowed_columns(user_role)
+
+        selected_columns = [col for col in selected_columns if col in allowed_columns]
+        if not selected_columns:
+            selected_columns = allowed_columns
 
         # اطمینان از وجود ستون عملیات
         if 'actions' not in selected_columns:
@@ -826,14 +833,12 @@ def update_columns(request):
         return response
     except Exception as e:
         import traceback
-        logger.warning(f"خطا در update_columns: {str(e)}, {traceback.format_exc()}")
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+        logger.error(f"خطا در update_columns: {str(e)}, {traceback.format_exc()}")
+        return JsonResponse({'status': 'error', 'message': "خطا در اپدیت ستون های لیست خرید"}, status=500)
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
 def export_to_excel(request):
-    print("=== EXPORT TO EXCEL CALLED ===")
-    print(f"Request method: {request.method}")
     logger.warning(f"خروجی اکسل توسط {request.user.username} با متد {request.method} و آی‌پی {get_client_ip(request)} آغاز شد")
     # Support both GET and POST requests
     if request.method == 'POST':
@@ -843,17 +848,22 @@ def export_to_excel(request):
         purchase_ids = request.GET.get('ids', '').split(',')
         selected_columns = request.GET.get('columns', '')
     logger.warning(f"raw select columns for user {request.user.username}: {selected_columns}")
-    print(f"Raw purchase_ids: {purchase_ids}")
-    print(f"Raw selected_columns: '{selected_columns}'")
-    
+
+    user_role = determine_user_role(request.user)
+    allowed_columns = get_allowed_columns(user_role)
+
     if selected_columns:
         # حذف کوتیشن‌های اضافی و decode کردن کاراکترهای escape شده
         selected_columns = selected_columns.strip('"').replace('\\054', ',').replace('\\\\', '\\')
         selected_columns = selected_columns.split(',')
         # حذف actions از لیست ستون‌ها چون در اکسل نمی‌خواهیم
         selected_columns = [col.strip() for col in selected_columns if col.strip() and col.strip() != 'actions']
+
+        selected_columns = [col for col in selected_columns if col in allowed_columns]
+        if not selected_columns:
+            selected_columns = allowed_columns
     else:
-        selected_columns = ['date', 'customer', 'invoice_id', 'sales_agent', 'purchase_number', 'weight', 'cargo', 'status']
+        selected_columns = get_default_columns(user_role)
     
     
     # فیلتر کردن آیدی‌های خالی
@@ -1020,6 +1030,7 @@ def cargo_products_list(request):
     API برای دریافت لیست کوتاژها
     """
     logger.warning(f"کاربر {request.user.username} درخواست دریافت لیست کوتاژ کرد. {get_client_ip(request)}")
+    return JsonResponse({'status': 'error', 'message': "error"}, status=500)
     try:
         # فیلتر بر اساس وضعیت فعال
         active_only = request.GET.get('active_only', '1') == '1'
