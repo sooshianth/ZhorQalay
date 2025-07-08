@@ -324,8 +324,7 @@ def purchase_list(request):
         ]
 
         # todo: add the rest of the columns
-        allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight', 'delivered_weight',
-         'status', 'cargo', 'customer', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number'] # نام محصول، تلفن های مشتری، نام تحویل گیرنده
+        allowed_columns = get_allowed_columns(user_role)
         
                 
         # دریافت ستون های انتخاب شده از کوکی فقط برای کاربران محدود
@@ -334,16 +333,14 @@ def purchase_list(request):
         if not selected_columns:
             # پیش‌فرض برای کاربران محدود: نمایش همه ستون‌های مجاز
             #todo: add the rest of the columns
-            selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight',
-             'delivered_weight', 'status', 'cargo', 'customer', 'buyer_name'] # تلفن های مشتری،  نام محصول
+            selected_columns = get_default_columns(user_role)
             logger.info("Using default columns for sales agent")
         else:
             # Make sure we have a string before splitting
             if isinstance(selected_columns, str):
                 selected_columns = selected_columns.split(',')
             else:
-                selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight',
-                 'delivered_weight', 'status', 'cargo', 'customer', 'buyer_name'] # تلفن های مشتری،  نام محصول
+                selected_columns = get_default_columns(user_role)
                 logger.error("Type error on selected_columns - using defaults for sales agent")
             
             # فیلتر کردن فقط ستون‌های مجاز
@@ -381,9 +378,7 @@ def purchase_list(request):
         ]
 
         # todo: add the rest of the columns
-        allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'weight',
-         'delivered_weight', 'status', 'cargo', 'importer', 'barbary', 'customer',
-          'buyer_name'] # نام محصول، شماره باربری محرمانهی، شماره باربری مشتری، نام تحویل گیرنده
+        allowed_columns = get_allowed_columns(user_role)
                 
         # دریافت ستون های انتخاب شده از کوکی فقط برای کاربران محدود
         selected_columns = request.COOKIES.get('selected_columns', '')
@@ -391,16 +386,14 @@ def purchase_list(request):
         if not selected_columns:
             # پیش‌فرض برای کاربران محدود: نمایش همه ستون‌های مجاز
             #todo: add the rest of the columns
-            selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'weight', 
-            'delivered_weight', 'status', 'cargo', 'importer' , 'customer', 'buyer_name'] # نام محصول
+            selected_columns = get_default_columns(user_role)
             logger.info("Using default columns for support agent")
         else:
             # Make sure we have a string before splitting
             if isinstance(selected_columns, str):
                 selected_columns = selected_columns.split(',')
             else:
-                selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'weight',
-                 'delivered_weight', 'status', 'cargo', 'importer' , 'customer', 'buyer_name'] # نام محصول
+                selected_columns = get_default_columns(user_role)
                 logger.error("Type error on selected_columns - using defaults for support agent")
             
             # فیلتر کردن فقط ستون‌های مجاز
@@ -448,10 +441,7 @@ def purchase_list(request):
         ]
 
         # todo: add the rest of the columns
-        allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
-         'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
-         'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',
-          'cargo', 'importer', 'buyer_name'] # کارشناس فروش، تاریخ اولین بارنامه، تاریخ اخرین بارنامه، نام محصول، 
+        allowed_columns = get_allowed_columns(user_role)
                 
         # دریافت ستون های انتخاب شده از کوکی فقط برای کاربران محدود
         selected_columns = request.COOKIES.get('selected_columns', '')
@@ -459,10 +449,7 @@ def purchase_list(request):
         if not selected_columns:
             # پیش‌فرض برای کاربران محدود: نمایش همه ستون‌های مجاز
             #todo: add the rest of the columns
-            selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
-             'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
-             'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',
-             'cargo', 'importer', 'buyer_name'] # کارشناس فروش، نام محصول، 
+            selected_columns = get_default_columns(user_role)
              #  شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار
             logger.info("Using default columns for financial manager")
         else:
@@ -470,10 +457,7 @@ def purchase_list(request):
             if isinstance(selected_columns, str):
                 selected_columns = selected_columns.split(',')
             else:
-                selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
-                 'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
-                 'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',
-                 'cargo', 'importer', 'buyer_name'] # کارشناس فروش، نام محصول، 
+                selected_columns = get_default_columns(user_role)
                 #  شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار
                 logger.error("Type error on selected_columns - using defaults for financial manager")
             
@@ -539,13 +523,7 @@ def purchase_list(request):
         ]
 
         # todo: add the rest of the columns
-        allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
-         'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
-         'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
-          'cargo', 'importer', 'barbary', 'customer', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil']
-         # کارشناس فروش، تاریخ اولین بارنامه، تاریخ اخرین بارنامه، نام محصول، 
-          # نام تحویل گیرنده، شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار، نوع کاربری خریدار، شناسه یکتای تحویل، ادرس تحویل، کد پستی تحویل، تریلی، تک، جفت
-          # شماره باربری محرمانهی، شماره باربری مشتری، تلفن های مشتری
+        allowed_columns = get_allowed_columns(user_role)
 
                 
         # دریافت ستون های انتخاب شده از کوکی فقط برای کاربران محدود
@@ -554,24 +532,14 @@ def purchase_list(request):
         if not selected_columns:
             # پیش‌فرض برای کاربران محدود: نمایش همه ستون‌های مجاز
             #todo: add the rest of the columns
-            selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
-            'delivered_weight', 'status', 'description', 'is_fully_tasvied',
-            'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
-            'cargo', 'importer', 'buyer_name', 'tahvil_phone_number', 'code_melli_tahvil']
-             # کارشناس فروش، نام محصول، 
-             # تلفن خریدار
+            selected_columns = get_default_columns(user_role)
             logger.info("Using default columns for admin")
         else:
             # Make sure we have a string before splitting
             if isinstance(selected_columns, str):
                 selected_columns = selected_columns.split(',')
             else:
-                selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
-                'delivered_weight', 'status', 'description', 'is_fully_tasvied',
-                'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
-                'cargo', 'importer', 'buyer_name', 'tahvil_phone_number', 'code_melli_tahvil']
-                # کارشناس فروش، نام محصول، 
-                # تلفن خریدار
+                selected_columns = get_default_columns(user_role)
                 logger.error("Type error on selected_columns - using defaults for admin")
             
             # فیلتر کردن فقط ستون‌های مجاز
