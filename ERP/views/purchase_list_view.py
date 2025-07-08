@@ -533,7 +533,7 @@ def purchase_list(request):
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
          'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
          'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
-          'cargo', 'importer', 'barbary', 'customer', 'buyer_name', 'tahvil_phone_number', 'code_melli_tahvil']
+          'cargo', 'importer', 'barbary', 'customer', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil']
          # کارشناس فروش، تاریخ اولین بارنامه، تاریخ اخرین بارنامه، نام محصول، 
           # نام تحویل گیرنده، شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار، نوع کاربری خریدار، شناسه یکتای تحویل، ادرس تحویل، کد پستی تحویل، تریلی، تک، جفت
           # شماره باربری محرمانهی، شماره باربری مشتری، تلفن های مشتری
@@ -547,7 +547,7 @@ def purchase_list(request):
             #todo: add the rest of the columns
             selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
             'delivered_weight', 'status', 'description', 'is_fully_tasvied',
-            'ready_for_invoice', 'is_facotred', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
+            'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
             'cargo', 'importer', 'buyer_name', 'tahvil_phone_number', 'code_melli_tahvil']
              # کارشناس فروش، نام محصول، 
              # تلفن خریدار
