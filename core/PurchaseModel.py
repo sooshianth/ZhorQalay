@@ -87,6 +87,11 @@ class Purchase(models.Model):
     is_fully_tasvied = models.BooleanField("تسویه کامل", default=False)
     is_factored = models.BooleanField("ثبت فاکتور", default=False)
 
+    ready_for_invoice = models.BooleanField("آماده فاکتور", default=False)
+    purchase_mabna_invoice = models.PositiveBigIntegerField("فاکتور خرید مبنا", blank=True, null=True)
+    sales_mabna_invoice = models.PositiveBigIntegerField("فاکتور فروش مبنا", blank=True, null=True)
+    mabna_profit = models.PositiveBigIntegerField("سود مبنا", blank=True, null=True)
+
     wallet_index = models.CharField("شاخص محاسبه کیف پول", max_length=1, default='0', choices=[('0', 'وزن سفارش'), ('1', 'وزن تحویلی')])
     is_address_sent = models.CharField('آیا آدرس به واردکننده ارسال شده اس؟', max_length=1, default='0', choices=[('0', "ارسال نشده"),('1', "ارسال شده")])
 
@@ -591,11 +596,31 @@ class Purchase(models.Model):
             
     def save(self, *args, **kwargs):
         is_new = not self.pk  # Check if this is a new instance
-        
-        # 🔄 همگام‌سازی خودکار factor_code با is_factored
-        # وقتی is_factored تغییر کند، factor_code هم باید متناظر با آن تغییر کند
-        self.factor_code = self.is_factored
-        
+
+        #محاسبه فاکتور مبنا
+        if self.ready_for_invoice or self.is_factored:
+            self.factor_code = True
+        else:
+            self.factor_code = False
+
+        if self.company_price and self.customer_price:
+
+            if self.factor_code:
+
+                base_weight = self.delivered_weight if self.delivered_weight else 0
+            else:
+
+                base_weight = self.order_weight if self.order_weight else 0
+            
+            # محاسبه فاکتور خرید مبنا
+            self.purchase_mabna_invoice = self.company_price * base_weight
+            
+            # محاسبه فاکتور فروش مبنا
+            self.sales_mabna_invoice = self.customer_price * base_weight
+            
+            # محاسبه سود مبنا
+            self.mabna_profit = self.sales_mabna_invoice - self.purchase_mabna_invoice
+                
         # مکانیزم خودکار همگام‌سازی کارشناس فروش و نام
         try:
             
