@@ -140,7 +140,10 @@ def purchase_list(request):
         'order_weight', 'delivered_weight', 'state', 'is_factored', 'is_urgent', 
         'is_canceled', 'is_archived', 'company_price', 'customer_price', 
         'amount_paid', 'factor_code', 'unique_sales_agent', 'ready_for_invoice',
-        'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit'
+        'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
+        'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'description',
+        'is_fully_tasvied', 'buyer_name', 'bazaargah_phone_number', 
+        'tahvil_phone_number', 'code_melli_tahvil', 'address'
     ]
     
     # فیلدهای customer و cargo
