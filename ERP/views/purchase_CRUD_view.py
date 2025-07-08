@@ -79,23 +79,32 @@ class RoleBasedPurchaseForm(forms.ModelForm):
             if existing_allocation_ids.exists():
                 self.fields['allocation_ids'].initial = '\n'.join([item.code for item in existing_allocation_ids])
         
-        if user_role == 'sales_agent' or user_role == 'admin':
-            allowed_fields = [
-                'order_weight', 'delivered_weight', 'description', 'tracking_number', 'purchase_date', 'purchase_number', 
-                'payment_method', 'customer_price','amount_paid', 'cargo', 'allocation_ids', 'code_melli_tahvil', 
-                'bazaargah_phone_number', 'tahvil_phone_number',
-            ]
-        elif user_role == 'logistics_manager':
-            allowed_fields = [
-                'order_weight', 'delivered_weight', 'description', 'tracking_number', 'purchase_number', 'amount_paid', 
-                'customer_price', 'payment_method', 'cargo', 'allocation_ids', 'code_melli_tahvil', 
-                'bazaargah_phone_number', 'tahvil_phone_number', 'address',
-            ]
+        if user_role == 'sales_agent':
+            allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'weight', 'delivered_weight',
+         'status', 'cargo', 'customer', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil']
+          # نام محصول، تلفن های مشتری، نام تحویل گیرنده
+          #  شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار، نوع کاربری خریدار، شناسه یکتای تحویل، ادرس تحویل، کد پستی تحویل، تریلی، تک، جفت
+        
+        elif user_role == 'support_agent':
+            allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'weight',
+         'delivered_weight', 'status', 'cargo', 'importer', 'barbary', 'customer',
+          'buyer_name', 'code_melli_tahvil'] # نام محصول، شماره باربری محرمانهی، شماره باربری مشتری، نام تحویل گیرنده، تلفن های مشتری
+          #  شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار، نوع کاربری خریدار، شناسه یکتای تحویل، ادرس تحویل، کد پستی تحویل، تریلی، تک، جفت
+
         elif user_role == 'financial_manager':
-            allowed_fields = [
-                'description', 'payment_method', 'company_price', 'customer_price', 'amount_paid', 
-                'cargo', 'purchase_date', 'purchase_number', 'tracking_number', 'order_weight', 'delivered_weight'
-            ]
+            allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'customer_price', 'weight',
+         'delivered_weight', 'status',
+          'cargo', 'importer', 'buyer_name'] # ، نام محصول، 
+          # نام تحویل گیرنده، شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار
+        
+        elif user_role == 'admin' or user_role == 'logistics_manager':
+            allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'customer_price', 'weight',
+         'delivered_weight', 'status',
+          'cargo', 'importer', 'barbary', 'customer', 'buyer_name','bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil']
+         # نام محصول، 
+          # نام تحویل گیرنده، شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار، نوع کاربری خریدار، شناسه یکتای تحویل، ادرس تحویل، کد پستی تحویل، تریلی، تک، جفت
+          # شماره باربری محرمانهی، شماره باربری مشتری، تلفن های مشتری
+
         else:
             allowed_fields = []
         
@@ -715,6 +724,29 @@ def purchase_CRUD_view(request, purchase_id):
 def delete_purchase_view(request, purchase_id):
     logger.warning(f"خرید {purchase_id} پاک شد توسط {request.user.username} with ip {get_client_ip(request)}")
     purchase = get_object_or_404(Purchase, id=purchase_id)
+    user_role = determine_user_role(request.user)
+    # بررسی دسترسی کارشناس فروش - فقط به خریدهای خودش دسترسی دارد
+    if user_role == 'sales_agent':
+        has_access = False
+        
+        # بررسی کارشناس فروش یکتا (اولویت اول)
+        if purchase.unique_sales_agent and purchase.unique_sales_agent.user == request.user:
+            has_access = True
+        
+        # اگر unique_sales_agent تنظیم نشده، بررسی‌های قدیمی برای سازگاری
+        if not has_access and not purchase.unique_sales_agent and hasattr(request.user, 'sales_agent'):
+            # بررسی کارشناس فروش از طریق رابطه Many-to-Many قدیمی
+            if purchase.sales_agent.filter(id=request.user.sales_agent.id).exists():
+                has_access = True
+            
+            # بررسی کارشناس فروش مشتری (برای سازگاری با خریدهای قدیمی)
+            elif purchase.customer and purchase.customer.sales_agent.filter(id=request.user.sales_agent.id).exists():
+                has_access = True
+        
+        if not has_access:
+            messages.error(request, 'شما اجازه دسترسی به این خرید را ندارید.')
+            logger.warning(f"مسئول فروش {request.user.username} به خرید غیر خود درخواست پاک کردن داد: {purchase.purchase_number}.")
+            return redirect('purchase_list')
     if request.method == 'POST':
         purchase.delete()
         messages.success(request, 'خرید با موفقیت حذف شد')
@@ -731,10 +763,32 @@ def generate_purchase_pdf(request, purchase_id):
     logger.warning(f"پی دی اف خرید {purchase_id} توسط {request.user.username} با آیپی {get_client_ip(request)} ایجاد شد")
     user_role = determine_user_role(request.user)
     if user_role == 'support_agent':
+        logger.warning(f"مسئول پیگیری {request.user.username} به خرید {purchase_id} درخواست خلاف پی دی اف داد")
         messages.error(request, 'شما اجازه ایجاد گزارش خرید را ندارید')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
 
     purchase = get_object_or_404(Purchase, id=purchase_id)
+    if user_role == 'sales_agent':
+        has_access = False
+        
+        # بررسی کارشناس فروش یکتا (اولویت اول)
+        if purchase.unique_sales_agent and purchase.unique_sales_agent.user == request.user:
+            has_access = True
+        
+        # اگر unique_sales_agent تنظیم نشده، بررسی‌های قدیمی برای سازگاری
+        if not has_access and not purchase.unique_sales_agent and hasattr(request.user, 'sales_agent'):
+            # بررسی کارشناس فروش از طریق رابطه Many-to-Many قدیمی
+            if purchase.sales_agent.filter(id=request.user.sales_agent.id).exists():
+                has_access = True
+            
+            # بررسی کارشناس فروش مشتری (برای سازگاری با خریدهای قدیمی)
+            elif purchase.customer and purchase.customer.sales_agent.filter(id=request.user.sales_agent.id).exists():
+                has_access = True
+        
+        if not has_access:
+            messages.error(request, 'شما اجازه دسترسی به این خرید را ندارید.')
+            logger.warning(f"مسئول فروش {request.user.username} به خرید غیر خود درخواست گزارش پی دی اف داد: {purchase.purchase_number}.")
+            return redirect('purchase_list')
     
     # ساخت پاسخ HTTP برای PDF
     response = HttpResponse(content_type='application/pdf')
@@ -1066,9 +1120,32 @@ def upload_purchase_document(request, purchase_id):
     
     # Check if user has permission to upload documents
     if user_role not in ['sales_agent', 'financial_manager', 'logistics_manager', 'admin']:
+        logger.warning(f"کاربر {request.user.username} به خرید {purchase_id} غیر قانونی درخواست آپلود اسناد داد. {get_client_ip(request)}")
         messages.error(request, 'شما اجازه بارگذاری اسناد را ندارید')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
     
+    if user_role == 'sales_agent':
+        has_access = False
+        
+        # بررسی کارشناس فروش یکتا (اولویت اول)
+        if purchase.unique_sales_agent and purchase.unique_sales_agent.user == request.user:
+            has_access = True
+        
+        # اگر unique_sales_agent تنظیم نشده، بررسی‌های قدیمی برای سازگاری
+        if not has_access and not purchase.unique_sales_agent and hasattr(request.user, 'sales_agent'):
+            # بررسی کارشناس فروش از طریق رابطه Many-to-Many قدیمی
+            if purchase.sales_agent.filter(id=request.user.sales_agent.id).exists():
+                has_access = True
+            
+            # بررسی کارشناس فروش مشتری (برای سازگاری با خریدهای قدیمی)
+            elif purchase.customer and purchase.customer.sales_agent.filter(id=request.user.sales_agent.id).exists():
+                has_access = True
+        
+        if not has_access:
+            messages.error(request, 'شما اجازه دسترسی به این خرید را ندارید.')
+            logger.warning(f"مسئول فروش {request.user.username} به خرید غیر خود درخواست اپلود اسناد داد: {purchase.purchase_number}.")
+            return redirect('purchase_list')
+
     if request.method == 'POST':
         document_type = request.POST.get('document_type')
         document_file = request.FILES.get('document_file')
@@ -1169,6 +1246,28 @@ def link_bazaargah_purchase(request, purchase_id):
     if user_role not in ['sales_agent', 'admin']:
         messages.error(request, 'شما اجازه انجام این عملیات را ندارید')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
+
+    if user_role == 'sales_agent':
+        has_access = False
+        
+        # بررسی کارشناس فروش یکتا (اولویت اول)
+        if purchase.unique_sales_agent and purchase.unique_sales_agent.user == request.user:
+            has_access = True
+        
+        # اگر unique_sales_agent تنظیم نشده، بررسی‌های قدیمی برای سازگاری
+        if not has_access and not purchase.unique_sales_agent and hasattr(request.user, 'sales_agent'):
+            # بررسی کارشناس فروش از طریق رابطه Many-to-Many قدیمی
+            if purchase.sales_agent.filter(id=request.user.sales_agent.id).exists():
+                has_access = True
+            
+            # بررسی کارشناس فروش مشتری (برای سازگاری با خریدهای قدیمی)
+            elif purchase.customer and purchase.customer.sales_agent.filter(id=request.user.sales_agent.id).exists():
+                has_access = True
+        
+        if not has_access:
+            messages.error(request, 'شما اجازه دسترسی به این خرید را ندارید.')
+            logger.warning(f"مسئول فروش {request.user.username} به خرید غیر خود درخواست لینک بازارگاه داد: {purchase.purchase_number}.")
+            return redirect('purchase_list')
     
     # بررسی دسترسی کارشناس فروش به خرید - برداشته شد برای رفع مشکل محدودیت دسترسی
     # اجازه ادغام به همه کارشناسان فروش و مدیران داده می‌شود
@@ -1281,6 +1380,28 @@ def link_manual_purchase(request, purchase_id):
     if user_role not in ['sales_agent', 'admin']:
         messages.error(request, 'شما اجازه انجام این عملیات را ندارید')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
+    
+    if user_role == 'sales_agent':
+        has_access = False
+        
+        # بررسی کارشناس فروش یکتا (اولویت اول)
+        if purchase.unique_sales_agent and purchase.unique_sales_agent.user == request.user:
+            has_access = True
+        
+        # اگر unique_sales_agent تنظیم نشده، بررسی‌های قدیمی برای سازگاری
+        if not has_access and not purchase.unique_sales_agent and hasattr(request.user, 'sales_agent'):
+            # بررسی کارشناس فروش از طریق رابطه Many-to-Many قدیمی
+            if purchase.sales_agent.filter(id=request.user.sales_agent.id).exists():
+                has_access = True
+            
+            # بررسی کارشناس فروش مشتری (برای سازگاری با خریدهای قدیمی)
+            elif purchase.customer and purchase.customer.sales_agent.filter(id=request.user.sales_agent.id).exists():
+                has_access = True
+        
+        if not has_access:
+            messages.error(request, 'شما اجازه دسترسی به این خرید را ندارید.')
+            logger.warning(f"مسئول فروش {request.user.username} به خرید غیر خود درخواست لینک خرید دستی داد: {purchase.purchase_number}.")
+            return redirect('purchase_list')
     
     # بررسی که این خرید API باشد (دارای شماره خرید)
     if not purchase.purchase_number:

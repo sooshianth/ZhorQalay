@@ -248,6 +248,7 @@ def purchase_list(request):
 
     if user_role == 'sales_agent':
         all_columns = [
+            {'id': 'actions', 'name': 'جزئیات'},
             {'id': 'purchase_number', 'name': 'شماره خرید', 'field': 'purchase_number'},
             {'id': 'shenase_takhsis', 'name': 'شماره تخصیص', 'field': 'shenase_takhsis_set'},
             {'id': 'date', 'name': 'تاریخ', 'field': 'created_at', 'format': 'date'},
@@ -260,13 +261,13 @@ def purchase_list(request):
             # تلفن های مشتری
             {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
             # نام تحویل گیرنده
-            # تلفن خریدار
+            {'id': 'bazaargah_phone_number', 'name': 'شماره تلفن بازارگاه', 'field': 'bazaargah_phone_number'},
             {'id': 'tahvil_phone_number', 'name': 'شماره تلفن تحویل', 'field': 'tahvil_phone_number'},        
         ]
 
         # todo: add the rest of the columns
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight', 'delivered_weight',
-         'status', 'cargo', 'customer', 'buyer_name', 'tahvil_phone_number'] # نام محصول، تلفن های مشتری، تلفن خریدار، نام تحویل گیرنده
+         'status', 'cargo', 'customer', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number'] # نام محصول، تلفن های مشتری، نام تحویل گیرنده
         
                 
         # دریافت ستون های انتخاب شده از کوکی فقط برای کاربران محدود
@@ -299,12 +300,13 @@ def purchase_list(request):
         logger.warning(f"ستون های انتخابی مسئول فروش {request.user.username}: {selected_columns}")
         logger.info(f"ستون های قابل انتخاب مسئول فروش {request.user.username}: {all_columns}")
 
-    if user_role == 'support_agent':
+    elif user_role == 'support_agent':
         all_columns = [
+            {'id': 'actions', 'name': 'جزئیات'},
             {'id': 'purchase_number', 'name': 'شماره خرید', 'field': 'purchase_number'},
             {'id': 'shenase_takhsis', 'name': 'شماره تخصیص', 'field': 'shenase_takhsis_set'},
             {'id': 'date', 'name': 'تاریخ', 'field': 'created_at', 'format': 'date'},
-            # کارشناس فروش
+            {'id': 'sales_agent', 'name': 'نماینده فروش', 'field': 'customer.sales_agent.name'},
             {'id': 'weight', 'name': 'وزن خرید', 'field': 'order_weight', 'unit': 'کیلوگرم'},
             {'id': 'delivered_weight', 'name': 'وزن بارنامه شده', 'field': 'delivered_weight', 'unit': 'کیلوگرم'},
             {'id': 'status', 'name': 'وضعیت', 'field': 'state'},
@@ -321,9 +323,9 @@ def purchase_list(request):
         ]
 
         # todo: add the rest of the columns
-        allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight',
+        allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'weight',
          'delivered_weight', 'status', 'cargo', 'importer', 'barbary', 'customer',
-          'buyer_name'] # کارشناس فروش، نام محصول، شماره باربری محرمانهی، شماره باربری مشتری، نام تحویل گیرنده
+          'buyer_name'] # نام محصول، شماره باربری محرمانهی، شماره باربری مشتری، نام تحویل گیرنده
                 
         # دریافت ستون های انتخاب شده از کوکی فقط برای کاربران محدود
         selected_columns = request.COOKIES.get('selected_columns', '')
@@ -331,16 +333,16 @@ def purchase_list(request):
         if not selected_columns:
             # پیش‌فرض برای کاربران محدود: نمایش همه ستون‌های مجاز
             #todo: add the rest of the columns
-            selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight', 
-            'delivered_weight', 'status', 'cargo', 'importer' , 'customer', 'buyer_name'] # نام محصول، کارشناس فروش
+            selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'weight', 
+            'delivered_weight', 'status', 'cargo', 'importer' , 'customer', 'buyer_name'] # نام محصول
             logger.info("Using default columns for support agent")
         else:
             # Make sure we have a string before splitting
             if isinstance(selected_columns, str):
                 selected_columns = selected_columns.split(',')
             else:
-                selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight',
-                 'delivered_weight', 'status', 'cargo', 'importer' , 'customer', 'buyer_name'] # نام محصول، کارشناس فروش
+                selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'weight',
+                 'delivered_weight', 'status', 'cargo', 'importer' , 'customer', 'buyer_name'] # نام محصول
                 logger.error("Type error on selected_columns - using defaults for support agent")
             
             # فیلتر کردن فقط ستون‌های مجاز
@@ -354,12 +356,13 @@ def purchase_list(request):
         
         logger.warning(f"ستون های انتخابی مسئول پیگیری {request.user.username}: {selected_columns}")
         logger.info(f"ستون های قابل انتخاب مسئول پیگیری {request.user.username}: {all_columns}")
-    if user_role == 'financial_manager':
+    elif user_role == 'financial_manager':
         all_columns = [
+            {'id': 'actions', 'name': 'جزئیات'},
             {'id': 'purchase_number', 'name': 'شماره خرید', 'field': 'purchase_number'},
             {'id': 'shenase_takhsis', 'name': 'شماره تخصیص', 'field': 'shenase_takhsis_set'},
             {'id': 'date', 'name': 'تاریخ', 'field': 'created_at', 'format': 'date'},
-            # کارشناس فروش
+            {'id': 'sales_agent', 'name': 'نماینده فروش', 'field': 'customer.sales_agent.name'},
             {'id': 'company_price', 'name': 'فی خرید', 'field': 'company_price', 'unit': 'ریال'},
             {'id': 'customer_price', 'name': 'فی فروش', 'field': 'customer_price', 'unit': 'ریال'},
             {'id': 'weight', 'name': 'وزن خرید', 'field': 'order_weight', 'unit': 'کیلوگرم'},
@@ -387,10 +390,14 @@ def purchase_list(request):
         ]
 
         # todo: add the rest of the columns
-        allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'company_price', 'customer_price', 'weight',
+        allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
          'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
+<<<<<<< HEAD
          'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',
           'cargo', 'importer', 'buyer_name'] # کارشناس فروش، تاریخ اولین بارنامه، تاریخ اخرین بارنامه، نام محصول، 
+=======
+          'cargo', 'importer', 'buyer_name'] # ، تاریخ اولین بارنامه، تاریخ اخرین بارنامه، اماده فاکتور، صدور فاکتور، فاکتور خرید مبنا، فاکتور فروش مبنا، نام محصول، 
+>>>>>>> 0233d2241197a8186c11916a98a64964a383c9f0
           # نام تحویل گیرنده، شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار
                 
         # دریافت ستون های انتخاب شده از کوکی فقط برای کاربران محدود
@@ -399,10 +406,14 @@ def purchase_list(request):
         if not selected_columns:
             # پیش‌فرض برای کاربران محدود: نمایش همه ستون‌های مجاز
             #todo: add the rest of the columns
-            selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'company_price', 'customer_price', 'weight',
+            selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
              'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
+<<<<<<< HEAD
              'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',
              'cargo', 'importer', 'buyer_name'] # کارشناس فروش، نام محصول، 
+=======
+             'cargo', 'importer', 'buyer_name'] #  اماده فاکتور، صدور فاکتور، فاکتور خرید مبنا، فاکتور فروش مبنا، نام محصول، 
+>>>>>>> 0233d2241197a8186c11916a98a64964a383c9f0
              #  شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار
             logger.info("Using default columns for financial manager")
         else:
@@ -410,7 +421,7 @@ def purchase_list(request):
             if isinstance(selected_columns, str):
                 selected_columns = selected_columns.split(',')
             else:
-                selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'company_price', 'customer_price', 'weight',
+                selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
                  'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
                  'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',
                  'cargo', 'importer', 'buyer_name'] # کارشناس فروش، نام محصول، 
@@ -429,12 +440,13 @@ def purchase_list(request):
         logger.warning(f"ستون های انتخابی مسئول مالی {request.user.username}: {selected_columns}")
         logger.info(f"ستون های قابل انتخاب مسئول مالی {request.user.username}: {all_columns}")
 
-    if user_role == 'admin':
+    elif user_role == 'admin' or user_role == 'logistics_manager':
         all_columns = [
+            {'id': 'actions', 'name': 'جزئیات'},
             {'id': 'purchase_number', 'name': 'شماره خرید', 'field': 'purchase_number'},
             {'id': 'shenase_takhsis', 'name': 'شماره تخصیص', 'field': 'shenase_takhsis_set'},
             {'id': 'date', 'name': 'تاریخ', 'field': 'created_at', 'format': 'date'},
-            # کارشناس فروش
+            {'id': 'sales_agent', 'name': 'نماینده فروش', 'field': 'customer.sales_agent.name'},
             {'id': 'company_price', 'name': 'فی خرید', 'field': 'company_price', 'unit': 'ریال'},
             {'id': 'customer_price', 'name': 'فی فروش', 'field': 'customer_price', 'unit': 'ریال'},
             {'id': 'weight', 'name': 'وزن خرید', 'field': 'order_weight', 'unit': 'کیلوگرم'},
@@ -462,7 +474,7 @@ def purchase_list(request):
             # تلفن های مشتری
             {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
             # نام تحویل گیرنده
-            # تلفن خریدار
+            {'id': 'bazaargah_phone_number', 'name': 'شماره تلفن بازارگاه', 'field': 'bazaargah_phone_number'},
             {'id': 'tahvil_phone_number', 'name': 'شماره تلفن تحویل', 'field': 'tahvil_phone_number'},    
             # شناسه ملی خریدار
             # ادرس خریدار
@@ -478,13 +490,18 @@ def purchase_list(request):
         ]
 
         # todo: add the rest of the columns
-        allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'company_price', 'customer_price', 'weight',
+        allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
          'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
+<<<<<<< HEAD
          'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
           'cargo', 'importer', 'barbary', 'customer', 'buyer_name', 'tahvil_phone_number', 'code_melli_tahvil']
          # کارشناس فروش، تاریخ اولین بارنامه، تاریخ اخرین بارنامه، نام محصول، 
+=======
+          'cargo', 'importer', 'barbary', 'customer', 'buyer_name','bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil']
+         #  تاریخ اولین بارنامه، تاریخ اخرین بارنامه، اماده فاکتور، صدور فاکتور، فاکتور خرید مبنا، فاکتور فروش مبنا، سود مبنا، نام محصول، 
+>>>>>>> 0233d2241197a8186c11916a98a64964a383c9f0
           # نام تحویل گیرنده، شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار، نوع کاربری خریدار، شناسه یکتای تحویل، ادرس تحویل، کد پستی تحویل، تریلی، تک، جفت
-          # شماره باربری محرمانهی، شماره باربری مشتری، تلفن خریدار، تلفن های مشتری
+          # شماره باربری محرمانهی، شماره باربری مشتری، تلفن های مشتری
 
                 
         # دریافت ستون های انتخاب شده از کوکی فقط برای کاربران محدود
@@ -493,11 +510,15 @@ def purchase_list(request):
         if not selected_columns:
             # پیش‌فرض برای کاربران محدود: نمایش همه ستون‌های مجاز
             #todo: add the rest of the columns
-            selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'company_price', 'customer_price', 'weight',
+            selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
             'delivered_weight', 'status', 'description', 'is_fully_tasvied',
             'ready_for_invoice', 'is_facotred', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
             'cargo', 'importer', 'buyer_name', 'tahvil_phone_number', 'code_melli_tahvil']
+<<<<<<< HEAD
              # کارشناس فروش، نام محصول، 
+=======
+             #  اماده فاکتور، صدور فاکتور، فاکتور خرید مبنا، فاکتور فروش مبنا، سود مبنا، نام محصول، 
+>>>>>>> 0233d2241197a8186c11916a98a64964a383c9f0
              # تلفن خریدار
             logger.info("Using default columns for admin")
         else:
@@ -505,11 +526,15 @@ def purchase_list(request):
             if isinstance(selected_columns, str):
                 selected_columns = selected_columns.split(',')
             else:
-                selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'company_price', 'customer_price', 'weight',
+                selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
                 'delivered_weight', 'status', 'description', 'is_fully_tasvied',
                 'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
                 'cargo', 'importer', 'buyer_name', 'tahvil_phone_number', 'code_melli_tahvil']
+<<<<<<< HEAD
                 # کارشناس فروش، نام محصول، 
+=======
+                # اماده فاکتور، صدور فاکتور، فاکتور خرید مبنا، فاکتور فروش مبنا، سود مبنا، نام محصول، 
+>>>>>>> 0233d2241197a8186c11916a98a64964a383c9f0
                 # تلفن خریدار
                 logger.error("Type error on selected_columns - using defaults for admin")
             
@@ -685,7 +710,13 @@ def load_archived_purchases(request):
     """
     API برای بارگذاری lazy خریدهای آرشیو شده
     """
-    logger.warning(f"خرید های ارشیو شده توسط {request.user.username} لود شد. {get_client_ip(request)}")
+    logger.warning(f"هشدار! خرید های ارشیو شده توسط {request.user.username} لود شد. {get_client_ip(request)}")
+    return JsonResponse({
+            'status': 'success',
+            'data': [],
+            'count': 0
+        })
+    
     try:
         # تشخیص نقش کاربر
         user_role = determine_user_role(request.user)
