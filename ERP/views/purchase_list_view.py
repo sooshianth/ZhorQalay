@@ -392,13 +392,8 @@ def purchase_list(request):
         # todo: add the rest of the columns
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
          'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
-<<<<<<< HEAD
          'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',
           'cargo', 'importer', 'buyer_name'] # کارشناس فروش، تاریخ اولین بارنامه، تاریخ اخرین بارنامه، نام محصول، 
-=======
-          'cargo', 'importer', 'buyer_name'] # ، تاریخ اولین بارنامه، تاریخ اخرین بارنامه، اماده فاکتور، صدور فاکتور، فاکتور خرید مبنا، فاکتور فروش مبنا، نام محصول، 
->>>>>>> 0233d2241197a8186c11916a98a64964a383c9f0
-          # نام تحویل گیرنده، شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار
                 
         # دریافت ستون های انتخاب شده از کوکی فقط برای کاربران محدود
         selected_columns = request.COOKIES.get('selected_columns', '')
@@ -408,12 +403,8 @@ def purchase_list(request):
             #todo: add the rest of the columns
             selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
              'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
-<<<<<<< HEAD
              'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',
              'cargo', 'importer', 'buyer_name'] # کارشناس فروش، نام محصول، 
-=======
-             'cargo', 'importer', 'buyer_name'] #  اماده فاکتور، صدور فاکتور، فاکتور خرید مبنا، فاکتور فروش مبنا، نام محصول، 
->>>>>>> 0233d2241197a8186c11916a98a64964a383c9f0
              #  شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار
             logger.info("Using default columns for financial manager")
         else:
@@ -492,14 +483,9 @@ def purchase_list(request):
         # todo: add the rest of the columns
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
          'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
-<<<<<<< HEAD
          'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
           'cargo', 'importer', 'barbary', 'customer', 'buyer_name', 'tahvil_phone_number', 'code_melli_tahvil']
          # کارشناس فروش، تاریخ اولین بارنامه، تاریخ اخرین بارنامه، نام محصول، 
-=======
-          'cargo', 'importer', 'barbary', 'customer', 'buyer_name','bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil']
-         #  تاریخ اولین بارنامه، تاریخ اخرین بارنامه، اماده فاکتور، صدور فاکتور، فاکتور خرید مبنا، فاکتور فروش مبنا، سود مبنا، نام محصول، 
->>>>>>> 0233d2241197a8186c11916a98a64964a383c9f0
           # نام تحویل گیرنده، شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار، نوع کاربری خریدار، شناسه یکتای تحویل، ادرس تحویل، کد پستی تحویل، تریلی، تک، جفت
           # شماره باربری محرمانهی، شماره باربری مشتری، تلفن های مشتری
 
@@ -514,11 +500,7 @@ def purchase_list(request):
             'delivered_weight', 'status', 'description', 'is_fully_tasvied',
             'ready_for_invoice', 'is_facotred', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
             'cargo', 'importer', 'buyer_name', 'tahvil_phone_number', 'code_melli_tahvil']
-<<<<<<< HEAD
              # کارشناس فروش، نام محصول، 
-=======
-             #  اماده فاکتور، صدور فاکتور، فاکتور خرید مبنا، فاکتور فروش مبنا، سود مبنا، نام محصول، 
->>>>>>> 0233d2241197a8186c11916a98a64964a383c9f0
              # تلفن خریدار
             logger.info("Using default columns for admin")
         else:
@@ -530,11 +512,7 @@ def purchase_list(request):
                 'delivered_weight', 'status', 'description', 'is_fully_tasvied',
                 'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
                 'cargo', 'importer', 'buyer_name', 'tahvil_phone_number', 'code_melli_tahvil']
-<<<<<<< HEAD
                 # کارشناس فروش، نام محصول، 
-=======
-                # اماده فاکتور، صدور فاکتور، فاکتور خرید مبنا، فاکتور فروش مبنا، سود مبنا، نام محصول، 
->>>>>>> 0233d2241197a8186c11916a98a64964a383c9f0
                 # تلفن خریدار
                 logger.error("Type error on selected_columns - using defaults for admin")
             
