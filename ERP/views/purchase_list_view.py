@@ -130,7 +130,8 @@ def purchase_list(request):
         'id', 'created_at', 'updated_at', 'purchase_number', 'invoice_id', 
         'order_weight', 'delivered_weight', 'state', 'is_factored', 'is_urgent', 
         'is_canceled', 'is_archived', 'company_price', 'customer_price', 
-        'amount_paid', 'factor_code', 'unique_sales_agent'
+        'amount_paid', 'factor_code', 'unique_sales_agent', 'ready_for_invoice',
+        'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit'
     ]
     
     # فیلدهای customer و cargo
@@ -423,10 +424,10 @@ def purchase_list(request):
             {'id': 'status', 'name': 'وضعیت', 'field': 'state'},
             {'id': 'description', 'name': 'توضیحات', 'field': 'description'},
             {'id': 'is_fully_tasvied', 'name': 'تسویه کامل', 'field': 'is_fully_tasvied'},
-            # اماده فاکتور
-            # صدور فاکتور
-            # فاکتور خرید مبنا
-            # فاکتور فروش مبنا
+            {'id': 'ready_for_invoice', 'name': 'آماده فاکتور', 'field': 'ready_for_invoice'},
+            {'id': 'is_factored', 'name': 'صدور فاکتور', 'field': 'is_factored'},
+            {'id': 'purchase_mabna_invoice', 'name': 'فاکتور خرید مبنا', 'field': 'purchase_mabna_invoice', 'unit': 'ریال'},
+            {'id': 'sales_mabna_invoice', 'name': 'فاکتور فروش مبنا', 'field': 'sales_mabna_invoice', 'unit': 'ریال'},
             {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
             # نام محصول
             {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name'},
@@ -440,8 +441,8 @@ def purchase_list(request):
         # todo: add the rest of the columns
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
          'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
-          'cargo', 'importer', 'buyer_name'] # ، تاریخ اولین بارنامه، تاریخ اخرین بارنامه، اماده فاکتور، صدور فاکتور، فاکتور خرید مبنا، فاکتور فروش مبنا، نام محصول، 
-          # نام تحویل گیرنده، شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار
+         'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',
+          'cargo', 'importer', 'buyer_name'] # کارشناس فروش، تاریخ اولین بارنامه، تاریخ اخرین بارنامه، نام محصول، 
                 
         # دریافت ستون های انتخاب شده از کوکی فقط برای کاربران محدود
         selected_columns = request.COOKIES.get('selected_columns', '')
@@ -451,7 +452,8 @@ def purchase_list(request):
             #todo: add the rest of the columns
             selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
              'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
-             'cargo', 'importer', 'buyer_name'] #  اماده فاکتور، صدور فاکتور، فاکتور خرید مبنا، فاکتور فروش مبنا، نام محصول، 
+             'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',
+             'cargo', 'importer', 'buyer_name'] # کارشناس فروش، نام محصول، 
              #  شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار
             logger.info("Using default columns for financial manager")
         else:
@@ -461,7 +463,8 @@ def purchase_list(request):
             else:
                 selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
                  'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
-                 'cargo', 'importer', 'buyer_name'] # کارشناس فروش، اماده فاکتور، صدور فاکتور، فاکتور خرید مبنا، فاکتور فروش مبنا، نام محصول، 
+                 'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',
+                 'cargo', 'importer', 'buyer_name'] # کارشناس فروش، نام محصول، 
                 #  شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار
                 logger.error("Type error on selected_columns - using defaults for financial manager")
             
@@ -496,11 +499,11 @@ def purchase_list(request):
             {'id': 'status', 'name': 'وضعیت', 'field': 'state'},
             {'id': 'description', 'name': 'توضیحات', 'field': 'description'},
             {'id': 'is_fully_tasvied', 'name': 'تسویه کامل', 'field': 'is_fully_tasvied'},
-            # اماده فاکتور
-            # صدور فاکتور
-            # فاکتور خرید مبنا
-            # فاکتور فروش مبنا
-            # سود مبنا
+            {'id': 'ready_for_invoice', 'name': 'آماده فاکتور', 'field': 'ready_for_invoice'},
+            {'id': 'is_factored', 'name': 'صدور فاکتور', 'field': 'is_factored'},
+            {'id': 'purchase_mabna_invoice', 'name': 'فاکتور خرید مبنا', 'field': 'purchase_mabna_invoice', 'unit': 'ریال'},
+            {'id': 'sales_mabna_invoice', 'name': 'فاکتور فروش مبنا', 'field': 'sales_mabna_invoice', 'unit': 'ریال'},
+            {'id': 'mabna_profit', 'name': 'سود مبنا', 'field': 'mabna_profit', 'unit': 'ریال'},
             {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
             # نام محصول
             {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name'},
@@ -529,8 +532,9 @@ def purchase_list(request):
         # todo: add the rest of the columns
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
          'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
-          'cargo', 'importer', 'barbary', 'customer', 'buyer_name','bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil']
-         #  تاریخ اولین بارنامه، تاریخ اخرین بارنامه، اماده فاکتور، صدور فاکتور، فاکتور خرید مبنا، فاکتور فروش مبنا، سود مبنا، نام محصول، 
+         'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
+          'cargo', 'importer', 'barbary', 'customer', 'buyer_name', 'tahvil_phone_number', 'code_melli_tahvil']
+         # کارشناس فروش، تاریخ اولین بارنامه، تاریخ اخرین بارنامه، نام محصول، 
           # نام تحویل گیرنده، شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار، نوع کاربری خریدار، شناسه یکتای تحویل، ادرس تحویل، کد پستی تحویل، تریلی، تک، جفت
           # شماره باربری محرمانهی، شماره باربری مشتری، تلفن های مشتری
 
@@ -543,8 +547,9 @@ def purchase_list(request):
             #todo: add the rest of the columns
             selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
             'delivered_weight', 'status', 'description', 'is_fully_tasvied',
+            'ready_for_invoice', 'is_facotred', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
             'cargo', 'importer', 'buyer_name', 'tahvil_phone_number', 'code_melli_tahvil']
-             #  اماده فاکتور، صدور فاکتور، فاکتور خرید مبنا، فاکتور فروش مبنا، سود مبنا، نام محصول، 
+             # کارشناس فروش، نام محصول، 
              # تلفن خریدار
             logger.info("Using default columns for admin")
         else:
@@ -554,8 +559,9 @@ def purchase_list(request):
             else:
                 selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
                 'delivered_weight', 'status', 'description', 'is_fully_tasvied',
+                'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
                 'cargo', 'importer', 'buyer_name', 'tahvil_phone_number', 'code_melli_tahvil']
-                # اماده فاکتور، صدور فاکتور، فاکتور خرید مبنا، فاکتور فروش مبنا، سود مبنا، نام محصول، 
+                # کارشناس فروش، نام محصول، 
                 # تلفن خریدار
                 logger.error("Type error on selected_columns - using defaults for admin")
             
@@ -963,6 +969,10 @@ def _export_regular_excel(purchase_ids, selected_columns):
         'is_archived': ('آرشیو شده', lambda p: "بله" if p.is_archived else "خیر"),
         'is_fully_tasvied': ('تسویه کامل', lambda p: "بله" if p.is_fully_tasvied else "خیر"),
         'is_factored': ('ثبت فاکتور', lambda p: "بله" if p.is_factored else "خیر"),
+        'ready_for_invoice': ('آماده فاکتور', lambda p: "بله" if p.ready_for_invoice else "خیر"),
+        'purchase_mabna_invoice': ('فاکتور خرید مبنا (ریال)', lambda p: f"{p.purchase_mabna_invoice:,}" if p.purchase_mabna_invoice else "0"),
+        'sales_mabna_invoice': ('فاکتور فروش مبنا (ریال)', lambda p: f"{p.sales_mabna_invoice:,}" if p.sales_mabna_invoice else "0"),
+        'mabna_profit': ('سود مبنا (ریال)', lambda p: f"{p.mabna_profit:,}" if p.mabna_profit else "0"),
         'priority': ('اولویت', lambda p: dict(Purchase.PRIORITY_CHOICES).get(p.priority, p.priority) if p.priority else "-"),
         'priority_reason': ('دلیل اولویت', lambda p: p.priority_reason or "-"),
         'barbary': ('نام باربری', lambda p: p.cargo.barbary.name if p.cargo and hasattr(p.cargo, 'barbary') and p.cargo.barbary else "-"),
