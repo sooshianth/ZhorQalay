@@ -22,6 +22,55 @@ import logging
 
 logger = logging.getLogger("erp_purchase_list_view")
 
+def get_allowed_columns(user_role):
+    allowed_columns = []
+    if user_role == 'sales_agent':
+        allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight', 'delivered_weight',
+         'status', 'cargo', 'customer', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number'] # نام محصول، تلفن های مشتری، نام تحویل گیرنده
+
+    elif user_role == 'support_agent':
+        allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'weight',
+         'delivered_weight', 'status', 'cargo', 'importer', 'barbary', 'customer',
+          'buyer_name'] # نام محصول، شماره باربری محرمانهی، شماره باربری مشتری، نام تحویل گیرنده
+
+    elif user_role == 'financial_manager':
+        allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
+         'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
+          'cargo', 'importer', 'buyer_name'] # ، تاریخ اولین بارنامه، تاریخ اخرین بارنامه، اماده فاکتور، صدور فاکتور، فاکتور خرید مبنا، فاکتور فروش مبنا، نام محصول، 
+          # نام تحویل گیرنده، شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار
+               
+    elif user_role == 'admin':
+        allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
+         'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
+          'cargo', 'importer', 'barbary', 'customer', 'buyer_name','bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil']
+         #  تاریخ اولین بارنامه، تاریخ اخرین بارنامه، اماده فاکتور، صدور فاکتور، فاکتور خرید مبنا، فاکتور فروش مبنا، سود مبنا، نام محصول، 
+          # نام تحویل گیرنده، شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار، نوع کاربری خریدار، شناسه یکتای تحویل، ادرس تحویل، کد پستی تحویل، تریلی، تک، جفت
+          # شماره باربری محرمانهی، شماره باربری مشتری، تلفن های مشتری
+    
+    return allowed_columns
+
+def get_default_columns(user_role):
+    default_columns = []
+    if user_role == 'sales_agent':
+        default_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight', 'delivered_weight',
+         'status', 'cargo', 'customer', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number'] # نام محصول، تلفن های مشتری، نام تحویل گیرنده
+    
+    elif user_role == 'support_agent':
+        default_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'weight',
+         'delivered_weight', 'status', 'cargo', 'importer', 'barbary', 'customer',
+          'buyer_name'] # نام محصول، شماره باربری محرمانهی، شماره باربری مشتری، نام تحویل گیرنده
+    
+    elif user_role == 'financial_manager':
+        default_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
+         'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'cargo', 'importer', 'barbary', 'customer',
+          'buyer_name', 'code_melli_tahvil']
+    
+    elif user_role == 'admin':
+        default_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
+         'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'cargo', 'importer', 'barbary', 'customer',
+          'buyer_name', 'code_melli_tahvil']
+    return default_columns
+
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
 def purchase_list(request):
