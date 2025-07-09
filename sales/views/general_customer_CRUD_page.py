@@ -36,6 +36,34 @@ def persian_digits_to_english(persian_text):
     english_digits = "0123456789"
     translation_table = str.maketrans(persian_digits, english_digits)
     return persian_text.translate(translation_table)
+
+def clean_and_validate_phone(phone_input):
+    """تمیز کردن و اعتبارسنجی شماره تلفن."""
+    if not phone_input:
+        return None, False
+    
+    # تبدیل اعداد فارسی به انگلیسی
+    clean_phone = persian_digits_to_english(phone_input)
+    
+    # پاکسازی شماره از کاراکترهای غیرعددی
+    clean_phone = ''.join(c for c in clean_phone if c.isdigit())
+    
+    # اگر با صفر شروع می‌شود، آن را حذف می‌کنیم
+    if clean_phone.startswith('0'):
+        clean_phone = clean_phone[1:]
+    
+    # حذف کد کشور ایران اگر وجود داشت
+    if clean_phone.startswith('98'):
+        clean_phone = clean_phone[2:]
+    
+    # بررسی اعتبار شماره
+    is_valid = (
+        len(clean_phone) == 10 and 
+        clean_phone.startswith('9') and
+        clean_phone.isdigit()
+    )
+    
+    return clean_phone, is_valid
 def jalali_to_gregorian(jalali_datetime_str):
     """تبدیل رشته جلالی (با اعداد فارسی) به DateTime گرگوریان."""
     try:
@@ -339,24 +367,57 @@ def general_customer_CRUD_view(request):
             messages.error(request, "مشتری یافت نشد.")
             customer = None
     elif query:
-        # تمیز کردن شماره تلفن از کاراکترهای غیرعددی برای جستجوی بهتر
-        clean_query = ''.join(c for c in query if c.isdigit())
-        if clean_query.startswith('0'):
-            clean_query = clean_query[1:]
+        # تمیز کردن و اعتبارسنجی شماره تلفن
+        clean_phone, is_valid_phone = clean_and_validate_phone(query)
         
-        customer = Customer.get_customer_by_phone(clean_query)
+        if is_valid_phone:
+            # جستجوی مشتری با شماره تمیز شده
+            customer = Customer.get_customer_by_phone(clean_phone)
+            
+            if not customer:
+                # اگر شماره معتبر است ولی مشتری پیدا نشد، پیام مناسب نمایش بده
+                messages.info(request, f"مشتری با شماره {clean_phone} یافت نشد. می‌توانید مشتری جدید ایجاد کنید.")
+        else:
+            # اگر ورودی شماره تلفن معتبر نیست، جستجوی عادی انجام بده
+            customer = Customer.objects.filter(name__icontains=query).first()
+            if not customer:
+                messages.warning(request, f"هیچ مشتری با نام '{query}' یافت نشد.")
+            elif clean_phone:
+                # اگر شماره نامعتبر بود، راهنمایی بده
+                messages.error(request, "فرمت شماره تلفن نامعتبر است. شماره باید 10 رقم باشد و با 9 شروع شود. (مثال: 9123456789)")
+        
+        # اگر شماره معتبر بود برای استفاده در initial_data
+        if is_valid_phone:
+            query = clean_phone
 
-    form = CustomerForm(instance=customer, sales_agent=sales_agent)
-    
-    # پر کردن شماره تلفن و آیدی تخصیص در فرم اگر مشتری جدید باشد
-    if not customer:
-        initial_data = {'phone_number': query}
-        if assignment_id:
-            initial_data['assignment_id'] = assignment_id
-        form = CustomerForm(initial=initial_data, sales_agent=sales_agent)
+    # مدیریت جستجو با دکمه phone_search
+    if request.method == 'POST' and 'phone_search' in request.POST:
+        search_query = request.POST.get('search_query', '').strip()
+        if search_query:
+            # redirect به همین صفحه با query parameter
+            return redirect(reverse('general_customer_CRUD') + f'?search_query={search_query}')
+        else:
+            messages.warning(request, "لطفاً چیزی برای جستجو وارد کنید")
+            return redirect(reverse('general_customer_CRUD'))
 
-    if request.method == 'POST':
+    # آماده کردن فرم مشتری
+    form = None
+    if request.method == 'POST' and 'save_customer' in request.POST:
+        # فقط در صورت submit فرم مشتری، فرم را validate کن
         form = CustomerForm(request.POST, instance=customer, sales_agent=sales_agent)
+    else:
+        # در غیر این صورت، فرم را برای نمایش آماده کن
+        if customer:
+            form = CustomerForm(instance=customer, sales_agent=sales_agent)
+        else:
+            # پر کردن شماره تلفن و آیدی تخصیص در فرم اگر مشتری جدید باشد
+            initial_data = {'phone_number': query}
+            if assignment_id:
+                initial_data['assignment_id'] = assignment_id
+            form = CustomerForm(initial=initial_data, sales_agent=sales_agent)
+
+    # مدیریت فرم مشتری فقط وقتی دکمه ذخیره مشتری زده شده
+    if request.method == 'POST' and 'save_customer' in request.POST:
         if form.is_valid():
             try:
                 with transaction.atomic():
@@ -379,7 +440,7 @@ def general_customer_CRUD_view(request):
             except Exception as e:
                 messages.error(request, f"خطا در ذخیره مشتری: {str(e)}")
         else:
-            # نمایش خطاها
+            # نمایش خطاها فقط برای فرم مشتری
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"خطا در فیلد '{form.fields[field].label}': {error}")
@@ -429,13 +490,12 @@ def general_customer_CRUD_view(request):
                 messages.error(request, "لطفاً تمام فیلدهای ضروری را پر کنید")
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}&active_tab={active_tab}')
         
-        # ثبت خرید جدید
-        elif 'create_purchase' in request.POST or 'create_purchase_without_sms' in request.POST:
+        # ثبت خرید جدید بدون پیامک
+        elif 'create_purchase_without_sms' in request.POST:
             cottage_number = request.POST.get('cottage_number')
             weight = request.POST.get('weight')
             use_custom_price = request.POST.get('use_custom_price')
             custom_price = request.POST.get('custom_price')
-            send_sms = 'create_purchase' in request.POST
             active_tab = request.POST.get('active_tab', 'purchases')
             
             if cottage_number and weight:
@@ -470,18 +530,7 @@ def general_customer_CRUD_view(request):
                     if sales_agent:
                         new_purchase.sales_agent.add(sales_agent)
                     
-                    if send_sms:
-                        # ارسال پیامک به مشتری
-                        try:
-                            from sms_api.apis import queue_sms
-                            phone = customer.get_primary_phone()
-                            message = f"سلام {customer.name}\nخرید شما ثبت شد:\nکوتاژ: {cottage_number}\nوزن: {weight} کیلوگرم\nفی: {customer_price:,} ریال\nکارشناس: {sales_agent.name}"
-                            queue_sms(phone, message, notification_type='purchase_registered')
-                            messages.success(request, "خرید ثبت شد و پیامک ارسال شد")
-                        except Exception as e:
-                            messages.warning(request, f"خرید ثبت شد ولی پیامک ارسال نشد: {e}")
-                    else:
-                        messages.success(request, "خرید با موفقیت ثبت شد")
+                    messages.success(request, "خرید با موفقیت ثبت شد (بدون ارسال پیامک)")
                         
                 except CargoProduct.DoesNotExist:
                     messages.error(request, "کوتاژ انتخاب شده یافت نشد")
@@ -490,7 +539,7 @@ def general_customer_CRUD_view(request):
             else:
                 messages.error(request, "لطفاً تمام فیلدهای ضروری را پر کنید")
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}&active_tab={active_tab}')
-        
+
         # اضافه کردن شماره تلفن جدید
         elif 'add_phone' in request.POST:
             new_phone = request.POST.get('new_phone')
@@ -594,13 +643,80 @@ def general_customer_CRUD_view(request):
                 messages.error(request, "شماره یافت نشد")
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
 
-        # ارسال لینک شبکه‌های اجتماعی
-        elif 'send_social_media_links' in request.POST:
+        # مدیریت پاپ‌آپ SMS
+        elif 'sms_action' in request.POST:
+            sms_action = request.POST.get('sms_action')
+            selected_phones = request.POST.getlist('selected_phones')
+            
+            if not selected_phones:
+                messages.error(request, "لطفاً حداقل یک شماره تلفن انتخاب کنید")
+                return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
+            
             try:
                 from sms_api.apis import queue_sms
+                sent_count = 0
                 
-                # متن پیام شبکه‌های اجتماعی
-                social_media_message = """لینک شبکه‌های اجتماعی شرکت تأمین نهاده سیمرغ:
+                if sms_action == 'purchase':
+                    # ایجاد خرید جدید
+                    cottage_number = request.POST.get('cottage_number')
+                    weight = request.POST.get('weight')
+                    use_custom_price = request.POST.get('use_custom_price')
+                    custom_price = request.POST.get('custom_price')
+                    
+                    if cottage_number and weight:
+                        try:
+                            cargo = CargoProduct.objects.get(cottage=cottage_number, status=True)
+                            
+                            # تعیین قیمت
+                            if use_custom_price and custom_price:
+                                customer_price = int(custom_price)
+                            else:
+                                customer_price = cargo.customer_price
+                            
+                            # ایجاد خرید جدید
+                            from core.PurchaseModel import Purchase
+                            new_purchase = Purchase(
+                                customer=customer,
+                                cargo=cargo,
+                                order_weight=int(weight),
+                                customer_price=customer_price,
+                                state='INITIATED'
+                            )
+                            
+                            # تنظیم کارشناس فروش یکتا
+                            if sales_agent:
+                                new_purchase.unique_sales_agent = sales_agent
+                                new_purchase.unique_sales_agent_code = sales_agent.factor_code
+                            
+                            new_purchase.full_clean()
+                            new_purchase.save()
+                            
+                            # اضافه کردن کارشناس فروش به خرید
+                            if sales_agent:
+                                new_purchase.sales_agent.add(sales_agent)
+                            
+                            # ارسال پیامک خرید به شماره‌های انتخاب شده
+                            message = f"سلام {customer.name}\nخرید شما ثبت شد:\nکوتاژ: {cottage_number}\nوزن: {weight} کیلوگرم\nفی: {customer_price:,} ریال\nکارشناس: {sales_agent.name}"
+                            
+                            for phone in selected_phones:
+                                try:
+                                    queue_sms(phone, message, notification_type='purchase_registered')
+                                    sent_count += 1
+                                except Exception as e:
+                                    print(f"خطا در ارسال پیامک خرید به شماره {phone}: {e}")
+                            
+                            messages.success(request, f"خرید ثبت شد و پیامک به {sent_count} شماره ارسال شد")
+                            
+                        except CargoProduct.DoesNotExist:
+                            messages.error(request, "کوتاژ انتخاب شده یافت نشد")
+                        except (ValueError, ValidationError) as e:
+                            messages.error(request, f"خطا در ثبت خرید: {e}")
+                    else:
+                        messages.error(request, "لطفاً تمام فیلدهای ضروری خرید را پر کنید")
+                        
+                elif sms_action == 'social':
+                    # ارسال لینک شبکه‌های اجتماعی
+                    social_media_message = """لینک شبکه‌های اجتماعی شرکت تأمین نهاده سیمرغ:
 
 واتساپ: chat.whatsapp.com/DMqFJ2OUZXb9IA8GUqDMFH
 بله: ble.ir/join/baS6duS998
@@ -610,25 +726,47 @@ def general_customer_CRUD_view(request):
 اینستاگرام: instagram.com/simurgh360
 وبسایت: simurgh360.com
  """
-
-                # ارسال به همه شماره‌های فعال مشتری
-                phone_numbers = customer.get_all_phone_numbers()
-                sent_count = 0
-                
-                for phone in phone_numbers:
-                    try:
-                        queue_sms(phone, social_media_message, notification_type='social_media_links')
-                        sent_count += 1
-                    except Exception as e:
-                        print(f"خطا در ارسال پیامک به شماره {phone}: {e}")
-                
-                if sent_count > 0:
-                    messages.success(request, f"لینک شبکه‌های اجتماعی به {sent_count} شماره ارسال شد")
-                else:
-                    messages.error(request, "خطا در ارسال پیامک")
                     
+                    for phone in selected_phones:
+                        try:
+                            queue_sms(phone, social_media_message, notification_type='social_media_links')
+                            sent_count += 1
+                        except Exception as e:
+                            print(f"خطا در ارسال پیامک شبکه‌های اجتماعی به شماره {phone}: {e}")
+                    
+                    messages.success(request, f"لینک شبکه‌های اجتماعی به {sent_count} شماره ارسال شد")
+                    
+                elif sms_action == 'followup':
+                    # ارسال پیام پیگیری
+                    followup_message = f"مشتری گرامی {customer.name}\nمشکل شما به واحد پیگیری منتقل شد و به‌زودی با شما تماس خواهیم گرفت.\nشرکت تأمین نهاده سیمرغ"
+                    
+                    for phone in selected_phones:
+                        try:
+                            queue_sms(phone, followup_message, notification_type='followup')
+                            sent_count += 1
+                        except Exception as e:
+                            print(f"خطا در ارسال پیامک پیگیری به شماره {phone}: {e}")
+                    
+                    messages.success(request, f"پیام پیگیری به {sent_count} شماره ارسال شد")
+                    
+                elif sms_action == 'custom':
+                    # ارسال پیامک سفارشی
+                    custom_message = request.POST.get('custom_message', '').strip()
+                    
+                    if custom_message:
+                        for phone in selected_phones:
+                            try:
+                                queue_sms(phone, custom_message, notification_type='custom')
+                                sent_count += 1
+                            except Exception as e:
+                                print(f"خطا در ارسال پیامک سفارشی به شماره {phone}: {e}")
+                        
+                        messages.success(request, f"پیامک سفارشی به {sent_count} شماره ارسال شد")
+                    else:
+                        messages.error(request, "لطفاً متن پیامک را وارد کنید")
+                        
             except Exception as e:
-                messages.error(request, f"خطا در ارسال لینک شبکه‌های اجتماعی: {str(e)}")
+                messages.error(request, f"خطا در ارسال پیامک: {str(e)}")
                 
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
 
@@ -663,6 +801,22 @@ def general_customer_CRUD_view(request):
     
     # دریافت محصولات فعال برای نمایش در فرم خرید
     active_products = CargoProduct.get_active_products()
+    
+    # بررسی آیا کاربر شماره معتبر وارد کرده و مشتری پیدا نشده
+    search_valid_phone = False
+    if query and customer is None:
+        clean_phone, is_valid_phone = clean_and_validate_phone(query)
+        search_valid_phone = is_valid_phone
+
+    # اطمینان از اینکه form همیشه موجود باشد
+    if form is None:
+        if customer:
+            form = CustomerForm(instance=customer, sales_agent=sales_agent)
+        else:
+            initial_data = {'phone_number': query}
+            if assignment_id:
+                initial_data['assignment_id'] = assignment_id
+            form = CustomerForm(initial=initial_data, sales_agent=sales_agent)
 
     context = {
         'form': form,
@@ -676,6 +830,7 @@ def general_customer_CRUD_view(request):
         'assignment_id': assignment_id,
         'active_products': active_products,
         'is_new_customer': customer is None,
+        'search_valid_phone': search_valid_phone,
         'sales_agent': sales_agent,
     }
 

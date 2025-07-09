@@ -523,7 +523,16 @@ class UserFilterStateManager:
 
 def get_model_from_table_name(table_name: str):
     """دریافت مدل بر اساس نام جدول"""
-    # این تابع باید بر اساس نحوه نام‌گذاری جداول در پروژه شما تنظیم شود
+    # مدل‌های خاص پروژه
+    try:
+        if table_name == 'barnameh':
+            from bki_barnameh.models.BarnamehModel import Barnameh
+            return Barnameh
+        elif table_name == 'purchase':
+            from core.PurchaseModel import Purchase
+            return Purchase
+    except ImportError:
+        pass
     
     # نمونه: اگر table_name به صورت "app_name.model_name" باشد
     if '.' in table_name:

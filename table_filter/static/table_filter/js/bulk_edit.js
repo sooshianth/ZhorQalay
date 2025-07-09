@@ -49,15 +49,23 @@ class BulkEditManager {
 
     detectActiveTab() {
         // تشخیص تب فعال بر اساس نمایش عناصر
-        if (document.getElementById('pendingContent') && 
-            getComputedStyle(document.getElementById('pendingContent')).display !== 'none') {
-            return 'pending';
-        } else if (document.getElementById('archivedContent') && 
-            getComputedStyle(document.getElementById('archivedContent')).display !== 'none') {
-            return 'archived';
-        } else {
-            return 'active';
-        }
+        const activeContent = document.getElementById('activeContent');
+        const pendingContent = document.getElementById('pendingContent');  
+        const archivedContent = document.getElementById('archivedContent');
+        
+        // بررسی کدام بخش نمایش داده می‌شود
+        const activeVisible = activeContent && getComputedStyle(activeContent).display !== 'none';
+        const pendingVisible = pendingContent && getComputedStyle(pendingContent).display !== 'none';
+        const archivedVisible = archivedContent && getComputedStyle(archivedContent).display !== 'none';
+        
+        console.log(`🔍 وضعیت بخش‌ها: active=${activeVisible}, pending=${pendingVisible}, archived=${archivedVisible}`);
+        
+        if (pendingVisible) return 'pending';
+        if (archivedVisible) return 'archived';
+        if (activeVisible) return 'active';
+        
+        // اگر هیچ کدام نمایش داده نمی‌شود، active را پیش‌فرض در نظر بگیر
+        return 'active';
     }
     
     detectCurrentSection() {
@@ -112,12 +120,12 @@ class BulkEditManager {
                 this.clearSelection(section);
             }
 
-            // دکمه‌های تب‌ها
-            if (e.target.closest('.nav-link')) {
+            // دکمه‌های toggle section (purchase-toggle)
+            if (e.target.closest('.purchase-toggle') || e.target.closest('.nav-link')) {
                 setTimeout(() => {
                     this.detectCurrentSection();
                     this.updateAllControlPanels();
-                }, 100);
+                }, 200); // زمان بیشتر برای انیمیشن
             }
         });
         
@@ -155,10 +163,13 @@ class BulkEditManager {
 
     handleSelectAll(checkbox) {
         const isChecked = checkbox.checked;
+        const tableType = this.detectTableType();
         let checkboxes = [];
         
         // تشخیص نوع checkbox و یافتن checkboxهای مربوطه
-        if (checkbox.classList.contains('select-all-checkbox-pending')) {
+        if (tableType === 'barnameh') {
+            checkboxes = document.querySelectorAll('#barnamehTable .row-checkbox');
+        } else if (checkbox.classList.contains('select-all-checkbox-pending')) {
             checkboxes = document.querySelectorAll('#pendingPurchasesTable .row-checkbox');
         } else if (checkbox.classList.contains('select-all-checkbox-archived')) {
             checkboxes = document.querySelectorAll('#archivedPurchasesTable .row-checkbox');
@@ -204,6 +215,7 @@ class BulkEditManager {
     updateControlPanel(section = null) {
         const targetSection = section || this.currentSection;
         const panel = this.controlPanels[targetSection];
+        const tableType = this.detectTableType();
         
         if (!panel) return;
         
@@ -211,15 +223,19 @@ class BulkEditManager {
         let sectionCount = 0;
         let tableSelector = '';
         
-        switch(targetSection) {
-            case 'pending':
-                tableSelector = '#pendingPurchasesTable .row-checkbox:checked';
-                break;
-            case 'archived':
-                tableSelector = '#archivedPurchasesTable .row-checkbox:checked';
-                break;
-            default:
-                tableSelector = '#activePurchasesTable .row-checkbox:checked';
+        if (tableType === 'barnameh') {
+            tableSelector = '#barnamehTable .row-checkbox:checked';
+        } else {
+            switch(targetSection) {
+                case 'pending':
+                    tableSelector = '#pendingPurchasesTable .row-checkbox:checked';
+                    break;
+                case 'archived':
+                    tableSelector = '#archivedPurchasesTable .row-checkbox:checked';
+                    break;
+                default:
+                    tableSelector = '#activePurchasesTable .row-checkbox:checked';
+            }
         }
         
         sectionCount = document.querySelectorAll(tableSelector).length;
@@ -229,11 +245,13 @@ class BulkEditManager {
             countElement.textContent = sectionCount;
         }
         
-        // نمایش/مخفی کردن panel بر اساس انتخاب‌ها و تب فعال
-        const shouldShow = sectionCount > 0 && this.currentActiveTab === targetSection;
+        // نمایش/مخفی کردن panel بر اساس انتخاب‌ها و وضعیت بخش
+        const sectionElement = document.getElementById(`${targetSection}Content`);
+        const isSectionVisible = sectionElement && getComputedStyle(sectionElement).display !== 'none';
+        const shouldShow = sectionCount > 0 && isSectionVisible;
         panel.style.display = shouldShow ? 'block' : 'none';
         
-        console.log(`📊 Panel ${targetSection}: ${sectionCount} انتخاب، نمایش: ${shouldShow}`);
+        console.log(`📊 Panel ${targetSection}: ${sectionCount} انتخاب، بخش نمایان: ${isSectionVisible}, نمایش: ${shouldShow}`);
     }
 
     // متدهای کمکی
@@ -275,6 +293,8 @@ class BulkEditManager {
             return 'purchase';
         } else if (url.includes('customer')) {
             return 'customer';
+        } else if (url.includes('barnameh') || url.includes('bki_barnameh')) {
+            return 'barnameh';
         }
         return 'purchase'; // پیش‌فرض
     }
@@ -282,8 +302,9 @@ class BulkEditManager {
     openBulkEditPage(section = null) {
         const targetSection = section || this.currentSection;
         let selectedIds = [];
+        const tableType = this.detectTableType();
         
-        console.log(`🎯 درخواست ویرایش گروهی برای بخش: ${targetSection}`);
+        console.log(`🎯 درخواست ویرایش گروهی برای بخش: ${targetSection}, نوع: ${tableType}`);
         
         // استفاده از selectedPurchases Set اگر موجود باشد (برای انتخاب همه در بخش)
         if (window.purchaseAggregatedStats && window.purchaseAggregatedStats.selectedPurchases.size > 0) {
@@ -291,13 +312,25 @@ class BulkEditManager {
             console.log(`📋 استفاده از selectedPurchases Set: ${selectedIds.length} مورد`);
         } else {
             // جمع‌آوری آیدی‌های انتخاب شده از checkbox های صفحه فعلی
-            const tableMap = {
-                pending: '#pendingPurchasesTable .row-checkbox:checked',
-                archived: '#archivedPurchasesTable .row-checkbox:checked',
-                active: '#activePurchasesTable .row-checkbox:checked'
-            };
+            let tableMap = {};
             
-            const selector = tableMap[targetSection];
+            if (tableType === 'barnameh') {
+                // برای صفحه بارنامه‌ها
+                tableMap = {
+                    active: '#barnamehTable .row-checkbox:checked',
+                    pending: '#barnamehTable .row-checkbox:checked',
+                    archived: '#barnamehTable .row-checkbox:checked'
+                };
+            } else {
+                // برای صفحه خریدها
+                tableMap = {
+                    pending: '#pendingPurchasesTable .row-checkbox:checked',
+                    archived: '#archivedPurchasesTable .row-checkbox:checked',
+                    active: '#activePurchasesTable .row-checkbox:checked'
+                };
+            }
+            
+            const selector = tableMap[targetSection] || '#barnamehTable .row-checkbox:checked';
             console.log(`🔍 انتخاب checkboxها با selector: ${selector}`);
             
             const checkboxes = document.querySelectorAll(selector);
@@ -317,7 +350,6 @@ class BulkEditManager {
             return;
         }
         
-        const tableType = this.detectTableType();
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = this.config.bulkEditPageUrl;
@@ -354,8 +386,9 @@ class BulkEditManager {
     openExcelEditPage(section = null) {
         const targetSection = section || this.currentSection;
         let selectedIds = [];
+        const tableType = this.detectTableType();
         
-        console.log(`📊 درخواست ویرایش اکسلی برای بخش: ${targetSection}`);
+        console.log(`📊 درخواست ویرایش اکسلی برای بخش: ${targetSection}, نوع: ${tableType}`);
         
         // استفاده از selectedPurchases Set اگر موجود باشد (برای انتخاب همه در بخش)
         if (window.purchaseAggregatedStats && window.purchaseAggregatedStats.selectedPurchases.size > 0) {
@@ -363,13 +396,25 @@ class BulkEditManager {
             console.log(`📋 استفاده از selectedPurchases Set: ${selectedIds.length} مورد`);
         } else {
             // جمع‌آوری آیدی‌های انتخاب شده از checkbox های صفحه فعلی
-            const tableMap = {
-                pending: '#pendingPurchasesTable .row-checkbox:checked',
-                archived: '#archivedPurchasesTable .row-checkbox:checked',
-                active: '#activePurchasesTable .row-checkbox:checked'
-            };
+            let tableMap = {};
             
-            const selector = tableMap[targetSection];
+            if (tableType === 'barnameh') {
+                // برای صفحه بارنامه‌ها
+                tableMap = {
+                    active: '#barnamehTable .row-checkbox:checked',
+                    pending: '#barnamehTable .row-checkbox:checked',
+                    archived: '#barnamehTable .row-checkbox:checked'
+                };
+            } else {
+                // برای صفحه خریدها
+                tableMap = {
+                    pending: '#pendingPurchasesTable .row-checkbox:checked',
+                    archived: '#archivedPurchasesTable .row-checkbox:checked',
+                    active: '#activePurchasesTable .row-checkbox:checked'
+                };
+            }
+            
+            const selector = tableMap[targetSection] || '#barnamehTable .row-checkbox:checked';
             console.log(`🔍 انتخاب checkboxها با selector: ${selector}`);
             
             const checkboxes = document.querySelectorAll(selector);
@@ -389,7 +434,6 @@ class BulkEditManager {
             return;
         }
         
-        const tableType = this.detectTableType();
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = this.config.excelEditPageUrl;
@@ -434,13 +478,20 @@ class BulkEditManager {
         const modelMap = {
             'purchase': 'Purchase',
             'customer': 'Customer',
-            'cargo_product': 'CargoProduct'
+            'cargo_product': 'CargoProduct',
+            'barnameh': 'Barnameh'
         };
         return modelMap[tableType] || 'Purchase';
     }
     
     getAppName(tableType) {
-        return 'core';
+        const appMap = {
+            'purchase': 'core',
+            'customer': 'core',
+            'cargo_product': 'core',
+            'barnameh': 'bki_barnameh'
+        };
+        return appMap[tableType] || 'core';
     }
 
     getCSRFToken() {
@@ -478,18 +529,23 @@ class BulkEditManager {
 
     clearSelection(section = null) {
         const targetSection = section || this.currentSection;
+        const tableType = this.detectTableType();
         let checkboxes = [];
         
         // یافتن checkboxهای مربوط به بخش
-        switch(targetSection) {
-            case 'pending':
-                checkboxes = document.querySelectorAll('#pendingPurchasesTable .row-checkbox');
-                break;
-            case 'archived':
-                checkboxes = document.querySelectorAll('#archivedPurchasesTable .row-checkbox');
-                break;
-            default:
-                checkboxes = document.querySelectorAll('#activePurchasesTable .row-checkbox');
+        if (tableType === 'barnameh') {
+            checkboxes = document.querySelectorAll('#barnamehTable .row-checkbox');
+        } else {
+            switch(targetSection) {
+                case 'pending':
+                    checkboxes = document.querySelectorAll('#pendingPurchasesTable .row-checkbox');
+                    break;
+                case 'archived':
+                    checkboxes = document.querySelectorAll('#archivedPurchasesTable .row-checkbox');
+                    break;
+                default:
+                    checkboxes = document.querySelectorAll('#activePurchasesTable .row-checkbox');
+            }
         }
         
         // پاک کردن انتخاب‌ها

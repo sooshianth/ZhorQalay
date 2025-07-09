@@ -16,8 +16,12 @@ urlpatterns = [
     path('download-excel-template/', views.download_excel_template, name='download_excel_template'),
     
     # مسیرهای جدید
-    path('export-excel/', views.export_excel, name='export_excel'),
+    path('export-barnameh-excel/', views.export_barnameh_excel, name='export_barnameh_excel'),
     path('edit-in-bki/<int:barnameh_id>/', views.edit_barnameh_in_bki, name='edit_barnameh_in_bki'),
     path('estelam/<int:barnameh_id>/', views.estelame_barnameh_view, name='estelame_barnameh'),
+    
+    # API endpoints for table filter
+    path('api/filter/', views.apply_barnameh_filter, name='apply_barnameh_filter'),
+    path('api/column-values/<str:column_id>/', views.barnameh_column_values, name='barnameh_column_values'),
 ]
 

@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
+from django.utils import timezone
 from .models.BarnamehModel import Barnameh
 from .models.ExcelFileModel import ExcelFile
 from .models.ApiLogModel import BKIApiLog
@@ -10,18 +11,242 @@ from .API.insertBarnameh import send_barnameh_to_bki, send_multiple_barnameh_to_
 from .API.EditBarnameh import edit_barnameh_api
 from .API.EstelameBarnameh import estelame_barnameh
 from .excel_management.views import get_client_ip
+from django.views.decorators.http import require_http_methods
+from django.core.paginator import Paginator
+from django.db.models import Q
 import json
 import os
 from django.conf import settings
 import pandas as pd
 import jdatetime
 import logging
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from django.http import HttpResponse
 
 # توابع اکسل به فولدر excel_management منتقل شده‌اند
 from .excel_management.views import upload_excel_view, download_excel_template, export_excel_view
 
 logger = logging.getLogger('bki_barnameh_views')
 
+# Map table name to model for table_filter support
+TABLE_MODEL_MAPPING = {
+    'barnameh': Barnameh,
+}
+
+def get_model_from_table_name(table_name):
+    """Return model class for given table name"""
+    return TABLE_MODEL_MAPPING.get(table_name)
+
+@csrf_exempt  
+@role_required('logistics_manager', 'admin', 'financial_manager')
+@require_http_methods(["POST"])
+def apply_barnameh_filter(request):
+    """API endpoint for applying filters to barnameh table"""
+    try:
+        data = json.loads(request.body)
+        filter_config = data.get('filter_config', {})
+        sort_config = data.get('sort_config', {})
+        page = data.get('page', 1)
+        page_size = data.get('page_size', 50)
+        
+        # Build base queryset
+        queryset = Barnameh.objects.all()
+        
+        # Apply filters based on filter_config
+        for column_id, filter_data in filter_config.items():
+            if filter_data and filter_data.get('values'):
+                values = filter_data['values']
+                filter_type = filter_data.get('type', 'include')
+                
+                if column_id == 'number':
+                    if filter_type == 'include':
+                        queryset = queryset.filter(number__in=values)
+                    else:
+                        queryset = queryset.exclude(number__in=values)
+                elif column_id == 'serial':
+                    if filter_type == 'include':
+                        queryset = queryset.filter(serial__in=values)
+                    else:
+                        queryset = queryset.exclude(serial__in=values)
+                elif column_id == 'status':
+                    if filter_type == 'include':
+                        queryset = queryset.filter(status__in=values)
+                    else:
+                        queryset = queryset.exclude(status__in=values)
+                elif column_id == 'driver_name':
+                    if filter_type == 'include':
+                        queryset = queryset.filter(driver_name__in=values)
+                    else:
+                        queryset = queryset.exclude(driver_name__in=values)
+                elif column_id == 'purchase_number':
+                    if filter_type == 'include':
+                        queryset = queryset.filter(purchase_number__in=values)
+                    else:
+                        queryset = queryset.exclude(purchase_number__in=values)
+                elif column_id == 'shenase_takhsis_code':
+                    if filter_type == 'include':
+                        queryset = queryset.filter(shenase_takhsis_code__in=values)
+                    else:
+                        queryset = queryset.exclude(shenase_takhsis_code__in=values)
+                # Add more filter conditions as needed
+        
+        # Apply sorting
+        if sort_config:
+            sort_field = sort_config.get('field')
+            sort_direction = sort_config.get('direction', 'asc')
+            
+            if sort_field:
+                # Map frontend fields to model fields
+                field_mapping = {
+                    'number': 'number',
+                    'serial': 'serial',
+                    'tonnage': 'tonnage',
+                    'status': 'status',
+                    'driver_name': 'driver_name',
+                    'driver_phone': 'driver_phone',
+                    'vehicle_plate': 'vehicle_plate',
+                    'receiver_name': 'receiver_name',
+                    'destination': 'destination',
+                    'barnameh_date': 'barnameh_date',
+                    'purchase_number': 'purchase_number',
+                    'shenase_takhsis_code': 'shenase_takhsis_code',
+                    'created_at': 'barnameh_created_at',
+                }
+                
+                model_field = field_mapping.get(sort_field, sort_field)
+                if sort_direction == 'desc':
+                    model_field = f'-{model_field}'
+                
+                queryset = queryset.order_by(model_field)
+        else:
+            # Default sorting
+            queryset = queryset.order_by('-barnameh_created_at')
+        
+        # Pagination
+        paginator = Paginator(queryset, page_size)
+        page_obj = paginator.get_page(page)
+        
+        # Prepare results
+        results = []
+        for barnameh in page_obj:
+            # Get logs for barnameh
+            logs = barnameh.barnameh_logs.all().order_by('-log_date')[:3]
+            
+            result = {
+                'id': barnameh.id,
+                'number': barnameh.number or '',
+                'serial': barnameh.serial or '',
+                'tonnage': float(barnameh.tonnage) if barnameh.tonnage else '',
+                'status': barnameh.status,
+                'status_display': barnameh.get_status_display(),
+                'driver_name': barnameh.driver_name or '',
+                'driver_phone': barnameh.driver_phone or '',
+                'vehicle_plate': barnameh.vehicle_plate or '',
+                'receiver_name': barnameh.receiver_name or '',
+                'destination': barnameh.destination or '',
+                'barnameh_date': str(barnameh.barnameh_date) if barnameh.barnameh_date else '',
+                'purchase_number': barnameh.purchase_number or '',
+                'shenase_takhsis_code': barnameh.shenase_takhsis_code or '',
+                'is_sent_to_bki': barnameh.is_sent_to_bki,
+                'logs': [{'log_date': log.log_date.strftime('%Y/%m/%d %H:%M'), 'log_message': log.log_message} for log in logs]
+            }
+            results.append(result)
+        
+        return JsonResponse({
+            'success': True,
+            'results': results,
+            'pagination': {
+                'current_page': page_obj.number,
+                'total_pages': paginator.num_pages,
+                'total_count': paginator.count,
+                'has_next': page_obj.has_next(),
+                'has_previous': page_obj.has_previous(),
+                'page_size': page_size
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"خطا در اعمال فیلتر بارنامه: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@role_required('logistics_manager', 'admin', 'financial_manager')
+@require_http_methods(["GET"])
+def barnameh_column_values(request, column_id):
+    """Get unique values for a specific column in barnameh table"""
+    try:
+        # Get current filters to exclude current column filter
+        current_filters = request.GET.get('current_filters')
+        if current_filters:
+            try:
+                current_filters = json.loads(current_filters)
+                # Remove current column filter
+                current_filters.pop(column_id, None)
+            except:
+                current_filters = {}
+        else:
+            current_filters = {}
+        
+        # Build queryset with current filters
+        queryset = Barnameh.objects.all()
+        
+        # Apply existing filters (excluding current column)
+        for col_id, filter_data in current_filters.items():
+            if filter_data and filter_data.get('values'):
+                values = filter_data['values']
+                filter_type = filter_data.get('type', 'include')
+                
+                if col_id == 'number':
+                    if filter_type == 'include':
+                        queryset = queryset.filter(number__in=values)
+                    else:
+                        queryset = queryset.exclude(number__in=values)
+                elif col_id == 'serial':
+                    if filter_type == 'include':
+                        queryset = queryset.filter(serial__in=values)
+                    else:
+                        queryset = queryset.exclude(serial__in=values)
+                elif col_id == 'status':
+                    if filter_type == 'include':
+                        queryset = queryset.filter(status__in=values)
+                    else:
+                        queryset = queryset.exclude(status__in=values)
+                # Add more as needed
+        
+        # Get unique values for the requested column
+        values = []
+        if column_id in ['number', 'serial', 'driver_name', 'driver_phone', 'vehicle_plate', 
+                         'receiver_name', 'destination', 'purchase_number', 'shenase_takhsis_code']:
+            field_values = queryset.values_list(column_id, flat=True).distinct().order_by(column_id)
+            values = [{'value': val, 'display': val or '-', 'count': 1} for val in field_values if val]
+        elif column_id == 'status':
+            status_values = queryset.values_list('status', flat=True).distinct()
+            for status in status_values:
+                if status:
+                    display = dict(Barnameh.STATUS_CHOICES).get(status, status)
+                    values.append({'value': status, 'display': display, 'count': 1})
+        elif column_id == 'tonnage':
+            tonnage_values = queryset.values_list('tonnage', flat=True).distinct().order_by('tonnage')
+            values = [{'value': str(val), 'display': str(val), 'count': 1} for val in tonnage_values if val is not None]
+        elif column_id == 'barnameh_date':
+            date_values = queryset.values_list('barnameh_date', flat=True).distinct().order_by('barnameh_date')
+            values = [{'value': str(val), 'display': str(val), 'count': 1} for val in date_values if val]
+        
+        return JsonResponse({
+            'success': True,
+            'values': values[:500],  # Limit to 500 values
+            'total_count': len(values)
+        })
+        
+    except Exception as e:
+        logger.error(f"خطا در دریافت مقادیر ستون {column_id}: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
 
 def update_barnameh(barnameh_id, data):
     """
@@ -748,4 +973,152 @@ def bulk_delete(request):
         return redirect('barnameh_list')
     
     return redirect('barnameh_list')
+
+@role_required('logistics_manager', 'admin', 'financial_manager')
+def export_barnameh_excel(request):
+    """
+    خروجی اکسل از بارنامه‌های انتخاب شده
+    """
+    logger.warning(f"خروجی اکسل بارنامه‌ها توسط {request.user.username} با متد {request.method} و آی‌پی {get_client_ip(request)} آغاز شد")
+    
+    # پشتیبانی از درخواست‌های GET و POST
+    if request.method == 'POST':
+        barnameh_ids = request.POST.get('ids', '').split(',')
+        selected_columns = request.POST.get('columns', '')
+    else:
+        barnameh_ids = request.GET.get('ids', '').split(',')
+        selected_columns = request.GET.get('columns', '')
+    
+    logger.warning(f"raw select columns for user {request.user.username}: {selected_columns}")
+    
+    if selected_columns:
+        # حذف کوتیشن‌های اضافی و decode کردن کاراکترهای escape شده
+        selected_columns = selected_columns.strip('"').replace('\\054', ',').replace('\\\\', '\\')
+        selected_columns = selected_columns.split(',')
+        # حذف فیلدهای خالی
+        selected_columns = [col.strip() for col in selected_columns if col.strip()]
+    else:
+        selected_columns = ['number', 'serial', 'tonnage', 'status', 'driver_name', 'barnameh_date']
+    
+    # فیلتر کردن آیدی‌های خالی
+    barnameh_ids = [bid.strip() for bid in barnameh_ids if bid.strip()]
+
+    if not barnameh_ids:
+        logger.warning("ERROR: No barnameh IDs to export excel!")
+        return JsonResponse({'status': 'error', 'message': 'هیچ بارنامه‌ای انتخاب نشده است'}, status=400)
+    
+    # بررسی تعداد بارنامه‌ها
+    total_count = len(barnameh_ids)
+    logger.warning(f"Total barnamehs to export: {total_count}")
+    
+    try:
+        return _export_barnameh_excel(barnameh_ids, selected_columns)
+            
+    except Exception as e:
+        # لاگ خطا
+        import traceback
+        logger.warning(f"Error in export_barnameh_excel: {str(e)}, {traceback.format_exc()}")
+        return JsonResponse({'status': 'error', 'message': f'خطا در ایجاد فایل اکسل'}, status=500)
+
+def _export_barnameh_excel(barnameh_ids, selected_columns):
+    """پردازش و ایجاد فایل اکسل برای بارنامه‌ها"""
+    barnamehs = Barnameh.objects.filter(id__in=barnameh_ids).order_by('-barnameh_created_at')
+    
+    logger.warning(f"Found {barnamehs.count()} barnamehs")
+    
+    if barnamehs.count() == 0:
+        logger.warning("ERROR: No barnamehs found!")
+        return JsonResponse({'status': 'error', 'message': 'هیچ بارنامه‌ای با شناسه‌های داده شده یافت نشد'}, status=400)
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "لیست بارنامه‌ها"
+    
+    # تنظیم گردش متن از راست به چپ برای کل صفحه
+    ws.sheet_view.rightToLeft = True
+    
+    # تعریف استایل‌ها
+    header_font = Font(name='B Nazanin', size=12, bold=True, color='FFFFFF')
+    header_fill = PatternFill(start_color='38A169', end_color='38A169', fill_type='solid')  # سبز مطابق طرح
+    
+    # تنظیم راست چین و وسط چین
+    alignment = Alignment(horizontal='right', vertical='center', wrap_text=True)
+    
+    # تعریف خطوط جدول
+    thin_border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+    
+    # مپینگ کامل ستون‌ها به فیلدهای مدل بارنامه
+    column_mapping = {
+        'number': ('شماره بارنامه', lambda b: b.number or "تعیین نشده"),
+        'serial': ('سریال', lambda b: b.serial or "تعیین نشده"),
+        'tonnage': ('وزن (کیلوگرم)', lambda b: f"{b.tonnage}" if b.tonnage else "0"),
+        'status': ('وضعیت', lambda b: b.get_status_display() if b.status else "-"),
+        'driver_name': ('نام راننده', lambda b: b.driver_name or "-"),
+        'driver_phone': ('شماره راننده', lambda b: b.driver_phone or "-"),
+        'vehicle_plate': ('پلاک خودرو', lambda b: b.vehicle_plate or "-"),
+        'receiver_name': ('نام گیرنده', lambda b: b.receiver_name or "-"),
+        'destination': ('مقصد', lambda b: b.destination or "-"),
+        'barnameh_date': ('تاریخ بارنامه', lambda b: str(b.barnameh_date) if b.barnameh_date else "-"),
+        'purchase_number': ('شماره خرید', lambda b: b.purchase_number or "-"),
+        'shenase_takhsis_code': ('شناسه تخصیص', lambda b: b.shenase_takhsis_code or "-"),
+        'is_sent_to_bki': ('ارسال به بازارگاه', lambda b: "بله" if b.is_sent_to_bki else "خیر"),
+        'created_at': ('تاریخ ایجاد', lambda b: b.barnameh_created_at.strftime("%Y/%m/%d") if b.barnameh_created_at else "-"),
+    }
+    
+    # فقط ستون‌های انتخاب شده را اضافه می‌کنیم
+    headers = []
+    for col in selected_columns:
+        if col in column_mapping:
+            headers.append(column_mapping[col][0])
+    
+    # افزودن هدرها به اکسل
+    ws.append(headers)
+    
+    # تنظیم استایل برای سطر هدر
+    for i, cell in enumerate(ws[1], 1):
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = alignment
+        cell.border = thin_border
+    
+    # داده‌ها
+    row_idx = 2
+    for barnameh in barnamehs:
+        row = []
+        for col in selected_columns:
+            if col in column_mapping:
+                try:
+                    value = column_mapping[col][1](barnameh)
+                    row.append(value)
+                except Exception as e:
+                    logger.warning(f"خطا در استخراج مقدار {col} برای بارنامه {barnameh.id}: {str(e)}")
+                    row.append("-")
+        
+        ws.append(row)
+        
+        # تنظیم استایل برای سطرهای داده
+        for j, cell in enumerate(ws[row_idx], 1):
+            cell.alignment = alignment
+            cell.border = thin_border
+        
+        row_idx += 1
+    
+    # تنظیم عرض ستون‌ها
+    for i, column in enumerate(ws.columns, 1):
+        ws.column_dimensions[ws.cell(row=1, column=i).column_letter].width = 15
+    
+    # اضافه کردن فریز به سطر هدر
+    ws.freeze_panes = "A2"
+    
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    filename = f"barnameh_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    logger.warning(f"Excel file created: {filename}")
+    return response
 

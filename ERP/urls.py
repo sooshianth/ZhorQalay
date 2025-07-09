@@ -7,7 +7,6 @@ from .views import (
     managers_profile_view, 
     purchase_list_view,
     notification_view,
-    purchase_filter_api,
 )
 
 urlpatterns = [
@@ -31,9 +30,9 @@ urlpatterns = [
     path('bulk-edit-cargo/', purchase_list_view.bulk_edit_cargo, name='bulk_edit_cargo'),
 
     # APIهای فیلتر سمت سرور
-    path('purchases/filter/config/', purchase_filter_api.get_purchase_table_configuration, name='purchase_filter_config'),
-    path('purchases/filter/apply/', purchase_filter_api.apply_purchase_filter, name='apply_purchase_filter'),
-    path('purchases/filter/column-values/', purchase_filter_api.get_purchase_column_values, name='purchase_column_values'),
+    path('purchases/filter/config/', purchase_list_view.get_purchase_table_configuration, name='purchase_filter_config'),
+    path('purchases/filter/apply/', purchase_list_view.apply_purchase_filter, name='apply_purchase_filter'),
+    path('purchases/filter/column-values/', purchase_list_view.get_purchase_column_values, name='purchase_column_values'),
 
     path('purchase_CRUD/<int:purchase_id>/', purchase_CRUD_view.purchase_CRUD_view, name='purchase_CRUD'),
     path('purchase_delete/<int:purchase_id>/', purchase_CRUD_view.delete_purchase_view, name='purchase_delete' ),

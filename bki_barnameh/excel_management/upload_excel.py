@@ -91,6 +91,18 @@ def process_excel_file(excel_file_id):
                 purchase_number = clean_numeric_value(row.get('شناسه خرید', ''))
                 shenase_takhsis_code = clean_numeric_value(row.get('شناسه تخصیص', ''))
                 
+                # پیدا کردن Purchase قبل از ایجاد بارنامه
+                purchase_obj = None
+                if purchase_number and purchase_number.strip():
+                    try:
+                        from core.PurchaseModel import Purchase
+                        purchase_obj = Purchase.objects.get(purchase_number=purchase_number)
+                        logger.info(f"✅ Found purchase {purchase_obj.id} for barnameh {barnameh_number}")
+                    except Purchase.DoesNotExist:
+                        logger.warning(f"❌ Purchase with number {purchase_number} not found for barnameh {barnameh_number}")
+                    except Exception as e:
+                        logger.error(f"❌ Error finding purchase {purchase_number}: {str(e)}")
+                
                 # Convert date string to JDate
                 barnameh_date = None
                 if barnameh_date_str:
@@ -134,34 +146,39 @@ def process_excel_file(excel_file_id):
                     'purchase_number': purchase_number,
                     'shenase_takhsis_code': shenase_takhsis_code,
                     'is_created_by_excel': True,
-                    'status': 'BARNAMEH_COMPLETE' if all([barnameh_number, barnameh_serial, tonnage]) else 'BARNAMEH_INCOMPLETE'
+                    'status': 'BARNAMEH_COMPLETE' if all([barnameh_number, barnameh_serial, tonnage]) else 'BARNAMEH_INCOMPLETE',
+                    'purchase': purchase_obj  # اضافه کردن ارتباط با Purchase از ابتدا
                 }
                 
                 if existing_barnameh:
                     # Update existing barnameh with new data
+                    logger.info(f"📝 Updating existing barnameh {barnameh_number} from Excel")
                     for key, value in barnameh_data.items():
                         setattr(existing_barnameh, key, value)
                     existing_barnameh.save()
                     barnameh = existing_barnameh
                 else:
                     # Create new barnameh
+                    logger.info(f"🆕 Creating new barnameh {barnameh_number} from Excel")
                     barnameh = Barnameh.objects.create(
                         number=barnameh_number,
                         **barnameh_data
                     )
+                    logger.info(f"✅ Successfully created barnameh {barnameh.id} with number {barnameh.number}")
+                
+                # اگر Purchase پیدا شد، ارتباط دوطرفه را برقرار کن
+                if purchase_obj and barnameh:
+                    purchase_obj.barnameh = barnameh_number
+                    purchase_obj.barnameh_object = barnameh
+                    purchase_obj.save()
+                    logger.info(f"✅ Successfully linked barnameh {barnameh_number} to purchase {purchase_number}")
 
-                from core.PurchaseModel import Purchase
-                # Only try to associate with purchase if purchase_number is not empty or just whitespace
-                if purchase_number and purchase_number.strip() and barnameh:
-                    try:
-                        # استفاده از شناسه خرید تمیز شده
-                        purchase = Purchase.objects.get(purchase_number=purchase_number)
-                        purchase.barnameh = barnameh_number
-                        purchase.barnameh_object = barnameh
-                        purchase.save()
-                    except Purchase.DoesNotExist:
-                        logger.error(f"Purchase with number {purchase_number} not found")
-                        # Continue processing without failing
+                # گزارش وضعیت ارتباط با Purchase
+                if not purchase_obj:
+                    if not purchase_number or not purchase_number.strip():
+                        logger.warning(f"⚠️ No purchase number provided for barnameh {barnameh_number}")
+                    else:
+                        logger.warning(f"⚠️ Purchase {purchase_number} not found for barnameh {barnameh_number}")
 
                 processed_rows += 1
                 

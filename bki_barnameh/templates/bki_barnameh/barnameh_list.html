@@ -1,77 +1,920 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load table_filter_tags %}
 {% load custom_filters %}
 
-{% block content %}
-<html lang="fa" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لیست بارنامه‌ها</title>
+{% block head_styles %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'ERP/css/purchase_list_styles.css' %}">
     
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- بارگذاری CSS فیلتر پایتونی -->
+    {% load_table_filter %}
     
+    <!-- Complete Styles for Barnameh List -->
     <style>
+    /* Reset and Base Styles */
+    * {
+        box-sizing: border-box !important;
+    }
+    
         body {
-            font-family: 'Vazir', sans-serif;
-            background-color: #f8f9fa;
+        font-family: 'Vazir', 'Tahoma', sans-serif !important;
+        background-color: #f8f9fa !important;
+        direction: rtl !important;
+    }
+    
+    /* Container and Layout */
+    .container-fluid {
+        padding: 20px !important;
+        max-width: 100% !important;
         }
         
+    /* Card Styles */
         .card {
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 15px !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+        border: none !important;
+        margin-bottom: 20px !important;
         }
         
-        .table th {
-            background-color: #f8f9fa;
-            border-bottom: 2px solid #dee2e6;
-            font-weight: 600;
+    .card-body {
+        padding: 25px !important;
+    }
+    
+    .card-header {
+        background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
+        color: white !important;
+        border-radius: 15px 15px 0 0 !important;
+        padding: 15px 25px !important;
+        border: none !important;
+    }
+    
+    /* Header Section */
+    .text-primary {
+        color: #38a169 !important;
+    }
+    
+    h2 {
+        color: #2c3e50 !important;
+        font-weight: 700 !important;
+    }
+    
+    /* Button Styles */
+    .btn {
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+        padding: 8px 16px !important;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
+        border: none !important;
+        color: white !important;
+        text-decoration: none !important;
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #2f855a 0%, #276749 100%) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+        text-decoration: none !important;
+    }
+    
+    /* Remove underlines from all links */
+    a {
+        text-decoration: none !important;
+    }
+    
+    a:hover {
+        text-decoration: none !important;
+    }
+    
+    .btn-success {
+        background: linear-gradient(135deg, #48bb78 0%, #38a169 100%) !important;
+        border: none !important;
+    }
+    
+    .btn-info {
+        background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%) !important;
+        border: none !important;
+    }
+    
+    .btn-warning {
+        background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%) !important;
+        border: none !important;
+        color: white !important;
+    }
+    
+    .btn-danger {
+        background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%) !important;
+        border: none !important;
         }
         
-        .btn-group .btn {
-            margin: 0 2px;
+    .btn-secondary {
+        background: linear-gradient(135deg, #a0aec0 0%, #718096 100%) !important;
+        border: none !important;
+    }
+    
+    .btn-outline-secondary {
+        border: 2px solid #cbd5e0 !important;
+        color: #4a5568 !important;
+        background: white !important;
+    }
+    
+    .btn-outline-secondary:hover {
+        background: #f7fafc !important;
+        border-color: #a0aec0 !important;
+        color: #2d3748 !important;
+    }
+    
+    .btn-sm {
+        padding: 6px 12px !important;
+        font-size: 0.875rem !important;
+    }
+    
+    .rounded-circle {
+        border-radius: 50% !important;
+        width: 35px !important;
+        height: 35px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 !important;
+    }
+    
+    /* Global Selection Info */
+    .global-selection-info {
+        background: linear-gradient(135deg, #e6fffa 0%, #b2f5ea 100%) !important;
+        border: 2px solid #4fd1c7 !important;
+        border-radius: 12px !important;
+        padding: 15px !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 2px 8px rgba(79, 209, 199, 0.2) !important;
+    }
+    
+    .global-selection-info .text-primary {
+        color: #234e52 !important;
+        font-weight: 700 !important;
         }
         
         .badge {
-            font-size: 0.75em;
+        font-size: 0.85rem !important;
+        padding: 6px 12px !important;
+        border-radius: 20px !important;
+    }
+    
+    .bg-primary {
+        background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
+    }
+    
+    /* Bulk Edit Controls */
+    .bulk-edit-controls {
+        background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%) !important;
+        border: 2px solid #fc8181 !important;
+        border-radius: 12px !important;
+        padding: 15px !important;
+        margin-bottom: 20px !important;
+        box-shadow: 0 2px 8px rgba(252, 129, 129, 0.2) !important;
+    }
+    
+    .bulk-edit-toolbar {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        flex-wrap: wrap !important;
+        gap: 15px !important;
         }
         
+    .selected-count {
+        font-weight: 700 !important;
+        color: #742a2a !important;
+        font-size: 1.1rem !important;
+    }
+    
+    .bulk-edit-actions {
+        display: flex !important;
+        gap: 10px !important;
+        flex-wrap: wrap !important;
+    }
+    
+    /* Table Container */
         .table-responsive {
-            border-radius: 10px;
+        border-radius: 15px !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+        background: white !important;
+        overflow-x: auto !important;
+        max-width: 100% !important;
         }
         
-        .sortable {
-            cursor: pointer;
-            user-select: none;
-            position: relative;
+    /* Table Styles */
+    .table {
+        margin-bottom: 0 !important;
+        border-collapse: collapse !important;
+        width: 100% !important;
+        min-width: 1400px !important; /* Force horizontal scroll */
+    }
+    
+    .table thead th {
+        background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
+        color: white !important;
+        font-weight: 700 !important;
+        text-align: center !important;
+        padding: 15px 12px !important;
+        border: none !important;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 10 !important;
+        vertical-align: middle !important;
+        font-size: 0.9rem !important;
+        white-space: nowrap !important;
+    }
+    
+    .table thead th:first-child {
+        border-radius: 15px 0 0 0 !important;
+    }
+    
+    .table thead th:last-child {
+        border-radius: 0 15px 0 0 !important;
+    }
+    
+    .table tbody tr {
+        transition: all 0.3s ease !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+    }
+    
+    .table tbody tr:hover {
+        background-color: #f7fafc !important;
+        transform: scale(1.002) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    .table tbody tr:nth-child(even) {
+        background-color: #f8f9fa !important;
+    }
+    
+    .table tbody tr:nth-child(odd) {
+        background-color: white !important;
+    }
+    
+    .table td {
+        padding: 12px 10px !important;
+        vertical-align: middle !important;
+        text-align: center !important;
+        border: none !important;
+        font-size: 0.85rem !important;
+        color: #2d3748 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        max-width: 150px !important;
+    }
+    
+    .table td:hover {
+        background-color: #edf2f7 !important;
+    }
+    
+    /* Column Specific Widths - Auto-sized based on content */
+    .table th:nth-child(1), .table td:nth-child(1) { /* Checkbox */
+        width: 100px !important;
+        min-width: 100px !important;
+        max-width: 100px !important;
+        padding-left: 15px !important; /* Reset padding for checkbox column */
+        padding-right: 15px !important;
         }
         
-        .sortable:hover {
-            background-color: #e9ecef;
+    .table th:nth-child(2), .table td:nth-child(2) { /* شماره بارنامه */
+        width: auto !important;
+        min-width: 140px !important;
+        max-width: 180px !important;
+    }
+    
+    .table th:nth-child(3), .table td:nth-child(3) { /* سریال */
+        width: auto !important;
+        min-width: 120px !important;
+        max-width: 160px !important;
+    }
+    
+    .table th:nth-child(4), .table td:nth-child(4) { /* وزن */
+        width: auto !important;
+        min-width: 80px !important;
+        max-width: 120px !important;
+    }
+    
+    .table th:nth-child(5), .table td:nth-child(5) { /* وضعیت */
+        width: auto !important;
+        min-width: 120px !important;
+        max-width: 150px !important;
+    }
+    
+    .table th:nth-child(6), .table td:nth-child(6) { /* نام راننده */
+        width: auto !important;
+        min-width: 130px !important;
+        max-width: 170px !important;
+    }
+    
+    .table th:nth-child(7), .table td:nth-child(7) { /* شماره راننده */
+        width: auto !important;
+        min-width: 140px !important;
+        max-width: 180px !important;
+    }
+    
+    .table th:nth-child(8), .table td:nth-child(8) { /* پلاک خودرو */
+        width: auto !important;
+        min-width: 120px !important;
+        max-width: 160px !important;
+    }
+    
+    .table th:nth-child(9), .table td:nth-child(9) { /* نام گیرنده */
+        width: auto !important;
+        min-width: 130px !important;
+        max-width: 170px !important;
+    }
+    
+    .table th:nth-child(10), .table td:nth-child(10) { /* مقصد */
+        width: auto !important;
+        min-width: 120px !important;
+        max-width: 160px !important;
+    }
+    
+    .table th:nth-child(11), .table td:nth-child(11) { /* تاریخ بارنامه */
+        width: auto !important;
+        min-width: 130px !important;
+        max-width: 170px !important;
+    }
+    
+    .table th:nth-child(12), .table td:nth-child(12) { /* شماره خرید */
+        width: auto !important;
+        min-width: 130px !important;
+        max-width: 170px !important;
+    }
+    
+    .table th:nth-child(13), .table td:nth-child(13) { /* شناسه تخصیص */
+        width: auto !important;
+        min-width: 140px !important;
+        max-width: 180px !important;
+    }
+    
+    .table th:nth-child(14), .table td:nth-child(14) { /* عملیات */
+        width: 220px !important;
+        min-width: 220px !important;
+        max-width: 220px !important;
+    }
+    
+    /* Badge Styles */
+    .badge.rounded-pill {
+        font-size: 0.75rem !important;
+        padding: 6px 12px !important;
+        font-weight: 600 !important;
         }
         
-        .sortable i {
-            opacity: 0.5;
-            transition: opacity 0.2s;
+    .bg-warning {
+        background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%) !important;
+        color: white !important;
+    }
+    
+    .bg-success {
+        background: linear-gradient(135deg, #48bb78 0%, #38a169 100%) !important;
         }
         
-        .sortable:hover i {
-            opacity: 1;
+    /* Dropdown Styles */
+    .dropdown-toggle {
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        color: white !important;
+    }
+    
+    .dropdown-toggle:focus {
+        box-shadow: none !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    /* General dropdown toggle in table header */
+    .table thead th .dropdown-toggle {
+        color: white !important;
+        font-size: 11px !important;
+    }
+    
+    .dropdown-menu {
+        font-size: 13px !important;
+        min-width: 200px !important;
+        border-radius: 10px !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15) !important;
+        border: none !important;
+        padding: 10px 0 !important;
+    }
+    
+    .dropdown-item {
+        padding: 10px 15px !important;
+        transition: all 0.3s ease !important;
+        color: #2d3748 !important;
+    }
+    
+    .dropdown-item:hover {
+        background-color: #f7fafc !important;
+        color: #38a169 !important;
+        padding-right: 20px !important;
+    }
+    
+    .dropdown-item i {
+        width: 20px !important;
+        text-align: center !important;
+    }
+    
+    /* Checkbox Styles */
+    input[type="checkbox"] {
+        width: 18px !important;
+        height: 18px !important;
+        cursor: pointer !important;
+        accent-color: #38a169 !important;
         }
         
-        .sortable.sort-asc i:before {
-            content: "\f0de"; /* fa-sort-up */
+    /* Logs Container */
+    .logs-container .btn-outline-info {
+        font-size: 0.75rem !important;
+        padding: 4px 8px !important;
+        border-radius: 20px !important;
+    }
+    
+    .logs-container .card-body {
+        padding: 10px !important;
+        background: #f8f9fa !important;
+        border-radius: 8px !important;
+        max-height: 150px !important;
+        overflow-y: auto !important;
+    }
+    
+    .logs-container ul {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .logs-container li {
+        padding: 4px 0 !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        font-size: 0.8rem !important;
+    }
+    
+    .logs-container li:last-child {
+        border-bottom: none !important;
+    }
+    
+    /* Action Buttons Group */
+    .btn-group {
+        gap: 5px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    
+    /* Filter Headers */
+    .python-excel-filter th {
+        position: relative !important;
+        text-align: center !important;
+    }
+    
+    /* All columns except checkbox get left padding for filter button */
+    .python-excel-filter th:not(:first-child) {
+        padding-left: 35px !important;
+    }
+    
+    /* Checkbox column keeps normal padding */
+    .python-excel-filter th:first-child {
+        padding-left: 15px !important;
+        padding-right: 15px !important;
         }
         
-        .sortable.sort-desc i:before {
-            content: "\f0dd"; /* fa-sort-down */
+    /* Hide filter button in checkbox column */
+    .python-excel-filter th:first-child .dropdown-toggle {
+        display: none !important;
+    }
+    
+    /* Filter button positioning for all other columns */
+    .python-excel-filter th:not(:first-child) .dropdown-toggle {
+        position: absolute !important;
+        left: 8px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        padding: 2px 6px !important;
+        font-size: 12px !important;
+        border-radius: 4px !important;
+        background: rgba(255, 255, 255, 0.2) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        color: white !important;
+        }
+        
+    .python-excel-filter th:not(:first-child) .dropdown-toggle:hover {
+        background: rgba(255, 255, 255, 0.3) !important;
+        border-color: rgba(255, 255, 255, 0.5) !important;
+    }
+    
+    .python-excel-filter th:not(:first-child) .dropdown-toggle::after {
+        margin-right: 2px !important;
+        margin-left: 0 !important;
+    }
+    
+    /* Empty State */
+    .table tbody tr td {
+        text-align: center !important;
+    }
+    
+    .fas.fa-inbox {
+        color: #a0aec0 !important;
+        opacity: 0.7 !important;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .container-fluid {
+            padding: 15px !important;
+        }
+        
+        .card-body {
+            padding: 20px !important;
+        }
+        
+        .bulk-edit-toolbar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+        }
+        
+        .bulk-edit-actions {
+            justify-content: center !important;
+        }
+        
+        .table {
+            min-width: 800px !important;
+        }
+        
+        .btn-group {
+            flex-wrap: wrap !important;
+        }
+    }
+    
+    /* Loading and Animation Effects */
+    .table tbody tr {
+        animation: fadeInUp 0.3s ease-out !important;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0 !important;
+            transform: translateY(10px) !important;
+        }
+        to {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+        }
+    }
+    
+    /* Tooltip Styles */
+    .tooltip {
+        font-size: 0.8rem !important;
+    }
+    
+    .tooltip-inner {
+        background: #2d3748 !important;
+        border-radius: 6px !important;
+        padding: 6px 10px !important;
+    }
+    
+    /* Scrollbar Styles */
+    .table-responsive::-webkit-scrollbar {
+        height: 8px !important;
+    }
+    
+    .table-responsive::-webkit-scrollbar-track {
+        background: #f1f1f1 !important;
+        border-radius: 10px !important;
+    }
+    
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
+        border-radius: 10px !important;
+    }
+    
+    .table-responsive::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #2f855a 0%, #276749 100%) !important;
+    }
+    
+    /* Form Controls */
+    .form-control, .form-select {
+        border-radius: 8px !important;
+        border: 2px solid #e2e8f0 !important;
+        padding: 10px 15px !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #38a169 !important;
+        box-shadow: 0 0 0 3px rgba(56, 161, 105, 0.1) !important;
+    }
+    
+    /* Hidden Forms */
+    form[style*="display: none"] {
+        display: none !important;
+    }
+    
+    /* Timeline Styles for Logs Modal */
+    .timeline {
+        position: relative !important;
+        padding: 20px 0 !important;
+    }
+    
+    .timeline-item {
+        position: relative !important;
+    }
+    
+    .timeline-item:not(:last-child) .timeline-marker::after {
+        content: '' !important;
+        position: absolute !important;
+        top: 20px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: 2px !important;
+        height: calc(100% + 20px) !important;
+        background: linear-gradient(to bottom, #38a169, #e2e8f0) !important;
+    }
+    
+    .timeline-marker {
+        position: relative !important;
+        z-index: 2 !important;
+    }
+    
+    .timeline-content .card {
+        border-radius: 12px !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .timeline-content .card:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    .timeline-content .card-body {
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%) !important;
+        border-radius: 12px !important;
+    }
+    
+    /* Modal Enhancements */
+    .modal-header {
+        background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
+        color: white !important;
+        border-radius: 15px 15px 0 0 !important;
+    }
+    
+    .modal-content {
+        border-radius: 15px !important;
+        border: none !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+    }
+    
+    .modal-body {
+        max-height: 400px !important;
+        overflow-y: auto !important;
+        padding: 25px !important;
+    }
+    
+    .modal-footer {
+        border-top: 2px solid #e2e8f0 !important;
+        padding: 15px 25px !important;
+    }
+    
+    /* Scrollbar for Modal */
+    .modal-body::-webkit-scrollbar {
+        width: 6px !important;
+    }
+    
+    .modal-body::-webkit-scrollbar-track {
+        background: #f1f1f1 !important;
+        border-radius: 10px !important;
+    }
+    
+    .modal-body::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
+        border-radius: 10px !important;
+    }
+    
+    .modal-body::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #2f855a 0%, #276749 100%) !important;
         }
     </style>
-</head>
-<body>
+    
+    {% bulk_edit_scripts %}
+    {% edit_history_scripts %}
+    
+    <!-- CSRF Token for AJAX requests -->
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    
+    <!-- Configuration data for JavaScript -->
+    <div id="barnameh-list-config"
+         data-filter-url="{% url 'apply_barnameh_filter' %}"
+         data-column-values-url="{% url 'barnameh_column_values' 'dummy' %}"
+         data-bulk-edit-page-url="{% url 'table_filter:bulk_edit_page' %}"
+         data-excel-edit-page-url="{% url 'table_filter:bulk_edit_excel_page' %}"
+         data-download-template-url="{% url 'table_filter:bulk_edit_template' %}"
+         data-history-api-url="{% url 'table_filter:edit_history_api' %}"
+         data-restore-value-api-url="{% url 'table_filter:restore_value_api' %}"
+         data-export-excel-url="{% url 'export_barnameh_excel' %}"
+         style="display: none;"></div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // دریافت تنظیمات از data attributes
+        const configEl = document.getElementById('barnameh-list-config');
+        
+        // تنظیم configuration برای JavaScript
+        window.BarnamehListConfig = {
+            filterUrl: configEl.dataset.filterUrl,
+            columnValuesUrl: configEl.dataset.columnValuesUrl,
+            bulkEditPageUrl: configEl.dataset.bulkEditPageUrl,
+            excelEditPageUrl: configEl.dataset.excelEditPageUrl,
+            downloadTemplateUrl: configEl.dataset.downloadTemplateUrl,
+            historyApiUrl: configEl.dataset.historyApiUrl,
+            restoreValueApiUrl: configEl.dataset.restoreValueApiUrl,
+            exportExcelUrl: configEl.dataset.exportExcelUrl
+        };
+        
+        console.log('Barnameh List Config loaded:', window.BarnamehListConfig);
+        
+        // دکمه خروجی اکسل
+        document.getElementById('exportToExcelBtn').addEventListener('click', function() {
+            exportSelectedToExcel();
+        });
+    });
+    
+    function exportSelectedToExcel() {
+        // دریافت بارنامه‌های انتخاب شده
+        const selectedCheckboxes = document.querySelectorAll('#barnamehTable .row-checkbox:checked');
+        
+        if (selectedCheckboxes.length === 0) {
+            alert('لطفاً حداقل یک بارنامه انتخاب کنید');
+            return;
+        }
+        
+        // جمع‌آوری آیدی‌های انتخاب شده
+        const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.id || cb.value);
+        
+        // تعریف ستون‌های پیش‌فرض برای خروجی اکسل
+        const defaultColumns = [
+            'number', 'serial', 'tonnage', 'status', 'driver_name', 
+            'driver_phone', 'vehicle_plate', 'receiver_name', 
+            'destination', 'barnameh_date', 'purchase_number', 'shenase_takhsis_code'
+        ];
+        
+        // ایجاد فرم برای ارسال POST
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = window.BarnamehListConfig.exportExcelUrl;
+        
+        // اضافه کردن CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = csrfToken.value;
+            form.appendChild(csrfInput);
+        }
+        
+        // اضافه کردن آیدی‌های انتخاب شده
+        const idsInput = document.createElement('input');
+        idsInput.type = 'hidden';
+        idsInput.name = 'ids';
+        idsInput.value = selectedIds.join(',');
+        form.appendChild(idsInput);
+        
+        // اضافه کردن ستون‌ها
+        const columnsInput = document.createElement('input');
+        columnsInput.type = 'hidden';
+        columnsInput.name = 'columns';
+        columnsInput.value = defaultColumns.join(',');
+        form.appendChild(columnsInput);
+        
+        // ارسال فرم
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+        
+        console.log(`خروجی اکسل برای ${selectedIds.length} بارنامه درخواست شد`);
+    }
+    
+    function bulkSendToBki() {
+        // دریافت بارنامه‌های انتخاب شده
+        const selectedCheckboxes = document.querySelectorAll('#barnamehTable .row-checkbox:checked');
+        
+        if (selectedCheckboxes.length === 0) {
+            alert('لطفاً حداقل یک بارنامه انتخاب کنید');
+            return;
+        }
+        
+        // تأیید از کاربر
+        if (!confirm(`آیا مطمئن هستید که می‌خواهید ${selectedCheckboxes.length} بارنامه انتخاب شده را به بازارگاه ارسال کنید؟`)) {
+            return;
+        }
+        
+        // جمع‌آوری آیدی‌های انتخاب شده
+        const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.id || cb.value);
+        
+        // ایجاد فرم برای ارسال POST
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{% url "bulk_send_to_bki" %}';
+        
+        // اضافه کردن CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = csrfToken.value;
+            form.appendChild(csrfInput);
+        }
+        
+        // اضافه کردن آیدی‌های بارنامه
+        selectedIds.forEach(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'barnameh_ids';
+            input.value = id;
+            form.appendChild(input);
+        });
+        
+        // ارسال فرم
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+        
+        console.log(`ارسال گروهی ${selectedIds.length} بارنامه به بازارگاه درخواست شد`);
+    }
+    
+    function showLogsModal(barnamehId, barnamehNumber, barnamehSerial) {
+        // تنظیم عنوان modal
+        document.getElementById('modalBarnamehInfo').textContent = `${barnamehNumber}/${barnamehSerial}`;
+        
+        // یافتن دکمه مربوطه برای دریافت لاگ‌ها
+        const button = document.querySelector(`button[onclick*="${barnamehId}"]`);
+        if (!button) {
+            document.getElementById('logsContent').innerHTML = '<p class="text-danger">خطا در یافتن لاگ‌ها</p>';
+            return;
+        }
+        
+        const logsData = button.getAttribute('data-logs');
+        if (!logsData || logsData === '') {
+            document.getElementById('logsContent').innerHTML = '<p class="text-muted">هیچ لاگی یافت نشد</p>';
+        } else {
+            try {
+                // پارس کردن لاگ‌ها (فرمت: [{"date": "...", "message": "..."}, ...])
+                const logs = JSON.parse(`[${logsData}]`);
+                
+                let logsHtml = '<div class="timeline">';
+                logs.forEach((log, index) => {
+                    logsHtml += `
+                        <div class="timeline-item mb-3">
+                            <div class="d-flex">
+                                <div class="timeline-marker me-3 mt-1">
+                                    <div class="bg-primary rounded-circle" style="width: 12px; height: 12px;"></div>
+                                </div>
+                                <div class="timeline-content flex-grow-1">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-clock me-1"></i>
+                                                    ${log.date}
+                                                </small>
+                                                <span class="badge bg-light text-dark">#${index + 1}</span>
+                                            </div>
+                                            <p class="mb-0">${log.message}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                logsHtml += '</div>';
+                
+                document.getElementById('logsContent').innerHTML = logsHtml;
+            } catch (e) {
+                console.error('خطا در پارس کردن لاگ‌ها:', e);
+                document.getElementById('logsContent').innerHTML = '<p class="text-danger">خطا در نمایش لاگ‌ها</p>';
+            }
+        }
+        
+        // نمایش modal
+        const modal = new bootstrap.Modal(document.getElementById('logsModal'));
+        modal.show();
+    }
+</script>
+
+{% endblock %}
+
+{% block title %}لیست بارنامه‌ها{% endblock %}
+
+{% block content %}
+
     <div class="container-fluid mt-4">
         <!-- Header -->
         <div class="row mb-4">
@@ -84,6 +927,10 @@
                                 <h2 class="mb-0 text-dark">لیست بارنامه‌ها</h2>
                             </div>
                             <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-warning" id="exportToExcelBtn">
+                                    <i class="fas fa-file-excel me-2"></i>
+                                    خروجی اکسل
+                                </button>
                                 <a href="{% url 'download_excel_template' %}" class="btn btn-success">
                                     <i class="fas fa-download me-2"></i>
                                     دانلود قالب اکسل
@@ -103,267 +950,199 @@
             </div>
         </div>
 
-        <!-- Filters -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <form method="get" class="row g-3">
-                            <div class="col-md-3">
-                                <label for="search" class="form-label">جستجو</label>
-                                <input type="text" class="form-control" id="search" name="search" 
-                                       value="{{ request.GET.search }}" placeholder="شماره بارنامه، سریال یا شناسه">
-                            </div>
-                            <div class="col-md-3">
-                                <label for="status" class="form-label">وضعیت</label>
-                                <select class="form-select" id="status" name="status">
-                                    <option value="">همه</option>
-                                    <option value="BARNAMEH_INCOMPLETE" {% if request.GET.status == 'BARNAMEH_INCOMPLETE' %}selected{% endif %}>بارنامه ناقص</option>
-                                    <option value="BARNAMEH_COMPLETE" {% if request.GET.status == 'BARNAMEH_COMPLETE' %}selected{% endif %}>بارنامه کامل</option>
-                                    <option value="PURCHASE_CLOSED" {% if request.GET.status == 'PURCHASE_CLOSED' %}selected{% endif %}>ارسال شده به بازارگاه</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label for="date_from" class="form-label">از تاریخ</label>
-                                <input type="date" class="form-control" id="date_from" name="date_from" 
-                                       value="{{ request.GET.date_from }}">
-                            </div>
-                            <div class="col-md-3">
-                                <label for="date_to" class="form-label">تا تاریخ</label>
-                                <input type="date" class="form-control" id="date_to" name="date_to" 
-                                       value="{{ request.GET.date_to }}">
-                            </div>
-                            <div class="col-12">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-search me-2"></i>
-                                    جستجو
+    <!-- شمارنده انتخاب کلی -->
+    <div class="global-selection-info mb-4 shadow-sm bg-light p-2 rounded text-center" id="globalSelectionInfo" style="display: none;">
+        <div class="text-primary fw-bold">
+            <i class="fas fa-check-square me-2"></i>تعداد بارنامه‌های انتخاب شده: 
+            <span class="badge bg-primary" id="globalSelectionCount">0</span>
+            <button class="btn btn-sm btn-outline-secondary ms-3" id="clearAllSelections">
+                <i class="fas fa-times me-1"></i>لغو همه انتخاب‌ها
                                 </button>
-                                <a href="{% url 'barnameh_list' %}" class="btn btn-secondary ms-2">
-                                    <i class="fas fa-times me-2"></i>
-                                    پاک کردن فیلترها
-                                </a>
-                            </div>
-                        </form>
-                    </div>
+            </div>
+        </div>
+
+    <!-- Barnameh Section -->
+    <div class="barnameh-section mt-4">
+        <!-- Bulk Edit Controls Panel -->
+        <div class="bulk-edit-controls" style="display: none;">
+            <div class="bulk-edit-toolbar">
+                <div class="selected-count">
+                    <i class="fas fa-check-square"></i>
+                    <span class="count">0</span> مورد انتخاب شده
+                </div>
+                <div class="bulk-edit-actions">
+                    <button class="btn btn-primary bulk-edit-btn" data-action="edit">
+                        <i class="fas fa-edit"></i> ویرایش گروهی
+                            </button>
+                    <button class="btn btn-success bulk-edit-excel-btn" data-action="excel">
+                        <i class="fas fa-file-excel"></i> ویرایش با اکسل
+                            </button>
+                    <button class="btn btn-info download-template-btn" data-action="template">
+                        <i class="fas fa-download"></i> دانلود قالب اکسل
+                            </button>
+                    <button class="btn btn-success bulk-send-to-bki-btn" data-action="send_bki" onclick="bulkSendToBki()">
+                        <i class="fas fa-paper-plane"></i> ارسال گروهی به بازارگاه
+                    </button>
+                    <button class="btn btn-warning history-btn" onclick="viewEditHistory()">
+                        <i class="fas fa-history"></i> تاریخچه تغییرات
+                    </button>
+                    <button class="btn btn-secondary clear-selection-btn" data-action="clear">
+                        <i class="fas fa-times"></i> لغو انتخاب
+                            </button>
                 </div>
             </div>
         </div>
 
-        <!-- Bulk Actions -->
-        <div class="row mb-3">
-            <div class="col-12">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex gap-2">
-                            <button type="button" id="bulk-send-btn" class="btn btn-primary btn-sm">
-                                <i class="fas fa-paper-plane me-1"></i>
-                                ارسال گروهی به بازارگاه
-                            </button>
-                            <button type="button" id="bulk-export-btn" class="btn btn-success btn-sm">
-                                <i class="fas fa-file-excel me-1"></i>
-                                خروجی اکسل
-                            </button>
-                            <button type="button" id="bulk-edit-btn" class="btn btn-warning btn-sm">
-                                <i class="fas fa-edit me-1"></i>
-                                ویرایش گروهی
-                            </button>
-                            <button type="button" id="bulk-delete-btn" class="btn btn-danger btn-sm">
-                                <i class="fas fa-trash me-1"></i>
-                                حذف گروهی
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Table -->
-        <div class="row">
-            <div class="col-12">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-light py-2">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0 fw-bold">
-                                <i class="fas fa-table me-2"></i>
-                                لیست بارنامه‌ها
-                            </h6>
+        <div class="table-responsive shadow-sm rounded">
+            <table class="table table-bordered table-striped align-middle text-center python-excel-filter" 
+                   id="barnamehTable" 
+                   data-filter-url="{% url 'apply_barnameh_filter' %}"
+                   data-column-values-url="{% url 'barnameh_column_values' 'dummy' %}"
+                   data-section="barnameh">
+                <thead class="table-light sticky-header">
+                    <tr>
+                        <!-- Column for selection checkboxes -->
+                        <th class="text-center" style="width: 50px;">
+                            <div class="d-flex justify-content-center align-items-center">
                             <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="columnToggleDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fas fa-columns me-1"></i>
-                                    نمایش ستون‌ها
+                                    <input type="checkbox" class="select-all-checkbox" 
+                                           style="width: 20px; height: 20px; cursor: pointer;" 
+                                           title="کلیک: انتخاب همه در صفحه | راست کلیک: انتخاب همه در بخش"
+                                           oncontextmenu="return false;">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle ms-1" 
+                                            type="button" 
+                                            data-bs-toggle="dropdown" 
+                                            aria-expanded="false"
+                                            style="padding: 1px 4px; font-size: 10px;"
+                                            title="گزینه‌های انتخاب">
+                                        <i class="fas fa-caret-down"></i>
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end p-2" aria-labelledby="columnToggleDropdown" style="min-width: 200px;">
-                                    <li>
-                                        <div class="form-check">
-                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-number" data-column="number" checked>
-                                            <label class="form-check-label" for="toggle-number">شماره بارنامه</label>
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <div class="form-check">
-                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-serial" data-column="serial" checked>
-                                            <label class="form-check-label" for="toggle-serial">سریال بارنامه</label>
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <div class="form-check">
-                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-tonnage" data-column="tonnage" checked>
-                                            <label class="form-check-label" for="toggle-tonnage">وزن (کیلوگرم)</label>
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <div class="form-check">
-                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-purchase_number" data-column="purchase_number" checked>
-                                            <label class="form-check-label" for="toggle-purchase_number">شناسه خرید</label>
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <div class="form-check">
-                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-shenase_takhsis_code" data-column="shenase_takhsis_code" checked>
-                                            <label class="form-check-label" for="toggle-shenase_takhsis_code">شناسه تخصیص</label>
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <div class="form-check">
-                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-driver_name" data-column="driver_name">
-                                            <label class="form-check-label" for="toggle-driver_name">نام راننده</label>
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <div class="form-check">
-                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-driver_phone" data-column="driver_phone">
-                                            <label class="form-check-label" for="toggle-driver_phone">شماره راننده</label>
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <div class="form-check">
-                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-vehicle_plate" data-column="vehicle_plate">
-                                            <label class="form-check-label" for="toggle-vehicle_plate">پلاک خودرو</label>
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <div class="form-check">
-                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-receiver_name" data-column="receiver_name">
-                                            <label class="form-check-label" for="toggle-receiver_name">نام گیرنده</label>
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <div class="form-check">
-                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-destination" data-column="destination">
-                                            <label class="form-check-label" for="toggle-destination">مقصد</label>
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <div class="form-check">
-                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-barnameh_date" data-column="barnameh_date">
-                                            <label class="form-check-label" for="toggle-barnameh_date">تاریخ بارنامه</label>
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <div class="form-check">
-                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-status" data-column="status" checked>
-                                            <label class="form-check-label" for="toggle-status">وضعیت</label>
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <div class="form-check">
-                                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-logs" data-column="logs" checked>
-                                            <label class="form-check-label" for="toggle-logs">لاگ‌ها</label>
-                                        </div>
-                                    </li>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item select-page" href="#">
+                                            <i class="fas fa-check me-2"></i>انتخاب همه در صفحه
+                                        </a></li>
+                                        <li><a class="dropdown-item select-section" href="#">
+                                            <i class="fas fa-check-double me-2"></i>انتخاب همه در بخش
+                                        </a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <button id="show-all-columns" class="btn btn-sm btn-outline-primary w-100">نمایش همه</button>
-                                    </li>
-                                    <li>
-                                        <button id="hide-all-columns" class="btn btn-sm btn-outline-secondary w-100 mt-1">مخفی کردن همه</button>
-                                    </li>
+                                        <li><a class="dropdown-item clear-selection" href="#">
+                                            <i class="fas fa-times me-2"></i>لغو انتخاب‌ها
+                                        </a></li>
                                 </ul>
                             </div>
-                        </div>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead>
-                                    <tr>
-                                        <th class="text-center">
-                                            <div class="form-check">
-                                                <input type="checkbox" id="select-all" class="form-check-input">
                                             </div>
                                         </th>
-                                        <th class="sortable column-number" data-sort="number">
+                        
+                        {% filter_column_class 'number' 'text' as col_class %}
+                        {% filter_column_attrs 'number' 'text' 'شماره بارنامه' as col_attrs %}
+                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="number" data-column-type="text">
                                             شماره بارنامه
-                                            <i class="fas fa-sort ms-1 {% if current_sort == 'number' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
                                         </th>
-                                        <th class="sortable column-serial" data-sort="serial">
+                        
+                        {% filter_column_class 'serial' 'text' as col_class %}
+                        {% filter_column_attrs 'serial' 'text' 'سریال بارنامه' as col_attrs %}
+                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="serial" data-column-type="text">
                                             سریال بارنامه
-                                            <i class="fas fa-sort ms-1 {% if current_sort == 'serial' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
                                         </th>
-                                        <th class="sortable column-tonnage" data-sort="tonnage">
+                        
+                        {% filter_column_class 'tonnage' 'number' as col_class %}
+                        {% filter_column_attrs 'tonnage' 'number' 'وزن (کیلوگرم)' as col_attrs %}
+                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="tonnage" data-column-type="number">
                                             وزن (کیلوگرم)
-                                            <i class="fas fa-sort ms-1 {% if current_sort == 'tonnage' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
                                         </th>
-                                        <th class="sortable column-purchase_number" data-sort="purchase_number">
+                        
+                        {% filter_column_class 'purchase_number' 'text' as col_class %}
+                        {% filter_column_attrs 'purchase_number' 'text' 'شناسه خرید' as col_attrs %}
+                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="purchase_number" data-column-type="text">
                                             شناسه خرید
-                                            <i class="fas fa-sort ms-1 {% if current_sort == 'purchase_number' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
                                         </th>
-                                        <th class="sortable column-shenase_takhsis_code" data-sort="shenase_takhsis_code">
+                        
+                        {% filter_column_class 'shenase_takhsis_code' 'text' as col_class %}
+                        {% filter_column_attrs 'shenase_takhsis_code' 'text' 'شناسه تخصیص' as col_attrs %}
+                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="shenase_takhsis_code" data-column-type="text">
                                             شناسه تخصیص
-                                            <i class="fas fa-sort ms-1 {% if current_sort == 'shenase_takhsis_code' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
                                         </th>
-                                        <th class="sortable column-driver_name" data-sort="driver_name" style="display: none;">
+                        
+                        {% filter_column_class 'driver_name' 'text' as col_class %}
+                        {% filter_column_attrs 'driver_name' 'text' 'نام راننده' as col_attrs %}
+                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="driver_name" data-column-type="text">
                                             نام راننده
-                                            <i class="fas fa-sort ms-1 {% if current_sort == 'driver_name' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
                                         </th>
-                                        <th class="sortable column-driver_phone" data-sort="driver_phone" style="display: none;">
+                        
+                        {% filter_column_class 'driver_phone' 'text' as col_class %}
+                        {% filter_column_attrs 'driver_phone' 'text' 'شماره راننده' as col_attrs %}
+                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="driver_phone" data-column-type="text">
                                             شماره راننده
-                                            <i class="fas fa-sort ms-1 {% if current_sort == 'driver_phone' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
                                         </th>
-                                        <th class="sortable column-vehicle_plate" data-sort="vehicle_plate" style="display: none;">
+                        
+                        {% filter_column_class 'vehicle_plate' 'text' as col_class %}
+                        {% filter_column_attrs 'vehicle_plate' 'text' 'پلاک خودرو' as col_attrs %}
+                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="vehicle_plate" data-column-type="text">
                                             پلاک خودرو
-                                            <i class="fas fa-sort ms-1 {% if current_sort == 'vehicle_plate' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
                                         </th>
-                                        <th class="sortable column-receiver_name" data-sort="receiver_name" style="display: none;">
+                        
+                        {% filter_column_class 'receiver_name' 'text' as col_class %}
+                        {% filter_column_attrs 'receiver_name' 'text' 'نام گیرنده' as col_attrs %}
+                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="receiver_name" data-column-type="text">
                                             نام گیرنده
-                                            <i class="fas fa-sort ms-1 {% if current_sort == 'receiver_name' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
                                         </th>
-                                        <th class="sortable column-destination" data-sort="destination" style="display: none;">
+                        
+                        {% filter_column_class 'destination' 'text' as col_class %}
+                        {% filter_column_attrs 'destination' 'text' 'مقصد' as col_attrs %}
+                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="destination" data-column-type="text">
                                             مقصد
-                                            <i class="fas fa-sort ms-1 {% if current_sort == 'destination' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
                                         </th>
-                                        <th class="sortable column-barnameh_date" data-sort="barnameh_date" style="display: none;">
+                        
+                        {% filter_column_class 'barnameh_date' 'date' as col_class %}
+                        {% filter_column_attrs 'barnameh_date' 'date' 'تاریخ بارنامه' as col_attrs %}
+                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="barnameh_date" data-column-type="date">
                                             تاریخ بارنامه
-                                            <i class="fas fa-sort ms-1 {% if current_sort == 'barnameh_date' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
                                         </th>
-                                        <th class="sortable column-status" data-sort="status">
+                        
+                        {% filter_column_class 'status' 'choice' as col_class %}
+                        {% filter_column_attrs 'status' 'choice' 'وضعیت' as col_attrs %}
+                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="status" data-column-type="choice">
                                             وضعیت
-                                            <i class="fas fa-sort ms-1 {% if current_sort == 'status' %}{% if current_direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}{% endif %}"></i>
                                         </th>
-                                        <th class="column-logs">لاگ‌ها</th>
+                        
+                        <th>لاگ‌ها</th>
                                         <th class="text-center">عملیات</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for barnameh in barnamehs %}
-                                    <tr class="align-middle">
+                    <tr class="align-middle barnameh-row" 
+                        data-id="{{ barnameh.id }}"
+                        data-number="{{ barnameh.number|default:'' }}"
+                        data-serial="{{ barnameh.serial|default:'' }}"
+                        data-tonnage="{{ barnameh.tonnage|default:'' }}"
+                        data-status="{{ barnameh.status }}"
+                        data-purchase-number="{{ barnameh.purchase_number|default:'' }}"
+                        data-shenase-takhsis-code="{{ barnameh.shenase_takhsis_code|default:'' }}"
+                        data-driver-name="{{ barnameh.driver_name|default:'' }}"
+                        data-driver-phone="{{ barnameh.driver_phone|default:'' }}"
+                        data-vehicle-plate="{{ barnameh.vehicle_plate|default:'' }}"
+                        data-receiver-name="{{ barnameh.receiver_name|default:'' }}"
+                        data-destination="{{ barnameh.destination|default:'' }}"
+                        data-barnameh-date="{{ barnameh.barnameh_date|default:'' }}"
+                        data-is-sent-to-bki="{% if barnameh.is_sent_to_bki %}true{% else %}false{% endif %}">
+                        <!-- Checkbox column -->
                                         <td class="text-center">
-                                            <div class="form-check">
-                                                <input type="checkbox" name="barnameh_ids" value="{{ barnameh.id }}" 
-                                                       class="form-check-input barnameh-checkbox">
-                                            </div>
+                            <input type="checkbox" class="row-checkbox" data-id="{{ barnameh.id }}" 
+                                   style="width: 18px; height: 18px; cursor: pointer;" 
+                                   onchange="toggleRowSelection(this)">
                                         </td>
                                         <td class="column-number">{{ barnameh.number|default:"-" }}</td>
                                         <td class="column-serial">{{ barnameh.serial|default:"-" }}</td>
                                         <td class="column-tonnage">{{ barnameh.tonnage|default:"-" }}</td>
                                         <td class="column-purchase_number">{{ barnameh.purchase_number|default:"-" }}</td>
                                         <td class="column-shenase_takhsis_code">{{ barnameh.shenase_takhsis_code|default:"-" }}</td>
-                                        <td class="column-driver_name" style="display: none;">{{ barnameh.driver_name|default:"-" }}</td>
-                                        <td class="column-driver_phone" style="display: none;">{{ barnameh.driver_phone|default:"-" }}</td>
-                                        <td class="column-vehicle_plate" style="display: none;">{{ barnameh.vehicle_plate|default:"-" }}</td>
-                                        <td class="column-receiver_name" style="display: none;">{{ barnameh.receiver_name|default:"-" }}</td>
-                                        <td class="column-destination" style="display: none;">{{ barnameh.destination|default:"-" }}</td>
-                                        <td class="column-barnameh_date" style="display: none;">{{ barnameh.barnameh_date|default:"-" }}</td>
+                        <td class="column-driver_name">{{ barnameh.driver_name|default:"-" }}</td>
+                        <td class="column-driver_phone">{{ barnameh.driver_phone|default:"-" }}</td>
+                        <td class="column-vehicle_plate">{{ barnameh.vehicle_plate|default:"-" }}</td>
+                        <td class="column-receiver_name">{{ barnameh.receiver_name|default:"-" }}</td>
+                        <td class="column-destination">{{ barnameh.destination|default:"-" }}</td>
+                        <td class="column-barnameh_date">{{ barnameh.barnameh_date|default:"-" }}</td>
                                         <td class="column-status">
                                             {% if barnameh.status == 'BARNAMEH_INCOMPLETE' %}
                                             <span class="badge rounded-pill bg-warning text-dark">بارنامه ناقص</span>
@@ -373,70 +1152,75 @@
                                             <span class="badge rounded-pill bg-primary">ارسال شده به بازارگاه</span>
                                             {% endif %}
                                         </td>
-                                        <td class="column-logs">
+                                        <td class="column-logs text-center">
                                             {% if barnameh.logs %}
-                                                <div class="logs-container">
-                                                    <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="collapse" data-bs-target="#logs-{{ barnameh.id }}" aria-expanded="false">
-                                                        <i class="fas fa-history me-1"></i>
-                                                        نمایش لاگ‌ها
+                                                <button class="btn btn-sm btn-outline-info" 
+                                                        onclick="showLogsModal('{{ barnameh.id }}', '{{ barnameh.number }}', '{{ barnameh.serial }}')"
+                                                        data-logs='{% for log in barnameh.logs %}{"date": "{{ log.log_date|date:"Y/m/d H:i" }}", "message": "{{ log.log_message|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}'>
+                                                    <i class="fas fa-history"></i>
+                                                    <span class="badge bg-primary ms-1">{{ barnameh.logs|length }}</span>
                                                     </button>
-                                                    <div class="collapse mt-2" id="logs-{{ barnameh.id }}">
-                                                        <div class="card card-body p-2 bg-light">
-                                                            <ul class="list-unstyled mb-0 small">
-                                                                {% for log in barnameh.logs %}
-                                                                <li class="mb-1">
-                                                                    <span class="text-muted">{{ log.log_date|date:"Y/m/d H:i" }}</span>: 
-                                                                    {{ log.log_message }}
-                                                                </li>
-                                                                {% empty %}
-                                                                <li>هیچ لاگی یافت نشد</li>
-                                                                {% endfor %}
-                                                            </ul>
-                                                        </div>
-                                                    </div>
-                                                </div>
                                             {% else %}
-                                                <span class="text-muted small">بدون لاگ</span>
+                                                <span class="text-muted small">-</span>
                                             {% endif %}
                                         </td>
                                         <td class="text-center">
                                             <div class="btn-group">
-                                                <a href="{% url 'barnameh_detail' barnameh.id %}" class="btn btn-info btn-sm rounded-circle" data-bs-toggle="tooltip" title="مشاهده جزئیات">
+                                <a href="{% url 'barnameh_detail' barnameh.id %}" 
+                                   class="btn btn-info btn-sm rounded-circle" 
+                                   data-bs-toggle="tooltip" title="مشاهده جزئیات">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
                                                 {% if not barnameh.is_sent_to_bki %}
-                                                <a href="{% url 'barnameh_edit' barnameh.id %}" class="btn btn-warning btn-sm rounded-circle ms-1" data-bs-toggle="tooltip" title="ویرایش">
+                                <a href="{% url 'barnameh_edit' barnameh.id %}" 
+                                   class="btn btn-warning btn-sm rounded-circle ms-1" 
+                                   data-bs-toggle="tooltip" title="ویرایش">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
-                                                <form action="{% url 'barnameh_delete' barnameh.id %}" method="post" class="d-inline" onsubmit="return confirm('آیا از حذف این بارنامه اطمینان دارید؟');">
+                                <form action="{% url 'barnameh_delete' barnameh.id %}" method="post" 
+                                      class="d-inline" 
+                                      onsubmit="return confirm('آیا از حذف این بارنامه اطمینان دارید؟');">
                                                     {% csrf_token %}
-                                                    <button type="submit" class="btn btn-danger btn-sm rounded-circle ms-1" data-bs-toggle="tooltip" title="حذف">
+                                    <button type="submit" class="btn btn-danger btn-sm rounded-circle ms-1" 
+                                            data-bs-toggle="tooltip" title="حذف">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </form>
                                                 {% if barnameh.status == 'BARNAMEH_COMPLETE' and not barnameh.is_sent_to_bki %}
                                                 <form action="{% url 'send_to_bki' barnameh.id %}" method="post" class="d-inline">
                                                     {% csrf_token %}
-                                                    <button type="submit" class="btn btn-primary btn-sm rounded-circle ms-1" data-bs-toggle="tooltip" title="ارسال به بازارگاه">
+                                    <button type="submit" class="btn btn-primary btn-sm rounded-circle ms-1" 
+                                            data-bs-toggle="tooltip" title="ارسال به بازارگاه">
                                                         <i class="fas fa-paper-plane"></i>
                                                     </button>
                                                 </form>
                                                 {% elif barnameh.is_sent_to_bki %}
-                                                <a href="{% url 'edit_barnameh_in_bki' barnameh.id %}" class="btn btn-warning btn-sm rounded-circle ms-1" data-bs-toggle="tooltip" title="ویرایش در بازارگاه">
+                                <a href="{% url 'edit_barnameh_in_bki' barnameh.id %}" 
+                                   class="btn btn-warning btn-sm rounded-circle ms-1" 
+                                   data-bs-toggle="tooltip" title="ویرایش در بازارگاه">
                                                     <i class="fas fa-pencil-alt"></i>
                                                 </a>
                                                 {% endif %}
                                                 {% else %}
-                                                <a href="{% url 'edit_barnameh_in_bki' barnameh.id %}" class="btn btn-warning btn-sm rounded-circle ms-1" data-bs-toggle="tooltip" title="ویرایش در بازارگاه">
+                                <a href="{% url 'edit_barnameh_in_bki' barnameh.id %}" 
+                                   class="btn btn-warning btn-sm rounded-circle ms-1" 
+                                   data-bs-toggle="tooltip" title="ویرایش در بازارگاه">
                                                     <i class="fas fa-pencil-alt"></i>
                                                 </a>
                                                 {% endif %}
+                                <button type="button" class="btn btn-outline-success btn-sm item-history-btn ms-1" 
+                                        data-id="{{ barnameh.id }}"
+                                        data-barnameh-number="{{ barnameh.number }}"
+                                        data-barnameh-serial="{{ barnameh.serial }}"
+                                        title="تاریخچه تغییرات {{ barnameh.number }}/{{ barnameh.serial }}">
+                                    <i class="fas fa-history"></i>
+                                </button>
                                             </div>
                                         </td>
                                     </tr>
                                     {% empty %}
                                     <tr>
-                                        <td colspan="14" class="text-center py-4">
+                        <td colspan="15" class="text-center py-4">
                                             <i class="fas fa-inbox text-muted" style="font-size: 3rem;"></i>
                                             <p class="text-muted mt-2">هیچ بارنامه‌ای یافت نشد</p>
                                         </td>
@@ -444,52 +1228,8 @@
                                     {% endfor %}
                                 </tbody>
                             </table>
-                        </div>
-                    </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Pagination -->
-        {% if is_paginated %}
-        <div class="row mt-4">
-            <div class="col-12">
-                <nav aria-label="صفحه‌بندی">
-                    <ul class="pagination justify-content-center">
-                        {% if page_obj.has_previous %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">اول</a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">قبلی</a>
-                        </li>
-                        {% endif %}
-
-                        {% for num in page_obj.paginator.page_range %}
-                        {% if page_obj.number == num %}
-                        <li class="page-item active">
-                            <span class="page-link">{{ num }}</span>
-                        </li>
-                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{{ num }}</a>
-                        </li>
-                        {% endif %}
-                        {% endfor %}
-
-                        {% if page_obj.has_next %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">بعدی</a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">آخر</a>
-                        </li>
-                        {% endif %}
-                    </ul>
-                </nav>
-            </div>
-        </div>
-        {% endif %}
     </div>
 
     <!-- Hidden forms for bulk actions -->
@@ -498,7 +1238,12 @@
         <!-- Barnameh IDs will be added dynamically -->
     </form>
     
-    <form id="bulk-export-form" action="{% url 'export_excel' %}" method="post" style="display: none;">
+          <form id="bulk-export-form" action="{% url 'export_barnameh_excel' %}" method="post" style="display: none;">
+          {% csrf_token %}
+          <!-- Barnameh IDs will be added dynamically -->
+      </form>
+      
+      <form id="bulk-send-to-bki-form" action="{% url 'bulk_send_to_bki' %}" method="post" style="display: none;">
         {% csrf_token %}
         <!-- Barnameh IDs will be added dynamically -->
     </form>
@@ -513,79 +1258,105 @@
         <!-- Barnameh IDs will be added dynamically -->
     </form>
 
+    <!-- Modal برای نمایش لاگ‌ها -->
+    <div class="modal fade" id="logsModal" tabindex="-1" aria-labelledby="logsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="logsModalLabel">
+                        <i class="fas fa-history me-2"></i>
+                        لاگ‌های بارنامه <span id="modalBarnamehInfo"></span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="logsContent">
+                        <!-- محتوای لاگ‌ها در اینجا قرار می‌گیرد -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>بستن
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+    // راه‌اندازی فیلتر اکسلی برای جدول بارنامه
+    if (typeof TableFilter !== 'undefined') {
+        new TableFilter({
+            tableSelector: '#barnamehTable',
+            enableToast: true,
+            enableIndicators: true,
+            enableSummary: true,
+            enableClearAll: true,
+            autoDetectColumns: true
+        });
+        console.log('فیلتر اکسلی راه‌اندازی شد برای جدول بارنامه');
+    } else {
+        console.error('TableFilter class یافت نشد. مطمئن شوید که table_filter.js بارگذاری شده است.');
+    }
+    
         // عملکرد انتخاب همه
-        var selectAllCheckbox = document.getElementById('select-all');
-        var barnameCheckboxes = document.querySelectorAll('.barnameh-checkbox');
+    var selectAllCheckbox = document.querySelector('.select-all-checkbox');
+    var barnamehCheckboxes = document.querySelectorAll('.row-checkbox');
         
+    if (selectAllCheckbox) {
         selectAllCheckbox.addEventListener('change', function() {
-            barnameCheckboxes.forEach(function(checkbox) {
+            barnamehCheckboxes.forEach(function(checkbox) {
                 checkbox.checked = selectAllCheckbox.checked;
             });
+            updateSelectionCount();
         });
+    }
         
         // بررسی وضعیت چک‌باکس "انتخاب همه" بر اساس چک‌باکس‌های انفرادی
-        barnameCheckboxes.forEach(function(checkbox) {
+    barnamehCheckboxes.forEach(function(checkbox) {
             checkbox.addEventListener('change', function() {
-                var checkedCount = document.querySelectorAll('.barnameh-checkbox:checked').length;
-                selectAllCheckbox.checked = checkedCount === barnameCheckboxes.length;
-                selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < barnameCheckboxes.length;
+            updateSelectionCount();
+            var checkedCount = document.querySelectorAll('.row-checkbox:checked').length;
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = checkedCount === barnamehCheckboxes.length;
+                selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < barnamehCheckboxes.length;
+            }
             });
         });
 
-        // عملکرد مرتب‌سازی
-        var sortableHeaders = document.querySelectorAll('.sortable');
-        
-        sortableHeaders.forEach(function(header) {
-            header.addEventListener('click', function() {
-                var sortField = this.getAttribute('data-sort');
-                var currentDirection = '{{ current_direction }}';
-                
-                // تعیین جهت مرتب‌سازی جدید
-                var newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
-                
-                if (sortField !== '{{ current_sort }}') {
-                    newDirection = 'asc'; // اگر ستون جدیدی انتخاب شده، ابتدا صعودی مرتب کن
-                }
-                
-                // ایجاد URL جدید با پارامترهای مرتب‌سازی
-                var url = new URL(window.location);
-                url.searchParams.set('sort', sortField);
-                url.searchParams.set('direction', newDirection);
-                
-                // حفظ پارامترهای فیلتر
-                window.location.href = url.toString();
-            });
+    function updateSelectionCount() {
+        var checkedCount = document.querySelectorAll('.row-checkbox:checked').length;
+        var countElements = document.querySelectorAll('.selected-count .count, #globalSelectionCount');
+        countElements.forEach(function(el) {
+            el.textContent = checkedCount;
         });
+        
+        var bulkControls = document.querySelector('.bulk-edit-controls');
+        var globalInfo = document.getElementById('globalSelectionInfo');
+        
+        if (checkedCount > 0) {
+            if (bulkControls) bulkControls.style.display = 'block';
+            if (globalInfo) globalInfo.style.display = 'block';
+        } else {
+            if (bulkControls) bulkControls.style.display = 'none';
+            if (globalInfo) globalInfo.style.display = 'none';
+        }
+    }
 
         // فعال کردن tooltips
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
-
-        // انتخاب ردیف با کلیک روی سلول
-        var tableRows = document.querySelectorAll('tbody tr');
-        tableRows.forEach(function(row) {
-            row.addEventListener('click', function(e) {
-                // فقط اگر روی سلول کلیک شده باشد (نه روی دکمه‌ها یا چک‌باکس‌ها)
-                if (e.target.tagName === 'TD' && !e.target.querySelector('button, a, input')) {
-                    var checkbox = this.querySelector('.barnameh-checkbox');
-                    if (checkbox) {
-                        checkbox.click(); // استفاده از click به جای checked برای فعال کردن رویداد
-                    }
-                }
-            });
-        });
         
         // تابع کمکی برای اضافه کردن آیدی‌های انتخاب شده به فرم
         function addSelectedIdsToForm(formId) {
             var form = document.getElementById(formId);
-            var checkboxes = document.querySelectorAll('.barnameh-checkbox:checked');
+        var checkboxes = document.querySelectorAll('.row-checkbox:checked');
             
             // حذف همه input های قبلی
             form.querySelectorAll('input[name="barnameh_ids"]').forEach(function(input) {
@@ -604,125 +1375,82 @@
             return checkboxes.length;
         }
         
-        // اعتبارسنجی فرم قبل از ارسال
-        var actionButtons = document.querySelectorAll('#bulk-send-btn, #bulk-export-btn, #bulk-edit-btn, #bulk-delete-btn');
-        actionButtons.forEach(function(button) {
+    // رویدادهای دکمه‌های عملیات گروهی
+    var bulkButtons = document.querySelectorAll('.bulk-edit-btn, .bulk-edit-excel-btn, .download-template-btn, .clear-selection-btn');
+    bulkButtons.forEach(function(button) {
             button.addEventListener('click', function(e) {
-                var checkedBoxes = document.querySelectorAll('.barnameh-checkbox:checked');
-                if (checkedBoxes.length === 0) {
+            var action = this.getAttribute('data-action');
+            var checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            
+            if (action !== 'template' && action !== 'clear' && checkedBoxes.length === 0) {
                     e.preventDefault();
                     alert('لطفاً حداقل یک بارنامه را انتخاب کنید.');
                     return;
                 }
                 
-                var formId, message, needConfirmation = false;
+            var formId, needConfirmation = false, message;
                 
-                switch(this.id) {
-                    case 'bulk-send-btn':
-                        formId = 'bulk-send-form';
-                        message = 'آیا از ارسال بارنامه‌های انتخاب شده به بازارگاه اطمینان دارید؟';
-                        needConfirmation = true;
+            switch(action) {
+                case 'edit':
+                    // Redirect to bulk edit page with selected IDs
+                    var ids = Array.from(checkedBoxes).map(cb => cb.value);
+                    var url = window.BarnamehListConfig.bulkEditPageUrl + '?table_name=barnameh&ids=' + ids.join(',');
+                    window.location.href = url;
                         break;
-                    case 'bulk-export-btn':
-                        formId = 'bulk-export-form';
+                case 'excel':
+                    // Redirect to excel edit page with selected IDs
+                    var ids = Array.from(checkedBoxes).map(cb => cb.value);
+                    var url = window.BarnamehListConfig.excelEditPageUrl + '?table_name=barnameh&ids=' + ids.join(',');
+                    window.location.href = url;
                         break;
-                    case 'bulk-edit-btn':
-                        formId = 'bulk-edit-form';
+                case 'template':
+                    // Download template
+                    var url = window.BarnamehListConfig.downloadTemplateUrl + '?table_name=barnameh';
+                    window.location.href = url;
                         break;
-                    case 'bulk-delete-btn':
-                        formId = 'bulk-delete-form';
-                        message = 'آیا از حذف بارنامه‌های انتخاب شده اطمینان دارید؟';
-                        needConfirmation = true;
-                        break;
-                }
-                
-                // اضافه کردن آیدی‌های انتخاب شده به فرم
-                var count = addSelectedIdsToForm(formId);
-                
-                // نمایش پیام تأیید در صورت نیاز
-                if (needConfirmation) {
-                    if (!confirm(message)) {
-                        e.preventDefault();
-                        return;
+                case 'clear':
+                    // Clear all selections
+                    checkedBoxes.forEach(function(cb) {
+                        cb.checked = false;
+                    });
+                    if (selectAllCheckbox) {
+                        selectAllCheckbox.checked = false;
+                        selectAllCheckbox.indeterminate = false;
                     }
+                    updateSelectionCount();
+                        break;
                 }
-                
-                // ارسال فرم
-                document.getElementById(formId).submit();
             });
         });
 
-        // مدیریت نمایش/مخفی‌سازی ستون‌ها
-        var toggleColumnCheckboxes = document.querySelectorAll('.toggle-column');
-        
-        // ذخیره وضعیت نمایش ستون‌ها در localStorage
-        function saveColumnState() {
-            var columnState = {};
-            toggleColumnCheckboxes.forEach(function(checkbox) {
-                var column = checkbox.getAttribute('data-column');
-                columnState[column] = checkbox.checked;
+    // رویداد لغو همه انتخاب‌ها
+    var clearAllBtn = document.getElementById('clearAllSelections');
+    if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', function() {
+            document.querySelectorAll('.row-checkbox:checked').forEach(function(cb) {
+                cb.checked = false;
             });
-            localStorage.setItem('barnameh_column_state', JSON.stringify(columnState));
-        }
-        
-        // بازیابی وضعیت نمایش ستون‌ها از localStorage
-        function loadColumnState() {
-            var columnState = localStorage.getItem('barnameh_column_state');
-            if (columnState) {
-                columnState = JSON.parse(columnState);
-                toggleColumnCheckboxes.forEach(function(checkbox) {
-                    var column = checkbox.getAttribute('data-column');
-                    if (column in columnState) {
-                        checkbox.checked = columnState[column];
-                        toggleColumn(column, columnState[column]);
-                    }
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            }
+            updateSelectionCount();
                 });
             }
-        }
-        
-        // تغییر وضعیت نمایش ستون
-        function toggleColumn(column, show) {
-            var columnElements = document.querySelectorAll('.column-' + column);
-            columnElements.forEach(function(element) {
-                element.style.display = show ? '' : 'none';
-            });
-        }
-        
-        // اضافه کردن رویداد تغییر به چک‌باکس‌های ستون
-        toggleColumnCheckboxes.forEach(function(checkbox) {
-            checkbox.addEventListener('change', function() {
-                var column = this.getAttribute('data-column');
-                toggleColumn(column, this.checked);
-                saveColumnState();
-            });
-        });
-        
-        // نمایش همه ستون‌ها
-        document.getElementById('show-all-columns').addEventListener('click', function(e) {
-            e.preventDefault();
-            toggleColumnCheckboxes.forEach(function(checkbox) {
-                checkbox.checked = true;
-                var column = checkbox.getAttribute('data-column');
-                toggleColumn(column, true);
-            });
-            saveColumnState();
-        });
-        
-        // مخفی کردن همه ستون‌ها
-        document.getElementById('hide-all-columns').addEventListener('click', function(e) {
-            e.preventDefault();
-            toggleColumnCheckboxes.forEach(function(checkbox) {
-                checkbox.checked = false;
-                var column = checkbox.getAttribute('data-column');
-                toggleColumn(column, false);
-            });
-            saveColumnState();
-        });
-        
-        // بارگذاری وضعیت ستون‌ها در زمان بارگذاری صفحه
-        loadColumnState();
-    });
+});
+
+// Global function for row selection toggle
+function toggleRowSelection(checkbox) {
+    // This function is called by the onchange event in the template
+    // The event listener above will handle the actual logic
+}
+
+// Global function for viewing edit history
+function viewEditHistory() {
+    if (window.BarnamehListConfig && window.BarnamehListConfig.historyApiUrl) {
+        window.location.href = '{% url "table_filter:edit_history" %}';
+    }
+}
     </script>
-</body>
-</html>
+
 {% endblock %}
