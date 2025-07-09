@@ -971,11 +971,11 @@ class PurchaseServerFilter {
                         </button>
                     </div>
                 `;
-            } else if (['is_factored', 'is_urgent', 'is_canceled', 'is_archived'].includes(columnId)) {
+            } else if (['is_factored', 'is_urgent', 'is_canceled', 'is_archived', 'ready_for_invoice'].includes(columnId)) {
                 const icon = cellValue === 'بله' ? '✓' : '✗';
                 const colorClass = cellValue === 'بله' ? 'text-success' : 'text-danger';
                 cell.innerHTML = `<span class="${colorClass}">${icon}</span>`;
-            } else if (['weight', 'delivered_weight', 'company_price', 'customer_price', 'amount_paid'].includes(columnId)) {
+            } else if (['weight', 'delivered_weight', 'company_price', 'customer_price', 'amount_paid', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit', 'extelaf_amount'].includes(columnId)) {
                 cell.textContent = cellValue;
                 cell.style.textAlign = 'left';
                 cell.style.direction = 'ltr';

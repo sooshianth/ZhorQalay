@@ -87,6 +87,11 @@ class Purchase(models.Model):
     is_fully_tasvied = models.BooleanField("تسویه کامل", default=False)
     is_factored = models.BooleanField("ثبت فاکتور", default=False)
 
+    ready_for_invoice = models.BooleanField("آماده فاکتور", default=False)
+    purchase_mabna_invoice = models.PositiveBigIntegerField("فاکتور خرید مبنا", blank=True, null=True)
+    sales_mabna_invoice = models.PositiveBigIntegerField("فاکتور فروش مبنا", blank=True, null=True)
+    mabna_profit = models.PositiveBigIntegerField("سود مبنا", blank=True, null=True)
+
     wallet_index = models.CharField("شاخص محاسبه کیف پول", max_length=1, default='0', choices=[('0', 'وزن سفارش'), ('1', 'وزن تحویلی')])
     is_address_sent = models.CharField('آیا آدرس به واردکننده ارسال شده اس؟', max_length=1, default='0', choices=[('0', "ارسال نشده"),('1', "ارسال شده")])
 
@@ -591,11 +596,41 @@ class Purchase(models.Model):
             
     def save(self, *args, **kwargs):
         is_new = not self.pk  # Check if this is a new instance
+
+        # 🧮 محاسبه فاکتور مبنا و factor_code
+        if self.ready_for_invoice or self.is_factored:
+            self.factor_code = True
+        else:
+            self.factor_code = False
+
+        # 🏗️ محاسبه فاکتورهای مبنا و سود مبنا
+        # محاسبه همیشه انجام می‌شود، حتی اگر قیمت‌ها صفر باشند
+        company_price = self.company_price or 0
+        customer_price = self.customer_price or 0
         
-        # 🔄 همگام‌سازی خودکار factor_code با is_factored
-        # وقتی is_factored تغییر کند، factor_code هم باید متناظر با آن تغییر کند
-        self.factor_code = self.is_factored
+        # تعیین وزن مبنا بر اساس factor_code
+        if self.factor_code:
+            # اگر آماده فاکتور یا صدور فاکتور است، وزن بارنامه شده مبنا است
+            # اگر وزن بارنامه شده 0 باشد، همه محاسبات باید 0 شوند
+            base_weight = self.delivered_weight or 0
+            # اگر delivered_weight صفر است، محاسبه نکن
+            if base_weight == 0:
+                base_weight = 0
+        else:
+            # در غیر این صورت وزن خرید مبنا است
+            base_weight = self.order_weight or 0
         
+        # محاسبه فاکتور خرید مبنا
+        self.purchase_mabna_invoice = company_price * base_weight
+        
+        # محاسبه فاکتور فروش مبنا
+        self.sales_mabna_invoice = customer_price * base_weight
+        
+        # محاسبه سود مبنا
+        self.mabna_profit = self.sales_mabna_invoice - self.purchase_mabna_invoice
+        
+
+                
         # مکانیزم خودکار همگام‌سازی کارشناس فروش و نام
         try:
             
