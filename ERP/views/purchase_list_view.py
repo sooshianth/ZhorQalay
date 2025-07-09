@@ -2646,4 +2646,4 @@ def get_purchase_column_values(request):
         return JsonResponse({
             'status': 'error',
             'message': str(e)
-        }, status=500) 
+        }, status=500)  

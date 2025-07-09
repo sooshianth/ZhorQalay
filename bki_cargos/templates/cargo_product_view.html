@@ -6,6 +6,7 @@
 
 {% block content %}
 {% table_filter_scripts %}
+{% bulk_edit_scripts %}
 
 <style>
     /* CSS Variables */
@@ -415,6 +416,30 @@
             <span class="badge badge-success">{{ cargo_products|length }} محصول</span>
         </div>
         <div class="card-body" style="padding: 0;">
+            <!-- Bulk Edit Controls Panel for Active Products -->
+            <div class="bulk-edit-controls bulk-edit-controls-active" style="display: none; background-color: #f8fafc; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <div class="bulk-edit-toolbar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                    <div class="selected-count" style="font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-check-square"></i>
+                        <span class="count">0</span> مورد انتخاب شده
+                    </div>
+                    <div class="bulk-edit-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-primary bulk-edit-btn" data-action="edit" data-section="active">
+                            <i class="fas fa-edit"></i> ویرایش گروهی
+                        </button>
+                        <button class="btn btn-success bulk-edit-excel-btn" data-action="excel" data-section="active">
+                            <i class="fas fa-file-excel"></i> ویرایش با اکسل
+                        </button>
+                        <button class="btn btn-info download-template-btn" data-action="template" data-section="active">
+                            <i class="fas fa-download"></i> دانلود قالب اکسل
+                        </button>
+                        <button class="btn btn-secondary clear-selection-btn" data-action="clear" data-section="active">
+                            <i class="fas fa-times"></i> لغو انتخاب
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
             <div style="overflow-x: auto;">
                 <table class="enable-filter" id="activeProductsTable">
                     <thead>
@@ -484,6 +509,30 @@
             <i class="fas fa-chevron-down dropdown-icon"></i>
         </summary>
         <div class="dropdown-content">
+            <!-- Bulk Edit Controls Panel for Inactive Products -->
+            <div class="bulk-edit-controls bulk-edit-controls-archived" style="display: none; background-color: #f8fafc; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <div class="bulk-edit-toolbar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                    <div class="selected-count" style="font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-check-square"></i>
+                        <span class="count">0</span> مورد انتخاب شده
+                    </div>
+                    <div class="bulk-edit-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-primary bulk-edit-btn" data-action="edit" data-section="archived">
+                            <i class="fas fa-edit"></i> ویرایش گروهی
+                        </button>
+                        <button class="btn btn-success bulk-edit-excel-btn" data-action="excel" data-section="archived">
+                            <i class="fas fa-file-excel"></i> ویرایش با اکسل
+                        </button>
+                        <button class="btn btn-info download-template-btn" data-action="template" data-section="archived">
+                            <i class="fas fa-download"></i> دانلود قالب اکسل
+                        </button>
+                        <button class="btn btn-secondary clear-selection-btn" data-action="clear" data-section="archived">
+                            <i class="fas fa-times"></i> لغو انتخاب
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
             <div style="overflow-x: auto;">
                 <table class="enable-filter" id="inactiveProductsTable">
                     <thead>
@@ -677,38 +726,18 @@
 {% enable_table_filter %}
 
 <!-- Initialize bulk edit manager -->
-<script src="{% static 'table_filter/js/bulk_edit.js' %}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Configure the existing global bulk edit manager
+        // Configure the bulk edit manager
         if (window.bulkEditManager) {
             // Override the detectTableType function
             window.bulkEditManager.detectTableType = function() {
-                const url = window.location.pathname;
-                if (url.includes('cargo-product') || url.includes('cargo_product')) {
-                    return 'cargo_product';
-                } else if (url.includes('purchase')) {
-                    return 'purchase';
-                } else if (url.includes('customer')) {
-                    return 'customer';
-                } else if (url.includes('barbary') || url.includes('barbaries')) {
-                    return 'barbary';
-                } else if (url.includes('vared-konandeh') || url.includes('vared_konandeh')) {
-                    return 'vared_konandeh';
-                }
-                return 'cargo_product'; // Default to cargo_product instead of generic
+                return 'cargo_product';
             };
             
             // Override the getModelName function
             window.bulkEditManager.getModelName = function(tableType) {
-                const modelMap = {
-                    'purchase': 'Purchase',
-                    'customer': 'Customer',
-                    'barbary': 'Barbary',
-                    'vared_konandeh': 'VaredKonandeh',
-                    'cargo_product': 'CargoProduct'
-                };
-                return modelMap[tableType] || 'CargoProduct';
+                return 'CargoProduct';
             };
             
             // Override the getAppName function
