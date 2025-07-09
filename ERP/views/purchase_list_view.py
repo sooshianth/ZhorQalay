@@ -1592,6 +1592,10 @@ def get_purchase_table_configuration(request):
                 {'id': 'priority', 'name': 'اولویت', 'type': 'choice', 'filterable': True, 'sortable': True},
                 {'id': 'priority_reason', 'name': 'دلیل اولویت', 'type': 'text', 'filterable': True, 'sortable': True},
                 {'id': 'barbary', 'name': 'نام باربری', 'type': 'text', 'filterable': True, 'sortable': True},
+                {'id': 'ready_for_invoice', 'name': 'آماده فاکتور', 'type': 'boolean', 'filterable': True, 'sortable': True},
+                {'id': 'purchase_mabna_invoice', 'name': 'فاکتور خرید مبنا', 'type': 'number', 'filterable': True, 'sortable': True},
+                {'id': 'sales_mabna_invoice', 'name': 'فاکتور فروش مبنا', 'type': 'number', 'filterable': True, 'sortable': True},
+                {'id': 'mabna_profit', 'name': 'سود مبنا', 'type': 'number', 'filterable': True, 'sortable': True},
             ]
         
         return JsonResponse({
@@ -1618,7 +1622,7 @@ def apply_purchase_filter(request):
     try:
         # دریافت پارامترهای فیلتر
         filters = json.loads(request.POST.get('filters', '{}'))
-        logger.warning(f"فیلتر ها: {filters}")
+        
         sort_config = json.loads(request.POST.get('sort', '{}'))
         # دریافت پارامترهای pagination با validation بیشتر
         page_param = request.POST.get('page', '1')
@@ -1635,6 +1639,8 @@ def apply_purchase_filter(request):
             page = 1
             per_page = 50
         
+        
+        
         # تشخیص نقش کاربر
         user_role = determine_user_role(request.user)
         
@@ -1643,7 +1649,11 @@ def apply_purchase_filter(request):
             'id', 'created_at', 'updated_at', 'purchase_number', 'invoice_id', 
             'order_weight', 'delivered_weight', 'state', 'is_factored', 'is_urgent', 
             'is_canceled', 'is_archived', 'company_price', 'customer_price', 
-            'amount_paid', 'factor_code', 'buyer_name'
+            'amount_paid', 'factor_code', 'buyer_name', 'ready_for_invoice',
+            'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
+            'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'description',
+            'is_fully_tasvied', 'bazaargah_phone_number', 'tahvil_phone_number', 
+            'code_melli_tahvil', 'address'
         ]
         
         # فیلدهای customer و cargo
@@ -1679,6 +1689,8 @@ def apply_purchase_filter(request):
             else:
                 queryset = Purchase.objects.none()
         
+
+        
         # اعمال فیلترها - فقط اگر فیلتر وجود داشته باشد
         if filters:
             filter_conditions = Q()
@@ -1689,6 +1701,8 @@ def apply_purchase_filter(request):
                     
                 values = filter_data['values']
                 filter_type = filter_data.get('type', 'include')
+                
+
                 
                 if column_id == 'purchase_number':
                     # حذف مقادیر خالی
@@ -1791,6 +1805,7 @@ def apply_purchase_filter(request):
                                 filter_conditions &= ~Q(**{f'{field_name}__in': numeric_values})
                                 
                     except (ValueError, TypeError) as e:
+
                         continue
                         
                 elif column_id == 'date':
@@ -1815,6 +1830,7 @@ def apply_purchase_filter(request):
                                 filter_conditions &= ~date_conditions
                                 
                     except (ValueError, TypeError) as e:
+
                         continue
                 
                 # فیلترهای جدید
@@ -1844,7 +1860,7 @@ def apply_purchase_filter(request):
                             filter_conditions &= ~Q(**{f'{column_id}__in': values})
                 
                 elif column_id in ['factor_code', 'send_cottage_sms', 'is_weight_costed', 
-                                 'is_ap_af', 'is_fully_tasvied']:
+                                 'is_ap_af', 'is_fully_tasvied', 'ready_for_invoice']:
                     bool_values = []
                     for v in values:
                         if v in ['بله', 'فعال', True, 'true', '1']:
@@ -1858,7 +1874,8 @@ def apply_purchase_filter(request):
                         else:
                             filter_conditions &= ~Q(**{f'{column_id}__in': bool_values})
                 
-                elif column_id in ['total_weight', 'extelaf_weight', 'extelaf_amount']:
+                elif column_id in ['total_weight', 'extelaf_weight', 'extelaf_amount', 
+                                 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit']:
                     # فیلترهای عددی اضافی
                     numeric_values = []
                     for v in values:
@@ -1913,6 +1930,7 @@ def apply_purchase_filter(request):
                                 filter_conditions &= ~date_conditions
                                 
                     except (ValueError, TypeError) as e:
+
                         continue
             
             # اعمال فیلترها اگر وجود داشته باشند
@@ -1998,6 +2016,10 @@ def apply_purchase_filter(request):
                 'extelaf_amount': 'extelaf_amount',
                 'priority': 'priority',
                 'priority_reason': 'priority_reason',
+                'ready_for_invoice': 'ready_for_invoice',
+                'purchase_mabna_invoice': 'purchase_mabna_invoice',
+                'sales_mabna_invoice': 'sales_mabna_invoice',
+                'mabna_profit': 'mabna_profit',
                 'details': 'id',  # مرتب‌سازی بر اساس ID
                 'جزئیات': 'id',  # مرتب‌سازی بر اساس ID
                 'actions': 'id',  # مرتب‌سازی بر اساس ID
@@ -2072,6 +2094,7 @@ def apply_purchase_filter(request):
                 'is_canceled': 'بله' if purchase.is_canceled else 'خیر',
                 'is_archived': 'بله' if purchase.is_archived else 'خیر',
                 'buyer_name': purchase.buyer_name or '-',
+                'ready_for_invoice': 'بله' if purchase.ready_for_invoice else 'خیر',
                 # shenase_takhsis - نیاز به پردازش خاص دارد
                 'shenase_takhsis': ', '.join([s.code for s in purchase.shenase_takhsis_set.all()]) if purchase.shenase_takhsis_set.exists() else '-',
                 # ستون جزئیات - فقط برای شناسایی در frontend
@@ -2091,6 +2114,9 @@ def apply_purchase_filter(request):
                     'company_price': f"{purchase.company_price:,}" if purchase.company_price else '0',
                     'customer_price': f"{purchase.customer_price:,}" if purchase.customer_price else '0',
                     'amount_paid': f"{purchase.amount_paid:,}" if purchase.amount_paid else '0',
+                    'purchase_mabna_invoice': f"{purchase.purchase_mabna_invoice:,}" if purchase.purchase_mabna_invoice else '-',
+                    'sales_mabna_invoice': f"{purchase.sales_mabna_invoice:,}" if purchase.sales_mabna_invoice else '-',
+                    'mabna_profit': f"{purchase.mabna_profit:,}" if purchase.mabna_profit else '-',
                     'raw_company_price': purchase.company_price or 0,
                     'raw_customer_price': purchase.customer_price or 0,
                     'raw_amount_paid': purchase.amount_paid or 0,
@@ -2099,9 +2125,15 @@ def apply_purchase_filter(request):
                 data.update({
                     'customer_price': f"{purchase.customer_price:,}" if purchase.customer_price else '0',
                     'raw_customer_price': purchase.customer_price or 0,
+                    # فیلدهای غیرحساس که برای کاربران محدود قابل مشاهده هستند
+                    'purchase_mabna_invoice': '-',  # مخفی شده
+                    'sales_mabna_invoice': '-',     # مخفی شده  
+                    'mabna_profit': '-',            # مخفی شده
                 })
             
             purchases_data.append(data)
+        
+
         
         # ایجاد pagination response با اطلاعات کامل
         pagination_response = {
@@ -2142,6 +2174,7 @@ def apply_purchase_filter(request):
             'status': 'error',
             'message': str(e)
         }, status=500)
+
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @require_POST
@@ -2369,7 +2402,7 @@ def get_purchase_column_values(request):
                             filter_conditions &= ~Q(**{f'{filter_column_id}__in': values})
                 
                 elif filter_column_id in ['factor_code', 'send_cottage_sms', 'is_weight_costed', 
-                                        'is_ap_af', 'is_fully_tasvied']:
+                                        'is_ap_af', 'is_fully_tasvied', 'ready_for_invoice']:
                     bool_values = []
                     for v in values:
                         if v in ['بله', 'فعال', True, 'true', '1']:
@@ -2383,7 +2416,8 @@ def get_purchase_column_values(request):
                         else:
                             filter_conditions &= ~Q(**{f'{filter_column_id}__in': bool_values})
                 
-                elif filter_column_id in ['total_weight', 'extelaf_weight', 'extelaf_amount']:
+                elif filter_column_id in ['total_weight', 'extelaf_weight', 'extelaf_amount',
+                                         'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit']:
                     numeric_values = []
                     for v in values:
                         try:
@@ -2536,6 +2570,30 @@ def get_purchase_column_values(request):
                 .values_list('updated_at__date', flat=True).distinct()
             values = set([date.strftime("%Y/%m/%d") for date in values_queryset if date])
         
+        # فیلدهای مالی جدید
+        elif column_id == 'ready_for_invoice':
+            # فیلد boolean - آماده فاکتور
+            field_values = queryset.values_list('ready_for_invoice', flat=True).distinct()
+            values = set()
+            for val in field_values:
+                if val is True:
+                    values.add('بله')
+                elif val is False:
+                    values.add('خیر')
+        
+        elif column_id in ['purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit']:
+            # فیلدهای عددی - فاکتور خرید، فروش و سود
+            # بررسی دسترسی برای فیلدهای حساس
+            if user_role in ['sales_agent', 'support_agent']:
+                values = set()  # عدم دسترسی
+            else:
+                values_queryset = queryset.exclude(**{f'{column_id}__isnull': True})\
+                    .exclude(**{column_id: 0})\
+                    .values_list(column_id, flat=True).distinct()
+                
+                # فرمت اعداد با کاما - فقط مقادیر غیر صفر
+                values = set([f"{int(value):,}" for value in values_queryset if value is not None and value > 0])
+        
         else:
             # برای ستون‌های ناشناخته
             values = set()
@@ -2588,4 +2646,4 @@ def get_purchase_column_values(request):
         return JsonResponse({
             'status': 'error',
             'message': str(e)
-        }, status=500)
+        }, status=500) 
