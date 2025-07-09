@@ -17,7 +17,7 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
-def clean_phone_number(phone):
+def clean_phone_number(phone: str) -> str:
     """تمیز کردن شماره تلفن"""
     if not phone:
         return None
@@ -59,10 +59,18 @@ def validate_access(phone_number, purchase_number):
             return None, None, "شماره خرید یافت نشد"
         
         # راه اول: جستجو در CrmAccessNumbers
-        crm_access = CrmAccessNumbers.objects.filter(
-            phone_number=clean_phone,
-            customer__isnull=False
-        ).first()
+        # ایجاد variations مختلف شماره برای جستجو
+        phone_variations = [
+            clean_phone,
+            f"0{clean_phone}",
+            f"98{clean_phone}"
+        ]
+        
+        crm_access_query = Q()
+        for phone_var in phone_variations:
+            crm_access_query |= Q(phone_number=phone_var)
+        
+        crm_access = CrmAccessNumbers.objects.filter(crm_access_query).first()
         
         if crm_access:
             customer = crm_access.customer
@@ -242,10 +250,19 @@ class CustomerPurchasesAPI(View):
             customers_found = []
             
             # 1. جستجو در CrmAccessNumbers - همه مشتریانی که این شماره دسترسی دارند
-            crm_accesses = CrmAccessNumbers.objects.filter(
-                phone_number=clean_phone,
-                customer__isnull=False
-            )
+            # ایجاد variations مختلف شماره برای جستجو
+            phone_variations = [
+                clean_phone,
+                f"0{clean_phone}",
+                f"98{clean_phone}"
+            ]
+            
+            crm_access_query = Q(customer__isnull=False)
+            phone_query = Q()
+            for phone_var in phone_variations:
+                phone_query |= Q(phone_number=phone_var)
+            
+            crm_accesses = CrmAccessNumbers.objects.filter(crm_access_query & phone_query)
             
             for crm_access in crm_accesses:
                 customer = crm_access.customer
@@ -263,11 +280,6 @@ class CustomerPurchasesAPI(View):
                     purchase_ids.add(purchase.id)
             
             # 2. جستجو در bazaargah_phone_number با فرمت‌های مختلف
-            phone_variations = [
-                clean_phone,
-                f"0{clean_phone}",
-                f"98{clean_phone}"
-            ]
             
             # جستجو در bazaargah_phone_number
             bazaargah_query = Q()
@@ -422,10 +434,18 @@ class PhoneValidationAPI(View):
             customers_info = []
             
             # 1. بررسی دسترسی از طریق CrmAccessNumbers
-            crm_accesses = CrmAccessNumbers.objects.filter(
-                phone_number=clean_phone,
-                customer__isnull=False
-            )
+            # ایجاد variations مختلف شماره برای جستجو
+            phone_variations = [
+                clean_phone,
+                f"0{clean_phone}",
+                f"98{clean_phone}"
+            ]
+            
+            crm_access_query = Q()
+            for phone_var in phone_variations:
+                crm_access_query |= Q(phone_number=phone_var)
+            
+            crm_accesses = CrmAccessNumbers.objects.filter(crm_access_query)
             
             if crm_accesses.exists():
                 has_access = True
@@ -440,11 +460,6 @@ class PhoneValidationAPI(View):
                     })
             
             # 2. بررسی وجود خرید با bazaargah_phone_number
-            phone_variations = [
-                clean_phone,
-                f"0{clean_phone}",
-                f"98{clean_phone}"
-            ]
             
             bazaargah_query = Q()
             for phone_var in phone_variations:
