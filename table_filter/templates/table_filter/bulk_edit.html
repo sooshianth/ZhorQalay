@@ -3,6 +3,8 @@
 
 {% block title %}ویرایش گروهی{% endblock %}
 
+{% block body_class %}bulk-edit-page{% endblock %}
+
 {% block head_styles %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'table_filter/css/bulk_edit.css' %}">
@@ -476,6 +478,36 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- جستجوی فیلدها -->
+            {% if editable_fields|length > 5 %}
+            <div class="field-search-container mb-4">
+                <div class="input-group">
+                    <span class="input-group-text search-icon">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" 
+                           class="form-control search-input" 
+                           id="fieldSearch" 
+                           placeholder="جستجو در فیلدها... (Enter برای رفتن به اولین نتیجه)"
+                           autocomplete="off">
+                    <button class="btn btn-outline-primary" type="button" id="goToFirstMatch" title="رفتن به اولین نتیجه">
+                        <i class="fas fa-arrow-down"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary" type="button" id="clearSearch" title="پاک کردن جستجو">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="field-counter mt-2 d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        نمایش <span id="visibleFieldsCount">{{ editable_fields|length }}</span> از {{ editable_fields|length }} فیلد
+                    </small>
+                    <small class="text-muted">
+                        <kbd>Enter</kbd> برای رفتن به اولین نتیجه • <kbd>Esc</kbd> برای پاک کردن
+                    </small>
+                </div>
+            </div>
+            {% endif %}
 
             <form method="post" action="{% url 'table_filter:bulk_edit' %}" id="bulkEditForm">
                 {% csrf_token %}
@@ -489,145 +521,133 @@
                     <input type="hidden" name="selected_ids" value="{{ id }}">
                 {% endfor %}
 
-                <div class="fields-grid">
-                    {% for field in editable_fields %}
-                    <div class="form-group">
-                        <label for="{{ field.name }}" class="form-label">
-                            {{ field.label }}
-                            {% if field.is_unique and selected_count > 1 %}
-                            <span class="unique-field-indicator" title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد">یکتا</span>
-                            {% endif %}
-                        </label>
-                        
-                        {% if field.type == 'select' %}
-                            <select class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
-                                    id="{{ field.name }}" 
-                                    name="{{ field.name }}"
-                                    {% if field.multiple %}multiple{% endif %}
-                                    {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
-                                <option value="">بدون تغییر</option>
-                                {% for value, label in field.choices %}
-                                    <option value="{{ value }}">{{ label }}</option>
-                                {% endfor %}
-                            </select>
-                            
-                            {% if field.help_text %}
-                            <small class="field-help">{{ field.help_text }}</small>
-                            {% endif %}
-                        
-                        {% elif field.type == 'checkbox' %}
-                            <div class="form-check mt-2">
-                                <input type="checkbox" 
-                                       class="form-check-input" 
-                                       id="{{ field.name }}" 
-                                       name="{{ field.name }}"
-                                       {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
-                                <label class="form-check-label" for="{{ field.name }}">
+                <div class="fields-container">
+                    <div class="fields-grid">
+                        {% for field in editable_fields %}
+                        <div class="form-group field-item" data-field-name="{{ field.name|lower }}" data-field-label="{{ field.label|lower }}">
+                            <div class="field-header">
+                                <label for="{{ field.name }}" class="form-label">
                                     {{ field.label }}
+                                    {% if field.is_unique and selected_count > 1 %}
+                                    <span class="unique-field-indicator" title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد">یکتا</span>
+                                    {% endif %}
                                 </label>
-                                {% if field.help_text %}
-                                <small class="field-help d-block mt-1">{{ field.help_text }}</small>
+                            </div>
+                            
+                            <div class="field-input">
+                                {% if field.type == 'select' %}
+                                    <select class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
+                                            id="{{ field.name }}" 
+                                            name="{{ field.name }}"
+                                            {% if field.multiple %}multiple{% endif %}
+                                            {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
+                                        <option value="">بدون تغییر</option>
+                                        {% for value, label in field.choices %}
+                                            <option value="{{ value }}">{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                
+                                {% elif field.type == 'checkbox' %}
+                                    <div class="form-check-container">
+                                        <div class="form-check">
+                                            <input type="checkbox" 
+                                                   class="form-check-input" 
+                                                   id="{{ field.name }}" 
+                                                   name="{{ field.name }}"
+                                                   {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
+                                            <label class="form-check-label" for="{{ field.name }}">
+                                                فعال
+                                            </label>
+                                        </div>
+                                    </div>
+                                
+                                {% elif field.type == 'date' %}
+                                    <input type="date" 
+                                           class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
+                                           id="{{ field.name }}" 
+                                           name="{{ field.name }}"
+                                           {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
+                                
+                                {% elif field.type == 'datetime-local' %}
+                                    <input type="datetime-local" 
+                                           class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
+                                           id="{{ field.name }}" 
+                                           name="{{ field.name }}"
+                                           {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
+                                
+                                {% elif field.type == 'time' %}
+                                    <input type="time" 
+                                           class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
+                                           id="{{ field.name }}" 
+                                           name="{{ field.name }}"
+                                           {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
+                                
+                                {% elif field.type == 'textarea' %}
+                                    <textarea class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
+                                              id="{{ field.name }}" 
+                                              name="{{ field.name }}" 
+                                              rows="3" 
+                                              placeholder="بدون تغییر"
+                                              {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}></textarea>
+                                
+                                {% elif field.type == 'text' %}
+                                    <input type="text" 
+                                           class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
+                                           id="{{ field.name }}" 
+                                           name="{{ field.name }}" 
+                                           placeholder="بدون تغییر"
+                                           {% if field.max_length %}maxlength="{{ field.max_length }}"{% endif %}
+                                           {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
+                                
+                                {% elif field.type == 'number' %}
+                                    <input type="number" 
+                                           class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
+                                           id="{{ field.name }}" 
+                                           name="{{ field.name }}" 
+                                           placeholder="بدون تغییر"
+                                           {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
+                                
+                                {% else %}
+                                    <!-- Default fallback for any other field type -->
+                                    <input type="text" 
+                                           class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
+                                           id="{{ field.name }}" 
+                                           name="{{ field.name }}" 
+                                           placeholder="بدون تغییر"
+                                           {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
                                 {% endif %}
                             </div>
-                        
-                        {% elif field.type == 'date' %}
-                            <input type="date" 
-                                   class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
-                                   id="{{ field.name }}" 
-                                   name="{{ field.name }}"
-                                   {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
                             
                             {% if field.help_text %}
-                            <small class="field-help">{{ field.help_text }}</small>
+                            <div class="field-help">
+                                <small class="text-muted">{{ field.help_text }}</small>
+                            </div>
                             {% endif %}
-                        
-                        {% elif field.type == 'datetime-local' %}
-                            <input type="datetime-local" 
-                                   class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
-                                   id="{{ field.name }}" 
-                                   name="{{ field.name }}"
-                                   {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
                             
-                            {% if field.help_text %}
-                            <small class="field-help">{{ field.help_text }}</small>
+                            {% if field.is_unique and selected_count > 1 %}
+                            <div class="field-warning">
+                                <small class="text-danger">این فیلد دارای محدودیت یکتایی است</small>
+                            </div>
                             {% endif %}
-                        
-                        {% elif field.type == 'time' %}
-                            <input type="time" 
-                                   class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
-                                   id="{{ field.name }}" 
-                                   name="{{ field.name }}"
-                                   {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
-                            
-                            {% if field.help_text %}
-                            <small class="field-help">{{ field.help_text }}</small>
-                            {% endif %}
-                        
-                        {% elif field.type == 'textarea' %}
-                            <textarea class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
-                                      id="{{ field.name }}" 
-                                      name="{{ field.name }}" 
-                                      rows="3" 
-                                      placeholder="بدون تغییر"
-                                      {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}></textarea>
-                            
-                            {% if field.help_text %}
-                            <small class="field-help">{{ field.help_text }}</small>
-                            {% endif %}
-                        
-                        {% elif field.type == 'text' %}
-                            <input type="text" 
-                                   class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
-                                   id="{{ field.name }}" 
-                                   name="{{ field.name }}" 
-                                   placeholder="بدون تغییر"
-                                   {% if field.max_length %}maxlength="{{ field.max_length }}"{% endif %}
-                                   {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
-                            
-                            {% if field.help_text %}
-                            <small class="field-help">{{ field.help_text }}</small>
-                            {% endif %}
-                        
-                        {% elif field.type == 'number' %}
-                            <input type="number" 
-                                   class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
-                                   id="{{ field.name }}" 
-                                   name="{{ field.name }}" 
-                                   placeholder="بدون تغییر"
-                                   {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
-                            
-                            {% if field.help_text %}
-                            <small class="field-help">{{ field.help_text }}</small>
-                            {% endif %}
-                        
-                        {% else %}
-                            <!-- Default fallback for any other field type -->
-                            <input type="text" 
-                                   class="form-control{% if field.is_unique and selected_count > 1 %} border-danger{% endif %}" 
-                                   id="{{ field.name }}" 
-                                   name="{{ field.name }}" 
-                                   placeholder="بدون تغییر"
-                                   {% if field.is_unique and selected_count > 1 %}disabled title="این فیلد دارای محدودیت یکتایی است و نمی‌تواند برای چندین مورد یکسان باشد"{% endif %}>
-                            
-                            {% if field.help_text %}
-                            <small class="field-help">{{ field.help_text }}</small>
-                            {% endif %}
-                        {% endif %}
-                        
-                        {% if field.is_unique and selected_count > 1 %}
-                        <small class="text-danger mt-1 d-block">این فیلد دارای محدودیت یکتایی است</small>
-                        {% endif %}
+                        </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 </div>
 
-                <div class="d-flex justify-content-between mt-4">
-                    <button type="button" class="btn btn-secondary" onclick="history.back()">
-                        <i class="fas fa-arrow-right me-2"></i>بازگشت
-                    </button>
-                    <button type="submit" class="btn btn-success">
-                        <i class="fas fa-save me-2"></i>اعمال تغییرات
-                    </button>
+                <div class="form-actions">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <button type="button" class="btn btn-secondary btn-action" onclick="history.back()">
+                            <i class="fas fa-arrow-right me-2"></i>بازگشت
+                        </button>
+                        <div class="primary-actions">
+                            <button type="button" class="btn btn-outline-primary btn-action" id="resetForm">
+                                <i class="fas fa-undo me-2"></i>پاک کردن فرم
+                            </button>
+                            <button type="submit" class="btn btn-success btn-action">
+                                <i class="fas fa-save me-2"></i>اعمال تغییرات
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -704,15 +724,343 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
+    // جستجوی فیلدها
+    const fieldSearch = document.getElementById('fieldSearch');
+    const clearSearch = document.getElementById('clearSearch');
+    const fieldItems = document.querySelectorAll('.field-item');
+    const visibleCountElement = document.getElementById('visibleFieldsCount');
+    const totalFields = fieldItems.length;
+    
+    function updateVisibleCount() {
+        const visibleFields = document.querySelectorAll('.field-item:not([style*="display: none"])').length;
+        if (visibleCountElement) {
+            visibleCountElement.textContent = visibleFields;
+        }
+    }
+    
+    function filterFields(searchTerm) {
+        const term = searchTerm.toLowerCase().trim();
+        let visibleCount = 0;
+        let firstVisibleField = null;
+        
+        fieldItems.forEach(item => {
+            const fieldName = item.dataset.fieldName;
+            const fieldLabel = item.dataset.fieldLabel;
+            
+            if (!term || fieldName.includes(term) || fieldLabel.includes(term)) {
+                item.style.display = '';
+                item.classList.remove('hidden-by-search');
+                item.classList.add('search-match');
+                visibleCount++;
+                
+                // ذخیره اولین فیلد پیدا شده
+                if (!firstVisibleField) {
+                    firstVisibleField = item;
+                }
+            } else {
+                item.style.display = 'none';
+                item.classList.add('hidden-by-search');
+                item.classList.remove('search-match');
+            }
+        });
+        
+        updateVisibleCount();
+        
+        // نمایش پیام در صورت عدم یافتن نتیجه
+        const noResultsMessage = document.getElementById('noResultsMessage');
+        if (visibleCount === 0 && term) {
+            if (!noResultsMessage) {
+                const message = document.createElement('div');
+                message.id = 'noResultsMessage';
+                message.className = 'alert alert-warning text-center';
+                message.innerHTML = '<i class="fas fa-search me-2"></i>هیچ فیلدی با این عبارت پیدا نشد';
+                document.querySelector('.fields-container').appendChild(message);
+            }
+        } else if (noResultsMessage) {
+            noResultsMessage.remove();
+        }
+        
+        return firstVisibleField;
+    }
+    
+    function scrollToFirstMatch() {
+        const firstMatch = document.querySelector('.field-item.search-match');
+        if (firstMatch) {
+            firstMatch.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center',
+                inline: 'nearest'
+            });
+            
+            // هایلایت کردن فیلد
+            firstMatch.classList.add('field-highlighted');
+            setTimeout(() => {
+                firstMatch.classList.remove('field-highlighted');
+            }, 2000);
+            
+            // فوکوس روی input فیلد
+            const input = firstMatch.querySelector('input, select, textarea');
+            if (input && !input.disabled) {
+                setTimeout(() => {
+                    input.focus();
+                    if (input.type === 'text' || input.tagName.toLowerCase() === 'textarea') {
+                        input.select();
+                    }
+                }, 300);
+            }
+        }
+    }
+    
+    if (fieldSearch) {
+        fieldSearch.addEventListener('input', function() {
+            filterFields(this.value);
+        });
+        
+        fieldSearch.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                this.value = '';
+                filterFields('');
+                fieldSearch.focus();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                const searchTerm = this.value.trim();
+                if (searchTerm) {
+                    filterFields(searchTerm);
+                    setTimeout(() => {
+                        scrollToFirstMatch();
+                    }, 100);
+                }
+            }
+        });
+    }
+    
+    if (clearSearch) {
+        clearSearch.addEventListener('click', function() {
+            fieldSearch.value = '';
+            filterFields('');
+            fieldSearch.focus();
+        });
+    }
+    
+    // دکمه رفتن به اولین نتیجه
+    const goToFirstMatch = document.getElementById('goToFirstMatch');
+    if (goToFirstMatch) {
+        goToFirstMatch.addEventListener('click', function() {
+            const searchTerm = fieldSearch.value.trim();
+            if (searchTerm) {
+                filterFields(searchTerm);
+                setTimeout(() => {
+                    scrollToFirstMatch();
+                }, 100);
+            } else {
+                showToast('ابتدا عبارت جستجو را وارد کنید', 'warning');
+                fieldSearch.focus();
+            }
+        });
+    }
+    
+    // پاک کردن فرم
+    const resetButton = document.getElementById('resetForm');
+    if (resetButton) {
+        resetButton.addEventListener('click', function() {
+            if (confirm('آیا از پاک کردن تمام تغییرات فرم اطمینان دارید؟')) {
+                // پاک کردن همه input ها
+                document.querySelectorAll('input[type="text"], input[type="number"], input[type="date"], input[type="datetime-local"], input[type="time"], textarea').forEach(input => {
+                    input.value = '';
+                });
+                
+                // پاک کردن checkbox ها
+                document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                
+                // ریست کردن select ها
+                $('select').val('').trigger('change');
+                
+                // نمایش پیام موفقیت
+                showToast('فرم پاک شد', 'success');
+            }
+        });
+    }
+    
+    // تابع نمایش toast
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `toast-notification alert alert-${type} position-fixed`;
+        toast.style.cssText = `
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            animation: slideInRight 0.3s ease-out;
+        `;
+        toast.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="fas fa-${type === 'success' ? 'check' : type === 'warning' ? 'exclamation' : 'info'}-circle me-2"></i>
+                <span>${message}</span>
+                <button type="button" class="btn-close ms-auto" onclick="this.parentElement.parentElement.remove()"></button>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.remove();
+            }
+        }, 3000);
+    }
+    
     // نمایش پیام تأیید قبل از ارسال فرم
     const form = document.querySelector('#bulkEditForm');
     form.addEventListener('submit', function(e) {
-        e.preventDefault(); // جلوگیری از ارسال فرم
+        e.preventDefault();
+        
+        // بررسی اینکه آیا حداقل یک فیلد پر شده است
+        const hasChanges = 
+            [...document.querySelectorAll('input[type="text"], input[type="number"], input[type="date"], input[type="datetime-local"], input[type="time"], textarea')]
+                .some(input => input.value.trim() !== '') ||
+            [...document.querySelectorAll('input[type="checkbox"]')]
+                .some(checkbox => checkbox.checked) ||
+            [...document.querySelectorAll('select')]
+                .some(select => select.value !== '');
+        
+        if (!hasChanges) {
+            showToast('لطفا حداقل یک فیلد را تغییر دهید', 'warning');
+            return;
+        }
         
         if (confirm('آیا از اعمال تغییرات روی ' + '{{ selected_count }}' + ' مورد انتخاب شده اطمینان دارید؟')) {
-            form.submit(); // ارسال فرم در صورت تأیید
+            // نمایش loading
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>در حال اعمال...';
+            submitBtn.disabled = true;
+            
+            form.submit();
         }
     });
+    
+    // تنظیم فوکوس روی فیلد جستجو در صورت وجود
+    if (fieldSearch && totalFields > 5) {
+        setTimeout(() => {
+            fieldSearch.focus();
+        }, 500);
+    }
 });
 </script>
+
+<style>
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.toast-notification {
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: none;
+}
+
+.hidden-by-search {
+    transition: all 0.3s ease;
+}
+
+/* انیمیشن برای فیلدهای پیدا شده */
+.field-item:not(.hidden-by-search) {
+    animation: fadeInUp 0.3s ease;
+}
+
+.field-item.search-match {
+    border: 2px solid var(--primary-light);
+    background: linear-gradient(135deg, #F0FDF4 0%, #ECFDF5 100%);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+}
+
+.field-item.field-highlighted {
+    animation: pulseHighlight 1s ease-in-out;
+    border: 2px solid var(--accent-color);
+    background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+    box-shadow: 0 0 30px rgba(52, 211, 153, 0.4);
+    transform: scale(1.02);
+}
+
+.field-search-container .input-group {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.field-search-container .search-icon {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color: white;
+    border: none;
+}
+
+.field-search-container .search-input {
+    border: none;
+    box-shadow: none;
+    font-size: 1rem;
+    padding: 12px 16px;
+}
+
+.field-search-container .search-input:focus {
+    box-shadow: none;
+    border: none;
+    background-color: white;
+}
+
+.field-search-container .btn {
+    border: none;
+    padding: 12px 16px;
+}
+
+@keyframes pulseHighlight {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 20px rgba(52, 211, 153, 0.4);
+    }
+    50% {
+        transform: scale(1.02);
+        box-shadow: 0 0 30px rgba(52, 211, 153, 0.6);
+    }
+    100% {
+        transform: scale(1.02);
+        box-shadow: 0 0 30px rgba(52, 211, 153, 0.4);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* استایل‌های کیبورد شورتکات */
+kbd {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(0,0,0,.2), inset 0 0 0 2px #fff;
+    color: #495057;
+    display: inline-block;
+    font-family: monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+    padding: 2px 4px;
+    white-space: nowrap;
+}
+</style>
 {% endblock %} 
