@@ -350,7 +350,8 @@ def get_cargo_product_details(request):
     """
     دریافت اطلاعات کوتاژ براساس شماره کوتاژ
     """
-    logger.warning(f"دریافت اطلاعات کوتاژ: {get_client_ip(request)}, user: {request.user}")
+    logger.warning(f"دریافت اطلاعات (حذف شده!) کوتاژ: {get_client_ip(request)}, user: {request.user}")
+    return JsonResponse({'status': 'error', 'message': 'کوتاژ مورد نظر یافت نشد'}, status=404)
     cottage = request.GET.get('cottage', '')
     
     if not cottage:
@@ -401,6 +402,8 @@ def list_cargo_products(request):
     """
     دریافت لیست کوتاژهای فعال
     """
+    logger.warning(f"دریافت اطلاعات (حذف شده!) لیست محصولات: {get_client_ip(request)}, user: {request.user}")
+    return JsonResponse({'status': 'error', 'message': "a"}, status=500)
     try:
         # فیلتر جستجو
         search_term = request.GET.get('q', '')
