@@ -135,6 +135,7 @@
          data-export-purchases-url="{% url 'export_purchases' %}"
          data-purchase-aggregated-stats-url="{% url 'purchase_aggregated_stats' %}"
          data-per-page="{% if search_params.per_page %}{{ search_params.per_page }}{% else %}100{% endif %}"
+         data-current-columns="{% for col in selected_columns %}{{ col }}{% if not forloop.last %},{% endif %}{% endfor %}"
          style="display: none;"></div>
 
 <!-- script برای تنظیم configuration در window - حذف شده و به بلوک اصلی منتقل شده -->
@@ -158,7 +159,8 @@ document.addEventListener('DOMContentLoaded', function() {
         purchaseAggregatedStatsUrl: configEl.dataset.purchaseAggregatedStatsUrl,
         hideSensitiveInfo: configEl.dataset.hideSensitiveInfo === 'true',
         perPage: parseInt(configEl.dataset.perPage) || 100,
-        perPageOptions: [5, 10, 25, 50, 100, 200]
+        perPageOptions: [5, 10, 25, 50, 100, 200],
+        currentColumns: configEl.dataset.currentColumns || ''
     };
     
     console.log('Purchase List Config loaded:', window.PurchaseListConfig);
@@ -759,6 +761,52 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="column-{{ column.id }}">{{ purchase.priority_reason|default:"-" }}</td>
                     {% elif column.id == 'barbary' %}
                     <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.barbary %}{{ purchase.cargo.barbary.name }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'product_type' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.product_type %}{{ purchase.cargo.get_product_type_display }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'customer_phones' %}
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.customer %}
+                            {% with phones=purchase.customer.get_all_phone_numbers %}
+                                {% if phones %}
+                                    {% for phone in phones %}{{ phone }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            {% endwith %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    {% elif column.id == 'barbary_phone' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.barbary and purchase.cargo.barbary.phone_number %}{{ purchase.cargo.barbary.phone_number }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'customer_phones' %}
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.customer %}
+                            {% for phone in purchase.customer.phone_numbers.all %}{{ phone.number }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                            {% if not purchase.customer.phone_numbers.exists and purchase.customer.phone_number %}{{ purchase.customer.phone_number }}{% endif %}
+                            {% if not purchase.customer.phone_numbers.exists and not purchase.customer.phone_number %}-{% endif %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    {% elif column.id == 'first_barnameh_date' %}
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.barnamehs.exists %}
+                            {{ purchase.barnamehs.all.0.created_at|date:"Y/m/d" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    {% elif column.id == 'last_barnameh_date' %}
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.barnamehs.exists %}
+                            {% with last_barnameh=purchase.barnamehs.last %}
+                                {{ last_barnameh.created_at|date:"Y/m/d" }}
+                            {% endwith %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
                     {% endif %}
                 {% endif %}
             {% endfor %}
@@ -1226,6 +1274,38 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="column-{{ column.id }}">{{ purchase.priority_reason|default:"-" }}</td>
                     {% elif column.id == 'barbary' %}
                     <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.barbary %}{{ purchase.cargo.barbary.name }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'product_type' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.product_type %}{{ purchase.cargo.get_product_type_display }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'customer_phones' %}
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.customer %}
+                            {% for phone in purchase.customer.phone_numbers.all %}{{ phone.number }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                            {% if not purchase.customer.phone_numbers.exists and purchase.customer.phone_number %}{{ purchase.customer.phone_number }}{% endif %}
+                            {% if not purchase.customer.phone_numbers.exists and not purchase.customer.phone_number %}-{% endif %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    {% elif column.id == 'barbary_phone' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.barbary and purchase.cargo.barbary.phone_number %}{{ purchase.cargo.barbary.phone_number }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'first_barnameh_date' %}
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.barnamehs.exists %}
+                            {{ purchase.barnamehs.all.0.created_at|date:"Y/m/d" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    {% elif column.id == 'last_barnameh_date' %}
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.barnamehs.exists %}
+                            {% with last_barnameh=purchase.barnamehs.last %}
+                                {{ last_barnameh.created_at|date:"Y/m/d" }}
+                            {% endwith %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
                     {% endif %}
                 {% endif %}
             {% endfor %}
@@ -1674,6 +1754,40 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="column-{{ column.id }}">{{ purchase.priority|default:"-" }}</td>
                     {% elif column.id == 'priority_reason' %}
                     <td class="column-{{ column.id }}">{{ purchase.priority_reason|default:"-" }}</td>
+                    {% elif column.id == 'barbary' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.barbary %}{{ purchase.cargo.barbary.name }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'product_type' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.product_type %}{{ purchase.cargo.get_product_type_display }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'customer_phones' %}
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.customer %}
+                            {% for phone in purchase.customer.phone_numbers.all %}{{ phone.number }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                            {% if not purchase.customer.phone_numbers.exists and purchase.customer.phone_number %}{{ purchase.customer.phone_number }}{% endif %}
+                            {% if not purchase.customer.phone_numbers.exists and not purchase.customer.phone_number %}-{% endif %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    {% elif column.id == 'barbary_phone' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.barbary and purchase.cargo.barbary.phone_number %}{{ purchase.cargo.barbary.phone_number }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'first_barnameh_date' %}
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.barnamehs.exists %}
+                            {{ purchase.barnamehs.all.0.created_at|date:"Y/m/d" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    {% elif column.id == 'last_barnameh_date' %}
+                    <td class="column-{{ column.id }}">
+                        {% if purchase.barnamehs.exists %}
+                            {% with last_barnameh=purchase.barnamehs.last %}
+                                {{ last_barnameh.created_at|date:"Y/m/d" }}
+                            {% endwith %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
                     {% endif %}
                 {% endif %}
             {% endfor %}
@@ -2029,9 +2143,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // دریافت ستون‌های انتخاب شده از کوکی
-                const cookieColumns = getCookie('selected_columns');
-                const columnsParam = cookieColumns || 'date,customer,invoice_id,sales_agent,purchase_number,weight,cargo,status';
+                // دریافت ستون‌های فعلی نمایش داده شده در صفحه
+                const currentColumns = window.PurchaseListConfig?.currentColumns || '';
+                const columnsParam = currentColumns || 'date,customer,invoice_id,sales_agent,purchase_number,weight,cargo,status';
                 
                 console.log('📤 خروجی خریدها:', selectedIds);
                 console.log('📋 ستون‌ها:', columnsParam);

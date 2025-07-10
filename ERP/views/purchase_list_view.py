@@ -26,29 +26,25 @@ def get_allowed_columns(user_role):
     allowed_columns = []
     if user_role == 'sales_agent':
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight', 'delivered_weight',
-         'status', 'cargo', 'customer', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number'] # نام محصول، تلفن های مشتری، نام تحویل گیرنده
+         'status', 'cargo', 'product_type', 'customer', 'customer_phones', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number']
         
     elif user_role == 'support_agent':
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'weight',
-         'delivered_weight', 'status', 'cargo', 'importer', 'barbary', 'customer',
-          'buyer_name'] # نام محصول، شماره باربری محرمانهی، شماره باربری مشتری، نام تحویل گیرنده
+         'delivered_weight', 'status', 'cargo', 'product_type', 'importer', 'barbary', 'barbary_phone', 'customer',
+          'buyer_name']
           
                 
     elif user_role == 'financial_manager':
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
-         'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
+         'delivered_weight', 'first_barnameh_date', 'last_barnameh_date', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
          'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',
-          'cargo', 'importer', 'buyer_name'] # کارشناس فروش، تاریخ اولین بارنامه، تاریخ اخرین بارنامه، نام محصول، نام تحویل گیرنده
-          # شناسه ملی خریدار، آدرس خریدار، شناسه یکتا خریدار
+          'cargo', 'product_type', 'importer', 'buyer_name', 'code_melli_tahvil', 'address', 'tracking_number']
                 
-    elif user_role == 'admin':
+    elif user_role == 'admin' or user_role == 'logistics_manager':
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
-         'delivered_weight', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
+         'delivered_weight', 'first_barnameh_date', 'last_barnameh_date', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
          'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
-          'cargo', 'importer', 'barbary', 'customer', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil']
-         # کارشناس فروش، تاریخ اولین بارنامه، تاریخ اخرین بارنامه، نام محصول، 
-          # نام تحویل گیرنده، شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار، نوع کاربری خریدار، شناسه یکتای تحویل، ادرس تحویل، کد پستی تحویل، تریلی، تک، جفت
-          # شماره باربری محرمانهی، شماره باربری مشتری، تلفن های مشتری
+          'cargo', 'product_type', 'importer', 'barbary', 'barbary_phone', 'customer', 'customer_phones', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil', 'address', 'tracking_number']
 
     
     return allowed_columns
@@ -57,26 +53,23 @@ def get_default_columns(user_role):
     selected_columns = []
     if user_role == 'sales_agent':
         selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight',
-             'delivered_weight', 'status', 'cargo', 'customer', 'buyer_name'] # تلفن های مشتری،  نام محصول
+             'delivered_weight', 'status', 'cargo', 'product_type', 'customer', 'buyer_name']
     
     elif user_role == 'support_agent':
         selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'weight', 
-            'delivered_weight', 'status', 'cargo', 'importer' , 'customer', 'buyer_name'] # نام محصول
+            'delivered_weight', 'status', 'cargo', 'product_type', 'importer' , 'customer', 'buyer_name']
     
     elif user_role == 'financial_manager':
         selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
              'delivered_weight', 'status', 'description', 'is_fully_tasvied',
              'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',
-             'cargo', 'importer', 'buyer_name'] # کارشناس فروش، نام محصول، 
-             # شناسه ملی خریدار، آدرس خریدار، شناسه یکتا خریدار
+             'cargo', 'product_type', 'importer', 'buyer_name']
     
-    elif user_role == 'admin':
+    elif user_role == 'admin' or user_role == 'logistics_manager':
         selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
             'delivered_weight', 'status', 'description', 'is_fully_tasvied',
             'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
-            'cargo', 'importer', 'buyer_name', 'tahvil_phone_number', 'code_melli_tahvil']
-             # کارشناس فروش، نام محصول، 
-             # تلفن خریدار
+            'cargo', 'product_type', 'importer', 'buyer_name', 'tahvil_phone_number', 'code_melli_tahvil']
           
     return selected_columns
 
@@ -148,13 +141,14 @@ def purchase_list(request):
     
     # فیلدهای customer و cargo
     customer_fields = ['customer__id', 'customer__name']
-    cargo_fields = ['cargo__id', 'cargo__cottage']
+    cargo_fields = ['cargo__id', 'cargo__cottage', 'cargo__product_type', 'cargo__barbary__name', 'cargo__barbary__phone_number', 'cargo__vared_konandeh__name']
     
     all_fields = selected_fields + customer_fields + cargo_fields
     
     # ایجاد QuerySet پایه
     base_queryset = Purchase.objects.only(*all_fields)\
-        .select_related('customer', 'cargo', 'unique_sales_agent')\
+        .select_related('customer', 'cargo', 'unique_sales_agent', 'cargo__barbary', 'cargo__vared_konandeh')\
+        .prefetch_related('customer__phone_numbers', 'barnamehs')\
         .order_by('-created_at')
     
     # تقسیم‌بندی خریدها به سه دسته:
@@ -317,11 +311,10 @@ def purchase_list(request):
             {'id': 'delivered_weight', 'name': 'وزن بارنامه شده', 'field': 'delivered_weight', 'unit': 'کیلوگرم'},
             {'id': 'status', 'name': 'وضعیت', 'field': 'state'},
             {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
-            # نام محصول
+            {'id': 'product_type', 'name': 'نام محصول', 'field': 'cargo.product_type'},
             {'id': 'customer', 'name': 'نام مشتری', 'field': 'customer.name'},
-            # تلفن های مشتری
+            {'id': 'customer_phones', 'name': 'تلفن های مشتری', 'field': 'customer.phone_numbers'},
             {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
-            # نام تحویل گیرنده
             {'id': 'bazaargah_phone_number', 'name': 'شماره تلفن بازارگاه', 'field': 'bazaargah_phone_number'},
             {'id': 'tahvil_phone_number', 'name': 'شماره تلفن تحویل', 'field': 'tahvil_phone_number'},        
         ]
@@ -369,14 +362,12 @@ def purchase_list(request):
             {'id': 'delivered_weight', 'name': 'وزن بارنامه شده', 'field': 'delivered_weight', 'unit': 'کیلوگرم'},
             {'id': 'status', 'name': 'وضعیت', 'field': 'state'},
             {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
-            # نام محصول
+            {'id': 'product_type', 'name': 'نام محصول', 'field': 'cargo.product_type'},
             {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name'},
             {'id': 'barbary', 'name': 'نام باربری', 'field': 'cargo.barbary.name'},
-            # شماره باربری محرمانهی
-            # شماره باربری مشتری
+            {'id': 'barbary_phone', 'name': 'شماره باربری', 'field': 'cargo.barbary.phone_number'},
             {'id': 'customer', 'name': 'نام مشتری', 'field': 'customer.name'},
             {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
-            # نام تحویل گیرنده
 
         ]
 
@@ -421,8 +412,8 @@ def purchase_list(request):
             {'id': 'customer_price', 'name': 'فی فروش', 'field': 'customer_price', 'unit': 'ریال'},
             {'id': 'weight', 'name': 'وزن خرید', 'field': 'order_weight', 'unit': 'کیلوگرم'},
             {'id': 'delivered_weight', 'name': 'وزن بارنامه شده', 'field': 'delivered_weight', 'unit': 'کیلوگرم'},
-            # تاریخ اولین بارنامه
-            #تاریخ اخرین بارنامه 
+            {'id': 'first_barnameh_date', 'name': 'تاریخ اولین بارنامه', 'field': 'barnamehs.first.barnameh_date', 'format': 'date'},
+            {'id': 'last_barnameh_date', 'name': 'تاریخ آخرین بارنامه', 'field': 'barnamehs.last.barnameh_date', 'format': 'date'},
             {'id': 'extelaf_type', 'name': 'نوع اختلاف', 'field': 'extelaf_type'},
             {'id': 'extelaf_weight', 'name': 'وزن اختلاف', 'field': 'extelaf_weight', 'unit': 'کیلوگرم'},
             {'id': 'extelaf_amount', 'name': 'مبلغ اختلاف', 'field': 'extelaf_amount', 'unit': 'ریال'},
@@ -434,13 +425,12 @@ def purchase_list(request):
             {'id': 'purchase_mabna_invoice', 'name': 'فاکتور خرید مبنا', 'field': 'purchase_mabna_invoice', 'unit': 'ریال'},
             {'id': 'sales_mabna_invoice', 'name': 'فاکتور فروش مبنا', 'field': 'sales_mabna_invoice', 'unit': 'ریال'},
             {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
-            # نام محصول
+            {'id': 'product_type', 'name': 'نام محصول', 'field': 'cargo.product_type'},
             {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name'},
             {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
-            # نام تحویل گیرنده
-            # شناسه ملی خریدار
-            # ادرس خریدار
-            # شناسه یکتا خریدار
+            {'id': 'code_melli_tahvil', 'name': 'کد ملی تحویل', 'field': 'code_melli_tahvil'},
+            {'id': 'address', 'name': 'آدرس خریدار', 'field': 'address'},
+            {'id': 'tracking_number', 'name': 'شناسه یکتا خریدار', 'field': 'tracking_number'},
         ]
 
         # todo: add the rest of the columns
@@ -487,8 +477,8 @@ def purchase_list(request):
             {'id': 'customer_price', 'name': 'فی فروش', 'field': 'customer_price', 'unit': 'ریال'},
             {'id': 'weight', 'name': 'وزن خرید', 'field': 'order_weight', 'unit': 'کیلوگرم'},
             {'id': 'delivered_weight', 'name': 'وزن بارنامه شده', 'field': 'delivered_weight', 'unit': 'کیلوگرم'},
-            # تاریخ اولین بارنامه
-            #تاریخ اخرین بارنامه 
+            {'id': 'first_barnameh_date', 'name': 'تاریخ اولین بارنامه', 'field': 'barnamehs.first.barnameh_date', 'format': 'date'},
+            {'id': 'last_barnameh_date', 'name': 'تاریخ آخرین بارنامه', 'field': 'barnamehs.last.barnameh_date', 'format': 'date'},
             {'id': 'extelaf_type', 'name': 'نوع اختلاف', 'field': 'extelaf_type'},
             {'id': 'extelaf_weight', 'name': 'وزن اختلاف', 'field': 'extelaf_weight', 'unit': 'کیلوگرم'},
             {'id': 'extelaf_amount', 'name': 'مبلغ اختلاف', 'field': 'extelaf_amount', 'unit': 'ریال'},
@@ -501,28 +491,18 @@ def purchase_list(request):
             {'id': 'sales_mabna_invoice', 'name': 'فاکتور فروش مبنا', 'field': 'sales_mabna_invoice', 'unit': 'ریال'},
             {'id': 'mabna_profit', 'name': 'سود مبنا', 'field': 'mabna_profit', 'unit': 'ریال'},
             {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
-            # نام محصول
+            {'id': 'product_type', 'name': 'نام محصول', 'field': 'cargo.product_type'},
             {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name'},
             {'id': 'barbary', 'name': 'نام باربری', 'field': 'cargo.barbary.name'},
-            # شماره باربری محرمانهی
-            # شماره باربری مشتری
+            {'id': 'barbary_phone', 'name': 'شماره باربری', 'field': 'cargo.barbary.phone_number'},
             {'id': 'customer', 'name': 'نام مشتری', 'field': 'customer.name'},
-            # تلفن های مشتری
+            {'id': 'customer_phones', 'name': 'تلفن های مشتری', 'field': 'customer.phone_numbers'},
             {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
-            # نام تحویل گیرنده
             {'id': 'bazaargah_phone_number', 'name': 'شماره تلفن بازارگاه', 'field': 'bazaargah_phone_number'},
-            {'id': 'tahvil_phone_number', 'name': 'شماره تلفن تحویل', 'field': 'tahvil_phone_number'},    
-            # شناسه ملی خریدار
-            # ادرس خریدار
-            # شناسه یکتا خریدار
-            # نوع کاربری خریدار
-            # شناسه یکتای تحویل
-            # ادرس تحویل
-            # کد پستی تحویل
+            {'id': 'tahvil_phone_number', 'name': 'شماره تلفن تحویل', 'field': 'tahvil_phone_number'},
             {'id': 'code_melli_tahvil', 'name': 'کد ملی تحویل', 'field': 'code_melli_tahvil'},
-            # تریلی
-            # تک 
-            # جفت
+            {'id': 'address', 'name': 'آدرس خریدار', 'field': 'address'},
+            {'id': 'tracking_number', 'name': 'شناسه یکتا خریدار', 'field': 'tracking_number'},
         ]
 
         # todo: add the rest of the columns
@@ -948,6 +928,11 @@ def _export_regular_excel(purchase_ids, selected_columns):
         'priority': ('اولویت', lambda p: dict(Purchase.PRIORITY_CHOICES).get(p.priority, p.priority) if p.priority else "-"),
         'priority_reason': ('دلیل اولویت', lambda p: p.priority_reason or "-"),
         'barbary': ('نام باربری', lambda p: p.cargo.barbary.name if p.cargo and hasattr(p.cargo, 'barbary') and p.cargo.barbary else "-"),
+        'barbary_phone': ('شماره باربری', lambda p: p.cargo.barbary.phone_number if p.cargo and hasattr(p.cargo, 'barbary') and p.cargo.barbary and p.cargo.barbary.phone_number else "-"),
+        'product_type': ('نام محصول', lambda p: p.cargo.get_product_type_display() if p.cargo and hasattr(p.cargo, 'product_type') and p.cargo.product_type else "-"),
+        'customer_phones': ('تلفن های مشتری', lambda p: ", ".join(p.customer.get_all_phone_numbers()) if p.customer else "-"),
+        'first_barnameh_date': ('تاریخ اولین بارنامه', lambda p: p.barnamehs.order_by('barnameh_date').first().barnameh_date.strftime("%Y/%m/%d") if hasattr(p, 'barnamehs') and p.barnamehs.exists() and p.barnamehs.order_by('barnameh_date').first().barnameh_date else "-"),
+        'last_barnameh_date': ('تاریخ آخرین بارنامه', lambda p: p.barnamehs.order_by('-barnameh_date').first().barnameh_date.strftime("%Y/%m/%d") if hasattr(p, 'barnamehs') and p.barnamehs.exists() and p.barnamehs.order_by('-barnameh_date').first().barnameh_date else "-"),
         'company_price': ('فی خرید (ریال)', lambda p: f"{p.company_price:,}" if p.company_price else "0"),
         'customer_price': ('فی فروش (ریال)', lambda p: f"{p.customer_price:,}" if p.customer_price else "0"),
         'amount_paid': ('مبلغ پرداختی (ریال)', lambda p: f"{p.amount_paid:,}" if p.amount_paid else "0"),
@@ -1546,6 +1531,8 @@ def get_purchase_table_configuration(request):
                 {'id': 'customer_price', 'name': 'فی فروش', 'type': 'number', 'filterable': True, 'sortable': True},
                 {'id': 'delivered_weight', 'name': 'وزن بارنامه شده', 'type': 'number', 'filterable': True, 'sortable': True},
                 {'id': 'cargo', 'name': 'کوتاژ', 'type': 'text', 'filterable': True, 'sortable': True},
+                {'id': 'product_type', 'name': 'نام محصول', 'type': 'choice', 'filterable': True, 'sortable': True},
+                {'id': 'customer_phones', 'name': 'تلفن های مشتری', 'type': 'text', 'filterable': True, 'sortable': True},
                 {'id': 'status', 'name': 'وضعیت', 'type': 'choice', 'filterable': True, 'sortable': True},
             ]
         else:
@@ -1592,6 +1579,11 @@ def get_purchase_table_configuration(request):
                 {'id': 'priority', 'name': 'اولویت', 'type': 'choice', 'filterable': True, 'sortable': True},
                 {'id': 'priority_reason', 'name': 'دلیل اولویت', 'type': 'text', 'filterable': True, 'sortable': True},
                 {'id': 'barbary', 'name': 'نام باربری', 'type': 'text', 'filterable': True, 'sortable': True},
+                {'id': 'barbary_phone', 'name': 'شماره باربری', 'type': 'text', 'filterable': True, 'sortable': True},
+                {'id': 'product_type', 'name': 'نام محصول', 'type': 'choice', 'filterable': True, 'sortable': True},
+                {'id': 'customer_phones', 'name': 'تلفن های مشتری', 'type': 'text', 'filterable': True, 'sortable': True},
+                {'id': 'first_barnameh_date', 'name': 'تاریخ اولین بارنامه', 'type': 'date', 'filterable': True, 'sortable': True},
+                {'id': 'last_barnameh_date', 'name': 'تاریخ آخرین بارنامه', 'type': 'date', 'filterable': True, 'sortable': True},
                 {'id': 'ready_for_invoice', 'name': 'آماده فاکتور', 'type': 'boolean', 'filterable': True, 'sortable': True},
                 {'id': 'purchase_mabna_invoice', 'name': 'فاکتور خرید مبنا', 'type': 'number', 'filterable': True, 'sortable': True},
                 {'id': 'sales_mabna_invoice', 'name': 'فاکتور فروش مبنا', 'type': 'number', 'filterable': True, 'sortable': True},
@@ -1658,7 +1650,7 @@ def apply_purchase_filter(request):
         
         # فیلدهای customer و cargo
         customer_fields = ['customer__id', 'customer__name']
-        cargo_fields = ['cargo__id', 'cargo__cottage']
+        cargo_fields = ['cargo__id', 'cargo__cottage', 'cargo__product_type', 'cargo__barbary__name', 'cargo__barbary__phone_number', 'cargo__vared_konandeh__name']
         sales_agent_fields = ['unique_sales_agent__id', 'unique_sales_agent__name']
         
         all_fields = selected_fields + customer_fields + cargo_fields + sales_agent_fields
@@ -2391,6 +2383,64 @@ def get_purchase_column_values(request):
                         else:
                             filter_conditions &= ~Q(cargo__barbary__name__in=values)
                 
+                elif filter_column_id == 'barbary_phone':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(cargo__barbary__phone_number__in=values)
+                        else:
+                            filter_conditions &= ~Q(cargo__barbary__phone_number__in=values)
+                
+                elif filter_column_id == 'product_type':
+                    # تبدیل نمایش فارسی به کد محصول
+                    from core.CargoProductModel import CargoProduct
+                    product_map = {v: k for k, v in dict(CargoProduct.PRODUCT_TYPES).items()}
+                    product_codes = []
+                    for v in values:
+                        if v in product_map:
+                            product_codes.append(product_map[v])
+                        else:
+                            product_codes.append(v)
+                    
+                    if product_codes:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(cargo__product_type__in=product_codes)
+                        else:
+                            filter_conditions &= ~Q(cargo__product_type__in=product_codes)
+                
+                elif filter_column_id == 'customer_phones':
+                    # فیلتر پیچیده برای تلفن‌های مشتری
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        phone_condition = Q()
+                        for phone in values:
+                            # جستجو در فیلدهای مختلف تلفن
+                            phone_condition |= Q(customer__phone_numbers__number=phone)
+                            phone_condition |= Q(bazaargah_phone_number=phone)
+                            phone_condition |= Q(tahvil_phone_number=phone)
+                            phone_condition |= Q(customer__phone_number=phone)  # فیلد قدیمی
+                        
+                        if filter_type == 'include':
+                            filter_conditions &= phone_condition
+                        else:
+                            filter_conditions &= ~phone_condition
+                
+                elif filter_column_id in ['first_barnameh_date', 'last_barnameh_date']:
+                    date_values = []
+                    for v in values:
+                        try:
+                            if '/' in v:
+                                date_obj = datetime.strptime(v, "%Y/%m/%d").date()
+                                date_values.append(date_obj)
+                        except (ValueError, TypeError):
+                            continue
+                    
+                    if date_values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(barnamehs__barnameh_date__in=date_values)
+                        else:
+                            filter_conditions &= ~Q(barnamehs__barnameh_date__in=date_values)
+                
                 elif filter_column_id in ['address', 'description', 'tracking_number', 
                                         'code_melli_tahvil', 'bazaargah_phone_number', 
                                         'tahvil_phone_number', 'priority_reason']:
@@ -2523,6 +2573,47 @@ def get_purchase_column_values(request):
             values_queryset = queryset.exclude(cargo__barbary__isnull=True)\
                 .values_list('cargo__barbary__name', flat=True).distinct()
             values = set(values_queryset)
+        
+        elif column_id == 'barbary_phone':
+            values_queryset = queryset.exclude(cargo__barbary__phone_number__isnull=True)\
+                .exclude(cargo__barbary__phone_number='')\
+                .values_list('cargo__barbary__phone_number', flat=True).distinct()
+            values = set(values_queryset)
+        
+        elif column_id == 'product_type':
+            values_queryset = queryset.exclude(cargo__product_type__isnull=True)\
+                .values_list('cargo__product_type', flat=True).distinct()
+            # تبدیل کدهای نوع محصول به نمایش فارسی
+            from core.CargoProductModel import CargoProduct
+            product_choices = dict(CargoProduct.PRODUCT_TYPES)
+            values = set([product_choices.get(product_type, product_type) for product_type in values_queryset if product_type])
+        
+        elif column_id == 'customer_phones':
+            # برای تلفن‌های مشتری - این یک فیلد پیچیده است که باید با دقت پیاده‌سازی شود
+            values_set = set()
+            customers = queryset.exclude(customer__isnull=True).select_related('customer').prefetch_related('customer__phone_numbers')
+            for purchase in customers:
+                customer_phones = purchase.customer.get_all_phone_numbers()
+                for phone in customer_phones:
+                    if phone:
+                        values_set.add(phone)
+            values = values_set
+        
+        elif column_id == 'first_barnameh_date':
+            values_queryset = queryset.prefetch_related('barnamehs')\
+                .exclude(barnamehs__isnull=True)\
+                .exclude(barnamehs__barnameh_date__isnull=True)\
+                .values_list('barnamehs__barnameh_date', flat=True).distinct()
+            # فرمت تاریخ
+            values = set([date.strftime("%Y/%m/%d") for date in values_queryset if date])
+        
+        elif column_id == 'last_barnameh_date':
+            values_queryset = queryset.prefetch_related('barnamehs')\
+                .exclude(barnamehs__isnull=True)\
+                .exclude(barnamehs__barnameh_date__isnull=True)\
+                .values_list('barnamehs__barnameh_date', flat=True).distinct()
+            # فرمت تاریخ
+            values = set([date.strftime("%Y/%m/%d") for date in values_queryset if date])
         
         elif column_id in ['address', 'description', 'tracking_number', 'code_melli_tahvil', 
                           'bazaargah_phone_number', 'tahvil_phone_number', 'priority_reason']:
