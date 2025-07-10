@@ -70,9 +70,9 @@ def validate_access(phone_number, purchase_number):
         for phone_var in phone_variations:
             crm_access_query |= Q(phone_number=phone_var)
         
-        crm_access = CrmAccessNumbers.objects.filter(crm_access_query).first()
+        crm_accesses = CrmAccessNumbers.objects.filter(crm_access_query)
         
-        if crm_access:
+        for crm_access in crm_accesses:
             customer = crm_access.customer
             # بررسی اینکه آیا این مشتری مالک این خرید است یا نه
             if purchase.customer == customer or purchase.bazaargah_customer == customer:
