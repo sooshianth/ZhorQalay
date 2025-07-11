@@ -59,9 +59,16 @@ class RoleBasedPurchaseForm(forms.ModelForm):
     
     # فیلد چندگانه برای شناسه‌های تخصیص
     allocation_ids = forms.CharField(
-        label="شناسه‌های تخصیص (هر شناسه در یک خط جدید)",
-        widget=forms.Textarea(attrs={'rows': 3, 'placeholder': 'هر شناسه تخصیص را در یک خط وارد کنید', 'dir': 'ltr'}),
-        required=False
+        required=False,
+        widget=forms.Textarea(attrs={'rows': 3, 'placeholder': 'هر شناسه تخصیص را در یک خط وارد کنید'}),
+        help_text='هر شناسه تخصیص را در یک خط وارد کنید'
+    )
+
+    # اضافه کردن فیلد نام محصول به صورت readonly
+    product_type = forms.CharField(
+        required=False,
+        label='نام محصول',
+        widget=forms.TextInput(attrs={'readonly': 'readonly'})
     )
     
     class Meta:
@@ -81,29 +88,31 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         
         if user_role == 'sales_agent':
             allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'weight', 'delivered_weight',
-         'status', 'cargo', 'customer', 'customer_phones', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil']
-          # نام محصول، نام تحویل گیرنده
-          #  شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار، نوع کاربری خریدار، شناسه یکتای تحویل، ادرس تحویل، کد پستی تحویل، تریلی، تک، جفت
-        
+         'status', 'cargo', 'product_type', 'customer', 'buyer_name', 'delivery_receiver_name' , 'bazaargah_phone_number',
+          'tahvil_phone_number', 'buyer_national_id', 'address', 'tracking_number', 'buyer_user_type',
+           'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type' ]
+
         elif user_role == 'support_agent':
             allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'weight',
-         'delivered_weight', 'status', 'cargo', 'importer', 'barbary', 'customer',
-          'buyer_name', 'code_melli_tahvil'] # نام محصول، شماره باربری محرمانهی، شماره باربری مشتری، نام تحویل گیرنده، تلفن های مشتری
-          #  شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار، نوع کاربری خریدار، شناسه یکتای تحویل، ادرس تحویل، کد پستی تحویل، تریلی، تک، جفت
+         'delivered_weight', 'status',  'cargo', 'product_type', 'importer', 'barbary', 'barbary_confidential_number',
+          'barbary_customer_number', 'customer', 'buyer_name', 'delivery_receiver_name' ,
+           'buyer_national_id', 'address', 'tracking_number', 'buyer_user_type',
+           'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type'] 
 
         elif user_role == 'financial_manager':
             allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'customer_price', 'weight',
          'delivered_weight', 'status',
-          'cargo', 'importer', 'buyer_name'] # ، نام محصول، 
-          # نام تحویل گیرنده، شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار
+          'cargo', 'product_type', 'importer', 'buyer_name', 'delivery_receiver_name','buyer_national_id', 'address', 
+          'tracking_number']  
+
         
         elif user_role == 'admin' or user_role == 'logistics_manager':
             allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'customer_price', 'weight',
-         'delivered_weight', 'status',
-          'cargo', 'importer', 'barbary', 'customer', 'buyer_name','bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil', 'customer_phones']
-         # نام محصول، 
-          # نام تحویل گیرنده، شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار، نوع کاربری خریدار، شناسه یکتای تحویل، ادرس تحویل، کد پستی تحویل، تریلی، تک، جفت
-          # شماره باربری محرمانهی، شماره باربری مشتری، تلفن های مشتری
+         'delivered_weight', 'status',  'cargo', 'product_type', 'importer', 'barbary', 'barbary_confidential_number',
+          'barbary_customer_number', 'customer', 'buyer_name', 'delivery_receiver_name' , 'bazaargah_phone_number',
+          'tahvil_phone_number',
+           'buyer_national_id', 'address', 'tracking_number', 'buyer_user_type',
+           'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type'] 
 
         else:
             allowed_fields = []
@@ -202,6 +211,10 @@ class RoleBasedPurchaseForm(forms.ModelForm):
             self.fields['buyer_name'].widget.attrs['readonly'] = True
             self.fields['buyer_name'].widget.attrs['disabled'] = True
                 
+        # پر کردن فیلد product_type با مقدار از cargo
+        if self.instance and self.instance.cargo:
+            self.fields['product_type'].initial = self.instance.cargo.get_product_type_display()
+    
     def clean(self):
         cleaned_data = super().clean()
         
