@@ -81,8 +81,8 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         
         if user_role == 'sales_agent':
             allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'weight', 'delivered_weight',
-         'status', 'cargo', 'customer', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil']
-          # نام محصول، تلفن های مشتری، نام تحویل گیرنده
+         'status', 'cargo', 'customer', 'customer_phones', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil']
+          # نام محصول، نام تحویل گیرنده
           #  شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار، نوع کاربری خریدار، شناسه یکتای تحویل، ادرس تحویل، کد پستی تحویل، تریلی، تک، جفت
         
         elif user_role == 'support_agent':
@@ -100,7 +100,7 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         elif user_role == 'admin' or user_role == 'logistics_manager':
             allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'customer_price', 'weight',
          'delivered_weight', 'status',
-          'cargo', 'importer', 'barbary', 'customer', 'buyer_name','bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil']
+          'cargo', 'importer', 'barbary', 'customer', 'buyer_name','bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil', 'customer_phones']
          # نام محصول، 
           # نام تحویل گیرنده، شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار، نوع کاربری خریدار، شناسه یکتای تحویل، ادرس تحویل، کد پستی تحویل، تریلی، تک، جفت
           # شماره باربری محرمانهی، شماره باربری مشتری، تلفن های مشتری
@@ -135,6 +135,8 @@ class RoleBasedPurchaseForm(forms.ModelForm):
                                    'DIFFERENCE_DEPOSITED', 'RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
                                    'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED', 'PAY_KASRI', 
                                    'RECIEVE_SARAK', 'FULLY_SETTLED']
+        
+        
         
         if self.instance.state in payment_verified_states:
             read_only_fields_after_payment = ['order_weight', 'company_price', 'customer_price', 
@@ -191,6 +193,15 @@ class RoleBasedPurchaseForm(forms.ModelForm):
             if 'disabled' in self.fields['description'].widget.attrs:
                 del self.fields['description'].widget.attrs['disabled']
                 
+        # فیلدهای customer و buyer_name به طور پیش‌فرض غیرقابل ویرایش هستند
+        if 'customer' in self.fields:
+            self.fields['customer'].widget.attrs['readonly'] = True
+            self.fields['customer'].widget.attrs['disabled'] = True
+            
+        if 'buyer_name' in self.fields:
+            self.fields['buyer_name'].widget.attrs['readonly'] = True
+            self.fields['buyer_name'].widget.attrs['disabled'] = True
+                
     def clean(self):
         cleaned_data = super().clean()
         
@@ -240,6 +251,13 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         # فیلدهای readonly را از cleaned_data حذف می‌کنیم تا تغییر نکنند
         if self.instance.pk:
             instance = self.Meta.model.objects.get(pk=self.instance.pk)
+            
+            # فیلدهای customer و buyer_name همیشه غیرقابل ویرایش هستند
+            always_readonly_fields = ['customer', 'buyer_name']
+            for field_name in always_readonly_fields:
+                if field_name in cleaned_data:
+                    cleaned_data[field_name] = getattr(instance, field_name)
+            
             payment_verified_states = ['PAYMENT_VERIFIED', 'ALLOCATION_REGISTERED', 'ALLOCATION_APPROVED', 
                                      'VENDOR_SETTLED', 'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 
                                      'BARNAMEH_INCOMPLETE', 'PURCHASE_CLOSED', 'DIFFERENCE_APPROVED', 
@@ -502,6 +520,7 @@ def purchase_CRUD_view(request, purchase_id):
         post_data['customer_price'] = purchase.customer_price
         post_data['order_weight'] = purchase.order_weight
         post_data['delivered_weight'] = purchase.delivered_weight
+        post_data['customer_phones'] = purchase.customer.phone_numbers
         
         # بررسی اینکه آیا یک دکمه اکشن فشرده شده است
         action_buttons = [

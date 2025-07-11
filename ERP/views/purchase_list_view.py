@@ -26,7 +26,7 @@ def get_allowed_columns(user_role):
     allowed_columns = []
     if user_role == 'sales_agent':
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight', 'delivered_weight',
-         'status', 'cargo', 'product_type', 'customer', 'customer_phones', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number']
+         'status', 'cargo', 'product_type', 'customer', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number']
         
     elif user_role == 'support_agent':
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'weight',
@@ -44,7 +44,7 @@ def get_allowed_columns(user_role):
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
          'delivered_weight', 'first_barnameh_date', 'last_barnameh_date', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
          'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
-          'cargo', 'product_type', 'importer', 'barbary', 'barbary_phone', 'customer', 'customer_phones', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil', 'address', 'tracking_number']
+          'cargo', 'product_type', 'importer', 'barbary', 'barbary_phone', 'customer', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil', 'address', 'tracking_number']
 
     allowed_columns.append('actions')
     return allowed_columns
@@ -434,7 +434,6 @@ def purchase_list(request):
             {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
             {'id': 'product_type', 'name': 'نام محصول', 'field': 'cargo.product_type'},
             {'id': 'customer', 'name': 'نام مشتری', 'field': 'customer.name'},
-            {'id': 'customer_phones', 'name': 'تلفن های مشتری', 'field': 'customer.phone_numbers'},
             {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
             {'id': 'bazaargah_phone_number', 'name': 'شماره تلفن بازارگاه', 'field': 'bazaargah_phone_number'},
             {'id': 'tahvil_phone_number', 'name': 'شماره تلفن تحویل', 'field': 'tahvil_phone_number'},        
@@ -617,8 +616,7 @@ def purchase_list(request):
             {'id': 'barbary', 'name': 'نام باربری', 'field': 'cargo.barbary.name'},
             {'id': 'barbary_phone', 'name': 'شماره باربری', 'field': 'cargo.barbary.phone_number'},
             {'id': 'customer', 'name': 'نام مشتری', 'field': 'customer.name'},
-            {'id': 'customer_phones', 'name': 'تلفن های مشتری', 'field': 'customer.phone_numbers'},
-            {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
+             {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
             {'id': 'bazaargah_phone_number', 'name': 'شماره تلفن بازارگاه', 'field': 'bazaargah_phone_number'},
             {'id': 'tahvil_phone_number', 'name': 'شماره تلفن تحویل', 'field': 'tahvil_phone_number'},
             {'id': 'code_melli_tahvil', 'name': 'کد ملی تحویل', 'field': 'code_melli_tahvil'},
@@ -1051,7 +1049,6 @@ def _export_regular_excel(purchase_ids, selected_columns):
         'barbary': ('نام باربری', lambda p: p.cargo.barbary.name if p.cargo and hasattr(p.cargo, 'barbary') and p.cargo.barbary else "-"),
         'barbary_phone': ('شماره باربری', lambda p: p.cargo.barbary.phone_number if p.cargo and hasattr(p.cargo, 'barbary') and p.cargo.barbary and p.cargo.barbary.phone_number else "-"),
         'product_type': ('نام محصول', lambda p: p.cargo.get_product_type_display() if p.cargo and hasattr(p.cargo, 'product_type') and p.cargo.product_type else "-"),
-        'customer_phones': ('تلفن های مشتری', lambda p: ", ".join(p.customer.get_all_phone_numbers()) if p.customer else "-"),
         'first_barnameh_date': ('تاریخ اولین بارنامه', lambda p: p.barnamehs.order_by('barnameh_date').first().barnameh_date.strftime("%Y/%m/%d") if hasattr(p, 'barnamehs') and p.barnamehs.exists() and p.barnamehs.order_by('barnameh_date').first().barnameh_date else "-"),
         'last_barnameh_date': ('تاریخ آخرین بارنامه', lambda p: p.barnamehs.order_by('-barnameh_date').first().barnameh_date.strftime("%Y/%m/%d") if hasattr(p, 'barnamehs') and p.barnamehs.exists() and p.barnamehs.order_by('-barnameh_date').first().barnameh_date else "-"),
         'company_price': ('فی خرید (ریال)', lambda p: f"{p.company_price:,}" if p.company_price else "0"),
@@ -1743,24 +1740,7 @@ def apply_purchase_filter(request):
         # تشخیص نقش کاربر
         user_role = determine_user_role(request.user)
         
-        # فیلدهای ضروری برای QuerySet
-        selected_fields = [
-            'id', 'created_at', 'updated_at', 'purchase_number', 'invoice_id', 
-            'order_weight', 'delivered_weight', 'state', 'is_factored', 'is_urgent', 
-            'is_canceled', 'is_archived', 'company_price', 'customer_price', 
-            'amount_paid', 'factor_code', 'buyer_name', 'ready_for_invoice',
-            'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
-            'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'description',
-            'is_fully_tasvied', 'bazaargah_phone_number', 'tahvil_phone_number', 
-            'code_melli_tahvil', 'address'
-        ]
-        
-        # فیلدهای customer و cargo
-        customer_fields = ['customer__id', 'customer__name']
-        cargo_fields = ['cargo__id', 'cargo__cottage', 'cargo__product_type', 'cargo__barbary__name', 'cargo__barbary__phone_number', 'cargo__vared_konandeh__name']
-        sales_agent_fields = ['unique_sales_agent__id', 'unique_sales_agent__name']
-        
-        all_fields = selected_fields + customer_fields + cargo_fields + sales_agent_fields
+
         
         # ایجاد QuerySet پایه
         base_queryset = Purchase.objects.select_related(
@@ -2534,22 +2514,6 @@ def get_purchase_column_values(request):
                         else:
                             filter_conditions &= ~Q(cargo__product_type__in=product_codes)
                 
-                elif filter_column_id == 'customer_phones':
-                    # فیلتر پیچیده برای تلفن‌های مشتری
-                    values = [v for v in values if v and v.strip()]
-                    if values:
-                        phone_condition = Q()
-                        for phone in values:
-                            # جستجو در فیلدهای مختلف تلفن
-                            phone_condition |= Q(customer__phone_numbers__number=phone)
-                            phone_condition |= Q(bazaargah_phone_number=phone)
-                            phone_condition |= Q(tahvil_phone_number=phone)
-                            phone_condition |= Q(customer__phone_number=phone)  # فیلد قدیمی
-                        
-                        if filter_type == 'include':
-                            filter_conditions &= phone_condition
-                        else:
-                            filter_conditions &= ~phone_condition
                 
                 elif filter_column_id in ['first_barnameh_date', 'last_barnameh_date']:
                     date_values = []
@@ -2714,16 +2678,6 @@ def get_purchase_column_values(request):
             product_choices = dict(CargoProduct.PRODUCT_TYPES)
             values = set([product_choices.get(product_type, product_type) for product_type in values_queryset if product_type])
         
-        elif column_id == 'customer_phones':
-            # برای تلفن‌های مشتری - این یک فیلد پیچیده است که باید با دقت پیاده‌سازی شود
-            values_set = set()
-            customers = queryset.exclude(customer__isnull=True).select_related('customer').prefetch_related('customer__phone_numbers')
-            for purchase in customers:
-                customer_phones = purchase.customer.get_all_phone_numbers()
-                for phone in customer_phones:
-                    if phone:
-                        values_set.add(phone)
-            values = values_set
         
         elif column_id == 'first_barnameh_date':
             values_queryset = queryset.prefetch_related('barnamehs')\
