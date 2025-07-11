@@ -1018,10 +1018,11 @@ def _export_regular_excel(purchase_ids, selected_columns):
     # مپینگ کامل ستون‌ها به فیلدهای مدل - پشتیبانی از همه فیلدها
     column_mapping = {
         'purchase_number': ('شماره خرید', lambda p: p.purchase_number or "تعیین نشده"),
+        'shenase_takhsis': ('شناسه‌های تخصیص', lambda p: ", ".join([st.code for st in p.shenase_takhsis_set.all()]) if hasattr(p, 'shenase_takhsis_set') and p.shenase_takhsis_set.exists() else "-"),
         'date': ('تاریخ', lambda p: p.created_at.strftime("%Y/%m/%d") if p.created_at else "-"),
+        'sales_agent': ('نماینده فروش', lambda p: p.unique_sales_agent.name if p.unique_sales_agent else (", ".join([agent.name for agent in p.customer.sales_agent.all()]) if p.customer and p.customer.sales_agent.exists() else "-")),
         'customer': ('نام مشتری', lambda p: p.customer.name if p.customer else "نامشخص"),
         'invoice_id': ('کد درون سازمانی', lambda p: p.invoice_id or "تعیین نشده"),
-        'sales_agent': ('نماینده فروش', lambda p: p.unique_sales_agent.name if p.unique_sales_agent else (", ".join([agent.name for agent in p.customer.sales_agent.all()]) if p.customer and p.customer.sales_agent.exists() else "-")),
         'weight': ('وزن (کیلوگرم)', lambda p: f"{p.order_weight:,}" if p.order_weight else "0"),
         'cargo': ('کوتاژ', lambda p: p.cargo.cottage if p.cargo and hasattr(p.cargo, 'cottage') else "-"),
         'importer': ('واردکننده', lambda p: p.cargo.vared_konandeh.name if p.cargo and hasattr(p.cargo, 'vared_konandeh') and p.cargo.vared_konandeh else "-"),
@@ -1030,7 +1031,6 @@ def _export_regular_excel(purchase_ids, selected_columns):
         'description': ('توضیحات', lambda p: p.description or "-"),
         'factor_code': ('فاکتور مبنا', lambda p: "بله" if p.factor_code else "خیر"),
         'tracking_number': ('شماره پیگیری', lambda p: p.tracking_number or "-"),
-        'shenase_takhsis': ('شناسه‌های تخصیص', lambda p: ", ".join([st.code for st in p.shenase_takhsis_set.all()]) if hasattr(p, 'shenase_takhsis_set') and p.shenase_takhsis_set.exists() else "-"),
         'code_melli_tahvil': ('کد ملی تحویل', lambda p: p.code_melli_tahvil or "-"),
         'bazaargah_phone_number': ('شماره تلفن بازارگاه', lambda p: p.bazaargah_phone_number or "-"),
         'buyer_name': ('نام خریدار', lambda p: p.buyer_name or "-"),
@@ -1065,6 +1065,15 @@ def _export_regular_excel(purchase_ids, selected_columns):
         'company_price': ('فی خرید (ریال)', lambda p: f"{p.company_price:,}" if p.company_price else "0"),
         'customer_price': ('فی فروش (ریال)', lambda p: f"{p.customer_price:,}" if p.customer_price else "0"),
         'amount_paid': ('مبلغ پرداختی (ریال)', lambda p: f"{p.amount_paid:,}" if p.amount_paid else "0"),
+        'barbary_confidential_number': ('شماره محرمانه باربری', lambda p: p.barbary_confidential_number or "-"),
+        'barbary_customer_number': ('شماره مشتری باربری', lambda p: p.barbary_customer_number or "-"),
+        'delivery_receiver_name': ('نام تحویل گیرنده', lambda p: p.delivery_receiver_name or "-"),
+        'buyer_national_id': ('کد ملی خریدار', lambda p: p.buyer_national_id or "-"),
+        'buyer_user_type': ('نوع کاربر خریدار', lambda p: p.buyer_user_type or "-"),
+        'unique_delivery_id': ('شناسه یکتا تحویل', lambda p: p.unique_delivery_id or "-"),
+        'delivery_address': ('آدرس تحویل', lambda p: p.delivery_address or "-"),
+        'delivery_postal_code': ('کد پستی تحویل', lambda p: p.delivery_postal_code or "-"),
+        'vehicle_type': ('نوع خودرو حمل', lambda p: p.vehicle_type or "-"),
     }
     
     # فقط ستون‌های انتخاب شده را اضافه می‌کنیم
