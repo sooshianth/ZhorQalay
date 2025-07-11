@@ -26,7 +26,7 @@ def get_allowed_columns(user_role):
     allowed_columns = []
     if user_role == 'sales_agent':
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight', 'delivered_weight',
-         'status', 'cargo', 'product_type', 'customer', 'customer_phones', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number']
+         'status', 'cargo', 'product_type', 'customer', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number']
         
     elif user_role == 'support_agent':
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'weight',
@@ -48,7 +48,7 @@ def get_allowed_columns(user_role):
             'tracking_number', 'barbary_confidential_number', 'barbary_customer_number', 'delivery_receiver_name', 'buyer_national_id',
             'buyer_user_type', 'unique_delivery_id', 'delivery_address', 'delivery_postal_code', 'vehicle_type']
 
-    
+    allowed_columns.append('actions')
     return allowed_columns
 
 def get_default_columns(user_role):
@@ -74,6 +74,127 @@ def get_default_columns(user_role):
             'cargo', 'product_type', 'importer', 'buyer_name', 'tahvil_phone_number', 'code_melli_tahvil']
           
     return selected_columns
+
+def get_allowed_search_filters(global_search, request):
+    user_role = determine_user_role(request.user)
+    if user_role == 'sales_agent':
+        search_filters = (
+                # اطلاعات اصلی خرید
+                Q(customer__name__icontains=global_search) |
+                Q(purchase_number__icontains=global_search) |
+                Q(invoice_id__icontains=global_search) |
+                Q(buyer_name__icontains=global_search) |
+                
+                # اطلاعات کوتاژ و حمل‌ونقل
+                Q(cargo__cottage__icontains=global_search) |
+                
+                # اطلاعات تماس و آدرس
+                Q(address__icontains=global_search) |
+                Q(bazaargah_phone_number__icontains=global_search) |
+                Q(tahvil_phone_number__icontains=global_search) |
+                Q(code_melli_tahvil__icontains=global_search) |
+                
+                # اطلاعات ردیابی
+                Q(tracking_number__icontains=global_search) |
+                Q(shenase_takhsis_set__code__icontains=global_search) |
+                
+                # توضیحات و اطلاعات اضافی
+                Q(priority_reason__icontains=global_search) |
+                
+                # نماینده فروش
+                Q(unique_sales_agent__name__icontains=global_search)
+            )
+        search_filters = search_filters & Q(unique_sales_agent__name__icontains=request.user.sales_agent.name)
+    elif user_role == 'support_agent':
+        search_filters = (
+                # اطلاعات اصلی خرید
+                Q(customer__name__icontains=global_search) |
+                Q(purchase_number__icontains=global_search) |
+                Q(invoice_id__icontains=global_search) |
+                Q(buyer_name__icontains=global_search) |
+                
+                # اطلاعات کوتاژ و حمل‌ونقل
+                Q(cargo__cottage__icontains=global_search) |
+                Q(cargo__vared_konandeh__name__icontains=global_search) |
+                Q(cargo__barbary__name__icontains=global_search) |
+                
+                # اطلاعات تماس و آدرس
+                Q(address__icontains=global_search) |
+                Q(bazaargah_phone_number__icontains=global_search) |
+                Q(tahvil_phone_number__icontains=global_search) |
+                Q(code_melli_tahvil__icontains=global_search) |
+                
+                # اطلاعات ردیابی
+                Q(tracking_number__icontains=global_search) |
+                Q(shenase_takhsis_set__code__icontains=global_search) |
+                
+                # توضیحات و اطلاعات اضافی
+                Q(priority_reason__icontains=global_search) |
+                
+                # نماینده فروش
+                Q(unique_sales_agent__name__icontains=global_search)
+            )
+    elif user_role == 'financial_manager':
+        search_filters = (
+                # اطلاعات اصلی خرید
+                Q(customer__name__icontains=global_search) |
+                Q(purchase_number__icontains=global_search) |
+                Q(invoice_id__icontains=global_search) |
+                Q(buyer_name__icontains=global_search) |
+                
+                # اطلاعات کوتاژ و حمل‌ونقل
+                Q(cargo__cottage__icontains=global_search) |
+                Q(cargo__vared_konandeh__name__icontains=global_search) |
+                Q(cargo__barbary__name__icontains=global_search) |
+                
+                # اطلاعات تماس و آدرس
+                Q(address__icontains=global_search) |
+                Q(bazaargah_phone_number__icontains=global_search) |
+                Q(tahvil_phone_number__icontains=global_search) |
+                Q(code_melli_tahvil__icontains=global_search) |
+                
+                # اطلاعات ردیابی
+                Q(tracking_number__icontains=global_search) |
+                Q(shenase_takhsis_set__code__icontains=global_search) |
+                
+                # توضیحات و اطلاعات اضافی
+                Q(description__icontains=global_search) |
+                Q(priority_reason__icontains=global_search) |
+                
+                # نماینده فروش
+                Q(unique_sales_agent__name__icontains=global_search)
+            )
+    elif user_role == 'admin':
+        search_filters = (
+                # اطلاعات اصلی خرید
+                Q(customer__name__icontains=global_search) |
+                Q(purchase_number__icontains=global_search) |
+                Q(invoice_id__icontains=global_search) |
+                Q(buyer_name__icontains=global_search) |
+                
+                # اطلاعات کوتاژ و حمل‌ونقل
+                Q(cargo__cottage__icontains=global_search) |
+                Q(cargo__vared_konandeh__name__icontains=global_search) |
+                Q(cargo__barbary__name__icontains=global_search) |
+                
+                # اطلاعات تماس و آدرس
+                Q(address__icontains=global_search) |
+                Q(bazaargah_phone_number__icontains=global_search) |
+                Q(tahvil_phone_number__icontains=global_search) |
+                Q(code_melli_tahvil__icontains=global_search) |
+                
+                # اطلاعات ردیابی
+                Q(tracking_number__icontains=global_search) |
+                Q(shenase_takhsis_set__code__icontains=global_search) |
+                
+                # توضیحات و اطلاعات اضافی
+                Q(description__icontains=global_search) |
+                Q(priority_reason__icontains=global_search) |
+                
+                # نماینده فروش
+                Q(unique_sales_agent__name__icontains=global_search)
+            )
+    return search_filters
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
@@ -315,7 +436,6 @@ def purchase_list(request):
             {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
             {'id': 'product_type', 'name': 'نام محصول', 'field': 'cargo.product_type'},
             {'id': 'customer', 'name': 'نام مشتری', 'field': 'customer.name'},
-            {'id': 'customer_phones', 'name': 'تلفن های مشتری', 'field': 'customer.phone_numbers'},
             {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
             {'id': 'bazaargah_phone_number', 'name': 'شماره تلفن بازارگاه', 'field': 'bazaargah_phone_number'},
             {'id': 'tahvil_phone_number', 'name': 'شماره تلفن تحویل', 'field': 'tahvil_phone_number'},        
@@ -498,8 +618,7 @@ def purchase_list(request):
             {'id': 'barbary', 'name': 'نام باربری', 'field': 'cargo.barbary.name'},
             {'id': 'barbary_phone', 'name': 'شماره باربری', 'field': 'cargo.barbary.phone_number'},
             {'id': 'customer', 'name': 'نام مشتری', 'field': 'customer.name'},
-            {'id': 'customer_phones', 'name': 'تلفن های مشتری', 'field': 'customer.phone_numbers'},
-            {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
+             {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
             {'id': 'bazaargah_phone_number', 'name': 'شماره تلفن بازارگاه', 'field': 'bazaargah_phone_number'},
             {'id': 'tahvil_phone_number', 'name': 'شماره تلفن تحویل', 'field': 'tahvil_phone_number'},
             {'id': 'code_melli_tahvil', 'name': 'کد ملی تحویل', 'field': 'code_melli_tahvil'},
@@ -941,7 +1060,6 @@ def _export_regular_excel(purchase_ids, selected_columns):
         'barbary': ('نام باربری', lambda p: p.cargo.barbary.name if p.cargo and hasattr(p.cargo, 'barbary') and p.cargo.barbary else "-"),
         'barbary_phone': ('شماره باربری', lambda p: p.cargo.barbary.phone_number if p.cargo and hasattr(p.cargo, 'barbary') and p.cargo.barbary and p.cargo.barbary.phone_number else "-"),
         'product_type': ('نام محصول', lambda p: p.cargo.get_product_type_display() if p.cargo and hasattr(p.cargo, 'product_type') and p.cargo.product_type else "-"),
-        'customer_phones': ('تلفن های مشتری', lambda p: ", ".join(p.customer.get_all_phone_numbers()) if p.customer else "-"),
         'first_barnameh_date': ('تاریخ اولین بارنامه', lambda p: p.barnamehs.order_by('barnameh_date').first().barnameh_date.strftime("%Y/%m/%d") if hasattr(p, 'barnamehs') and p.barnamehs.exists() and p.barnamehs.order_by('barnameh_date').first().barnameh_date else "-"),
         'last_barnameh_date': ('تاریخ آخرین بارنامه', lambda p: p.barnamehs.order_by('-barnameh_date').first().barnameh_date.strftime("%Y/%m/%d") if hasattr(p, 'barnamehs') and p.barnamehs.exists() and p.barnamehs.order_by('-barnameh_date').first().barnameh_date else "-"),
         'company_price': ('فی خرید (ریال)', lambda p: f"{p.company_price:,}" if p.company_price else "0"),
@@ -987,7 +1105,7 @@ def cargo_products_list(request):
     """
     API برای دریافت لیست کوتاژها
     """
-    logger.warning(f"کاربر {request.user.username} درخواست دریافت لیست کوتاژ کرد. {get_client_ip(request)}")
+    logger.warning(f"کاربر {request.user.username} درخواست دریافت لیست کوتاژ (حذف شده!) کرد. {get_client_ip(request)}")
     return JsonResponse({'status': 'error', 'message': "error"}, status=500)
     try:
         # فیلتر بر اساس وضعیت فعال
@@ -1037,7 +1155,11 @@ def cargo_product_details(request):
     """
     API برای دریافت جزئیات یک کوتاژ بر اساس شماره کوتاژ
     """
-    logger.warning(f"دریافت جزئیات کوتاز توسط {request.user.username} با آیپی {get_client_ip(request)}")
+    cottage = request.GET.get('cottage', '')
+    if not cottage:
+        cottage = "0"
+    logger.warning(f" (حذف شده!) دریافت جزئیات کوتاز {cottage} توسط {request.user.username} با آیپی {get_client_ip(request)}")
+    return JsonResponse({'status': 'error', 'message': "error"}, status=500)
     try:
         cottage = request.GET.get('cottage', '')
         
@@ -1077,7 +1199,8 @@ def bulk_edit_cargo(request):
     """
     API برای ویرایش گروهی کوتاژ
     """
-    logger.warning(f"ویرایش گروهی کوتاژ توسط {request.user.username} با ایپی {get_client_ip(request)}")
+    logger.warning(f"ویرایش گروهی (حذف شده!) کوتاژ توسط {request.user.username} با ایپی {get_client_ip(request)}")
+    return JsonResponse({'status': 'error', 'message': "error"}, status=500)
     try:
         # دریافت لیست خریدهای انتخاب شده
         purchase_ids = request.POST.get('purchase_ids', '').split(',')
@@ -1190,7 +1313,8 @@ def reset_column_order(request):
     
     try:
         # ستون‌های پیش‌فرض اصلی
-        default_columns = ['purchase_number', 'date', 'customer', 'invoice_id', 'sales_agent', 'weight', 'cargo', 'status', 'actions']
+        user_role = determine_user_role(request.user)
+        default_columns = get_default_columns(user_role)
         
         # برای آسان‌تر کردن دیباگ
         print("Resetting column order to default:", default_columns)
@@ -1361,7 +1485,7 @@ def clear_column_cache(request):
         return JsonResponse({'status': 'error', 'message': "error"}, status=500)
 
 @login_required
-@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@role_required('admin', 'logistics_manager', 'financial_manager')
 def get_section_purchase_ids(request):
     """
     API برای دریافت تمام ID های خریدهای یک بخش خاص (فعال، در انتظار پرداخت، آرشیو)
@@ -1377,6 +1501,8 @@ def get_section_purchase_ids(request):
         global_search = request.GET.get('global_search', '')
         customer = request.GET.get('customer', '')
         sales_agent = request.GET.get('sales_agent', '')
+        if user_role == 'sales_agent':
+            sales_agent = request.user.sales_agent.name
         invoice_id = request.GET.get('invoice_id', '')
         purchase_number = request.GET.get('purchase_number', '')
         cottage = request.GET.get('cottage', '')
@@ -1468,35 +1594,7 @@ def get_section_purchase_ids(request):
         
         # اعمال فیلتر جستجوی سریع - جستجو در همه فیلدهای مهم
         if global_search:
-            search_filters = (
-                # اطلاعات اصلی خرید
-                Q(customer__name__icontains=global_search) |
-                Q(purchase_number__icontains=global_search) |
-                Q(invoice_id__icontains=global_search) |
-                Q(buyer_name__icontains=global_search) |
-                
-                # اطلاعات کوتاژ و حمل‌ونقل
-                Q(cargo__cottage__icontains=global_search) |
-                Q(cargo__vared_konandeh__name__icontains=global_search) |
-                Q(cargo__barbary__name__icontains=global_search) |
-                
-                # اطلاعات تماس و آدرس
-                Q(address__icontains=global_search) |
-                Q(bazaargah_phone_number__icontains=global_search) |
-                Q(tahvil_phone_number__icontains=global_search) |
-                Q(code_melli_tahvil__icontains=global_search) |
-                
-                # اطلاعات ردیابی
-                Q(tracking_number__icontains=global_search) |
-                Q(shenase_takhsis_set__code__icontains=global_search) |
-                
-                # توضیحات و اطلاعات اضافی
-                Q(description__icontains=global_search) |
-                Q(priority_reason__icontains=global_search) |
-                
-                # نماینده فروش
-                Q(unique_sales_agent__name__icontains=global_search)
-            )
+            search_filters = get_allowed_search_filters(global_search, request)
             filters &= search_filters
         
         # اعمال همه فیلترها
@@ -1526,6 +1624,11 @@ def get_purchase_table_configuration(request):
     """
     API برای دریافت تنظیمات ستون‌های جدول خریدها
     """
+    logger.warning(f"دریافت تنظیمات ستون‌های جدول خریدها (حذف شده!) توسط {request.user.username} و {get_client_ip(request)}")
+    return JsonResponse({
+            'status': 'error',
+            'message': "error"
+        }, status=500)
     try:
         table_name = request.GET.get('table_name', 'purchases')
         user_role = determine_user_role(request.user)
@@ -1631,6 +1734,7 @@ def apply_purchase_filter(request):
     API برای اعمال فیلتر سمت سرور به خریدها
     """
     logger.warning(f"درخواست فیلتر خرید توسط {request.user.username} انجام شده. {get_client_ip(request)}")
+    logger.warning(f"apply purchase filter")
     try:
         # دریافت پارامترهای فیلتر
         filters = json.loads(request.POST.get('filters', '{}'))
@@ -2174,7 +2278,20 @@ def apply_purchase_filter(request):
                     'purchase_mabna_invoice': '-',  # مخفی شده
                     'sales_mabna_invoice': '-',     # مخفی شده  
                     'mabna_profit': '-',            # مخفی شده
+                    
                 })
+
+            allowed_fields = get_allowed_columns(user_role)
+            # فقط کلیدهایی که در allowed_fields هستند را نگه می‌داریم
+            data = {k: v for k, v in data.items() if k in allowed_fields}
+            data.update({
+                'details': f'جزئیات خرید {purchase.id}',
+                'جزئیات': f'جزئیات خرید {purchase.id}',
+                'actions': f'عملیات خرید {purchase.id}',
+                'عملیات': f'عملیات خرید {purchase.id}',
+                'id': purchase.id,
+            })
+            
             
             purchases_data.append(data)
         
@@ -2251,6 +2368,12 @@ def get_purchase_column_values(request):
         
         # تشخیص نقش کاربر
         user_role = determine_user_role(request.user)
+        allowed_fields = get_allowed_columns(user_role)
+        if column_id not in allowed_fields:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'شما اجازه دسترسی به این ستون را ندارید'
+            }, status=403)
         
         # ایجاد QuerySet پایه
         base_queryset = Purchase.objects.select_related(
@@ -2461,22 +2584,6 @@ def get_purchase_column_values(request):
                         else:
                             filter_conditions &= ~Q(cargo__product_type__in=product_codes)
                 
-                elif filter_column_id == 'customer_phones':
-                    # فیلتر پیچیده برای تلفن‌های مشتری
-                    values = [v for v in values if v and v.strip()]
-                    if values:
-                        phone_condition = Q()
-                        for phone in values:
-                            # جستجو در فیلدهای مختلف تلفن
-                            phone_condition |= Q(customer__phone_numbers__number=phone)
-                            phone_condition |= Q(bazaargah_phone_number=phone)
-                            phone_condition |= Q(tahvil_phone_number=phone)
-                            phone_condition |= Q(customer__phone_number=phone)  # فیلد قدیمی
-                        
-                        if filter_type == 'include':
-                            filter_conditions &= phone_condition
-                        else:
-                            filter_conditions &= ~phone_condition
                 
                 elif filter_column_id in ['first_barnameh_date', 'last_barnameh_date']:
                     date_values = []
@@ -2678,16 +2785,6 @@ def get_purchase_column_values(request):
             product_choices = dict(CargoProduct.PRODUCT_TYPES)
             values = set([product_choices.get(product_type, product_type) for product_type in values_queryset if product_type])
         
-        elif column_id == 'customer_phones':
-            # برای تلفن‌های مشتری - این یک فیلد پیچیده است که باید با دقت پیاده‌سازی شود
-            values_set = set()
-            customers = queryset.exclude(customer__isnull=True).select_related('customer').prefetch_related('customer__phone_numbers')
-            for purchase in customers:
-                customer_phones = purchase.customer.get_all_phone_numbers()
-                for phone in customer_phones:
-                    if phone:
-                        values_set.add(phone)
-            values = values_set
         
         elif column_id == 'first_barnameh_date':
             values_queryset = queryset.prefetch_related('barnamehs')\

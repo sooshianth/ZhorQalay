@@ -450,8 +450,8 @@
                             <th class="column-country" data-column-type="text">کشور</th>
                             {% if not hide_supplier_info %}
                             <th class="column-vared_konandeh" data-column-type="text">واردکننده</th>
-                            {% endif %}
                             <th class="column-barbary" data-column-type="text">باربری</th>
+                            {% endif %}
                             <th class="column-customer_price" data-column-type="number">قیمت فروش</th>
                             <th class="column-port" data-column-type="text">محل بارگیری</th>
                             <th class="column-loading_time" data-column-type="date">زمان بارگیری</th>
@@ -470,8 +470,8 @@
                                 <td class="column-country">{{ product.get_country_display }}</td>
                                 {% if not hide_supplier_info %}
                                 <td class="column-vared_konandeh">{{ product.vared_konandeh.name|default:"-" }}</td>
-                                {% endif %}
                                 <td class="column-barbary">{{ product.barbary.name|default:"-" }}</td>
+                                {% endif %}
                                 <td class="column-customer_price" data-value="{{ product.customer_price }}">{{ product.customer_price }}</td>
                                 <td class="column-port">{{ product.port }}</td>
                                 <td class="column-loading_time" data-value="{{ product.loading_time }}">{{ product.loading_time }}</td>
@@ -543,8 +543,8 @@
                             <th class="column-country" data-column-type="text">کشور</th>
                             {% if not hide_supplier_info %}
                             <th class="column-vared_konandeh" data-column-type="text">واردکننده</th>
-                            {% endif %}
                             <th class="column-barbary" data-column-type="text">باربری</th>
+                            {% endif %}
                             <th class="column-customer_price" data-column-type="number">قیمت فروش</th>
                             <th class="column-port" data-column-type="text">محل بارگیری</th>
                             <th class="column-loading_time" data-column-type="date">زمان بارگیری</th>
@@ -563,8 +563,8 @@
                                 <td class="column-country">{{ product.get_country_display }}</td>
                                 {% if not hide_supplier_info %}
                                 <td class="column-vared_konandeh">{{ product.vared_konandeh.name|default:"-" }}</td>
-                                {% endif %}
                                 <td class="column-barbary">{{ product.barbary.name|default:"-" }}</td>
+                                {% endif %}
                                 <td class="column-customer_price" data-value="{{ product.customer_price }}">{{ product.customer_price }}</td>
                                 <td class="column-port">{{ product.port }}</td>
                                 <td class="column-loading_time" data-value="{{ product.loading_time }}">{{ product.loading_time }}</td>

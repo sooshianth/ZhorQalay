@@ -4,6 +4,10 @@ from django.contrib.auth.decorators import login_required
 from core.decorators.decorators import role_required
 from core.decorators.det_user_role import determine_user_role
 from django.db.models import Q
+from .cargo_product_CRUD_panel import get_client_ip
+import logging
+
+logger = logging.getLogger("bki_cargos_barbary_view")
 
 @role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
@@ -11,6 +15,7 @@ def barbary_list(request):
     """
     لیست باربری‌ها
     """
+    logger.warning(f"لیست باربری‌ها: {get_client_ip(request)}, user: {request.user}")
     user_role = determine_user_role(request.user)
     
     # جستجو
@@ -37,6 +42,7 @@ def barbary_add(request):
     """
     افزودن باربری جدید
     """
+    logger.warning(f"اضافه کردن باربری‌ها: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         name = request.POST.get('name')
         phone_number = request.POST.get('phone_number')
@@ -60,6 +66,7 @@ def bulk_edit_barbaries(request):
     """
     ویرایش گروهی باربری‌ها
     """
+    logger.warning(f"ویرایش گروهی باربری‌ها: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         selected_barbary_ids = request.POST.getlist('selected_barbary_ids')
         

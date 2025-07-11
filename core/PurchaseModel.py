@@ -48,7 +48,7 @@ class Purchase(models.Model):
     invoice_id = models.CharField(max_length=20, verbose_name='کد درون سازمانی', unique=True, editable=False, blank=True, null=True)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, verbose_name="مشتری", help_text="ارتباط یک‌به‌یک با مشتری از طریق شماره تلفن یا آیدی", related_name='purchases_made', null=True, blank=True)
     sales_agent = models.ManyToManyField(SalesAgent, through='PuchaseSalesAgent', verbose_name="کارشناس فروش", blank=True, related_name='purchase_assignments')
-    address = models.TextField("آدرس", blank=True, null=True)
+    address = models.TextField("آدرس خریدار", blank=True, null=True)
     description = models.TextField("توضیحات", blank=True, null=True)
     company_price = models.PositiveIntegerField("فی خرید(ریال)", default=0)
     customer_price = models.PositiveIntegerField("فی فروش(ریال)", default=0)
