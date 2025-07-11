@@ -42,6 +42,10 @@ class Barnameh(models.Model):
 
     is_created_by_excel = models.BooleanField(default=False, verbose_name='ایجاد توسط اکسل')
     is_sent_to_bki = models.BooleanField(default=False, verbose_name='ارسال به بازارگاه')
+    
+    # فیلدهای جدید برای مدیریت ستون‌ها
+    buyer_postal_code = models.CharField(max_length=20, verbose_name='کدپستی خریدار', null=True, blank=True)
+    transport_date = jmodels.jDateField(verbose_name='تاریخ حمل', null=True, blank=True)
 
     class Meta:
         verbose_name = 'بارنامه'
@@ -49,6 +53,49 @@ class Barnameh(models.Model):
 
     def __str__(self):
         return f" {self.number} - {self.serial}"
+    
+    # متدهای کمکی برای دریافت اطلاعات از خرید مرتبط
+    def get_cargo(self):
+        """دریافت کوتاژ از خرید مرتبط"""
+        return self.purchase.cargo if self.purchase else None
+    
+    def get_company_price(self):
+        """دریافت فی خرید از خرید مرتبط"""
+        return self.purchase.company_price if self.purchase else None
+    
+    def get_customer_price(self):
+        """دریافت فی فروش از خرید مرتبط"""
+        return self.purchase.customer_price if self.purchase else None
+    
+    def get_total_sales_amount(self):
+        """محاسبه مبلغ کل فروش (فی فروش × وزن)"""
+        if self.purchase and self.purchase.customer_price and self.tonnage:
+            return float(self.purchase.customer_price) * float(self.tonnage)
+        return None
+    
+    def get_buyer_national_code(self):
+        """دریافت شماره ملی خریدار از خرید مرتبط"""
+        return self.purchase.code_melli_tahvil if self.purchase else None
+    
+    def get_buyer_address(self):
+        """دریافت آدرس خریدار از خرید مرتبط"""
+        return self.purchase.address if self.purchase else None
+    
+    def get_demand_amount(self):
+        """دریافت میزان تقاضا از خرید مرتبط"""
+        return self.purchase.order_weight if self.purchase else None
+    
+    def get_importer(self):
+        """دریافت واردکننده از کوتاژ"""
+        return self.purchase.cargo.vared_konandeh if (self.purchase and self.purchase.cargo) else None
+    
+    def get_product_type(self):
+        """دریافت نوع محصول از کوتاژ"""
+        return self.purchase.cargo.get_product_type_display() if (self.purchase and self.purchase.cargo) else None
+    
+    def get_successful_send_date(self):
+        """دریافت تاریخ ارسال موفق به بازارگاه"""
+        return self.is_sent_to_bki_at
     
     def set_the_purchase_and_shenase_takhsis(self):
         try:
