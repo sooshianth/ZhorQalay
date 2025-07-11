@@ -9,6 +9,7 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from ERP.models.NotificationService import NotificationService
 from ERP.models.Notification import Notification
+from .CustomerModel import FIELD_OF_ACTIVITY
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 import uuid
@@ -82,20 +83,8 @@ class Purchase(models.Model):
     
     delivery_receiver_name = models.CharField("نام تحویل گیرنده", max_length=255, blank=True, null=True)
     buyer_national_id = models.CharField("شناسه ملی خریدار", max_length=20, blank=True, null=True)
-    
-    BUYER_USER_TYPE_CHOICES = [
-        ('chicken', 'مرغدار'),
-        ('livestock', 'دامدار'),
-        ('factory', 'کارخانه خوراک'),
-        ('fish', 'پرورش آبزیان'),
-        ('corporation', 'تعاونی'),
-        ('association', 'اتحادیه'),
-        ('dealer', 'دلال'),
-        ('aggressive', 'مزاحم'),
-        ('other', 'سایر')
-    ]
-    buyer_user_type = models.CharField("نوع کاربری خریدار", max_length=20, choices=BUYER_USER_TYPE_CHOICES,
-                                     blank=True, null=True, default='real_person')
+
+    buyer_user_type = models.CharField("نوع کاربری خریدار", max_length=20, choices=FIELD_OF_ACTIVITY, blank=True, null=True)
     
     # فیلدهای آدرس و تحویل
     unique_delivery_id = models.CharField("شناسه یکتا تحویل", max_length=50, blank=True, null=True, unique=True)
@@ -108,8 +97,7 @@ class Purchase(models.Model):
         ('single', 'تک'),
         ('double', 'جفت'),
     ]
-    vehicle_type = models.CharField("نوع خودرو حمل", max_length=20, choices=VEHICLE_TYPE_CHOICES,
-                                  blank=True, null=True, default='trailer')
+    vehicle_type = models.CharField("نوع خودرو حمل", max_length=20, choices=VEHICLE_TYPE_CHOICES,blank=True, null=True)
 
 
     is_weight_costed = models.BooleanField("آیا وزن خرید از وزن موجود محصول کاسته شده است؟", default=False)
@@ -839,14 +827,6 @@ class Purchase(models.Model):
             
         if not self.delivery_address and self.address:
             self.delivery_address = self.address
-            
-        # تنظیم نوع کاربری خریدار بر اساس طول شناسه ملی
-        if not self.buyer_user_type and self.buyer_national_id:
-            national_id_length = len(''.join(c for c in str(self.buyer_national_id) if c.isdigit()))
-            if national_id_length == 10:
-                self.buyer_user_type = 'real_person'
-            elif national_id_length == 11:
-                self.buyer_user_type = 'legal_entity'
 
     def send_notification(self, user, title, message, notification_type='purchase', priority='medium'):
         """ارسال نوتیفیکیشن برای کاربر"""

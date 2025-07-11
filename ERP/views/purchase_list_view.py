@@ -44,7 +44,9 @@ def get_allowed_columns(user_role):
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
          'delivered_weight', 'first_barnameh_date', 'last_barnameh_date', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
          'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
-          'cargo', 'product_type', 'importer', 'barbary', 'barbary_phone', 'customer', 'customer_phones', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil', 'address', 'tracking_number']
+          'cargo', 'product_type', 'importer', 'barbary', 'barbary_phone', 'customer', 'customer_phones', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil', 'address',
+            'tracking_number', 'barbary_confidential_number', 'barbary_customer_number', 'delivery_receiver_name', 'buyer_national_id',
+            'buyer_user_type', 'unique_delivery_id', 'delivery_address', 'delivery_postal_code', 'vehicle_type']
 
     
     return allowed_columns
@@ -503,6 +505,15 @@ def purchase_list(request):
             {'id': 'code_melli_tahvil', 'name': 'کد ملی تحویل', 'field': 'code_melli_tahvil'},
             {'id': 'address', 'name': 'آدرس خریدار', 'field': 'address'},
             {'id': 'tracking_number', 'name': 'شناسه یکتا خریدار', 'field': 'tracking_number'},
+            {'id': 'barbary_confidential_number', 'name': 'شماره باربری محرمانه', 'field': 'barbary_confidential_number'},
+            {'id': 'barbary_customer_number', 'name':'شماره باربری مشتری', 'field': 'barbary_customer_number'},
+            {'id': 'delivery_receiver_name', 'name':'نام تحویل گیرنده', 'field': 'delivery_receiver_name'},
+            {'id': 'buyer_national_id', 'name':'شناسه ملی خریدار', 'field': 'buyer_national_id'},
+            {'id': 'buyer_user_type', 'name':'نوع کاربری خریدار', 'field': 'buyer_user_type'},
+            {'id': 'unique_delivery_id', 'name':'شناسه یکتا تحویل', 'field': 'unique_delivery_id'},
+            {'id': 'delivery_address', 'name':'آدرس تحویل', 'field': 'delivery_address'},
+            {'id': 'delivery_postal_code', 'name':'کد پستی تحویل', 'field': 'delivery_postal_code'},
+            {'id': 'vehicle_type', 'name':'نوع خودرو حمل', 'field': 'vehicle_type'},
         ]
 
         # todo: add the rest of the columns
@@ -1588,6 +1599,15 @@ def get_purchase_table_configuration(request):
                 {'id': 'purchase_mabna_invoice', 'name': 'فاکتور خرید مبنا', 'type': 'number', 'filterable': True, 'sortable': True},
                 {'id': 'sales_mabna_invoice', 'name': 'فاکتور فروش مبنا', 'type': 'number', 'filterable': True, 'sortable': True},
                 {'id': 'mabna_profit', 'name': 'سود مبنا', 'type': 'number', 'filterable': True, 'sortable': True},
+                {'id': 'barbary_confidential_number', 'name': 'شماره باربری محرمانه', 'type': 'text', 'filterable': True, 'sortable': True},
+                {'id': 'barbary_customer_number', 'name':'شماره باربری مشتری', 'type': 'text', 'filterable': True, 'sortable': True},
+                {'id': 'delivery_receiver_name', 'name':'نام تحویل گیرنده', 'type': 'text', 'filterable': True, 'sortable': True},
+                {'id': 'buyer_national_id', 'name':'شناسه ملی خریدار', 'type': 'text', 'filterable': True, 'sortable': True},
+                {'id': 'buyer_user_type', 'name':'نوع کاربری خریدار', 'type': 'choice', 'filterable': True, 'sortable': True},
+                {'id': 'unique_delivery_id', 'name':'شناسه یکتا تحویل', 'type': 'text', 'filterable': True, 'sortable': True},
+                {'id': 'delivery_address', 'name':'آدرس تحویل', 'type': 'text', 'filterable': True, 'sortable': True},
+                {'id': 'delivery_postal_code', 'name':'کد پستی تحویل', 'type': 'text', 'filterable': True, 'sortable': True},
+                {'id': 'vehicle_type', 'name':'نوع خودرو حمل', 'type': 'choice', 'filterable': True, 'sortable': True},
             ]
         
         return JsonResponse({
@@ -1645,7 +1665,11 @@ def apply_purchase_filter(request):
             'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
             'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'description',
             'is_fully_tasvied', 'bazaargah_phone_number', 'tahvil_phone_number', 
-            'code_melli_tahvil', 'address'
+            'code_melli_tahvil', 'address',
+            # فیلدهای جدید اضافه شده
+            'barbary_confidential_number', 'barbary_customer_number', 'delivery_receiver_name',
+            'buyer_national_id', 'buyer_user_type', 'unique_delivery_id', 
+            'delivery_address', 'delivery_postal_code', 'vehicle_type'
         ]
         
         # فیلدهای customer و cargo
@@ -1957,6 +1981,15 @@ def apply_purchase_filter(request):
                 Q(description__icontains=global_search) |
                 Q(priority_reason__icontains=global_search) |
                 
+                # فیلدهای جدید حمل و نقل
+                Q(barbary_confidential_number__icontains=global_search) |
+                Q(barbary_customer_number__icontains=global_search) |
+                Q(delivery_receiver_name__icontains=global_search) |
+                Q(buyer_national_id__icontains=global_search) |
+                Q(unique_delivery_id__icontains=global_search) |
+                Q(delivery_address__icontains=global_search) |
+                Q(delivery_postal_code__icontains=global_search) |
+                
                 # نماینده فروش
                 Q(unique_sales_agent__name__icontains=global_search)
             )
@@ -2016,6 +2049,16 @@ def apply_purchase_filter(request):
                 'جزئیات': 'id',  # مرتب‌سازی بر اساس ID
                 'actions': 'id',  # مرتب‌سازی بر اساس ID
                 'عملیات': 'id',  # مرتب‌سازی بر اساس ID
+                # فیلدهای جدید برای مرتب‌سازی
+                'barbary_confidential_number': 'barbary_confidential_number',
+                'barbary_customer_number': 'barbary_customer_number',
+                'delivery_receiver_name': 'delivery_receiver_name',
+                'buyer_national_id': 'buyer_national_id',
+                'buyer_user_type': 'buyer_user_type',
+                'unique_delivery_id': 'unique_delivery_id',
+                'delivery_address': 'delivery_address',
+                'delivery_postal_code': 'delivery_postal_code',
+                'vehicle_type': 'vehicle_type',
             }
             
             sort_field = sort_mapping.get(column, column)
@@ -2087,6 +2130,16 @@ def apply_purchase_filter(request):
                 'is_archived': 'بله' if purchase.is_archived else 'خیر',
                 'buyer_name': purchase.buyer_name or '-',
                 'ready_for_invoice': 'بله' if purchase.ready_for_invoice else 'خیر',
+                # فیلدهای جدید اضافه شده
+                'barbary_confidential_number': purchase.barbary_confidential_number or '-',
+                'barbary_customer_number': purchase.barbary_customer_number or '-',
+                'delivery_receiver_name': purchase.delivery_receiver_name or '-',
+                'buyer_national_id': purchase.buyer_national_id or '-',
+                'buyer_user_type': purchase.get_buyer_user_type_display() if purchase.buyer_user_type else '-',
+                'unique_delivery_id': purchase.unique_delivery_id or '-',
+                'delivery_address': purchase.delivery_address or '-',
+                'delivery_postal_code': purchase.delivery_postal_code or '-',
+                'vehicle_type': purchase.get_vehicle_type_display() if purchase.vehicle_type else '-',
                 # shenase_takhsis - نیاز به پردازش خاص دارد
                 'shenase_takhsis': ', '.join([s.code for s in purchase.shenase_takhsis_set.all()]) if purchase.shenase_takhsis_set.exists() else '-',
                 # ستون جزئیات - فقط برای شناسایی در frontend
@@ -2443,13 +2496,50 @@ def get_purchase_column_values(request):
                 
                 elif filter_column_id in ['address', 'description', 'tracking_number', 
                                         'code_melli_tahvil', 'bazaargah_phone_number', 
-                                        'tahvil_phone_number', 'priority_reason']:
+                                        'tahvil_phone_number', 'priority_reason',
+                                        'barbary_confidential_number', 'barbary_customer_number',
+                                        'delivery_receiver_name', 'buyer_national_id', 'unique_delivery_id',
+                                        'delivery_address', 'delivery_postal_code']:
                     values = [v for v in values if v and v.strip()]
                     if values:
                         if filter_type == 'include':
                             filter_conditions &= Q(**{f'{filter_column_id}__in': values})
                         else:
                             filter_conditions &= ~Q(**{f'{filter_column_id}__in': values})
+                
+                elif filter_column_id == 'buyer_user_type':
+                    # تبدیل نمایش فارسی به کد نوع کاربری
+                    from core.CustomerModel import FIELD_OF_ACTIVITY
+                    user_type_map = {v: k for k, v in dict(FIELD_OF_ACTIVITY).items()}
+                    user_type_codes = []
+                    for v in values:
+                        if v in user_type_map:
+                            user_type_codes.append(user_type_map[v])
+                        else:
+                            user_type_codes.append(v)
+                    
+                    if user_type_codes:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(buyer_user_type__in=user_type_codes)
+                        else:
+                            filter_conditions &= ~Q(buyer_user_type__in=user_type_codes)
+                
+                elif filter_column_id == 'vehicle_type':
+                    # تبدیل نمایش فارسی به کد نوع خودرو
+                    from core.PurchaseModel import Purchase
+                    vehicle_type_map = {v: k for k, v in dict(Purchase.VEHICLE_TYPE_CHOICES).items()}
+                    vehicle_type_codes = []
+                    for v in values:
+                        if v in vehicle_type_map:
+                            vehicle_type_codes.append(vehicle_type_map[v])
+                        else:
+                            vehicle_type_codes.append(v)
+                    
+                    if vehicle_type_codes:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(vehicle_type__in=vehicle_type_codes)
+                        else:
+                            filter_conditions &= ~Q(vehicle_type__in=vehicle_type_codes)
                 
                 elif filter_column_id in ['factor_code', 'send_cottage_sms', 'is_weight_costed', 
                                         'is_ap_af', 'is_fully_tasvied', 'ready_for_invoice']:
@@ -2616,7 +2706,9 @@ def get_purchase_column_values(request):
             values = set([date.strftime("%Y/%m/%d") for date in values_queryset if date])
         
         elif column_id in ['address', 'description', 'tracking_number', 'code_melli_tahvil', 
-                          'bazaargah_phone_number', 'tahvil_phone_number', 'priority_reason']:
+                          'bazaargah_phone_number', 'tahvil_phone_number', 'priority_reason',
+                          'barbary_confidential_number', 'barbary_customer_number', 'delivery_receiver_name',
+                          'buyer_national_id', 'unique_delivery_id', 'delivery_address', 'delivery_postal_code']:
             values_queryset = queryset.exclude(**{f'{column_id}__isnull': True})\
                 .exclude(**{f'{column_id}': ''}).values_list(column_id, flat=True).distinct()
             values = set(values_queryset)
@@ -2647,6 +2739,22 @@ def get_purchase_column_values(request):
             # تبدیل کدهای اولویت به نمایش فارسی
             priority_choices = dict(Purchase.PRIORITY_CHOICES)
             values = set([priority_choices.get(priority, priority) for priority in values_queryset if priority])
+        
+        elif column_id == 'buyer_user_type':
+            values_queryset = queryset.exclude(buyer_user_type__isnull=True)\
+                .values_list('buyer_user_type', flat=True).distinct()
+            # تبدیل کدهای نوع کاربری به نمایش فارسی
+            from core.CustomerModel import FIELD_OF_ACTIVITY
+            user_type_choices = dict(FIELD_OF_ACTIVITY)
+            values = set([user_type_choices.get(user_type, user_type) for user_type in values_queryset if user_type])
+        
+        elif column_id == 'vehicle_type':
+            values_queryset = queryset.exclude(vehicle_type__isnull=True)\
+                .values_list('vehicle_type', flat=True).distinct()
+            # تبدیل کدهای نوع خودرو به نمایش فارسی
+            from core.PurchaseModel import Purchase
+            vehicle_choices = dict(Purchase.VEHICLE_TYPE_CHOICES)
+            values = set([vehicle_choices.get(vehicle_type, vehicle_type) for vehicle_type in values_queryset if vehicle_type])
         
         elif column_id == 'shenase_takhsis':
             # استخراج شناسه‌های تخصیص از related objects

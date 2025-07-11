@@ -742,168 +742,7 @@
         document.getElementById('exportToExcelBtn').addEventListener('click', function() {
             exportSelectedToExcel();
         });
-        
-        // راه‌اندازی event listenerها برای modal
-        initializeModalEventListeners();
-        
     });
-    
-    function initializeModalEventListeners() {
-        // دکمه‌های انتخاب همه / هیچکدام
-        document.getElementById('selectAllColumns')?.addEventListener('click', function(e) {
-            e.preventDefault();
-            document.querySelectorAll('#columnsModal input[type="checkbox"]').forEach(cb => {
-                cb.checked = true;
-            });
-        });
-        
-        document.getElementById('deselectAllColumns')?.addEventListener('click', function(e) {
-            e.preventDefault();
-            document.querySelectorAll('#columnsModal input[type="checkbox"]').forEach(cb => {
-                cb.checked = false;
-            });
-        });
-        
-        // دکمه ذخیره
-        document.getElementById('saveColumnsBtn')?.addEventListener('click', function(e) {
-            e.preventDefault();
-            saveColumnsConfiguration();
-        });
-        
-        // دکمه reset
-        document.getElementById('resetColumnsBtn')?.addEventListener('click', function(e) {
-            e.preventDefault();
-            resetColumnsConfiguration();
-        });
-    }
-    
-    // مدیریت ستون‌ها - باز کردن modal
-    function openColumnManagement() {
-        // نمایش modal
-        const modal = new bootstrap.Modal(document.getElementById('columnsModal'));
-        modal.show();
-    }
-    
-    function loadColumnsConfiguration() {
-        fetch('{% url "get_barnameh_columns_config" %}')
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    displayColumnsInModal(data.all_columns, data.selected_columns);
-                } else {
-                    console.error('خطا در بارگذاری تنظیمات ستون‌ها:', data.message);
-                }
-            })
-            .catch(error => {
-                console.error('خطا در درخواست تنظیمات ستون‌ها:', error);
-            });
-    }
-    
-    function displayColumnsInModal(allColumns, selectedColumns) {
-        const container = document.getElementById('columnsContainer');
-        if (!container) return;
-        
-        let html = '';
-        allColumns.forEach(column => {
-            const isChecked = selectedColumns.includes(column.id);
-            html += `
-                <div class="col-lg-4 col-md-6 mb-3">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" 
-                            id="col-${column.id}" name="columns[]" 
-                            value="${column.id}" ${isChecked ? 'checked' : ''}>
-                        <label class="form-check-label" for="col-${column.id}">
-                            ${column.name}
-                        </label>
-                    </div>
-                </div>
-            `;
-        });
-        container.innerHTML = html;
-    }
-    
-    function saveColumnsConfiguration() {
-        const checkedColumns = document.querySelectorAll('#columnsContainer input[type="checkbox"]:checked');
-        const selectedColumns = Array.from(checkedColumns).map(cb => cb.value);
-        
-        if (selectedColumns.length === 0) {
-            alert('لطفاً حداقل یک ستون انتخاب کنید');
-            return;
-        }
-        
-        // تنظیم دکمه ذخیره در حالت بارگذاری
-        const saveBtn = document.getElementById('saveColumnsBtn');
-        const originalText = saveBtn.innerHTML;
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>در حال ذخیره...';
-        saveBtn.disabled = true;
-        
-        fetch('{% url "update_barnameh_columns" %}', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-                'columns': selectedColumns.join(',')
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                alert('ستون‌ها با موفقیت بروزرسانی شدند');
-                location.reload(); // رفرش صفحه برای نمایش تغییرات
-            } else {
-                alert('خطا در ذخیره ستون‌ها: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('خطا در ذخیره ستون‌ها:', error);
-            alert('خطا در ذخیره ستون‌ها');
-        })
-        .finally(() => {
-            // بازگردانی دکمه به حالت عادی
-            saveBtn.innerHTML = originalText;
-            saveBtn.disabled = false;
-        });
-    }
-    
-    function resetColumnsConfiguration() {
-        if (!confirm('آیا از بازگشت ستون‌ها به حالت پیش‌فرض اطمینان دارید؟')) {
-            return;
-        }
-        
-        // تنظیم دکمه reset در حالت بارگذاری
-        const resetBtn = document.getElementById('resetColumnsBtn');
-        const originalText = resetBtn.innerHTML;
-        resetBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>در حال بازگشت...';
-        resetBtn.disabled = true;
-        
-        fetch('{% url "reset_barnameh_columns" %}', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                'Content-Type': 'application/json',
-            },
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                alert('ستون‌ها به حالت پیش‌فرض بازگشت داده شدند');
-                location.reload(); // رفرش صفحه برای نمایش تغییرات
-            } else {
-                alert('خطا در بازگشت ستون‌ها: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('خطا در بازگشت ستون‌ها:', error);
-            alert('خطا در بازگشت ستون‌ها');
-        })
-        .finally(() => {
-            // بازگردانی دکمه به حالت عادی  
-            resetBtn.innerHTML = originalText;
-            resetBtn.disabled = false;
-        });
-    }
     
     function exportSelectedToExcel() {
         // دریافت بارنامه‌های انتخاب شده
@@ -1089,7 +928,7 @@
                             </div>
                             <div class="d-flex gap-2">
                                 <!-- دکمه مدیریت ستون‌ها -->
-                                <button class="btn btn-info text-white shadow-sm" onclick="openColumnManagement()">
+                                <button class="btn btn-info text-white shadow-sm" data-bs-toggle="modal" data-bs-target="#columnsModal">
                                     <i class="fas fa-columns me-2"></i> مدیریت ستون‌های جدول
                                 </button>
                                 <button type="button" class="btn btn-warning" id="exportToExcelBtn">
@@ -1201,169 +1040,114 @@
                         {% for column in all_columns %}
                             {% if column.id in selected_columns %}
                                 {% if column.id == 'number' %}
-                        {% filter_column_class 'number' 'text' as col_class %}
-                        {% filter_column_attrs 'number' 'text' 'شماره بارنامه' as col_attrs %}
-                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="number" data-column-type="text">
-                                            شماره بارنامه
-                                        </th>
+                                    {% filter_column_class 'number' 'text' as col_class %}
+                                    {% filter_column_attrs 'number' 'text' 'شماره بارنامه' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="number" data-column-type="text">شماره بارنامه</th>
                                 {% elif column.id == 'serial' %}
-                        {% filter_column_class 'serial' 'text' as col_class %}
-                        {% filter_column_attrs 'serial' 'text' 'سریال بارنامه' as col_attrs %}
-                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="serial" data-column-type="text">
-                                            سریال بارنامه
-                                        </th>
+                                    {% filter_column_class 'serial' 'text' as col_class %}
+                                    {% filter_column_attrs 'serial' 'text' 'سریال بارنامه' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="serial" data-column-type="text">سریال بارنامه</th>
                                 {% elif column.id == 'tonnage' %}
-                        {% filter_column_class 'tonnage' 'number' as col_class %}
-                        {% filter_column_attrs 'tonnage' 'number' 'وزن (کیلوگرم)' as col_attrs %}
-                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="tonnage" data-column-type="number">
-                                            وزن (کیلوگرم)
-                                        </th>
+                                    {% filter_column_class 'tonnage' 'number' as col_class %}
+                                    {% filter_column_attrs 'tonnage' 'number' 'وزن (کیلوگرم)' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="tonnage" data-column-type="number">وزن (کیلوگرم)</th>
                                 {% elif column.id == 'status' %}
-                                {% filter_column_class 'status' 'choice' as col_class %}
-                                {% filter_column_attrs 'status' 'choice' 'وضعیت' as col_attrs %}
-                                <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="status" data-column-type="choice">
-                                    وضعیت
-                                        </th>
+                                    {% filter_column_class 'status' 'choice' as col_class %}
+                                    {% filter_column_attrs 'status' 'choice' 'وضعیت' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="status" data-column-type="choice">وضعیت</th>
                                 {% elif column.id == 'driver_name' %}
-                        {% filter_column_class 'driver_name' 'text' as col_class %}
-                        {% filter_column_attrs 'driver_name' 'text' 'نام راننده' as col_attrs %}
-                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="driver_name" data-column-type="text">
-                                            نام راننده
-                                        </th>
+                                    {% filter_column_class 'driver_name' 'text' as col_class %}
+                                    {% filter_column_attrs 'driver_name' 'text' 'نام راننده' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="driver_name" data-column-type="text">نام راننده</th>
                                 {% elif column.id == 'driver_phone' %}
-                        {% filter_column_class 'driver_phone' 'text' as col_class %}
-                        {% filter_column_attrs 'driver_phone' 'text' 'شماره راننده' as col_attrs %}
-                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="driver_phone" data-column-type="text">
-                                            شماره راننده
-                                        </th>
+                                    {% filter_column_class 'driver_phone' 'text' as col_class %}
+                                    {% filter_column_attrs 'driver_phone' 'text' 'شماره راننده' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="driver_phone" data-column-type="text">شماره راننده</th>
                                 {% elif column.id == 'vehicle_plate' %}
-                        {% filter_column_class 'vehicle_plate' 'text' as col_class %}
-                        {% filter_column_attrs 'vehicle_plate' 'text' 'پلاک خودرو' as col_attrs %}
-                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="vehicle_plate" data-column-type="text">
-                                            پلاک خودرو
-                                        </th>
+                                    {% filter_column_class 'vehicle_plate' 'text' as col_class %}
+                                    {% filter_column_attrs 'vehicle_plate' 'text' 'پلاک خودرو' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="vehicle_plate" data-column-type="text">پلاک خودرو</th>
                                 {% elif column.id == 'receiver_name' %}
-                        {% filter_column_class 'receiver_name' 'text' as col_class %}
-                        {% filter_column_attrs 'receiver_name' 'text' 'نام گیرنده' as col_attrs %}
-                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="receiver_name" data-column-type="text">
-                                            نام گیرنده
-                                        </th>
+                                    {% filter_column_class 'receiver_name' 'text' as col_class %}
+                                    {% filter_column_attrs 'receiver_name' 'text' 'نام گیرنده' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="receiver_name" data-column-type="text">نام گیرنده</th>
                                 {% elif column.id == 'destination' %}
-                        {% filter_column_class 'destination' 'text' as col_class %}
-                        {% filter_column_attrs 'destination' 'text' 'مقصد' as col_attrs %}
-                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="destination" data-column-type="text">
-                                            مقصد
-                                        </th>
+                                    {% filter_column_class 'destination' 'text' as col_class %}
+                                    {% filter_column_attrs 'destination' 'text' 'مقصد' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="destination" data-column-type="text">مقصد</th>
                                 {% elif column.id == 'barnameh_date' %}
-                        {% filter_column_class 'barnameh_date' 'date' as col_class %}
-                        {% filter_column_attrs 'barnameh_date' 'date' 'تاریخ بارنامه' as col_attrs %}
-                        <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="barnameh_date" data-column-type="date">
-                                            تاریخ بارنامه
-                                        </th>
+                                    {% filter_column_class 'barnameh_date' 'date' as col_class %}
+                                    {% filter_column_attrs 'barnameh_date' 'date' 'تاریخ بارنامه' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="barnameh_date" data-column-type="date">تاریخ بارنامه</th>
                                 {% elif column.id == 'transport_date' %}
-                                {% filter_column_class 'transport_date' 'date' as col_class %}
-                                {% filter_column_attrs 'transport_date' 'date' 'تاریخ حمل' as col_attrs %}
-                                <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="transport_date" data-column-type="date">
-                                    تاریخ حمل
-                                        </th>
+                                    {% filter_column_class 'transport_date' 'date' as col_class %}
+                                    {% filter_column_attrs 'transport_date' 'date' 'تاریخ حمل' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="transport_date" data-column-type="date">تاریخ حمل</th>
                                 {% elif column.id == 'purchase_number' %}
-                                {% filter_column_class 'purchase_number' 'text' as col_class %}
-                                {% filter_column_attrs 'purchase_number' 'text' 'شناسه خرید' as col_attrs %}
-                                <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="purchase_number" data-column-type="text">
-                                    شناسه خرید
-                                </th>
+                                    {% filter_column_class 'purchase_number' 'text' as col_class %}
+                                    {% filter_column_attrs 'purchase_number' 'text' 'شناسه خرید' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="purchase_number" data-column-type="text">شناسه خرید</th>
                                 {% elif column.id == 'shenase_takhsis_code' %}
-                                {% filter_column_class 'shenase_takhsis_code' 'text' as col_class %}
-                                {% filter_column_attrs 'shenase_takhsis_code' 'text' 'شناسه تخصیص' as col_attrs %}
-                                <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="shenase_takhsis_code" data-column-type="text">
-                                    شناسه تخصیص
-                                </th>
+                                    {% filter_column_class 'shenase_takhsis_code' 'text' as col_class %}
+                                    {% filter_column_attrs 'shenase_takhsis_code' 'text' 'شناسه تخصیص' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="shenase_takhsis_code" data-column-type="text">شناسه تخصیص</th>
                                 {% elif column.id == 'cargo' %}
-                                {% filter_column_class 'cargo' 'text' as col_class %}
-                                {% filter_column_attrs 'cargo' 'text' 'کوتاژ' as col_attrs %}
-                                <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="cargo" data-column-type="text">
-                                    کوتاژ
-                                </th>
+                                    {% filter_column_class 'cargo' 'text' as col_class %}
+                                    {% filter_column_attrs 'cargo' 'text' 'کوتاژ' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="cargo" data-column-type="text">کوتاژ</th>
                                 {% elif column.id == 'company_price' %}
-                                {% filter_column_class 'company_price' 'number' as col_class %}
-                                {% filter_column_attrs 'company_price' 'number' 'فی خرید' as col_attrs %}
-                                <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="company_price" data-column-type="number">
-                                    فی خرید
-                                </th>
+                                    {% filter_column_class 'company_price' 'number' as col_class %}
+                                    {% filter_column_attrs 'company_price' 'number' 'فی خرید' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="company_price" data-column-type="number">فی خرید</th>
                                 {% elif column.id == 'customer_price' %}
-                                {% filter_column_class 'customer_price' 'number' as col_class %}
-                                {% filter_column_attrs 'customer_price' 'number' 'فی فروش' as col_attrs %}
-                                <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="customer_price" data-column-type="number">
-                                    فی فروش
-                                </th>
+                                    {% filter_column_class 'customer_price' 'number' as col_class %}
+                                    {% filter_column_attrs 'customer_price' 'number' 'فی فروش' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="customer_price" data-column-type="number">فی فروش</th>
                                 {% elif column.id == 'total_sales_amount' %}
-                                {% filter_column_class 'total_sales_amount' 'number' as col_class %}
-                                {% filter_column_attrs 'total_sales_amount' 'number' 'مبلغ کل فروش' as col_attrs %}
-                                <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="total_sales_amount" data-column-type="number">
-                                    مبلغ کل فروش
-                                </th>
+                                    {% filter_column_class 'total_sales_amount' 'number' as col_class %}
+                                    {% filter_column_attrs 'total_sales_amount' 'number' 'مبلغ کل فروش' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="total_sales_amount" data-column-type="number">مبلغ کل فروش</th>
                                 {% elif column.id == 'buyer_national_code' %}
-                                {% filter_column_class 'buyer_national_code' 'text' as col_class %}
-                                {% filter_column_attrs 'buyer_national_code' 'text' 'شماره ملی خریدار' as col_attrs %}
-                                <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="buyer_national_code" data-column-type="text">
-                                    شماره ملی خریدار
-                                </th>
+                                    {% filter_column_class 'buyer_national_code' 'text' as col_class %}
+                                    {% filter_column_attrs 'buyer_national_code' 'text' 'شماره ملی خریدار' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="buyer_national_code" data-column-type="text">شماره ملی خریدار</th>
                                 {% elif column.id == 'buyer_postal_code' %}
-                                {% filter_column_class 'buyer_postal_code' 'text' as col_class %}
-                                {% filter_column_attrs 'buyer_postal_code' 'text' 'کدپستی خریدار' as col_attrs %}
-                                <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="buyer_postal_code" data-column-type="text">
-                                    کدپستی خریدار
-                                </th>
+                                    {% filter_column_class 'buyer_postal_code' 'text' as col_class %}
+                                    {% filter_column_attrs 'buyer_postal_code' 'text' 'کدپستی خریدار' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="buyer_postal_code" data-column-type="text">کدپستی خریدار</th>
                                 {% elif column.id == 'buyer_address' %}
-                                {% filter_column_class 'buyer_address' 'text' as col_class %}
-                                {% filter_column_attrs 'buyer_address' 'text' 'آدرس خریدار' as col_attrs %}
-                                <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="buyer_address" data-column-type="text">
-                                    آدرس خریدار
-                                </th>
+                                    {% filter_column_class 'buyer_address' 'text' as col_class %}
+                                    {% filter_column_attrs 'buyer_address' 'text' 'آدرس خریدار' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="buyer_address" data-column-type="text">آدرس خریدار</th>
                                 {% elif column.id == 'demand_amount' %}
-                                {% filter_column_class 'demand_amount' 'number' as col_class %}
-                                {% filter_column_attrs 'demand_amount' 'number' 'میزان تقاضا' as col_attrs %}
-                                <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="demand_amount" data-column-type="number">
-                                    میزان تقاضا
-                                </th>
+                                    {% filter_column_class 'demand_amount' 'number' as col_class %}
+                                    {% filter_column_attrs 'demand_amount' 'number' 'میزان تقاضا' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="demand_amount" data-column-type="number">میزان تقاضا</th>
                                 {% elif column.id == 'importer' %}
-                                {% filter_column_class 'importer' 'text' as col_class %}
-                                {% filter_column_attrs 'importer' 'text' 'واردکننده' as col_attrs %}
-                                <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="importer" data-column-type="text">
-                                    واردکننده
-                                </th>
+                                    {% filter_column_class 'importer' 'text' as col_class %}
+                                    {% filter_column_attrs 'importer' 'text' 'واردکننده' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="importer" data-column-type="text">واردکننده</th>
                                 {% elif column.id == 'product_type' %}
-                                {% filter_column_class 'product_type' 'text' as col_class %}
-                                {% filter_column_attrs 'product_type' 'text' 'محصول' as col_attrs %}
-                                <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="product_type" data-column-type="text">
-                                    محصول
-                                </th>
+                                    {% filter_column_class 'product_type' 'text' as col_class %}
+                                    {% filter_column_attrs 'product_type' 'text' 'محصول' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="product_type" data-column-type="text">محصول</th>
                                 {% elif column.id == 'successful_send_date' %}
-                                {% filter_column_class 'successful_send_date' 'date' as col_class %}
-                                {% filter_column_attrs 'successful_send_date' 'date' 'تاریخ ارسال موفق به بازارگاه' as col_attrs %}
-                                <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="successful_send_date" data-column-type="date">
-                                    تاریخ ارسال موفق به بازارگاه
-                                </th>
+                                    {% filter_column_class 'successful_send_date' 'date' as col_class %}
+                                    {% filter_column_attrs 'successful_send_date' 'date' 'تاریخ ارسال موفق به بازارگاه' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="successful_send_date" data-column-type="date">تاریخ ارسال موفق</th>
                                 {% elif column.id == 'is_sent_to_bki' %}
-                                {% filter_column_class 'is_sent_to_bki' 'choice' as col_class %}
-                                {% filter_column_attrs 'is_sent_to_bki' 'choice' 'ارسال به بازارگاه' as col_attrs %}
-                                <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="is_sent_to_bki" data-column-type="choice">
-                                    ارسال به بازارگاه
-                                </th>
+                                    {% filter_column_class 'is_sent_to_bki' 'boolean' as col_class %}
+                                    {% filter_column_attrs 'is_sent_to_bki' 'boolean' 'ارسال به بازارگاه' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="is_sent_to_bki" data-column-type="boolean">ارسال به بازارگاه</th>
                                 {% elif column.id == 'created_at' %}
-                                {% filter_column_class 'created_at' 'date' as col_class %}
-                                {% filter_column_attrs 'created_at' 'date' 'تاریخ ایجاد' as col_attrs %}
-                                <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="created_at" data-column-type="date">
-                                    تاریخ ایجاد
-                                </th>
+                                    {% filter_column_class 'created_at' 'date' as col_class %}
+                                    {% filter_column_attrs 'created_at' 'date' 'تاریخ ایجاد' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="created_at" data-column-type="date">تاریخ ایجاد</th>
+                                {% elif column.id == 'actions' %}
+                                    <th class="text-center">عملیات</th>
                                 {% endif %}
                             {% endif %}
                         {% endfor %}
-                        
-                        {% if 'actions' in selected_columns %}
-                        <th>لاگ‌ها</th>
-                                        <th class="text-center">عملیات</th>
-                        {% endif %}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1389,149 +1173,142 @@
                                    style="width: 18px; height: 18px; cursor: pointer;" 
                                    onchange="toggleRowSelection(this)">
                                         </td>
-                                        
+                        
                         {% for column in all_columns %}
                             {% if column.id in selected_columns %}
                                 {% if column.id == 'number' %}
-                                        <td class="column-number">{{ barnameh.number|default:"-" }}</td>
+                                    <td class="column-number">{{ barnameh.number|default:"-" }}</td>
                                 {% elif column.id == 'serial' %}
-                                        <td class="column-serial">{{ barnameh.serial|default:"-" }}</td>
+                                    <td class="column-serial">{{ barnameh.serial|default:"-" }}</td>
                                 {% elif column.id == 'tonnage' %}
-                                        <td class="column-tonnage">{{ barnameh.tonnage|default:"-" }}</td>
+                                    <td class="column-tonnage">{{ barnameh.tonnage|default:"-" }}</td>
                                 {% elif column.id == 'status' %}
-                                        <td class="column-status">
-                                            {% if barnameh.status == 'BARNAMEH_INCOMPLETE' %}
-                                            <span class="badge rounded-pill bg-warning text-dark">بارنامه ناقص</span>
-                                            {% elif barnameh.status == 'BARNAMEH_COMPLETE' %}
-                                            <span class="badge rounded-pill bg-success">بارنامه کامل</span>
-                                            {% elif barnameh.status == 'PURCHASE_CLOSED' %}
-                                            <span class="badge rounded-pill bg-primary">ارسال شده به بازارگاه</span>
-                                            {% endif %}
-                                        </td>
+                                    <td class="column-status">
+                                        {% if barnameh.status == 'BARNAMEH_INCOMPLETE' %}
+                                        <span class="badge rounded-pill bg-warning text-dark">بارنامه ناقص</span>
+                                        {% elif barnameh.status == 'BARNAMEH_COMPLETE' %}
+                                        <span class="badge rounded-pill bg-success">بارنامه کامل</span>
+                                        {% elif barnameh.status == 'PURCHASE_CLOSED' %}
+                                        <span class="badge rounded-pill bg-primary">ارسال شده به بازارگاه</span>
+                                        {% endif %}
+                                    </td>
                                 {% elif column.id == 'driver_name' %}
-                                <td class="column-driver_name">{{ barnameh.driver_name|default:"-" }}</td>
+                                    <td class="column-driver_name">{{ barnameh.driver_name|default:"-" }}</td>
                                 {% elif column.id == 'driver_phone' %}
-                                <td class="column-driver_phone">{{ barnameh.driver_phone|default:"-" }}</td>
+                                    <td class="column-driver_phone">{{ barnameh.driver_phone|default:"-" }}</td>
                                 {% elif column.id == 'vehicle_plate' %}
-                                <td class="column-vehicle_plate">{{ barnameh.vehicle_plate|default:"-" }}</td>
+                                    <td class="column-vehicle_plate">{{ barnameh.vehicle_plate|default:"-" }}</td>
                                 {% elif column.id == 'receiver_name' %}
-                                <td class="column-receiver_name">{{ barnameh.receiver_name|default:"-" }}</td>
+                                    <td class="column-receiver_name">{{ barnameh.receiver_name|default:"-" }}</td>
                                 {% elif column.id == 'destination' %}
-                                <td class="column-destination">{{ barnameh.destination|default:"-" }}</td>
+                                    <td class="column-destination">{{ barnameh.destination|default:"-" }}</td>
                                 {% elif column.id == 'barnameh_date' %}
-                                <td class="column-barnameh_date">{{ barnameh.barnameh_date|default:"-" }}</td>
+                                    <td class="column-barnameh_date">{{ barnameh.barnameh_date|default:"-" }}</td>
                                 {% elif column.id == 'transport_date' %}
-                                <td class="column-transport_date">{{ barnameh.transport_date|default:"-" }}</td>
+                                    <td class="column-transport_date">{{ barnameh.transport_date|default:"-" }}</td>
                                 {% elif column.id == 'purchase_number' %}
-                                <td class="column-purchase_number">{{ barnameh.purchase_number|default:"-" }}</td>
+                                    <td class="column-purchase_number">{{ barnameh.purchase_number|default:"-" }}</td>
                                 {% elif column.id == 'shenase_takhsis_code' %}
-                                <td class="column-shenase_takhsis_code">{{ barnameh.shenase_takhsis_code|default:"-" }}</td>
+                                    <td class="column-shenase_takhsis_code">{{ barnameh.shenase_takhsis_code|default:"-" }}</td>
                                 {% elif column.id == 'cargo' %}
-                                <td class="column-cargo">{% if barnameh.purchase and barnameh.purchase.cargo %}{{ barnameh.purchase.cargo }}{% else %}-{% endif %}</td>
+                                    <td class="column-cargo">{{ barnameh.get_cargo|default:"-" }}</td>
                                 {% elif column.id == 'company_price' %}
-                                <td class="column-company_price">{% if barnameh.purchase and barnameh.purchase.company_price %}{{ barnameh.purchase.company_price|add_commas }}{% else %}-{% endif %}</td>
+                                    <td class="column-company_price">{{ barnameh.get_company_price|add_commas|default:"-" }}</td>
                                 {% elif column.id == 'customer_price' %}
-                                <td class="column-customer_price">{% if barnameh.purchase and barnameh.purchase.customer_price %}{{ barnameh.purchase.customer_price|add_commas }}{% else %}-{% endif %}</td>
+                                    <td class="column-customer_price">{{ barnameh.get_customer_price|add_commas|default:"-" }}</td>
                                 {% elif column.id == 'total_sales_amount' %}
-                                <td class="column-total_sales_amount">
-                                    {% if barnameh.purchase and barnameh.purchase.customer_price and barnameh.tonnage %}
-                                        {% widthratio barnameh.purchase.customer_price 1 barnameh.tonnage as total_amount %}
-                                        {{ total_amount|floatformat:0|add_commas }}
-                                    {% else %}-{% endif %}
-                                </td>
+                                    <td class="column-total_sales_amount">
+                                        {% if barnameh.get_total_sales_amount %}
+                                            {{ barnameh.get_total_sales_amount|floatformat:0|add_commas }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
                                 {% elif column.id == 'buyer_national_code' %}
-                                <td class="column-buyer_national_code">{% if barnameh.purchase and barnameh.purchase.code_melli_tahvil %}{{ barnameh.purchase.code_melli_tahvil }}{% else %}-{% endif %}</td>
+                                    <td class="column-buyer_national_code">{{ barnameh.get_buyer_national_code|default:"-" }}</td>
                                 {% elif column.id == 'buyer_postal_code' %}
-                                <td class="column-buyer_postal_code">{{ barnameh.buyer_postal_code|default:"-" }}</td>
+                                    <td class="column-buyer_postal_code">{{ barnameh.buyer_postal_code|default:"-" }}</td>
                                 {% elif column.id == 'buyer_address' %}
-                                <td class="column-buyer_address">{% if barnameh.purchase and barnameh.purchase.address %}{{ barnameh.purchase.address }}{% else %}-{% endif %}</td>
+                                    <td class="column-buyer_address">{{ barnameh.get_buyer_address|default:"-" }}</td>
                                 {% elif column.id == 'demand_amount' %}
-                                <td class="column-demand_amount">{% if barnameh.purchase and barnameh.purchase.order_weight %}{{ barnameh.purchase.order_weight|add_commas }}{% else %}-{% endif %}</td>
+                                    <td class="column-demand_amount">{{ barnameh.get_demand_amount|add_commas|default:"-" }}</td>
                                 {% elif column.id == 'importer' %}
-                                <td class="column-importer">{% if barnameh.purchase and barnameh.purchase.cargo and barnameh.purchase.cargo.vared_konandeh %}{{ barnameh.purchase.cargo.vared_konandeh.name }}{% else %}-{% endif %}</td>
+                                    <td class="column-importer">{{ barnameh.get_importer|default:"-" }}</td>
                                 {% elif column.id == 'product_type' %}
-                                <td class="column-product_type">{% if barnameh.purchase and barnameh.purchase.cargo and barnameh.purchase.cargo.product_type %}{{ barnameh.purchase.cargo.get_product_type_display }}{% else %}-{% endif %}</td>
+                                    <td class="column-product_type">{{ barnameh.get_product_type|default:"-" }}</td>
                                 {% elif column.id == 'successful_send_date' %}
-                                <td class="column-successful_send_date">{{ barnameh.is_sent_to_bki_at|default:"-" }}</td>
+                                    <td class="column-successful_send_date">{{ barnameh.get_successful_send_date|default:"-" }}</td>
                                 {% elif column.id == 'is_sent_to_bki' %}
-                                <td class="column-is_sent_to_bki">{% if barnameh.is_sent_to_bki %}بله{% else %}خیر{% endif %}</td>
+                                    <td class="column-is_sent_to_bki">
+                                        {% if barnameh.is_sent_to_bki %}
+                                            <span class="badge bg-success">بله</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">خیر</span>
+                                        {% endif %}
+                                    </td>
                                 {% elif column.id == 'created_at' %}
-                                <td class="column-created_at">{{ barnameh.barnameh_created_at|date:"Y/m/d"|default:"-" }}</td>
+                                    <td class="column-created_at">{{ barnameh.barnameh_created_at|date:"Y/m/d"|default:"-" }}</td>
+                                {% elif column.id == 'actions' %}
+                                    <td class="text-center">
+                                        <div class="btn-group">
+                            <a href="{% url 'barnameh_detail' barnameh.id %}" 
+                               class="btn btn-info btn-sm rounded-circle" 
+                               data-bs-toggle="tooltip" title="مشاهده جزئیات">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if not barnameh.is_sent_to_bki %}
+                            <a href="{% url 'barnameh_edit' barnameh.id %}" 
+                               class="btn btn-warning btn-sm rounded-circle ms-1" 
+                               data-bs-toggle="tooltip" title="ویرایش">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                            <form action="{% url 'barnameh_delete' barnameh.id %}" method="post" 
+                                  class="d-inline" 
+                                  onsubmit="return confirm('آیا از حذف این بارنامه اطمینان دارید؟');">
+                                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger btn-sm rounded-circle ms-1" 
+                                        data-bs-toggle="tooltip" title="حذف">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                            {% if barnameh.status == 'BARNAMEH_COMPLETE' and not barnameh.is_sent_to_bki %}
+                                            <form action="{% url 'send_to_bki' barnameh.id %}" method="post" class="d-inline">
+                                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary btn-sm rounded-circle ms-1" 
+                                        data-bs-toggle="tooltip" title="ارسال به بازارگاه">
+                                                    <i class="fas fa-paper-plane"></i>
+                                                </button>
+                                            </form>
+                                            {% elif barnameh.is_sent_to_bki %}
+                            <a href="{% url 'edit_barnameh_in_bki' barnameh.id %}" 
+                               class="btn btn-warning btn-sm rounded-circle ms-1" 
+                               data-bs-toggle="tooltip" title="ویرایش در بازارگاه">
+                                                <i class="fas fa-pencil-alt"></i>
+                                            </a>
+                                            {% endif %}
+                                            {% else %}
+                            <a href="{% url 'edit_barnameh_in_bki' barnameh.id %}" 
+                               class="btn btn-warning btn-sm rounded-circle ms-1" 
+                               data-bs-toggle="tooltip" title="ویرایش در بازارگاه">
+                                                <i class="fas fa-pencil-alt"></i>
+                                            </a>
+                                            {% endif %}
+                            <button type="button" class="btn btn-outline-success btn-sm item-history-btn ms-1" 
+                                    data-id="{{ barnameh.id }}"
+                                    data-barnameh-number="{{ barnameh.number }}"
+                                    data-barnameh-serial="{{ barnameh.serial }}"
+                                    title="تاریخچه تغییرات {{ barnameh.number }}/{{ barnameh.serial }}">
+                                <i class="fas fa-history"></i>
+                            </button>
+                                        </div>
+                                    </td>
                                 {% endif %}
                             {% endif %}
                         {% endfor %}
-                        
-                        {% if 'actions' in selected_columns %}
-                                        <td class="column-logs text-center">
-                                            {% if barnameh.logs %}
-                                                <button class="btn btn-sm btn-outline-info" 
-                                                        onclick="showLogsModal('{{ barnameh.id }}', '{{ barnameh.number }}', '{{ barnameh.serial }}')"
-                                                        data-logs='{% for log in barnameh.logs %}{"date": "{{ log.log_date|date:"Y/m/d H:i" }}", "message": "{{ log.log_message|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}'>
-                                                    <i class="fas fa-history"></i>
-                                                    <span class="badge bg-primary ms-1">{{ barnameh.logs|length }}</span>
-                                                    </button>
-                                            {% else %}
-                                                <span class="text-muted small">-</span>
-                                            {% endif %}
-                                        </td>
-                        {% endif %}
-                                        <td class="text-center">
-                                            <div class="btn-group">
-                                <a href="{% url 'barnameh_detail' barnameh.id %}" 
-                                   class="btn btn-info btn-sm rounded-circle" 
-                                   data-bs-toggle="tooltip" title="مشاهده جزئیات">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                                {% if not barnameh.is_sent_to_bki %}
-                                <a href="{% url 'barnameh_edit' barnameh.id %}" 
-                                   class="btn btn-warning btn-sm rounded-circle ms-1" 
-                                   data-bs-toggle="tooltip" title="ویرایش">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                <form action="{% url 'barnameh_delete' barnameh.id %}" method="post" 
-                                      class="d-inline" 
-                                      onsubmit="return confirm('آیا از حذف این بارنامه اطمینان دارید؟');">
-                                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-danger btn-sm rounded-circle ms-1" 
-                                            data-bs-toggle="tooltip" title="حذف">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </form>
-                                                {% if barnameh.status == 'BARNAMEH_COMPLETE' and not barnameh.is_sent_to_bki %}
-                                                <form action="{% url 'send_to_bki' barnameh.id %}" method="post" class="d-inline">
-                                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-primary btn-sm rounded-circle ms-1" 
-                                            data-bs-toggle="tooltip" title="ارسال به بازارگاه">
-                                                        <i class="fas fa-paper-plane"></i>
-                                                    </button>
-                                                </form>
-                                                {% elif barnameh.is_sent_to_bki %}
-                                <a href="{% url 'edit_barnameh_in_bki' barnameh.id %}" 
-                                   class="btn btn-warning btn-sm rounded-circle ms-1" 
-                                   data-bs-toggle="tooltip" title="ویرایش در بازارگاه">
-                                                    <i class="fas fa-pencil-alt"></i>
-                                                </a>
-                                                {% endif %}
-                                                {% else %}
-                                <a href="{% url 'edit_barnameh_in_bki' barnameh.id %}" 
-                                   class="btn btn-warning btn-sm rounded-circle ms-1" 
-                                   data-bs-toggle="tooltip" title="ویرایش در بازارگاه">
-                                                    <i class="fas fa-pencil-alt"></i>
-                                                </a>
-                                                {% endif %}
-                                <button type="button" class="btn btn-outline-success btn-sm item-history-btn ms-1" 
-                                        data-id="{{ barnameh.id }}"
-                                        data-barnameh-number="{{ barnameh.number }}"
-                                        data-barnameh-serial="{{ barnameh.serial }}"
-                                        title="تاریخچه تغییرات {{ barnameh.number }}/{{ barnameh.serial }}">
-                                    <i class="fas fa-history"></i>
-                                </button>
-                                            </div>
-                                        </td>
                                     </tr>
                                     {% empty %}
                                     <tr>
-                        <td colspan="15" class="text-center py-4">
+                        <td colspan="{{ selected_columns|length|add:1 }}" class="text-center py-4">
                                             <i class="fas fa-inbox text-muted" style="font-size: 3rem;"></i>
                                             <p class="text-muted mt-2">هیچ بارنامه‌ای یافت نشد</p>
                                         </td>
@@ -1569,77 +1346,6 @@
         <!-- Barnameh IDs will be added dynamically -->
     </form>
 
-    <!-- Modal مدیریت ستون‌ها -->
-    <div class="modal fade" id="columnsModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable modal-lg">
-            <div class="modal-content shadow">
-                <div class="modal-header bg-white border-bottom">
-                    <h5 class="modal-title fw-bold text-primary">
-                        <i class="fas fa-columns me-2"></i>مدیریت ستون‌های جدول بارنامه
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body py-4">
-                    <div class="alert alert-info bg-info bg-opacity-10 border-0 mb-4 p-3">
-                        <p class="mb-0 py-1">
-                            <i class="fas fa-info-circle me-2"></i> 
-                            ستون‌های مورد نظر خود را برای نمایش در جدول و خروجی اکسل انتخاب کنید. 
-                            همه ستون‌های انتخاب شده هم در جدول و هم در اکسل نمایش داده می‌شوند.
-                        </p>
-                    </div>
-                    
-                    <form id="columnsForm" class="px-3">
-                        {% csrf_token %}
-                        <!-- ستون‌های جدول -->
-                        <div class="section-container pb-4">
-                            <div class="section-header d-flex justify-content-between align-items-center mb-4">
-                                <h6 class="mb-0 fw-bold text-primary fs-5">
-                                    <i class="fas fa-table me-2"></i>ستون‌های قابل انتخاب
-                                </h6>
-                                <div class="d-flex gap-3">
-                                    <button type="button" class="btn btn-sm btn-outline-primary px-3 py-2" id="selectAllColumns">
-                                        <i class="fas fa-check-square me-2"></i> انتخاب همه
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-2" id="deselectAllColumns">
-                                        <i class="fas fa-square me-2"></i> هیچکدام
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="section-body pt-2">
-                                <div class="row g-4" id="columnsContainer">
-                                    {% for column in all_columns %}
-                                        <div class="col-lg-4 col-md-6">
-                                            <div class="column-checkbox">
-                                                <input class="form-check-input" type="checkbox" 
-                                                    id="col-{{ column.id }}" name="columns[]" 
-                                                    value="{{ column.id }}"
-                                                    {% if column.id in selected_columns %}checked{% endif %}>
-                                                <label class="form-check-label" for="col-{{ column.id }}">
-                                                    {{ column.name }}
-                                                </label>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer bg-light py-3">
-                    <button type="button" class="btn btn-outline-secondary px-4 py-2" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-2"></i>انصراف
-                    </button>
-                    <button type="button" class="btn btn-primary px-4 py-2" id="saveColumnsBtn">
-                        <i class="fas fa-save me-2"></i>ذخیره تغییرات
-                    </button>
-                    <button type="button" id="resetColumnsBtn" class="btn btn-warning shadow-sm">
-                        <i class="fas fa-redo me-2"></i> نمایش همه ستون‌ها
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Modal برای نمایش لاگ‌ها -->
     <div class="modal fade" id="logsModal" tabindex="-1" aria-labelledby="logsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
@@ -1659,6 +1365,57 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="fas fa-times me-1"></i>بستن
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مدال مدیریت ستون‌ها -->
+    <div class="modal fade" id="columnsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content shadow">
+                <div class="modal-header bg-white border-bottom">
+                    <h5 class="modal-title fw-bold text-primary"><i class="fas fa-columns me-2"></i>مدیریت ستون‌های جدول</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <div class="alert alert-info bg-info bg-opacity-10 border-0 mb-4 p-3">
+                        <p class="mb-0 py-1"><i class="fas fa-info-circle me-2"></i> ستون‌های مورد نظر خود را برای نمایش در جدول و خروجی اکسل انتخاب کنید.</p>
+                    </div>
+                    
+                    <form id="columnsForm" class="px-3">
+                        {% csrf_token %}
+                        <!-- ستون‌های جدول -->
+                        <div class="section-container pb-4">
+                            <div class="section-header d-flex justify-content-between align-items-center mb-4">
+                                <h6 class="mb-0 fw-bold text-primary fs-5"><i class="fas fa-table me-2"></i>ستون‌های قابل انتخاب</h6>
+                                <div class="d-flex gap-3">
+                                    <button type="button" class="btn btn-sm btn-outline-primary px-3 py-2" id="selectAllColumns">
+                                        <i class="fas fa-check-square me-2"></i> انتخاب همه
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-2" id="deselectAllColumns">
+                                        <i class="fas fa-square me-2"></i> هیچکدام
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="section-body pt-2">
+                                <div class="row g-4" id="columnsContainer">
+                                    <!-- ستون‌ها با JavaScript پر می‌شوند -->
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-light py-3">
+                    <button type="button" class="btn btn-outline-secondary px-4 py-2" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>انصراف
+                    </button>
+                    <button type="button" class="btn btn-primary px-4 py-2" id="saveColumnsBtn">
+                        <i class="fas fa-save me-2"></i>ذخیره تغییرات
+                    </button>
+                    <button type="button" id="resetColumnsBtn" class="btn btn-warning shadow-sm">
+                        <i class="fas fa-redo me-2"></i> نمایش همه ستون‌ها
                     </button>
                 </div>
             </div>
@@ -1831,6 +1588,162 @@ function toggleRowSelection(checkbox) {
 function viewEditHistory() {
     if (window.BarnamehListConfig && window.BarnamehListConfig.historyApiUrl) {
         window.location.href = '{% url "table_filter:edit_history" %}';
+    }
+}
+
+// مدیریت ستون‌های جدول
+document.addEventListener('DOMContentLoaded', function() {
+    // مدیریت مدال ستون‌ها
+    const columnsModal = document.getElementById('columnsModal');
+    if (columnsModal) {
+        columnsModal.addEventListener('show.bs.modal', function() {
+            loadColumnsConfig();
+        });
+    }
+    
+    // دکمه‌های مدیریت ستون‌ها
+    const selectAllBtn = document.getElementById('selectAllColumns');
+    const deselectAllBtn = document.getElementById('deselectAllColumns');
+    const saveColumnsBtn = document.getElementById('saveColumnsBtn');
+    const resetColumnsBtn = document.getElementById('resetColumnsBtn');
+    
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function() {
+            document.querySelectorAll('#columnsContainer input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+        });
+    }
+    
+    if (deselectAllBtn) {
+        deselectAllBtn.addEventListener('click', function() {
+            document.querySelectorAll('#columnsContainer input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+        });
+    }
+    
+    if (saveColumnsBtn) {
+        saveColumnsBtn.addEventListener('click', saveColumns);
+    }
+    
+    if (resetColumnsBtn) {
+        resetColumnsBtn.addEventListener('click', resetColumns);
+    }
+});
+
+function loadColumnsConfig() {
+    fetch('{% url "get_barnameh_columns_config" %}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                displayColumnsInModal(data.all_columns, data.selected_columns);
+            } else {
+                console.error('خطا در دریافت تنظیمات ستون‌ها:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('خطا در بارگذاری تنظیمات ستون‌ها:', error);
+        });
+}
+
+function displayColumnsInModal(allColumns, selectedColumns) {
+    const container = document.getElementById('columnsContainer');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    allColumns.forEach(column => {
+        const colDiv = document.createElement('div');
+        colDiv.className = 'col-lg-4 col-md-6';
+        
+        const isChecked = selectedColumns.includes(column.id) ? 'checked' : '';
+        
+        colDiv.innerHTML = `
+            <div class="column-checkbox">
+                <input class="form-check-input" type="checkbox" 
+                       id="col-${column.id}" name="columns[]" 
+                       value="${column.id}" ${isChecked}>
+                <label class="form-check-label" for="col-${column.id}">
+                    ${column.name}
+                </label>
+            </div>
+        `;
+        
+        container.appendChild(colDiv);
+    });
+}
+
+function saveColumns() {
+    const selectedColumns = [];
+    document.querySelectorAll('#columnsContainer input[type="checkbox"]:checked').forEach(cb => {
+        selectedColumns.push(cb.value);
+    });
+    
+    if (selectedColumns.length === 0) {
+        alert('لطفاً حداقل یک ستون انتخاب کنید');
+        return;
+    }
+    
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    fetch('{% url "update_barnameh_columns" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({
+            columns: selectedColumns
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert('ستون‌ها با موفقیت بروزرسانی شدند');
+            // بستن مدال
+            const modal = bootstrap.Modal.getInstance(document.getElementById('columnsModal'));
+            modal.hide();
+            // بروزرسانی صفحه
+            window.location.reload();
+        } else {
+            alert('خطا در بروزرسانی ستون‌ها: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('خطا در ذخیره ستون‌ها:', error);
+        alert('خطا در ذخیره ستون‌ها');
+    });
+}
+
+function resetColumns() {
+    if (confirm('آیا مطمئن هستید که می‌خواهید ستون‌ها را به حالت پیش‌فرض بازگردانید؟')) {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        fetch('{% url "reset_barnameh_columns" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('ستون‌ها به حالت پیش‌فرض بازگشت داده شدند');
+                // بستن مدال
+                const modal = bootstrap.Modal.getInstance(document.getElementById('columnsModal'));
+                modal.hide();
+                // بروزرسانی صفحه
+                window.location.reload();
+            } else {
+                alert('خطا در بازگشت ستون‌ها: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('خطا در بازگشت ستون‌ها:', error);
+            alert('خطا در بازگشت ستون‌ها');
+        });
     }
 }
     </script>
