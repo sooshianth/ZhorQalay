@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 from django.views.generic import TemplateView, ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, Sum, Avg, Q, F
@@ -19,7 +19,19 @@ from .utils.geo_analyzer import GeographicAnalyzer
 from .serializers import DashboardSerializer, ChartSerializer, WidgetSerializer
 
 
-class DashboardView(LoginRequiredMixin, TemplateView):
+class RoleRequiredMixin:
+    """
+    Mixin to restrict access to users with specific roles. Currently only allows admin (is_staff or is_superuser).
+    To allow more roles, extend the check in dispatch method.
+    """
+    def dispatch(self, request, *args, **kwargs):
+        user = request.user
+        if not user.is_authenticated or not (user.is_staff or user.is_superuser):
+            return HttpResponseForbidden(content=b"You do not have permission to access this page.")
+        return super().dispatch(request, *args, **kwargs)
+
+
+class DashboardView(RoleRequiredMixin, LoginRequiredMixin, TemplateView):
     """صفحه اصلی داشبورد"""
     template_name = 'bi/dashboard.html'
     
@@ -47,7 +59,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class DashboardViewSet(viewsets.ModelViewSet):
+class DashboardViewSet(RoleRequiredMixin, viewsets.ModelViewSet):
     """API برای مدیریت داشبوردها"""
     serializer_class = DashboardSerializer
     permission_classes = [IsAuthenticated]
@@ -97,7 +109,7 @@ class DashboardViewSet(viewsets.ModelViewSet):
         return Response(data)
 
 
-class ChartDataView(LoginRequiredMixin, TemplateView):
+class ChartDataView(RoleRequiredMixin, LoginRequiredMixin, TemplateView):
     """API برای دریافت داده‌های نمودار"""
     
     def get(self, request, chart_id):
@@ -111,7 +123,7 @@ class ChartDataView(LoginRequiredMixin, TemplateView):
             return JsonResponse({'error': str(e)}, status=500)
 
 
-class DrillDownView(LoginRequiredMixin, TemplateView):
+class DrillDownView(RoleRequiredMixin, LoginRequiredMixin, TemplateView):
     """API برای drill-down"""
     
     def post(self, request, chart_id):
@@ -132,7 +144,7 @@ class DrillDownView(LoginRequiredMixin, TemplateView):
             return JsonResponse({'error': str(e)}, status=500)
 
 
-class KPIDataView(LoginRequiredMixin, TemplateView):
+class KPIDataView(RoleRequiredMixin, LoginRequiredMixin, TemplateView):
     """API برای داده‌های KPI"""
     
     def get(self, request):
@@ -180,7 +192,7 @@ class KPIDataView(LoginRequiredMixin, TemplateView):
         return JsonResponse({'kpis': kpi_data})
 
 
-class GeoAnalyticsView(LoginRequiredMixin, TemplateView):
+class GeoAnalyticsView(RoleRequiredMixin, LoginRequiredMixin, TemplateView):
     """تحلیل‌های جغرافیایی"""
     
     def get(self, request):
@@ -205,7 +217,7 @@ class GeoAnalyticsView(LoginRequiredMixin, TemplateView):
             return JsonResponse({'error': str(e)}, status=500)
 
 
-class ReportGeneratorView(LoginRequiredMixin, TemplateView):
+class ReportGeneratorView(RoleRequiredMixin, LoginRequiredMixin, TemplateView):
     """تولید گزارش‌ها"""
     
     def post(self, request, report_id):
@@ -228,7 +240,7 @@ class ReportGeneratorView(LoginRequiredMixin, TemplateView):
             return JsonResponse({'error': str(e)}, status=500)
 
 
-class FilterOptionsView(LoginRequiredMixin, TemplateView):
+class FilterOptionsView(RoleRequiredMixin, LoginRequiredMixin, TemplateView):
     """دریافت گزینه‌های فیلتر"""
     
     def get(self, request, data_source_id):
@@ -250,7 +262,7 @@ class FilterOptionsView(LoginRequiredMixin, TemplateView):
 
 
 
-class DataSourceExploreView(LoginRequiredMixin, TemplateView):
+class DataSourceExploreView(RoleRequiredMixin, LoginRequiredMixin, TemplateView):
     """کاوش منابع داده"""
     
     def get(self, request, data_source_id):
@@ -273,7 +285,7 @@ class DataSourceExploreView(LoginRequiredMixin, TemplateView):
 
 
 
-class ExportView(LoginRequiredMixin, TemplateView):
+class ExportView(RoleRequiredMixin, LoginRequiredMixin, TemplateView):
     """صادرات داده‌ها"""
     
     def post(self, request):
@@ -301,7 +313,7 @@ class ExportView(LoginRequiredMixin, TemplateView):
 # View های تخصصی ژورقالای
 # ==============================================
 
-class SpecializedChartsView(LoginRequiredMixin, TemplateView):
+class SpecializedChartsView(RoleRequiredMixin, LoginRequiredMixin, TemplateView):
     """View ویژه برای نمودارهای تخصصی ژورقالای"""
     
     def get(self, request, chart_type):
@@ -336,7 +348,7 @@ class SpecializedChartsView(LoginRequiredMixin, TemplateView):
             return JsonResponse({'error': str(e)}, status=500)
 
 
-class AnalyticsDataView(LoginRequiredMixin, TemplateView):
+class AnalyticsDataView(RoleRequiredMixin, LoginRequiredMixin, TemplateView):
     """API برای تحلیل‌های پیشرفته"""
     
     def get(self, request, analysis_type):
@@ -374,7 +386,7 @@ class AnalyticsDataView(LoginRequiredMixin, TemplateView):
             return JsonResponse({'error': str(e)}, status=500)
 
 
-class DashboardQuickStatsView(LoginRequiredMixin, TemplateView):
+class DashboardQuickStatsView(RoleRequiredMixin, LoginRequiredMixin, TemplateView):
     """آمار سریع برای داشبورد اصلی"""
     
     def get(self, request):
@@ -470,7 +482,7 @@ class DashboardQuickStatsView(LoginRequiredMixin, TemplateView):
             return JsonResponse({'error': str(e)}, status=500)
 
 
-class ProductDebugView(LoginRequiredMixin, TemplateView):
+class ProductDebugView(RoleRequiredMixin, LoginRequiredMixin, TemplateView):
     """Debug view برای بررسی مشکلات محصولات"""
     
     def get(self, request):

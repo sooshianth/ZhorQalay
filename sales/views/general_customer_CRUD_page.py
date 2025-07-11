@@ -361,6 +361,7 @@ def general_customer_CRUD_view(request):
             customer = Customer.objects.get(id=customer_id)
             # بررسی دسترسی کارشناس فروش
             if sales_agent and customer not in sales_agent.get_all_customers():
+                
                 messages.error(request, "شما دسترسی به این مشتری ندارید.")
                 customer = None
         except Customer.DoesNotExist:

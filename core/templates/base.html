@@ -176,7 +176,7 @@
                 {% endif %}
                 
                 <!-- دسته ششم: هوش تجاری -->
-                {% if request.user.is_superuser or request.user.is_staff or request.user.financial_manager or request.user.logistics_manager %}
+                {% if request.user.is_superuser or request.user.is_staff %}
                 <div class="menu-category">
                     <div class="category-title" data-toggle="collapse" data-target="business-intelligence">
                         <i class="fas fa-chart-line category-icon"></i>

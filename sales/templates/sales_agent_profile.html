@@ -94,6 +94,11 @@
         opacity: 1;
         transform: translateY(0);
     }
+    /* Ensure popup is not interactable or visible when not shown */
+    .notification-popup:not(.show) {
+        display: none !important;
+        pointer-events: none;
+    }
     
     .popup-header {
         display: flex;
@@ -1358,6 +1363,13 @@ document.addEventListener('DOMContentLoaded', function() {
             showNotification(messageText, 'info');
         }
     });
+
+    // Failsafe: always hide notification popup on page load
+    const popup = document.getElementById('notification-popup');
+    if (popup) {
+        popup.classList.remove('show');
+        popup.style.display = 'none';
+    }
 });
 
 // فیلتر تسک‌ها

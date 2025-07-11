@@ -46,7 +46,7 @@ def get_allowed_columns(user_role):
          'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
           'cargo', 'product_type', 'importer', 'barbary', 'barbary_phone', 'customer', 'customer_phones', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil', 'address', 'tracking_number']
 
-    
+    allowed_columns.append('actions')
     return allowed_columns
 
 def get_default_columns(user_role):
@@ -2228,7 +2228,20 @@ def apply_purchase_filter(request):
                     'purchase_mabna_invoice': '-',  # مخفی شده
                     'sales_mabna_invoice': '-',     # مخفی شده  
                     'mabna_profit': '-',            # مخفی شده
+                    
                 })
+
+            allowed_fields = get_allowed_columns(user_role)
+            # فقط کلیدهایی که در allowed_fields هستند را نگه می‌داریم
+            data = {k: v for k, v in data.items() if k in allowed_fields}
+            data.update({
+                'details': f'جزئیات خرید {purchase.id}',
+                'جزئیات': f'جزئیات خرید {purchase.id}',
+                'actions': f'عملیات خرید {purchase.id}',
+                'عملیات': f'عملیات خرید {purchase.id}',
+                'id': purchase.id,
+            })
+            
             
             purchases_data.append(data)
         
@@ -2251,8 +2264,6 @@ def apply_purchase_filter(request):
             start_page = max(1, page_obj.number - 2)
             end_page = min(paginator.num_pages, page_obj.number + 2)
             pagination_response['page_range'] = list(range(start_page, end_page + 1))
-
-        logger.warning(purchases_data)
         
         return JsonResponse({
             'status': 'success',
@@ -2307,6 +2318,12 @@ def get_purchase_column_values(request):
         
         # تشخیص نقش کاربر
         user_role = determine_user_role(request.user)
+        allowed_fields = get_allowed_columns(user_role)
+        if column_id not in allowed_fields:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'شما اجازه دسترسی به این ستون را ندارید'
+            }, status=403)
         
         # ایجاد QuerySet پایه
         base_queryset = Purchase.objects.select_related(
