@@ -29,6 +29,60 @@ from .excel_management.views import upload_excel_view, download_excel_template, 
 
 logger = logging.getLogger('bki_barnameh_views')
 
+# تعریف ستون‌های بارنامه با فرمت مشابه purchase_list
+BARNAMEH_COLUMNS = [
+    {'id': 'actions', 'name': 'جزئیات'},
+    {'id': 'number', 'name': 'شماره بارنامه', 'field': 'number'},
+    {'id': 'serial', 'name': 'سریال بارنامه', 'field': 'serial'},
+    {'id': 'status', 'name': 'وضعیت', 'field': 'status'},
+    {'id': 'tonnage', 'name': 'تناژ', 'field': 'tonnage', 'unit': 'کیلوگرم'},
+    {'id': 'purchase_number', 'name': 'شماره خرید', 'field': 'purchase_number'},
+    {'id': 'shenase_takhsis_code', 'name': 'کد تخصیص', 'field': 'shenase_takhsis_code'},
+    {'id': 'driver_name', 'name': 'نام راننده', 'field': 'driver_name'},
+    {'id': 'driver_phone', 'name': 'تلفن راننده', 'field': 'driver_phone'},
+    {'id': 'vehicle_plate', 'name': 'پلاک خودرو', 'field': 'vehicle_plate'},
+    {'id': 'receiver_name', 'name': 'نام تحویل گیرنده', 'field': 'receiver_name'},
+    {'id': 'destination', 'name': 'مقصد', 'field': 'destination'},
+    {'id': 'barnameh_date', 'name': 'تاریخ بارنامه', 'field': 'barnameh_date', 'format': 'date'},
+    {'id': 'transport_date', 'name': 'تاریخ حمل', 'field': 'transport_date', 'format': 'date'},
+    {'id': 'is_sent_to_bki', 'name': 'ارسال به بازارگاه', 'field': 'is_sent_to_bki'},
+    {'id': 'cargo', 'name': 'کالا', 'field': 'purchase.cargo'},
+    {'id': 'company_price', 'name': 'قیمت خرید', 'field': 'purchase.company_price', 'unit': 'ریال'},
+    {'id': 'customer_price', 'name': 'قیمت فروش', 'field': 'purchase.customer_price', 'unit': 'ریال'},
+    {'id': 'total_sales_amount', 'name': 'مبلغ کل فروش', 'field': 'purchase.total_sales_amount', 'unit': 'ریال'},
+    {'id': 'buyer_national_code', 'name': 'کد ملی خریدار', 'field': 'purchase.buyer_national_code'},
+    {'id': 'buyer_postal_code', 'name': 'کد پستی خریدار', 'field': 'buyer_postal_code'},
+    {'id': 'buyer_address', 'name': 'آدرس خریدار', 'field': 'purchase.buyer_address'},
+    {'id': 'demand_amount', 'name': 'مبلغ درخواستی', 'field': 'purchase.demand_amount', 'unit': 'ریال'},
+    {'id': 'importer', 'name': 'واردکننده', 'field': 'purchase.cargo.vared_konandeh'},
+    {'id': 'product_type', 'name': 'نوع محصول', 'field': 'purchase.cargo.product_type'},
+    {'id': 'successful_send_date', 'name': 'تاریخ ارسال موفق', 'field': 'purchase.successful_send_date', 'format': 'date'},
+    {'id': 'created_at', 'name': 'تاریخ ایجاد', 'field': 'barnameh_created_at', 'format': 'date'},
+]
+
+# ستون‌های پیش‌فرض
+DEFAULT_BARNAMEH_COLUMNS = [
+    'actions', 'number', 'serial', 'status', 'tonnage', 'purchase_number', 
+    'shenase_takhsis_code', 'driver_name', 'vehicle_plate', 'receiver_name', 
+    'destination', 'barnameh_date', 'is_sent_to_bki'
+]
+
+def get_barnameh_columns_from_cookie(request):
+    """دریافت ستون‌های انتخاب شده از کوکی"""
+    columns = request.COOKIES.get('barnameh_selected_columns')
+    if columns:
+        try:
+            return columns.split(',')
+        except:
+            pass
+    return DEFAULT_BARNAMEH_COLUMNS.copy()
+
+def get_all_barnameh_columns():
+    """
+    دریافت تمام ستون‌های قابل نمایش برای بارنامه
+    """
+    return BARNAMEH_COLUMNS
+
 # Map table name to model for table_filter support
 TABLE_MODEL_MAPPING = {
     'barnameh': Barnameh,
@@ -37,6 +91,92 @@ TABLE_MODEL_MAPPING = {
 def get_model_from_table_name(table_name):
     """Return model class for given table name"""
     return TABLE_MODEL_MAPPING.get(table_name)
+
+@csrf_exempt
+@role_required('logistics_manager', 'admin', 'financial_manager')
+@require_http_methods(["POST"])
+def update_barnameh_columns(request):
+    """API برای بروزرسانی ستون‌های انتخاب شده"""
+    try:
+        data = json.loads(request.body)
+        selected_columns = data.get('columns', [])
+        
+        # اعتبارسنجی ستون‌ها
+        valid_column_ids = [col['id'] for col in BARNAMEH_COLUMNS]
+        selected_columns = [col for col in selected_columns if col in valid_column_ids]
+        
+        if not selected_columns:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'هیچ ستون معتبری انتخاب نشده است'
+            })
+        
+        response = JsonResponse({
+            'status': 'success',
+            'message': 'ستون‌ها با موفقیت بروزرسانی شدند',
+            'columns': selected_columns
+        })
+        
+        # ذخیره در کوکی
+        response.set_cookie(
+            'barnameh_selected_columns',
+            ','.join(selected_columns),
+            max_age=365*24*60*60  # یک سال
+        )
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"خطا در بروزرسانی ستون‌های بارنامه: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'خطا در بروزرسانی ستون‌ها: {str(e)}'
+        }, status=500)
+
+@csrf_exempt
+@role_required('logistics_manager', 'admin', 'financial_manager')
+@require_http_methods(["POST"])
+def reset_barnameh_columns(request):
+    """API برای بازگشت ستون‌ها به حالت پیش‌فرض"""
+    try:
+        response = JsonResponse({
+            'status': 'success',
+            'message': 'ستون‌ها به حالت پیش‌فرض بازگشت داده شدند',
+            'columns': DEFAULT_BARNAMEH_COLUMNS
+        })
+        
+        # پاک کردن کوکی
+        response.delete_cookie('barnameh_selected_columns')
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"خطا در بازگشت ستون‌های بارنامه به حالت پیش‌فرض: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'خطا در بازگشت ستون‌ها: {str(e)}'
+        }, status=500)
+
+@role_required('logistics_manager', 'admin', 'financial_manager')
+@require_http_methods(["GET"])
+def get_barnameh_columns_config(request):
+    """API برای دریافت تنظیمات ستون‌های بارنامه"""
+    try:
+        selected_columns = get_barnameh_columns_from_cookie(request)
+        
+        return JsonResponse({
+            'status': 'success',
+            'all_columns': BARNAMEH_COLUMNS,
+            'selected_columns': selected_columns,
+            'default_columns': DEFAULT_BARNAMEH_COLUMNS
+        })
+        
+    except Exception as e:
+        logger.error(f"خطا در دریافت تنظیمات ستون‌های بارنامه: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'خطا در دریافت تنظیمات: {str(e)}'
+        }, status=500)
 
 @csrf_exempt  
 @role_required('logistics_manager', 'admin', 'financial_manager')
@@ -146,9 +286,22 @@ def apply_barnameh_filter(request):
                 'receiver_name': barnameh.receiver_name or '',
                 'destination': barnameh.destination or '',
                 'barnameh_date': str(barnameh.barnameh_date) if barnameh.barnameh_date else '',
+                'transport_date': str(barnameh.transport_date) if barnameh.transport_date else '',
                 'purchase_number': barnameh.purchase_number or '',
                 'shenase_takhsis_code': barnameh.shenase_takhsis_code or '',
                 'is_sent_to_bki': barnameh.is_sent_to_bki,
+                'cargo': str(barnameh.get_cargo()) if barnameh.get_cargo() else '',
+                'company_price': barnameh.get_company_price() or 0,
+                'customer_price': barnameh.get_customer_price() or 0,
+                'total_sales_amount': barnameh.get_total_sales_amount() or 0,
+                'buyer_national_code': barnameh.get_buyer_national_code() or '',
+                'buyer_postal_code': barnameh.buyer_postal_code or '',
+                'buyer_address': barnameh.get_buyer_address() or '',
+                'demand_amount': barnameh.get_demand_amount() or 0,
+                'importer': str(barnameh.get_importer()) if barnameh.get_importer() else '',
+                'product_type': barnameh.get_product_type() or '',
+                'successful_send_date': str(barnameh.get_successful_send_date()) if barnameh.get_successful_send_date() else '',
+                'created_at': barnameh.barnameh_created_at.strftime('%Y/%m/%d') if barnameh.barnameh_created_at else '',
                 'logs': [{'log_date': log.log_date.strftime('%Y/%m/%d %H:%M'), 'log_message': log.log_message} for log in logs]
             }
             results.append(result)
@@ -392,6 +545,11 @@ def barnameh_list(request):
     نمایش لیست بارنامه ها
     """
     logger.warning(f"لیست بارنامه ها: {get_client_ip(request)}, user: {request.user}")
+    
+    # دریافت ستون‌های انتخاب شده
+    selected_columns = get_barnameh_columns_from_cookie(request)
+    all_columns = get_all_barnameh_columns()
+    
     # Get sorting parameters from request
     sort_field = request.GET.get('sort', 'barnameh_created_at')
     direction = request.GET.get('direction', 'desc')
@@ -410,6 +568,7 @@ def barnameh_list(request):
         'receiver_name': 'receiver_name',
         'destination': 'destination',
         'barnameh_date': 'barnameh_date',
+        'transport_date': 'transport_date',
         'created_at': 'barnameh_created_at',
     }
     
@@ -438,9 +597,9 @@ def barnameh_list(request):
             Q(purchase_number__icontains=search_query) |
             Q(shenase_takhsis_code__icontains=search_query) |
             Q(driver_name__icontains=search_query)
-        )
+        ).select_related('purchase', 'shenase_takhsis', 'purchase__cargo', 'purchase__cargo__vared_konandeh')
     else:
-        barnamehs = Barnameh.objects.all()
+        barnamehs = Barnameh.objects.all().select_related('purchase', 'shenase_takhsis', 'purchase__cargo', 'purchase__cargo__vared_konandeh')
     
     if status_filter:
         barnamehs = barnamehs.filter(status=status_filter)
@@ -461,7 +620,9 @@ def barnameh_list(request):
     return render(request, 'bki_barnameh/barnameh_list.html', {
         'barnamehs': barnamehs,
         'current_sort': sort_field,
-        'current_direction': direction
+        'current_direction': direction,
+        'all_columns': all_columns,
+        'selected_columns': selected_columns,
     })
 
 @role_required('logistics_manager', 'admin')
@@ -1061,11 +1222,23 @@ def _export_barnameh_excel(barnameh_ids, selected_columns):
         'driver_name': ('نام راننده', lambda b: b.driver_name or "-"),
         'driver_phone': ('شماره راننده', lambda b: b.driver_phone or "-"),
         'vehicle_plate': ('پلاک خودرو', lambda b: b.vehicle_plate or "-"),
-        'receiver_name': ('نام گیرنده', lambda b: b.receiver_name or "-"),
+        'receiver_name': ('نام تحویل گیرنده', lambda b: b.receiver_name or "-"),
         'destination': ('مقصد', lambda b: b.destination or "-"),
         'barnameh_date': ('تاریخ بارنامه', lambda b: str(b.barnameh_date) if b.barnameh_date else "-"),
+        'transport_date': ('تاریخ حمل', lambda b: str(b.transport_date) if b.transport_date else "-"),
         'purchase_number': ('شماره خرید', lambda b: b.purchase_number or "-"),
-        'shenase_takhsis_code': ('شناسه تخصیص', lambda b: b.shenase_takhsis_code or "-"),
+        'shenase_takhsis_code': ('کد تخصیص', lambda b: b.shenase_takhsis_code or "-"),
+        'cargo': ('کالا', lambda b: str(b.get_cargo()) if b.get_cargo() else "-"),
+        'company_price': ('قیمت خرید', lambda b: f"{b.get_company_price():,}" if b.get_company_price() else "-"),
+        'customer_price': ('قیمت فروش', lambda b: f"{b.get_customer_price():,}" if b.get_customer_price() else "-"),
+        'total_sales_amount': ('مبلغ کل فروش', lambda b: f"{b.get_total_sales_amount():,.0f}" if b.get_total_sales_amount() else "-"),
+        'buyer_national_code': ('کد ملی خریدار', lambda b: b.get_buyer_national_code() or "-"),
+        'buyer_postal_code': ('کد پستی خریدار', lambda b: b.buyer_postal_code or "-"),
+        'buyer_address': ('آدرس خریدار', lambda b: b.get_buyer_address() or "-"),
+        'demand_amount': ('مبلغ درخواستی', lambda b: f"{b.get_demand_amount()}" if b.get_demand_amount() else "-"),
+        'importer': ('واردکننده', lambda b: str(b.get_importer()) if b.get_importer() else "-"),
+        'product_type': ('نوع محصول', lambda b: b.get_product_type() or "-"),
+        'successful_send_date': ('تاریخ ارسال موفق', lambda b: str(b.get_successful_send_date()) if b.get_successful_send_date() else "-"),
         'is_sent_to_bki': ('ارسال به بازارگاه', lambda b: "بله" if b.is_sent_to_bki else "خیر"),
         'created_at': ('تاریخ ایجاد', lambda b: b.barnameh_created_at.strftime("%Y/%m/%d") if b.barnameh_created_at else "-"),
     }

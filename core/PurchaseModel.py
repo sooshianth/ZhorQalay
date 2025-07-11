@@ -74,6 +74,44 @@ class Purchase(models.Model):
     payment_method = models.CharField("شیوۀ پرداخت", max_length=6, choices=[('نقدی', 'نقدی'), ('توافقی', 'توافقی')], default="نقدی")
     created_at = jmodels.jDateTimeField("تاریخ ثبت", default=timezone.now)
     updated_at  = jmodels.jDateTimeField("تاریخ بروزرسانی", auto_now=True, blank=True, null=True)
+    
+    barbary_confidential_number = models.CharField("شماره باربری محرمانه", max_length=50, blank=True, null=True, 
+                                                  help_text="شماره محرمانه باربری برای ادمین یا مالی  ")
+    barbary_customer_number = models.CharField("شماره باربری مشتری", max_length=50, blank=True, null=True,
+                                             help_text="شماره ارائه شده به مشتری از طرف باربری")
+    
+    delivery_receiver_name = models.CharField("نام تحویل گیرنده", max_length=255, blank=True, null=True)
+    buyer_national_id = models.CharField("شناسه ملی خریدار", max_length=20, blank=True, null=True)
+    
+    BUYER_USER_TYPE_CHOICES = [
+        ('chicken', 'مرغدار'),
+        ('livestock', 'دامدار'),
+        ('factory', 'کارخانه خوراک'),
+        ('fish', 'پرورش آبزیان'),
+        ('corporation', 'تعاونی'),
+        ('association', 'اتحادیه'),
+        ('dealer', 'دلال'),
+        ('aggressive', 'مزاحم'),
+        ('other', 'سایر')
+    ]
+    buyer_user_type = models.CharField("نوع کاربری خریدار", max_length=20, choices=BUYER_USER_TYPE_CHOICES,
+                                     blank=True, null=True, default='real_person')
+    
+    # فیلدهای آدرس و تحویل
+    unique_delivery_id = models.CharField("شناسه یکتا تحویل", max_length=50, blank=True, null=True, unique=True)
+    delivery_address = models.TextField("آدرس تحویل", blank=True, null=True)
+    delivery_postal_code = models.CharField("کد پستی تحویل", max_length=10, blank=True, null=True)
+    
+    # نوع خودرو حمل
+    VEHICLE_TYPE_CHOICES = [
+        ('trailer', 'تریلی'),
+        ('single', 'تک'),
+        ('double', 'جفت'),
+    ]
+    vehicle_type = models.CharField("نوع خودرو حمل", max_length=20, choices=VEHICLE_TYPE_CHOICES,
+                                  blank=True, null=True, default='trailer')
+
+
     is_weight_costed = models.BooleanField("آیا وزن خرید از وزن موجود محصول کاسته شده است؟", default=False)
     is_ap_af = models.BooleanField("آیا مبلغ خرید اتوکامپلیت شده است؟", default=False)
     extelaf_type = models.CharField("نوع اختلاف (کسری یا سرک)", max_length=4, choices=[('کسری', 'کسری'), ('سرک', 'سرک')], null=True, blank=True)
@@ -590,6 +628,25 @@ class Purchase(models.Model):
             
         if self.company_price > 0 and self.company_price < 10000:
             errors['company_price'] = 'فی خرید باید حداقل 10000 ریال باشد.'
+            
+        # اعتبارسنجی فیلدهای جدید
+        if self.buyer_national_id:
+            # حذف فاصله‌ها و کاراکترهای غیرضروری
+            national_id = ''.join(c for c in str(self.buyer_national_id) if c.isdigit())
+            if len(national_id) not in [8, 10, 11]:  # کد ملی، شناسه حقوقی، یا شماره گذرنامه
+                errors['buyer_national_id'] = 'شناسه ملی باید 8، 10 یا 11 رقم باشد'
+            
+        if self.delivery_postal_code:
+            # حذف فاصله‌ها و بررسی طول کد پستی
+            postal_code = ''.join(c for c in str(self.delivery_postal_code) if c.isdigit())
+            if len(postal_code) != 10:
+                errors['delivery_postal_code'] = 'کد پستی باید 10 رقم باشد'
+                
+        if self.unique_delivery_id:
+            # بررسی یکتا بودن شناسه تحویل
+            existing = Purchase.objects.filter(unique_delivery_id=self.unique_delivery_id).exclude(pk=self.pk)
+            if existing.exists():
+                errors['unique_delivery_id'] = 'این شناسه تحویل قبلاً استفاده شده است'
 
         if errors:
             raise ValidationError(errors)
@@ -768,6 +825,28 @@ class Purchase(models.Model):
         if not self.state in ['INITIATED', 'SMS_SENT', 'PAYMENT_VERIFIED', 'ALLOCATION_APPROVED']:
             self.is_address_sent = '1'  # اصلاح: استفاده از string '1' به جای boolean True
             super().save(update_fields=['is_address_sent'])
+            
+        # تولید خودکار شناسه یکتا تحویل
+        if not self.unique_delivery_id and self.invoice_id:
+            self.generate_unique_delivery_id()
+            
+        # همگام‌سازی فیلدهای تحویل با فیلدهای موجود
+        if not self.buyer_national_id and self.code_melli_tahvil:
+            self.buyer_national_id = self.code_melli_tahvil
+            
+        if not self.delivery_receiver_name and self.buyer_name:
+            self.delivery_receiver_name = self.buyer_name
+            
+        if not self.delivery_address and self.address:
+            self.delivery_address = self.address
+            
+        # تنظیم نوع کاربری خریدار بر اساس طول شناسه ملی
+        if not self.buyer_user_type and self.buyer_national_id:
+            national_id_length = len(''.join(c for c in str(self.buyer_national_id) if c.isdigit()))
+            if national_id_length == 10:
+                self.buyer_user_type = 'real_person'
+            elif national_id_length == 11:
+                self.buyer_user_type = 'legal_entity'
 
     def send_notification(self, user, title, message, notification_type='purchase', priority='medium'):
         """ارسال نوتیفیکیشن برای کاربر"""
@@ -799,6 +878,51 @@ class Purchase(models.Model):
         for manager in financial_managers:
             if manager.user:
                 self.send_notification(manager.user, title, message, notification_type, priority)
+                
+    # متدهای کمکی برای فیلدهای جدید
+    def generate_unique_delivery_id(self):
+        """تولید شناسه یکتا برای تحویل"""
+        if not self.unique_delivery_id:
+            import uuid
+            base_id = f"DEL-{self.invoice_id}-{uuid.uuid4().hex[:6].upper()}"
+            # اطمینان از یکتا بودن
+            while Purchase.objects.filter(unique_delivery_id=base_id).exists():
+                base_id = f"DEL-{self.invoice_id}-{uuid.uuid4().hex[:6].upper()}"
+            self.unique_delivery_id = base_id
+            
+    def get_delivery_info(self):
+        """دریافت اطلاعات کامل تحویل"""
+        return {
+            'receiver_name': self.delivery_receiver_name or self.buyer_name,
+            'delivery_address': self.delivery_address or self.address,
+            'postal_code': self.delivery_postal_code,
+            'national_id': self.buyer_national_id or self.code_melli_tahvil,
+            'unique_id': self.unique_delivery_id,
+            'vehicle_type': self.get_vehicle_type_display() if self.vehicle_type else 'نامشخص'
+        }
+        
+    def get_barbary_info(self):
+        """دریافت اطلاعات باربری"""
+        barbary_info = {
+            'confidential_number': self.barbary_confidential_number,
+            'customer_number': self.barbary_customer_number,
+            'barbary_name': self.cargo.barbary.name if (self.cargo and self.cargo.barbary) else None
+        }
+        return barbary_info
+        
+    def update_delivery_from_barnameh(self, barnameh):
+        """بروزرسانی اطلاعات تحویل از بارنامه"""
+        if hasattr(barnameh, 'receiver_name') and barnameh.receiver_name:
+            self.delivery_receiver_name = barnameh.receiver_name
+        if hasattr(barnameh, 'destination') and barnameh.destination:
+            if not self.delivery_address:
+                self.delivery_address = barnameh.destination
+        if hasattr(barnameh, 'driver_name') and barnameh.driver_name:
+            # اطلاعات راننده را می‌توان در توضیحات ذخیره کرد
+            if not self.description:
+                self.description = f"راننده: {barnameh.driver_name}"
+            elif "راننده:" not in self.description:
+                self.description += f" | راننده: {barnameh.driver_name}"
 
 
 from django.contrib.auth.models import User
