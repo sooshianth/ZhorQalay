@@ -45,6 +45,24 @@ class BulkEditManager {
         document.querySelectorAll('input[type="checkbox"]').forEach((checkbox, index) => {
             console.log(`  ${index + 1}. Class: ${checkbox.className}, ID: ${checkbox.id}, Data-ID: ${checkbox.dataset.id}`);
         });
+        
+        // برای صفحه کوتاژها، به‌طور خاص کنترل‌پنل‌ها را تنظیم کنیم
+        if (this.detectTableType() === 'cargo_product') {
+            console.log('🔍 تشخیص صفحه کوتاژها، تنظیم کنترل‌پنل‌ها');
+            this.controlPanels = {
+                active: document.querySelector('.bulk-edit-controls-active'),
+                archived: document.querySelector('.bulk-edit-controls-archived')
+            };
+            
+            // حذف control panelهای null
+            Object.keys(this.controlPanels).forEach(key => {
+                if (!this.controlPanels[key]) {
+                    delete this.controlPanels[key];
+                }
+            });
+            
+            this.updateAllControlPanels();
+        }
     }
 
     detectActiveTab() {
@@ -158,6 +176,18 @@ class BulkEditManager {
             window.purchaseAggregatedStats.updateSelectedPurchases();
         }
         
+        // اضافه کردن یا حذف کلاس selected از سطر
+        const row = checkbox.closest('tr');
+        if (row) {
+            if (checkbox.checked) {
+                row.classList.add('selected');
+                row.classList.add('bulk-selected');
+            } else {
+                row.classList.remove('selected');
+                row.classList.remove('bulk-selected');
+            }
+        }
+        
         this.updateAllControlPanels();
     }
 
@@ -169,12 +199,24 @@ class BulkEditManager {
         // تشخیص نوع checkbox و یافتن checkboxهای مربوطه
         if (tableType === 'barnameh') {
             checkboxes = document.querySelectorAll('#barnamehTable .row-checkbox');
-        } else if (checkbox.classList.contains('select-all-checkbox-pending')) {
-            checkboxes = document.querySelectorAll('#pendingPurchasesTable .row-checkbox');
-        } else if (checkbox.classList.contains('select-all-checkbox-archived')) {
-            checkboxes = document.querySelectorAll('#archivedPurchasesTable .row-checkbox');
+        } else if (tableType === 'cargo_product') {
+            if (checkbox.classList.contains('select-all-checkbox-archived')) {
+                checkboxes = document.querySelectorAll('#inactiveProductsTable .row-checkbox');
+            } else {
+                checkboxes = document.querySelectorAll('#activeProductsTable .row-checkbox');
+            }
+        } else if (tableType === 'vared_konandeh') {
+            checkboxes = document.querySelectorAll('#varedKonandeTable .row-checkbox');
+        } else if (tableType === 'barbary') {
+            checkboxes = document.querySelectorAll('#barbariesTable .row-checkbox');
         } else {
-            checkboxes = document.querySelectorAll('#activePurchasesTable .row-checkbox');
+            if (checkbox.classList.contains('select-all-checkbox-pending')) {
+                checkboxes = document.querySelectorAll('#pendingPurchasesTable .row-checkbox');
+            } else if (checkbox.classList.contains('select-all-checkbox-archived')) {
+                checkboxes = document.querySelectorAll('#archivedPurchasesTable .row-checkbox');
+            } else {
+                checkboxes = document.querySelectorAll('#activePurchasesTable .row-checkbox');
+            }
         }
         
         checkboxes.forEach(cb => {
@@ -185,6 +227,18 @@ class BulkEditManager {
                 this.selectedIds.add(id);
             } else {
                 this.selectedIds.delete(id);
+            }
+            
+            // اضافه کردن یا حذف کلاس selected از سطر
+            const row = cb.closest('tr');
+            if (row) {
+                if (isChecked) {
+                    row.classList.add('selected');
+                    row.classList.add('bulk-selected');
+                } else {
+                    row.classList.remove('selected');
+                    row.classList.remove('bulk-selected');
+                }
             }
         });
 
@@ -225,6 +279,18 @@ class BulkEditManager {
         
         if (tableType === 'barnameh') {
             tableSelector = '#barnamehTable .row-checkbox:checked';
+        } else if (tableType === 'cargo_product') {
+            switch(targetSection) {
+                case 'archived':
+                    tableSelector = '#inactiveProductsTable .row-checkbox:checked';
+                    break;
+                default:
+                    tableSelector = '#activeProductsTable .row-checkbox:checked';
+            }
+        } else if (tableType === 'vared_konandeh') {
+            tableSelector = '#varedKonandeTable .row-checkbox:checked';
+        } else if (tableType === 'barbary') {
+            tableSelector = '#barbariesTable .row-checkbox:checked';
         } else {
             switch(targetSection) {
                 case 'pending':
@@ -246,8 +312,22 @@ class BulkEditManager {
         }
         
         // نمایش/مخفی کردن panel بر اساس انتخاب‌ها و وضعیت بخش
-        const sectionElement = document.getElementById(`${targetSection}Content`);
-        const isSectionVisible = sectionElement && getComputedStyle(sectionElement).display !== 'none';
+        let isSectionVisible = true;
+        
+        if (tableType === 'cargo_product') {
+            // برای صفحه کوتاژها، بررسی وضعیت نمایش
+            if (targetSection === 'archived') {
+                const details = document.querySelector('details.dropdown-container');
+                isSectionVisible = details && details.hasAttribute('open');
+            }
+        } else if (tableType === 'vared_konandeh' || tableType === 'barbary') {
+            // برای واردکنندگان و باربری‌ها، همیشه نمایان هستند
+            isSectionVisible = true;
+        } else {
+            const sectionElement = document.getElementById(`${targetSection}Content`);
+            isSectionVisible = sectionElement && getComputedStyle(sectionElement).display !== 'none';
+        }
+        
         const shouldShow = sectionCount > 0 && isSectionVisible;
         panel.style.display = shouldShow ? 'block' : 'none';
         
@@ -320,6 +400,22 @@ class BulkEditManager {
                     active: '#barnamehTable .row-checkbox:checked',
                     pending: '#barnamehTable .row-checkbox:checked',
                     archived: '#barnamehTable .row-checkbox:checked'
+                };
+            } else if (tableType === 'cargo_product') {
+                // برای صفحه کوتاژها
+                tableMap = {
+                    active: '#activeProductsTable .row-checkbox:checked',
+                    archived: '#inactiveProductsTable .row-checkbox:checked'
+                };
+            } else if (tableType === 'vared_konandeh') {
+                // برای صفحه واردکنندگان
+                tableMap = {
+                    active: '#varedKonandeTable .row-checkbox:checked'
+                };
+            } else if (tableType === 'barbary') {
+                // برای صفحه باربری‌ها
+                tableMap = {
+                    active: '#barbariesTable .row-checkbox:checked'
                 };
             } else {
                 // برای صفحه خریدها
@@ -404,6 +500,22 @@ class BulkEditManager {
                     active: '#barnamehTable .row-checkbox:checked',
                     pending: '#barnamehTable .row-checkbox:checked',
                     archived: '#barnamehTable .row-checkbox:checked'
+                };
+            } else if (tableType === 'cargo_product') {
+                // برای صفحه کوتاژها
+                tableMap = {
+                    active: '#activeProductsTable .row-checkbox:checked',
+                    archived: '#inactiveProductsTable .row-checkbox:checked'
+                };
+            } else if (tableType === 'vared_konandeh') {
+                // برای صفحه واردکنندگان
+                tableMap = {
+                    active: '#varedKonandeTable .row-checkbox:checked'
+                };
+            } else if (tableType === 'barbary') {
+                // برای صفحه باربری‌ها
+                tableMap = {
+                    active: '#barbariesTable .row-checkbox:checked'
                 };
             } else {
                 // برای صفحه خریدها
@@ -535,6 +647,16 @@ class BulkEditManager {
         // یافتن checkboxهای مربوط به بخش
         if (tableType === 'barnameh') {
             checkboxes = document.querySelectorAll('#barnamehTable .row-checkbox');
+        } else if (tableType === 'cargo_product') {
+            if (targetSection === 'archived') {
+                checkboxes = document.querySelectorAll('#inactiveProductsTable .row-checkbox');
+            } else {
+                checkboxes = document.querySelectorAll('#activeProductsTable .row-checkbox');
+            }
+        } else if (tableType === 'vared_konandeh') {
+            checkboxes = document.querySelectorAll('#varedKonandeTable .row-checkbox');
+        } else if (tableType === 'barbary') {
+            checkboxes = document.querySelectorAll('#barbariesTable .row-checkbox');
         } else {
             switch(targetSection) {
                 case 'pending':
@@ -553,6 +675,13 @@ class BulkEditManager {
             checkbox.checked = false;
             const id = checkbox.dataset.id;
             this.selectedIds.delete(id);
+            
+            // حذف کلاس selected از سطر
+            const row = checkbox.closest('tr');
+            if (row) {
+                row.classList.remove('selected');
+                row.classList.remove('bulk-selected');
+            }
         });
         
         // پاک کردن select all checkbox

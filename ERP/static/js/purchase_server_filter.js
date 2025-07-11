@@ -214,21 +214,6 @@ class PurchaseServerFilter {
             filterBtn.setAttribute('data-column-id', columnId);
             filterBtn.setAttribute('data-column-type', columnType);
             
-            // دکمه‌های مرتب‌سازی (فقط یک جفت)
-            const sortUpBtn = document.createElement('button');
-            sortUpBtn.className = 'btn btn-sm btn-outline-secondary sort-btn me-1';
-            sortUpBtn.innerHTML = '<i class="fas fa-sort-up"></i>';
-            sortUpBtn.title = `مرتب‌سازی صعودی ${headerText}`;
-            sortUpBtn.setAttribute('data-column-id', columnId);
-            sortUpBtn.setAttribute('data-direction', 'asc');
-            
-            const sortDownBtn = document.createElement('button');
-            sortDownBtn.className = 'btn btn-sm btn-outline-secondary sort-btn';
-            sortDownBtn.innerHTML = '<i class="fas fa-sort-down"></i>';
-            sortDownBtn.title = `مرتب‌سازی نزولی ${headerText}`;
-            sortDownBtn.setAttribute('data-column-id', columnId);
-            sortDownBtn.setAttribute('data-direction', 'desc');
-            
             // اضافه کردن event listeners
             filterBtn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -236,22 +221,8 @@ class PurchaseServerFilter {
                 this.showFilterModal(columnId, columnType, header);
             });
             
-            sortUpBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.toggleSort(columnId, 'asc');
-            });
-            
-            sortDownBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.toggleSort(columnId, 'desc');
-            });
-            
             // ترکیب کردن عناصر
             buttonsContainer.appendChild(filterBtn);
-            buttonsContainer.appendChild(sortUpBtn);
-            buttonsContainer.appendChild(sortDownBtn);
             
             controlsContainer.appendChild(textSpan);
             controlsContainer.appendChild(buttonsContainer);
@@ -487,6 +458,79 @@ class PurchaseServerFilter {
         searchContainer.appendChild(searchInputGroup);
         searchContainer.appendChild(searchResults);
         
+        // بخش مرتب‌سازی
+        const sortContainer = document.createElement('div');
+        sortContainer.className = 'mb-3';
+        
+        const sortLabel = document.createElement('label');
+        sortLabel.className = 'form-label fw-bold';
+        sortLabel.textContent = 'مرتب‌سازی:';
+        
+        const sortButtonsGroup = document.createElement('div');
+        sortButtonsGroup.className = 'btn-group w-100 mt-2';
+        sortButtonsGroup.setAttribute('role', 'group');
+        
+        // دکمه مرتب‌سازی صعودی
+        const sortAscBtn = document.createElement('button');
+        sortAscBtn.type = 'button';
+        sortAscBtn.className = 'btn btn-outline-success sort-asc-btn';
+        sortAscBtn.innerHTML = '<i class="fas fa-sort-up me-1"></i>صعودی (الف تا ی)';
+        sortAscBtn.setAttribute('data-column-id', columnId);
+        sortAscBtn.setAttribute('data-direction', 'asc');
+        
+        // دکمه مرتب‌سازی نزولی
+        const sortDescBtn = document.createElement('button');
+        sortDescBtn.type = 'button';
+        sortDescBtn.className = 'btn btn-outline-danger sort-desc-btn';
+        sortDescBtn.innerHTML = '<i class="fas fa-sort-down me-1"></i>نزولی (ی تا الف)';
+        sortDescBtn.setAttribute('data-column-id', columnId);
+        sortDescBtn.setAttribute('data-direction', 'desc');
+        
+        // دکمه حذف مرتب‌سازی
+        const sortResetBtn = document.createElement('button');
+        sortResetBtn.type = 'button';
+        sortResetBtn.className = 'btn btn-outline-secondary sort-reset-btn';
+        sortResetBtn.innerHTML = '<i class="fas fa-times me-1"></i>بدون مرتب‌سازی';
+        
+        // نمایش وضعیت فعلی مرتب‌سازی
+        if (this.currentSort.column === columnId) {
+            if (this.currentSort.direction === 'asc') {
+                sortAscBtn.classList.add('active');
+                sortAscBtn.classList.replace('btn-outline-success', 'btn-success');
+            } else if (this.currentSort.direction === 'desc') {
+                sortDescBtn.classList.add('active');
+                sortDescBtn.classList.replace('btn-outline-danger', 'btn-danger');
+            }
+        } else {
+            sortResetBtn.classList.add('active');
+            sortResetBtn.classList.replace('btn-outline-secondary', 'btn-secondary');
+        }
+        
+        // Event listeners برای دکمه‌های مرتب‌سازی
+        sortAscBtn.addEventListener('click', () => {
+            this.toggleSort(columnId, 'asc');
+            modal.remove();
+        });
+        
+        sortDescBtn.addEventListener('click', () => {
+            this.toggleSort(columnId, 'desc');
+            modal.remove();
+        });
+        
+        sortResetBtn.addEventListener('click', () => {
+            this.currentSort = { column: null, direction: 'asc' };
+            this.currentPage = 1;
+            this.applyFilters();
+            modal.remove();
+        });
+        
+        sortButtonsGroup.appendChild(sortAscBtn);
+        sortButtonsGroup.appendChild(sortDescBtn);
+        sortButtonsGroup.appendChild(sortResetBtn);
+        
+        sortContainer.appendChild(sortLabel);
+        sortContainer.appendChild(sortButtonsGroup);
+        
         // لیست مقادیر
         const valuesContainer = document.createElement('div');
         valuesContainer.className = 'mb-3';
@@ -582,6 +626,7 @@ class PurchaseServerFilter {
         
         modalBody.appendChild(filterTypeContainer);
         modalBody.appendChild(searchContainer);
+        modalBody.appendChild(sortContainer);
         modalBody.appendChild(valuesContainer);
         
         // Footer مودال
@@ -654,7 +699,7 @@ class PurchaseServerFilter {
         });
         
         // جستجو
-        searchInput.addEventListener('input', function() {
+        const searchHandler = function() {
             const searchTerm = this.value.toLowerCase().trim();
             const containers = valuesList.querySelectorAll('.filter-value-item:not(:first-child)');
             let visibleCount = 0;
@@ -700,6 +745,17 @@ class PurchaseServerFilter {
             } else {
                 selectAllCheckbox.checked = false;
                 selectAllCheckbox.indeterminate = false;
+            }
+        };
+        
+        searchInput.addEventListener('input', searchHandler);
+        
+        // پشتیبانی از کلید Enter برای اعمال فیلتر
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                // اعمال فیلتر با مقادیر فعلی انتخاب شده
+                applyBtn.click();
             }
         });
         

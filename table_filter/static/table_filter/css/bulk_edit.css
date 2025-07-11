@@ -1,41 +1,683 @@
 /**
- * Bulk Edit CSS Styles
- * Styling for bulk editing functionality with Green Theme
+ * Bulk Edit CSS Styles - Enhanced Green Theme
+ * Modern styling for bulk editing functionality - Scoped to avoid conflicts
  */
 
 :root {
-    --primary-color: #065F46;
-    --primary-hover: #064E3B;
-    --primary-light: #10B981;
-    --secondary-color: #059669;
-    --secondary-hover: #047857;
-    --accent-color: #34D399;
-    --danger-color: #DC2626;
-    --warning-color: #F59E0B;
-    --info-color: #3B82F6;
-    --success-color: #10B981;
-    --light-bg: #F0FDF4;
-    --card-bg: #ffffff;
-    --text-color: #1F2937;
-    --text-light: #6B7280;
-    --text-muted: #9CA3AF;
-    --border-color: #D1FAE5;
-    --input-bg: #F9FDF9;
-    --input-focus: #ffffff;
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    /* پالت رنگی سبز بهبود یافته */
+    --bulk-primary-green: #047857;
+    --bulk-primary-green-hover: #065f46;
+    --bulk-primary-green-light: #10b981;
+    --bulk-secondary-green: #059669;
+    --bulk-secondary-green-hover: #047857;
+    --bulk-accent-green: #34d399;
+    --bulk-light-green: #6ee7b7;
+    --bulk-lightest-green: #d1fae5;
+    
+    /* رنگ‌های کمکی */
+    --bulk-danger-color: #ef4444;
+    --bulk-warning-color: #f59e0b;
+    --bulk-info-color: #3b82f6;
+    --bulk-success-color: #22c55e;
+    
+    /* پس‌زمینه‌ها */
+    --bulk-bg-primary: #f0fdf4;
+    --bulk-bg-secondary: #ecfdf5;
+    --bulk-bg-card: #ffffff;
+    --bulk-bg-input: #f9fdfb;
+    --bulk-bg-input-focus: #ffffff;
+    
+    /* متن */
+    --bulk-text-primary: #1f2937;
+    --bulk-text-secondary: #6b7280;
+    --bulk-text-muted: #9ca3af;
+    --bulk-text-light: #d1d5db;
+    
+    /* حاشیه‌ها */
+    --bulk-border-light: #e5e7eb;
+    --bulk-border-green: #a7f3d0;
+    --bulk-border-focus: #10b981;
+    
+    /* سایه‌ها */
+    --bulk-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --bulk-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --bulk-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --bulk-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --bulk-shadow-green: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    
+    /* شعاع گوشه‌ها */
+    --bulk-radius-sm: 6px;
+    --bulk-radius-md: 10px;
+    --bulk-radius-lg: 16px;
+    --bulk-radius-xl: 20px;
+    
+    /* فاصله‌ها */
+    --bulk-spacing-xs: 0.5rem;
+    --bulk-spacing-sm: 0.75rem;
+    --bulk-spacing-md: 1rem;
+    --bulk-spacing-lg: 1.5rem;
+    --bulk-spacing-xl: 2rem;
+    --bulk-spacing-2xl: 3rem;
 }
 
-/* Container برای دکمه‌های ویرایش گروهی */
+/* تنظیمات کلی فقط برای صفحه ویرایش گروهی */
+body.bulk-edit-page {
+    background: linear-gradient(135deg, var(--bulk-bg-primary) 0%, var(--bulk-bg-secondary) 100%);
+    color: var(--bulk-text-primary);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.7;
+}
+
+/* Container اصلی فقط در صفحه ویرایش گروهی */
+.bulk-edit-page .container-lg {
+    max-width: 1400px;
+}
+
+/* کارت‌ها فقط در صفحه ویرایش گروهی */
+.bulk-edit-page .card {
+    background: var(--bulk-bg-card);
+    border: 1px solid var(--bulk-border-green);
+    border-radius: var(--bulk-radius-lg);
+    box-shadow: var(--bulk-shadow-lg);
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.bulk-edit-page .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--bulk-primary-green), var(--bulk-secondary-green), var(--bulk-accent-green));
+}
+
+.bulk-edit-page .card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--bulk-shadow-xl);
+}
+
+.bulk-edit-page .card-header {
+    background: linear-gradient(135deg, var(--bulk-primary-green) 0%, var(--bulk-secondary-green) 100%);
+    color: white;
+    padding: var(--bulk-spacing-xl);
+    border-bottom: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.bulk-edit-page .card-header::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);
+    transform: rotate(-45deg);
+    animation: shine 3s infinite;
+}
+
+@keyframes shine {
+    0% { transform: translateX(-100%) translateY(-100%) rotate(-45deg); }
+    100% { transform: translateX(100%) translateY(100%) rotate(-45deg); }
+}
+
+.bulk-edit-page .card-header h4 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.bulk-edit-page .card-body {
+    padding: var(--bulk-spacing-2xl);
+    background: var(--bulk-bg-card);
+}
+
+/* بخش جستجوی فیلدها */
+.bulk-edit-page .field-search-container {
+    background: linear-gradient(135deg, var(--bulk-bg-card) 0%, var(--bulk-bg-secondary) 100%);
+    border: 2px solid var(--bulk-border-green);
+    border-radius: var(--bulk-radius-lg);
+    padding: var(--bulk-spacing-lg);
+    margin-bottom: var(--bulk-spacing-xl);
+    box-shadow: var(--bulk-shadow-md);
+}
+
+.bulk-edit-page .field-search-container .input-group {
+    box-shadow: var(--bulk-shadow-md);
+    border-radius: var(--bulk-radius-md);
+    overflow: hidden;
+}
+
+.bulk-edit-page .field-search-container .search-icon {
+    background: var(--bulk-primary-green);
+    color: white;
+    border: none;
+    padding: var(--bulk-spacing-md) var(--bulk-spacing-lg);
+}
+
+.bulk-edit-page .field-search-container .search-input {
+    border: none;
+    padding: var(--bulk-spacing-md) var(--bulk-spacing-lg);
+    font-size: 1rem;
+    background: var(--bulk-bg-input);
+    transition: all 0.3s ease;
+}
+
+.bulk-edit-page .field-search-container .search-input:focus {
+    background: var(--bulk-bg-input-focus);
+    box-shadow: none;
+    outline: none;
+}
+
+.bulk-edit-page .field-search-container .btn-outline-secondary {
+    border: none;
+    background: #6b7280;
+    color: white;
+    padding: var(--bulk-spacing-md) var(--bulk-spacing-lg);
+    transition: all 0.3s ease;
+}
+
+.bulk-edit-page .field-search-container .btn-outline-secondary:hover {
+    background: #4b5563;
+    color: white;
+}
+
+.bulk-edit-page .field-counter {
+    text-align: center;
+    color: var(--bulk-text-secondary);
+    font-weight: 500;
+}
+
+/* Container فیلدها */
+.bulk-edit-page .fields-container {
+    position: relative;
+}
+
+.bulk-edit-page .fields-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: var(--bulk-spacing-lg);
+    margin-bottom: var(--bulk-spacing-xl);
+}
+
+/* استایل فیلدها */
+.bulk-edit-page .field-item {
+    background: linear-gradient(145deg, var(--bulk-bg-card) 0%, #fdfdfd 100%);
+    border: 2px solid var(--bulk-border-light);
+    border-radius: var(--bulk-radius-lg);
+    padding: var(--bulk-spacing-lg);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.bulk-edit-page .field-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, var(--bulk-accent-green) 0%, var(--bulk-primary-green) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.bulk-edit-page .field-item:hover {
+    border-color: var(--bulk-border-green);
+    transform: translateY(-2px);
+    box-shadow: var(--bulk-shadow-lg);
+}
+
+.bulk-edit-page .field-item:hover::before {
+    opacity: 1;
+}
+
+.bulk-edit-page .field-item:focus-within {
+    border-color: var(--bulk-border-focus);
+    box-shadow: var(--bulk-shadow-green);
+}
+
+.bulk-edit-page .field-item:focus-within::before {
+    opacity: 1;
+}
+
+/* هدر فیلد */
+.bulk-edit-page .field-header {
+    margin-bottom: var(--bulk-spacing-md);
+}
+
+.bulk-edit-page .form-label {
+    font-weight: 600;
+    color: var(--bulk-text-primary);
+    margin-bottom: var(--bulk-spacing-sm);
+    font-size: 0.95rem;
+    letter-spacing: 0.025em;
+    display: flex;
+    align-items: center;
+    gap: var(--bulk-spacing-sm);
+}
+
+/* ورودی‌های فرم */
+.bulk-edit-page .field-input {
+    margin-bottom: var(--bulk-spacing-sm);
+}
+
+.bulk-edit-page .form-control,
+.bulk-edit-page .form-select {
+    background: var(--bulk-bg-input);
+    border: 2px solid var(--bulk-border-light);
+    border-radius: var(--bulk-radius-md);
+    padding: var(--bulk-spacing-md) var(--bulk-spacing-lg);
+    font-size: 0.95rem;
+    color: var(--bulk-text-primary);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+    box-shadow: var(--bulk-shadow-sm);
+}
+
+.bulk-edit-page .form-control:focus,
+.bulk-edit-page .form-select:focus {
+    background: var(--bulk-bg-input-focus);
+    border-color: var(--bulk-border-focus);
+    box-shadow: var(--bulk-shadow-green);
+    outline: none;
+    transform: translateY(-1px);
+}
+
+.bulk-edit-page .form-control:hover,
+.bulk-edit-page .form-select:hover {
+    border-color: var(--bulk-border-green);
+    box-shadow: var(--bulk-shadow-md);
+}
+
+.bulk-edit-page .form-control::placeholder {
+    color: var(--bulk-text-muted);
+    font-style: italic;
+}
+
+/* Textarea */
+.bulk-edit-page textarea.form-control {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Checkbox container */
+.bulk-edit-page .form-check-container {
+    background: linear-gradient(135deg, var(--bulk-bg-secondary) 0%, #f0fdf4 100%);
+    border-radius: var(--bulk-radius-md);
+    padding: var(--bulk-spacing-md);
+    border: 1px solid var(--bulk-border-green);
+}
+
+.bulk-edit-page .form-check {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--bulk-spacing-sm);
+}
+
+.bulk-edit-page .form-check-input {
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid var(--bulk-border-green);
+    border-radius: var(--bulk-radius-sm);
+    background: var(--bulk-bg-input);
+    transition: all 0.3s ease;
+}
+
+.bulk-edit-page .form-check-input:checked {
+    background: var(--bulk-primary-green);
+    border-color: var(--bulk-primary-green);
+    box-shadow: var(--bulk-shadow-green);
+}
+
+.bulk-edit-page .form-check-input:hover {
+    border-color: var(--bulk-border-focus);
+    transform: scale(1.05);
+}
+
+.bulk-edit-page .form-check-label {
+    font-weight: 500;
+    color: var(--bulk-text-primary);
+    cursor: pointer;
+    user-select: none;
+}
+
+/* راهنما و هشدارها */
+.bulk-edit-page .field-help {
+    margin-top: var(--bulk-spacing-xs);
+}
+
+.bulk-edit-page .field-help small {
+    color: var(--bulk-text-secondary);
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+.bulk-edit-page .field-warning {
+    margin-top: var(--bulk-spacing-xs);
+}
+
+.bulk-edit-page .field-warning small {
+    color: var(--bulk-danger-color);
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+/* نشانگر فیلد یکتا */
+.bulk-edit-page .unique-field-indicator {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: var(--bulk-danger-color);
+    font-size: 0.7rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-weight: 600;
+    border: 1px solid #fca5a5;
+    box-shadow: var(--bulk-shadow-sm);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.bulk-edit-page .unique-field-indicator::before {
+    content: '⚠';
+    font-size: 0.8rem;
+}
+
+/* دکمه‌های عملیات */
+.bulk-edit-page .form-actions {
+    background: linear-gradient(135deg, var(--bulk-bg-secondary) 0%, #ecfdf5 100%);
+    border: 2px solid var(--bulk-border-green);
+    border-radius: var(--bulk-radius-lg);
+    padding: var(--bulk-spacing-xl);
+    margin-top: var(--bulk-spacing-xl);
+    box-shadow: var(--bulk-shadow-md);
+}
+
+.bulk-edit-page .primary-actions {
+    display: flex;
+    gap: var(--bulk-spacing-md);
+    align-items: center;
+}
+
+.bulk-edit-page .btn-action {
+    border-radius: var(--bulk-radius-md);
+    padding: var(--bulk-spacing-md) var(--bulk-spacing-xl);
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--bulk-shadow-md);
+    min-width: 140px;
+    text-align: center;
+}
+
+.bulk-edit-page .btn-action::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s;
+}
+
+.bulk-edit-page .btn-action:hover::before {
+    left: 100%;
+}
+
+.bulk-edit-page .btn-action:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--bulk-shadow-lg);
+}
+
+.bulk-edit-page .btn-success {
+    background: linear-gradient(135deg, var(--bulk-success-color) 0%, var(--bulk-accent-green) 100%);
+    color: white;
+}
+
+.bulk-edit-page .btn-success:hover {
+    background: linear-gradient(135deg, var(--bulk-primary-green) 0%, var(--bulk-secondary-green) 100%);
+}
+
+.bulk-edit-page .btn-outline-primary {
+    background: transparent;
+    color: var(--bulk-primary-green);
+    border: 2px solid var(--bulk-primary-green);
+}
+
+.bulk-edit-page .btn-outline-primary:hover {
+    background: var(--bulk-primary-green);
+    color: white;
+}
+
+.bulk-edit-page .btn-secondary {
+    background: linear-gradient(135deg, #6b7280 0%, #9ca3af 100%);
+    color: white;
+}
+
+.bulk-edit-page .btn-secondary:hover {
+    background: linear-gradient(135deg, #4b5563 0%, #6b7280 100%);
+}
+
+/* هشدارها فقط در صفحه ویرایش گروهی */
+.bulk-edit-page .alert {
+    border-radius: var(--bulk-radius-lg);
+    padding: var(--bulk-spacing-lg);
+    margin-bottom: var(--bulk-spacing-xl);
+    border: none;
+    box-shadow: var(--bulk-shadow-md);
+    position: relative;
+    overflow: hidden;
+}
+
+.bulk-edit-page .alert::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+}
+
+.bulk-edit-page .alert-info {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+}
+
+.bulk-edit-page .alert-info::before {
+    background: linear-gradient(180deg, var(--bulk-info-color) 0%, #60a5fa 100%);
+}
+
+.bulk-edit-page .alert-warning {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #92400e;
+    border: 1px solid #f9a8d4;
+}
+
+.bulk-edit-page .alert-warning::before {
+    background: linear-gradient(180deg, var(--bulk-warning-color) 0%, #fcd34d 100%);
+}
+
+/* نشان‌ها فقط در صفحه ویرایش گروهی */
+.bulk-edit-page .badge {
+    padding: var(--bulk-spacing-sm) var(--bulk-spacing-md);
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    box-shadow: var(--bulk-shadow-sm);
+}
+
+.bulk-edit-page .bg-light.text-dark {
+    background: linear-gradient(135deg, var(--bulk-lightest-green) 0%, #a7f3d0 100%) !important;
+    color: var(--bulk-primary-green) !important;
+    border: 1px solid var(--bulk-border-green);
+}
+
+/* جدول پیش‌نمایش فقط در صفحه ویرایش گروهی */
+.bulk-edit-page .table {
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: var(--bulk-radius-lg);
+    overflow: hidden;
+    box-shadow: var(--bulk-shadow-md);
+    background: var(--bulk-bg-card);
+}
+
+.bulk-edit-page .table th {
+    background: linear-gradient(135deg, var(--bulk-primary-green) 0%, var(--bulk-secondary-green) 100%);
+    color: white;
+    font-weight: 600;
+    padding: var(--bulk-spacing-lg);
+    border: none;
+    font-size: 0.9rem;
+    letter-spacing: 0.025em;
+}
+
+.bulk-edit-page .table td {
+    padding: var(--bulk-spacing-lg);
+    border-bottom: 1px solid var(--bulk-border-light);
+    vertical-align: middle;
+    background: var(--bulk-bg-card);
+}
+
+.bulk-edit-page .table tbody tr:hover {
+    background: linear-gradient(135deg, var(--bulk-bg-secondary) 0%, #f0fdf4 100%);
+}
+
+.bulk-edit-page .table-responsive {
+    border-radius: var(--bulk-radius-lg);
+    overflow: hidden;
+    box-shadow: var(--bulk-shadow-lg);
+}
+
+.bulk-edit-page .badge-success {
+    background: linear-gradient(135deg, var(--bulk-lightest-green) 0%, #a7f3d0 100%);
+    color: var(--bulk-primary-green);
+    border: 1px solid var(--bulk-border-green);
+}
+
+.bulk-edit-page .badge-info {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #1e40af;
+    border: 1px solid #93c5fd;
+}
+
+.bulk-edit-page .badge-danger {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: var(--bulk-danger-color);
+    border: 1px solid #fca5a5;
+}
+
+/* Select2 تنظیمات فقط در صفحه ویرایش گروهی */
+.bulk-edit-page .select2-container--default .select2-selection--single,
+.bulk-edit-page .select2-container--default .select2-selection--multiple {
+    background: var(--bulk-bg-input);
+    border: 2px solid var(--bulk-border-light);
+    border-radius: var(--bulk-radius-md);
+    min-height: 48px;
+    box-shadow: var(--bulk-shadow-sm);
+    transition: all 0.3s ease;
+}
+
+.bulk-edit-page .select2-container--default .select2-selection--single:hover,
+.bulk-edit-page .select2-container--default .select2-selection--multiple:hover {
+    border-color: var(--bulk-border-green);
+}
+
+.bulk-edit-page .select2-container--default.select2-container--focus .select2-selection--single,
+.bulk-edit-page .select2-container--default.select2-container--focus .select2-selection--multiple {
+    border-color: var(--bulk-border-focus);
+    box-shadow: var(--bulk-shadow-green);
+}
+
+.bulk-edit-page .select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background: linear-gradient(135deg, var(--bulk-primary-green) 0%, var(--bulk-secondary-green) 100%);
+    color: white;
+    border: none;
+    border-radius: var(--bulk-radius-sm);
+    padding: 4px 12px;
+    margin: 4px;
+    box-shadow: var(--bulk-shadow-sm);
+}
+
+.bulk-edit-page .select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background: var(--bulk-primary-green);
+}
+
+.bulk-edit-page .select2-dropdown {
+    border-radius: var(--bulk-radius-md);
+    border: 2px solid var(--bulk-border-green);
+    box-shadow: var(--bulk-shadow-lg);
+}
+
+/* انیمیشن‌ها */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.bulk-edit-page .field-item {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.bulk-edit-page .field-item:nth-child(odd) {
+    animation-delay: 0.1s;
+}
+
+.bulk-edit-page .field-item:nth-child(even) {
+    animation-delay: 0.2s;
+}
+
+/* حالت Loading */
+.bulk-edit-page .btn-action.loading {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.bulk-edit-page .btn-action.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Container برای دکمه‌های ویرایش گروهی در سایر صفحات */
 .bulk-edit-controls {
-    background: linear-gradient(135deg, var(--card-bg) 0%, #F9FDF9 100%);
-    border: 2px solid var(--border-color);
+    background: linear-gradient(135deg, var(--bulk-bg-card) 0%, #F9FDF9 100%);
+    border: 2px solid var(--bulk-border-green);
     border-radius: 16px;
     margin-bottom: 20px;
     padding: 20px 25px;
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--bulk-shadow-lg);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
@@ -49,19 +691,14 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color), var(--accent-color));
+    background: linear-gradient(90deg, var(--bulk-primary-green), var(--bulk-secondary-green), var(--bulk-accent-green));
     border-radius: 16px 16px 0 0;
 }
 
 .bulk-edit-controls:hover {
-    box-shadow: var(--shadow-xl);
+    box-shadow: var(--bulk-shadow-xl);
     transform: translateY(-2px);
-    border-color: var(--primary-light);
-}
-
-.bulk-edit-controls.show {
-    transform: translateY(0);
-    opacity: 1;
+    border-color: var(--bulk-primary-green-light);
 }
 
 /* Toolbar اصلی */
@@ -80,23 +717,23 @@
     gap: 10px;
     font-size: 1rem;
     font-weight: 600;
-    color: var(--text-color);
+    color: var(--bulk-text-primary);
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(249, 253, 249, 0.9) 100%);
     padding: 12px 20px;
     border-radius: 12px;
-    border: 2px solid var(--border-color);
+    border: 2px solid var(--bulk-border-green);
     backdrop-filter: blur(10px);
     min-width: 200px;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--bulk-shadow-sm);
 }
 
 .selected-count i {
-    color: var(--primary-color);
+    color: var(--bulk-primary-green);
     font-size: 1.2rem;
 }
 
 .selected-count .count {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    background: linear-gradient(135deg, var(--bulk-primary-green) 0%, var(--bulk-secondary-green) 100%);
     color: white;
     padding: 4px 12px;
     border-radius: 20px;
@@ -105,10 +742,10 @@
     min-width: 30px;
     text-align: center;
     display: inline-block;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--bulk-shadow-sm);
 }
 
-/* دکمه‌های عملیات */
+/* دکمه‌های عملیات در toolbar */
 .bulk-edit-actions {
     display: flex;
     gap: 12px;
@@ -127,7 +764,7 @@
     min-width: 140px;
     text-align: center;
     letter-spacing: 0.025em;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--bulk-shadow-md);
 }
 
 .bulk-edit-actions .btn::before {
@@ -147,7 +784,7 @@
 
 .bulk-edit-actions .btn:hover {
     transform: translateY(-3px);
-    box-shadow: var(--shadow-xl);
+    box-shadow: var(--bulk-shadow-xl);
 }
 
 .bulk-edit-actions .btn:active {
@@ -156,35 +793,35 @@
 
 /* دکمه ویرایش گروهی */
 .bulk-edit-btn {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    background: linear-gradient(135deg, var(--bulk-primary-green) 0%, var(--bulk-secondary-green) 100%);
     color: white;
     border: 2px solid transparent;
 }
 
 .bulk-edit-btn:hover {
-    background: linear-gradient(135deg, var(--primary-hover) 0%, var(--secondary-hover) 100%);
+    background: linear-gradient(135deg, var(--bulk-primary-green-hover) 0%, var(--bulk-secondary-green-hover) 100%);
 }
 
 /* دکمه ویرایش با اکسل */
 .bulk-edit-excel-btn {
-    background: linear-gradient(135deg, var(--success-color) 0%, var(--accent-color) 100%);
+    background: linear-gradient(135deg, var(--bulk-success-color) 0%, var(--bulk-accent-green) 100%);
     color: white;
     border: 2px solid transparent;
 }
 
 .bulk-edit-excel-btn:hover {
-    background: linear-gradient(135deg, var(--secondary-color) 0%, var(--success-color) 100%);
+    background: linear-gradient(135deg, var(--bulk-secondary-green) 0%, var(--bulk-success-color) 100%);
 }
 
 /* دکمه دانلود قالب */
 .download-template-btn {
-    background: linear-gradient(135deg, var(--info-color) 0%, #60A5FA 100%);
+    background: linear-gradient(135deg, var(--bulk-info-color) 0%, #60A5FA 100%);
     color: white;
     border: 2px solid transparent;
 }
 
 .download-template-btn:hover {
-    background: linear-gradient(135deg, #1E40AF 0%, var(--info-color) 100%);
+    background: linear-gradient(135deg, #1E40AF 0%, var(--bulk-info-color) 100%);
 }
 
 /* دکمه لغو انتخاب */
@@ -198,292 +835,37 @@
     background: linear-gradient(135deg, #4B5563 0%, #6B7280 100%);
 }
 
-/* انیمیشن‌های ظاهر شدن */
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.bulk-edit-controls {
-    animation: slideDown 0.5s ease-out;
-}
-
-/* Modal های ویرایش گروهی */
-#bulkEditModal .modal-content,
-#excelUploadModal .modal-content {
-    border: none;
-    border-radius: 20px;
-    box-shadow: var(--shadow-xl);
-    overflow: hidden;
-    border: 2px solid var(--border-color);
-}
-
-#bulkEditModal .modal-header,
-#excelUploadModal .modal-header {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-    color: white;
-    border-bottom: none;
-    padding: 25px 30px;
-    position: relative;
-    overflow: hidden;
-}
-
-#bulkEditModal .modal-header::before,
-#excelUploadModal .modal-header::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 100%);
-    pointer-events: none;
-}
-
-#bulkEditModal .modal-title,
-#excelUploadModal .modal-title {
-    font-weight: 700;
-    font-size: 1.4rem;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
-
-#bulkEditModal .modal-body,
-#excelUploadModal .modal-body {
-    padding: 30px;
-    background: linear-gradient(135deg, var(--light-bg) 0%, #ECFDF5 100%);
-}
-
-#bulkEditModal .modal-footer,
-#excelUploadModal .modal-footer {
-    padding: 25px 30px;
-    background: var(--card-bg);
-    border-top: 2px solid var(--border-color);
-}
-
-/* فرم‌های ویرایش گروهی */
-#bulkEditForm .form-group {
-    margin-bottom: 20px;
-    background: linear-gradient(145deg, #ffffff 0%, #fefefe 100%);
-    border-radius: 12px;
-    padding: 20px;
-    border: 2px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-#bulkEditForm .form-group:hover {
-    border-color: var(--primary-light);
-    box-shadow: var(--shadow-md);
-    transform: translateY(-1px);
-}
-
-#bulkEditForm .form-label {
-    font-weight: 600;
-    color: var(--text-color);
-    margin-bottom: 8px;
-    font-size: 0.95rem;
-    letter-spacing: 0.025em;
-}
-
-#bulkEditForm .form-control,
-#bulkEditForm .form-select {
-    background-color: var(--input-bg);
-    border: 2px solid var(--border-color);
-    border-radius: 10px;
-    padding: 12px 16px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    color: var(--text-color);
-    box-shadow: var(--shadow-sm);
-    font-size: 0.95rem;
-}
-
-#bulkEditForm .form-control:focus,
-#bulkEditForm .form-select:focus {
-    background-color: var(--input-focus);
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 4px rgba(6, 95, 70, 0.1), var(--shadow-md);
-    outline: none;
-    transform: translateY(-1px);
-}
-
-#bulkEditForm .form-check {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(249, 253, 249, 0.8) 100%);
-    border-radius: 8px;
-    padding: 12px 16px;
-    margin: 8px 0;
-    border: 1px solid var(--border-color);
-    transition: all 0.3s ease;
-}
-
-#bulkEditForm .form-check:hover {
-    background: linear-gradient(135deg, var(--light-bg) 0%, #ECFDF5 100%);
-    border-color: var(--primary-light);
-    box-shadow: var(--shadow-sm);
-}
-
-#bulkEditForm .form-check-input {
-    width: 1.2rem;
-    height: 1.2rem;
-    border-radius: 4px;
-    border: 2px solid var(--border-color);
-    background-color: var(--input-bg);
-}
-
-#bulkEditForm .form-check-label {
-    font-weight: 500;
-    color: var(--text-color);
-    margin-right: 8px;
-    cursor: pointer;
-    font-size: 0.95rem;
-}
-
-/* فرم آپلود اکسل */
-#excelUploadForm .form-control {
-    background-color: var(--input-bg);
-    border: 2px solid var(--border-color);
-    border-radius: 10px;
-    padding: 12px 16px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    color: var(--text-color);
-    box-shadow: var(--shadow-sm);
-}
-
-#excelUploadForm .form-control:hover {
-    border-color: var(--primary-light);
-    box-shadow: var(--shadow-md);
-}
-
-#excelUploadForm .form-control:focus {
-    background-color: var(--input-focus);
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 4px rgba(6, 95, 70, 0.1), var(--shadow-md);
-    outline: none;
-}
-
-/* نوار پیشرفت */
-#uploadProgress .progress {
-    height: 8px;
-    border-radius: 10px;
-    background-color: var(--border-color);
-    overflow: hidden;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-#uploadProgress .progress-bar {
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color), var(--accent-color));
-    border-radius: 10px;
-    transition: width 0.3s ease;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-/* هشدارها */
-.alert {
-    border-radius: 12px;
-    padding: 16px 20px;
-    margin-bottom: 20px;
-    border: none;
-    box-shadow: var(--shadow-md);
-    position: relative;
-    overflow: hidden;
-}
-
-.alert::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 4px;
-    height: 100%;
-}
-
-.alert-info {
-    background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
-    color: #1E40AF;
-    border: 1px solid #BFDBFE;
-}
-
-.alert-info::before {
-    background: linear-gradient(180deg, var(--info-color) 0%, #60A5FA 100%);
-}
-
-.alert-warning {
-    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
-    color: #92400E;
-    border: 1px solid #F9A8D4;
-}
-
-.alert-warning::before {
-    background: linear-gradient(180deg, var(--warning-color) 0%, #FCD34D 100%);
-}
-
-/* Toast notifications */
-.toast {
-    border-radius: 12px;
-    border: none;
-    box-shadow: var(--shadow-lg);
-    backdrop-filter: blur(10px);
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(249, 253, 249, 0.95) 100%);
-    border: 1px solid var(--border-color);
-}
-
-/* Checkbox styles */
-.row-checkbox,
-.select-all-checkbox,
-.select-all-checkbox-archived {
-    width: 1.2rem;
-    height: 1.2rem;
-    border-radius: 6px;
-    border: 2px solid var(--border-color);
-    background-color: var(--input-bg);
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.row-checkbox:checked,
-.select-all-checkbox:checked,
-.select-all-checkbox-archived:checked {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.1);
-}
-
-.row-checkbox:hover,
-.select-all-checkbox:hover,
-.select-all-checkbox-archived:hover {
-    border-color: var(--primary-light);
-    box-shadow: var(--shadow-sm);
-    transform: scale(1.05);
-}
-
-/* Selected row styles */
-tr.selected {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(52, 211, 153, 0.1) 100%);
-    border-left: 4px solid var(--primary-color);
-}
-
-tr.selected:hover {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(52, 211, 153, 0.15) 100%);
-}
-
-/* Responsive design */
+/* Responsive Design */
 @media (max-width: 768px) {
+    .bulk-edit-page .fields-grid {
+        grid-template-columns: 1fr;
+        gap: var(--bulk-spacing-md);
+    }
+    
+    .bulk-edit-page .card-body {
+        padding: var(--bulk-spacing-lg);
+    }
+    
+    .bulk-edit-page .form-actions .d-flex {
+        flex-direction: column;
+        gap: var(--bulk-spacing-md);
+        align-items: stretch;
+    }
+    
+    .bulk-edit-page .primary-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .bulk-edit-page .btn-action {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    .bulk-edit-page .field-search-container {
+        padding: var(--bulk-spacing-md);
+    }
+    
     .bulk-edit-toolbar {
         flex-direction: column;
         align-items: stretch;
@@ -506,113 +888,28 @@ tr.selected:hover {
         padding: 10px 16px;
         font-size: 0.85rem;
     }
-
-    #bulkEditModal .modal-dialog,
-    #excelUploadModal .modal-dialog {
-        margin: 10px;
-        max-width: calc(100% - 20px);
-    }
-
-    #bulkEditModal .modal-body,
-    #excelUploadModal .modal-body {
-        padding: 20px;
-    }
-
-    #bulkEditForm .row {
-        margin: 0;
-    }
-
-    #bulkEditForm .col-md-6,
-    #bulkEditForm .col-lg-4 {
-        padding: 0;
-        margin-bottom: 15px;
-    }
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-    .bulk-edit-controls {
-        background: linear-gradient(135deg, #1F2937 0%, #111827 100%);
-        border-color: #374151;
-        color: #F9FAFB;
+@media (max-width: 480px) {
+    .bulk-edit-page .container-lg {
+        padding-left: var(--bulk-spacing-md);
+        padding-right: var(--bulk-spacing-md);
     }
-
-    .selected-count {
-        background: linear-gradient(135deg, rgba(31, 41, 55, 0.9) 0%, rgba(17, 24, 39, 0.9) 100%);
-        color: #F9FAFB;
-        border-color: #374151;
+    
+    .bulk-edit-page .fields-grid {
+        grid-template-columns: 1fr;
+        gap: var(--bulk-spacing-sm);
     }
-
-    #bulkEditModal .modal-body,
-    #excelUploadModal .modal-body {
-        background: linear-gradient(135deg, #1F2937 0%, #111827 100%);
-        color: #F9FAFB;
+    
+    .bulk-edit-page .field-item {
+        padding: var(--bulk-spacing-md);
     }
-
-    #bulkEditForm .form-control,
-    #bulkEditForm .form-select,
-    #excelUploadForm .form-control {
-        background-color: #374151;
-        border-color: #4B5563;
-        color: #F9FAFB;
+    
+    .bulk-edit-page .card-header {
+        padding: var(--bulk-spacing-lg);
     }
-
-    #bulkEditForm .form-check {
-        background: linear-gradient(135deg, rgba(55, 65, 81, 0.8) 0%, rgba(75, 85, 99, 0.8) 100%);
-        border-color: #4B5563;
-        color: #F9FAFB;
+    
+    .bulk-edit-page .card-header h4 {
+        font-size: 1.2rem;
     }
-}
-
-/* Button animations */
-@keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-}
-
-.bulk-edit-actions .btn:focus {
-    animation: pulse 0.5s ease-in-out;
-    box-shadow: 0 0 0 4px rgba(6, 95, 70, 0.2);
-}
-
-/* Modal footer buttons */
-.modal-footer .btn {
-    border-radius: 10px;
-    padding: 10px 20px;
-    font-weight: 600;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: var(--shadow-sm);
-    letter-spacing: 0.025em;
-}
-
-.modal-footer .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-}
-
-/* Loading state */
-.btn.loading {
-    position: relative;
-    color: transparent !important;
-    pointer-events: none;
-}
-
-.btn.loading::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 16px;
-    height: 16px;
-    margin: -8px 0 0 -8px;
-    border: 2px solid transparent;
-    border-top: 2px solid currentColor;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    color: white;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
 } 

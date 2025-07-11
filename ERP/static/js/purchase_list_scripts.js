@@ -338,6 +338,16 @@ function initializeColumnManagement() {
             .then(data => {
                 console.log('داده پاسخ سرور:', data);
                 if (data.status === 'success') {
+                    // بروزرسانی ستون‌های فعلی در تنظیمات
+                    if (data.selected_columns && window.PurchaseListConfig) {
+                        window.PurchaseListConfig.currentColumns = data.selected_columns.join(',');
+                        const configEl = document.getElementById('purchase-list-config');
+                        if (configEl) {
+                            configEl.dataset.currentColumns = data.selected_columns.join(',');
+                        }
+                        console.log('ستون‌های فعلی بروزرسانی شد:', data.selected_columns.join(','));
+                    }
+                    
                     // بستن مدال
                     const modal = bootstrap.Modal.getInstance(document.getElementById('columnsModal'));
                     if (modal) {
