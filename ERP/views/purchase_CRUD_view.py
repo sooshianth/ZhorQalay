@@ -88,14 +88,14 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         
         if user_role == 'sales_agent':
             allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'weight', 'delivered_weight',
-         'status', 'cargo', 'product_type', 'customer', 'buyer_name', 'delivery_receiver_name' , 'bazaargah_phone_number',
+         'status', 'cargo', 'product_type', 'buyer_name', 'delivery_receiver_name' , 'bazaargah_phone_number',
           'tahvil_phone_number', 'buyer_national_id', 'address', 'tracking_number', 'buyer_user_type',
            'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type' ]
 
         elif user_role == 'support_agent':
             allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'weight',
          'delivered_weight', 'status',  'cargo', 'product_type', 'importer', 'barbary', 'barbary_confidential_number',
-          'barbary_customer_number', 'customer', 'buyer_name', 'delivery_receiver_name' ,
+          'barbary_customer_number', 'buyer_name', 'delivery_receiver_name' ,
            'buyer_national_id', 'address', 'tracking_number', 'buyer_user_type',
            'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type'] 
 
@@ -109,7 +109,7 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         elif user_role == 'admin' or user_role == 'logistics_manager':
             allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'customer_price', 'weight',
          'delivered_weight', 'status',  'cargo', 'product_type', 'importer', 'barbary', 'barbary_confidential_number',
-          'barbary_customer_number', 'customer', 'buyer_name', 'delivery_receiver_name' , 'bazaargah_phone_number',
+          'barbary_customer_number', 'buyer_name', 'delivery_receiver_name' , 'bazaargah_phone_number',
           'tahvil_phone_number',
            'buyer_national_id', 'address', 'tracking_number', 'buyer_user_type',
            'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type'] 
