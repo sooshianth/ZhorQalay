@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django_jalali.db import models as jmodels
+from django.core.exceptions import ValidationError
 
 class SupportAgent(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='support_agent')
@@ -34,8 +35,8 @@ class SupportAgent(models.Model):
     @staticmethod
     def find_support_agent_by_user(user):
         try:
-            return SupportAgentModel.objects.get(user=user)
-        except SupportAgentModel.DoesNotExist:
+            return SupportAgent.objects.get(user=user)
+        except SupportAgent.DoesNotExist:
             return None
 
     class Meta:
@@ -43,13 +44,13 @@ class SupportAgent(models.Model):
         verbose_name_plural = 'کارشناسان پشتیبانی'
 
     def get_all_support_agents(self):
-        return SupportAgentModel.objects.all()
+        return SupportAgent.objects.all()
 
     def get_support_agent_by_id(self, id):
-        return SupportAgentModel.objects.get(id=id)
+        return SupportAgent.objects.get(id=id)
 
     def get_support_agent_by_user(self, user):
-        return SupportAgentModel.objects.get(user=user)
+        return SupportAgent.objects.get(user=user)
 
 
         

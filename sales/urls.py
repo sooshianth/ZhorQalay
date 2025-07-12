@@ -4,7 +4,6 @@ from django.views.generic.base import RedirectView
 from .views import (
     sales_agent_profile_view,
     mark_notification_read,
-    sales_dashboard_view,
     pop_notification,
 )
 
@@ -43,7 +42,6 @@ from .views.customer_list_view import (
 urlpatterns = [
     # Profile and dashboard
     path('profile/', sales_agent_profile_view.sales_agent_profile_view, name='sales_agent_profile'),
-    path('dashboard/', sales_dashboard_view.sales_dashboard_view, name='sales_dashboard'),
     
     # Customer list and management
     path('customers/', RedirectView.as_view(pattern_name='enhanced_customer_list', permanent=False), name='customer_list'),

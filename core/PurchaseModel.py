@@ -141,6 +141,14 @@ class Purchase(models.Model):
         null=True
     )
 
+    # FACTOR_CHOICES = [
+    #     ('not_factored', 'فاکتور صادرنشده'),
+    #     ('naghes_factored', 'فاکتور ناقص'),
+    #     ('factored', 'فاکتور صادر شده'),
+    # ]
+    # factor_status = models.CharField("وضعیت فاکتور", max_length=20, choices=FACTOR_CHOICES, default='not_factored')
+    # is_naghes_factored = models.BooleanField("فاکتور ناقص", default=False)
+
     def is_merged_purchase(self):
         """
         بررسی اینکه آیا این خرید بازارگاه قبلاً با خرید دستی ادغام شده است یا نه
@@ -648,6 +656,13 @@ class Purchase(models.Model):
         else:
             self.factor_code = False
 
+        # if not self.is_factored and not self.is_naghes_factored:
+        #     self.factor_status = 'not_factored'
+        # elif self.is_factored and not self.is_naghes_factored:
+        #     self.factor_status = 'factored'
+        # elif self.is_naghes_factored:
+        #     self.factor_status = 'naghes_factored'
+
         # 🏗️ محاسبه فاکتورهای مبنا و سود مبنا
         # محاسبه همیشه انجام می‌شود، حتی اگر قیمت‌ها صفر باشند
         company_price = self.company_price or 0
@@ -903,6 +918,11 @@ class Purchase(models.Model):
                 self.description = f"راننده: {barnameh.driver_name}"
             elif "راننده:" not in self.description:
                 self.description += f" | راننده: {barnameh.driver_name}"
+
+    # def set_purchase_factor_status(self):
+    #     barnamehs = Barnameh.objects.filter(purchase=self)
+    #     for barnameh in barnamehs:
+            
 
 
 from django.contrib.auth.models import User

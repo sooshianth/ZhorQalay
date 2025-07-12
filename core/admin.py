@@ -13,6 +13,7 @@ from .SalesAgentModel import SalesAgent
 from .TaskModel import Task
 from .NotificationModel import Notification
 from .SupportAgentModel import SupportAgent
+from .SupportAgentTask import SupportAgentTask
 from sms_api.models import SmsQueue
 from sms_api.apis import queue_sms
 from django.urls import path
@@ -583,6 +584,13 @@ class VaredKonandehTransactionAdmin(admin.ModelAdmin):
     list_display = ('vared_konandeh', 'amount', 'type', 'created_at')
     list_filter = ('type',)
     search_fields = ('vared_konandeh__name', 'amount', 'type')
+    ordering = ('-created_at',)
+
+@admin.register(SupportAgentTask)
+class SupportAgentTaskAdmin(admin.ModelAdmin):
+    list_display = ('support_agent', 'description', 'is_done', 'is_on_admin', 'created_at', 'due_date')
+    list_filter = ('is_done', 'is_on_admin', 'urgency_level')
+    search_fields = ('support_agent__name', 'description')
     ordering = ('-created_at',)
 
 

@@ -7,13 +7,16 @@ from .views import (
     managers_profile_view, 
     purchase_list_view,
     notification_view,
+    support_agent_profile,
 )
 
 urlpatterns = [
 
     path('logistics_manager_profile/', managers_profile_view.logistics_manager_profile_view, name='logistics_manager_profile'),
     path('financial_manager_profile/', managers_profile_view.financial_manager_profile_view, name='financial_manager_profile'),
-    path('support_agent_profile/', managers_profile_view.support_agent_profile_view, name='support_agent_profile'),
+    path('support_agent_profile/', support_agent_profile.support_agent_profile_view, name='support_agent_profile'),
+    path('support_agent_profile/mark_task_done/<int:task_id>/', support_agent_profile.mark_task_done, name='mark_task_done'),
+    path('support_agent_profile/refer_task_to_admin/<int:task_id>/', support_agent_profile.refer_task_to_admin, name='refer_task_to_admin'),
 
     path('purchase_list/', purchase_list_view.purchase_list, name='purchase_list' ),
     path('purchases/archived/', purchase_list_view.load_archived_purchases, name='load_archived_purchases'),
