@@ -141,13 +141,13 @@ class Purchase(models.Model):
         null=True
     )
 
-    # FACTOR_CHOICES = [
-    #     ('not_factored', 'فاکتور صادرنشده'),
-    #     ('naghes_factored', 'فاکتور ناقص'),
-    #     ('factored', 'فاکتور صادر شده'),
-    # ]
-    # factor_status = models.CharField("وضعیت فاکتور", max_length=20, choices=FACTOR_CHOICES, default='not_factored')
-    # is_naghes_factored = models.BooleanField("فاکتور ناقص", default=False)
+    FACTOR_CHOICES = [
+        ('not_factored', 'فاکتور صادرنشده'),
+        ('naghes_factored', 'فاکتور ناقص'),
+        ('factored', 'فاکتور صادر شده'),
+    ]
+    factor_status = models.CharField("وضعیت فاکتور", max_length=20, choices=FACTOR_CHOICES, default='not_factored')
+    is_naghes_factored = models.BooleanField("فاکتور ناقص", default=False)
 
     def is_merged_purchase(self):
         """
@@ -648,6 +648,7 @@ class Purchase(models.Model):
             raise ValidationError(errors)
             
     def save(self, *args, **kwargs):
+
         is_new = not self.pk  # Check if this is a new instance
 
         # 🧮 محاسبه فاکتور مبنا و factor_code
@@ -656,12 +657,6 @@ class Purchase(models.Model):
         else:
             self.factor_code = False
 
-        # if not self.is_factored and not self.is_naghes_factored:
-        #     self.factor_status = 'not_factored'
-        # elif self.is_factored and not self.is_naghes_factored:
-        #     self.factor_status = 'factored'
-        # elif self.is_naghes_factored:
-        #     self.factor_status = 'naghes_factored'
 
         # 🏗️ محاسبه فاکتورهای مبنا و سود مبنا
         # محاسبه همیشه انجام می‌شود، حتی اگر قیمت‌ها صفر باشند
@@ -843,6 +838,8 @@ class Purchase(models.Model):
         if not self.delivery_address and self.address:
             self.delivery_address = self.address
 
+        self.set_purchase_factor_status()
+
     def send_notification(self, user, title, message, notification_type='purchase', priority='medium'):
         """ارسال نوتیفیکیشن برای کاربر"""
         NotificationService.create_notification(
@@ -919,10 +916,31 @@ class Purchase(models.Model):
             elif "راننده:" not in self.description:
                 self.description += f" | راننده: {barnameh.driver_name}"
 
-    # def set_purchase_factor_status(self):
-    #     barnamehs = Barnameh.objects.filter(purchase=self)
-    #     for barnameh in barnamehs:
-            
+    def set_purchase_factor_status(self):
+        from bki_barnameh.models.BarnamehModel import Barnameh
+        barnamehs = Barnameh.objects.filter(purchase=self)
+        
+        if not barnamehs.exists():
+            self.factor_status = 'not_factored'
+            self.save()
+            return
+        
+        total_barnamehs = barnamehs.count()
+        factored_barnamehs = barnamehs.filter(is_factored=True).count()
+        
+        if factored_barnamehs == total_barnamehs:
+            # اگر همه بارنامه‌ها فاکتور صادر شده دارند
+            self.factor_status = 'factored'
+            self.save()
+        elif factored_barnamehs > 0:
+            # اگر حداقل یک بارنامه فاکتور صادر شده دارد اما نه همه
+            self.factor_status = 'naghes_factored'
+            self.save()
+        else:
+            # اگر هیچ بارنامه‌ای فاکتور صادر نشده دارد
+            self.factor_status = 'not_factored'
+            self.save()
+                
 
 
 from django.contrib.auth.models import User

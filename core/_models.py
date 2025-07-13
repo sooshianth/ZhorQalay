@@ -12,3 +12,4 @@ from todo.ToDoModel import ToDoItem, TaskCategory, TaskReminder
 from .PurchaseModel import PurchaseEditLog
 from .CargoProductModel import VaredKonandeh, Barbary, VaredKonandehTransaction
 from .SupportAgentTask import SupportAgentTask
+from .PurchaseModel import ShenaseTakhsis

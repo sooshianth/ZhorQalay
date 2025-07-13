@@ -275,6 +275,9 @@
                     <div class="task-description">
                         {{ task.description }}
                     </div>
+                    <div class="task-urgency-level">
+                        <span class="task-urgency-level-text">سطح اولویت: {{ task.urgency_level }}</span>
+                    </div>
                     <div class="task-details">
                         {% if task.purchase %}
                         <a href="{% url 'purchase_CRUD' task.purchase.id %}" class="purchase-link">

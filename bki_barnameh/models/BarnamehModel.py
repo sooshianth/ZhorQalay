@@ -46,8 +46,8 @@ class Barnameh(models.Model):
     # فیلدهای جدید برای مدیریت ستون‌ها
     buyer_postal_code = models.CharField(max_length=20, verbose_name='کدپستی خریدار', null=True, blank=True)
     transport_date = jmodels.jDateField(verbose_name='تاریخ حمل', null=True, blank=True)
-    # factor_sodoor_season = models.CharField(max_length=10, verbose_name='زمان صدور فاکتور فصل', null=True, blank=True)
-    # has_received = models.BooleanField(default=False, verbose_name='دریافت فاکتور')
+    factor_sodoor_season = models.CharField(max_length=10, verbose_name='زمان صدور فاکتور فصل', null=True, blank=True)
+    is_factored = models.BooleanField(default=False, verbose_name='فاکتور صادر شده')
 
     class Meta:
         verbose_name = 'بارنامه'
