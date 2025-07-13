@@ -70,6 +70,12 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         label='نام محصول',
         widget=forms.TextInput(attrs={'readonly': 'readonly'})
     )
+
+    importer = forms.CharField(
+        required=False,
+        label='واردکننده',
+        widget=forms.TextInput(attrs={'readonly': 'readonly'})
+    )
     
     class Meta:
         model = Purchase
@@ -88,28 +94,28 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         
         if user_role == 'sales_agent':
             allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'weight', 'delivered_weight',
-         'status', 'cargo', 'product_type', 'customer', 'buyer_name', 'delivery_receiver_name' , 'bazaargah_phone_number',
+         'status', 'cargo', 'product_type', 'buyer_name', 'delivery_receiver_name' , 'bazaargah_phone_number',
           'tahvil_phone_number', 'buyer_national_id', 'address', 'tracking_number', 'buyer_user_type',
            'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type' ]
 
         elif user_role == 'support_agent':
-            allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'weight',
+            allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'unique_sales_agent', 'weight',
          'delivered_weight', 'status',  'cargo', 'product_type', 'importer', 'barbary', 'barbary_confidential_number',
-          'barbary_customer_number', 'customer', 'buyer_name', 'delivery_receiver_name' ,
+          'barbary_customer_number', 'buyer_name', 'delivery_receiver_name' ,
            'buyer_national_id', 'address', 'tracking_number', 'buyer_user_type',
            'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type'] 
 
         elif user_role == 'financial_manager':
-            allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'customer_price', 'weight',
+            allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'unique_sales_agent', 'customer_price', 'weight',
          'delivered_weight', 'status',
           'cargo', 'product_type', 'importer', 'buyer_name', 'delivery_receiver_name','buyer_national_id', 'address', 
           'tracking_number']  
 
         
         elif user_role == 'admin' or user_role == 'logistics_manager':
-            allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'customer_price', 'weight',
+            allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'unique_sales_agent', 'customer_price', 'weight',
          'delivered_weight', 'status',  'cargo', 'product_type', 'importer', 'barbary', 'barbary_confidential_number',
-          'barbary_customer_number', 'customer', 'buyer_name', 'delivery_receiver_name' , 'bazaargah_phone_number',
+          'barbary_customer_number', 'buyer_name', 'delivery_receiver_name' , 'bazaargah_phone_number',
           'tahvil_phone_number',
            'buyer_national_id', 'address', 'tracking_number', 'buyer_user_type',
            'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type'] 
@@ -145,16 +151,6 @@ class RoleBasedPurchaseForm(forms.ModelForm):
                                    'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED', 'PAY_KASRI', 
                                    'RECIEVE_SARAK', 'FULLY_SETTLED']
         
-        
-        
-        if self.instance.state in payment_verified_states:
-            read_only_fields_after_payment = ['order_weight', 'company_price', 'customer_price', 
-                                             'amount_paid', 'purchase_number', 'tracking_number', 'cargo']
-            for field_name in read_only_fields_after_payment:
-                if field_name in self.fields:
-                    self.fields[field_name].widget.attrs['readonly'] = True
-                    self.fields[field_name].widget.attrs['disabled'] = True
-        
         # 2. فیلدهای مربوط به تحویل از بعد تحویل غیرقابل ویرایش می‌شوند
         delivery_completed_states = ['PURCHASE_CLOSED', 'BARNAMEH_INCOMPLETE', 'WAITING_FOR_BARNAMEH', 'BARNAMEH_ISSUED', 
                                     'DELIVERED', 'DIFFERENCE_APPROVED', 'DIFFERENCE_DEPOSITED', 
@@ -162,38 +158,18 @@ class RoleBasedPurchaseForm(forms.ModelForm):
                                     'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED', 'PAY_KASRI',
                                     'RECIEVE_SARAK', 'FULLY_SETTLED']
         
-        if self.instance.state in delivery_completed_states:
-            read_only_fields_after_delivery = ['delivered_weight', 'code_melli_tahvil', 
-                                             'bazaargah_phone_number', 'tahvil_phone_number', 'address',
-                                             'allocation_ids', 'customer_price', 'company_price',
-                                             'order_weight', 'payment_method']
-            for field_name in read_only_fields_after_delivery:
-                if field_name in self.fields:
-                    self.fields[field_name].widget.attrs['readonly'] = True
-                    self.fields[field_name].widget.attrs['disabled'] = True
-        
         # 3. فیلدهای مربوط به اختلاف از بعد ثبت رسید غیرقابل ویرایش می‌شوند
         receipt_submitted_states = ['RECEIPT_SUBMITTED', 'INVOICE_ISSUED', 'SALES_APPROVED', 
                                    'LOGISTICS_APPROVED', 'FINANCIAL_APPROVED', 'COMPLETED']
-        
-        if self.instance.state in receipt_submitted_states:
-            read_only_fields_after_receipt = ['extelaf_type', 'extelaf_weight', 'extelaf_amount']
-            for field_name in read_only_fields_after_receipt:
-                if field_name in self.fields:
-                    self.fields[field_name].widget.attrs['readonly'] = True
-                    self.fields[field_name].widget.attrs['disabled'] = True
         
         # قفل کردن فیلدهای اختلاف پس از وضعیت بستن خرید
         purchase_closed_states = ['PAY_KASRI', 'RECIEVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED', 
                                 'DIFFERENCE_APPROVED', 'SALES_APPROVED', 'LOGISTICS_APPROVED', 
                                 'FINANCIAL_APPROVED', 'COMPLETED']
         
-        if self.instance.state in purchase_closed_states:
-            read_only_fields_after_closed = ['extelaf_type', 'extelaf_weight', 'extelaf_amount']
-            for field_name in read_only_fields_after_closed:
-                if field_name in self.fields:
-                    self.fields[field_name].widget.attrs['readonly'] = True
-                    self.fields[field_name].widget.attrs['disabled'] = True
+                # پر کردن فیلد product_type با مقدار از cargo
+        if self.instance and self.instance.cargo:
+            self.fields['product_type'].initial = self.instance.cargo.get_product_type_display()
         
         # توضیحات همیشه قابل ویرایش باشد
         if 'description' in self.fields:
@@ -201,19 +177,109 @@ class RoleBasedPurchaseForm(forms.ModelForm):
                 del self.fields['description'].widget.attrs['readonly']
             if 'disabled' in self.fields['description'].widget.attrs:
                 del self.fields['description'].widget.attrs['disabled']
-                
-        # فیلدهای customer و buyer_name به طور پیش‌فرض غیرقابل ویرایش هستند
-        if 'customer' in self.fields:
-            self.fields['customer'].widget.attrs['readonly'] = True
-            self.fields['customer'].widget.attrs['disabled'] = True
-            
+
+        if 'address' in self.fields:
+            self.fields['address'].widget.attrs['readonly'] = True
+            self.fields['address'].widget.attrs['disabled'] = True
+
+        # فی فروش
+        if 'customer_price' in self.fields:
+            self.fields['customer_price'].widget.attrs['readonly'] = True
+            self.fields['customer_price'].widget.attrs['disabled'] = True
+
+        if 'purchase_number' in self.fields:
+            self.fields['purchase_number'].widget.attrs['readonly'] = True
+            self.fields['purchase_number'].widget.attrs['disabled'] = True
+
+        if 'tracking_number' in self.fields:
+            self.fields['tracking_number'].widget.attrs['readonly'] = True
+            self.fields['tracking_number'].widget.attrs['disabled'] = True
+
+        if 'code_melli_tahvil' in self.fields:
+            self.fields['code_melli_tahvil'].widget.attrs['readonly'] = True
+            self.fields['code_melli_tahvil'].widget.attrs['disabled'] = True
+
+        if 'bazaargah_phone_number' in self.fields:
+            self.fields['bazaargah_phone_number'].widget.attrs['readonly'] = True
+            self.fields['bazaargah_phone_number'].widget.attrs['disabled'] = True
+
         if 'buyer_name' in self.fields:
             self.fields['buyer_name'].widget.attrs['readonly'] = True
             self.fields['buyer_name'].widget.attrs['disabled'] = True
-                
-        # پر کردن فیلد product_type با مقدار از cargo
-        if self.instance and self.instance.cargo:
-            self.fields['product_type'].initial = self.instance.cargo.get_product_type_display()
+
+        if 'tahvil_phone_number' in self.fields:
+            self.fields['tahvil_phone_number'].widget.attrs['readonly'] = True
+            self.fields['tahvil_phone_number'].widget.attrs['disabled'] = True
+
+        if 'unique_sales_agent' in self.fields:
+            self.fields['unique_sales_agent'].widget.attrs['readonly'] = True
+            self.fields['unique_sales_agent'].widget.attrs['disabled'] = True
+
+        if 'delivered_weight' in self.fields:
+            self.fields['delivered_weight'].widget.attrs['readonly'] = True
+            self.fields['delivered_weight'].widget.attrs['disabled'] = True
+
+        if 'cargo' in self.fields:
+            self.fields['cargo'].widget.attrs['readonly'] = True
+            self.fields['cargo'].widget.attrs['disabled'] = True
+
+        if 'barbary_confidential_number' in self.fields:
+            self.fields['barbary_confidential_number'].widget.attrs['readonly'] = True
+            self.fields['barbary_confidential_number'].widget.attrs['disabled'] = True
+
+        if 'barbary_customer_number' in self.fields:
+            self.fields['barbary_customer_number'].widget.attrs['readonly'] = True
+            self.fields['barbary_customer_number'].widget.attrs['disabled'] = True
+
+        if 'delivery_receiver_name' in self.fields:
+            self.fields['delivery_receiver_name'].widget.attrs['readonly'] = True
+            self.fields['delivery_receiver_name'].widget.attrs['disabled'] = True
+
+        if 'buyer_national_id' in self.fields:
+            self.fields['buyer_national_id'].widget.attrs['readonly'] = True
+            self.fields['buyer_national_id'].widget.attrs['disabled'] = True
+
+        if 'buyer_user_type' in self.fields:
+            self.fields['buyer_user_type'].widget.attrs['readonly'] = True
+            self.fields['buyer_user_type'].widget.attrs['disabled'] = True
+
+        if 'unique_delivery_id' in self.fields:
+            self.fields['unique_delivery_id'].widget.attrs['readonly'] = True
+            self.fields['unique_delivery_id'].widget.attrs['disabled'] = True
+
+        if 'delivery_address' in self.fields:
+            self.fields['delivery_address'].widget.attrs['readonly'] = True
+            self.fields['delivery_address'].widget.attrs['disabled'] = True
+
+        if 'delivery_postal_code' in self.fields:
+            self.fields['delivery_postal_code'].widget.attrs['readonly'] = True
+            self.fields['delivery_postal_code'].widget.attrs['disabled'] = True
+
+        if 'vehicle_type' in self.fields:
+            self.fields['vehicle_type'].widget.attrs['readonly'] = True
+            self.fields['vehicle_type'].widget.attrs['disabled'] = True
+
+        if 'extelaf_type' in self.fields:
+            self.fields['extelaf_type'].widget.attrs['readonly'] = True
+            self.fields['extelaf_type'].widget.attrs['disabled'] = True
+
+        if 'extelaf_weight' in self.fields:
+            self.fields['extelaf_weight'].widget.attrs['readonly'] = True
+            self.fields['extelaf_weight'].widget.attrs['disabled'] = True
+
+        if 'extelaf_amount' in self.fields:
+            self.fields['extelaf_amount'].widget.attrs['readonly'] = True
+            self.fields['extelaf_amount'].widget.attrs['disabled'] = True
+
+        if 'product_type' in self.fields:
+            self.fields['product_type'].widget.attrs['readonly'] = True
+            self.fields['product_type'].widget.attrs['disabled'] = True
+            
+        if 'importer' in self.fields:
+            self.fields['importer'].widget.attrs['readonly'] = True
+            self.fields['importer'].widget.attrs['disabled'] = True
+
+            
     
     def clean(self):
         cleaned_data = super().clean()

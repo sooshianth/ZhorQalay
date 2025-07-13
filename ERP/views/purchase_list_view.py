@@ -51,6 +51,7 @@ def get_allowed_columns(user_role):
     allowed_columns.append('actions')
     return allowed_columns
 
+
 def get_default_columns(user_role):
     selected_columns = []
     if user_role == 'sales_agent':
