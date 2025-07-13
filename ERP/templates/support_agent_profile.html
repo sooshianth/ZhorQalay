@@ -47,7 +47,7 @@
         .task-urgency {
             color: #fff;
             background-color: #d84c4c;
-            width: 22px;
+            width: 50px;
             padding: 2px 5px;
             border-radius: 3px;
             font-size: 0.8em;
@@ -100,6 +100,48 @@
         .done-task {
             border-left: 4px solid #198754;
             opacity: 0.8;
+        }
+
+        .admin-task {
+            border-left: 4px solid #0d6efd;
+            background-color: #f8f9fa;
+        }
+
+        .task-status {
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .status-done {
+            color: #198754;
+        }
+
+        .status-pending {
+            color: #fd7e14;
+        }
+
+        .admin-feedback {
+            background-color: #e3f2fd;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 8px;
+            border-left: 3px solid #2196f3;
+        }
+
+        .created-date, .completed-date {
+            font-size: 0.8em;
+            color: #6c757d;
+            display: block;
+            margin-top: 5px;
+        }
+
+        .referred-from {
+            background-color: #fff3cd;
+            padding: 5px 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            border-left: 3px solid #ffc107;
+            font-size: 0.9em;
         }
 
         .no-tasks {
@@ -254,6 +296,7 @@
         </div>
 
         <!-- تسک‌های فعال -->
+        {% if user_role != 'admin' %}
         <div class="tasks-section">
             <h3>تسک‌های فعال</h3>
             <div class="tasks-container">
@@ -303,7 +346,9 @@
                 {% endfor %}
             </div>
         </div>
+        {% endif %}
 
+        {% if user_role != 'admin' %}
         <!-- تسک‌های ارجاع شده به مدیریت -->
         <div class="tasks-section">
             <h3>تسک‌های ارجاع شده به مدیریت</h3>
@@ -334,8 +379,126 @@
                 {% endfor %}
             </div>
         </div>
+        {% endif %}
+
+        {% if user_role == 'admin' %}
+        <!-- تسک‌های مدیریت فعال -->
+        <div class="tasks-section">
+            <h3>تسک‌های مدیریت فعال</h3>
+            <div class="tasks-container">
+                {% for admin_task in admin_tasks %}
+                <div class="task-card admin-task" id="admin-task-{{ admin_task.id }}">
+                    <div class="loading-overlay">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <div class="task-header">
+                        {% if admin_task.due_date %}
+                        <span class="task-due-date">تا {{ admin_task.due_date}}</span>
+                        {% endif %}
+                        <span class="task-status">
+                            <span class="status-pending">در انتظار</span>
+                        </span>
+                    </div>
+                    {% if admin_task.urgency_level %}
+                    <div class="task-urgency">
+                        سطح اولویت: {{ admin_task.urgency_level }}
+                    </div>
+                    {% endif %}
+                    <div class="task-description">
+                        {{ admin_task.description }}
+                    </div>
+                    <div class="task-details">
+                        <div class="referred-from">
+                            <strong>ارجاع شده از:</strong> {{ admin_task.referred_from_agent.name }}
+                        </div>
+                        {% if admin_task.purchase %}
+                        <a href="{% url 'purchase_CRUD' admin_task.purchase.id %}" class="purchase-link">
+                            خرید شماره: {{ admin_task.purchase.purchase_number }}
+                        </a>
+                        {% elif admin_task.purchase_number %}
+                        <span>شماره خرید: {{ admin_task.purchase_number }}</span>
+                        {% endif %}
+                        {% if admin_task.customer %}
+                        <span class="customer-name">{{ admin_task.customer.name }}</span>
+                        {% endif %}
+                        {% if admin_task.phone_number %}
+                        <a href="tel:{{ admin_task.phone_number }}" class="phone-link">{{ admin_task.phone_number }}</a>
+                        {% endif %}
+                        <span class="created-date">ایجاد در: {{ admin_task.created_at }}</span>
+                    </div>
+                    {% if admin_task.feedback %}
+                    <div class="task-feedback">
+                        <strong>فیدبک ارجاع:</strong> {{ admin_task.feedback }}
+                    </div>
+                    {% endif %}
+                    <div class="task-actions">
+                        <button class="btn btn-primary complete-admin-btn" data-task-id="{{ admin_task.id }}">انجام شد</button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="no-tasks">هیچ تسک مدیریتی فعالی وجود ندارد</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- تسک‌های مدیریت تکمیل شده -->
+        <div class="tasks-section">
+            <h3>تسک‌های مدیریت تکمیل شده</h3>
+            <div class="tasks-container">
+                {% for admin_task in admin_completed_tasks %}
+                <div class="task-card done-task">
+                    <div class="task-header">
+                        <span class="task-status">
+                            <span class="status-done">تکمیل شده</span>
+                        </span>
+                    </div>
+                    <div class="task-description">
+                        {{ admin_task.description }}
+                    </div>
+                    <div class="task-details">
+                        <div class="referred-from">
+                            <strong>ارجاع شده از:</strong> {{ admin_task.referred_from_agent.name }}
+                        </div>
+                        {% if admin_task.purchase %}
+                        <a href="{% url 'purchase_CRUD' admin_task.purchase.id %}" class="purchase-link">
+                            خرید شماره: {{ admin_task.purchase.purchase_number }}
+                        </a>
+                        {% elif admin_task.purchase_number %}
+                        <span>شماره خرید: {{ admin_task.purchase_number }}</span>
+                        {% endif %}
+                        {% if admin_task.customer %}
+                        <span class="customer-name">{{ admin_task.customer.name }}</span>
+                        {% endif %}
+                        {% if admin_task.phone_number %}
+                        <a href="tel:{{ admin_task.phone_number }}" class="phone-link">{{ admin_task.phone_number }}</a>
+                        {% endif %}
+                        <span class="created-date">ایجاد در: {{ admin_task.created_at }}</span>
+                        {% if admin_task.completed_at %}
+                        <span class="completed-date">تکمیل در: {{ admin_task.completed_at }}</span>
+                        {% endif %}
+                    </div>
+                    {% if admin_task.feedback %}
+                    <div class="task-feedback">
+                        <strong>فیدبک ارجاع:</strong> {{ admin_task.feedback }}
+                    </div>
+                    {% endif %}
+                    {% if admin_task.admin_feedback %}
+                    <div class="admin-feedback">
+                        <strong>بازخورد مدیریت:</strong> {{ admin_task.admin_feedback }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="no-tasks">هیچ تسک مدیریتی تکمیل شده‌ای وجود ندارد</div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
 
         <!-- تسک‌های انجام شده -->
+        {% if user_role != 'admin' %}
         <div class="tasks-section">
             <h3>تسک‌های انجام شده</h3>
             <div class="tasks-container">
@@ -365,6 +528,7 @@
                 {% endfor %}
             </div>
         </div>
+        {% endif %}
     </div>
 
     <!-- مودال فیدبک -->
@@ -400,6 +564,7 @@
         // متغیرهای عمومی برای ذخیره وضعیت
         let currentTaskId = null;
         let currentAction = null;
+        let currentTaskType = null;
     
         // مدیریت رویدادهای دکمه‌ها
         document.addEventListener('DOMContentLoaded', function() {
@@ -431,6 +596,18 @@
                     feedbackModal.style.display = 'flex';
                 });
             });
+
+            // باز کردن مودال برای انجام تسک‌های مدیریت
+            document.querySelectorAll('.complete-admin-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    currentTaskId = this.getAttribute('data-task-id');
+                    currentAction = 'complete';
+                    currentTaskType = 'admin';
+                    modalTitle.textContent = 'تکمیل تسک مدیریت';
+                    feedbackText.placeholder = 'لطفاً توضیحات تکمیلی را وارد کنید (اختیاری)...';
+                    feedbackModal.style.display = 'flex';
+                });
+            });
     
             // بستن مودال
             function closeFeedbackModal() {
@@ -438,6 +615,7 @@
                 feedbackText.value = '';
                 currentTaskId = null;
                 currentAction = null;
+                currentTaskType = null;
             }
     
             closeModal.addEventListener('click', closeFeedbackModal);
@@ -447,7 +625,7 @@
             submitFeedback.addEventListener('click', function() {
                 if (!currentTaskId || !currentAction) return;
                 
-                const taskCard = document.getElementById(`task-${currentTaskId}`);
+                const taskCard = document.getElementById(`task-${currentTaskId}`) || document.getElementById(`admin-task-${currentTaskId}`);
                 const overlay = taskCard.querySelector('.loading-overlay');
                 const feedback = feedbackText.value.trim();
                 
@@ -459,6 +637,7 @@
                 formData.append('task_id', currentTaskId);
                 formData.append('action', currentAction);
                 formData.append('feedback', feedback);
+                formData.append('task_type', currentTaskType || 'support');
                 formData.append('csrfmiddlewaretoken', getCSRFToken());
                 
                 // ارسال درخواست به سرور

@@ -11,5 +11,5 @@ from .SupportAgentModel import SupportAgent
 from todo.ToDoModel import ToDoItem, TaskCategory, TaskReminder
 from .PurchaseModel import PurchaseEditLog
 from .CargoProductModel import VaredKonandeh, Barbary, VaredKonandehTransaction
-from .SupportAgentTask import SupportAgentTask
+from .SupportAgentTask import SupportAgentTask, AdminTask
 from .PurchaseModel import ShenaseTakhsis
