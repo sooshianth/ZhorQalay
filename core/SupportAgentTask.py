@@ -18,17 +18,15 @@ class SupportAgentTask(models.Model):
     urgency_level = models.IntegerField(null=True, blank=True, verbose_name="سطح اولویت")
     due_date = jmodels.jDateTimeField("تاریخ انجام", null=True, blank=True)
 
-    def _str_(self):
+    def __str__(self):
         return self.description
 
     class Meta:
         verbose_name = "تسک کارشناس پشتیبانی"
         verbose_name_plural = "تسکهای کارشناس پشتیبانی"
 
-    def save(self,*args,**kwargs):
-        if self.due_date:
-            self.due_date = jmodels.jDateTimeField(self.due_date)
-        super().save(*args,**kwargs)
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
 
 class AdminTask(models.Model):
     """مدل تسک‌های مدیریت که از کارشناس پشتیبانی ارجاع می‌شوند"""
@@ -47,17 +45,15 @@ class AdminTask(models.Model):
     admin_feedback = models.CharField(max_length=255, null=True, blank=True, verbose_name="بازخورد مدیریت")
     completed_at = jmodels.jDateTimeField("تاریخ تکمیل", null=True, blank=True)
 
-    def _str_(self):
+    def __str__(self):
         return f"تسک مدیریت - {self.description}"
 
     class Meta:
         verbose_name = "تسک مدیریت"
         verbose_name_plural = "تسکهای مدیریت"
 
-    def save(self,*args,**kwargs):
-        if self.due_date:
-            self.due_date = jmodels.jDateTimeField(self.due_date)
-        super().save(*args,**kwargs)
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
 
     @classmethod
     def create_from_support_task(cls, support_task, feedback=""):

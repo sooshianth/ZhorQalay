@@ -15,7 +15,8 @@ from .views.general_customer_CRUD_page import (
     get_related_products,
     predict_next_purchase,
     update_task_order,
-    get_purchase_history
+    get_purchase_history,
+    create_support_task_from_customer
 )
 
 # Phone assignment views
@@ -34,7 +35,7 @@ from .views.customer_list_view import (
     toggle_favorite,
     get_sms_templates,
     send_sms_to_selected,
-    get_active_products
+    get_active_products,
 )
 
 # Sales agent purchases view
@@ -63,6 +64,7 @@ urlpatterns = [
     path('customer/predict_next_purchase/', predict_next_purchase, name='predict_next_purchase'),
     path('get_purchase_history/', get_purchase_history, name='get_purchase_history'),
     path('delete-unpaid-purchase/<int:purchase_id>/', sales_agent_profile_view.delete_unpaid_purchase, name='delete_unpaid_purchase'),
+    path('create-support-task/', create_support_task_from_customer, name='create_support_task_from_customer'),
     
     # Notification endpoints
     path('notifications/delete/<int:notification_id>/', mark_notification_read.mark_notification_read, name='delete_notification'),
@@ -81,6 +83,7 @@ urlpatterns = [
     
     # API endpoints
     path('api/active-products/', get_active_products, name='get_active_products'),
+    path('api/create-support-task/', create_support_task_from_customer, name='create_support_task_from_customer'),
     
     # Bulk edit functionality
     path('customers/bulk-edit/', lambda request: RedirectView.as_view(url='/table_filter/bulk-edit-page/')(request), name='customer_bulk_edit'),

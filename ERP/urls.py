@@ -41,6 +41,8 @@ urlpatterns = [
     path('upload_purchase_document/<int:purchase_id>/', purchase_CRUD_view.upload_purchase_document, name='upload_purchase_document'),
     path('link_bazaargah_purchase/<int:purchase_id>/', purchase_CRUD_view.link_bazaargah_purchase, name='link_bazaargah_purchase'),
     path('link_manual_purchase/<int:purchase_id>/', purchase_CRUD_view.link_manual_purchase, name='link_manual_purchase'),
+    path('create_support_task/<int:purchase_id>/', purchase_CRUD_view.create_support_task_from_purchase, name='create_support_task_from_purchase'),
+    path('api/support-agents/', purchase_CRUD_view.get_support_agents_api, name='get_support_agents_api'),
 
     path('purchase_CRUD/notifications/', notification_view.get_notifications, name='get_notifications'),
     path('purchase_CRUD/notifications/<int:notification_id>/read/', notification_view.mark_notification_read, name='mark_notification_read'),
