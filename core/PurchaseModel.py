@@ -922,7 +922,8 @@ class Purchase(models.Model):
         
         if not barnamehs.exists():
             self.factor_status = 'not_factored'
-            self.save()
+            # استفاده از update_fields برای جلوگیری از حلقه بی‌نهایت
+            super().save(update_fields=['factor_status'])
             return
         
         total_barnamehs = barnamehs.count()
@@ -931,15 +932,15 @@ class Purchase(models.Model):
         if factored_barnamehs == total_barnamehs:
             # اگر همه بارنامه‌ها فاکتور صادر شده دارند
             self.factor_status = 'factored'
-            self.save()
+            super().save(update_fields=['factor_status'])
         elif factored_barnamehs > 0:
             # اگر حداقل یک بارنامه فاکتور صادر شده دارد اما نه همه
             self.factor_status = 'naghes_factored'
-            self.save()
+            super().save(update_fields=['factor_status'])
         else:
             # اگر هیچ بارنامه‌ای فاکتور صادر نشده دارد
             self.factor_status = 'not_factored'
-            self.save()
+            super().save(update_fields=['factor_status'])
                 
 
 

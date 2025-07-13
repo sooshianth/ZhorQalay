@@ -1,6 +1,10 @@
 {% extends 'base.html' %}
 {% load custom_filters %}
 
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8/dist/sweetalert2.all.min.js"></script>
+{% endblock %}
+
 {% block content %}
 <style>
   /* استایل برای بخش ادغام با خرید بازارگاه */
@@ -864,6 +868,191 @@
     color: white;
     border-color: #009688;
   }
+
+  /* استایل‌های مودال ارجاع به پشتیبانی */
+  .support-modal {
+    display: none;
+    position: fixed;
+    z-index: 1050;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+  }
+  
+  .support-modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+  }
+  
+  .support-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .support-modal-title {
+    font-size: 1.3rem;
+    color: #333;
+  }
+  
+  .support-modal-close {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  
+  .support-modal-close:hover {
+    color: black;
+  }
+  
+  .support-modal-body {
+    padding: 20px 0;
+  }
+  
+  .support-modal-footer {
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  
+  .support-form-group {
+    margin-bottom: 15px;
+  }
+  
+  .support-form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  
+  .support-form-control {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  
+  .support-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .support-btn-primary {
+    background-color: #007bff;
+    color: white;
+  }
+  
+  .support-btn-secondary {
+    background-color: #6c757d;
+    color: white;
+  }
+  
+  .loading-spinner {
+    display: none;
+    margin-left: 5px;
+  }
+
+  /* استایل مودال و عناصر مرتبط */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+  background-color: #fff;
+  margin: 5% auto;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  width: 90%;
+  max-width: 600px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.modal-header .close {
+  color: #aaa;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.modal-header .close:hover {
+  color: #333;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid #eee;
+  padding-top: 15px;
+  margin-top: 15px;
+}
+
+.fixed-alert {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px;
+  border-radius: 5px;
+  z-index: 1100;
+  animation: fadeIn 0.3s, fadeOut 0.3s 2.7s;
+}
+
+.alert-error {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.alert-success {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
 </style>
 
 <div class="container">
@@ -1040,6 +1229,13 @@
 <div class="buyer-card">
     <h3>🖨️ خروجی PDF</h3>
     <p><a href="{% url 'purchase_pdf' purchase.id %}" class="pdf-link" target="_blank">دانلود گزارش</a></p>
+</div>
+
+<div class="buyer-card">
+    <h3>📞 ارجاع به واحد پشتیبانی</h3>
+    <p><button type="button" class="btn btn-warning btn-sm" onclick="openSupportTaskModal()">
+        <i class="fas fa-headset"></i> ارجاع به کارشناس پشتیبانی
+    </button></p>
 </div>
 </div>
 
@@ -1683,9 +1879,187 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-<!-- اسکریپت برای بخش بارنامه‌ها و شناسه تخصیص -->
+<div id="supportTaskModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>
+        <i class="fas fa-headset"></i> ارجاع به پشتیبانی
+      </h3>
+      <span class="close" onclick="closeSupportTaskModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <form id="supportTaskForm">
+        {% csrf_token %}
+        <input type="hidden" name="purchase_id" value="{{ purchase.id }}">
+        
+        <div class="form-group">
+          <label for="support_agent_id">
+            <i class="fas fa-user-tie"></i> کارشناس پشتیبانی
+            <span id="agents-loading" style="display:none;">
+              <i class="fas fa-spinner fa-spin"></i>
+            </span>
+          </label>
+          <select class="form-control" id="support_agent_id" name="support_agent_id" required>
+            <option value="">-- لطفاً انتخاب کنید --</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="description">
+            <i class="fas fa-comment"></i> توضیحات مشکل
+          </label>
+          <textarea class="form-control" id="description" name="description" rows="4" required
+                    placeholder="شرح کامل مشکل یا درخواست خود را وارد کنید..."></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label for="phone_number">
+            <i class="fas fa-phone"></i> شماره تماس (اختیاری)
+          </label>
+          <input type="tel" class="form-control" id="phone_number" name="phone_number"
+                 placeholder="شماره تماس برای پیگیری"
+                 value="{{ purchase.customer.phone_number|default:'' }}">
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeSupportTaskModal()">
+        <i class="fas fa-times"></i> انصراف
+      </button>
+      <button type="button" class="btn btn-primary" id="submit-task-btn" onclick="submitSupportTask()">
+        <i class="fas fa-paper-plane"></i> ارسال
+        <i class="fas fa-spinner fa-spin" id="submit-spinner" style="display:none;"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- اسکریپت برای مودال ارجاع به واحد پشتیبانی -->
 <script>
+// اسکریپت‌های به‌روز شده برای مودال
+function openSupportTaskModal() {
+  const modal = document.getElementById('supportTaskModal');
+  modal.style.display = 'block';
+  loadSupportAgents();
+}
+
+function closeSupportTaskModal() {
+  const modal = document.getElementById('supportTaskModal');
+  modal.style.display = 'none';
+  document.getElementById('supportTaskForm').reset();
+}
+
+async function loadSupportAgents() {
+  const select = document.getElementById('support_agent_id');
+  const loading = document.getElementById('agents-loading');
+  
+  select.innerHTML = '<option value="" disabled selected>در حال بارگذاری...</option>';
+  loading.style.display = 'block';
+  
+     try {
+     const response = await fetch('/erp/api/support-agents/');
+     const data = await response.json();
+    
+    if (data.status === 'success' && data.agents.length > 0) {
+      select.innerHTML = '<option value="">-- انتخاب کارشناس --</option>';
+      data.agents.forEach(agent => {
+        const option = document.createElement('option');
+        option.value = agent.id;
+        option.textContent = `${agent.name}`;
+        select.appendChild(option);
+      });
+    } else {
+      select.innerHTML = '<option value="">هیچ کارشناس فعالی یافت نشد</option>';
+    }
+  } catch (error) {
+    console.error('Error loading agents:', error);
+    select.innerHTML = '<option value="">خطا در بارگذاری لیست</option>';
+  } finally {
+    loading.style.display = 'none';
+  }
+}
+
+async function submitSupportTask() {
+  const form = document.getElementById('supportTaskForm');
+  const formData = new FormData(form);
+  const submitBtn = document.getElementById('submit-task-btn');
+  const spinner = document.getElementById('submit-spinner');
+  
+  // اعتبارسنجی
+  if (!formData.get('support_agent_id')) {
+    showAlert('لطفاً کارشناس پشتیبانی را انتخاب کنید', 'error');
+    return;
+  }
+  
+  if (!formData.get('description').trim()) {
+    showAlert('لطفاً توضیحات مشکل را وارد کنید', 'error');
+    return;
+  }
+  
+  submitBtn.disabled = true;
+  spinner.style.display = 'inline-block';
+  
+     try {
+     const response = await fetch(`/erp/create_support_task/${formData.get('purchase_id')}/`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      showAlert('تسک پشتیبانی با موفقیت ایجاد شد', 'success');
+      setTimeout(() => {
+        closeSupportTaskModal();
+        if (data.task_url) {
+          window.location.href = data.task_url;
+        }
+      }, 1500);
+    } else {
+      showAlert(data.message || 'خطا در ایجاد تسک', 'error');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    showAlert('خطا در ارتباط با سرور', 'error');
+  } finally {
+    submitBtn.disabled = false;
+    spinner.style.display = 'none';
+  }
+}
+
+// تابع نمایش پیام
+function showAlert(message, type) {
+  // تبدیل نوع پیام به SweetAlert
+  let icon = 'info';
+  let confirmButtonColor = '#007bff';
+  
+  if (type === 'success') {
+    icon = 'success';
+    confirmButtonColor = '#28a745';
+  } else if (type === 'error') {
+    icon = 'error';
+    confirmButtonColor = '#dc3545';
+  } else if (type === 'warning') {
+    icon = 'warning';
+    confirmButtonColor = '#ffc107';
+  }
+  
+  Swal.fire({
+    icon: icon,
+    title: type === 'success' ? 'موفقیت!' : type === 'error' ? 'خطا!' : 'هشدار!',
+    text: message,
+    confirmButtonText: 'باشه',
+    confirmButtonColor: confirmButtonColor,
+    timer: type === 'success' ? 2000 : null,
+    timerProgressBar: type === 'success'
+  });
+}
   document.addEventListener('DOMContentLoaded', function() {
+    // اطمینان از مخفی بودن مودال در ابتدا
+    document.getElementById('supportTaskModal').style.display = 'none';
     // اسکریپت برای نمایش جزئیات بارنامه
     const viewBtns = document.querySelectorAll('.view-barnameh-btn');
     
