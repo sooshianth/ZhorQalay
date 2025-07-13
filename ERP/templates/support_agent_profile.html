@@ -46,10 +46,12 @@
 
         .task-urgency {
             color: #fff;
-            background-color: #6c757d;
-            padding: 2px 8px;
+            background-color: #d84c4c;
+            width: 22px;
+            padding: 2px 5px;
             border-radius: 3px;
             font-size: 0.8em;
+            margin-bottom: 5px;
         }
 
         .high-task .task-urgency {
@@ -120,6 +122,99 @@
             border-radius: 5px;
             display: none;
         }
+
+        /* استایل‌های مودال */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+            max-width: 90%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .modal-title {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #6c757d;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .btn-primary {
+            background-color: #0d6efd;
+            color: white;
+            border: none;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+        }
     </style>
 {% endblock %}
 
@@ -170,10 +265,12 @@
                         </div>
                     </div>
                     <div class="task-header">
-                        <span class="task-urgency">{{ task.get_urgency_level_display }}</span>
                         {% if task.due_date %}
                         <span class="task-due-date">تا {{ task.due_date}}</span>
                         {% endif %}
+                    </div>
+                    <div class="task-urgency">
+                        {{ task.urgency_level }}
                     </div>
                     <div class="task-description">
                         {{ task.description }}
@@ -194,14 +291,8 @@
                         {% endif %}
                     </div>
                     <div class="task-actions">
-                        <form method="post" action="{% url 'refer_task_to_admin' task.id %}" class="mt-2">
-                            {% csrf_token %}
-                            <button type="submit" class="text-blue-500 hover:underline text-sm">ارجاع به مدیریت</button>
-                        </form>
-                        <form method="post" action="{% url 'mark_task_done' task.id %}" class="mt-2">
-                            {% csrf_token %}
-                            <button type="submit" class="text-blue-500 hover:underline text-sm">انجام شد</button>
-                        </form>
+                        <button class="btn btn-primary complete-btn" data-task-id="{{ task.id }}">انجام شد</button>
+                        <button class="btn btn-warning refer-btn" data-task-id="{{ task.id }}">ارجاع به مدیریت</button>
                     </div>
                 </div>
                 {% empty %}
@@ -228,6 +319,11 @@
                         <span>شماره خرید: {{ task.purchase_number }}</span>
                         {% endif %}
                         <span class="refer-date">ارجاع در: {{ task.created_at }}</span>
+                        {% if task.feedback %}
+                        <div class="task-feedback">
+                            <strong>فیدبک:</strong> {{ task.feedback }}
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
                 {% empty %}
@@ -254,11 +350,36 @@
                         <span>شماره خرید: {{ task.purchase_number }}</span>
                         {% endif %}
                         <span class="done-date">انجام در: {{ task.created_at}}</span>
+                        {% if task.feedback %}
+                        <div class="task-feedback">
+                            <strong>فیدبک:</strong> {{ task.feedback }}
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
                 {% empty %}
                 <div class="no-tasks">هیچ تسک انجام شده‌ای وجود ندارد</div>
                 {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال فیدبک -->
+    <div class="modal-overlay" id="feedback-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modal-title">ارجاع تسک به مدیریت</div>
+                <button class="close-modal" id="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="feedback-text" class="form-label">لطفاً دلیل ارجاع یا توضیحات را وارد کنید:</label>
+                    <textarea id="feedback-text" class="form-control" rows="4"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancel-feedback">انصراف</button>
+                <button class="btn btn-primary" id="submit-feedback">تأیید</button>
             </div>
         </div>
     </div>
@@ -272,36 +393,69 @@
             }
             return '';
         }
+
+        // متغیرهای عمومی برای ذخیره وضعیت
+        let currentTaskId = null;
+        let currentAction = null;
     
         // مدیریت رویدادهای دکمه‌ها
         document.addEventListener('DOMContentLoaded', function() {
-            // انجام تسک
-            document.querySelectorAll('.complete-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const taskId = this.getAttribute('data-task-id');
-                    updateTask(taskId, 'complete');
-                });
-            });
+            const feedbackModal = document.getElementById('feedback-modal');
+            const closeModal = document.getElementById('close-modal');
+            const cancelFeedback = document.getElementById('cancel-feedback');
+            const submitFeedback = document.getElementById('submit-feedback');
+            const feedbackText = document.getElementById('feedback-text');
+            const modalTitle = document.getElementById('modal-title');
     
-            // ارجاع تسک به مدیریت
+            // باز کردن مودال برای ارجاع
             document.querySelectorAll('.refer-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    const taskId = this.getAttribute('data-task-id');
-                    updateTask(taskId, 'refer');
+                    currentTaskId = this.getAttribute('data-task-id');
+                    currentAction = 'refer';
+                    modalTitle.textContent = 'ارجاع تسک به مدیریت';
+                    feedbackText.placeholder = 'لطفاً دلیل ارجاع این تسک به مدیریت را توضیح دهید...';
+                    feedbackModal.style.display = 'flex';
                 });
             });
     
-            function updateTask(taskId, action) {
-                const taskCard = document.getElementById(`task-${taskId}`);
+            // باز کردن مودال برای انجام تسک
+            document.querySelectorAll('.complete-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    currentTaskId = this.getAttribute('data-task-id');
+                    currentAction = 'complete';
+                    modalTitle.textContent = 'تکمیل تسک';
+                    feedbackText.placeholder = 'لطفاً توضیحات تکمیلی را وارد کنید (اختیاری)...';
+                    feedbackModal.style.display = 'flex';
+                });
+            });
+    
+            // بستن مودال
+            function closeFeedbackModal() {
+                feedbackModal.style.display = 'none';
+                feedbackText.value = '';
+                currentTaskId = null;
+                currentAction = null;
+            }
+    
+            closeModal.addEventListener('click', closeFeedbackModal);
+            cancelFeedback.addEventListener('click', closeFeedbackModal);
+    
+            // ارسال فیدبک
+            submitFeedback.addEventListener('click', function() {
+                if (!currentTaskId || !currentAction) return;
+                
+                const taskCard = document.getElementById(`task-${currentTaskId}`);
                 const overlay = taskCard.querySelector('.loading-overlay');
+                const feedback = feedbackText.value.trim();
                 
                 // نمایش لودینگ
                 overlay.style.display = 'flex';
                 
                 // ایجاد داده‌های ارسالی
                 const formData = new FormData();
-                formData.append('task_id', taskId);
-                formData.append('action', action);
+                formData.append('task_id', currentTaskId);
+                formData.append('action', currentAction);
+                formData.append('feedback', feedback);
                 formData.append('csrfmiddlewaretoken', getCSRFToken());
                 
                 // ارسال درخواست به سرور
@@ -331,8 +485,11 @@
                     console.error('Error:', error);
                     alert('خطا در ارتباط با سرور. لطفاً صفحه را رفرش کنید و مجدد تلاش نمایید.\n' + error.message);
                     overlay.style.display = 'none';
+                })
+                .finally(() => {
+                    closeFeedbackModal();
                 });
-            }
+            });
         });
     </script>
 {% endblock %}
