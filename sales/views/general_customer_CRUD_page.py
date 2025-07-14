@@ -377,6 +377,11 @@ def general_customer_CRUD_view(request):
         if is_valid_phone:
             # جستجوی مشتری با شماره تمیز شده
             customer = Customer.get_customer_by_phone(clean_phone)
+            if customer:
+                if sales_agent:
+                    if sales_agent not in customer.get_sales_agents():
+                        messages.error(request, "شما دسترسی به این مشتری ندارید.")
+                        customer = None
             
             if not customer:
                 # اگر شماره معتبر است ولی مشتری پیدا نشد، پیام مناسب نمایش بده
@@ -390,7 +395,10 @@ def general_customer_CRUD_view(request):
                 if sales_agent in candidate.get_sales_agents():
                     customer = candidate
                     break  # اولین مشتری مناسب را پیدا کردیم، کافیست
-    
+            
+            if not sales_agent:
+                customer = Customer.objects.filter(phone_number__icontains=query).first()
+
             if not customer:
                 messages.warning(request, f"هیچ مشتری با نام '{query}' که به این کارشناس فروش تخصیص داشته باشد یافت نشد.")
             elif clean_phone:
