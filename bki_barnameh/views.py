@@ -58,6 +58,13 @@ BARNAMEH_COLUMNS = [
     {'id': 'is_sent_to_bki', 'name': 'ارسال به بازارگاه'},
     {'id': 'created_at', 'name': 'تاریخ ایجاد'},
     {'id': 'actions', 'name': 'عملیات'},
+    {'id': 'factor_sodoor_season', 'name': 'زمان صدور فاکتور فصل'},
+    {'id': 'is_factored', 'name': 'فاکتور صادر شده'},
+    {'id': 'is_sent_to_bki', 'name': 'ارسال به بازارگاه'},
+    {'id': 'is_created_by_excel', 'name': 'ایجاد توسط اکسل'},
+    {'id': 'is_sent_to_bki_at', 'name': 'تاریخ ارسال به بازارگاه'},
+    {'id': 'is_created_by_excel_at', 'name': 'تاریخ ایجاد توسط اکسل'},
+    {'id': 'barnameh_updated_at', 'name': 'تاریخ بروزرسانی'},
 ]
 
 # ستون‌های پیش‌فرض
@@ -179,132 +186,101 @@ def get_barnameh_columns_config(request):
 @role_required('logistics_manager', 'admin', 'financial_manager')
 @require_http_methods(["POST"])
 def apply_barnameh_filter(request):
-    """API endpoint for applying filters to barnameh table"""
+    """API endpoint for applying filters to barnameh table using table_filter system"""
     try:
         data = json.loads(request.body)
         filter_config = data.get('filter_config', {})
         sort_config = data.get('sort_config', {})
-        page = data.get('page', 1)
-        page_size = data.get('page_size', 50)
+        page = int(data.get('page', 1))
+        page_size = int(data.get('page_size', 50))
         
-        # Build base queryset
-        queryset = Barnameh.objects.all()
+        logger.warning(f"درخواست فیلتر بارنامه توسط {request.user.username}. {get_client_ip(request)}")
+        logger.warning(f"فیلترها: {filter_config}")
         
-        # Apply filters based on filter_config
-        for column_id, filter_data in filter_config.items():
-            if filter_data and filter_data.get('values'):
-                values = filter_data['values']
-                filter_type = filter_data.get('type', 'include')
-                
-                if column_id == 'number':
-                    if filter_type == 'include':
-                        queryset = queryset.filter(number__in=values)
-                    else:
-                        queryset = queryset.exclude(number__in=values)
-                elif column_id == 'serial':
-                    if filter_type == 'include':
-                        queryset = queryset.filter(serial__in=values)
-                    else:
-                        queryset = queryset.exclude(serial__in=values)
-                elif column_id == 'status':
-                    if filter_type == 'include':
-                        queryset = queryset.filter(status__in=values)
-                    else:
-                        queryset = queryset.exclude(status__in=values)
-                elif column_id == 'driver_name':
-                    if filter_type == 'include':
-                        queryset = queryset.filter(driver_name__in=values)
-                    else:
-                        queryset = queryset.exclude(driver_name__in=values)
-                elif column_id == 'purchase_number':
-                    if filter_type == 'include':
-                        queryset = queryset.filter(purchase_number__in=values)
-                    else:
-                        queryset = queryset.exclude(purchase_number__in=values)
-                elif column_id == 'shenase_takhsis_code':
-                    if filter_type == 'include':
-                        queryset = queryset.filter(shenase_takhsis_code__in=values)
-                    else:
-                        queryset = queryset.exclude(shenase_takhsis_code__in=values)
-                # Add more filter conditions as needed
+        # Create base queryset with related entities
+        queryset = Barnameh.objects.all().select_related('purchase', 'shenase_takhsis', 'purchase__cargo', 'purchase__cargo__vared_konandeh')
+        
+        # Use TableFilterProcessor to apply filters
+        from table_filter.utils import TableFilterProcessor
+        processor = TableFilterProcessor(queryset, 'barnameh')
+        
+        # Apply filters
+        if filter_config:
+            queryset = processor.apply_filters(filter_config)
         
         # Apply sorting
         if sort_config:
-            sort_field = sort_config.get('field')
-            sort_direction = sort_config.get('direction', 'asc')
-            
-            if sort_field:
-                # Map frontend fields to model fields
-                field_mapping = {
-                    'number': 'number',
-                    'serial': 'serial',
-                    'tonnage': 'tonnage',
-                    'status': 'status',
-                    'driver_name': 'driver_name',
-                    'driver_phone': 'driver_phone',
-                    'vehicle_plate': 'vehicle_plate',
-                    'receiver_name': 'receiver_name',
-                    'destination': 'destination',
-                    'barnameh_date': 'barnameh_date',
-                    'purchase_number': 'purchase_number',
-                    'shenase_takhsis_code': 'shenase_takhsis_code',
-                    'created_at': 'barnameh_created_at',
-                }
-                
-                model_field = field_mapping.get(sort_field, sort_field)
-                if sort_direction == 'desc':
-                    model_field = f'-{model_field}'
-                
-                queryset = queryset.order_by(model_field)
+            queryset = processor.apply_sorting(sort_config)
         else:
-            # Default sorting
+            # Default sorting by created_at descending
             queryset = queryset.order_by('-barnameh_created_at')
         
-        # Pagination
-        paginator = Paginator(queryset, page_size)
-        page_obj = paginator.get_page(page)
+        # Save filter state if requested
+        save_state = data.get('save_state', True)
+        if save_state:
+            from table_filter.utils import UserFilterStateManager
+            state_manager = UserFilterStateManager(request.user, 'barnameh')
+            state_manager.save_filter_state(filter_config, sort_config)
+            
+        # Record filter stats
+        from table_filter.models import TableFilterStats
+        for column_id, filter_data in filter_config.items():
+            if filter_data and filter_data.get('values'):
+                for value in filter_data['values']:
+                    TableFilterStats.record_usage('barnameh', column_id, value, request.user)
         
-        # Prepare results
+        # Apply pagination
+        paginator = Paginator(queryset, page_size)
+        try:
+            page_obj = paginator.page(page)
+        except Exception:
+            page_obj = paginator.page(1)
+            page = 1
+            
+        # Format results for JSON response
         results = []
         for barnameh in page_obj:
-            # Get logs for barnameh
-            logs = barnameh.barnameh_logs.all().order_by('-log_date')[:3]
-            
             result = {
                 'id': barnameh.id,
-                'number': barnameh.number or '',
-                'serial': barnameh.serial or '',
-                'tonnage': float(barnameh.tonnage) if barnameh.tonnage else '',
+                'number': barnameh.number or "",
+                'serial': barnameh.serial or "",
+                'tonnage': barnameh.tonnage or 0,
                 'status': barnameh.status,
                 'status_display': barnameh.get_status_display(),
-                'driver_name': barnameh.driver_name or '',
-                'driver_phone': barnameh.driver_phone or '',
-                'vehicle_plate': barnameh.vehicle_plate or '',
-                'receiver_name': barnameh.receiver_name or '',
-                'destination': barnameh.destination or '',
-                'barnameh_date': str(barnameh.barnameh_date) if barnameh.barnameh_date else '',
-                'transport_date': str(barnameh.transport_date) if barnameh.transport_date else '',
-                'purchase_number': barnameh.purchase_number or '',
-                'shenase_takhsis_code': barnameh.shenase_takhsis_code or '',
+                'driver_name': barnameh.driver_name or "",
+                'driver_phone': barnameh.driver_phone or "",
+                'vehicle_plate': barnameh.vehicle_plate or "",
+                'receiver_name': barnameh.receiver_name or "",
+                'destination': barnameh.destination or "",
+                'barnameh_date': barnameh.barnameh_date.strftime("%Y-%m-%d") if barnameh.barnameh_date else "",
+                'purchase_number': barnameh.purchase_number or "",
+                'shenase_takhsis_code': barnameh.shenase_takhsis_code or "",
                 'is_sent_to_bki': barnameh.is_sent_to_bki,
-                'cargo': str(barnameh.get_cargo()) if barnameh.get_cargo() else '',
-                'company_price': barnameh.get_company_price() or 0,
-                'customer_price': barnameh.get_customer_price() or 0,
-                'total_sales_amount': barnameh.get_total_sales_amount() or 0,
-                'buyer_national_code': barnameh.get_buyer_national_code() or '',
-                'buyer_postal_code': barnameh.buyer_postal_code or '',
-                'buyer_address': barnameh.get_buyer_address() or '',
-                'demand_amount': barnameh.get_demand_amount() or 0,
-                'importer': str(barnameh.get_importer()) if barnameh.get_importer() else '',
-                'product_type': barnameh.get_product_type() or '',
-                'successful_send_date': str(barnameh.get_successful_send_date()) if barnameh.get_successful_send_date() else '',
-                'created_at': barnameh.barnameh_created_at.strftime('%Y/%m/%d') if barnameh.barnameh_created_at else '',
-                'logs': [{'log_date': log.log_date.strftime('%Y/%m/%d %H:%M'), 'log_message': log.log_message} for log in logs]
+                'created_at': barnameh.barnameh_created_at.strftime("%Y-%m-%d") if barnameh.barnameh_created_at else "",
+                'factor_sodoor_season': barnameh.factor_sodoor_season or "",
+                'is_factored': barnameh.is_factored or "-",
+                'is_sent_to_bki': barnameh.is_sent_to_bki or "-",
+                'is_created_by_excel': barnameh.is_created_by_excel or "-" ,
+                'is_sent_to_bki_at': barnameh.is_sent_to_bki_at.strftime("%Y-%m-%d") if barnameh.is_sent_to_bki_at else "",
+                'is_created_by_excel_at': barnameh.is_created_by_excel_at.strftime("%Y-%m-%d") if barnameh.is_created_by_excel_at else "",
+                'barnameh_updated_at': barnameh.barnameh_updated_at.strftime("%Y-%m-%d") if barnameh.barnameh_updated_at else "",
             }
+            
+            # Add cargo related fields if available
+            if barnameh.purchase and barnameh.purchase.cargo:
+                result.update({
+                    'cargo': barnameh.purchase.cargo.cottage,
+                    'product_type': barnameh.purchase.cargo.product_type,
+                    'company_price': barnameh.purchase.cargo.company_price,
+                    'customer_price': barnameh.purchase.cargo.customer_price,
+                    'importer': barnameh.purchase.cargo.vared_konandeh.name if barnameh.purchase.cargo.vared_konandeh else "",
+                })
+                
             results.append(result)
         
+        # Return response with pagination info
         return JsonResponse({
-            'success': True,
+            'status': 'success',
             'results': results,
             'pagination': {
                 'current_page': page_obj.number,
@@ -312,90 +288,78 @@ def apply_barnameh_filter(request):
                 'total_count': paginator.count,
                 'has_next': page_obj.has_next(),
                 'has_previous': page_obj.has_previous(),
-                'page_size': page_size
-            }
+                'page_size': page_size,
+                'start_index': page_obj.start_index(),
+                'end_index': page_obj.end_index()
+            },
+            'filter_applied': bool(filter_config),
+            'sort_applied': bool(sort_config)
         })
         
     except Exception as e:
-        logger.error(f"خطا در اعمال فیلتر بارنامه: {str(e)}")
+        logger.error(f"خطا در اعمال فیلتر به بارنامه‌ها: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         return JsonResponse({
-            'success': False,
-            'error': str(e)
+            'status': 'error',
+            'message': f'خطا در اعمال فیلتر: {str(e)}'
         }, status=500)
 
 @role_required('logistics_manager', 'admin', 'financial_manager')
 @require_http_methods(["GET"])
 def barnameh_column_values(request, column_id):
-    """Get unique values for a specific column in barnameh table"""
+    """Get unique values for a specific column in barnameh table using table_filter system"""
     try:
-        # Get current filters to exclude current column filter
+        # Check if column_id is 'dummy', which is used as a placeholder in the URL pattern
+        if column_id == 'dummy':
+            # Get actual column_id from query parameters
+            column_id = request.GET.get('column_id')
+            if not column_id:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'No column_id provided'
+                }, status=400)
+                
+        logger.warning(f"درخواست مقادیر ستون {column_id} توسط {request.user.username}. {get_client_ip(request)}")
+        
+        # Get current filters to respect them when showing values
         current_filters = request.GET.get('current_filters')
         if current_filters:
             try:
                 current_filters = json.loads(current_filters)
-                # Remove current column filter
+                # Remove filter for current column to avoid circular filtering
                 current_filters.pop(column_id, None)
-            except:
+            except json.JSONDecodeError:
                 current_filters = {}
         else:
             current_filters = {}
         
-        # Build queryset with current filters
-        queryset = Barnameh.objects.all()
+        # Create base queryset with related entities
+        queryset = Barnameh.objects.all().select_related('purchase', 'shenase_takhsis', 'purchase__cargo', 'purchase__cargo__vared_konandeh')
         
-        # Apply existing filters (excluding current column)
-        for col_id, filter_data in current_filters.items():
-            if filter_data and filter_data.get('values'):
-                values = filter_data['values']
-                filter_type = filter_data.get('type', 'include')
-                
-                if col_id == 'number':
-                    if filter_type == 'include':
-                        queryset = queryset.filter(number__in=values)
-                    else:
-                        queryset = queryset.exclude(number__in=values)
-                elif col_id == 'serial':
-                    if filter_type == 'include':
-                        queryset = queryset.filter(serial__in=values)
-                    else:
-                        queryset = queryset.exclude(serial__in=values)
-                elif col_id == 'status':
-                    if filter_type == 'include':
-                        queryset = queryset.filter(status__in=values)
-                    else:
-                        queryset = queryset.exclude(status__in=values)
-                # Add more as needed
-        
-        # Get unique values for the requested column
-        values = []
-        if column_id in ['number', 'serial', 'driver_name', 'driver_phone', 'vehicle_plate', 
-                         'receiver_name', 'destination', 'purchase_number', 'shenase_takhsis_code']:
-            field_values = queryset.values_list(column_id, flat=True).distinct().order_by(column_id)
-            values = [{'value': val, 'display': val or '-', 'count': 1} for val in field_values if val]
-        elif column_id == 'status':
-            status_values = queryset.values_list('status', flat=True).distinct()
-            for status in status_values:
-                if status:
-                    display = dict(Barnameh.STATUS_CHOICES).get(status, status)
-                    values.append({'value': status, 'display': display, 'count': 1})
-        elif column_id == 'tonnage':
-            tonnage_values = queryset.values_list('tonnage', flat=True).distinct().order_by('tonnage')
-            values = [{'value': str(val), 'display': str(val), 'count': 1} for val in tonnage_values if val is not None]
-        elif column_id == 'barnameh_date':
-            date_values = queryset.values_list('barnameh_date', flat=True).distinct().order_by('barnameh_date')
-            values = [{'value': str(val), 'display': str(val), 'count': 1} for val in date_values if val]
+        # Apply current filters
+        if current_filters:
+            from table_filter.utils import TableFilterProcessor
+            processor = TableFilterProcessor(queryset, 'barnameh')
+            queryset = processor.apply_filters(current_filters)
+            
+        # Get column values
+        processor = TableFilterProcessor(queryset, 'barnameh')
+        column_values = processor.get_column_values(column_id, limit=500)
         
         return JsonResponse({
-            'success': True,
-            'values': values[:500],  # Limit to 500 values
-            'total_count': len(values)
+            'status': 'success',
+            'values': column_values,
+            'total_count': len(column_values)
         })
         
     except Exception as e:
         logger.error(f"خطا در دریافت مقادیر ستون {column_id}: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         return JsonResponse({
-            'success': False,
-            'error': str(e)
+            'status': 'error',
+            'message': f'خطا در دریافت مقادیر ستون: {str(e)}'
         }, status=500)
 
 def update_barnameh(barnameh_id, data):
@@ -551,6 +515,17 @@ def barnameh_list(request):
     sort_field = request.GET.get('sort', 'barnameh_created_at')
     direction = request.GET.get('direction', 'desc')
     
+    # صفحه‌بندی
+    page = int(request.GET.get('page', 1))
+    per_page_param = request.GET.get('per_page', 25)
+    if per_page_param == 'all':
+        per_page = 10000
+    else:
+        try:
+            per_page = int(per_page_param)
+        except Exception:
+            per_page = 25
+    
     # Map frontend sort fields to model fields
     sort_mapping = {
         'number': 'number',
@@ -610,17 +585,34 @@ def barnameh_list(request):
     # Apply sorting
     barnamehs = barnamehs.order_by(sort_field_mapped)
     
-    # Get logs for each barnameh
-    for barnameh in barnamehs:
+    # صفحه‌بندی
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+    paginator = Paginator(barnamehs, per_page)
+    try:
+        page_obj = paginator.page(page)
+    except (PageNotAnInteger, EmptyPage):
+        page_obj = paginator.page(1)
+        page = 1
+    
+    # Get logs for each barnameh (فقط برای موارد صفحه فعلی)
+    for barnameh in page_obj:
         barnameh.logs = barnameh.barnameh_logs.all().order_by('-log_date')[:3]  # Get the 3 most recent logs
     
-    return render(request, 'bki_barnameh/barnameh_list.html', {
-        'barnamehs': barnamehs,
+    context = {
+        'barnamehs': page_obj,
         'current_sort': sort_field,
         'current_direction': direction,
         'all_columns': all_columns,
         'selected_columns': selected_columns,
-    })
+        'paginator': paginator,
+        'page_obj': page_obj,
+        'current_page': page,
+        'per_page': per_page_param,
+        'total_count': paginator.count,
+        'page_range': list(paginator.get_elided_page_range(page, on_each_side=2, on_ends=1)),
+    }
+    
+    return render(request, 'bki_barnameh/barnameh_list.html', context)
 
 @role_required('logistics_manager', 'admin')
 def barnameh_detail(request, barnameh_id):

@@ -1,5 +1,6 @@
-from django.urls import path
+from django.urls import path, include, re_path
 from . import views
+from .excel_management.views import upload_excel_view, download_excel_template, export_excel_view
 
 urlpatterns = [
     path('', views.barnameh_list, name='barnameh_list'),
@@ -20,9 +21,9 @@ urlpatterns = [
     path('edit-in-bki/<int:barnameh_id>/', views.edit_barnameh_in_bki, name='edit_barnameh_in_bki'),
     path('estelam/<int:barnameh_id>/', views.estelame_barnameh_view, name='estelame_barnameh'),
     
-    # API endpoints for table filter
-    path('api/filter/', views.apply_barnameh_filter, name='apply_barnameh_filter'),
-    path('api/column-values/<str:column_id>/', views.barnameh_column_values, name='barnameh_column_values'),
+    # API URLs for barnameh list filtering
+    path('api/apply_barnameh_filter/', views.apply_barnameh_filter, name='apply_barnameh_filter'),
+    path('api/barnameh_column_values/<str:column_id>/', views.barnameh_column_values, name='barnameh_column_values'),
     
     # API endpoints for column management
     path('api/update-columns/', views.update_barnameh_columns, name='update_barnameh_columns'),

@@ -96,7 +96,7 @@ def support_agent_profile_view(request):
         ).order_by(
             '-urgency_level',
             'due_date',
-            'created_at'
+            '-created_at'
         )
         
         done_tasks = SupportAgentTask.objects.filter(

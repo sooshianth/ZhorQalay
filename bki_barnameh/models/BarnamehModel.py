@@ -144,6 +144,9 @@ class Barnameh(models.Model):
             self.fill_the_purchase_number_if_we_got_shenase_takhsis()
         if is_new:
             self.fill_the_purchase_number_if_we_got_shenase_takhsis()
+
+        if self.factor_sodoor_season is not None:
+            self.is_factored=True
         # if self.purchase:
         #     if self.purchase.state in ['INITIATED', 'SMS_SENT', 'PAYMENT_VERIFIED', 'ALLOCATION_APPROVED', 'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH']:
         #         self.purchase.state = 'BARNAMEH_INCOMPLETE'
