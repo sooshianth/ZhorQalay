@@ -258,20 +258,20 @@ class RoleBasedPurchaseForm(forms.ModelForm):
             self.fields['unique_delivery_id'].widget.attrs['disabled'] = True
 
         if 'delivery_address' in self.fields:
-            if 'readonly' in self.fields['barbary_customer_number'].widget.attrs:
-                del self.fields['barbary_customer_number'].widget.attrs['readonly']
-            if 'disabled' in self.fields['barbary_customer_number'].widget.attrs:
-                del self.fields['barbary_customer_number'].widget.attrs['disabled']
+            if 'readonly' in self.fields['delivery_address'].widget.attrs:
+                del self.fields['delivery_address'].widget.attrs['readonly']
+            if 'disabled' in self.fields['delivery_address'].widget.attrs:
+                del self.fields['delivery_address'].widget.attrs['disabled']
 
         if 'delivery_postal_code' in self.fields:
             self.fields['delivery_postal_code'].widget.attrs['readonly'] = True
             self.fields['delivery_postal_code'].widget.attrs['disabled'] = True
 
         if 'vehicle_type' in self.fields:
-            if 'readonly' in self.fields['barbary_customer_number'].widget.attrs:
-                del self.fields['barbary_customer_number'].widget.attrs['readonly']
-            if 'disabled' in self.fields['barbary_customer_number'].widget.attrs:
-                del self.fields['barbary_customer_number'].widget.attrs['disabled']
+            if 'readonly' in self.fields['vehicle_type'].widget.attrs:
+                del self.fields['vehicle_type'].widget.attrs['readonly']
+            if 'disabled' in self.fields['vehicle_type'].widget.attrs:
+                del self.fields['vehicle_type'].widget.attrs['disabled']
         if 'extelaf_type' in self.fields:
             self.fields['extelaf_type'].widget.attrs['readonly'] = True
             self.fields['extelaf_type'].widget.attrs['disabled'] = True

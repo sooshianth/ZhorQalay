@@ -859,6 +859,7 @@ def general_customer_CRUD_view(request):
 @role_required('sales_agent', 'admin')
 @login_required
 def get_related_products(request):
+    return JsonResponse({'error': "THIS FUNCTION IS DISABLED FOR NOW"}, status=500)
     customer_id = request.GET.get('customer_id')
     country_filter = request.GET.get('country', '')
     type_filter = request.GET.get('type', '')  # این می‌تونه از پیش‌بینی بیاد
@@ -887,6 +888,7 @@ def get_related_products(request):
                 product_scores[key]['count'] += 1
                 product_scores[key]['weight'] += purchase.weight or 0
 
+
         product_data = []
         for product in related_products:
             key = (product.product_type, product.country)
@@ -912,6 +914,8 @@ def get_related_products(request):
     
 @login_required
 def handle_form_submission(request, form, success_msg, redirect_url):
+    messages.warning(request, "this function is not implemented yet")
+    return None
     if form.is_valid():
         instance = form.save()
         messages.success(request, success_msg)

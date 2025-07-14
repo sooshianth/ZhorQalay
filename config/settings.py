@@ -15,7 +15,7 @@ SECRET_KEY = 'django-insecure-@22ofzh7o7x!4+a$&(#b&--%20i1q*nz0s!_k)!7ky@2@3ugb+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.100.56', '192.168.8.195']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.100.56', '192.168.229.195']
 
 # Session timeout configuration
 SESSION_COOKIE_AGE = 1200  # 20 minutes in seconds
