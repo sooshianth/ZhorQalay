@@ -735,7 +735,7 @@ def purchase_CRUD_view(request, purchase_id):
                                 for error in errors:
                                     messages.error(request, error)
                         return redirect('purchase_CRUD', purchase_id=purchase_id)
-                    
+
                     # پردازش تغییرات فرم فقط در صورتی که دکمه اکشن فشرده نشده باشد یا اکشن موفقیت‌آمیز بوده باشد
                     if not action_taken or (action_taken and request.POST.get('save_changes')):
                         for field in form.changed_data:
@@ -804,6 +804,9 @@ def purchase_CRUD_view(request, purchase_id):
                         for error in errors:
                             messages.error(request, error)
             except Exception as e:
+                logger.error(f"خطا در اکشن {e} برای خرید {purchase_id} توسط {request.user.username} با آیپی {get_client_ip(request)}")
+                import traceback
+                logger.error(traceback.format_exc())
                 messages.error(request, f'خطا: {str(e)}')
         else:
             for field, errors in form.errors.items():

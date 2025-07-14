@@ -34,13 +34,13 @@ def get_allowed_columns(user_role):
           'buyer_name']
           
                 
-    #elif user_role == 'financial_manager':
-    #    allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
-    #     'delivered_weight', 'first_barnameh_date', 'last_barnameh_date', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
-    #     'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',
-    #      'cargo', 'product_type', 'importer', 'buyer_name', 'code_melli_tahvil', 'address', 'tracking_number']
+    elif user_role == 'financial_manager':
+        allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
+         'delivered_weight', 'first_barnameh_date', 'last_barnameh_date', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
+         'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',
+          'cargo', 'product_type', 'importer', 'buyer_name', 'code_melli_tahvil', 'address', 'tracking_number']
                 
-    elif user_role == 'admin' or user_role == 'logistics_manager' or user_role == 'financial_manager':
+    elif user_role == 'admin' or user_role == 'logistics_manager':
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
          'delivered_weight', 'first_barnameh_date', 'last_barnameh_date', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
          'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
@@ -50,7 +50,6 @@ def get_allowed_columns(user_role):
 
     allowed_columns.append('actions')
     return allowed_columns
-
 
 def get_default_columns(user_role):
     selected_columns = []
@@ -135,37 +134,37 @@ def get_allowed_search_filters(global_search, request):
                 # نماینده فروش
                 Q(unique_sales_agent__name__icontains=global_search)
             )
-    #elif user_role == 'financial_manager':
-    #    search_filters = (
-    #            # اطلاعات اصلی خرید
-    #            Q(customer__name__icontains=global_search) |
-    #            Q(purchase_number__icontains=global_search) |
-    #            Q(invoice_id__icontains=global_search) |
-    #            Q(buyer_name__icontains=global_search) |
+    elif user_role == 'financial_manager':
+        search_filters = (
+                # اطلاعات اصلی خرید
+                Q(customer__name__icontains=global_search) |
+                Q(purchase_number__icontains=global_search) |
+                Q(invoice_id__icontains=global_search) |
+                Q(buyer_name__icontains=global_search) |
                 
-    #            # اطلاعات کوتاژ و حمل‌ونقل
-    #            Q(cargo__cottage__icontains=global_search) |
-    #            Q(cargo__vared_konandeh__name__icontains=global_search) |
-    #            Q(cargo__barbary__name__icontains=global_search) |
+                # اطلاعات کوتاژ و حمل‌ونقل
+                Q(cargo__cottage__icontains=global_search) |
+                Q(cargo__vared_konandeh__name__icontains=global_search) |
+                Q(cargo__barbary__name__icontains=global_search) |
                 
-    #            # اطلاعات تماس و آدرس
-    #            Q(address__icontains=global_search) |
-    #            Q(bazaargah_phone_number__icontains=global_search) |
-    #            Q(tahvil_phone_number__icontains=global_search) |
-    #            Q(code_melli_tahvil__icontains=global_search) |
+                # اطلاعات تماس و آدرس
+                Q(address__icontains=global_search) |
+                Q(bazaargah_phone_number__icontains=global_search) |
+                Q(tahvil_phone_number__icontains=global_search) |
+                Q(code_melli_tahvil__icontains=global_search) |
                 
-    #            # اطلاعات ردیابی
-    #            Q(tracking_number__icontains=global_search) |
-    #            Q(shenase_takhsis_set__code__icontains=global_search) |
+                # اطلاعات ردیابی
+                Q(tracking_number__icontains=global_search) |
+                Q(shenase_takhsis_set__code__icontains=global_search) |
                 
-    #            # توضیحات و اطلاعات اضافی
-    #            Q(description__icontains=global_search) |
-    #            Q(priority_reason__icontains=global_search) |
+                # توضیحات و اطلاعات اضافی
+                Q(description__icontains=global_search) |
+                Q(priority_reason__icontains=global_search) |
                 
-    #            # نماینده فروش
-    #            Q(unique_sales_agent__name__icontains=global_search)
-    #        )
-    elif user_role == 'admin' or user_role == 'logistics_manager' or user_role == 'financial_manager':
+                # نماینده فروش
+                Q(unique_sales_agent__name__icontains=global_search)
+            )
+    elif user_role == 'admin':
         search_filters = (
                 # اطلاعات اصلی خرید
                 Q(customer__name__icontains=global_search) |
@@ -452,15 +451,15 @@ def purchase_list(request):
         if not selected_columns:
             # پیش‌فرض برای کاربران محدود: نمایش همه ستون‌های مجاز
             #todo: add the rest of the columns
-            selected_columns = get_allowed_columns(user_role)
-            logger.info("Using all columns for sales agent")
+            selected_columns = get_default_columns(user_role)
+            logger.info("Using default columns for sales agent")
         else:
             # Make sure we have a string before splitting
             if isinstance(selected_columns, str):
                 selected_columns = selected_columns.split(',')
             else:
-                selected_columns = get_allowed_columns(user_role)
-                logger.error("Type error on selected_columns - using all columns for sales agent")
+                selected_columns = get_default_columns(user_role)
+                logger.error("Type error on selected_columns - using defaults for sales agent")
             
             # فیلتر کردن فقط ستون‌های مجاز
             selected_columns = [col for col in selected_columns if col in allowed_columns]
@@ -524,74 +523,72 @@ def purchase_list(request):
         
         logger.warning(f"ستون های انتخابی مسئول پیگیری {request.user.username}: {selected_columns}")
         logger.info(f"ستون های قابل انتخاب مسئول پیگیری {request.user.username}: {all_columns}")
-    
-    #elif user_role == 'financial_manager':
-    #    all_columns = [
-    #        {'id': 'actions', 'name': 'جزئیات'},
-    #        {'id': 'purchase_number', 'name': 'شماره خرید', 'field': 'purchase_number'},
-    #        {'id': 'shenase_takhsis', 'name': 'شماره تخصیص', 'field': 'shenase_takhsis_set'},
-    #        {'id': 'date', 'name': 'تاریخ', 'field': 'created_at', 'format': 'date'},
-    #        {'id': 'sales_agent', 'name': 'نماینده فروش', 'field': 'customer.sales_agent.name'},
-    #        {'id': 'company_price', 'name': 'فی خرید', 'field': 'company_price', 'unit': 'ریال'},
-    #        {'id': 'customer_price', 'name': 'فی فروش', 'field': 'customer_price', 'unit': 'ریال'},
-    #        {'id': 'weight', 'name': 'وزن خرید', 'field': 'order_weight', 'unit': 'کیلوگرم'},
-    #        {'id': 'delivered_weight', 'name': 'وزن بارنامه شده', 'field': 'delivered_weight', 'unit': 'کیلوگرم'},
-    #        {'id': 'first_barnameh_date', 'name': 'تاریخ اولین بارنامه', 'field': 'barnamehs.first.barnameh_date', 'format': 'date'},
-    #        {'id': 'last_barnameh_date', 'name': 'تاریخ آخرین بارنامه', 'field': 'barnamehs.last.barnameh_date', 'format': 'date'},
-    #        {'id': 'extelaf_type', 'name': 'نوع اختلاف', 'field': 'extelaf_type'},
-    #        {'id': 'extelaf_weight', 'name': 'وزن اختلاف', 'field': 'extelaf_weight', 'unit': 'کیلوگرم'},
-    #        {'id': 'extelaf_amount', 'name': 'مبلغ اختلاف', 'field': 'extelaf_amount', 'unit': 'ریال'},
-    #        {'id': 'status', 'name': 'وضعیت', 'field': 'state'},
-    #        {'id': 'description', 'name': 'توضیحات', 'field': 'description'},
-    #        {'id': 'is_fully_tasvied', 'name': 'تسویه کامل', 'field': 'is_fully_tasvied'},
-    #        {'id': 'ready_for_invoice', 'name': 'آماده فاکتور', 'field': 'ready_for_invoice'},
-    #        {'id': 'is_factored', 'name': 'صدور فاکتور', 'field': 'is_factored'},
-    #        {'id': 'purchase_mabna_invoice', 'name': 'فاکتور خرید مبنا', 'field': 'purchase_mabna_invoice', 'unit': 'ریال'},
-    #        {'id': 'sales_mabna_invoice', 'name': 'فاکتور فروش مبنا', 'field': 'sales_mabna_invoice', 'unit': 'ریال'},
-    #        {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
-    #        {'id': 'product_type', 'name': 'نام محصول', 'field': 'cargo.product_type'},
-    #        {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name'},
-    #        {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
-    #        {'id': 'code_melli_tahvil', 'name': 'کد ملی تحویل', 'field': 'code_melli_tahvil'},
-    #        {'id': 'address', 'name': 'آدرس خریدار', 'field': 'address'},
-    #        {'id': 'tracking_number', 'name': 'شناسه یکتا خریدار', 'field': 'tracking_number'},
-    #    ]
+    elif user_role == 'financial_manager':
+        all_columns = [
+            {'id': 'actions', 'name': 'جزئیات'},
+            {'id': 'purchase_number', 'name': 'شماره خرید', 'field': 'purchase_number'},
+            {'id': 'shenase_takhsis', 'name': 'شماره تخصیص', 'field': 'shenase_takhsis_set'},
+            {'id': 'date', 'name': 'تاریخ', 'field': 'created_at', 'format': 'date'},
+            {'id': 'sales_agent', 'name': 'نماینده فروش', 'field': 'customer.sales_agent.name'},
+            {'id': 'company_price', 'name': 'فی خرید', 'field': 'company_price', 'unit': 'ریال'},
+            {'id': 'customer_price', 'name': 'فی فروش', 'field': 'customer_price', 'unit': 'ریال'},
+            {'id': 'weight', 'name': 'وزن خرید', 'field': 'order_weight', 'unit': 'کیلوگرم'},
+            {'id': 'delivered_weight', 'name': 'وزن بارنامه شده', 'field': 'delivered_weight', 'unit': 'کیلوگرم'},
+            {'id': 'first_barnameh_date', 'name': 'تاریخ اولین بارنامه', 'field': 'barnamehs.first.barnameh_date', 'format': 'date'},
+            {'id': 'last_barnameh_date', 'name': 'تاریخ آخرین بارنامه', 'field': 'barnamehs.last.barnameh_date', 'format': 'date'},
+            {'id': 'extelaf_type', 'name': 'نوع اختلاف', 'field': 'extelaf_type'},
+            {'id': 'extelaf_weight', 'name': 'وزن اختلاف', 'field': 'extelaf_weight', 'unit': 'کیلوگرم'},
+            {'id': 'extelaf_amount', 'name': 'مبلغ اختلاف', 'field': 'extelaf_amount', 'unit': 'ریال'},
+            {'id': 'status', 'name': 'وضعیت', 'field': 'state'},
+            {'id': 'description', 'name': 'توضیحات', 'field': 'description'},
+            {'id': 'is_fully_tasvied', 'name': 'تسویه کامل', 'field': 'is_fully_tasvied'},
+            {'id': 'ready_for_invoice', 'name': 'آماده فاکتور', 'field': 'ready_for_invoice'},
+            {'id': 'is_factored', 'name': 'صدور فاکتور', 'field': 'is_factored'},
+            {'id': 'purchase_mabna_invoice', 'name': 'فاکتور خرید مبنا', 'field': 'purchase_mabna_invoice', 'unit': 'ریال'},
+            {'id': 'sales_mabna_invoice', 'name': 'فاکتور فروش مبنا', 'field': 'sales_mabna_invoice', 'unit': 'ریال'},
+            {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
+            {'id': 'product_type', 'name': 'نام محصول', 'field': 'cargo.product_type'},
+            {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name'},
+            {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
+            {'id': 'code_melli_tahvil', 'name': 'کد ملی تحویل', 'field': 'code_melli_tahvil'},
+            {'id': 'address', 'name': 'آدرس خریدار', 'field': 'address'},
+            {'id': 'tracking_number', 'name': 'شناسه یکتا خریدار', 'field': 'tracking_number'},
+        ]
 
         # todo: add the rest of the columns
-    #    allowed_columns = get_allowed_columns(user_role)
+        allowed_columns = get_allowed_columns(user_role)
                 
         # دریافت ستون های انتخاب شده از کوکی فقط برای کاربران محدود
-    #    selected_columns = request.COOKIES.get('selected_columns', '')
+        selected_columns = request.COOKIES.get('selected_columns', '')
         
-    #    if not selected_columns:
+        if not selected_columns:
             # پیش‌فرض برای کاربران محدود: نمایش همه ستون‌های مجاز
             #todo: add the rest of the columns
-    #        selected_columns = get_default_columns(user_role)
+            selected_columns = get_default_columns(user_role)
              #  شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار
-    #        logger.info("Using default columns for financial manager")
-    #    else:
+            logger.info("Using default columns for financial manager")
+        else:
             # Make sure we have a string before splitting
-    #        if isinstance(selected_columns, str):
-    #            selected_columns = selected_columns.split(',')
-    #        else:
-    #            selected_columns = get_default_columns(user_role)
+            if isinstance(selected_columns, str):
+                selected_columns = selected_columns.split(',')
+            else:
+                selected_columns = get_default_columns(user_role)
                 #  شناسه ملی خریدار، ادرس خریدار، شناسه یکتا خریدار
-    #            logger.error("Type error on selected_columns - using defaults for financial manager")
+                logger.error("Type error on selected_columns - using defaults for financial manager")
             
             # فیلتر کردن فقط ستون‌های مجاز
-    #        selected_columns = [col for col in selected_columns if col in allowed_columns]
-    #        if not selected_columns:
-    #            selected_columns = allowed_columns
+            selected_columns = [col for col in selected_columns if col in allowed_columns]
+            if not selected_columns:
+                selected_columns = allowed_columns
         
         # اطمینان از حضور ستون actions
-    #    if 'actions' not in selected_columns:
-    #        selected_columns.append('actions')
+        if 'actions' not in selected_columns:
+            selected_columns.append('actions')
         
-    #    logger.warning(f"ستون های انتخابی مسئول مالی {request.user.username}: {selected_columns}")
-    #    logger.info(f"ستون های قابل انتخاب مسئول مالی {request.user.username}: {all_columns}")
-    
+        logger.warning(f"ستون های انتخابی مسئول مالی {request.user.username}: {selected_columns}")
+        logger.info(f"ستون های قابل انتخاب مسئول مالی {request.user.username}: {all_columns}")
 
-    elif user_role == 'admin' or user_role == 'logistics_manager' or user_role == 'financial_manager':
+    elif user_role == 'admin' or user_role == 'logistics_manager':
         all_columns = [
             {'id': 'actions', 'name': 'جزئیات'},
             {'id': 'purchase_number', 'name': 'شماره خرید', 'field': 'purchase_number'},
@@ -2344,10 +2341,9 @@ def apply_purchase_filter(request):
         })
         
     except Exception as e:
-        logger.error(f"Error in get_purchase_list: {str(e)} , {traceback.format_exc()}")
         return JsonResponse({
             'status': 'error',
-            'message': "error"   
+            'message': str(e)
         }, status=500)
 
 
@@ -2355,7 +2351,6 @@ def apply_purchase_filter(request):
 @require_POST
 @login_required
 def get_purchase_column_values(request):
-    from core._models import Purchase
     """
     API برای دریافت مقادیر منحصر به فرد یک ستون برای فیلتر
     """
@@ -2952,7 +2947,7 @@ def get_purchase_column_values(request):
         
     except Exception as e:
         import traceback
-        logger.error(f"Error in get_purchase_column_values: {str(e)} , {traceback.format_exc()}")
+        print(f"Error in get_purchase_column_values: {str(e)} , {traceback.format_exc()}")
         return JsonResponse({
             'status': 'error',
             'message': "error"
