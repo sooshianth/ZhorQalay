@@ -72,6 +72,10 @@ app.conf.beat_schedule = {
         'task': 'bki_api.tasks.update_purchases_all_time',
         'schedule': crontab(minute=0, hour='*/8'),  # هر 8 ساعت
     },
+    'check-purchases-for-support-tasks': {
+        'task': 'core.tasks.tasks.check_purchases_for_support_tasks',
+        'schedule': crontab(minute='*/30'),  # هر 30 دقیقه
+    },
 }
 
 app.autodiscover_tasks()

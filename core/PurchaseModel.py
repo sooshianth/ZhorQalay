@@ -141,6 +141,14 @@ class Purchase(models.Model):
         null=True
     )
 
+    FACTOR_CHOICES = [
+        ('not_factored', 'فاکتور صادرنشده'),
+        ('naghes_factored', 'فاکتور ناقص'),
+        ('factored', 'فاکتور صادر شده'),
+    ]
+    factor_status = models.CharField("وضعیت فاکتور", max_length=20, choices=FACTOR_CHOICES, default='not_factored')
+    is_naghes_factored = models.BooleanField("فاکتور ناقص", default=False)
+
     def is_merged_purchase(self):
         """
         بررسی اینکه آیا این خرید بازارگاه قبلاً با خرید دستی ادغام شده است یا نه
@@ -640,6 +648,7 @@ class Purchase(models.Model):
             raise ValidationError(errors)
             
     def save(self, *args, **kwargs):
+
         is_new = not self.pk  # Check if this is a new instance
 
         # 🧮 محاسبه فاکتور مبنا و factor_code
@@ -647,6 +656,7 @@ class Purchase(models.Model):
             self.factor_code = True
         else:
             self.factor_code = False
+
 
         # 🏗️ محاسبه فاکتورهای مبنا و سود مبنا
         # محاسبه همیشه انجام می‌شود، حتی اگر قیمت‌ها صفر باشند
@@ -828,6 +838,8 @@ class Purchase(models.Model):
         if not self.delivery_address and self.address:
             self.delivery_address = self.address
 
+        self.set_purchase_factor_status()
+
     def send_notification(self, user, title, message, notification_type='purchase', priority='medium'):
         """ارسال نوتیفیکیشن برای کاربر"""
         NotificationService.create_notification(
@@ -903,6 +915,33 @@ class Purchase(models.Model):
                 self.description = f"راننده: {barnameh.driver_name}"
             elif "راننده:" not in self.description:
                 self.description += f" | راننده: {barnameh.driver_name}"
+
+    def set_purchase_factor_status(self):
+        from bki_barnameh.models.BarnamehModel import Barnameh
+        barnamehs = Barnameh.objects.filter(purchase=self)
+        
+        if not barnamehs.exists():
+            self.factor_status = 'not_factored'
+            # استفاده از update_fields برای جلوگیری از حلقه بی‌نهایت
+            super().save(update_fields=['factor_status'])
+            return
+        
+        total_barnamehs = barnamehs.count()
+        factored_barnamehs = barnamehs.filter(is_factored=True).count()
+        
+        if factored_barnamehs == total_barnamehs:
+            # اگر همه بارنامه‌ها فاکتور صادر شده دارند
+            self.factor_status = 'factored'
+            super().save(update_fields=['factor_status'])
+        elif factored_barnamehs > 0:
+            # اگر حداقل یک بارنامه فاکتور صادر شده دارد اما نه همه
+            self.factor_status = 'naghes_factored'
+            super().save(update_fields=['factor_status'])
+        else:
+            # اگر هیچ بارنامه‌ای فاکتور صادر نشده دارد
+            self.factor_status = 'not_factored'
+            super().save(update_fields=['factor_status'])
+                
 
 
 from django.contrib.auth.models import User

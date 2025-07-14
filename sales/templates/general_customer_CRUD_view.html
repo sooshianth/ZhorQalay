@@ -823,6 +823,8 @@
             background: linear-gradient(135deg, #059669, #22c55e);
             color: white;
             border: none;
+            width: 200px;
+            height: 50px;
             border-radius: 15px;
             padding: 18px 35px;
             cursor: pointer;
@@ -1605,12 +1607,18 @@
     <!-- تب‌ها -->
     {% if customer %}
     <div class="tabs-section">
-        <!-- دکمه ارسال پیامک -->
-        <div class="sms-main-section">
+        <!-- دکمه‌های ارسال پیامک و ارجاع به کارشناس پشتیبانی -->
+        <div class="sms-main-section" style="display: flex; gap: 15px; align-items: center;">
             <button type="button" class="sms-main-btn" onclick="openSmsPopup()">
                 <i class="fas fa-sms"></i>
                 <span>ارسال پیامک</span>
                 <div class="btn-glow"></div>
+            </button>
+            
+            <button type="button" class="support-main-btn" onclick="openSupportTaskModal()" style="background: linear-gradient(135deg, #ff6b35, #f7931e); border: none; color: white; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3); transition: all 0.3s ease; display: flex; align-items: center; gap: 8px; width: 200px; height: 50px;">
+                <i class="fas fa-headset"></i>
+                <span>ارجاع به کارشناس پشتیبانی</span>
+                <div class="btn-glow" style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);"></div>
             </button>
         </div>
         
@@ -2809,6 +2817,235 @@ document.addEventListener('DOMContentLoaded', function() {
             $(this).text(englishNumbers);
         });
     });
+</script>
+
+<!-- مودال ارجاع به کارشناس پشتیبانی -->
+<div id="supportTaskModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); overflow-y: auto;">
+    <div class="modal-content" style="background-color: #fefefe; margin: 2% auto; padding: 15px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ff6b35; padding-bottom: 10px; margin-bottom: 15px;">
+            <h3 style="color: #ff6b35; margin: 0; font-size: 1.2em;">
+                <i class="fas fa-headset"></i> ارجاع به کارشناس پشتیبانی
+            </h3>
+            <span class="close" onclick="closeSupportTaskModal()" style="color: #aaa; font-size: 24px; font-weight: bold; cursor: pointer; transition: color 0.3s;">&times;</span>
+        </div>
+        
+        <form id="supportTaskForm">
+            {% csrf_token %}
+            <input type="hidden" id="customer_id" name="customer_id" value="{{ customer.id|default:'' }}">
+            
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label for="customer_name" style="display: block; margin-bottom: 5px; font-weight: bold; color: #333; font-size: 14px;">
+                    <i class="fas fa-user"></i> نام مشتری
+                </label>
+                <input type="text" class="form-control" id="customer_name" value="{{ customer.name|default:'' }}" readonly style="background-color: #f8f9fa; border: 1px solid #ddd; padding: 8px; border-radius: 5px; width: 100%; font-size: 14px;">
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label for="support_agent_id" style="display: block; margin-bottom: 5px; font-weight: bold; color: #333; font-size: 14px;">
+                    <i class="fas fa-user-tie"></i> کارشناس پشتیبانی
+                </label>
+                <select class="form-control" id="support_agent_id" name="support_agent_id" required style="border: 1px solid #ddd; padding: 8px; border-radius: 5px; width: 100%; font-size: 14px;">
+                    <option value="">انتخاب کنید...</option>
+                </select>
+                <div id="loading-agents" style="display: none; margin-top: 3px;">
+                    <small style="color: #666; font-size: 12px;">
+                        <i class="fas fa-spinner fa-spin"></i> در حال بارگذاری...
+                    </small>
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label for="description" style="display: block; margin-bottom: 5px; font-weight: bold; color: #333; font-size: 14px;">
+                    <i class="fas fa-comment"></i> توضیحات مشکل
+                </label>
+                <textarea class="form-control" id="description" name="description" rows="3" required 
+                          placeholder="شرح کامل مشکل یا درخواست خود را وارد کنید..." 
+                          style="border: 1px solid #ddd; padding: 8px; border-radius: 5px; width: 100%; resize: vertical; font-size: 14px;"></textarea>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label for="phone_number" style="display: block; margin-bottom: 5px; font-weight: bold; color: #333; font-size: 14px;">
+                    <i class="fas fa-phone"></i> شماره تماس
+                </label>
+                <input type="tel" class="form-control" id="phone_number" name="phone_number"
+                       placeholder="شماره تماس برای پیگیری" 
+                       value="{{ customer.get_primary_phone|default:'' }}"
+                       style="border: 1px solid #ddd; padding: 8px; border-radius: 5px; width: 100%; font-size: 14px;">
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 15px;">
+                <div class="form-check" style="display: flex; align-items: center; gap: 8px;">
+                    <input class="form-check-input" type="checkbox" id="send_sms" name="send_sms" value="true" 
+                           style="width: 16px; height: 16px; margin: 0;">
+                    <label class="form-check-label" for="send_sms" style="margin: 0; font-weight: bold; color: #333; font-size: 14px;">
+                        <i class="fas fa-sms"></i> ارسال پیامک اطلاع‌رسانی به مشتری
+                    </label>
+                </div>
+            </div>
+        </form>
+        
+        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #ddd; padding-top: 15px;">
+            <button type="button" class="btn btn-secondary" onclick="closeSupportTaskModal()" 
+                    style="background-color: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                <i class="fas fa-times"></i> انصراف
+            </button>
+            <button type="button" class="btn btn-warning" onclick="submitSupportTask()" 
+                    style="background: linear-gradient(135deg, #ff6b35, #f7931e); color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px;">
+                <i class="fas fa-paper-plane"></i> ارسال
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- اسکریپت برای مودال ارجاع به کارشناس پشتیبانی -->
+<script>
+// تابع باز کردن مودال ارجاع به کارشناس پشتیبانی
+function openSupportTaskModal() {
+    // تنظیم مقادیر اولیه
+    document.getElementById('customer_id').value = '{{ customer.id|default:"" }}';
+    document.getElementById('customer_name').value = '{{ customer.name|default:"" }}';
+    document.getElementById('phone_number').value = '{{ customer.get_primary_phone|default:"" }}';
+    
+    // بارگذاری لیست کارشناسان پشتیبانی
+    loadSupportAgents();
+    
+    // نمایش مودال
+    document.getElementById('supportTaskModal').style.display = 'block';
+}
+
+// بارگذاری لیست کارشناسان پشتیبانی
+async function loadSupportAgents() {
+    const select = document.getElementById('support_agent_id');
+    const loadingDiv = document.getElementById('loading-agents');
+    
+    // پاک کردن گزینه‌های قبلی
+    select.innerHTML = '<option value="">انتخاب کنید...</option>';
+    loadingDiv.style.display = 'block';
+    
+    try {
+        const response = await fetch('/erp/api/support-agents/');
+        const data = await response.json();
+        
+        if (data.status === 'success' && data.agents.length > 0) {
+            data.agents.forEach(agent => {
+                const option = document.createElement('option');
+                option.value = agent.id;
+                option.textContent = agent.name;
+                select.appendChild(option);
+            });
+        } else {
+            select.innerHTML = '<option value="">هیچ کارشناس فعالی یافت نشد</option>';
+            select.disabled = true;
+        }
+    } catch (error) {
+        console.error('Error loading agents:', error);
+        select.innerHTML = '<option value="">خطا در بارگذاری لیست</option>';
+        select.disabled = true;
+    } finally {
+        loadingDiv.style.display = 'none';
+    }
+}
+
+// تابع بستن مودال
+function closeSupportTaskModal() {
+    document.getElementById('supportTaskModal').style.display = 'none';
+    
+    // بازنشانی فرم
+    const form = document.getElementById('supportTaskForm');
+    const select = document.getElementById('support_agent_id');
+    const loadingDiv = document.getElementById('loading-agents');
+    
+    form.reset();
+    select.innerHTML = '<option value="">انتخاب کنید...</option>';
+    select.disabled = false;
+    loadingDiv.style.display = 'none';
+}
+
+// ارسال تسک پشتیبانی
+async function submitSupportTask() {
+    const form = document.getElementById('supportTaskForm');
+    const formData = new FormData(form);
+    
+    // اضافه کردن مقدار send_sms به صورت صریح
+    const sendSmsCheckbox = document.getElementById('send_sms');
+    if (sendSmsCheckbox.checked) {
+        formData.set('send_sms', 'true');
+    } else {
+        formData.set('send_sms', 'false');
+    }
+    
+    // اعتبارسنجی
+    const supportAgentId = formData.get('support_agent_id');
+    const description = formData.get('description').trim();
+    const supportAgentSelect = document.getElementById('support_agent_id');
+    
+    if (!supportAgentId) {
+        alert('لطفاً کارشناس پشتیبانی را انتخاب کنید');
+        return;
+    }
+    
+    if (supportAgentSelect.disabled) {
+        alert('هیچ کارشناس پشتیبانی فعالی در سیستم وجود ندارد');
+        return;
+    }
+    
+    if (!description) {
+        alert('لطفاً توضیحات را وارد کنید');
+        return;
+    }
+    
+    // نمایش loading در دکمه ارسال
+    const submitBtn = document.querySelector('#supportTaskModal .btn-warning');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> در حال ارسال...';
+    submitBtn.disabled = true;
+    
+    try {
+        const response = await fetch('{% url "create_support_task_from_customer" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            alert('تسک کارشناس پشتیبانی با موفقیت ایجاد شد');
+            
+            // بستن مودال
+            closeSupportTaskModal();
+        } else {
+            alert(data.message || 'خطا در ایجاد تسک کارشناس پشتیبانی');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('خطا در ارتباط با سرور');
+    } finally {
+        // بازگرداندن دکمه به حالت عادی
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
+}
+
+// بستن مودال با کلیک خارج از آن
+window.onclick = function(event) {
+    const modal = document.getElementById('supportTaskModal');
+    if (event.target === modal) {
+        closeSupportTaskModal();
+    }
+}
+
+// بستن مودال با کلید Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('supportTaskModal');
+        if (modal.style.display === 'block') {
+            closeSupportTaskModal();
+        }
+    }
+});
 </script>
 
 {% endblock %}

@@ -2355,6 +2355,7 @@ def apply_purchase_filter(request):
 @require_POST
 @login_required
 def get_purchase_column_values(request):
+    from core._models import Purchase
     """
     API برای دریافت مقادیر منحصر به فرد یک ستون برای فیلتر
     """

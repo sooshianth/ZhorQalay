@@ -41,6 +41,10 @@ import json
 from core.decorators.decorators import role_required
 from core.decorators.det_user_role import determine_user_role
 from .managers_profile_view import get_client_ip
+from core._models import SupportAgentTask, SupportAgent, AdminTask
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
 
 import logging
 
@@ -1608,3 +1612,104 @@ def link_manual_purchase(request, purchase_id):
         messages.error(request, f'خطا در ارتباط با سرور:')
     
     return redirect('purchase_CRUD', purchase_id=purchase_id)
+
+@login_required
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@csrf_exempt
+def create_support_task_from_purchase(request, purchase_id):
+    """ایجاد تسک کارشناس پشتیبانی از صفحه خرید"""
+    try:
+        if request.method != 'POST':
+            return JsonResponse({'status': 'error', 'message': 'فقط درخواست POST پذیرفته می‌شود'})
+        
+        # دریافت خرید
+        try:
+            purchase = Purchase.objects.get(id=purchase_id)
+        except Purchase.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'خرید مورد نظر یافت نشد'})
+        
+        # دریافت داده‌های ارسالی
+        support_agent_id = request.POST.get('support_agent_id')
+        description = request.POST.get('description', '').strip()
+        phone_number = request.POST.get('phone_number', '').strip()
+        
+        # اعتبارسنجی داده‌ها
+        if not support_agent_id:
+            return JsonResponse({'status': 'error', 'message': 'کارشناس پشتیبانی انتخاب نشده است'})
+        
+        if not description:
+            return JsonResponse({'status': 'error', 'message': 'توضیحات الزامی است'})
+        
+        # دریافت کارشناس پشتیبانی
+        try:
+            from core._models import SupportAgent
+            support_agent = SupportAgent.objects.get(id=support_agent_id)
+        except SupportAgent.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'کارشناس پشتیبانی یافت نشد'})
+        
+        # تنظیم شماره تماس
+        if not phone_number:
+            # استفاده از شماره تماس مشتری
+            if purchase.customer and purchase.customer.phone_number:
+                phone_number = purchase.customer.phone_number
+            else:
+                phone_number = ''
+        
+        # ایجاد تسک کارشناس پشتیبانی
+        from core.SupportAgentTask import SupportAgentTask
+        
+        task = SupportAgentTask.objects.create(
+            support_agent=support_agent,
+            description=description,
+            purchase=purchase,
+            purchase_number=purchase.purchase_number,
+            customer=purchase.customer,
+            phone_number=phone_number,
+            urgency_level=9,  # درجه اولویت 9
+            is_done=False
+        )
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'تسک کارشناس پشتیبانی با موفقیت ایجاد شد',
+            'task_id': task.id
+        })
+        
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error creating support task: {str(e)}")
+        return JsonResponse({'status': 'error', 'message': f'خطا در ایجاد تسک: {str(e)}'})
+
+@login_required
+@require_http_methods(["GET"])
+def get_support_agents_api(request):
+    """API برای دریافت لیست کارشناسان پشتیبانی"""
+    try:
+        from core.SupportAgentModel import SupportAgent
+        
+        # دریافت همه کارشناسان پشتیبانی فعال
+        agents = SupportAgent.objects.filter(user__is_active=True)
+        agents_data = []
+        
+        for agent in agents:
+            agents_data.append({
+                'id': agent.id,
+                'name': agent.name or agent.user.get_full_name() or agent.user.username,
+                'phone': agent.phone_number or '',
+                'email': agent.email or agent.user.email or ''
+            })
+        
+        return JsonResponse({
+            'status': 'success',
+            'agents': agents_data
+        })
+        
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error getting support agents: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'error': f'خطا در دریافت لیست کارشناسان: {str(e)}'
+        })

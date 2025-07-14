@@ -97,12 +97,6 @@ def financial_manager_profile_view(request):
         'user_role': user_role
     })
 
-@role_required('support_agent')
-@login_required
-def support_agent_profile_view(request):
-    logger.warning(f"Support Agent Profile View accessed by user: {request.user.username}, IP: {get_client_ip(request)}")
-    
-    agent = request.user.support_agent
-    return render(request, 'support_agent_profile.html', {'agent': agent, 'user': request.user})
+
 
 

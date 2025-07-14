@@ -14,6 +14,8 @@ from django.db.models import Q
 from django import forms
 from core.SalesAgentModel import SalesAgent
 from django.core.exceptions import PermissionDenied
+from core.SupportAgentModel import SupportAgent
+from core.SupportAgentTask import SupportAgentTask
 from django.db import transaction
 from jdatetime import datetime, date
 from django.utils.translation import gettext_lazy as _
@@ -1042,3 +1044,83 @@ def add_call(request, customer_id):
         except ValidationError as e:
             messages.error(request, f"خطا در تماس: {e}")
         return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}&active_tab={active_tab}')
+
+# ----------------- Support Task Management -----------------
+@role_required('sales_agent', 'admin')
+@login_required
+def create_support_task_from_customer(request):
+    """ایجاد تسک کارشناس پشتیبانی از صفحه مشتری"""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'فقط درخواست POST مجاز است'}, status=405)
+    
+    try:
+        # دریافت داده‌ها
+        customer_id = request.POST.get('customer_id')
+        support_agent_id = request.POST.get('support_agent_id')
+        description = request.POST.get('description', '').strip()
+        phone_number = request.POST.get('phone_number', '').strip()
+        send_sms = request.POST.get('send_sms', 'false') == 'true'
+        
+        # اعتبارسنجی
+        if not customer_id:
+            return JsonResponse({'status': 'error', 'message': 'شناسه مشتری الزامی است'}, status=400)
+        
+        if not support_agent_id:
+            return JsonResponse({'status': 'error', 'message': 'انتخاب کارشناس پشتیبانی الزامی است'}, status=400)
+        
+        if not description:
+            return JsonResponse({'status': 'error', 'message': 'توضیحات الزامی است'}, status=400)
+        
+        # دریافت مشتری
+        try:
+            customer = Customer.objects.get(id=customer_id)
+        except Customer.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'مشتری یافت نشد'}, status=404)
+        
+        # دریافت کارشناس پشتیبانی
+        try:
+            support_agent = SupportAgent.objects.get(id=support_agent_id)
+        except SupportAgent.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'کارشناس پشتیبانی یافت نشد'}, status=404)
+        
+        # ایجاد تسک کارشناس پشتیبانی
+        support_task = SupportAgentTask.objects.create(
+            customer=customer,
+            support_agent=support_agent,
+            description=description,
+            phone_number=phone_number or customer.get_primary_phone(),
+            urgency_level=9,  # سطح فوریت بالا
+        )
+        
+        # ارسال پیامک به مشتری (در صورت انتخاب)
+        if send_sms and (phone_number or customer.get_primary_phone()):
+            try:
+                from sms_api.apis import queue_sms
+                customer_phone = phone_number or customer.get_primary_phone()
+                
+                sms_message = f"""مشتری گرامی {customer.name}
+درخواست شما به واحد پشتیبانی ارجاع داده شد و به‌زودی با شما تماس خواهیم گرفت.
+شماره پیگیری: {support_task.id}
+شرکت تأمین نهاده سیمرغ"""
+                
+                queue_sms(
+                    phone_number=customer_phone,
+                    message=sms_message,
+                    notification_type='support_task'
+                )
+            except Exception as e:
+                # در صورت خطا در ارسال پیامک، تسک همچنان ایجاد می‌شود
+                print(f"Error sending SMS to customer: {e}")
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'تسک کارشناس پشتیبانی با موفقیت ایجاد شد',
+            'task_id': support_task.id
+        })
+        
+    except Exception as e:
+        print(f"Error creating support task: {e}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'خطا در ایجاد تسک: {str(e)}'
+        }, status=500)

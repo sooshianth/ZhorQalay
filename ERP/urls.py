@@ -7,14 +7,15 @@ from .views import (
     managers_profile_view, 
     purchase_list_view,
     notification_view,
+    support_agent_profile,
 )
 
 urlpatterns = [
 
     path('logistics_manager_profile/', managers_profile_view.logistics_manager_profile_view, name='logistics_manager_profile'),
     path('financial_manager_profile/', managers_profile_view.financial_manager_profile_view, name='financial_manager_profile'),
-    path('support_agent_profile/', managers_profile_view.support_agent_profile_view, name='support_agent_profile'),
-
+    path('support_agent_profile/', support_agent_profile.support_agent_profile_view, name='support_agent_profile'),
+  
     path('purchase_list/', purchase_list_view.purchase_list, name='purchase_list' ),
     path('purchases/archived/', purchase_list_view.load_archived_purchases, name='load_archived_purchases'),
     path('purchases/update-columns/', purchase_list_view.update_columns, name='update_columns'),
@@ -40,6 +41,8 @@ urlpatterns = [
     path('upload_purchase_document/<int:purchase_id>/', purchase_CRUD_view.upload_purchase_document, name='upload_purchase_document'),
     path('link_bazaargah_purchase/<int:purchase_id>/', purchase_CRUD_view.link_bazaargah_purchase, name='link_bazaargah_purchase'),
     path('link_manual_purchase/<int:purchase_id>/', purchase_CRUD_view.link_manual_purchase, name='link_manual_purchase'),
+    path('create_support_task/<int:purchase_id>/', purchase_CRUD_view.create_support_task_from_purchase, name='create_support_task_from_purchase'),
+    path('api/support-agents/', purchase_CRUD_view.get_support_agents_api, name='get_support_agents_api'),
 
     path('purchase_CRUD/notifications/', notification_view.get_notifications, name='get_notifications'),
     path('purchase_CRUD/notifications/<int:notification_id>/read/', notification_view.mark_notification_read, name='mark_notification_read'),
