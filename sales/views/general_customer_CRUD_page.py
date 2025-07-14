@@ -342,6 +342,7 @@ def customer_search(request):
     return JsonResponse(results, safe=False)
 
 @role_required('sales_agent', 'admin')
+
 @login_required
 def general_customer_CRUD_view(request):
     """
@@ -381,13 +382,21 @@ def general_customer_CRUD_view(request):
                 # اگر شماره معتبر است ولی مشتری پیدا نشد، پیام مناسب نمایش بده
                 messages.info(request, f"مشتری با شماره {clean_phone} یافت نشد. می‌توانید مشتری جدید ایجاد کنید.")
         else:
-            # اگر ورودی شماره تلفن معتبر نیست، جستجوی عادی انجام بده
-            customer = Customer.objects.filter(name__icontains=query).first()
+    # اگر ورودی شماره تلفن معتبر نیست، جستجوی عادی انجام بده
+            matching_customers = Customer.objects.filter(name__icontains=query)
+    
+            customer = None
+            for candidate in matching_customers:
+                if sales_agent in candidate.get_sales_agents():
+                    customer = candidate
+                    break  # اولین مشتری مناسب را پیدا کردیم، کافیست
+    
             if not customer:
-                messages.warning(request, f"هیچ مشتری با نام '{query}' یافت نشد.")
+                messages.warning(request, f"هیچ مشتری با نام '{query}' که به این کارشناس فروش تخصیص داشته باشد یافت نشد.")
             elif clean_phone:
-                # اگر شماره نامعتبر بود، راهنمایی بده
+        # اگر شماره نامعتبر بود، راهنمایی بده
                 messages.error(request, "فرمت شماره تلفن نامعتبر است. شماره باید 10 رقم باشد و با 9 شروع شود. (مثال: 9123456789)")
+
         
         # اگر شماره معتبر بود برای استفاده در initial_data
         if is_valid_phone:
