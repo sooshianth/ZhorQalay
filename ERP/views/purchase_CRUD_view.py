@@ -228,8 +228,14 @@ class RoleBasedPurchaseForm(forms.ModelForm):
             self.fields['barbary_confidential_number'].widget.attrs['disabled'] = True
 
         if 'barbary_customer_number' in self.fields:
-            self.fields['barbary_customer_number'].widget.attrs['readonly'] = True
-            self.fields['barbary_customer_number'].widget.attrs['disabled'] = True
+            if user_role == 'admin' or user_role == 'logistics_manager':
+                if 'readonly' in self.fields['barbary_customer_number'].widget.attrs:
+                    del self.fields['barbary_customer_number'].widget.attrs['readonly']
+                if 'disabled' in self.fields['barbary_customer_number'].widget.attrs:
+                    del self.fields['barbary_customer_number'].widget.attrs['disabled']
+            else:
+                self.fields['barbary_customer_number'].widget.attrs['readonly'] = True
+                self.fields['barbary_customer_number'].widget.attrs['disabled'] = True
 
         if 'delivery_receiver_name' in self.fields:
             self.fields['delivery_receiver_name'].widget.attrs['readonly'] = True
@@ -248,17 +254,20 @@ class RoleBasedPurchaseForm(forms.ModelForm):
             self.fields['unique_delivery_id'].widget.attrs['disabled'] = True
 
         if 'delivery_address' in self.fields:
-            self.fields['delivery_address'].widget.attrs['readonly'] = True
-            self.fields['delivery_address'].widget.attrs['disabled'] = True
+            if 'readonly' in self.fields['barbary_customer_number'].widget.attrs:
+                del self.fields['barbary_customer_number'].widget.attrs['readonly']
+            if 'disabled' in self.fields['barbary_customer_number'].widget.attrs:
+                del self.fields['barbary_customer_number'].widget.attrs['disabled']
 
         if 'delivery_postal_code' in self.fields:
             self.fields['delivery_postal_code'].widget.attrs['readonly'] = True
             self.fields['delivery_postal_code'].widget.attrs['disabled'] = True
 
         if 'vehicle_type' in self.fields:
-            self.fields['vehicle_type'].widget.attrs['readonly'] = True
-            self.fields['vehicle_type'].widget.attrs['disabled'] = True
-
+            if 'readonly' in self.fields['barbary_customer_number'].widget.attrs:
+                del self.fields['barbary_customer_number'].widget.attrs['readonly']
+            if 'disabled' in self.fields['barbary_customer_number'].widget.attrs:
+                del self.fields['barbary_customer_number'].widget.attrs['disabled']
         if 'extelaf_type' in self.fields:
             self.fields['extelaf_type'].widget.attrs['readonly'] = True
             self.fields['extelaf_type'].widget.attrs['disabled'] = True
@@ -279,7 +288,6 @@ class RoleBasedPurchaseForm(forms.ModelForm):
             self.fields['importer'].widget.attrs['readonly'] = True
             self.fields['importer'].widget.attrs['disabled'] = True
 
-            
     
     def clean(self):
         cleaned_data = super().clean()
