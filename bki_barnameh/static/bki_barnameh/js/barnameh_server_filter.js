@@ -335,7 +335,7 @@ class BarnamehServerFilter {
                         
                         <!-- دکمه‌های کنترل -->
                         <div class="control-buttons mb-3">
-                            <div class="btn-group w-100" role="group">
+                            <div class="btn-group w-100 mb-2" role="group">
                                 <button type="button" class="btn btn-outline-primary" id="selectAllBtn">
                                     <i class="fas fa-check-square me-1"></i>انتخاب همه
                                 </button>
@@ -344,6 +344,15 @@ class BarnamehServerFilter {
                                 </button>
                                 <button type="button" class="btn btn-outline-info" id="invertSelectionBtn">
                                     <i class="fas fa-exchange-alt me-1"></i>معکوس کردن
+                                </button>
+                            </div>
+                            <!-- دکمه‌های مرتب‌سازی جدول -->
+                            <div class="btn-group w-100" role="group">
+                                <button type="button" class="btn btn-outline-success" id="sortAscBtn">
+                                    <i class="fas fa-sort-alpha-down me-1"></i>مرتب‌سازی جدول صعودی
+                                </button>
+                                <button type="button" class="btn btn-outline-warning" id="sortDescBtn">
+                                    <i class="fas fa-sort-alpha-up me-1"></i>مرتب‌سازی جدول نزولی
                                 </button>
                             </div>
                         </div>
@@ -398,6 +407,8 @@ class BarnamehServerFilter {
         const selectAllBtn = modal.querySelector('#selectAllBtn');
         const deselectAllBtn = modal.querySelector('#deselectAllBtn');
         const invertSelectionBtn = modal.querySelector('#invertSelectionBtn');
+        const sortAscBtn = modal.querySelector('#sortAscBtn');
+        const sortDescBtn = modal.querySelector('#sortDescBtn');
         const clearFilterBtn = modal.querySelector('#clearFilterBtn');
         const applyFilterBtn = modal.querySelector('#applyFilterBtn');
         const clearValueSearch = modal.querySelector('#clearValueSearch');
@@ -450,6 +461,21 @@ class BarnamehServerFilter {
             this.updateSelectedCount();
         });
         
+        // دکمه‌های مرتب‌سازی
+        sortAscBtn.addEventListener('click', () => {
+            this.currentSort = { column: columnId, direction: 'asc' };
+            this.currentPage = 1;
+            this.applyFilters();
+            bootstrap.Modal.getInstance(modal).hide();
+        });
+        
+        sortDescBtn.addEventListener('click', () => {
+            this.currentSort = { column: columnId, direction: 'desc' };
+            this.currentPage = 1;
+            this.applyFilters();
+            bootstrap.Modal.getInstance(modal).hide();
+        });
+        
         // پاک کردن فیلتر
         clearFilterBtn.addEventListener('click', () => {
             delete this.currentFilters[columnId];
@@ -494,7 +520,8 @@ class BarnamehServerFilter {
         serverValues.forEach(valueObj => {
             const value = valueObj.value || valueObj;
             const display = valueObj.display || value;
-            const isChecked = currentValues.includes(value);
+            // همه موارد در ابتدا انتخاب شده باشند (اگر فیلتر قبلی نداشته باشیم)
+            const isChecked = currentValues.length === 0 ? true : currentValues.includes(value);
             
             const checkboxHtml = `
                 <div class="form-check mb-2">
@@ -520,6 +547,8 @@ class BarnamehServerFilter {
         
         this.updateSelectedCount();
     }
+    
+
     
     updateSelectedCount() {
         const modal = document.getElementById('barnamehFilterModal');
@@ -765,18 +794,18 @@ class BarnamehServerFilter {
             } else if (columnId === 'actions') {
                 rowHtml += `<td class="text-center">
                     <div class="btn-group">
-                        <a href="/bki_barnameh/detail/${barnameh.id}/" 
+                        <a href="/bki/barnameh/detail/${barnameh.id}/" 
                            class="btn btn-info btn-sm rounded-circle" 
                            data-bs-toggle="tooltip" title="مشاهده جزئیات">
                             <i class="fas fa-eye"></i>
                         </a>
                         ${!barnameh.is_sent_to_bki ? `
-                            <a href="/bki_barnameh/edit/${barnameh.id}/" 
+                            <a href="/bki/barnameh/edit/${barnameh.id}/" 
                                class="btn btn-warning btn-sm rounded-circle ms-1" 
                                data-bs-toggle="tooltip" title="ویرایش">
                                 <i class="fas fa-edit"></i>
                             </a>
-                            <form action="/bki_barnameh/delete/${barnameh.id}/" method="post" 
+                            <form action="/bki/barnameh/delete/${barnameh.id}/" method="post" 
                                   class="d-inline" 
                                   onsubmit="return confirm('آیا از حذف این بارنامه اطمینان دارید؟');">
                                 <input type="hidden" name="csrfmiddlewaretoken" value="${this.getCSRFToken()}">
@@ -786,7 +815,7 @@ class BarnamehServerFilter {
                                 </button>
                             </form>
                             ${barnameh.status === 'BARNAMEH_COMPLETE' ? `
-                                <form action="/bki_barnameh/send_to_bki/${barnameh.id}/" method="post" class="d-inline">
+                                <form action="/bki/barnameh/send-to-bki/${barnameh.id}/" method="post" class="d-inline">
                                     <input type="hidden" name="csrfmiddlewaretoken" value="${this.getCSRFToken()}">
                                     <button type="submit" class="btn btn-primary btn-sm rounded-circle ms-1" 
                                             data-bs-toggle="tooltip" title="ارسال به بازارگاه">
@@ -795,7 +824,7 @@ class BarnamehServerFilter {
                                 </form>
                             ` : ''}
                         ` : `
-                            <a href="/bki_barnameh/edit_in_bki/${barnameh.id}/" 
+                            <a href="/bki/barnameh/edit-in-bki/${barnameh.id}/" 
                                class="btn btn-warning btn-sm rounded-circle ms-1" 
                                data-bs-toggle="tooltip" title="ویرایش در بازارگاه">
                                 <i class="fas fa-pencil-alt"></i>
@@ -892,6 +921,7 @@ class BarnamehServerFilter {
         headers.forEach(header => {
             const columnId = header.getAttribute('data-column-id');
             const filterButton = header.querySelector('.filter-btn');
+            const headerContainer = header.querySelector('.d-flex');
             
             if (filterButton) {
                 const hasFilter = this.currentFilters.hasOwnProperty(columnId);
@@ -934,6 +964,32 @@ class BarnamehServerFilter {
                     filterButton.title = `فیلتر ${header.textContent.trim()}`;
                 }
             }
+            
+            // اضافه کردن اندیکاتور مرتب‌سازی
+            if (headerContainer) {
+                // حذف اندیکاتور قبلی
+                const existingSortIcon = headerContainer.querySelector('.sort-indicator');
+                if (existingSortIcon) {
+                    existingSortIcon.remove();
+                }
+                
+                // اضافه کردن اندیکاتور جدید اگر این ستون مرتب شده باشد
+                if (this.currentSort.column === columnId) {
+                    const sortIcon = document.createElement('span');
+                    sortIcon.className = 'sort-indicator ms-1';
+                    sortIcon.style.cssText = 'color: #ffc107; font-size: 12px;';
+                    
+                    if (this.currentSort.direction === 'asc') {
+                        sortIcon.innerHTML = '<i class="fas fa-sort-up"></i>';
+                        sortIcon.title = 'مرتب‌سازی صعودی';
+                    } else {
+                        sortIcon.innerHTML = '<i class="fas fa-sort-down"></i>';
+                        sortIcon.title = 'مرتب‌سازی نزولی';
+                    }
+                    
+                    headerContainer.appendChild(sortIcon);
+                }
+            }
         });
     }
     
@@ -943,8 +999,9 @@ class BarnamehServerFilter {
         
         const activeFiltersCount = Object.keys(this.currentFilters).length;
         const hasGlobalSearch = this.globalSearch.length > 0;
+        const hasSort = this.currentSort.column !== null;
         
-        if (activeFiltersCount === 0 && !hasGlobalSearch) {
+        if (activeFiltersCount === 0 && !hasGlobalSearch && !hasSort) {
             // حذف جعبه اگر فیلتری فعال نیست
             if (statusBox) {
                 statusBox.remove();
@@ -993,6 +1050,19 @@ class BarnamehServerFilter {
             });
         }
         
+        // اضافه کردن اطلاعات مرتب‌سازی
+        if (hasSort) {
+            const columnName = this.getColumnName(this.currentSort.column);
+            const sortDirection = this.currentSort.direction === 'asc' ? 'صعودی' : 'نزولی';
+            const sortIcon = this.currentSort.direction === 'asc' ? 'fa-sort-up' : 'fa-sort-down';
+            
+            content += `<span class="badge bg-info me-1">
+                <i class="fas ${sortIcon} me-1"></i>مرتب‌سازی: ${columnName} (${sortDirection})
+                <button type="button" class="btn-close btn-close-white btn-sm ms-1" 
+                        onclick="clearSort()" aria-label="حذف مرتب‌سازی"></button>
+            </span>`;
+        }
+        
         content += '</div>';
         
         content += `<div class="filter-status-actions">
@@ -1025,9 +1095,16 @@ class BarnamehServerFilter {
             this.applyFilters();
         };
         
+        window.clearSort = () => {
+            this.currentSort = { column: null, direction: null };
+            this.currentPage = 1;
+            this.applyFilters();
+        };
+        
         window.clearAllFilters = () => {
             this.currentFilters = {};
             this.globalSearch = '';
+            this.currentSort = { column: null, direction: null };
             const globalSearchInput = document.getElementById('globalBarnamehSearch');
             if (globalSearchInput) {
                 globalSearchInput.value = '';

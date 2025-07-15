@@ -355,13 +355,47 @@ def apply_barnameh_filter(request):
             sort_column = sort_config['column']
             sort_direction = sort_config.get('direction', 'asc')
             
-            # تعیین نام فیلد برای مرتب‌سازی
-            sort_field = sort_column
+            # تعیین نام فیلد برای مرتب‌سازی بر اساس نوع ستون
+            sort_field_mapping = {
+                'number': 'number',
+                'serial': 'serial',
+                'tonnage': 'tonnage',
+                'status': 'status',
+                'driver_name': 'driver_name',
+                'driver_phone': 'driver_phone',
+                'vehicle_plate': 'vehicle_plate',
+                'receiver_name': 'receiver_name',
+                'destination': 'destination',
+                'barnameh_date': 'barnameh_date',
+                'transport_date': 'transport_date',
+                'purchase_number': 'purchase_number',
+                'shenase_takhsis_code': 'shenase_takhsis_code',
+                'is_sent_to_bki': 'is_sent_to_bki',
+                'is_factored': 'is_factored',
+                'is_created_by_excel': 'is_created_by_excel',
+                'created_at': 'barnameh_created_at',
+                # فیلدهای related
+                'cargo': 'purchase__cargo__cottage',
+                'company_price': 'purchase__company_price',
+                'customer_price': 'purchase__customer_price',
+                'total_sales_amount': 'purchase__total_sales_amount',
+                'buyer_national_code': 'purchase__buyer_national_code',
+                'buyer_address': 'purchase__address',
+                'demand_amount': 'purchase__total_weight',
+                'importer': 'purchase__cargo__vared_konandeh__name',
+                'product_type': 'purchase__cargo__product_type',
+                'successful_send_date': 'purchase__successful_send_date',
+            }
+            
+            # دریافت فیلد مرتب‌سازی
+            sort_field = sort_field_mapping.get(sort_column, sort_column)
+            
             if sort_direction == 'desc':
                 sort_field = f'-{sort_field}'
                 
             try:
                 base_queryset = base_queryset.order_by(sort_field)
+                logger.info(f"مرتب‌سازی اعمال شد: {sort_field}")
             except Exception as e:
                 logger.warning(f"خطا در مرتب‌سازی: {e}")
                 base_queryset = base_queryset.order_by('-barnameh_created_at')

@@ -1352,6 +1352,12 @@
                                     </td>
                                 {% elif column.id == 'is_created_by_excel' %}
                                     <td class="column-is_created_by_excel">
+                                        {% if barnameh.is_created_by_excel %}
+                                            <span class="badge bg-success">بله</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">خیر</span>
+                                        {% endif %}
+                                    </td>
                                 {% elif column.id == 'created_at' %}
                                     <td class="column-created_at">{{ barnameh.barnameh_created_at|date:"Y/m/d"|default:"-" }}</td>
                                 {% elif column.id == 'actions' %}
@@ -1385,12 +1391,6 @@
                                                     <i class="fas fa-paper-plane"></i>
                                                 </button>
                                             </form>
-                                            {% elif barnameh.is_sent_to_bki %}
-                            <a href="{% url 'edit_barnameh_in_bki' barnameh.id %}" 
-                               class="btn btn-warning btn-sm rounded-circle ms-1" 
-                               data-bs-toggle="tooltip" title="ویرایش در بازارگاه">
-                                                <i class="fas fa-pencil-alt"></i>
-                                            </a>
                                             {% endif %}
                                             {% else %}
                             <a href="{% url 'edit_barnameh_in_bki' barnameh.id %}" 
