@@ -45,6 +45,7 @@ from core._models import SupportAgentTask, SupportAgent, AdminTask
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
+from collections import OrderedDict
 
 import logging
 
@@ -100,20 +101,20 @@ class RoleBasedPurchaseForm(forms.ModelForm):
             allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'weight', 'delivered_weight',
          'status', 'cargo', 'product_type', 'buyer_name', 'delivery_receiver_name' , 'bazaargah_phone_number',
           'tahvil_phone_number', 'buyer_national_id', 'address', 'tracking_number', 'buyer_user_type',
-           'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type' ]
+           'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type', 'order_weight' ]
 
         elif user_role == 'support_agent':
             allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'unique_sales_agent', 'weight',
          'delivered_weight', 'status',  'cargo', 'product_type', 'importer', 'barbary', 'barbary_confidential_number',
           'barbary_customer_number', 'buyer_name', 'delivery_receiver_name' ,
            'buyer_national_id', 'address', 'tracking_number', 'buyer_user_type',
-           'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type'] 
+           'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type' 'order_weight'] 
 
         elif user_role == 'financial_manager':
             allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'unique_sales_agent', 'customer_price', 'weight',
          'delivered_weight', 'status',
           'cargo', 'product_type', 'importer', 'buyer_name', 'delivery_receiver_name','buyer_national_id', 'address', 
-          'tracking_number']  
+          'tracking_number' 'order_weight']  
 
         
         elif user_role == 'admin' or user_role == 'logistics_manager':
@@ -122,7 +123,7 @@ class RoleBasedPurchaseForm(forms.ModelForm):
           'barbary_customer_number', 'buyer_name', 'delivery_receiver_name' , 'bazaargah_phone_number',
           'tahvil_phone_number',
            'buyer_national_id', 'address', 'tracking_number', 'buyer_user_type',
-           'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type'] 
+           'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type' 'order_weight'] 
 
         else:
             allowed_fields = []
@@ -232,8 +233,14 @@ class RoleBasedPurchaseForm(forms.ModelForm):
             self.fields['barbary_confidential_number'].widget.attrs['disabled'] = True
 
         if 'barbary_customer_number' in self.fields:
-            self.fields['barbary_customer_number'].widget.attrs['readonly'] = True
-            self.fields['barbary_customer_number'].widget.attrs['disabled'] = True
+            if user_role == 'admin' or user_role == 'logistics_manager':
+                if 'readonly' in self.fields['barbary_customer_number'].widget.attrs:
+                    del self.fields['barbary_customer_number'].widget.attrs['readonly']
+                if 'disabled' in self.fields['barbary_customer_number'].widget.attrs:
+                    del self.fields['barbary_customer_number'].widget.attrs['disabled']
+            else:
+                self.fields['barbary_customer_number'].widget.attrs['readonly'] = True
+                self.fields['barbary_customer_number'].widget.attrs['disabled'] = True
 
         if 'delivery_receiver_name' in self.fields:
             self.fields['delivery_receiver_name'].widget.attrs['readonly'] = True
@@ -252,17 +259,20 @@ class RoleBasedPurchaseForm(forms.ModelForm):
             self.fields['unique_delivery_id'].widget.attrs['disabled'] = True
 
         if 'delivery_address' in self.fields:
-            self.fields['delivery_address'].widget.attrs['readonly'] = True
-            self.fields['delivery_address'].widget.attrs['disabled'] = True
+            if 'readonly' in self.fields['delivery_address'].widget.attrs:
+                del self.fields['delivery_address'].widget.attrs['readonly']
+            if 'disabled' in self.fields['delivery_address'].widget.attrs:
+                del self.fields['delivery_address'].widget.attrs['disabled']
 
         if 'delivery_postal_code' in self.fields:
             self.fields['delivery_postal_code'].widget.attrs['readonly'] = True
             self.fields['delivery_postal_code'].widget.attrs['disabled'] = True
 
         if 'vehicle_type' in self.fields:
-            self.fields['vehicle_type'].widget.attrs['readonly'] = True
-            self.fields['vehicle_type'].widget.attrs['disabled'] = True
-
+            if 'readonly' in self.fields['vehicle_type'].widget.attrs:
+                del self.fields['vehicle_type'].widget.attrs['readonly']
+            if 'disabled' in self.fields['vehicle_type'].widget.attrs:
+                del self.fields['vehicle_type'].widget.attrs['disabled']
         if 'extelaf_type' in self.fields:
             self.fields['extelaf_type'].widget.attrs['readonly'] = True
             self.fields['extelaf_type'].widget.attrs['disabled'] = True
@@ -283,7 +293,46 @@ class RoleBasedPurchaseForm(forms.ModelForm):
             self.fields['importer'].widget.attrs['readonly'] = True
             self.fields['importer'].widget.attrs['disabled'] = True
 
-            
+        if 'order_weight' in self.fields:
+            self.fields['order_weight'].widget.attrs['readonly'] = True
+            self.fields['order_weight'].widget.attrs['disabled'] = True
+
+        custom_order_fields = [
+            'buyer_name',
+            'unique_sales_agent',
+            'product_type',
+            'cargo',
+            'importer',
+            'status',
+            'customer_price',
+            'order_weight',
+            'delivered_weight',
+            'extelaf_type', 
+            'extelaf_weight', 
+            'extelaf_amount',
+            'bazaargah_phone_number',
+            'purchase_number',
+            'delivery_receiver_name' ,
+            'tahvil_phone_number',
+            'code_melli_tahvil',
+            'barbary_confidential_number',
+            'barbary_customer_number', 
+            'buyer_national_id', 
+            'address', 
+            'tracking_number', 
+            'buyer_user_type',
+            'unique_delivery_id', 
+            'delivery_address',
+            'delivery_postal_code', 
+            'vehicle_type',
+            'date',
+            'weight',
+            'barbary', 
+            'shenase_takhsis'] 
+        ordered_field_names = [f for f in custom_order_fields if f in self.fields]
+        self.fields = OrderedDict((f, self.fields[f]) for f in ordered_field_names)
+
+
     
     def clean(self):
         cleaned_data = super().clean()
@@ -727,12 +776,12 @@ def purchase_CRUD_view(request, purchase_id):
                                 for error in errors:
                                     messages.error(request, error)
                         return redirect('purchase_CRUD', purchase_id=purchase_id)
-                    
+
                     # پردازش تغییرات فرم فقط در صورتی که دکمه اکشن فشرده نشده باشد یا اکشن موفقیت‌آمیز بوده باشد
                     if not action_taken or (action_taken and request.POST.get('save_changes')):
                         for field in form.changed_data:
                             # فیلد bypass_validation را از تاریخچه تغییرات حذف می‌کنیم
-                            if field == 'bypass_validation' or field == 'allocation_ids':
+                            if field == 'bypass_validation' or field == 'allocation_ids' or field == 'product_type' or field == 'importer':
                                 continue
                             old_value = getattr(original_obj, field)
                             new_value = form.cleaned_data.get(field)
@@ -796,6 +845,9 @@ def purchase_CRUD_view(request, purchase_id):
                         for error in errors:
                             messages.error(request, error)
             except Exception as e:
+                logger.error(f"خطا در اکشن {e} برای خرید {purchase_id} توسط {request.user.username} با آیپی {get_client_ip(request)}")
+                import traceback
+                logger.error(traceback.format_exc())
                 messages.error(request, f'خطا: {str(e)}')
         else:
             for field, errors in form.errors.items():
@@ -1606,7 +1658,7 @@ def link_manual_purchase(request, purchase_id):
     return redirect('purchase_CRUD', purchase_id=purchase_id)
 
 @login_required
-@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent')
 @csrf_exempt
 def create_support_task_from_purchase(request, purchase_id):
     """ایجاد تسک کارشناس پشتیبانی از صفحه خرید"""

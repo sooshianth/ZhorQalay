@@ -5,6 +5,7 @@ from django.db.models import Sum, Q
 import jdatetime
 from .EmployeeModel import Employee
 from django.utils import timezone
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 class WeeklyAttendance(models.Model):
     employee = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کارمند")
@@ -404,3 +405,112 @@ class AttendanceHistory(models.Model):
     
     def __str__(self):
         return f"{self.attendance} - {self.get_change_type_display()} توسط {self.changed_by.username}"
+
+
+class AttendanceConfiguration(models.Model):
+    """
+    تنظیمات مربوط به تاخیر مجاز در ثبت ساعات کاری
+    """
+    allowed_delay_days = models.PositiveIntegerField(
+        default=1,
+        validators=[MinValueValidator(0), MaxValueValidator(30)],
+        verbose_name="تعداد روز تاخیر مجاز",
+        help_text="تعداد روزهایی که کارمند می‌تواند با تاخیر ساعات کاری ثبت کند"
+    )
+    
+    consider_friday_exception = models.BooleanField(
+        default=True,
+        verbose_name="استثنا برای جمعه",
+        help_text="در صورت فعال بودن، یک روز اضافی برای جمعه در نظر گرفته می‌شود"
+    )
+    
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="فعال",
+        help_text="آیا این تنظیمات فعال است"
+    )
+    
+    created_at = models.DateTimeField(
+        default=timezone.now,
+        verbose_name="تاریخ ایجاد"
+    )
+    
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="تاریخ آخرین ویرایش"
+    )
+    
+    class Meta:
+        verbose_name = "تنظیمات تاخیر در ثبت"
+        verbose_name_plural = "تنظیمات تاخیر در ثبت"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"تاخیر مجاز: {self.allowed_delay_days} روز"
+    
+    @classmethod
+    def get_active_config(cls):
+        """
+        دریافت تنظیمات فعال
+        """
+        config = cls.objects.filter(is_active=True).first()
+        if not config:
+            # اگر تنظیماتی وجود نداشته باشد، تنظیمات پیش‌فرض ایجاد می‌کنیم
+            config = cls.objects.create(
+                allowed_delay_days=1,
+                consider_friday_exception=True,
+                is_active=True
+            )
+        return config
+    
+    def can_register_for_date(self, target_date):
+        """
+        بررسی اینکه آیا برای تاریخ مشخص شده می‌توان ساعت کاری ثبت کرد
+        
+        Args:
+            target_date: تاریخ مورد نظر به فرمت jdatetime.date
+            
+        Returns:
+            tuple: (can_register: bool, reason: str)
+        """
+        if not self.is_active:
+            return True, "تنظیمات غیرفعال است"
+        
+        # تاریخ امروز به فرمت شمسی
+        today = jdatetime.date.today()
+        
+        # محاسبه تعداد روز تفاوت
+        days_diff = (today - target_date).days
+        
+        # اگر تاریخ آینده است، مجاز نیست
+        if days_diff < 0:
+            return False, "نمی‌توان برای تاریخ آینده ساعت کاری ثبت کرد"
+        
+        # اگر امروز است، مجاز است
+        if days_diff == 0:
+            return True, "ثبت برای امروز مجاز است"
+        
+        # بررسی روز هفته امروز
+        today_weekday = today.weekday()  # 0=شنبه، 1=یکشنبه، ..., 6=جمعه
+        
+        # تعداد روز مجاز
+        allowed_days = self.allowed_delay_days
+        
+        # اگر استثنا برای جمعه فعال است و امروز شنبه است
+        if self.consider_friday_exception and today_weekday == 0:  # شنبه
+            allowed_days += 1
+        
+        # بررسی نهایی
+        if days_diff <= allowed_days:
+            return True, f"ثبت برای {days_diff} روز پیش مجاز است"
+        else:
+            return False, f"حداکثر {allowed_days} روز تاخیر مجاز است، شما {days_diff} روز تاخیر دارید"
+    
+    def save(self, *args, **kwargs):
+        """
+        هنگام ذخیره، دیگر تنظیمات را غیرفعال می‌کنیم
+        """
+        if self.is_active:
+            # غیرفعال کردن سایر تنظیمات
+            AttendanceConfiguration.objects.filter(is_active=True).exclude(pk=self.pk).update(is_active=False)
+        super().save(*args, **kwargs)

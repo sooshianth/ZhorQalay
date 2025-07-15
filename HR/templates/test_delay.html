@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <title>تست مکانیزم تاخیر</title>
+    <style>
+        body {
+            font-family: Tahoma, Arial, sans-serif;
+            margin: 20px;
+            direction: rtl;
+            text-align: right;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h1>تست مکانیزم تاخیر در ثبت ساعات کاری</h1>
+    
+    <div class="test-result">
+        <h3>تنظیمات فعال:</h3>
+        <p><strong>تعداد روز تاخیر مجاز:</strong> {{ config.allowed_delay_days }}</p>
+        <p><strong>استثنا برای جمعه:</strong> {{ config.consider_friday_exception|yesno:"فعال,غیرفعال" }}</p>
+        <p><strong>وضعیت:</strong> {{ config.is_active|yesno:"فعال,غیرفعال" }}</p>
+    </div>
+    
+    <div class="test-result">
+        <h3>تاریخ امروز:</h3>
+        <p class="info">{{ today }} (روز هفته: {{ today_weekday }})</p>
+    </div>
+    
+    <div class="test-result">
+        <h3>نتایج تست:</h3>
+        {% for test in test_results %}
+        <div style="margin: 10px 0; padding: 5px; border-left: 3px solid {% if test.can_register %}green{% else %}red{% endif %};">
+            <strong>تاریخ:</strong> {{ test.date }} (تفاوت: {{ test.days_diff }} روز)<br>
+            <strong>نتیجه:</strong> 
+            <span class="{% if test.can_register %}success{% else %}error{% endif %}">
+                {% if test.can_register %}✅ مجاز{% else %}❌ غیرمجاز{% endif %}
+            </span><br>
+            <strong>دلیل:</strong> {{ test.reason }}
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="test-result">
+        <h3>تست شنبه (استثنا جمعه):</h3>
+        <p class="info">این تست نشان می‌دهد که آیا استثنا برای جمعه درست کار می‌کند</p>
+        {% for test in saturday_tests %}
+        <div style="margin: 5px 0; padding: 3px;">
+            <strong>{{ test.days_back }} روز قبل از شنبه:</strong> {{ test.date }} - 
+            <span class="{% if test.can_register %}success{% else %}error{% endif %}">
+                {% if test.can_register %}✅ مجاز{% else %}❌ غیرمجاز{% endif %}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="test-result">
+        <h3>راهنمای استفاده:</h3>
+        <ul>
+            <li>به پنل ادمین بروید</li>
+            <li>بخش "تنظیمات تاخیر در ثبت" را پیدا کنید</li>
+            <li>تعداد روز تاخیر مجاز را تنظیم کنید</li>
+            <li>استثنا برای جمعه را فعال/غیرفعال کنید</li>
+        </ul>
+    </div>
+</body>
+</html> 

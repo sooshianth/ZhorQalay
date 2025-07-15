@@ -1,5 +1,5 @@
 from django import forms
-from HR.EmployeeAttendanceModel import WeeklyAttendance
+from HR.EmployeeAttendanceModel import WeeklyAttendance, AttendanceConfiguration
 from django.contrib.auth.models import User
 from HR.EmployeeModel import Employee
 from django.utils.translation import gettext_lazy as _
@@ -312,6 +312,29 @@ class DailyAttendanceForm(forms.Form):
             
             # اطلاعات اشکال‌زدایی
             print(f"Debug - Form clean_date: Input={date_str}, Parsed jalali_date={jalali_date}")
+            
+            # بررسی تاخیر مجاز در ثبت ساعات کاری
+            try:
+                config = AttendanceConfiguration.get_active_config()
+                print(f"DEBUG - Config: {config.allowed_delay_days} روز، استثنا جمعه: {config.consider_friday_exception}")
+                print(f"DEBUG - Target date: {jalali_date}")
+                
+                can_register, reason = config.can_register_for_date(jalali_date)
+                print(f"DEBUG - Can register: {can_register}, Reason: {reason}")
+                
+                if not can_register:
+                    print(f"DEBUG - Raising ValidationError: {reason}")
+                    raise forms.ValidationError(reason)
+                else:
+                    print(f"DEBUG - Date is valid, proceeding...")
+            except forms.ValidationError:
+                # ValidationError را دوباره raise می‌کنیم
+                print(f"DEBUG - Re-raising ValidationError")
+                raise
+            except Exception as e:
+                # فقط خطاهای غیرمنتظره را handle می‌کنیم
+                print(f"DEBUG - Unexpected error in delay validation: {str(e)}")
+                raise forms.ValidationError(f"خطا در بررسی تاخیر: {str(e)}")
             
             # مستقیماً تاریخ جلالی را برمی‌گردانیم (نه گرگوری)
             return jalali_date

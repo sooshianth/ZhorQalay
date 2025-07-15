@@ -273,7 +273,7 @@ class Customer(models.Model):
         return self.name
 
     def get_sales_agents(self):
-        return self.sales_agents.all()
+        return self.sales_agent.all()
 
     def get_last_contact_datetime(self):
         return self.calls.last().date if self.calls.exists() else None
