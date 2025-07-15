@@ -17,165 +17,103 @@
         box-sizing: border-box !important;
     }
     
-    body {
+        body {
         font-family: 'Vazir', 'Tahoma', sans-serif !important;
-        background: #ffffff !important;
+        background-color: #f8f9fa !important;
         direction: rtl !important;
-        min-height: 100vh !important;
     }
     
     /* Container and Layout */
     .container-fluid {
         padding: 20px !important;
         max-width: 100% !important;
-    }
+        }
         
     /* Card Styles */
-    .card {
-        border-radius: 20px !important;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+        .card {
+        border-radius: 15px !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
         border: none !important;
         margin-bottom: 20px !important;
-        backdrop-filter: blur(10px) !important;
-        background: rgba(255, 255, 255, 0.95) !important;
-    }
+        }
         
     .card-body {
-        padding: 30px !important;
+        padding: 25px !important;
     }
     
     .card-header {
         background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
         color: white !important;
-        border-radius: 20px 20px 0 0 !important;
-        padding: 20px 30px !important;
+        border-radius: 15px 15px 0 0 !important;
+        padding: 15px 25px !important;
         border: none !important;
-        position: relative !important;
-        overflow: hidden !important;
-    }
-    
-    .card-header::before {
-        content: '' !important;
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(255,255,255,0.1) 100%) !important;
-        animation: shimmer 3s infinite !important;
-    }
-    
-    @keyframes shimmer {
-        0% { transform: translateX(-100%) !important; }
-        100% { transform: translateX(100%) !important; }
     }
     
     /* Header Section */
     .text-primary {
-        color: #667eea !important;
+        color: #38a169 !important;
     }
     
     h2 {
         color: #2c3e50 !important;
         font-weight: 700 !important;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
     }
     
-    /* Modern Button Styles */
+    /* Button Styles */
     .btn {
-        border-radius: 15px !important;
+        border-radius: 8px !important;
         font-weight: 600 !important;
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        padding: 12px 24px !important;
-        position: relative !important;
-        overflow: hidden !important;
-        border: none !important;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
-        font-size: 0.9rem !important;
-        letter-spacing: 0.5px !important;
-    }
-    
-    .btn::before {
-        content: '' !important;
-        position: absolute !important;
-        top: 0 !important;
-        left: -100% !important;
-        width: 100% !important;
-        height: 100% !important;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent) !important;
-        transition: left 0.5s !important;
-    }
-    
-    .btn:hover::before {
-        left: 100% !important;
+        transition: all 0.3s ease !important;
+        padding: 8px 16px !important;
     }
     
     .btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
+        border: none !important;
         color: white !important;
         text-decoration: none !important;
     }
     
     .btn-primary:hover {
-        background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%) !important;
-        transform: translateY(-3px) !important;
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4) !important;
+        background: linear-gradient(135deg, #2f855a 0%, #276749 100%) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+        text-decoration: none !important;
+    }
+    
+    /* Remove underlines from all links */
+    a {
+        text-decoration: none !important;
+    }
+    
+    a:hover {
         text-decoration: none !important;
     }
     
     .btn-success {
         background: linear-gradient(135deg, #48bb78 0%, #38a169 100%) !important;
-        color: white !important;
-    }
-    
-    .btn-success:hover {
-        background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
-        transform: translateY(-3px) !important;
-        box-shadow: 0 8px 25px rgba(72, 187, 120, 0.4) !important;
+        border: none !important;
     }
     
     .btn-info {
         background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%) !important;
-        color: white !important;
-    }
-    
-    .btn-info:hover {
-        background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%) !important;
-        transform: translateY(-3px) !important;
-        box-shadow: 0 8px 25px rgba(66, 153, 225, 0.4) !important;
+        border: none !important;
     }
     
     .btn-warning {
         background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%) !important;
+        border: none !important;
         color: white !important;
-    }
-    
-    .btn-warning:hover {
-        background: linear-gradient(135deg, #dd6b20 0%, #c05621 100%) !important;
-        transform: translateY(-3px) !important;
-        box-shadow: 0 8px 25px rgba(237, 137, 54, 0.4) !important;
     }
     
     .btn-danger {
         background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%) !important;
-        color: white !important;
-    }
-    
-    .btn-danger:hover {
-        background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%) !important;
-        transform: translateY(-3px) !important;
-        box-shadow: 0 8px 25px rgba(245, 101, 101, 0.4) !important;
-    }
+        border: none !important;
+        }
         
     .btn-secondary {
         background: linear-gradient(135deg, #a0aec0 0%, #718096 100%) !important;
-        color: white !important;
-    }
-    
-    .btn-secondary:hover {
-        background: linear-gradient(135deg, #718096 0%, #4a5568 100%) !important;
-        transform: translateY(-3px) !important;
-        box-shadow: 0 8px 25px rgba(160, 174, 192, 0.4) !important;
+        border: none !important;
     }
     
     .btn-outline-secondary {
@@ -188,75 +126,56 @@
         background: #f7fafc !important;
         border-color: #a0aec0 !important;
         color: #2d3748 !important;
-        transform: translateY(-2px) !important;
     }
     
     .btn-sm {
-        padding: 8px 16px !important;
-        font-size: 0.85rem !important;
-        border-radius: 12px !important;
+        padding: 6px 12px !important;
+        font-size: 0.875rem !important;
     }
     
     .rounded-circle {
         border-radius: 50% !important;
-        width: 40px !important;
-        height: 40px !important;
+        width: 35px !important;
+        height: 35px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         padding: 0 !important;
-        transition: all 0.3s ease !important;
-    }
-    
-    .rounded-circle:hover {
-        transform: scale(1.1) !important;
-    }
-    
-    /* Remove underlines from all links */
-    a {
-        text-decoration: none !important;
-    }
-    
-    a:hover {
-        text-decoration: none !important;
     }
     
     /* Global Selection Info */
     .global-selection-info {
         background: linear-gradient(135deg, #e6fffa 0%, #b2f5ea 100%) !important;
         border: 2px solid #4fd1c7 !important;
-        border-radius: 20px !important;
-        padding: 20px !important;
-        transition: all 0.4s ease !important;
-        box-shadow: 0 8px 25px rgba(79, 209, 199, 0.2) !important;
-        backdrop-filter: blur(10px) !important;
+        border-radius: 12px !important;
+        padding: 15px !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 2px 8px rgba(79, 209, 199, 0.2) !important;
     }
     
     .global-selection-info .text-primary {
         color: #234e52 !important;
         font-weight: 700 !important;
-    }
+        }
         
-    .badge {
+        .badge {
         font-size: 0.85rem !important;
-        padding: 8px 16px !important;
-        border-radius: 25px !important;
-        font-weight: 600 !important;
+        padding: 6px 12px !important;
+        border-radius: 20px !important;
     }
     
     .bg-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
     }
     
     /* Bulk Edit Controls */
     .bulk-edit-controls {
         background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%) !important;
         border: 2px solid #fc8181 !important;
-        border-radius: 20px !important;
-        padding: 20px !important;
+        border-radius: 12px !important;
+        padding: 15px !important;
         margin-bottom: 20px !important;
-        box-shadow: 0 8px 25px rgba(252, 129, 129, 0.2) !important;
-        backdrop-filter: blur(10px) !important;
+        box-shadow: 0 2px 8px rgba(252, 129, 129, 0.2) !important;
     }
     
     .bulk-edit-toolbar {
@@ -264,45 +183,44 @@
         justify-content: space-between !important;
         align-items: center !important;
         flex-wrap: wrap !important;
-        gap: 20px !important;
-    }
+        gap: 15px !important;
+        }
         
     .selected-count {
         font-weight: 700 !important;
         color: #742a2a !important;
-        font-size: 1.2rem !important;
+        font-size: 1.1rem !important;
     }
     
     .bulk-edit-actions {
         display: flex !important;
-        gap: 15px !important;
+        gap: 10px !important;
         flex-wrap: wrap !important;
     }
     
     /* Table Container */
-    .table-responsive {
-        border-radius: 20px !important;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+        .table-responsive {
+        border-radius: 15px !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
         background: white !important;
         overflow-x: auto !important;
         max-width: 100% !important;
-        backdrop-filter: blur(10px) !important;
-    }
+        }
         
     /* Table Styles */
     .table {
         margin-bottom: 0 !important;
         border-collapse: collapse !important;
         width: 100% !important;
-        min-width: 1400px !important;
+        min-width: 1400px !important; /* Force horizontal scroll */
     }
     
     .table thead th {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
         color: white !important;
         font-weight: 700 !important;
         text-align: center !important;
-        padding: 18px 15px !important;
+        padding: 15px 12px !important;
         border: none !important;
         position: sticky !important;
         top: 0 !important;
@@ -310,63 +228,50 @@
         vertical-align: middle !important;
         font-size: 0.9rem !important;
         white-space: nowrap !important;
-        position: relative !important;
-    }
-    
-    .table thead th::before {
-        content: '' !important;
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(255,255,255,0.1) 100%) !important;
-        animation: shimmer 3s infinite !important;
     }
     
     .table thead th:first-child {
-        border-radius: 20px 0 0 0 !important;
+        border-radius: 15px 0 0 0 !important;
     }
     
     .table thead th:last-child {
-        border-radius: 0 20px 0 0 !important;
+        border-radius: 0 15px 0 0 !important;
     }
     
     .table tbody tr {
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        transition: all 0.3s ease !important;
         border-bottom: 1px solid #e2e8f0 !important;
     }
     
     .table tbody tr:hover {
-        background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%) !important;
+        background-color: #f7fafc !important;
         transform: scale(1.002) !important;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
     }
     
     .table tbody tr:nth-child(even) {
-        background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f4 100%) !important;
+        background-color: #f8f9fa !important;
     }
     
     .table tbody tr:nth-child(odd) {
-        background: white !important;
+        background-color: white !important;
     }
     
     .table td {
-        padding: 15px 12px !important;
+        padding: 12px 10px !important;
         vertical-align: middle !important;
         text-align: center !important;
         border: none !important;
-        font-size: 0.9rem !important;
+        font-size: 0.85rem !important;
         color: #2d3748 !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
         max-width: 150px !important;
-        transition: all 0.3s ease !important;
     }
     
     .table td:hover {
-        background: linear-gradient(135deg, #edf2f7 0%, #e2e8f0 100%) !important;
+        background-color: #edf2f7 !important;
     }
     
     /* Column Specific Widths - Auto-sized based on content */
@@ -374,9 +279,9 @@
         width: 100px !important;
         min-width: 100px !important;
         max-width: 100px !important;
-        padding-left: 20px !important;
-        padding-right: 20px !important;
-    }
+        padding-left: 15px !important; /* Reset padding for checkbox column */
+        padding-right: 15px !important;
+        }
         
     .table th:nth-child(2), .table td:nth-child(2) { /* شماره بارنامه */
         width: auto !important;
@@ -458,11 +363,10 @@
     
     /* Badge Styles */
     .badge.rounded-pill {
-        font-size: 0.8rem !important;
-        padding: 8px 16px !important;
+        font-size: 0.75rem !important;
+        padding: 6px 12px !important;
         font-weight: 600 !important;
-        border-radius: 25px !important;
-    }
+        }
         
     .bg-warning {
         background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%) !important;
@@ -471,7 +375,7 @@
     
     .bg-success {
         background: linear-gradient(135deg, #48bb78 0%, #38a169 100%) !important;
-    }
+        }
         
     /* Dropdown Styles */
     .dropdown-toggle {
@@ -495,27 +399,22 @@
     .dropdown-menu {
         font-size: 13px !important;
         min-width: 200px !important;
-        border-radius: 15px !important;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+        border-radius: 10px !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15) !important;
         border: none !important;
         padding: 10px 0 !important;
-        backdrop-filter: blur(10px) !important;
-        background: rgba(255, 255, 255, 0.95) !important;
     }
     
     .dropdown-item {
-        padding: 12px 20px !important;
+        padding: 10px 15px !important;
         transition: all 0.3s ease !important;
         color: #2d3748 !important;
-        border-radius: 8px !important;
-        margin: 2px 8px !important;
     }
     
     .dropdown-item:hover {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        color: white !important;
-        padding-right: 25px !important;
-        transform: translateX(-5px) !important;
+        background-color: #f7fafc !important;
+        color: #38a169 !important;
+        padding-right: 20px !important;
     }
     
     .dropdown-item i {
@@ -525,29 +424,23 @@
     
     /* Checkbox Styles */
     input[type="checkbox"] {
-        width: 20px !important;
-        height: 20px !important;
+        width: 18px !important;
+        height: 18px !important;
         cursor: pointer !important;
-        accent-color: #667eea !important;
-        border-radius: 4px !important;
-        transition: all 0.3s ease !important;
-    }
-    
-    input[type="checkbox"]:checked {
-        transform: scale(1.1) !important;
-    }
+        accent-color: #38a169 !important;
+        }
         
     /* Logs Container */
     .logs-container .btn-outline-info {
         font-size: 0.75rem !important;
-        padding: 6px 12px !important;
-        border-radius: 25px !important;
+        padding: 4px 8px !important;
+        border-radius: 20px !important;
     }
     
     .logs-container .card-body {
-        padding: 15px !important;
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
-        border-radius: 15px !important;
+        padding: 10px !important;
+        background: #f8f9fa !important;
+        border-radius: 8px !important;
         max-height: 150px !important;
         overflow-y: auto !important;
     }
@@ -558,9 +451,9 @@
     }
     
     .logs-container li {
-        padding: 6px 0 !important;
+        padding: 4px 0 !important;
         border-bottom: 1px solid #e2e8f0 !important;
-        font-size: 0.85rem !important;
+        font-size: 0.8rem !important;
     }
     
     .logs-container li:last-child {
@@ -569,7 +462,7 @@
     
     /* Action Buttons Group */
     .btn-group {
-        gap: 8px !important;
+        gap: 5px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -583,14 +476,14 @@
     
     /* All columns except checkbox get left padding for filter button */
     .python-excel-filter th:not(:first-child) {
-        padding-left: 40px !important;
+        padding-left: 35px !important;
     }
     
     /* Checkbox column keeps normal padding */
     .python-excel-filter th:first-child {
-        padding-left: 20px !important;
-        padding-right: 20px !important;
-    }
+        padding-left: 15px !important;
+        padding-right: 15px !important;
+        }
         
     /* Hide filter button in checkbox column */
     .python-excel-filter th:first-child .dropdown-toggle {
@@ -600,22 +493,20 @@
     /* Filter button positioning for all other columns */
     .python-excel-filter th:not(:first-child) .dropdown-toggle {
         position: absolute !important;
-        left: 10px !important;
+        left: 8px !important;
         top: 50% !important;
         transform: translateY(-50%) !important;
-        padding: 4px 8px !important;
+        padding: 2px 6px !important;
         font-size: 12px !important;
-        border-radius: 8px !important;
+        border-radius: 4px !important;
         background: rgba(255, 255, 255, 0.2) !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
         color: white !important;
-        transition: all 0.3s ease !important;
-    }
+        }
         
     .python-excel-filter th:not(:first-child) .dropdown-toggle:hover {
         background: rgba(255, 255, 255, 0.3) !important;
         border-color: rgba(255, 255, 255, 0.5) !important;
-        transform: translateY(-50%) scale(1.1) !important;
     }
     
     .python-excel-filter th:not(:first-child) .dropdown-toggle::after {
@@ -640,7 +531,7 @@
         }
         
         .card-body {
-            padding: 25px !important;
+            padding: 20px !important;
         }
         
         .bulk-edit-toolbar {
@@ -663,13 +554,13 @@
     
     /* Loading and Animation Effects */
     .table tbody tr {
-        animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        animation: fadeInUp 0.3s ease-out !important;
     }
     
     @keyframes fadeInUp {
         from {
             opacity: 0 !important;
-            transform: translateY(20px) !important;
+            transform: translateY(10px) !important;
         }
         to {
             opacity: 1 !important;
@@ -684,42 +575,40 @@
     
     .tooltip-inner {
         background: #2d3748 !important;
-        border-radius: 10px !important;
-        padding: 8px 12px !important;
+        border-radius: 6px !important;
+        padding: 6px 10px !important;
     }
     
     /* Scrollbar Styles */
     .table-responsive::-webkit-scrollbar {
-        height: 10px !important;
+        height: 8px !important;
     }
     
     .table-responsive::-webkit-scrollbar-track {
         background: #f1f1f1 !important;
-        border-radius: 15px !important;
+        border-radius: 10px !important;
     }
     
     .table-responsive::-webkit-scrollbar-thumb {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        border-radius: 15px !important;
+        background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
+        border-radius: 10px !important;
     }
     
     .table-responsive::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%) !important;
+        background: linear-gradient(135deg, #2f855a 0%, #276749 100%) !important;
     }
     
     /* Form Controls */
     .form-control, .form-select {
-        border-radius: 12px !important;
+        border-radius: 8px !important;
         border: 2px solid #e2e8f0 !important;
-        padding: 12px 18px !important;
+        padding: 10px 15px !important;
         transition: all 0.3s ease !important;
-        font-size: 0.9rem !important;
     }
     
     .form-control:focus, .form-select:focus {
-        border-color: #667eea !important;
-        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1) !important;
-        transform: translateY(-2px) !important;
+        border-color: #38a169 !important;
+        box-shadow: 0 0 0 3px rgba(56, 161, 105, 0.1) !important;
     }
     
     /* Hidden Forms */
@@ -730,7 +619,7 @@
     /* Timeline Styles for Logs Modal */
     .timeline {
         position: relative !important;
-        padding: 25px 0 !important;
+        padding: 20px 0 !important;
     }
     
     .timeline-item {
@@ -740,13 +629,12 @@
     .timeline-item:not(:last-child) .timeline-marker::after {
         content: '' !important;
         position: absolute !important;
-        top: 25px !important;
+        top: 20px !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
-        width: 3px !important;
-        height: calc(100% + 25px) !important;
-        background: linear-gradient(to bottom, #667eea, #e2e8f0) !important;
-        border-radius: 2px !important;
+        width: 2px !important;
+        height: calc(100% + 20px) !important;
+        background: linear-gradient(to bottom, #38a169, #e2e8f0) !important;
     }
     
     .timeline-marker {
@@ -755,253 +643,124 @@
     }
     
     .timeline-content .card {
-        border-radius: 15px !important;
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+        border-radius: 12px !important;
+        transition: all 0.3s ease !important;
     }
     
     .timeline-content .card:hover {
-        transform: translateY(-3px) !important;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
     }
     
     .timeline-content .card-body {
         background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%) !important;
-        border-radius: 15px !important;
+        border-radius: 12px !important;
     }
     
     /* Modal Enhancements */
     .modal-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
         color: white !important;
-        border-radius: 20px 20px 0 0 !important;
-        position: relative !important;
-        overflow: hidden !important;
-    }
-    
-    .modal-header::before {
-        content: '' !important;
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(255,255,255,0.1) 100%) !important;
-        animation: shimmer 3s infinite !important;
+        border-radius: 15px 15px 0 0 !important;
     }
     
     .modal-content {
-        border-radius: 20px !important;
+        border-radius: 15px !important;
         border: none !important;
-        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2) !important;
-        backdrop-filter: blur(10px) !important;
-        background: rgba(255, 255, 255, 0.95) !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
     }
     
     .modal-body {
-        max-height: 500px !important;
+        max-height: 400px !important;
         overflow-y: auto !important;
-        padding: 30px !important;
+        padding: 25px !important;
     }
     
     .modal-footer {
         border-top: 2px solid #e2e8f0 !important;
-        padding: 20px 30px !important;
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
-        border-radius: 0 0 20px 20px !important;
+        padding: 15px 25px !important;
     }
     
     /* Scrollbar for Modal */
     .modal-body::-webkit-scrollbar {
-        width: 8px !important;
+        width: 6px !important;
     }
     
     .modal-body::-webkit-scrollbar-track {
         background: #f1f1f1 !important;
-        border-radius: 15px !important;
+        border-radius: 10px !important;
     }
     
     .modal-body::-webkit-scrollbar-thumb {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        border-radius: 15px !important;
+        background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
+        border-radius: 10px !important;
     }
     
     .modal-body::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%) !important;
-    }
-    
-    /* Column Management Modal Specific Styles */
-    #columnsModal .modal-content {
-        background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.95) 100%) !important;
-    }
-    
-    #columnsModal .modal-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        color: white !important;
-        border-radius: 20px 20px 0 0 !important;
-    }
-    
-    #columnsModal .modal-title {
-        font-weight: 700 !important;
-        font-size: 1.3rem !important;
-    }
-    
-    #columnsModal .alert {
-        border-radius: 15px !important;
-        border: none !important;
-        background: linear-gradient(135deg, #e6fffa 0%, #b2f5ea 100%) !important;
-        color: #234e52 !important;
-        font-weight: 500 !important;
-    }
-    
-    #columnsModal .section-header {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
-        border-radius: 15px !important;
-        padding: 20px !important;
-        margin-bottom: 25px !important;
-        border: 2px solid #e2e8f0 !important;
-    }
-    
-    #columnsModal .section-header h6 {
-        color: #667eea !important;
-        font-weight: 700 !important;
-        margin: 0 !important;
-    }
-    
-    #columnsModal .column-checkbox {
-        background: white !important;
-        border-radius: 12px !important;
-        padding: 15px !important;
-        margin-bottom: 10px !important;
-        border: 2px solid #e2e8f0 !important;
-        transition: all 0.3s ease !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
-    }
-    
-    #columnsModal .column-checkbox:hover {
-        border-color: #667eea !important;
-        transform: translateY(-2px) !important;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1) !important;
-    }
-    
-    #columnsModal .form-check-input {
-        width: 20px !important;
-        height: 20px !important;
-        margin-left: 10px !important;
-        accent-color: #667eea !important;
-        border-radius: 6px !important;
-    }
-    
-    #columnsModal .form-check-label {
-        font-weight: 500 !important;
-        color: #2d3748 !important;
-        cursor: pointer !important;
-        transition: color 0.3s ease !important;
-    }
-    
-    #columnsModal .form-check-input:checked + .form-check-label {
-        color: #667eea !important;
-        font-weight: 600 !important;
-    }
-    
-    #columnsModal .modal-footer {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
-        border-top: 2px solid #e2e8f0 !important;
-        padding: 20px 30px !important;
-    }
-    
-    #columnsModal .btn {
-        border-radius: 12px !important;
-        padding: 10px 20px !important;
-        font-weight: 600 !important;
-        transition: all 0.3s ease !important;
-    }
-    
-    /* Header Buttons Enhancement */
-    .d-flex.gap-2 .btn {
-        margin: 0 5px !important;
-        position: relative !important;
-        overflow: hidden !important;
-    }
-    
-    .d-flex.gap-2 .btn i {
-        margin-left: 8px !important;
-        font-size: 0.9rem !important;
-    }
-    
-    /* Floating Action Button Style for Header */
-    .header-actions {
-        display: flex !important;
-        gap: 10px !important;
-        flex-wrap: wrap !important;
-        align-items: center !important;
-    }
-    
-    .header-actions .btn {
-        position: relative !important;
-        overflow: hidden !important;
-        z-index: 1 !important;
-    }
-    
-    .header-actions .btn::after {
-        content: '' !important;
-        position: absolute !important;
-        top: 0 !important;
-        left: -100% !important;
-        width: 100% !important;
-        height: 100% !important;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent) !important;
-        transition: left 0.6s !important;
-        z-index: -1 !important;
-    }
-    
-    .header-actions .btn:hover::after {
-        left: 100% !important;
-    }
-    
-    /* Enhanced Card Header */
-    .card-header .d-flex {
-        position: relative !important;
-        z-index: 2 !important;
-    }
-    
-    .card-header i.fas.fa-file-invoice {
-        font-size: 2.5rem !important;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)) !important;
-        animation: pulse 2s infinite !important;
-    }
-    
-    @keyframes pulse {
-        0%, 100% { transform: scale(1) !important; }
-        50% { transform: scale(1.05) !important; }
-    }
-    
-    /* Enhanced Table Row Hover */
-    .table tbody tr {
-        position: relative !important;
-        overflow: hidden !important;
-    }
-    
-    .table tbody tr::before {
-        content: '' !important;
-        position: absolute !important;
-        top: 0 !important;
-        left: -100% !important;
-        width: 100% !important;
-        height: 100% !important;
-        background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.05), transparent) !important;
-        transition: left 0.5s !important;
-        z-index: 0 !important;
-    }
-    
-    .table tbody tr:hover::before {
-        left: 100% !important;
-    }
-    
-    .table tbody tr td {
-        position: relative !important;
-        z-index: 1 !important;
-    }
+        background: linear-gradient(135deg, #2f855a 0%, #276749 100%) !important;
+        }
+
+    /* استایل‌های مدال مدیریت ستون‌ها */
+#columnsModal .modal-content {
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+#columnsModal .modal-header {
+    border-bottom: none;
+    padding: 1.2rem 1.5rem;
+}
+
+#columnsModal .modal-body {
+    padding: 1.5rem;
+}
+
+#columnsModal .modal-footer {
+    border-top: 1px solid #eee;
+    padding: 1rem 1.5rem;
+}
+
+#columnsModal .list-group {
+    max-height: 300px;
+    overflow-y: auto;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+#columnsModal .list-group-item {
+    border-left: none;
+    border-right: none;
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    align-items: center;
+}
+
+#columnsModal .list-group-item:first-child {
+    border-top: none;
+}
+
+#columnsModal .list-group-item:last-child {
+    border-bottom: none;
+}
+
+#columnsModal .form-check-input {
+    margin-left: 0.5rem;
+    margin-right: 0;
+    width: 1.1em;
+    height: 1.1em;
+}
+
+#columnsModal .form-check-label {
+    flex-grow: 1;
+    cursor: pointer;
+    padding: 0.25rem 0;
+}
+
+#columnsModal .alert {
+    border-radius: 10px;
+    border-left: 4px solid #38a169;
+}
     </style>
     
     {% bulk_edit_scripts %}
@@ -1024,54 +783,108 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // دریافت تنظیمات از data attributes
-        const configEl = document.getElementById('barnameh-list-config');
-        
-        // تنظیم configuration برای JavaScript
-        window.BarnamehListConfig = {
-            filterUrl: configEl.dataset.filterUrl,
-            columnValuesUrl: configEl.dataset.columnValuesUrl,
-            bulkEditPageUrl: configEl.dataset.bulkEditPageUrl,
-            excelEditPageUrl: configEl.dataset.excelEditPageUrl,
-            downloadTemplateUrl: configEl.dataset.downloadTemplateUrl,
-            historyApiUrl: configEl.dataset.historyApiUrl,
-            restoreValueApiUrl: configEl.dataset.restoreValueApiUrl,
-            exportExcelUrl: configEl.dataset.exportExcelUrl
-        };
-        
-        console.log('Barnameh List Config loaded:', window.BarnamehListConfig);
-        
-        // دکمه خروجی اکسل
-        document.getElementById('exportToExcelBtn').addEventListener('click', function() {
-            exportSelectedToExcel();
-        });
+    // 初始化服务器端过滤器 (Python Filter)
+    initServerSideTableFilter();
+    
+    // 其他现有代码
+    // 获取配置设置
+    const configEl = document.getElementById('barnameh-list-config');
+    
+    // 设置configuration为JavaScript
+    window.BarnamehListConfig = {
+        filterUrl: configEl.dataset.filterUrl,
+        columnValuesUrl: configEl.dataset.columnValuesUrl,
+        bulkEditPageUrl: configEl.dataset.bulkEditPageUrl,
+        excelEditPageUrl: configEl.dataset.excelEditPageUrl,
+        downloadTemplateUrl: configEl.dataset.downloadTemplateUrl,
+        historyApiUrl: configEl.dataset.historyApiUrl,
+        restoreValueApiUrl: configEl.dataset.restoreValueApiUrl,
+        exportExcelUrl: configEl.dataset.exportExcelUrl
+    };
+    
+    console.log('Barnameh List Config loaded:', window.BarnamehListConfig);
+    
+    // 导出Excel按钮
+    document.getElementById('exportToExcelBtn').addEventListener('click', function() {
+        exportSelectedToExcel();
     });
+});
+
+/**
+ * 初始化服务器端表格过滤器
+ * 使用table_filter系统实现高级过滤功能
+ */
+function initServerSideTableFilter() {
+    // 获取表格元素
+    const table = document.getElementById('barnamehTable');
+    if (!table) return;
+    
+    // 获取API URL
+    const filterUrl = table.getAttribute('data-filter-url');
+    const columnValuesUrl = table.getAttribute('data-column-values-url');
+    
+    if (!filterUrl || !columnValuesUrl) {
+        console.error('缺少过滤器URL配置');
+        return;
+    }
+    
+    // 初始化表格过滤器
+    try {
+        if (typeof TableFilter !== 'undefined') {
+            const serverFilter = new TableFilter({
+                tableSelector: '#barnamehTable',
+                enableServerSide: true,
+                serverConfig: {
+                    filterUrl: filterUrl,
+                    columnValuesUrl: columnValuesUrl.replace('dummy', ''),
+                    pageParamName: 'page',
+                    pageSizeParamName: 'per_page',
+                    refreshOnInit: true
+                },
+                enableToast: true,
+                enableIndicators: true,
+                enableSummary: true,
+                enableClearAll: true,
+                autoDetectColumns: true
+            });
+            
+            console.log('服务器端过滤器初始化成功');
+            
+            // 导出全局变量以便其他函数访问
+            window.barnamehServerFilter = serverFilter;
+        } else {
+            console.error('TableFilter类未找到，确保table_filter.js已加载');
+        }
+    } catch (error) {
+        console.error('初始化表格过滤器时出错:', error);
+    }
+}
     
     function exportSelectedToExcel() {
-        // دریافت بارنامه‌های انتخاب شده
+        // 获取选定的条目
         const selectedCheckboxes = document.querySelectorAll('#barnamehTable .row-checkbox:checked');
         
         if (selectedCheckboxes.length === 0) {
-            alert('لطفاً حداقل یک بارنامه انتخاب کنید');
+            alert('请至少选择一个条目');
             return;
         }
         
-        // جمع‌آوری آیدی‌های انتخاب شده
+        // 收集选定的ID
         const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.id || cb.value);
         
-        // تعریف ستون‌های پیش‌فرض برای خروجی اکسل
+        // 定义默认列
         const defaultColumns = [
             'number', 'serial', 'tonnage', 'status', 'driver_name', 
             'driver_phone', 'vehicle_plate', 'receiver_name', 
             'destination', 'barnameh_date', 'purchase_number', 'shenase_takhsis_code'
         ];
         
-        // ایجاد فرم برای ارسال POST
+        // 创建表单提交
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = window.BarnamehListConfig.exportExcelUrl;
         
-        // اضافه کردن CSRF token
+        // 添加CSRF令牌
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
         if (csrfToken) {
             const csrfInput = document.createElement('input');
@@ -1081,26 +894,26 @@
             form.appendChild(csrfInput);
         }
         
-        // اضافه کردن آیدی‌های انتخاب شده
+        // 添加所选ID
         const idsInput = document.createElement('input');
         idsInput.type = 'hidden';
         idsInput.name = 'ids';
         idsInput.value = selectedIds.join(',');
         form.appendChild(idsInput);
         
-        // اضافه کردن ستون‌ها
+        // 添加列
         const columnsInput = document.createElement('input');
         columnsInput.type = 'hidden';
         columnsInput.name = 'columns';
         columnsInput.value = defaultColumns.join(',');
         form.appendChild(columnsInput);
         
-        // ارسال فرم
+        // 提交表单
         document.body.appendChild(form);
         form.submit();
         document.body.removeChild(form);
         
-        console.log(`خروجی اکسل برای ${selectedIds.length} بارنامه درخواست شد`);
+        console.log(`已请求 ${selectedIds.length} 个条目的Excel导出`);
     }
     
     function bulkSendToBki() {
@@ -1229,26 +1042,26 @@
                                 <i class="fas fa-file-invoice text-primary me-3" style="font-size: 2rem;"></i>
                                 <h2 class="mb-0 text-dark">لیست بارنامه‌ها</h2>
                             </div>
-                            <div class="header-actions">
+                            <div class="d-flex gap-2">
                                 <!-- دکمه مدیریت ستون‌ها -->
                                 <button class="btn btn-info text-white shadow-sm" data-bs-toggle="modal" data-bs-target="#columnsModal">
-                                    <i class="fas fa-columns me-2"></i> مدیریت ستون‌ها
+                                    <i class="fas fa-columns me-2"></i> مدیریت ستون‌های جدول
                                 </button>
-                                <button type="button" class="btn btn-warning shadow-sm" id="exportToExcelBtn">
+                                <button type="button" class="btn btn-warning" id="exportToExcelBtn">
                                     <i class="fas fa-file-excel me-2"></i>
                                     خروجی اکسل
                                 </button>
-                                <a href="{% url 'download_excel_template' %}" class="btn btn-success shadow-sm">
+                                <a href="{% url 'download_excel_template' %}" class="btn btn-success">
                                     <i class="fas fa-download me-2"></i>
-                                    دانلود قالب
+                                    دانلود قالب اکسل
                                 </a>
-                                <a href="{% url 'upload_excel' %}" class="btn btn-info shadow-sm">
+                                <a href="{% url 'upload_excel' %}" class="btn btn-info">
                                     <i class="fas fa-upload me-2"></i>
                                     آپلود اکسل
                                 </a>
-                                <a href="{% url 'barnameh_create' %}" class="btn btn-primary shadow-sm">
+                                <a href="{% url 'barnameh_create' %}" class="btn btn-primary">
                                     <i class="fas fa-plus me-2"></i>
-                                    افزودن بارنامه
+                                    افزودن بارنامه جدید
                                 </a>
                             </div>
                         </div>
@@ -1449,6 +1262,26 @@
                                 {% elif column.id == 'actions' %}
                                     <th class="text-center">عملیات</th>
                                 {% endif %}
+                                {% if column.id == 'factor_sodoor_season' %}
+                                    {% filter_column_class 'factor_sodoor_season' 'text' as col_class %}
+                                    {% filter_column_attrs 'factor_sodoor_season' 'text' 'زمان صدور فاکتور فصل' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="factor_sodoor_season" data-column-type="text">زمان صدور فاکتور فصل</th>
+                                {% endif %}
+                                {% if column.id == 'is_factored' %}
+                                    {% filter_column_class 'is_factored' 'boolean' as col_class %}
+                                    {% filter_column_attrs 'is_factored' 'boolean' 'فاکتور صادر شده' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="is_factored" data-column-type="boolean">فاکتور صادر شده</th>
+                                {% endif %}
+                                {% if column.id == 'is_sent_to_bki' %}
+                                    {% filter_column_class 'is_sent_to_bki' 'boolean' as col_class %}
+                                    {% filter_column_attrs 'is_sent_to_bki' 'boolean' 'ارسال به بازارگاه' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="is_sent_to_bki" data-column-type="boolean">ارسال به بازارگاه</th>
+                                {% endif %}
+                                {% if column.id == 'is_created_by_excel' %}
+                                    {% filter_column_class 'is_created_by_excel' 'boolean' as col_class %}
+                                    {% filter_column_attrs 'is_created_by_excel' 'boolean' 'ایجاد توسط اکسل' as col_attrs %}
+                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="is_created_by_excel" data-column-type="boolean">ایجاد توسط اکسل</th>
+                                {% endif %}
                             {% endif %}
                         {% endfor %}
                                     </tr>
@@ -1469,7 +1302,10 @@
                         data-receiver-name="{{ barnameh.receiver_name|default:'' }}"
                         data-destination="{{ barnameh.destination|default:'' }}"
                         data-barnameh-date="{{ barnameh.barnameh_date|default:'' }}"
-                        data-is-sent-to-bki="{% if barnameh.is_sent_to_bki %}true{% else %}false{% endif %}">
+                        data-is-sent-to-bki="{% if barnameh.is_sent_to_bki %}true{% else %}false{% endif %}"
+                        data-is-factored="{% if barnameh.is_factored %}true{% else %}false{% endif %}"
+                        data-is-created-by-excel="{% if barnameh.is_created_by_excel %}true{% else %}false{% endif %}"
+                        data-factor-sodoor-season="{{ barnameh.factor_sodoor_season|default:'' }}">
                         <!-- Checkbox column -->
                                         <td class="text-center">
                             <input type="checkbox" class="row-checkbox" data-id="{{ barnameh.id }}" 
@@ -1549,6 +1385,26 @@
                                             <span class="badge bg-secondary">خیر</span>
                                         {% endif %}
                                     </td>
+                                {% elif column.id == 'factor_sodoor_season' %}
+                                    <td class="column-factor_sodoor_season">{{ barnameh.factor_sodoor_season|default:"-" }}</td>
+                                {% elif column.id == 'is_factored' %}
+                                    <td class="column-is_factored">
+                                        {% if barnameh.is_factored %}
+                                            <span class="badge bg-success">بله</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">خیر</span>
+                                        {% endif %}
+                                    </td>
+                                {% elif column.id == 'is_sent_to_bki' %}
+                                    <td class="column-is_sent_to_bki">
+                                        {% if barnameh.is_sent_to_bki %}
+                                            <span class="badge bg-success">بله</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">خیر</span>
+                                        {% endif %}
+                                    </td>
+                                {% elif column.id == 'is_created_by_excel' %}
+                                    <td class="column-is_created_by_excel">
                                 {% elif column.id == 'created_at' %}
                                     <td class="column-created_at">{{ barnameh.barnameh_created_at|date:"Y/m/d"|default:"-" }}</td>
                                 {% elif column.id == 'actions' %}
@@ -1620,7 +1476,70 @@
                                 </tbody>
                             </table>
                 </div>
+        
+        <!-- Pagination for barnameh list -->
+        {% if barnamehs.object_list %}
+        <div class="pagination-container mt-4" id="barnamehPagination">
+            <div class="pagination-info d-flex justify-content-between align-items-center mb-3">
+                <div class="pagination-details">
+                    <span class="text-muted">نمایش {{ barnamehs.start_index }} تا {{ barnamehs.end_index }} از {{ total_count }} بارنامه</span>
+                </div>
+                <div class="pagination-per-page">
+                    <label for="barnamehPerPage" class="form-label me-2">تعداد در هر صفحه:</label>
+                    <select id="barnamehPerPage" class="form-select form-select-sm d-inline-block w-auto" onchange="window.location.href='?page=1&per_page='+this.value">
+                        <option value="5" {% if per_page == '5' %}selected{% endif %}>5</option>
+                        <option value="10" {% if per_page == '10' %}selected{% endif %}>10</option>
+                        <option value="25" {% if per_page == '25' %}selected{% endif %}>25</option>
+                        <option value="50" {% if per_page == '50' %}selected{% endif %}>50</option>
+                        <option value="100" {% if per_page == '100' %}selected{% endif %}>100</option>
+                        <option value="200" {% if per_page == '200' %}selected{% endif %}>200</option>
+                        <option value="all" {% if per_page == 'all' %}selected{% endif %}>نمایش همه</option>
+                    </select>
+                </div>
             </div>
+            {% if paginator.num_pages > 1 %}
+            <nav aria-label="صفحه‌بندی بارنامه‌ها">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1&per_page={{ per_page }}">
+                                <i class="fas fa-angle-double-right"></i> اول
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}&per_page={{ per_page }}">
+                                <i class="fas fa-angle-right"></i> قبلی
+                            </a>
+                        </li>
+                    {% endif %}
+                    {% for page_num in page_range %}
+                        {% if page_num == paginator.ELLIPSIS %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        {% else %}
+                            <li class="page-item {% if page_num == current_page %}active{% endif %}">
+                                <a class="page-link" href="?page={{ page_num }}&per_page={{ per_page }}">{{ page_num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}&per_page={{ per_page }}">
+                                بعدی <i class="fas fa-angle-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ paginator.num_pages }}&per_page={{ per_page }}">
+                                آخر <i class="fas fa-angle-double-left"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 
     <!-- Hidden forms for bulk actions -->
@@ -1675,57 +1594,73 @@
     </div>
 
     <!-- مدال مدیریت ستون‌ها -->
-    <div class="modal fade" id="columnsModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-columns me-2"></i>مدیریت ستون‌های جدول</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal fade" id="columnsModal" tabindex="-1" aria-labelledby="columnsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="columnsModalLabel">
+                    <i class="fas fa-columns me-2"></i>مدیریت ستون‌های جدول
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-info-circle me-2"></i> ستون‌های مورد نظر خود را برای نمایش در جدول انتخاب کنید.
                 </div>
-                <div class="modal-body">
-                    <div class="alert alert-info border-0 mb-4">
-                        <p class="mb-0"><i class="fas fa-info-circle me-2"></i> ستون‌های مورد نظر خود را برای نمایش در جدول و خروجی اکسل انتخاب کنید.</p>
-                    </div>
-                    
-                    <form id="columnsForm">
-                        {% csrf_token %}
-                        <!-- ستون‌های جدول -->
-                        <div class="section-container pb-4">
-                            <div class="section-header">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="mb-0"><i class="fas fa-table me-2"></i>ستون‌های قابل انتخاب</h6>
-                                    <div class="d-flex gap-2">
-                                        <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllColumns">
-                                            <i class="fas fa-check-square me-2"></i> انتخاب همه
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllColumns">
-                                            <i class="fas fa-square me-2"></i> هیچکدام
-                                        </button>
-                                    </div>
+                
+                <form id="columnsForm">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex justify-content-between mb-3">
+                                <h6 class="mb-0">ستون‌های اصلی</h6>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary me-2" id="selectMainColumns">
+                                        <i class="fas fa-check me-1"></i>همه
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectMainColumns">
+                                        <i class="fas fa-times me-1"></i>هیچکدام
+                                    </button>
                                 </div>
                             </div>
-                            <div class="section-body">
-                                <div class="row g-3" id="columnsContainer">
-                                    <!-- ستون‌ها با JavaScript پر می‌شوند -->
-                                </div>
+                            <div class="list-group" id="mainColumnsList">
+                                <!-- ستون‌های اصلی اینجا لود می‌شوند -->
                             </div>
                         </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-2"></i>انصراف
-                    </button>
-                    <button type="button" class="btn btn-primary" id="saveColumnsBtn">
-                        <i class="fas fa-save me-2"></i>ذخیره تغییرات
-                    </button>
-                    <button type="button" id="resetColumnsBtn" class="btn btn-warning">
-                        <i class="fas fa-redo me-2"></i> نمایش همه ستون‌ها
-                    </button>
-                </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex justify-content-between mb-3">
+                                <h6 class="mb-0">ستون‌های اضافی</h6>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary me-2" id="selectExtraColumns">
+                                        <i class="fas fa-check me-1"></i>همه
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectExtraColumns">
+                                        <i class="fas fa-times me-1"></i>هیچکدام
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="list-group" id="extraColumnsList">
+                                <!-- ستون‌های اضافی اینجا لود می‌شوند -->
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>انصراف
+                </button>
+                <button type="button" class="btn btn-primary" id="saveColumnsBtn">
+                    <i class="fas fa-save me-1"></i>ذخیره تغییرات
+                </button>
+                <button type="button" class="btn btn-warning" id="resetColumnsBtn">
+                    <i class="fas fa-redo me-1"></i>بازنشانی
+                </button>
             </div>
         </div>
     </div>
+</div>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -1945,46 +1880,84 @@ function loadColumnsConfig() {
                 displayColumnsInModal(data.all_columns, data.selected_columns);
             } else {
                 console.error('خطا در دریافت تنظیمات ستون‌ها:', data.message);
+                alert('خطا در دریافت تنظیمات ستون‌ها');
             }
         })
         .catch(error => {
             console.error('خطا در بارگذاری تنظیمات ستون‌ها:', error);
+            alert('خطا در بارگذاری تنظیمات ستون‌ها');
         });
 }
 
 function displayColumnsInModal(allColumns, selectedColumns) {
-    const container = document.getElementById('columnsContainer');
-    if (!container) return;
+    const mainColumnsList = document.getElementById('mainColumnsList');
+    const extraColumnsList = document.getElementById('extraColumnsList');
     
-    container.innerHTML = '';
+    if (!mainColumnsList || !extraColumnsList) return;
+    
+    mainColumnsList.innerHTML = '';
+    extraColumnsList.innerHTML = '';
+    
+    // تعریف ستون‌های اصلی و اضافی
+    const mainColumns = ['number', 'serial', 'tonnage', 'status', 'driver_name', 
+                        'driver_phone', 'vehicle_plate', 'receiver_name', 
+                        'destination', 'barnameh_date', 'purchase_number', 
+                        'shenase_takhsis_code', 'actions'];
     
     allColumns.forEach(column => {
-        const colDiv = document.createElement('div');
-        colDiv.className = 'col-lg-4 col-md-6 col-sm-12';
+        const isMainColumn = mainColumns.includes(column.id);
+        const isChecked = selectedColumns.includes(column.id);
         
-        const isChecked = selectedColumns.includes(column.id) ? 'checked' : '';
+        const item = document.createElement('div');
+        item.className = 'list-group-item';
         
-        colDiv.innerHTML = `
-            <div class="column-checkbox">
-                <div class="d-flex align-items-center">
-                    <input class="form-check-input" type="checkbox" 
-                           id="col-${column.id}" name="columns[]" 
-                           value="${column.id}" ${isChecked}>
-                    <label class="form-check-label ms-2" for="col-${column.id}">
-                        <i class="fas fa-columns me-2 text-primary"></i>
-                        ${column.name}
-                    </label>
-                </div>
+        item.innerHTML = `
+            <div class="form-check d-flex align-items-center w-100">
+                <input class="form-check-input" type="checkbox" 
+                       id="col-${column.id}" name="columns[]" 
+                       value="${column.id}" ${isChecked ? 'checked' : ''}>
+                <label class="form-check-label" for="col-${column.id}">
+                    ${column.name}
+                </label>
             </div>
         `;
         
-        container.appendChild(colDiv);
+        if (isMainColumn) {
+            mainColumnsList.appendChild(item);
+        } else {
+            extraColumnsList.appendChild(item);
+        }
+    });
+    
+    // رویدادهای دکمه‌های انتخاب/عدم انتخاب
+    document.getElementById('selectMainColumns').addEventListener('click', () => {
+        mainColumnsList.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.checked = true;
+        });
+    });
+    
+    document.getElementById('deselectMainColumns').addEventListener('click', () => {
+        mainColumnsList.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.checked = false;
+        });
+    });
+    
+    document.getElementById('selectExtraColumns').addEventListener('click', () => {
+        extraColumnsList.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.checked = true;
+        });
+    });
+    
+    document.getElementById('deselectExtraColumns').addEventListener('click', () => {
+        extraColumnsList.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.checked = false;
+        });
     });
 }
 
 function saveColumns() {
     const selectedColumns = [];
-    document.querySelectorAll('#columnsContainer input[type="checkbox"]:checked').forEach(cb => {
+    document.querySelectorAll('#columnsModal input[type="checkbox"]:checked').forEach(cb => {
         selectedColumns.push(cb.value);
     });
     
@@ -2008,19 +1981,24 @@ function saveColumns() {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            alert('ستون‌ها با موفقیت بروزرسانی شدند');
             // بستن مدال
             const modal = bootstrap.Modal.getInstance(document.getElementById('columnsModal'));
             modal.hide();
-            // بروزرسانی صفحه
-            window.location.reload();
+            
+            // نمایش پیام موفقیت
+            alert('تنظیمات ستون‌ها با موفقیت ذخیره شد');
+            
+            // رفرش صفحه برای اعمال تغییرات
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
         } else {
-            alert('خطا در بروزرسانی ستون‌ها: ' + data.message);
+            alert('خطا در ذخیره تنظیمات: ' + data.message);
         }
     })
     .catch(error => {
-        console.error('خطا در ذخیره ستون‌ها:', error);
-        alert('خطا در ذخیره ستون‌ها');
+        console.error('خطا در ذخیره تنظیمات:', error);
+        alert('خطا در ذخیره تنظیمات');
     });
 }
 

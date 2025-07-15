@@ -7,6 +7,7 @@ from django.apps import apps
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Q, Count, Max, Min, Avg, Sum
 from django.utils.dateparse import parse_date, parse_datetime
+from .models import TableFilterConfiguration
 from typing import Dict, List, Any, Tuple, Optional
 
 
@@ -415,7 +416,7 @@ class FilterConfigurationManager:
     def get_or_create_column_config(self, column_id: str, column_name: str, 
                                   model_class=None) -> 'TableFilterConfiguration':
         """دریافت یا ایجاد تنظیمات ستون"""
-        from .models import TableFilterConfiguration
+        
         
         config, created = TableFilterConfiguration.objects.get_or_create(
             table_name=self.table_name,

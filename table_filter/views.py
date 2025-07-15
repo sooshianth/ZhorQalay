@@ -82,6 +82,9 @@ def bulk_edit_page(request):
         elif 'cargo_product' in referer or 'cargo-product' in referer:
             model_name = 'CargoProduct'
             table_type = 'cargo_product'
+        elif 'barnameh' in referer:
+            model_name = 'Barnameh'
+            table_type = 'barnameh'
     
     # اگر model_name مشخص شده ولی table_type نه، آن را تشخیص دهیم
     if model_name and not table_type:
@@ -91,6 +94,8 @@ def bulk_edit_page(request):
             table_type = 'customer'
         elif model_name == 'CargoProduct':
             table_type = 'cargo_product'
+        elif model_name == 'Barnameh':
+            table_type = 'barnameh'
     
     print(f"DEBUG - Final parameters: model_name={model_name}, app_name={app_name}, table_type={table_type}, section={section}")
     
@@ -305,6 +310,37 @@ def get_editable_fields(model, table_type, selected_ids=None):
                 'type': 'نوع خرید'
             }
             field_label = field_labels.get(field.name, getattr(field, 'verbose_name', field.name.replace('_', ' ').title()))
+        elif model_name == 'Barnameh':
+            field_labels = {
+                'barbary': 'باربری',
+                'type': 'نوع خرید',
+                'purchase': 'خرید',
+                'purchase_number': 'شناسه خرید',
+                'shenase_takhsis': 'شناسه تخصیص',
+                'shenase_takhsis_code': 'عدد شناسه تخصیص',
+                'number': 'شماره بارنامه',
+                'serial': 'سریال بارنامه',
+                'tonnage': 'وزن',
+                'driver_phone': 'شماره تلفن راننده',
+                'driver_name': 'نام راننده',
+                'vehicle_plate': 'پلاک خودرو',
+                'receiver_name': 'نام گیرنده',
+                'destination': 'مقصد',
+                'status': 'وضعیت',
+                'is_sent_to_bki': 'ارسال به بازارگاه',
+                'is_sent_to_bki_at': 'تاریخ ارسال به بازارگاه',
+                'is_created_by_excel_at': 'تاریخ ایجاد توسط اکسل',
+                'is_sent_to_bki_at': 'تاریخ ارسال به بازارگاه',
+                'buyer_postal_code': 'کدپستی خریدار',
+                'transport_date': 'تاریخ حمل',
+                'factor_sodoor_season': 'زمان صدور فاکتور فصل',
+                'is_factored': 'فاکتور صادر شده',
+                'is_created_by_excel': 'ایجاد توسط اکسل',
+                'barnameh_date': 'تاریخ برنامه',
+                'barnameh_updated_at': 'تاریخ بروزرسانی',
+                'barnameh_created_at': 'تاریخ ایجاد',
+            }
+            field_label = field_labels.get(field.name, getattr(field, 'verbose_name', field.name.replace('_', ' ').title()))
         else:
             field_label = getattr(field, 'verbose_name', None)
             if not field_label:
@@ -477,6 +513,9 @@ def bulk_edit_view(request):
             elif 'cargo_product' in referer:
                 model_name = 'CargoProduct'
                 app_name = 'core'
+            elif 'barnameh' in referer:
+                model_name = 'Barnameh'
+                app_name = 'bki_barnameh'
             else:
                 return JsonResponse({
                     'status': 'error',
