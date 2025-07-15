@@ -45,6 +45,7 @@ from core._models import SupportAgentTask, SupportAgent, AdminTask
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
+from collections import OrderedDict
 
 import logging
 
@@ -291,6 +292,18 @@ class RoleBasedPurchaseForm(forms.ModelForm):
         if 'importer' in self.fields:
             self.fields['importer'].widget.attrs['readonly'] = True
             self.fields['importer'].widget.attrs['disabled'] = True
+
+        custom_order_fields = ['buyer_name', 'unique_sales_agent', 'product_type', 'cargo',  'importer', 
+        'purchase_number', 'shenase_takhsis',
+         'date', 'customer_price', 'weight',
+         'delivered_weight', 'status', 'barbary', 'barbary_confidential_number',
+          'barbary_customer_number', 'delivery_receiver_name' , 'bazaargah_phone_number',
+          'tahvil_phone_number',
+           'buyer_national_id', 'address', 'tracking_number', 'buyer_user_type',
+           'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type'] 
+        ordered_field_names = [f for f in custom_order_fields if f in self.fields]
+        self.fields = OrderedDict((f, self.fields[f]) for f in ordered_field_names)
+
 
     
     def clean(self):

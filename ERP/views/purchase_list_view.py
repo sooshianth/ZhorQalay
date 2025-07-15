@@ -2354,6 +2354,8 @@ def get_purchase_column_values(request):
     """
     API برای دریافت مقادیر منحصر به فرد یک ستون برای فیلتر
     """
+    from core.PurchaseModel import Purchase
+    
     logger.warning(f"API برای دریافت مقادیر منحصر به فرد یک ستون برای فیلتر توسط {request.user.username} دسترسی یافت. {get_client_ip(request)}")
     try:
         column_id = request.POST.get('column_id')
