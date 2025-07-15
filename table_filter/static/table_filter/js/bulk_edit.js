@@ -19,6 +19,14 @@ class BulkEditManager {
             archived: document.querySelector('.bulk-edit-controls-archived')
         };
         
+        // برای صفحه بارنامه‌ها، یک panel واحد وجود دارد
+        const tableType = this.detectTableType();
+        if (tableType === 'barnameh') {
+            this.controlPanels = {
+                active: document.querySelector('.bulk-edit-controls')
+            };
+        }
+        
         // حذف control panelهای null
         Object.keys(this.controlPanels).forEach(key => {
             if (!this.controlPanels[key]) {
@@ -375,6 +383,10 @@ class BulkEditManager {
             return 'customer';
         } else if (url.includes('barnameh') || url.includes('bki_barnameh')) {
             return 'barnameh';
+        } else if (url.includes('vared_konandeh') || url.includes('vared-konandeh')) {
+            return 'vared_konandeh';
+        } else if (url.includes('barbary') || url.includes('barbaries')) {
+            return 'barbary';
         }
         return 'purchase'; // پیش‌فرض
     }

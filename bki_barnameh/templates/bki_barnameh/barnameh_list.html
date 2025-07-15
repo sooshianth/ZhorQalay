@@ -1,14 +1,13 @@
 {% extends 'base.html' %}
 {% load static %}
-{% load table_filter_tags %}
 {% load custom_filters %}
 
 {% block head_styles %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'ERP/css/purchase_list_styles.css' %}">
     
-    <!-- بارگذاری CSS فیلتر پایتونی -->
-    {% load_table_filter %}
+    <!-- CSS برای فیلتر سرور ساید -->
+    <link rel="stylesheet" href="{% static 'table_filter/css/table_filter.css' %}">
     
     <!-- Complete Styles for Barnameh List -->
     <style>
@@ -474,44 +473,50 @@
         text-align: center !important;
     }
     
-    /* All columns except checkbox get left padding for filter button */
-    .python-excel-filter th:not(:first-child) {
-        padding-left: 35px !important;
+    /* Header container for filter buttons */
+    .python-excel-filter th .d-flex {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        width: 100% !important;
     }
     
-    /* Checkbox column keeps normal padding */
-    .python-excel-filter th:first-child {
-        padding-left: 15px !important;
-        padding-right: 15px !important;
-        }
-        
-    /* Hide filter button in checkbox column */
-    .python-excel-filter th:first-child .dropdown-toggle {
-        display: none !important;
+    /* Header text */
+    .python-excel-filter th .header-text {
+        flex-grow: 1 !important;
+        text-align: center !important;
     }
     
-    /* Filter button positioning for all other columns */
-    .python-excel-filter th:not(:first-child) .dropdown-toggle {
-        position: absolute !important;
-        left: 8px !important;
-        top: 50% !important;
-        transform: translateY(-50%) !important;
+    /* Filter button styles */
+    .python-excel-filter th .filter-btn {
         padding: 2px 6px !important;
-        font-size: 12px !important;
+        font-size: 11px !important;
         border-radius: 4px !important;
         background: rgba(255, 255, 255, 0.2) !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
         color: white !important;
-        }
+        min-width: 24px !important;
+        height: 24px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin-left: 8px !important;
+    }
         
-    .python-excel-filter th:not(:first-child) .dropdown-toggle:hover {
+    .python-excel-filter th .filter-btn:hover {
         background: rgba(255, 255, 255, 0.3) !important;
         border-color: rgba(255, 255, 255, 0.5) !important;
     }
     
-    .python-excel-filter th:not(:first-child) .dropdown-toggle::after {
-        margin-right: 2px !important;
-        margin-left: 0 !important;
+    /* Active filter button */
+    .python-excel-filter th .filter-btn.active {
+        background: rgba(255, 193, 7, 0.8) !important;
+        border-color: #ffc107 !important;
+        color: #212529 !important;
+    }
+    
+    .python-excel-filter th .filter-btn.active:hover {
+        background: rgba(255, 193, 7, 1) !important;
     }
     
     /* Empty State */
@@ -698,7 +703,76 @@
     
     .modal-body::-webkit-scrollbar-thumb:hover {
         background: linear-gradient(135deg, #2f855a 0%, #276749 100%) !important;
-        }
+    }
+    
+    /* استایل‌های خاص برای modal فیلتر */
+    #barnamehFilterModal .modal-dialog {
+        max-width: 800px !important;
+        margin: 1.75rem auto !important;
+    }
+    
+    #barnamehFilterModal .modal-content {
+        border-radius: 15px !important;
+        border: none !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    #barnamehFilterModal .modal-header {
+        background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
+        color: white !important;
+        border-radius: 15px 15px 0 0 !important;
+        padding: 1.5rem !important;
+    }
+    
+    #barnamehFilterModal .modal-body {
+        padding: 2rem !important;
+        max-height: 70vh !important;
+        overflow-y: auto !important;
+    }
+    
+    #barnamehFilterModal .modal-footer {
+        border-top: 2px solid #e2e8f0 !important;
+        padding: 1.5rem 2rem !important;
+        background: #f8f9fa !important;
+        border-radius: 0 0 15px 15px !important;
+    }
+    
+    #barnamehFilterModal .values-list {
+        background: #f8f9fa !important;
+        border: 2px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+        padding: 1rem !important;
+    }
+    
+    #barnamehFilterModal .form-check {
+        background: white !important;
+        border-radius: 8px !important;
+        padding: 0.5rem !important;
+        margin-bottom: 0.5rem !important;
+        border: 1px solid #e2e8f0 !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    #barnamehFilterModal .form-check:hover {
+        background: #f0f9ff !important;
+        border-color: #38a169 !important;
+    }
+    
+    #barnamehFilterModal .form-check-input:checked {
+        background-color: #38a169 !important;
+        border-color: #38a169 !important;
+    }
+    
+    #barnamehFilterModal .btn-group .btn {
+        border-radius: 8px !important;
+        margin: 0 2px !important;
+    }
+    
+    #barnamehFilterModal .filter-stats {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+        border: 2px solid #0ea5e9 !important;
+        border-radius: 12px !important;
+    }
 
     /* استایل‌های مدال مدیریت ستون‌ها */
 #columnsModal .modal-content {
@@ -763,128 +837,67 @@
 }
     </style>
     
-    {% bulk_edit_scripts %}
-    {% edit_history_scripts %}
+    <!-- JavaScript برای فیلتر سرور ساید -->
+    <script src="{% static 'bki_barnameh/js/barnameh_server_filter.js' %}"></script>
+    
+    <!-- JavaScript برای مدیریت ویرایش گروهی -->
+    <script src="{% static 'table_filter/js/bulk_edit.js' %}"></script>
     
     <!-- CSRF Token for AJAX requests -->
     <meta name="csrf-token" content="{{ csrf_token }}">
     
-    <!-- Configuration data for JavaScript -->
-    <div id="barnameh-list-config"
+    <!-- Configuration data for Server-Side Filter -->
+    <div id="barnameh-server-config"
          data-filter-url="{% url 'apply_barnameh_filter' %}"
-         data-column-values-url="{% url 'barnameh_column_values' 'dummy' %}"
-         data-bulk-edit-page-url="{% url 'table_filter:bulk_edit_page' %}"
-         data-excel-edit-page-url="{% url 'table_filter:bulk_edit_excel_page' %}"
-         data-download-template-url="{% url 'table_filter:bulk_edit_template' %}"
-         data-history-api-url="{% url 'table_filter:edit_history_api' %}"
-         data-restore-value-api-url="{% url 'table_filter:restore_value_api' %}"
+         data-column-values-url="{% url 'get_barnameh_column_values' %}"
          data-export-excel-url="{% url 'export_barnameh_excel' %}"
          style="display: none;"></div>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-    // 初始化服务器端过滤器 (Python Filter)
-    initServerSideTableFilter();
-    
-    // 其他现有代码
-    // 获取配置设置
-    const configEl = document.getElementById('barnameh-list-config');
-    
-    // 设置configuration为JavaScript
-    window.BarnamehListConfig = {
-        filterUrl: configEl.dataset.filterUrl,
-        columnValuesUrl: configEl.dataset.columnValuesUrl,
-        bulkEditPageUrl: configEl.dataset.bulkEditPageUrl,
-        excelEditPageUrl: configEl.dataset.excelEditPageUrl,
-        downloadTemplateUrl: configEl.dataset.downloadTemplateUrl,
-        historyApiUrl: configEl.dataset.historyApiUrl,
-        restoreValueApiUrl: configEl.dataset.restoreValueApiUrl,
-        exportExcelUrl: configEl.dataset.exportExcelUrl
-    };
-    
-    console.log('Barnameh List Config loaded:', window.BarnamehListConfig);
-    
-    // 导出Excel按钮
-    document.getElementById('exportToExcelBtn').addEventListener('click', function() {
-        exportSelectedToExcel();
-    });
-});
-
-/**
- * 初始化服务器端表格过滤器
- * 使用table_filter系统实现高级过滤功能
- */
-function initServerSideTableFilter() {
-    // 获取表格元素
-    const table = document.getElementById('barnamehTable');
-    if (!table) return;
-    
-    // 获取API URL
-    const filterUrl = table.getAttribute('data-filter-url');
-    const columnValuesUrl = table.getAttribute('data-column-values-url');
-    
-    if (!filterUrl || !columnValuesUrl) {
-        console.error('缺少过滤器URL配置');
-        return;
-    }
-    
-    // 初始化表格过滤器
-    try {
-        if (typeof TableFilter !== 'undefined') {
-            const serverFilter = new TableFilter({
-                tableSelector: '#barnamehTable',
-                enableServerSide: true,
-                serverConfig: {
-                    filterUrl: filterUrl,
-                    columnValuesUrl: columnValuesUrl.replace('dummy', ''),
-                    pageParamName: 'page',
-                    pageSizeParamName: 'per_page',
-                    refreshOnInit: true
-                },
-                enableToast: true,
-                enableIndicators: true,
-                enableSummary: true,
-                enableClearAll: true,
-                autoDetectColumns: true
-            });
-            
-            console.log('服务器端过滤器初始化成功');
-            
-            // 导出全局变量以便其他函数访问
-            window.barnamehServerFilter = serverFilter;
-        } else {
-            console.error('TableFilter类未找到，确保table_filter.js已加载');
+        // دریافت تنظیمات از server config
+        const configEl = document.getElementById('barnameh-server-config');
+        if (configEl) {
+            window.BarnamehServerConfig = {
+                filterUrl: configEl.dataset.filterUrl,
+                columnValuesUrl: configEl.dataset.columnValuesUrl,
+                exportExcelUrl: configEl.dataset.exportExcelUrl
+            };
+            console.log('Barnameh Server Config loaded:', window.BarnamehServerConfig);
         }
-    } catch (error) {
-        console.error('初始化表格过滤器时出错:', error);
-    }
-}
+        
+        // دکمه خروجی اکسل
+        const exportBtn = document.getElementById('exportToExcelBtn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', exportSelectedToExcel);
+        }
+    });
     
     function exportSelectedToExcel() {
-        // 获取选定的条目
+        // دریافت بارنامه‌های انتخاب شده
         const selectedCheckboxes = document.querySelectorAll('#barnamehTable .row-checkbox:checked');
         
         if (selectedCheckboxes.length === 0) {
-            alert('请至少选择一个条目');
+            alert('لطفاً حداقل یک بارنامه انتخاب کنید');
             return;
         }
         
-        // 收集选定的ID
+        // جمع‌آوری آیدی‌های انتخاب شده
         const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.id || cb.value);
         
-        // 定义默认列
+        // تعریف ستون‌های پیش‌فرض
         const defaultColumns = [
             'number', 'serial', 'tonnage', 'status', 'driver_name', 
             'driver_phone', 'vehicle_plate', 'receiver_name', 
             'destination', 'barnameh_date', 'purchase_number', 'shenase_takhsis_code'
         ];
         
-        // 创建表单提交
+        // ایجاد form برای ارسال
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = window.BarnamehListConfig.exportExcelUrl;
+        form.action = window.BarnamehServerConfig.exportExcelUrl;
         
-        // 添加CSRF令牌
+        // اضافه کردن CSRF token
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
         if (csrfToken) {
             const csrfInput = document.createElement('input');
@@ -894,26 +907,26 @@ function initServerSideTableFilter() {
             form.appendChild(csrfInput);
         }
         
-        // 添加所选ID
+        // اضافه کردن آیدی‌های انتخاب شده
         const idsInput = document.createElement('input');
         idsInput.type = 'hidden';
         idsInput.name = 'ids';
         idsInput.value = selectedIds.join(',');
         form.appendChild(idsInput);
         
-        // 添加列
+        // اضافه کردن ستون‌ها
         const columnsInput = document.createElement('input');
         columnsInput.type = 'hidden';
         columnsInput.name = 'columns';
         columnsInput.value = defaultColumns.join(',');
         form.appendChild(columnsInput);
         
-        // 提交表单
+        // ارسال form
         document.body.appendChild(form);
         form.submit();
         document.body.removeChild(form);
         
-        console.log(`已请求 ${selectedIds.length} 个条目的Excel导出`);
+        console.log(`درخواست خروجی اکسل برای ${selectedIds.length} بارنامه ارسال شد`);
     }
     
     function bulkSendToBki() {
@@ -1075,8 +1088,8 @@ function initServerSideTableFilter() {
         <div class="text-primary fw-bold">
             <i class="fas fa-check-square me-2"></i>تعداد بارنامه‌های انتخاب شده: 
             <span class="badge bg-primary" id="globalSelectionCount">0</span>
-            <button class="btn btn-sm btn-outline-secondary ms-3" id="clearAllSelections">
-                <i class="fas fa-times me-1"></i>لغو همه انتخاب‌ها
+                                            <button class="btn btn-sm btn-outline-secondary ms-3" id="clearAllSelections" onclick="clearAllSelections()">
+                                    <i class="fas fa-times me-1"></i>لغو همه انتخاب‌ها
                                 </button>
             </div>
         </div>
@@ -1115,10 +1128,10 @@ function initServerSideTableFilter() {
 
         <div class="table-responsive shadow-sm rounded">
             <table class="table table-bordered table-striped align-middle text-center python-excel-filter" 
-                   id="barnamehTable" 
+                   id="barnamehTable"
                    data-filter-url="{% url 'apply_barnameh_filter' %}"
-                   data-column-values-url="{% url 'barnameh_column_values' 'dummy' %}"
-                   data-section="barnameh">
+                   data-column-values-url="{% url 'get_barnameh_column_values' %}"
+                   data-section="active">
                 <thead class="table-light sticky-header">
                     <tr>
                         <!-- Column for selection checkboxes -->
@@ -1156,131 +1169,65 @@ function initServerSideTableFilter() {
                         {% for column in all_columns %}
                             {% if column.id in selected_columns %}
                                 {% if column.id == 'number' %}
-                                    {% filter_column_class 'number' 'text' as col_class %}
-                                    {% filter_column_attrs 'number' 'text' 'شماره بارنامه' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="number" data-column-type="text">شماره بارنامه</th>
+                                    <th data-column-id="number" data-column-type="text">شماره بارنامه</th>
                                 {% elif column.id == 'serial' %}
-                                    {% filter_column_class 'serial' 'text' as col_class %}
-                                    {% filter_column_attrs 'serial' 'text' 'سریال بارنامه' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="serial" data-column-type="text">سریال بارنامه</th>
+                                    <th data-column-id="serial" data-column-type="text">سریال بارنامه</th>
                                 {% elif column.id == 'tonnage' %}
-                                    {% filter_column_class 'tonnage' 'number' as col_class %}
-                                    {% filter_column_attrs 'tonnage' 'number' 'وزن (کیلوگرم)' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="tonnage" data-column-type="number">وزن (کیلوگرم)</th>
+                                    <th data-column-id="tonnage" data-column-type="number">وزن (کیلوگرم)</th>
                                 {% elif column.id == 'status' %}
-                                    {% filter_column_class 'status' 'choice' as col_class %}
-                                    {% filter_column_attrs 'status' 'choice' 'وضعیت' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="status" data-column-type="choice">وضعیت</th>
+                                    <th data-column-id="status" data-column-type="choice">وضعیت</th>
                                 {% elif column.id == 'driver_name' %}
-                                    {% filter_column_class 'driver_name' 'text' as col_class %}
-                                    {% filter_column_attrs 'driver_name' 'text' 'نام راننده' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="driver_name" data-column-type="text">نام راننده</th>
+                                    <th data-column-id="driver_name" data-column-type="text">نام راننده</th>
                                 {% elif column.id == 'driver_phone' %}
-                                    {% filter_column_class 'driver_phone' 'text' as col_class %}
-                                    {% filter_column_attrs 'driver_phone' 'text' 'شماره راننده' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="driver_phone" data-column-type="text">شماره راننده</th>
+                                    <th data-column-id="driver_phone" data-column-type="text">شماره راننده</th>
                                 {% elif column.id == 'vehicle_plate' %}
-                                    {% filter_column_class 'vehicle_plate' 'text' as col_class %}
-                                    {% filter_column_attrs 'vehicle_plate' 'text' 'پلاک خودرو' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="vehicle_plate" data-column-type="text">پلاک خودرو</th>
+                                    <th data-column-id="vehicle_plate" data-column-type="text">پلاک خودرو</th>
                                 {% elif column.id == 'receiver_name' %}
-                                    {% filter_column_class 'receiver_name' 'text' as col_class %}
-                                    {% filter_column_attrs 'receiver_name' 'text' 'نام گیرنده' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="receiver_name" data-column-type="text">نام گیرنده</th>
+                                    <th data-column-id="receiver_name" data-column-type="text">نام گیرنده</th>
                                 {% elif column.id == 'destination' %}
-                                    {% filter_column_class 'destination' 'text' as col_class %}
-                                    {% filter_column_attrs 'destination' 'text' 'مقصد' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="destination" data-column-type="text">مقصد</th>
+                                    <th data-column-id="destination" data-column-type="text">مقصد</th>
                                 {% elif column.id == 'barnameh_date' %}
-                                    {% filter_column_class 'barnameh_date' 'date' as col_class %}
-                                    {% filter_column_attrs 'barnameh_date' 'date' 'تاریخ بارنامه' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="barnameh_date" data-column-type="date">تاریخ بارنامه</th>
+                                    <th data-column-id="barnameh_date" data-column-type="date">تاریخ بارنامه</th>
                                 {% elif column.id == 'transport_date' %}
-                                    {% filter_column_class 'transport_date' 'date' as col_class %}
-                                    {% filter_column_attrs 'transport_date' 'date' 'تاریخ حمل' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="transport_date" data-column-type="date">تاریخ حمل</th>
+                                    <th data-column-id="transport_date" data-column-type="date">تاریخ حمل</th>
                                 {% elif column.id == 'purchase_number' %}
-                                    {% filter_column_class 'purchase_number' 'text' as col_class %}
-                                    {% filter_column_attrs 'purchase_number' 'text' 'شناسه خرید' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="purchase_number" data-column-type="text">شناسه خرید</th>
+                                    <th data-column-id="purchase_number" data-column-type="text">شناسه خرید</th>
                                 {% elif column.id == 'shenase_takhsis_code' %}
-                                    {% filter_column_class 'shenase_takhsis_code' 'text' as col_class %}
-                                    {% filter_column_attrs 'shenase_takhsis_code' 'text' 'شناسه تخصیص' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="shenase_takhsis_code" data-column-type="text">شناسه تخصیص</th>
+                                    <th data-column-id="shenase_takhsis_code" data-column-type="text">شناسه تخصیص</th>
                                 {% elif column.id == 'cargo' %}
-                                    {% filter_column_class 'cargo' 'text' as col_class %}
-                                    {% filter_column_attrs 'cargo' 'text' 'کوتاژ' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="cargo" data-column-type="text">کوتاژ</th>
+                                    <th data-column-id="cargo" data-column-type="text">کوتاژ</th>
                                 {% elif column.id == 'company_price' %}
-                                    {% filter_column_class 'company_price' 'number' as col_class %}
-                                    {% filter_column_attrs 'company_price' 'number' 'فی خرید' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="company_price" data-column-type="number">فی خرید</th>
+                                    <th data-column-id="company_price" data-column-type="number">فی خرید</th>
                                 {% elif column.id == 'customer_price' %}
-                                    {% filter_column_class 'customer_price' 'number' as col_class %}
-                                    {% filter_column_attrs 'customer_price' 'number' 'فی فروش' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="customer_price" data-column-type="number">فی فروش</th>
+                                    <th data-column-id="customer_price" data-column-type="number">فی فروش</th>
                                 {% elif column.id == 'total_sales_amount' %}
-                                    {% filter_column_class 'total_sales_amount' 'number' as col_class %}
-                                    {% filter_column_attrs 'total_sales_amount' 'number' 'مبلغ کل فروش' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="total_sales_amount" data-column-type="number">مبلغ کل فروش</th>
+                                    <th data-column-id="total_sales_amount" data-column-type="number">مبلغ کل فروش</th>
                                 {% elif column.id == 'buyer_national_code' %}
-                                    {% filter_column_class 'buyer_national_code' 'text' as col_class %}
-                                    {% filter_column_attrs 'buyer_national_code' 'text' 'شماره ملی خریدار' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="buyer_national_code" data-column-type="text">شماره ملی خریدار</th>
+                                    <th data-column-id="buyer_national_code" data-column-type="text">شماره ملی خریدار</th>
                                 {% elif column.id == 'buyer_postal_code' %}
-                                    {% filter_column_class 'buyer_postal_code' 'text' as col_class %}
-                                    {% filter_column_attrs 'buyer_postal_code' 'text' 'کدپستی خریدار' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="buyer_postal_code" data-column-type="text">کدپستی خریدار</th>
+                                    <th data-column-id="buyer_postal_code" data-column-type="text">کدپستی خریدار</th>
                                 {% elif column.id == 'buyer_address' %}
-                                    {% filter_column_class 'buyer_address' 'text' as col_class %}
-                                    {% filter_column_attrs 'buyer_address' 'text' 'آدرس خریدار' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="buyer_address" data-column-type="text">آدرس خریدار</th>
+                                    <th data-column-id="buyer_address" data-column-type="text">آدرس خریدار</th>
                                 {% elif column.id == 'demand_amount' %}
-                                    {% filter_column_class 'demand_amount' 'number' as col_class %}
-                                    {% filter_column_attrs 'demand_amount' 'number' 'میزان تقاضا' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="demand_amount" data-column-type="number">میزان تقاضا</th>
+                                    <th data-column-id="demand_amount" data-column-type="number">میزان تقاضا</th>
                                 {% elif column.id == 'importer' %}
-                                    {% filter_column_class 'importer' 'text' as col_class %}
-                                    {% filter_column_attrs 'importer' 'text' 'واردکننده' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="importer" data-column-type="text">واردکننده</th>
+                                    <th data-column-id="importer" data-column-type="text">واردکننده</th>
                                 {% elif column.id == 'product_type' %}
-                                    {% filter_column_class 'product_type' 'text' as col_class %}
-                                    {% filter_column_attrs 'product_type' 'text' 'محصول' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="product_type" data-column-type="text">محصول</th>
+                                    <th data-column-id="product_type" data-column-type="text">محصول</th>
                                 {% elif column.id == 'successful_send_date' %}
-                                    {% filter_column_class 'successful_send_date' 'date' as col_class %}
-                                    {% filter_column_attrs 'successful_send_date' 'date' 'تاریخ ارسال موفق به بازارگاه' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="successful_send_date" data-column-type="date">تاریخ ارسال موفق</th>
+                                    <th data-column-id="successful_send_date" data-column-type="date">تاریخ ارسال موفق</th>
                                 {% elif column.id == 'is_sent_to_bki' %}
-                                    {% filter_column_class 'is_sent_to_bki' 'boolean' as col_class %}
-                                    {% filter_column_attrs 'is_sent_to_bki' 'boolean' 'ارسال به بازارگاه' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="is_sent_to_bki" data-column-type="boolean">ارسال به بازارگاه</th>
+                                    <th data-column-id="is_sent_to_bki" data-column-type="boolean">ارسال به بازارگاه</th>
                                 {% elif column.id == 'created_at' %}
-                                    {% filter_column_class 'created_at' 'date' as col_class %}
-                                    {% filter_column_attrs 'created_at' 'date' 'تاریخ ایجاد' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="created_at" data-column-type="date">تاریخ ایجاد</th>
+                                    <th data-column-id="created_at" data-column-type="date">تاریخ ایجاد</th>
                                 {% elif column.id == 'actions' %}
-                                    <th class="text-center">عملیات</th>
-                                {% endif %}
-                                {% if column.id == 'factor_sodoor_season' %}
-                                    {% filter_column_class 'factor_sodoor_season' 'text' as col_class %}
-                                    {% filter_column_attrs 'factor_sodoor_season' 'text' 'زمان صدور فاکتور فصل' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="factor_sodoor_season" data-column-type="text">زمان صدور فاکتور فصل</th>
-                                {% endif %}
-                                {% if column.id == 'is_factored' %}
-                                    {% filter_column_class 'is_factored' 'boolean' as col_class %}
-                                    {% filter_column_attrs 'is_factored' 'boolean' 'فاکتور صادر شده' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="is_factored" data-column-type="boolean">فاکتور صادر شده</th>
-                                {% endif %}
-                                {% if column.id == 'is_sent_to_bki' %}
-                                    {% filter_column_class 'is_sent_to_bki' 'boolean' as col_class %}
-                                    {% filter_column_attrs 'is_sent_to_bki' 'boolean' 'ارسال به بازارگاه' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="is_sent_to_bki" data-column-type="boolean">ارسال به بازارگاه</th>
-                                {% endif %}
-                                {% if column.id == 'is_created_by_excel' %}
-                                    {% filter_column_class 'is_created_by_excel' 'boolean' as col_class %}
-                                    {% filter_column_attrs 'is_created_by_excel' 'boolean' 'ایجاد توسط اکسل' as col_attrs %}
-                                    <th class="{{ col_class }}" {{ col_attrs|safe }} data-column-id="is_created_by_excel" data-column-type="boolean">ایجاد توسط اکسل</th>
+                                    <th class="text-center" data-column-id="actions" data-column-type="actions">عملیات</th>
+                                {% elif column.id == 'factor_sodoor_season' %}
+                                    <th data-column-id="factor_sodoor_season" data-column-type="text">زمان صدور فاکتور فصل</th>
+                                {% elif column.id == 'is_factored' %}
+                                    <th data-column-id="is_factored" data-column-type="boolean">فاکتور صادر شده</th>
+                                {% elif column.id == 'is_created_by_excel' %}
+                                    <th data-column-id="is_created_by_excel" data-column-type="boolean">ایجاد توسط اکسل</th>
                                 {% endif %}
                             {% endif %}
                         {% endfor %}
@@ -1667,167 +1614,44 @@ function initServerSideTableFilter() {
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-    // راه‌اندازی فیلتر اکسلی برای جدول بارنامه
-    if (typeof TableFilter !== 'undefined') {
-        new TableFilter({
-            tableSelector: '#barnamehTable',
-            enableToast: true,
-            enableIndicators: true,
-            enableSummary: true,
-            enableClearAll: true,
-            autoDetectColumns: true
-        });
-        console.log('فیلتر اکسلی راه‌اندازی شد برای جدول بارنامه');
-    } else {
-        console.error('TableFilter class یافت نشد. مطمئن شوید که table_filter.js بارگذاری شده است.');
-    }
-    
-        // عملکرد انتخاب همه
-    var selectAllCheckbox = document.querySelector('.select-all-checkbox');
-    var barnamehCheckboxes = document.querySelectorAll('.row-checkbox');
-        
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', function() {
-            barnamehCheckboxes.forEach(function(checkbox) {
-                checkbox.checked = selectAllCheckbox.checked;
-            });
-            updateSelectionCount();
-        });
-    }
-        
-        // بررسی وضعیت چک‌باکس "انتخاب همه" بر اساس چک‌باکس‌های انفرادی
-    barnamehCheckboxes.forEach(function(checkbox) {
-            checkbox.addEventListener('change', function() {
-            updateSelectionCount();
-            var checkedCount = document.querySelectorAll('.row-checkbox:checked').length;
-            if (selectAllCheckbox) {
-                selectAllCheckbox.checked = checkedCount === barnamehCheckboxes.length;
-                selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < barnamehCheckboxes.length;
-            }
-            });
-        });
-
-    function updateSelectionCount() {
-        var checkedCount = document.querySelectorAll('.row-checkbox:checked').length;
-        var countElements = document.querySelectorAll('.selected-count .count, #globalSelectionCount');
-        countElements.forEach(function(el) {
-            el.textContent = checkedCount;
-        });
-        
-        var bulkControls = document.querySelector('.bulk-edit-controls');
-        var globalInfo = document.getElementById('globalSelectionInfo');
-        
-        if (checkedCount > 0) {
-            if (bulkControls) bulkControls.style.display = 'block';
-            if (globalInfo) globalInfo.style.display = 'block';
-        } else {
-            if (bulkControls) bulkControls.style.display = 'none';
-            if (globalInfo) globalInfo.style.display = 'none';
-        }
-    }
+    // Server-side filter از barnameh_server_filter.js استفاده می‌شود
+    console.log('Barnameh list scripts loaded');
 
         // فعال کردن tooltips
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
-        
-        // تابع کمکی برای اضافه کردن آیدی‌های انتخاب شده به فرم
-        function addSelectedIdsToForm(formId) {
-            var form = document.getElementById(formId);
-        var checkboxes = document.querySelectorAll('.row-checkbox:checked');
-            
-            // حذف همه input های قبلی
-            form.querySelectorAll('input[name="barnameh_ids"]').forEach(function(input) {
-                input.remove();
-            });
-            
-            // اضافه کردن input های جدید
-            checkboxes.forEach(function(checkbox) {
-                var input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'barnameh_ids';
-                input.value = checkbox.value;
-                form.appendChild(input);
-            });
-            
-            return checkboxes.length;
-        }
-        
-    // رویدادهای دکمه‌های عملیات گروهی
-    var bulkButtons = document.querySelectorAll('.bulk-edit-btn, .bulk-edit-excel-btn, .download-template-btn, .clear-selection-btn');
-    bulkButtons.forEach(function(button) {
-            button.addEventListener('click', function(e) {
-            var action = this.getAttribute('data-action');
-            var checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-            
-            if (action !== 'template' && action !== 'clear' && checkedBoxes.length === 0) {
-                    e.preventDefault();
-                    alert('لطفاً حداقل یک بارنامه را انتخاب کنید.');
-                    return;
-                }
-                
-            var formId, needConfirmation = false, message;
-                
-            switch(action) {
-                case 'edit':
-                    // Redirect to bulk edit page with selected IDs
-                    var ids = Array.from(checkedBoxes).map(cb => cb.value);
-                    var url = window.BarnamehListConfig.bulkEditPageUrl + '?table_name=barnameh&ids=' + ids.join(',');
-                    window.location.href = url;
-                        break;
-                case 'excel':
-                    // Redirect to excel edit page with selected IDs
-                    var ids = Array.from(checkedBoxes).map(cb => cb.value);
-                    var url = window.BarnamehListConfig.excelEditPageUrl + '?table_name=barnameh&ids=' + ids.join(',');
-                    window.location.href = url;
-                        break;
-                case 'template':
-                    // Download template
-                    var url = window.BarnamehListConfig.downloadTemplateUrl + '?table_name=barnameh';
-                    window.location.href = url;
-                        break;
-                case 'clear':
-                    // Clear all selections
-                    checkedBoxes.forEach(function(cb) {
-                        cb.checked = false;
-                    });
-                    if (selectAllCheckbox) {
-                        selectAllCheckbox.checked = false;
-                        selectAllCheckbox.indeterminate = false;
-                    }
-                    updateSelectionCount();
-                        break;
-                }
-            });
-        });
-
-    // رویداد لغو همه انتخاب‌ها
-    var clearAllBtn = document.getElementById('clearAllSelections');
-    if (clearAllBtn) {
-        clearAllBtn.addEventListener('click', function() {
-            document.querySelectorAll('.row-checkbox:checked').forEach(function(cb) {
-                cb.checked = false;
-            });
-            if (selectAllCheckbox) {
-                selectAllCheckbox.checked = false;
-                selectAllCheckbox.indeterminate = false;
-            }
-            updateSelectionCount();
-                });
-            }
-});
-
-// Global function for row selection toggle
-function toggleRowSelection(checkbox) {
-    // This function is called by the onchange event in the template
-    // The event listener above will handle the actual logic
-}
+    });
 
 // Global function for viewing edit history
 function viewEditHistory() {
-    if (window.BarnamehListConfig && window.BarnamehListConfig.historyApiUrl) {
-        window.location.href = '{% url "table_filter:edit_history" %}';
+    window.location.href = '{% url "table_filter:edit_history" %}';
+}
+
+// Global function for clearing all selections
+function clearAllSelections() {
+    // پاک کردن تمام انتخاب‌ها
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    // پاک کردن select-all checkbox
+    const selectAllCheckbox = document.querySelector('.select-all-checkbox');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+    }
+    
+    // بروزرسانی شمارنده‌ها
+    if (window.barnamehServerFilter) {
+        window.barnamehServerFilter.updateSelectionCount();
+    }
+    
+    // بروزرسانی bulk edit manager
+    if (window.bulkEditManager) {
+        window.bulkEditManager.updateAllControlPanels();
     }
 }
 

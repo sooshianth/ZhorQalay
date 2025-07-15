@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from .models.BarnamehModel import Barnameh
 from .models.ExcelFileModel import ExcelFile
@@ -12,14 +13,18 @@ from .API.EditBarnameh import edit_barnameh_api
 from .API.EstelameBarnameh import estelame_barnameh
 from .excel_management.views import get_client_ip
 from django.views.decorators.http import require_http_methods
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 import json
 import os
 from django.conf import settings
 import pandas as pd
+from datetime import datetime
+import logging
 import jdatetime
 import logging
+
+logger = logging.getLogger("bki_barnameh_views")
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from django.http import HttpResponse
@@ -184,125 +189,547 @@ def get_barnameh_columns_config(request):
 
 @csrf_exempt  
 @role_required('logistics_manager', 'admin', 'financial_manager')
-@require_http_methods(["POST"])
+@login_required
 def apply_barnameh_filter(request):
-    """API endpoint for applying filters to barnameh table using table_filter system"""
+    """
+    API برای اعمال فیلتر سمت سرور به بارنامه‌ها
+    """
+    logger.warning(f"درخواست فیلتر بارنامه توسط {request.user.username} انجام شده. {get_client_ip(request)}")
     try:
-        data = json.loads(request.body)
-        filter_config = data.get('filter_config', {})
-        sort_config = data.get('sort_config', {})
-        page = int(data.get('page', 1))
-        page_size = int(data.get('page_size', 50))
+        # دریافت پارامترهای فیلتر
+        filters = json.loads(request.POST.get('filters', '{}'))
+        sort_config = json.loads(request.POST.get('sort', '{}'))
+        # دریافت پارامترهای pagination
+        page_param = request.POST.get('page', '1')
+        per_page_param = request.POST.get('per_page', '50')
+        # دریافت پارامتر جستجوی سریع
+        global_search = request.POST.get('global_search', '')
         
-        logger.warning(f"درخواست فیلتر بارنامه توسط {request.user.username}. {get_client_ip(request)}")
-        logger.warning(f"فیلترها: {filter_config}")
-        
-        # Create base queryset with related entities
-        queryset = Barnameh.objects.all().select_related('purchase', 'shenase_takhsis', 'purchase__cargo', 'purchase__cargo__vared_konandeh')
-        
-        # Use TableFilterProcessor to apply filters
-        from table_filter.utils import TableFilterProcessor
-        processor = TableFilterProcessor(queryset, 'barnameh')
-        
-        # Apply filters
-        if filter_config:
-            queryset = processor.apply_filters(filter_config)
-        
-        # Apply sorting
-        if sort_config:
-            queryset = processor.apply_sorting(sort_config)
-        else:
-            # Default sorting by created_at descending
-            queryset = queryset.order_by('-barnameh_created_at')
-        
-        # Save filter state if requested
-        save_state = data.get('save_state', True)
-        if save_state:
-            from table_filter.utils import UserFilterStateManager
-            state_manager = UserFilterStateManager(request.user, 'barnameh')
-            state_manager.save_filter_state(filter_config, sort_config)
-            
-        # Record filter stats
-        from table_filter.models import TableFilterStats
-        for column_id, filter_data in filter_config.items():
-            if filter_data and filter_data.get('values'):
-                for value in filter_data['values']:
-                    TableFilterStats.record_usage('barnameh', column_id, value, request.user)
-        
-        # Apply pagination
-        paginator = Paginator(queryset, page_size)
         try:
-            page_obj = paginator.page(page)
-        except Exception:
-            page_obj = paginator.page(1)
+            page = int(page_param)
+            per_page = int(per_page_param)
+        except (ValueError, TypeError):
+            logger.error(f"❌ مقادیر pagination نامعتبر: page={page_param}, per_page={per_page_param}")
             page = 1
+            per_page = 50
+        
+        # ایجاد QuerySet پایه
+        base_queryset = Barnameh.objects.select_related(
+            'purchase', 'shenase_takhsis', 'purchase__cargo', 'purchase__cargo__vared_konandeh'
+        )
+        
+        # اعمال فیلترها - فقط اگر فیلتر وجود داشته باشد
+        if filters:
+            filter_conditions = Q()
             
-        # Format results for JSON response
+            for column_id, filter_data in filters.items():
+                if not filter_data.get('values'):
+                    continue
+                    
+                values = filter_data['values']
+                filter_type = filter_data.get('type', 'include')
+                
+                if column_id == 'number':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(number__in=values)
+                        else:
+                            filter_conditions &= ~Q(number__in=values)
+                        
+                elif column_id == 'serial':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(serial__in=values)
+                        else:
+                            filter_conditions &= ~Q(serial__in=values)
+                        
+                elif column_id == 'purchase_number':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(purchase_number__in=values)
+                        else:
+                            filter_conditions &= ~Q(purchase_number__in=values)
+                        
+                elif column_id == 'status':
+                    # تبدیل نمایش وضعیت به کد وضعیت
+                    status_map = {
+                        'بارنامه ناقص': 'BARNAMEH_INCOMPLETE',
+                        'بارنامه کامل': 'BARNAMEH_COMPLETE',
+                        'ارسال شده به بازارگاه': 'PURCHASE_CLOSED'
+                    }
+                    status_codes = []
+                    for v in values:
+                        if v in status_map:
+                            status_codes.append(status_map[v])
+                        else:
+                            status_codes.append(v)
+                    
+                    if status_codes:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(status__in=status_codes)
+                        else:
+                            filter_conditions &= ~Q(status__in=status_codes)
+                        
+                elif column_id in ['driver_name', 'driver_phone', 'vehicle_plate', 
+                                 'receiver_name', 'destination', 'shenase_takhsis_code']:
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(**{f'{column_id}__in': values})
+                        else:
+                            filter_conditions &= ~Q(**{f'{column_id}__in': values})
+                
+                elif column_id == 'tonnage':
+                    # تبدیل به اعداد
+                    numeric_values = []
+                    for v in values:
+                        try:
+                            # حذف کاما و تبدیل به عدد
+                            clean_value = str(v).replace(',', '').strip()
+                            if clean_value:
+                                numeric_values.append(float(clean_value))
+                        except (ValueError, TypeError):
+                            continue
+                    
+                    if numeric_values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(tonnage__in=numeric_values)
+                        else:
+                            filter_conditions &= ~Q(tonnage__in=numeric_values)
+                
+                elif column_id == 'barnameh_date':
+                    date_values = []
+                    for v in values:
+                        try:
+                            # پارس تاریخ
+                            if '/' in v:
+                                date_obj = datetime.strptime(v, "%Y/%m/%d").date()
+                                date_values.append(date_obj)
+                        except (ValueError, TypeError):
+                            continue
+                    
+                    if date_values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(barnameh_date__in=date_values)
+                        else:
+                            filter_conditions &= ~Q(barnameh_date__in=date_values)
+                
+                elif column_id in ['is_sent_to_bki', 'is_factored', 'is_created_by_excel']:
+                    bool_values = []
+                    for v in values:
+                        if v.lower() in ['بله', 'true', '1', 'yes']:
+                            bool_values.append(True)
+                        elif v.lower() in ['خیر', 'false', '0', 'no']:
+                            bool_values.append(False)
+                    
+                    if bool_values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(**{f'{column_id}__in': bool_values})
+                        else:
+                            filter_conditions &= ~Q(**{f'{column_id}__in': bool_values})
+            
+            # اعمال فیلترها
+            if filter_conditions:
+                base_queryset = base_queryset.filter(filter_conditions)
+        
+        # اعمال جستجوی سریع
+        if global_search:
+            search_conditions = (
+                Q(number__icontains=global_search) |
+                Q(serial__icontains=global_search) |
+                Q(driver_name__icontains=global_search) |
+                Q(driver_phone__icontains=global_search) |
+                Q(vehicle_plate__icontains=global_search) |
+                Q(receiver_name__icontains=global_search) |
+                Q(destination__icontains=global_search) |
+                Q(purchase_number__icontains=global_search) |
+                Q(shenase_takhsis_code__icontains=global_search)
+            )
+            base_queryset = base_queryset.filter(search_conditions)
+        
+        # اعمال مرتب‌سازی
+        if sort_config and sort_config.get('column'):
+            sort_column = sort_config['column']
+            sort_direction = sort_config.get('direction', 'asc')
+            
+            # تعیین نام فیلد برای مرتب‌سازی
+            sort_field = sort_column
+            if sort_direction == 'desc':
+                sort_field = f'-{sort_field}'
+                
+            try:
+                base_queryset = base_queryset.order_by(sort_field)
+            except Exception as e:
+                logger.warning(f"خطا در مرتب‌سازی: {e}")
+                base_queryset = base_queryset.order_by('-barnameh_created_at')
+        else:
+            # مرتب‌سازی پیش‌فرض
+            base_queryset = base_queryset.order_by('-barnameh_created_at')
+        
+        # اعمال pagination
+        if per_page == 999999:  # نمایش همه
+            page_obj = base_queryset
+            total_count = base_queryset.count()
+            paginator = None
+        else:
+            paginator = Paginator(base_queryset, per_page)
+            try:
+                page_obj = paginator.page(page)
+            except (EmptyPage, PageNotAnInteger):
+                page_obj = paginator.page(1)
+                page = 1
+            total_count = paginator.count
+        
+        # فرمت نتایج برای JSON response
         results = []
         for barnameh in page_obj:
+            # Helper function to safely get related data
+            def get_related_data(obj, attr_path, default=""):
+                try:
+                    current = obj
+                    for attr in attr_path.split('.'):
+                        if current is None:
+                            return default
+                        current = getattr(current, attr, None)
+                    return current or default
+                except (AttributeError, TypeError):
+                    return default
+            
             result = {
                 'id': barnameh.id,
                 'number': barnameh.number or "",
                 'serial': barnameh.serial or "",
                 'tonnage': barnameh.tonnage or 0,
                 'status': barnameh.status,
-                'status_display': barnameh.get_status_display(),
+                'status_display': barnameh.get_status_display() if hasattr(barnameh, 'get_status_display') else barnameh.status,
                 'driver_name': barnameh.driver_name or "",
                 'driver_phone': barnameh.driver_phone or "",
                 'vehicle_plate': barnameh.vehicle_plate or "",
                 'receiver_name': barnameh.receiver_name or "",
                 'destination': barnameh.destination or "",
-                'barnameh_date': barnameh.barnameh_date.strftime("%Y-%m-%d") if barnameh.barnameh_date else "",
+                'barnameh_date': barnameh.barnameh_date.strftime("%Y/%m/%d") if barnameh.barnameh_date else "",
+                'transport_date': barnameh.transport_date.strftime("%Y/%m/%d") if barnameh.transport_date else "",
                 'purchase_number': barnameh.purchase_number or "",
                 'shenase_takhsis_code': barnameh.shenase_takhsis_code or "",
                 'is_sent_to_bki': barnameh.is_sent_to_bki,
-                'created_at': barnameh.barnameh_created_at.strftime("%Y-%m-%d") if barnameh.barnameh_created_at else "",
+                'is_factored': barnameh.is_factored,
+                'is_created_by_excel': barnameh.is_created_by_excel,
+                'created_at': barnameh.barnameh_created_at.strftime("%Y/%m/%d") if hasattr(barnameh, 'barnameh_created_at') and barnameh.barnameh_created_at else "",
                 'factor_sodoor_season': barnameh.factor_sodoor_season or "",
-                'is_factored': barnameh.is_factored or "-",
-                'is_sent_to_bki': barnameh.is_sent_to_bki or "-",
-                'is_created_by_excel': barnameh.is_created_by_excel or "-" ,
-                'is_sent_to_bki_at': barnameh.is_sent_to_bki_at.strftime("%Y-%m-%d") if barnameh.is_sent_to_bki_at else "",
-                'is_created_by_excel_at': barnameh.is_created_by_excel_at.strftime("%Y-%m-%d") if barnameh.is_created_by_excel_at else "",
-                'barnameh_updated_at': barnameh.barnameh_updated_at.strftime("%Y-%m-%d") if barnameh.barnameh_updated_at else "",
+                'buyer_postal_code': barnameh.buyer_postal_code or "",
+                # Related data from purchase
+                'cargo': get_related_data(barnameh, 'purchase.cargo.cottage'),
+                'company_price': get_related_data(barnameh, 'purchase.company_price'),
+                'customer_price': get_related_data(barnameh, 'purchase.customer_price'),
+                'total_sales_amount': get_related_data(barnameh, 'purchase.total_sales_amount'),
+                'buyer_national_code': get_related_data(barnameh, 'purchase.buyer_national_code'),
+                'buyer_address': get_related_data(barnameh, 'purchase.address'),
+                'demand_amount': get_related_data(barnameh, 'purchase.total_weight'),
+                'importer': get_related_data(barnameh, 'purchase.cargo.vared_konandeh.name'),
+                'product_type': get_related_data(barnameh, 'purchase.cargo.product_type'),
+                'successful_send_date': get_related_data(barnameh, 'purchase.successful_send_date'),
             }
-            
-            # Add cargo related fields if available
-            if barnameh.purchase and barnameh.purchase.cargo:
-                result.update({
-                    'cargo': barnameh.purchase.cargo.cottage,
-                    'product_type': barnameh.purchase.cargo.product_type,
-                    'company_price': barnameh.purchase.cargo.company_price,
-                    'customer_price': barnameh.purchase.cargo.customer_price,
-                    'importer': barnameh.purchase.cargo.vared_konandeh.name if barnameh.purchase.cargo.vared_konandeh else "",
-                })
-                
             results.append(result)
         
-        # Return response with pagination info
-        return JsonResponse({
-            'status': 'success',
-            'results': results,
-            'pagination': {
+        # اطلاعات pagination
+        if paginator:
+            pagination_info = {
                 'current_page': page_obj.number,
                 'total_pages': paginator.num_pages,
-                'total_count': paginator.count,
+                'total_count': total_count,
                 'has_next': page_obj.has_next(),
                 'has_previous': page_obj.has_previous(),
-                'page_size': page_size,
+                'page_size': per_page,
                 'start_index': page_obj.start_index(),
                 'end_index': page_obj.end_index()
-            },
-            'filter_applied': bool(filter_config),
+            }
+        else:
+            pagination_info = {
+                'current_page': 1,
+                'total_pages': 1,
+                'total_count': total_count,
+                'has_next': False,
+                'has_previous': False,
+                'page_size': total_count,
+                'start_index': 1,
+                'end_index': total_count
+            }
+        
+        return JsonResponse({
+            'status': 'success',
+            'data': results,
+            'total_count': total_count,
+            'start_index': pagination_info['start_index'],
+            'end_index': pagination_info['end_index'],
+            'current_page': pagination_info['current_page'],
+            'total_pages': pagination_info['total_pages'],
+            'has_next': pagination_info['has_next'],
+            'has_previous': pagination_info['has_previous'],
+            'filter_applied': bool(filters),
             'sort_applied': bool(sort_config)
         })
         
     except Exception as e:
         logger.error(f"خطا در اعمال فیلتر به بارنامه‌ها: {str(e)}")
-        import traceback
-        logger.error(traceback.format_exc())
         return JsonResponse({
             'status': 'error',
             'message': f'خطا در اعمال فیلتر: {str(e)}'
+        }, status=500)
+
+@role_required('logistics_manager', 'admin', 'financial_manager')
+@require_http_methods(["POST"])
+def get_barnameh_column_values(request):
+    """
+    API برای دریافت مقادیر منحصر به فرد یک ستون برای فیلتر
+    """
+    logger.warning(f"API برای دریافت مقادیر منحصر به فرد ستون بارنامه توسط {request.user.username}. {get_client_ip(request)}")
+    try:
+        column_id = request.POST.get('column_id')
+        search_term = request.POST.get('search', '')
+        # دریافت فیلترهای فعلی
+        current_filters = request.POST.get('current_filters', '{}')
+        # دریافت جستجوی سریع
+        global_search = request.POST.get('global_search', '')
+        
+        try:
+            current_filters = json.loads(current_filters) if current_filters else {}
+        except (json.JSONDecodeError, TypeError):
+            current_filters = {}
+        
+        if not column_id:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'شناسه ستون ارسال نشده است'
+            }, status=400)
+        
+        # ایجاد QuerySet پایه
+        base_queryset = Barnameh.objects.select_related(
+            'purchase', 'shenase_takhsis', 'purchase__cargo', 'purchase__cargo__vared_konandeh'
+        )
+        
+        # اعمال فیلترهای فعلی (بجز فیلتر ستون فعلی)
+        if current_filters:
+            filter_conditions = Q()
+            
+            for filter_column_id, filter_data in current_filters.items():
+                # رد کردن فیلتر ستون فعلی
+                if filter_column_id == column_id:
+                    continue
+                    
+                if not filter_data.get('values'):
+                    continue
+                    
+                values = filter_data['values']
+                filter_type = filter_data.get('type', 'include')
+                
+                if filter_column_id == 'number':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(number__in=values)
+                        else:
+                            filter_conditions &= ~Q(number__in=values)
+                        
+                elif filter_column_id == 'serial':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(serial__in=values)
+                        else:
+                            filter_conditions &= ~Q(serial__in=values)
+                        
+                elif filter_column_id == 'purchase_number':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(purchase_number__in=values)
+                        else:
+                            filter_conditions &= ~Q(purchase_number__in=values)
+                        
+                elif filter_column_id == 'status':
+                    # تبدیل نمایش وضعیت به کد وضعیت
+                    status_map = {
+                        'بارنامه ناقص': 'BARNAMEH_INCOMPLETE',
+                        'بارنامه کامل': 'BARNAMEH_COMPLETE',
+                        'ارسال شده به بازارگاه': 'PURCHASE_CLOSED'
+                    }
+                    status_codes = []
+                    for v in values:
+                        if v in status_map:
+                            status_codes.append(status_map[v])
+                        else:
+                            status_codes.append(v)
+                    
+                    if status_codes:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(status__in=status_codes)
+                        else:
+                            filter_conditions &= ~Q(status__in=status_codes)
+                        
+                elif filter_column_id == 'cargo':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(purchase__cargo__cottage__in=values)
+                        else:
+                            filter_conditions &= ~Q(purchase__cargo__cottage__in=values)
+                
+                elif filter_column_id in ['driver_name', 'driver_phone', 'vehicle_plate', 
+                                        'receiver_name', 'destination', 'shenase_takhsis_code']:
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(**{f'{filter_column_id}__in': values})
+                        else:
+                            filter_conditions &= ~Q(**{f'{filter_column_id}__in': values})
+                
+                elif filter_column_id == 'tonnage':
+                    # فیلتر عددی
+                    try:
+                        numeric_values = []
+                        for v in values:
+                            if v and str(v).strip():
+                                cleaned_value = str(v).replace(',', '').replace('٬', '').strip()
+                                if cleaned_value.replace('.', '').isdigit():
+                                    numeric_values.append(float(cleaned_value))
+                        
+                        if numeric_values:
+                            if filter_type == 'include':
+                                filter_conditions &= Q(tonnage__in=numeric_values)
+                            else:
+                                filter_conditions &= ~Q(tonnage__in=numeric_values)
+                                
+                    except (ValueError, TypeError):
+                        continue
+                        
+                elif filter_column_id == 'barnameh_date':
+                    # فیلتر تاریخی
+                    try:
+                        date_conditions = Q()
+                        for date_str in values:
+                            if date_str and date_str.strip():
+                                if '/' in date_str:
+                                    parts = date_str.split('/')
+                                    if len(parts) == 3:
+                                        year, month, day = parts
+                                        date_obj = datetime(int(year), int(month), int(day)).date()
+                                        date_conditions |= Q(barnameh_date=date_obj)
+                        
+                        if date_conditions:
+                            if filter_type == 'include':
+                                filter_conditions &= date_conditions
+                            else:
+                                filter_conditions &= ~date_conditions
+                                
+                    except (ValueError, TypeError):
+                        continue
+                
+                elif filter_column_id in ['is_sent_to_bki', 'is_factored', 'is_created_by_excel']:
+                    bool_values = []
+                    for v in values:
+                        if v in ['بله', 'فعال', True, 'true', '1']:
+                            bool_values.append(True)
+                        elif v in ['خیر', 'غیرفعال', False, 'false', '0']:
+                            bool_values.append(False)
+                    
+                    if bool_values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(**{f'{filter_column_id}__in': bool_values})
+                        else:
+                            filter_conditions &= ~Q(**{f'{filter_column_id}__in': bool_values})
+            
+            # اعمال فیلترها
+            if filter_conditions:
+                base_queryset = base_queryset.filter(filter_conditions)
+        
+        # استخراج مقادیر بر اساس نوع ستون
+        values = set()
+        
+        if column_id == 'number':
+            values_queryset = base_queryset.exclude(number__isnull=True)\
+                .exclude(number='').values_list('number', flat=True).distinct()
+            values = set(values_queryset)
+            
+        elif column_id == 'serial':
+            values_queryset = base_queryset.exclude(serial__isnull=True)\
+                .exclude(serial='').values_list('serial', flat=True).distinct()
+            values = set(values_queryset)
+            
+        elif column_id == 'purchase_number':
+            values_queryset = base_queryset.exclude(purchase_number__isnull=True)\
+                .exclude(purchase_number='').values_list('purchase_number', flat=True).distinct()
+            values = set(values_queryset)
+            
+        elif column_id == 'status':
+            values_queryset = base_queryset.values_list('status', flat=True).distinct()
+            # تبدیل کدهای وضعیت به نمایش فارسی
+            status_choices = {
+                'BARNAMEH_INCOMPLETE': 'بارنامه ناقص',
+                'BARNAMEH_COMPLETE': 'بارنامه کامل',
+                'PURCHASE_CLOSED': 'ارسال شده به بازارگاه'
+            }
+            values = set([status_choices.get(state, state) for state in values_queryset if state])
+            
+        elif column_id == 'cargo':
+            values_queryset = base_queryset.exclude(purchase__cargo__isnull=True)\
+                .values_list('purchase__cargo__cottage', flat=True).distinct()
+            values = set(values_queryset)
+            
+        elif column_id in ['driver_name', 'driver_phone', 'vehicle_plate', 
+                          'receiver_name', 'destination', 'shenase_takhsis_code']:
+            values_queryset = base_queryset.exclude(**{f'{column_id}__isnull': True})\
+                .exclude(**{f'{column_id}': ''}).values_list(column_id, flat=True).distinct()
+            values = set(values_queryset)
+            
+        elif column_id == 'tonnage':
+            values_queryset = base_queryset.exclude(tonnage__isnull=True)\
+                .exclude(tonnage=0)\
+                .values_list('tonnage', flat=True).distinct()
+            values = set([f"{int(value):,}" for value in values_queryset if value is not None and value > 0])
+            
+        elif column_id == 'barnameh_date':
+            values_queryset = base_queryset.exclude(barnameh_date__isnull=True)\
+                .values_list('barnameh_date', flat=True).distinct()
+            values = set([date.strftime("%Y/%m/%d") for date in values_queryset if date])
+            
+        elif column_id in ['is_sent_to_bki', 'is_factored', 'is_created_by_excel']:
+            field_values = base_queryset.values_list(column_id, flat=True).distinct()
+            values = set()
+            for val in field_values:
+                if val is True:
+                    values.add('بله')
+                elif val is False:
+                    values.add('خیر')
+        
+        else:
+            # برای ستون‌های ناشناخته
+            values = set()
+        
+        # تبدیل به لیست و مرتب‌سازی
+        values_list = sorted(list(values), key=lambda x: str(x).lower())
+        
+        # حذف مقادیر خالی و نامعتبر
+        values_list = [v for v in values_list if v and str(v).strip() and str(v) != 'None']
+        
+        # اعمال جستجو اگر ارسال شده باشد
+        if search_term:
+            search_lower = search_term.lower()
+            values_list = [v for v in values_list if search_lower in str(v).lower()]
+        
+        return JsonResponse({
+            'status': 'success',
+            'values': values_list
+        })
+        
+    except Exception as e:
+        import traceback
+        logger.error(f"Error in get_barnameh_column_values: {str(e)} , {traceback.format_exc()}")
+        return JsonResponse({
+            'status': 'error',
+            'message': "خطا در دریافت مقادیر ستون"
         }, status=500)
 
 @role_required('logistics_manager', 'admin', 'financial_manager')
@@ -503,7 +930,7 @@ def delete_barnameh(barnameh_id):
 @role_required('logistics_manager', 'admin', 'financial_manager')
 def barnameh_list(request):
     """
-    نمایش لیست بارنامه ها
+    نمایش لیست بارنامه ها با فیلتر server-side
     """
     logger.warning(f"لیست بارنامه ها: {get_client_ip(request)}, user: {request.user}")
     
@@ -511,79 +938,71 @@ def barnameh_list(request):
     selected_columns = get_barnameh_columns_from_cookie(request)
     all_columns = get_all_barnameh_columns()
     
-    # Get sorting parameters from request
-    sort_field = request.GET.get('sort', 'barnameh_created_at')
-    direction = request.GET.get('direction', 'desc')
-    
-    # صفحه‌بندی
+    # دریافت پارامترهای فیلتر از GET
+    global_search = request.GET.get('global_search', '')
     page = int(request.GET.get('page', 1))
-    per_page_param = request.GET.get('per_page', 25)
+    per_page_param = request.GET.get('per_page', 50)
+    
+    # بررسی گزینه "نمایش همه"
     if per_page_param == 'all':
-        per_page = 10000
+        per_page = 10000  # عدد بزرگ برای نمایش همه
     else:
         try:
             per_page = int(per_page_param)
-        except Exception:
-            per_page = 25
+        except (ValueError, TypeError):
+            per_page = 50
     
-    # Map frontend sort fields to model fields
-    sort_mapping = {
-        'number': 'number',
-        'serial': 'serial',
-        'tonnage': 'tonnage',
-        'purchase_number': 'purchase_number',
-        'shenase_takhsis_code': 'shenase_takhsis_code',
-        'status': 'status',
-        'driver_name': 'driver_name',
-        'driver_phone': 'driver_phone',
-        'vehicle_plate': 'vehicle_plate',
-        'receiver_name': 'receiver_name',
-        'destination': 'destination',
-        'barnameh_date': 'barnameh_date',
-        'transport_date': 'transport_date',
-        'created_at': 'barnameh_created_at',
-    }
+    # بررسی اینکه آیا درخواست AJAX است
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     
-    # Use the mapped field or default to created_at
-    sort_field_mapped = sort_mapping.get(sort_field, 'barnameh_created_at')
+    # فیلدهای ضروری برای QuerySet
+    selected_fields = [
+        'id', 'number', 'serial', 'tonnage', 'status', 'driver_name', 
+        'driver_phone', 'vehicle_plate', 'receiver_name', 'destination', 
+        'barnameh_date', 'transport_date', 'purchase_number', 'shenase_takhsis_code',
+        'is_sent_to_bki', 'barnameh_created_at', 'factor_sodoor_season', 
+        'is_factored', 'is_created_by_excel', 'buyer_postal_code',
+        'is_sent_to_bki_at', 'is_created_by_excel_at', 'barnameh_updated_at'
+    ]
     
-    # Apply direction
-    if direction == 'desc' and not sort_field_mapped.startswith('-'):
-        sort_field_mapped = f'-{sort_field_mapped}'
-    elif direction == 'asc' and sort_field_mapped.startswith('-'):
-        sort_field_mapped = sort_field_mapped[1:]
+    # فیلدهای related
+    purchase_fields = ['purchase__id', 'purchase__cargo__cottage', 'purchase__cargo__product_type', 
+                      'purchase__cargo__company_price', 'purchase__cargo__customer_price',
+                      'purchase__cargo__vared_konandeh__name', 'purchase__demand_amount']
+    shenase_fields = ['shenase_takhsis__id', 'shenase_takhsis__code']
     
-    # Apply filters
-    filters = {}
-    search_query = request.GET.get('search')
-    status_filter = request.GET.get('status')
-    date_from = request.GET.get('date_from')
-    date_to = request.GET.get('date_to')
+    all_fields = selected_fields + purchase_fields + shenase_fields
     
-    if search_query:
-        # Search in multiple fields
-        from django.db.models import Q
-        barnamehs = Barnameh.objects.filter(
-            Q(number__icontains=search_query) | 
-            Q(serial__icontains=search_query) | 
-            Q(purchase_number__icontains=search_query) |
-            Q(shenase_takhsis_code__icontains=search_query) |
-            Q(driver_name__icontains=search_query)
-        ).select_related('purchase', 'shenase_takhsis', 'purchase__cargo', 'purchase__cargo__vared_konandeh')
+    # ایجاد QuerySet پایه
+    base_queryset = Barnameh.objects.select_related(
+        'purchase', 'shenase_takhsis', 'purchase__cargo', 'purchase__cargo__vared_konandeh'
+    ).order_by('-barnameh_created_at')
+    
+    # اعمال فیلترهای پایه
+    filters = Q()
+    
+    # فیلتر جستجوی سریع
+    if global_search:
+        search_filters = (
+            Q(number__icontains=global_search) |
+            Q(serial__icontains=global_search) |
+            Q(purchase_number__icontains=global_search) |
+            Q(shenase_takhsis_code__icontains=global_search) |
+            Q(driver_name__icontains=global_search) |
+            Q(driver_phone__icontains=global_search) |
+            Q(vehicle_plate__icontains=global_search) |
+            Q(receiver_name__icontains=global_search) |
+            Q(destination__icontains=global_search) |
+            Q(purchase__cargo__cottage__icontains=global_search) |
+            Q(purchase__cargo__vared_konandeh__name__icontains=global_search)
+        )
+        filters &= search_filters
+    
+    # اعمال فیلترها
+    if filters:
+        barnamehs = base_queryset.filter(filters)
     else:
-        barnamehs = Barnameh.objects.all().select_related('purchase', 'shenase_takhsis', 'purchase__cargo', 'purchase__cargo__vared_konandeh')
-    
-    if status_filter:
-        barnamehs = barnamehs.filter(status=status_filter)
-    
-    if date_from:
-        barnamehs = barnamehs.filter(barnameh_date__gte=date_from)
-    
-    if date_to:
-        barnamehs = barnamehs.filter(barnameh_date__lte=date_to)
-    
-    # Apply sorting
-    barnamehs = barnamehs.order_by(sort_field_mapped)
+        barnamehs = base_queryset
     
     # صفحه‌بندی
     from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -594,14 +1013,22 @@ def barnameh_list(request):
         page_obj = paginator.page(1)
         page = 1
     
-    # Get logs for each barnameh (فقط برای موارد صفحه فعلی)
-    for barnameh in page_obj:
-        barnameh.logs = barnameh.barnameh_logs.all().order_by('-log_date')[:3]  # Get the 3 most recent logs
+    # اگر درخواست AJAX است، فقط داده‌های JSON برگردان
+    if is_ajax:
+        return JsonResponse({
+            'status': 'success',
+            'data': {
+                'has_previous': page_obj.has_previous(),
+                'has_next': page_obj.has_next(),
+                'number': page_obj.number,
+                'num_pages': paginator.num_pages,
+                'count': paginator.count,
+                'page_range': list(paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1)),
+            }
+        })
     
     context = {
         'barnamehs': page_obj,
-        'current_sort': sort_field,
-        'current_direction': direction,
         'all_columns': all_columns,
         'selected_columns': selected_columns,
         'paginator': paginator,
@@ -610,6 +1037,10 @@ def barnameh_list(request):
         'per_page': per_page_param,
         'total_count': paginator.count,
         'page_range': list(paginator.get_elided_page_range(page, on_each_side=2, on_ends=1)),
+        'search_params': {
+            'global_search': global_search,
+            'per_page': per_page_param,
+        },
     }
     
     return render(request, 'bki_barnameh/barnameh_list.html', context)
