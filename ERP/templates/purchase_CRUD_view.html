@@ -1759,10 +1759,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // افزودن نشان‌گر برای فیلدهای غیرقابل ویرایش
     const readonlyFields = document.querySelectorAll('input[readonly], select[disabled], textarea[readonly]');
     readonlyFields.forEach(field => {
-        field.parentElement.parentElement.classList.add('readonly');
-        
-        // اضافه کردن راهنمای توضیحی در هنگام هاور
-        field.title = "این فیلد در مرحله فعلی خرید غیرقابل ویرایش است";
+    field.parentElement.parentElement.classList.add('readonly');
+        // مقدار واقعی فیلد را به‌عنوان title قرار بده
+        if (field.tagName === 'SELECT') {
+            field.title = field.options[field.selectedIndex]?.text || '';
+        } else if (field.tagName === 'TEXTAREA' || field.tagName === 'INPUT') {
+            field.title = field.value;
+        } else {
+            field.title = field.value || '';
+        }
     });
 });
 </script>

@@ -342,6 +342,7 @@ def customer_search(request):
     return JsonResponse(results, safe=False)
 
 @role_required('sales_agent', 'admin')
+
 @login_required
 def general_customer_CRUD_view(request):
     """
@@ -376,18 +377,34 @@ def general_customer_CRUD_view(request):
         if is_valid_phone:
             # جستجوی مشتری با شماره تمیز شده
             customer = Customer.get_customer_by_phone(clean_phone)
+            if customer:
+                if sales_agent:
+                    if sales_agent not in customer.get_sales_agents():
+                        messages.error(request, "شما دسترسی به این مشتری ندارید.")
+                        customer = None
             
             if not customer:
                 # اگر شماره معتبر است ولی مشتری پیدا نشد، پیام مناسب نمایش بده
                 messages.info(request, f"مشتری با شماره {clean_phone} یافت نشد. می‌توانید مشتری جدید ایجاد کنید.")
         else:
-            # اگر ورودی شماره تلفن معتبر نیست، جستجوی عادی انجام بده
-            customer = Customer.objects.filter(name__icontains=query).first()
+    # اگر ورودی شماره تلفن معتبر نیست، جستجوی عادی انجام بده
+            matching_customers = Customer.objects.filter(name__icontains=query)
+    
+            customer = None
+            for candidate in matching_customers:
+                if sales_agent in candidate.get_sales_agents():
+                    customer = candidate
+                    break  # اولین مشتری مناسب را پیدا کردیم، کافیست
+            
+            if not sales_agent:
+                customer = Customer.objects.filter(phone_number__icontains=query).first()
+
             if not customer:
-                messages.warning(request, f"هیچ مشتری با نام '{query}' یافت نشد.")
+                messages.warning(request, f"هیچ مشتری با نام '{query}' که به این کارشناس فروش تخصیص داشته باشد یافت نشد.")
             elif clean_phone:
-                # اگر شماره نامعتبر بود، راهنمایی بده
+        # اگر شماره نامعتبر بود، راهنمایی بده
                 messages.error(request, "فرمت شماره تلفن نامعتبر است. شماره باید 10 رقم باشد و با 9 شروع شود. (مثال: 9123456789)")
+
         
         # اگر شماره معتبر بود برای استفاده در initial_data
         if is_valid_phone:
@@ -870,6 +887,7 @@ def get_related_products(request):
                 product_scores[key]['count'] += 1
                 product_scores[key]['weight'] += purchase.weight or 0
 
+
         product_data = []
         for product in related_products:
             key = (product.product_type, product.country)
@@ -895,6 +913,8 @@ def get_related_products(request):
     
 @login_required
 def handle_form_submission(request, form, success_msg, redirect_url):
+    messages.warning(request, "this function is not implemented yet")
+    return None
     if form.is_valid():
         instance = form.save()
         messages.success(request, success_msg)
