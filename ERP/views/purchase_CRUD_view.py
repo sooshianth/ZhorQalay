@@ -101,20 +101,20 @@ class RoleBasedPurchaseForm(forms.ModelForm):
             allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'weight', 'delivered_weight',
          'status', 'cargo', 'product_type', 'buyer_name', 'delivery_receiver_name' , 'bazaargah_phone_number',
           'tahvil_phone_number', 'buyer_national_id', 'address', 'tracking_number', 'buyer_user_type',
-           'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type' ]
+           'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type', 'order_weight' ]
 
         elif user_role == 'support_agent':
             allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'unique_sales_agent', 'weight',
          'delivered_weight', 'status',  'cargo', 'product_type', 'importer', 'barbary', 'barbary_confidential_number',
           'barbary_customer_number', 'buyer_name', 'delivery_receiver_name' ,
            'buyer_national_id', 'address', 'tracking_number', 'buyer_user_type',
-           'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type'] 
+           'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type' 'order_weight'] 
 
         elif user_role == 'financial_manager':
             allowed_fields = ['purchase_number', 'shenase_takhsis', 'date', 'unique_sales_agent', 'customer_price', 'weight',
          'delivered_weight', 'status',
           'cargo', 'product_type', 'importer', 'buyer_name', 'delivery_receiver_name','buyer_national_id', 'address', 
-          'tracking_number']  
+          'tracking_number' 'order_weight']  
 
         
         elif user_role == 'admin' or user_role == 'logistics_manager':
@@ -123,7 +123,7 @@ class RoleBasedPurchaseForm(forms.ModelForm):
           'barbary_customer_number', 'buyer_name', 'delivery_receiver_name' , 'bazaargah_phone_number',
           'tahvil_phone_number',
            'buyer_national_id', 'address', 'tracking_number', 'buyer_user_type',
-           'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type'] 
+           'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type' 'order_weight'] 
 
         else:
             allowed_fields = []
@@ -293,14 +293,42 @@ class RoleBasedPurchaseForm(forms.ModelForm):
             self.fields['importer'].widget.attrs['readonly'] = True
             self.fields['importer'].widget.attrs['disabled'] = True
 
-        custom_order_fields = ['buyer_name', 'unique_sales_agent', 'product_type', 'cargo',  'importer', 
-        'purchase_number', 'shenase_takhsis',
-         'date', 'customer_price', 'weight',
-         'delivered_weight', 'status', 'barbary', 'barbary_confidential_number',
-          'barbary_customer_number', 'delivery_receiver_name' , 'bazaargah_phone_number',
-          'tahvil_phone_number',
-           'buyer_national_id', 'address', 'tracking_number', 'buyer_user_type',
-           'unique_delivery_id', 'delivery_address','delivery_postal_code', 'code_melli_tahvil', 'vehicle_type'] 
+        if 'order_weight' in self.fields:
+            self.fields['order_weight'].widget.attrs['readonly'] = True
+            self.fields['order_weight'].widget.attrs['disabled'] = True
+
+        custom_order_fields = [
+            'buyer_name',
+            'unique_sales_agent',
+            'product_type',
+            'cargo',
+            'importer',
+            'status',
+            'customer_price',
+            'order_weight',
+            'delivered_weight',
+            'extelaf_type', 
+            'extelaf_weight', 
+            'extelaf_amount',
+            'bazaargah_phone_number',
+            'purchase_number',
+            'delivery_receiver_name' ,
+            'tahvil_phone_number',
+            'code_melli_tahvil',
+            'barbary_confidential_number',
+            'barbary_customer_number', 
+            'buyer_national_id', 
+            'address', 
+            'tracking_number', 
+            'buyer_user_type',
+            'unique_delivery_id', 
+            'delivery_address',
+            'delivery_postal_code', 
+            'vehicle_type',
+            'date',
+            'weight',
+            'barbary', 
+            'shenase_takhsis'] 
         ordered_field_names = [f for f in custom_order_fields if f in self.fields]
         self.fields = OrderedDict((f, self.fields[f]) for f in ordered_field_names)
 
