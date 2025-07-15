@@ -740,7 +740,7 @@ def purchase_CRUD_view(request, purchase_id):
                     if not action_taken or (action_taken and request.POST.get('save_changes')):
                         for field in form.changed_data:
                             # فیلد bypass_validation را از تاریخچه تغییرات حذف می‌کنیم
-                            if field == 'bypass_validation' or field == 'allocation_ids':
+                            if field == 'bypass_validation' or field == 'allocation_ids' or field == 'product_type' or field == 'importer':
                                 continue
                             old_value = getattr(original_obj, field)
                             new_value = form.cleaned_data.get(field)
