@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .forms.forms import WeeklyAttendanceForm
-from .EmployeeAttendanceModel import WeeklyAttendance, MonthlyAttendance, WorkCalendar, Salary
+from .EmployeeAttendanceModel import WeeklyAttendance, MonthlyAttendance, WorkCalendar, Salary, AttendanceConfiguration
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from django.template.response import TemplateResponse
@@ -58,3 +58,31 @@ class MonthlyAttendanceAdmin(admin.ModelAdmin):
     list_display = ('employee', 'month', 'total_hours')
     list_filter = ('employee', MonthFilter)
     search_fields = ('employee__username', 'month')
+
+
+@admin.register(AttendanceConfiguration)
+class AttendanceConfigurationAdmin(admin.ModelAdmin):
+    list_display = ('allowed_delay_days', 'consider_friday_exception', 'is_active', 'created_at', 'updated_at')
+    list_filter = ('is_active', 'consider_friday_exception', 'created_at')
+    search_fields = ('allowed_delay_days',)
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        ('تنظیمات اصلی', {
+            'fields': ('allowed_delay_days', 'consider_friday_exception', 'is_active')
+        }),
+        ('اطلاعات تاریخ', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+    
+    def has_delete_permission(self, request, obj=None):
+        # فقط اگر بیش از یک تنظیمات وجود داشته باشد، امکان حذف باشد
+        return AttendanceConfiguration.objects.count() > 1
+    
+    def save_model(self, request, obj, form, change):
+        # هنگام ذخیره، اطمینان حاصل کنیم که فقط یک تنظیمات فعال باشد
+        if obj.is_active:
+            AttendanceConfiguration.objects.filter(is_active=True).exclude(pk=obj.pk).update(is_active=False)
+        super().save_model(request, obj, form, change)

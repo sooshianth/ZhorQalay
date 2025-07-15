@@ -208,7 +208,13 @@ def daily_attendance_view(request):
             # نمایش خطاهای فرم
             for field, errors in form.errors.items():
                 for error in errors:
-                    messages.error(request, f'خطا در فیلد {form.fields[field].label}: {error}')
+                    if field == '__all__':
+                        # خطاهای عمومی فرم
+                        messages.error(request, f'خطا: {error}')
+                    else:
+                        # خطاهای فیلد خاص
+                        field_label = form.fields[field].label if field in form.fields else field
+                        messages.error(request, f'خطا در فیلد {field_label}: {error}')
     else:
         form = DailyAttendanceForm(user=request.user, attendance_instance=attendance_instance)
 
