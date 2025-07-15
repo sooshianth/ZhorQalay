@@ -1231,12 +1231,14 @@
     <p><a href="{% url 'purchase_pdf' purchase.id %}" class="pdf-link" target="_blank">دانلود گزارش</a></p>
 </div>
 
+{% if user_role != 'support_agent' %}
 <div class="buyer-card">
     <h3>📞 ارجاع به واحد پشتیبانی</h3>
     <p><button type="button" class="btn btn-warning btn-sm" onclick="openSupportTaskModal()">
         <i class="fas fa-headset"></i> ارجاع به کارشناس پشتیبانی
     </button></p>
 </div>
+{% endif %}
 </div>
 
 

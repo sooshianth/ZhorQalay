@@ -1658,7 +1658,7 @@ def link_manual_purchase(request, purchase_id):
     return redirect('purchase_CRUD', purchase_id=purchase_id)
 
 @login_required
-@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent')
 @csrf_exempt
 def create_support_task_from_purchase(request, purchase_id):
     """ایجاد تسک کارشناس پشتیبانی از صفحه خرید"""
