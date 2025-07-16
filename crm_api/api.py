@@ -531,6 +531,7 @@ class CustomerPurchasesAPI(View):
                     'purchase_number': purchase.purchase_number,
                     'invoice_id': purchase.invoice_id,
                     'tracking_number': purchase.tracking_number,
+                    'shenase_takhsis': purchase.shenase_takhsis,
                     'state': purchase.state,
                     'state_display': purchase.get_state_display(),
                     'priority': purchase.priority,
@@ -557,6 +558,11 @@ class CustomerPurchasesAPI(View):
                     'type': purchase.type,
                     'access_types': access_types,
                     
+                    # اطلاعات اختلاف
+                    'extelaf_type': purchase.extelaf_type,
+                    'extelaf_weight': purchase.extelaf_weight,
+                    'extelaf_amount': purchase.extelaf_amount,
+                    
                     # اطلاعات محصول
                     'cargo_cottage': purchase.cargo.cottage if purchase.cargo else None,
                     'cargo_product_type': purchase.cargo.get_product_type_display() if purchase.cargo else None,
@@ -577,6 +583,9 @@ class CustomerPurchasesAPI(View):
                     
                     # تعداد بارنامه‌ها
                     'barnamehs_count': Barnameh.objects.filter(purchase_number=purchase.purchase_number).count(),
+                    
+                    # شناسه‌های تخصیص
+                    'allocation_codes': [allocation.code for allocation in purchase.shenase_takhsis_set.all()],
                 }
                 
                 purchases_data.append(purchase_info)
