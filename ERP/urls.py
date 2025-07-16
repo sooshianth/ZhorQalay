@@ -20,6 +20,7 @@ urlpatterns = [
     path('purchases/archived/', purchase_list_view.load_archived_purchases, name='load_archived_purchases'),
     path('purchases/update-columns/', purchase_list_view.update_columns, name='update_columns'),
     path('update_column_order/', purchase_list_view.update_column_order, name='update_column_order'),
+    path('get_column_order/', purchase_list_view.get_column_order, name='get_column_order'),
     path('purchase/reset_column_order/', purchase_list_view.reset_column_order, name='reset_column_order'),
     path('purchases/clear-cache/', purchase_list_view.clear_column_cache, name='clear_column_cache'),
     path('purchases/export/', purchase_list_view.export_to_excel, name='export_purchases'),

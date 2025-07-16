@@ -1302,13 +1302,63 @@ def update_column_order(request):
         if not column_order:
             return JsonResponse({'status': 'error', 'message': 'ترتیب ستون‌ها ارسال نشده است'}, status=400)
         
-        # ذخیره در کوکی (به مدت 365 روز)
+        # ذخیره در سرور - ایجاد یا به‌روزرسانی تنظیمات کاربر
+        user_role = determine_user_role(request.user)
+        from ERP.models import ColumnOrderPreference
+        
+        # ایجاد یا به‌روزرسانی تنظیمات کاربر
+        preference, created = ColumnOrderPreference.objects.get_or_create(
+            user=request.user,
+            user_role=user_role,
+            defaults={
+                'column_order': column_order
+            }
+        )
+        
+        if not created:
+            # به‌روزرسانی تنظیمات موجود
+            preference.column_order = column_order
+            preference.save()
+        
+        # ذخیره در کوکی (به مدت 365 روز) برای سازگاری
         response = JsonResponse({'status': 'success'})
         response.set_cookie('purchase_list_column_order', json.dumps(column_order), max_age=30*24*60*60*12)
         
         return response
     except Exception as e:
         logger.error(f"error update column: {str(e)}")
+        return JsonResponse({'status': 'error', 'message': "error"}, status=500)
+
+@login_required
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+def get_column_order(request):
+    """
+    دریافت ترتیب ستون‌ها از سرور
+    """
+    logger.warning(f"دریافت ترتیب ستون ها توسط {request.user.username} و آیپی {get_client_ip(request)}")
+    try:
+        user_role = determine_user_role(request.user)
+        
+        # دریافت تنظیمات کاربر از سرور
+        try:
+            from ERP.models import ColumnOrderPreference
+            preference = ColumnOrderPreference.objects.get(
+                user=request.user,
+                user_role=user_role
+            )
+            column_order = preference.column_order
+        except ColumnOrderPreference.DoesNotExist:
+            # اگر تنظیمات وجود نداشت، از ترتیب پیش‌فرض استفاده کن
+            column_order = get_default_columns(user_role)
+        
+        return JsonResponse({
+            'status': 'success',
+            'column_order': column_order,
+            'user_role': user_role
+        })
+        
+    except Exception as e:
+        logger.error(f"error getting column order: {str(e)}")
         return JsonResponse({'status': 'error', 'message': "error"}, status=500)
 
 @require_POST
@@ -1318,18 +1368,34 @@ def reset_column_order(request):
     """
     بازگرداندن ترتیب ستون‌ها به حالت پیش‌فرض
     """
-    logger.warning(f"بازگرداندن ترتیب جدید ستون ها توسط {request.user.username} و آیپی {get_client_ip(request)}")
+    logger.warning(f"بازگرداندن ترتیب ستون ها به حالت پیش‌فرض توسط {request.user.username} و آیپی {get_client_ip(request)}")
     
     try:
-        # ستون‌های پیش‌فرض اصلی
+        # تشخیص نقش کاربر و دریافت ستون‌های پیش‌فرض
         user_role = determine_user_role(request.user)
         default_columns = get_default_columns(user_role)
         
         # برای آسان‌تر کردن دیباگ
         print("Resetting column order to default:", default_columns)
         
+        # حذف تنظیمات کاربر از دیتابیس
+        from ERP.models import ColumnOrderPreference
+        try:
+            preference = ColumnOrderPreference.objects.get(
+                user=request.user,
+                user_role=user_role
+            )
+            preference.delete()
+            print(f"Deleted existing preference for user {request.user.username} and role {user_role}")
+        except ColumnOrderPreference.DoesNotExist:
+            print(f"No existing preference found for user {request.user.username} and role {user_role}")
+        
         # ایجاد پاسخ
-        response = JsonResponse({'success': True, 'message': 'ترتیب ستون‌ها به حالت پیش‌فرض بازگردانده شد'})
+        response = JsonResponse({
+            'status': 'success', 
+            'message': 'ترتیب ستون‌ها به حالت پیش‌فرض بازگردانده شد',
+            'column_order': default_columns
+        })
         
         # حذف تمامی کوکی‌های مربوط به ستون‌ها
         response.delete_cookie('purchase_list_column_order')
@@ -1339,9 +1405,13 @@ def reset_column_order(request):
         response.set_cookie('selected_columns', ','.join(default_columns))
         
         return response
+        
     except Exception as e:
         logger.error(f"Error in reset_column_order: {str(e)}")
-        return JsonResponse({'success': False, 'error': "error"}, status=500)
+        return JsonResponse({
+            'status': 'error', 
+            'message': f'خطا در بازگردانی ترتیب ستون‌ها: {str(e)}'
+        }, status=500)
 
 @require_POST
 @login_required
