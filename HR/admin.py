@@ -1,17 +1,19 @@
 from django.contrib import admin
 from .forms.forms import WeeklyAttendanceForm
-from .EmployeeAttendanceModel import WeeklyAttendance, MonthlyAttendance, WorkCalendar, Salary
+from .EmployeeAttendanceModel import WeeklyAttendance, MonthlyAttendance, WorkCalendar, Salary, AttendanceConfiguration
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from django.template.response import TemplateResponse
 from django.urls import path
 from django.contrib.auth.models import User
 from .EmployeeModel import Employee
+from admin_list_charts.admin import ListChartMixin
 
 @admin.register(Employee)
-class EmployeeAdmin(admin.ModelAdmin):
+class EmployeeAdmin(ListChartMixin, admin.ModelAdmin):
     list_display = ('user', 'first_name', 'last_name', 'email')
     search_fields = ('user__username', 'first_name', 'last_name', 'email')
+    date_hierarchy = 'hire_date'
 
 
 class MonthFilter(admin.SimpleListFilter):
@@ -39,12 +41,13 @@ class WeeklyAttendanceInline(admin.TabularInline):
 
 
 @admin.register(WeeklyAttendance)
-class WeeklyAttendanceAdmin(admin.ModelAdmin):
+class WeeklyAttendanceAdmin(ListChartMixin, admin.ModelAdmin):
     form = WeeklyAttendanceForm
     list_display = ('employee', 'week_start_date', 'day', 'total_hours', 'is_fully_approved')
     list_filter = ('week_start_date', 'employee', 'approved_by_admin')
     search_fields = ('employee__username', 'description')
     actions = ['recalculate_total_hours']
+    date_hierarchy = 'week_start_date'
 
     def recalculate_total_hours(self, request, queryset):
         for attendance in queryset:
@@ -58,3 +61,32 @@ class MonthlyAttendanceAdmin(admin.ModelAdmin):
     list_display = ('employee', 'month', 'total_hours')
     list_filter = ('employee', MonthFilter)
     search_fields = ('employee__username', 'month')
+
+
+@admin.register(AttendanceConfiguration)
+class AttendanceConfigurationAdmin(ListChartMixin, admin.ModelAdmin):
+    list_display = ('allowed_delay_days', 'consider_friday_exception', 'is_active', 'created_at', 'updated_at')
+    list_filter = ('is_active', 'consider_friday_exception', 'created_at')
+    search_fields = ('allowed_delay_days',)
+    readonly_fields = ('created_at', 'updated_at')
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('تنظیمات اصلی', {
+            'fields': ('allowed_delay_days', 'consider_friday_exception', 'is_active')
+        }),
+        ('اطلاعات تاریخ', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+    
+    def has_delete_permission(self, request, obj=None):
+        # فقط اگر بیش از یک تنظیمات وجود داشته باشد، امکان حذف باشد
+        return AttendanceConfiguration.objects.count() > 1
+    
+    def save_model(self, request, obj, form, change):
+        # هنگام ذخیره، اطمینان حاصل کنیم که فقط یک تنظیمات فعال باشد
+        if obj.is_active:
+            AttendanceConfiguration.objects.filter(is_active=True).exclude(pk=obj.pk).update(is_active=False)
+        super().save_model(request, obj, form, change)

@@ -483,27 +483,21 @@
             {% if editable_fields|length > 5 %}
             <div class="field-search-container mb-4">
                 <div class="input-group">
-                    <span class="input-group-text search-icon">
+                    <span class="input-group-text">
                         <i class="fas fa-search"></i>
                     </span>
                     <input type="text" 
-                           class="form-control search-input" 
+                           class="form-control" 
                            id="fieldSearch" 
-                           placeholder="جستجو در فیلدها... (Enter برای رفتن به اولین نتیجه)"
+                           placeholder="جستجو در فیلدها..."
                            autocomplete="off">
-                    <button class="btn btn-outline-primary" type="button" id="goToFirstMatch" title="رفتن به اولین نتیجه">
-                        <i class="fas fa-arrow-down"></i>
-                    </button>
-                    <button class="btn btn-outline-secondary" type="button" id="clearSearch" title="پاک کردن جستجو">
+                    <button class="btn btn-outline-secondary" type="button" id="clearSearch">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
-                <div class="field-counter mt-2 d-flex justify-content-between align-items-center">
+                <div class="mt-2">
                     <small class="text-muted">
-                        نمایش <span id="visibleFieldsCount">{{ editable_fields|length }}</span> از {{ editable_fields|length }} فیلد
-                    </small>
-                    <small class="text-muted">
-                        <kbd>Enter</kbd> برای رفتن به اولین نتیجه • <kbd>Esc</kbd> برای پاک کردن
+                        نمایش <span id="visibleCount">{{ editable_fields|length }}</span> از {{ editable_fields|length }} فیلد
                     </small>
                 </div>
             </div>
@@ -724,112 +718,52 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // جستجوی فیلدها
+    // جستجوی ساده فیلدها
     const fieldSearch = document.getElementById('fieldSearch');
     const clearSearch = document.getElementById('clearSearch');
+    const visibleCount = document.getElementById('visibleCount');
     const fieldItems = document.querySelectorAll('.field-item');
-    const visibleCountElement = document.getElementById('visibleFieldsCount');
     const totalFields = fieldItems.length;
     
-    function updateVisibleCount() {
-        const visibleFields = document.querySelectorAll('.field-item:not([style*="display: none"])').length;
-        if (visibleCountElement) {
-            visibleCountElement.textContent = visibleFields;
-        }
-    }
-    
-    function filterFields(searchTerm) {
-        const term = searchTerm.toLowerCase().trim();
-        let visibleCount = 0;
-        let firstVisibleField = null;
+    function performSearch() {
+        const searchTerm = fieldSearch.value.toLowerCase().trim();
+        let visibleFieldsCount = 0;
         
-        fieldItems.forEach(item => {
-            const fieldName = item.dataset.fieldName;
-            const fieldLabel = item.dataset.fieldLabel;
+        fieldItems.forEach(function(item) {
+            const label = item.querySelector('.form-label');
+            const labelText = label ? label.textContent.toLowerCase() : '';
+            const fieldName = item.dataset.fieldName ? item.dataset.fieldName.toLowerCase() : '';
             
-            if (!term || fieldName.includes(term) || fieldLabel.includes(term)) {
+            if (!searchTerm || labelText.includes(searchTerm) || fieldName.includes(searchTerm)) {
                 item.style.display = '';
-                item.classList.remove('hidden-by-search');
-                item.classList.add('search-match');
-                visibleCount++;
-                
-                // ذخیره اولین فیلد پیدا شده
-                if (!firstVisibleField) {
-                    firstVisibleField = item;
-                }
+                visibleFieldsCount++;
             } else {
                 item.style.display = 'none';
-                item.classList.add('hidden-by-search');
-                item.classList.remove('search-match');
             }
         });
         
-        updateVisibleCount();
-        
-        // نمایش پیام در صورت عدم یافتن نتیجه
-        const noResultsMessage = document.getElementById('noResultsMessage');
-        if (visibleCount === 0 && term) {
-            if (!noResultsMessage) {
-                const message = document.createElement('div');
-                message.id = 'noResultsMessage';
-                message.className = 'alert alert-warning text-center';
-                message.innerHTML = '<i class="fas fa-search me-2"></i>هیچ فیلدی با این عبارت پیدا نشد';
-                document.querySelector('.fields-container').appendChild(message);
-            }
-        } else if (noResultsMessage) {
-            noResultsMessage.remove();
+        // بروزرسانی شمارنده
+        if (visibleCount) {
+            visibleCount.textContent = visibleFieldsCount;
         }
         
-        return firstVisibleField;
-    }
-    
-    function scrollToFirstMatch() {
-        const firstMatch = document.querySelector('.field-item.search-match');
-        if (firstMatch) {
-            firstMatch.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'center',
-                inline: 'nearest'
-            });
-            
-            // هایلایت کردن فیلد
-            firstMatch.classList.add('field-highlighted');
-            setTimeout(() => {
-                firstMatch.classList.remove('field-highlighted');
-            }, 2000);
-            
-            // فوکوس روی input فیلد
-            const input = firstMatch.querySelector('input, select, textarea');
-            if (input && !input.disabled) {
-                setTimeout(() => {
-                    input.focus();
-                    if (input.type === 'text' || input.tagName.toLowerCase() === 'textarea') {
-                        input.select();
-                    }
-                }, 300);
+        // اسکرول به اولین نتیجه
+        if (searchTerm) {
+            const firstVisible = document.querySelector('.field-item[style=""], .field-item:not([style*="display: none"])');
+            if (firstVisible) {
+                firstVisible.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }
     }
     
+    // Event listeners
     if (fieldSearch) {
-        fieldSearch.addEventListener('input', function() {
-            filterFields(this.value);
-        });
+        fieldSearch.addEventListener('input', performSearch);
         
         fieldSearch.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 this.value = '';
-                filterFields('');
-                fieldSearch.focus();
-            } else if (e.key === 'Enter') {
-                e.preventDefault();
-                const searchTerm = this.value.trim();
-                if (searchTerm) {
-                    filterFields(searchTerm);
-                    setTimeout(() => {
-                        scrollToFirstMatch();
-                    }, 100);
-                }
+                performSearch();
             }
         });
     }
@@ -837,27 +771,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (clearSearch) {
         clearSearch.addEventListener('click', function() {
             fieldSearch.value = '';
-            filterFields('');
+            performSearch();
             fieldSearch.focus();
         });
     }
     
-    // دکمه رفتن به اولین نتیجه
-    const goToFirstMatch = document.getElementById('goToFirstMatch');
-    if (goToFirstMatch) {
-        goToFirstMatch.addEventListener('click', function() {
-            const searchTerm = fieldSearch.value.trim();
-            if (searchTerm) {
-                filterFields(searchTerm);
-                setTimeout(() => {
-                    scrollToFirstMatch();
-                }, 100);
-            } else {
-                showToast('ابتدا عبارت جستجو را وارد کنید', 'warning');
-                fieldSearch.focus();
-            }
-        });
-    }
+
     
     // پاک کردن فرم
     const resetButton = document.getElementById('resetForm');
@@ -947,6 +866,8 @@ document.addEventListener('DOMContentLoaded', function() {
             fieldSearch.focus();
         }, 500);
     }
+    
+    console.log('✅ جستجوی ساده فیلدها راه‌اندازی شد - تعداد فیلدها:', totalFields);
 });
 </script>
 
@@ -968,99 +889,10 @@ document.addEventListener('DOMContentLoaded', function() {
     border: none;
 }
 
-.hidden-by-search {
-    transition: all 0.3s ease;
-}
-
-/* انیمیشن برای فیلدهای پیدا شده */
-.field-item:not(.hidden-by-search) {
-    animation: fadeInUp 0.3s ease;
-}
-
-.field-item.search-match {
-    border: 2px solid var(--primary-light);
-    background: linear-gradient(135deg, #F0FDF4 0%, #ECFDF5 100%);
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
-}
-
-.field-item.field-highlighted {
-    animation: pulseHighlight 1s ease-in-out;
-    border: 2px solid var(--accent-color);
-    background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
-    box-shadow: 0 0 30px rgba(52, 211, 153, 0.4);
-    transform: scale(1.02);
-}
-
 .field-search-container .input-group {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     border-radius: 12px;
     overflow: hidden;
-}
-
-.field-search-container .search-icon {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-    color: white;
-    border: none;
-}
-
-.field-search-container .search-input {
-    border: none;
-    box-shadow: none;
-    font-size: 1rem;
-    padding: 12px 16px;
-}
-
-.field-search-container .search-input:focus {
-    box-shadow: none;
-    border: none;
-    background-color: white;
-}
-
-.field-search-container .btn {
-    border: none;
-    padding: 12px 16px;
-}
-
-@keyframes pulseHighlight {
-    0% {
-        transform: scale(1);
-        box-shadow: 0 0 20px rgba(52, 211, 153, 0.4);
-    }
-    50% {
-        transform: scale(1.02);
-        box-shadow: 0 0 30px rgba(52, 211, 153, 0.6);
-    }
-    100% {
-        transform: scale(1.02);
-        box-shadow: 0 0 30px rgba(52, 211, 153, 0.4);
-    }
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* استایل‌های کیبورد شورتکات */
-kbd {
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
-    box-shadow: 0 1px 0 rgba(0,0,0,.2), inset 0 0 0 2px #fff;
-    color: #495057;
-    display: inline-block;
-    font-family: monospace;
-    font-size: 0.75rem;
-    font-weight: 700;
-    line-height: 1;
-    padding: 2px 4px;
-    white-space: nowrap;
 }
 </style>
 {% endblock %} 

@@ -24,10 +24,14 @@ urlpatterns = [
     # API URLs for barnameh list filtering
     path('api/apply_barnameh_filter/', views.apply_barnameh_filter, name='apply_barnameh_filter'),
     path('api/barnameh_column_values/<str:column_id>/', views.barnameh_column_values, name='barnameh_column_values'),
+    path('api/get_barnameh_column_values/', views.get_barnameh_column_values, name='get_barnameh_column_values'),
     
     # API endpoints for column management
     path('api/update-columns/', views.update_barnameh_columns, name='update_barnameh_columns'),
     path('api/reset-columns/', views.reset_barnameh_columns, name='reset_barnameh_columns'),
     path('api/columns-config/', views.get_barnameh_columns_config, name='get_barnameh_columns_config'),
+    
+    # API endpoint for barnameh logs
+    path('api/logs/<int:barnameh_id>/', views.get_barnameh_logs, name='get_barnameh_logs'),
 ]
 

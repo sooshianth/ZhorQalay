@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'whatsapp_api.apps.WhatsappApiConfig',
     'admin_interface',  
+    'admin_list_charts',  # نمودارهای لیست ادمین
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

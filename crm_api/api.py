@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from core.PurchaseModel import Purchase, ShenaseTakhsis
+from core.PurchaseModel import Purchase, ShenaseTakhsis, PurchaseStateChange
 from core.CargoProductModel import CargoProduct
 from bki_barnameh.models.BarnamehModel import Barnameh
 from django.http import JsonResponse
@@ -135,69 +135,241 @@ class PurchaseInfoAPI(View):
                     'error': error
                 }, status=403)
             
-            # تهیه اطلاعات خرید
+            # تهیه اطلاعات خرید - بهبود یافته
             purchase_data = {
+                # اطلاعات اصلی خرید
                 'purchase_number': purchase.purchase_number,
                 'invoice_id': purchase.invoice_id,
+                'tracking_number': purchase.tracking_number,
+                'shenase_takhsis': purchase.shenase_takhsis,
+                
+                # وضعیت خرید
                 'state': purchase.state,
                 'state_display': purchase.get_state_display(),
+                'priority': purchase.priority,
+                'priority_display': purchase.get_priority_display(),
+                'priority_reason': purchase.priority_reason,
+                'is_urgent': purchase.is_urgent,
+                'is_canceled': purchase.is_canceled,
+                'is_archived': purchase.is_archived,
+                
+                # اطلاعات وزن و مقدار
                 'order_weight': purchase.order_weight,
                 'delivered_weight': purchase.delivered_weight,
+                'total_weight': purchase.total_weight,
+                
+                # اطلاعات مالی (بدون اطلاعات محرمانه)
                 'customer_price': purchase.customer_price,
                 'amount_paid': purchase.amount_paid,
                 'payment_method': purchase.payment_method,
+                'mabna_profit': purchase.mabna_profit,
+                'ready_for_invoice': purchase.ready_for_invoice,
+                'is_fully_tasvied': purchase.is_fully_tasvied,
+                'is_factored': purchase.is_factored,
+                'factor_status': purchase.factor_status,
+                'factor_status_display': purchase.get_factor_status_display(),
+                
+                # اطلاعات خریدار
                 'buyer_name': purchase.buyer_name,
-                'address': purchase.address,
-                'tracking_number': purchase.tracking_number,
-                'created_at': purchase.created_at.isoformat() if purchase.created_at else None,
+                'buyer_national_id': purchase.buyer_national_id,
+                'buyer_user_type': purchase.buyer_user_type,
+                'buyer_user_type_display': purchase.get_buyer_user_type_display() if purchase.buyer_user_type else None,
+                'code_melli_tahvil': purchase.code_melli_tahvil,
                 'bazaargah_phone_number': purchase.bazaargah_phone_number,
                 'tahvil_phone_number': purchase.tahvil_phone_number,
-                'code_melli_tahvil': purchase.code_melli_tahvil,
+                
+                # اطلاعات آدرس و تحویل
+                'address': purchase.address,
+                'delivery_address': purchase.delivery_address,
+                'delivery_postal_code': purchase.delivery_postal_code,
+                'delivery_receiver_name': purchase.delivery_receiver_name,
+                'unique_delivery_id': purchase.unique_delivery_id,
+                'vehicle_type': purchase.vehicle_type,
+                'vehicle_type_display': purchase.get_vehicle_type_display() if purchase.vehicle_type else None,
+                'is_address_sent': purchase.is_address_sent,
+                
+                # اطلاعات اختلاف
                 'extelaf_type': purchase.extelaf_type,
                 'extelaf_weight': purchase.extelaf_weight,
                 'extelaf_amount': purchase.extelaf_amount,
-                'is_fully_tasvied': purchase.is_fully_tasvied,
-                'is_factored': purchase.is_factored,
+                
+                # اطلاعات باربری - کامل
+                'barbary_confidential_number': purchase.barbary_confidential_number,
+                'barbary_customer_number': purchase.barbary_customer_number,
+                
+                # اطلاعات تاریخ
+                'created_at': purchase.created_at.isoformat() if purchase.created_at else None,
+                'updated_at': purchase.updated_at.isoformat() if purchase.updated_at else None,
+                'type': purchase.type,
+                'description': purchase.description,
+                'send_cottage_sms': purchase.send_cottage_sms,
+                'wallet_index': purchase.wallet_index,
             }
             
-            # اطلاعات محصول
+            # اطلاعات محصول - بهبود یافته
             if purchase.cargo:
                 purchase_data['cargo'] = {
+                    # اطلاعات اصلی محصول
                     'cottage': purchase.cargo.cottage,
                     'product_type': purchase.cargo.product_type,
                     'product_type_display': purchase.cargo.get_product_type_display(),
                     'country': purchase.cargo.country,
                     'country_display': purchase.cargo.get_country_display(),
+                    'type': purchase.cargo.type,
+                    
+                    # اطلاعات تکمیلی محصول
+                    'port': purchase.cargo.port,
+                    'loading_time': purchase.cargo.loading_time,
+                    'description': purchase.cargo.description,
+                    'weight': purchase.cargo.weight,
+                    'status': purchase.cargo.status,
+                    'created_at': purchase.cargo.created_at.isoformat() if purchase.cargo.created_at else None,
+                    'last_modified': purchase.cargo.last_modified.isoformat() if purchase.cargo.last_modified else None,
+                    'customer_price': purchase.cargo.customer_price,
+                    
+                    # اطلاعات باربری - کامل
+                    'barbary_info': {
+                        'name': purchase.cargo.barbary.name if purchase.cargo.barbary else None,
+                        'phone_number': purchase.cargo.barbary.phone_number if purchase.cargo.barbary else None,
+                        'email': purchase.cargo.barbary.email if purchase.cargo.barbary else None,
+                        'description': purchase.cargo.barbary.description if purchase.cargo.barbary else None,
+                    } if purchase.cargo.barbary else None,
+                    
+                    # اطلاعات واردکننده - فقط اسم
+                    'vared_konandeh_name': purchase.cargo.vared_konandeh.name if purchase.cargo.vared_konandeh else None,
                 }
             
-            # اطلاعات مشتری
+            # اطلاعات مشتری - بهبود یافته
             customer_data = {
+                # اطلاعات اصلی مشتری
                 'name': customer.name,
                 'city': customer.city,
                 'phone_number': customer.get_primary_phone(),
+                'all_phone_numbers': customer.get_all_phone_numbers(),
+                
+                # اطلاعات تکمیلی
                 'field_of_activity': customer.get_field_of_activity_display(),
+                'field_of_activity_list': customer.get_field_of_activity_list(),
+                'purchase_preferences_list': customer.get_purchase_preferences_list(),
+                'product_preferences_list': customer.get_product_preferences_list(),
+                'whatsapp_preference': customer.whatsapp_preference,
+                'sms_preference': customer.sms_preference,
+                'social_media': customer.social_media,
+                'added_description': customer.added_description,
+                'contact_start_time': customer.contact_start_time.isoformat() if customer.contact_start_time else None,
+                'contact_end_time': customer.contact_end_time.isoformat() if customer.contact_end_time else None,
+                'day_of_week': customer.day_of_week,
+                'quota': customer.quota,
+                'is_bazaargah_enjoyer': customer.is_bazaargah_enjoyer,
+                'is_favorite': customer.is_favorite,
+                'is_active': customer.is_active,
+                'is_blocked': customer.is_blocked,
+                'created_at': customer.created_at.isoformat() if customer.created_at else None,
+                'updated_at': customer.updated_at.isoformat() if customer.updated_at else None,
             }
             
-            # اطلاعات بارنامه‌ها
+            # اطلاعات بارنامه‌ها - بهبود یافته
             barnameh_data = []
             barnamehs = Barnameh.objects.filter(purchase_number=purchase_number)
             for barnameh in barnamehs:
-                barnameh_data.append({
+                barnameh_info = {
+                    # اطلاعات اصلی بارنامه
+                    'id': barnameh.id,
                     'number': barnameh.number,
                     'serial': barnameh.serial,
+                    'tonnage': float(barnameh.tonnage) if barnameh.tonnage else None,
+                    'status': barnameh.status,
+                    'status_display': barnameh.get_status_display(),
+                    
+                    # اطلاعات تخصیص
                     'shenase_takhsis_code': barnameh.shenase_takhsis_code,
-                    'barnameh_date': barnameh.barnameh_date.isoformat() if barnameh.barnameh_date else None,
+                    'purchase_number': barnameh.purchase_number,
+                    'haml_id': barnameh.haml_id,
+                    
+                    # اطلاعات راننده و حمل - کامل
+                    'driver_name': barnameh.driver_name,
+                    'driver_phone': barnameh.driver_phone,
+                    'vehicle_plate': barnameh.vehicle_plate,
+                    'receiver_name': barnameh.receiver_name,
+                    'destination': barnameh.destination,
+                    'transport_date': barnameh.transport_date.isoformat() if barnameh.transport_date else None,
+                    
+                    # اطلاعات اضافی
+                    'buyer_postal_code': barnameh.buyer_postal_code,
+                    'factor_sodoor_season': barnameh.factor_sodoor_season,
+                    'is_factored': barnameh.is_factored,
+                    'is_created_by_excel': barnameh.is_created_by_excel,
+                    
+                    # اطلاعات ارسال به بازارگاه
                     'is_sent_to_bki': barnameh.is_sent_to_bki,
                     'is_sent_to_bki_at': barnameh.is_sent_to_bki_at.isoformat() if barnameh.is_sent_to_bki_at else None,
-                })
+                    
+                    # اطلاعات تاریخ
+                    'barnameh_date': barnameh.barnameh_date.isoformat() if barnameh.barnameh_date else None,
+                    'barnameh_created_at': barnameh.barnameh_created_at.isoformat() if barnameh.barnameh_created_at else None,
+                    'barnameh_updated_at': barnameh.barnameh_updated_at.isoformat() if barnameh.barnameh_updated_at else None,
+                    
+                    # اطلاعات محاسبه شده از خرید
+                    'calculated_info': {
+                        'total_sales_amount': barnameh.get_total_sales_amount(),
+                        'buyer_national_code': barnameh.get_buyer_national_code(),
+                        'buyer_address': barnameh.get_buyer_address(),
+                        'demand_amount': barnameh.get_demand_amount(),
+                        'product_type': barnameh.get_product_type(),
+                        'successful_send_date': barnameh.get_successful_send_date().isoformat() if barnameh.get_successful_send_date() else None,
+                    },
+                    
+                    # اطلاعات BKI Response (اگر موجود باشد)
+                    'bki_response_data': barnameh.bki_response_data,
+                }
+                
+                barnameh_data.append(barnameh_info)
             
-            # شناسه‌های تخصیص
+            # شناسه‌های تخصیص - بهبود یافته
             allocation_data = []
             for allocation in purchase.shenase_takhsis_set.all():
                 allocation_data.append({
                     'code': allocation.code,
                     'weight': allocation.weight,
+                    'created_at': allocation.created_at.isoformat() if allocation.created_at else None,
                 })
+            
+            # تاریخچه تغییرات وضعیت - جدید
+            state_history = []
+            state_changes = PurchaseStateChange.objects.filter(
+                purchase=purchase
+            ).order_by('-changed_at')
+            
+            for change in state_changes:
+                state_history.append({
+                    'previous_state': change.previous_state,
+                    'previous_state_display': change.get_previous_state_display(),
+                    'new_state': change.new_state,
+                    'new_state_display': change.get_new_state_display(),
+                    'changed_by': change.changed_by.get_full_name() if change.changed_by else None,
+                    'changed_at': change.changed_at.isoformat() if change.changed_at else None,
+                    'notes': change.notes,
+                    'sms_sent': change.sms_sent,
+                    'sms_sent_at': change.sms_sent_at.isoformat() if change.sms_sent_at else None,
+                })
+            
+            # اطلاعات کارشناسان فروش - جدید
+            sales_agents_data = []
+            for agent in purchase.sales_agent.all():
+                sales_agents_data.append({
+                    'name': agent.name,
+                    'phone_number': agent.phone_number,
+                    'factor_code': agent.factor_code,
+                })
+            
+            # اطلاعات کارشناس فروش منحصر به فرد
+            unique_sales_agent_data = None
+            if purchase.unique_sales_agent:
+                unique_sales_agent_data = {
+                    'name': purchase.unique_sales_agent.name,
+                    'phone_number': purchase.unique_sales_agent.phone_number,
+                    'factor_code': purchase.unique_sales_agent.factor_code,
+                }
             
             return JsonResponse({
                 'success': True,
@@ -206,6 +378,9 @@ class PurchaseInfoAPI(View):
                     'customer': customer_data,
                     'barnamehs': barnameh_data,
                     'allocations': allocation_data,
+                    'state_history': state_history,
+                    'sales_agents': sales_agents_data,
+                    'unique_sales_agent': unique_sales_agent_data,
                 }
             })
             
@@ -331,7 +506,7 @@ class CustomerPurchasesAPI(View):
             # دریافت خریدهای یکتا
             purchases = Purchase.objects.filter(
                 id__in=purchase_ids
-            ).order_by('-created_at')
+            ).select_related('cargo', 'customer', 'bazaargah_customer', 'unique_sales_agent').order_by('-created_at')
             
             purchases_data = []
             for purchase in purchases:
@@ -351,30 +526,88 @@ class CustomerPurchasesAPI(View):
                 if purchase.tahvil_phone_number and clean_phone_number(purchase.tahvil_phone_number) == clean_phone:
                     access_types.append('Tahvil Phone')
                 
-                purchases_data.append({
+                # اطلاعات خرید - بهبود یافته
+                purchase_info = {
                     'purchase_number': purchase.purchase_number,
                     'invoice_id': purchase.invoice_id,
+                    'tracking_number': purchase.tracking_number,
+                    'shenase_takhsis': purchase.shenase_takhsis,
                     'state': purchase.state,
                     'state_display': purchase.get_state_display(),
+                    'priority': purchase.priority,
+                    'priority_display': purchase.get_priority_display(),
+                    'is_urgent': purchase.is_urgent,
+                    'is_canceled': purchase.is_canceled,
+                    'is_archived': purchase.is_archived,
                     'order_weight': purchase.order_weight,
                     'delivered_weight': purchase.delivered_weight,
+                    'total_weight': purchase.total_weight,
+                    'customer_price': purchase.customer_price,
                     'amount_paid': purchase.amount_paid,
+                    'payment_method': purchase.payment_method,
+                    'is_fully_tasvied': purchase.is_fully_tasvied,
+                    'is_factored': purchase.is_factored,
+                    'factor_status': purchase.factor_status,
+                    'buyer_name': purchase.buyer_name,
+                    'address': purchase.address,
+                    'delivery_address': purchase.delivery_address,
+                    'barbary_confidential_number': purchase.barbary_confidential_number,
+                    'barbary_customer_number': purchase.barbary_customer_number,
                     'created_at': purchase.created_at.isoformat() if purchase.created_at else None,
+                    'updated_at': purchase.updated_at.isoformat() if purchase.updated_at else None,
+                    'type': purchase.type,
+                    'access_types': access_types,
+                    
+                    # اطلاعات اختلاف
+                    'extelaf_type': purchase.extelaf_type,
+                    'extelaf_weight': purchase.extelaf_weight,
+                    'extelaf_amount': purchase.extelaf_amount,
+                    
+                    # اطلاعات محصول
                     'cargo_cottage': purchase.cargo.cottage if purchase.cargo else None,
+                    'cargo_product_type': purchase.cargo.get_product_type_display() if purchase.cargo else None,
+                    'cargo_country': purchase.cargo.get_country_display() if purchase.cargo else None,
+                    'cargo_port': purchase.cargo.port if purchase.cargo else None,
+                    'cargo_barbary_name': purchase.cargo.barbary.name if (purchase.cargo and purchase.cargo.barbary) else None,
+                    'cargo_vared_konandeh_name': purchase.cargo.vared_konandeh.name if (purchase.cargo and purchase.cargo.vared_konandeh) else None,
+                    
+                    # اطلاعات مشتری
                     'customer_name': purchase.customer.name if purchase.customer else None,
+                    'customer_city': purchase.customer.city if purchase.customer else None,
                     'bazaargah_customer_name': purchase.bazaargah_customer.name if purchase.bazaargah_customer else None,
-                    'access_types': access_types,  # نشان می‌دهد از کدام مسیر دسترسی پیدا شده
-                })
+                    'bazaargah_customer_city': purchase.bazaargah_customer.city if purchase.bazaargah_customer else None,
+                    
+                    # اطلاعات کارشناس فروش
+                    'unique_sales_agent_name': purchase.unique_sales_agent.name if purchase.unique_sales_agent else None,
+                    'unique_sales_agent_phone': purchase.unique_sales_agent.phone_number if purchase.unique_sales_agent else None,
+                    
+                    # تعداد بارنامه‌ها
+                    'barnamehs_count': Barnameh.objects.filter(purchase_number=purchase.purchase_number).count(),
+                    
+                    # شناسه‌های تخصیص
+                    'allocation_codes': [allocation.code for allocation in purchase.shenase_takhsis_set.all()],
+                }
+                
+                purchases_data.append(purchase_info)
             
-            # تهیه اطلاعات خلاصه مشتریان
+            # تهیه اطلاعات خلاصه مشتریان - بهبود یافته
             customers_summary = []
             for customer_info in customers_found:
                 customer = customer_info['customer']
                 customers_summary.append({
+                    'id': customer.id,
                     'name': customer.name,
                     'city': customer.city,
                     'phone_number': customer.get_primary_phone(),
-                    'access_type': customer_info['access_type']
+                    'all_phone_numbers': customer.get_all_phone_numbers(),
+                    'field_of_activity': customer.get_field_of_activity_display(),
+                    'whatsapp_preference': customer.whatsapp_preference,
+                    'sms_preference': customer.sms_preference,
+                    'is_active': customer.is_active,
+                    'is_blocked': customer.is_blocked,
+                    'is_favorite': customer.is_favorite,
+                    'access_type': customer_info['access_type'],
+                    'created_at': customer.created_at.isoformat() if customer.created_at else None,
                 })
             
             return JsonResponse({
@@ -456,7 +689,16 @@ class PhoneValidationAPI(View):
                         'id': customer.id,
                         'name': customer.name,
                         'city': customer.city,
-                        'access_type': 'CRM Access'
+                        'phone_number': customer.get_primary_phone(),
+                        'all_phone_numbers': customer.get_all_phone_numbers(),
+                        'field_of_activity': customer.get_field_of_activity_display(),
+                        'whatsapp_preference': customer.whatsapp_preference,
+                        'sms_preference': customer.sms_preference,
+                        'is_active': customer.is_active,
+                        'is_blocked': customer.is_blocked,
+                        'is_favorite': customer.is_favorite,
+                        'access_type': 'CRM Access',
+                        'created_at': customer.created_at.isoformat() if customer.created_at else None,
                     })
             
             # 2. بررسی وجود خرید با bazaargah_phone_number
@@ -494,7 +736,16 @@ class PhoneValidationAPI(View):
                             'id': customer.id,
                             'name': customer.name,
                             'city': customer.city,
-                            'access_type': 'Customer Phone'
+                            'phone_number': customer.get_primary_phone(),
+                            'all_phone_numbers': customer.get_all_phone_numbers(),
+                            'field_of_activity': customer.get_field_of_activity_display(),
+                            'whatsapp_preference': customer.whatsapp_preference,
+                            'sms_preference': customer.sms_preference,
+                            'is_active': customer.is_active,
+                            'is_blocked': customer.is_blocked,
+                            'is_favorite': customer.is_favorite,
+                            'access_type': 'Customer Phone',
+                            'created_at': customer.created_at.isoformat() if customer.created_at else None,
                         })
             
             # 5. بررسی در فیلد phone_number قدیمی Customer
@@ -508,7 +759,16 @@ class PhoneValidationAPI(View):
                             'id': customer.id,
                             'name': customer.name,
                             'city': customer.city,
-                            'access_type': 'Legacy Phone'
+                            'phone_number': customer.get_primary_phone(),
+                            'all_phone_numbers': customer.get_all_phone_numbers(),
+                            'field_of_activity': customer.get_field_of_activity_display(),
+                            'whatsapp_preference': customer.whatsapp_preference,
+                            'sms_preference': customer.sms_preference,
+                            'is_active': customer.is_active,
+                            'is_blocked': customer.is_blocked,
+                            'is_favorite': customer.is_favorite,
+                            'access_type': 'Legacy Phone',
+                            'created_at': customer.created_at.isoformat() if customer.created_at else None,
                         })
             
             return JsonResponse({
@@ -551,6 +811,7 @@ class HealthCheckAPI(View):
             customers_count = Customer.objects.count()
             purchases_count = Purchase.objects.count()
             crm_access_count = CrmAccessNumbers.objects.count()
+            barnamehs_count = Barnameh.objects.count()
             
             return JsonResponse({
                 'success': True,
@@ -560,6 +821,7 @@ class HealthCheckAPI(View):
                     'customers_count': customers_count,
                     'purchases_count': purchases_count,
                     'crm_access_count': crm_access_count,
+                    'barnamehs_count': barnamehs_count,
                 },
                 'version': '2.0',
                 'timestamp': timezone.now().isoformat()

@@ -1,5 +1,5 @@
 from django.urls import path
-from HR.views import weekly_attendance, employee_profile
+from HR.views import weekly_attendance, employee_profile, test_delay_view, debug_view
 
 urlpatterns = [
     path('attendance/', weekly_attendance.daily_attendance_view, name='weekly_attendance_view'),
@@ -11,4 +11,6 @@ urlpatterns = [
     path('attendance/delete/<int:attendance_id>/', weekly_attendance.delete_attendance, name='delete_attendance'),
     path('attendance/history/<int:attendance_id>/', weekly_attendance.attendance_history_view, name='attendance_history_view'),
     path('employee/profile/', employee_profile.employee_profile_view, name='employee_profile'),
+    path('test-delay/', test_delay_view.test_delay_mechanism, name='test_delay_mechanism'),
+    path('debug-validation/', debug_view.debug_validation_view, name='debug_validation'),
 ]
