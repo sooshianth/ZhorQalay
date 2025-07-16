@@ -7,11 +7,13 @@ from django.template.response import TemplateResponse
 from django.urls import path
 from django.contrib.auth.models import User
 from .EmployeeModel import Employee
+from admin_list_charts.admin import ListChartMixin
 
 @admin.register(Employee)
-class EmployeeAdmin(admin.ModelAdmin):
+class EmployeeAdmin(ListChartMixin, admin.ModelAdmin):
     list_display = ('user', 'first_name', 'last_name', 'email')
     search_fields = ('user__username', 'first_name', 'last_name', 'email')
+    date_hierarchy = 'hire_date'
 
 
 class MonthFilter(admin.SimpleListFilter):
@@ -39,12 +41,13 @@ class WeeklyAttendanceInline(admin.TabularInline):
 
 
 @admin.register(WeeklyAttendance)
-class WeeklyAttendanceAdmin(admin.ModelAdmin):
+class WeeklyAttendanceAdmin(ListChartMixin, admin.ModelAdmin):
     form = WeeklyAttendanceForm
     list_display = ('employee', 'week_start_date', 'day', 'total_hours', 'is_fully_approved')
     list_filter = ('week_start_date', 'employee', 'approved_by_admin')
     search_fields = ('employee__username', 'description')
     actions = ['recalculate_total_hours']
+    date_hierarchy = 'week_start_date'
 
     def recalculate_total_hours(self, request, queryset):
         for attendance in queryset:
@@ -61,11 +64,12 @@ class MonthlyAttendanceAdmin(admin.ModelAdmin):
 
 
 @admin.register(AttendanceConfiguration)
-class AttendanceConfigurationAdmin(admin.ModelAdmin):
+class AttendanceConfigurationAdmin(ListChartMixin, admin.ModelAdmin):
     list_display = ('allowed_delay_days', 'consider_friday_exception', 'is_active', 'created_at', 'updated_at')
     list_filter = ('is_active', 'consider_friday_exception', 'created_at')
     search_fields = ('allowed_delay_days',)
     readonly_fields = ('created_at', 'updated_at')
+    date_hierarchy = 'created_at'
     
     fieldsets = (
         ('تنظیمات اصلی', {

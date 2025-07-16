@@ -3,6 +3,7 @@ from django.contrib.admin import actions
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.db.models import Q
+from admin_list_charts.admin import ListChartMixin
 from .CallSessionModel import CallSession
 from .CargoProductModel import CargoProduct
 from .CustomerModel import Customer, PhoneNumber, CrmAccessNumbers, FIELD_OF_ACTIVITY, ActivityField, ProductPreference, PaymentPreference
@@ -109,11 +110,12 @@ class UserAdmin(admin.ModelAdmin):
     actions = [login_as_user]
 
 @admin.register(CargoProduct)
-class CargoProductAdmin(admin.ModelAdmin):
+class CargoProductAdmin(ListChartMixin, admin.ModelAdmin):
     list_display = ('cottage', 'product_type', 'country', 'vared_konandeh', 'port', 'weight', 'status', 'barbary')
     list_filter = ('product_type', 'country', 'vared_konandeh', 'port', 'status', 'barbary')
     search_fields = ('cottage', 'vared_konandeh__name', 'barbary__name')
     ordering = ('-created_at',)
+    date_hierarchy = 'created_at'
 
 class PhoneNumberInline(admin.TabularInline):
     model = PhoneNumber
@@ -253,13 +255,14 @@ class CustomerSpecificCargoFilter(admin.SimpleListFilter):
         return queryset
 
 @admin.register(Customer)
-class CustomerAdmin(admin.ModelAdmin):
+class CustomerAdmin(ListChartMixin, admin.ModelAdmin):
     search_fields = ('name', 'phone_number', 'phone_numbers__number', 'city', 'purchases_made__purchase_number', 'purchases_made__cargo__cottage')
     list_display = ('pk', 'name', 'get_primary_phone', 'city', 'get_total_purchases', 'get_last_purchase_date')
     list_filter = ('field_of_activity', 'city', 'sms_preference', 'whatsapp_preference', 'day_of_week', 'is_bazaargah_enjoyer', CustomerProductFilter, CustomerCountryFilter, CustomerProductCountryFilter, CustomerPurchaseStatusFilter, CustomerPurchaseDateFilter, CustomerCargoFilter, CustomerSpecificCargoFilter)
     ordering = ('-created_at',)
     inlines = [PhoneNumberInline, CrmAccessNumbersInline, PurchaseInline]
     actions = ['send_custom_sms']
+    date_hierarchy = 'created_at'
     
     def get_primary_phone(self, obj):
         return obj.get_primary_phone()
@@ -440,12 +443,13 @@ class PurchaseReceiptsInline(admin.TabularInline):
 
 # تنظیمات نمایش مدل Purchase در ادمین
 @admin.register(Purchase)
-class PurchaseAdmin(admin.ModelAdmin):
+class PurchaseAdmin(ListChartMixin, admin.ModelAdmin):
     list_display = ('invoice_id', 'purchase_number', 'customer', 'order_weight', 'delivered_weight', 'amount_paid', 'created_at')
     list_filter = ('customer', 'type', 'state', 'cargo__product_type', 'cargo__country')
     search_fields = ('invoice_id', 'purchase_number', 'customer__name', 'customer__phone_number', 'customer__sales_agent__name')
     ordering = ('-created_at',)
     inlines = [ShenaseTakhsisInline, PurchaseReceiptsInline]
+    date_hierarchy = 'created_at'
 
 # تنظیمات نمایش مدل PurchaseHistory در ادمین
 # @admin.register(PurchaseHistory)
@@ -456,11 +460,12 @@ class PurchaseAdmin(admin.ModelAdmin):
 #     ordering = ('-timestamp',)
 
 @admin.register(ShenaseTakhsis)
-class ShenaseTakhsisAdmin(admin.ModelAdmin):
+class ShenaseTakhsisAdmin(ListChartMixin, admin.ModelAdmin):
     list_display = ('purchase', 'code', 'weight','created_at')
     list_filter = ('created_at',)
     search_fields = ('purchase__purchase_number', 'code')
     ordering = ('-created_at',)
+    date_hierarchy = 'created_at'
 
 
 # تنظیمات نمایش مدل Task در ادمین
@@ -473,33 +478,37 @@ class ShenaseTakhsisAdmin(admin.ModelAdmin):
 
 # تنظیمات نمایش مدل CallSession در ادمین
 @admin.register(CallSession)
-class CallSessionAdmin(admin.ModelAdmin):
+class CallSessionAdmin(ListChartMixin, admin.ModelAdmin):
     list_display = ('customer', 'date')
     list_filter = ('date', 'customer__sales_agent')
     ordering = ('-date',)
+    date_hierarchy = 'date'
 
 
 # تنظیمات نمایش مدل SalesAgent در ادمین
 @admin.register(SalesAgent)
-class SalesAgentAdmin(admin.ModelAdmin):
+class SalesAgentAdmin(ListChartMixin, admin.ModelAdmin):
     list_display = ('name', 'phone_number', 'user')
     search_fields = ('name', 'phone_number')
     ordering = ('name',)
+    date_hierarchy = 'user__date_joined'
 
 
 # تنظیمات نمایش مدل FinancialManager در ادمین
 @admin.register(FinancialManager)
-class FinancialManagerAdmin(admin.ModelAdmin):
+class FinancialManagerAdmin(ListChartMixin, admin.ModelAdmin):
     list_display = ('name', 'phone_number', 'user')
     search_fields = ('name', 'phone_number')
     ordering = ('name',)
+    date_hierarchy = 'user__date_joined'
 
 # تنظیمات نمایش مدل LogisticsManager در ادمین
 @admin.register(LogisticsManager)
-class LogisticsManagerAdmin(admin.ModelAdmin):
+class LogisticsManagerAdmin(ListChartMixin, admin.ModelAdmin):
     list_display = ('name', 'phone_number', 'user')
     search_fields = ('name', 'phone_number')
     ordering = ('name',)
+    date_hierarchy = 'user__date_joined'
 
 # @admin.register(PhoneNumber)
 # class PhoneNumberAdmin(admin.ModelAdmin):
@@ -509,10 +518,11 @@ class LogisticsManagerAdmin(admin.ModelAdmin):
 #     raw_id_fields = ('customer',)
 
 @admin.register(SupportAgent)
-class SupportAgentAdmin(admin.ModelAdmin):
+class SupportAgentAdmin(ListChartMixin, admin.ModelAdmin):
     list_display = ('name', 'email', 'phone_number', 'message', 'created_at', 'updated_at')
     search_fields = ('name', 'email', 'phone_number', 'message')
     ordering = ('-created_at',)
+    date_hierarchy = 'created_at'
 
 
 # @admin.register(PurchaseStateChange)
@@ -556,18 +566,20 @@ class DebugSmsQueue:
 # admin.site.unregister(User)
 
 @admin.register(Barnameh)
-class BarnamehAdmin(admin.ModelAdmin):
+class BarnamehAdmin(ListChartMixin, admin.ModelAdmin):
     list_display = ('number', 'purchase_number', 'shenase_takhsis_code', 'serial', 'barnameh_date', 'is_sent_to_bki', 'is_sent_to_bki_at')
     list_filter = ('is_sent_to_bki', 'purchase__customer')
     search_fields = ('number', 'purchase_number', 'shenase_takhsis_code', 'serial')
     ordering = ('-barnameh_date',)
+    date_hierarchy = 'barnameh_date'
 
 
 from bki_barnameh.models.BarnamehModel import BarnamehLog
 @admin.register(BarnamehLog)
-class BarnamehLogAdmin(admin.ModelAdmin):
+class BarnamehLogAdmin(ListChartMixin, admin.ModelAdmin):
     list_display = ('barnameh', 'log_date', 'log_message')
     ordering = ('-log_date',)
+    date_hierarchy = 'log_date'
 
 @admin.register(VaredKonandeh)
 class VaredKonandehAdmin(admin.ModelAdmin):
@@ -580,18 +592,20 @@ class BarbaryAdmin(admin.ModelAdmin):
     search_fields = ('name', 'phone_number', 'email')
 
 @admin.register(VaredKonandehTransaction)
-class VaredKonandehTransactionAdmin(admin.ModelAdmin):
+class VaredKonandehTransactionAdmin(ListChartMixin, admin.ModelAdmin):
     list_display = ('vared_konandeh', 'amount', 'type', 'created_at')
     list_filter = ('type',)
     search_fields = ('vared_konandeh__name', 'amount', 'type')
     ordering = ('-created_at',)
+    date_hierarchy = 'created_at'
 
 @admin.register(SupportAgentTask)
-class SupportAgentTaskAdmin(admin.ModelAdmin):
+class SupportAgentTaskAdmin(ListChartMixin, admin.ModelAdmin):
     list_display = ('support_agent', 'description', 'is_done', 'is_on_admin', 'created_at', 'due_date')
     list_filter = ('is_done', 'is_on_admin', 'urgency_level')
     search_fields = ('support_agent__name', 'description')
     ordering = ('-created_at',)
+    date_hierarchy = 'created_at'
 
 
 
