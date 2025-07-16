@@ -244,8 +244,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 headerRow.appendChild(checkboxColumn);
             }
             
+            // ابتدا ستون‌های مرتب شده را اضافه کن
             columnOrder.forEach(columnId => {
                 if (headerMap[columnId]) {
+                    headerRow.appendChild(headerMap[columnId]);
+                }
+            });
+            
+            // سپس ستون‌های نامرتب را در انتها اضافه کن
+            currentOrder.forEach(columnId => {
+                if (!columnOrder.includes(columnId) && headerMap[columnId]) {
                     headerRow.appendChild(headerMap[columnId]);
                 }
             });
@@ -271,8 +279,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     row.appendChild(checkboxCell);
                 }
                 
+                // ابتدا سلول‌های مرتب شده را اضافه کن
                 columnOrder.forEach(columnId => {
                     if (cellMap[columnId]) {
+                        row.appendChild(cellMap[columnId]);
+                    }
+                });
+                
+                // سپس سلول‌های نامرتب را در انتها اضافه کن
+                currentOrder.forEach(columnId => {
+                    if (!columnOrder.includes(columnId) && cellMap[columnId]) {
                         row.appendChild(cellMap[columnId]);
                     }
                 });
