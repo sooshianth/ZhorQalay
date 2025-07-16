@@ -1302,9 +1302,9 @@ def update_column_order(request):
         if not column_order:
             return JsonResponse({'status': 'error', 'message': 'ترتیب ستون‌ها ارسال نشده است'}, status=400)
         
-        # ذخیره در کوکی (به مدت 30 روز)
+        # ذخیره در کوکی (به مدت 365 روز)
         response = JsonResponse({'status': 'success'})
-        response.set_cookie('purchase_list_column_order', json.dumps(column_order), max_age=30*24*60*60)
+        response.set_cookie('purchase_list_column_order', json.dumps(column_order), max_age=30*24*60*60*12)
         
         return response
     except Exception as e:

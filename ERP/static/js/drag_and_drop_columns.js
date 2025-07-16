@@ -4,87 +4,109 @@ document.addEventListener('DOMContentLoaded', function() {
     function setupColumnDragAndDrop() {
         const tables = document.querySelectorAll('table');
         let draggedColumn = null;
-
+    
         tables.forEach(table => {
             const tableHeaders = table.querySelectorAll('thead tr th');
-            
-            // اضافه کردن ویژگی‌های Drag به هدرهای ستون
+    
             tableHeaders.forEach(header => {
-                // ستون‌هایی که دارای کلاس مخفی نیستند را قابل جابجایی کنیم
                 if (window.getComputedStyle(header).display !== 'none') {
                     header.setAttribute('draggable', 'true');
-                    
+    
                     header.addEventListener('dragstart', function(e) {
                         draggedColumn = this;
-                        e.dataTransfer.setData('text/plain', this.cellIndex);
                         this.style.opacity = '0.5';
-                        
-                        // اضافه کردن کلاس برای نمایش حالت کشیدن
                         this.classList.add('dragging-column');
                     });
-
+    
                     header.addEventListener('dragend', function() {
                         this.style.opacity = '1';
                         this.classList.remove('dragging-column');
                     });
-
+    
                     header.addEventListener('dragover', function(e) {
                         e.preventDefault();
                         this.classList.add('drag-over');
                     });
-
+    
                     header.addEventListener('dragleave', function() {
                         this.classList.remove('drag-over');
                     });
-
+    
                     header.addEventListener('drop', function(e) {
                         e.preventDefault();
                         this.classList.remove('drag-over');
-                        
-                        if (draggedColumn !== this) {
-                            // جابجایی ستون‌ها
-                            swapColumns(draggedColumn.cellIndex, this.cellIndex);
-                            
-                            // ذخیره ترتیب جدید ستون‌ها
-                            saveColumnOrder();
+    
+                        if (draggedColumn && draggedColumn !== this) {
+                            // اینجا هر دو رو از DOM آپدیت بگیر:
+                            const headerRow = table.querySelector('thead tr');
+                            // فقط visible headers
+                            const visibleHeaders = Array.from(headerRow.querySelectorAll('th')).filter(
+                                th => window.getComputedStyle(th).display !== 'none'
+                            );
+    
+                            // مطمئن شو هر دو visible هستن
+                            if (
+                                visibleHeaders.includes(draggedColumn) &&
+                                visibleHeaders.includes(this)
+                            ) {
+                                const fromIndex = draggedColumn.cellIndex;
+                                const toIndex = this.cellIndex;
+                                swapColumns(fromIndex, toIndex);
+                                saveColumnOrder();
+                            }
                         }
                     });
                 }
             });
         });
     }
+    
 
     // تابع برای جابجایی ستون‌ها
     function swapColumns(fromIndex, toIndex) {
         const tables = document.querySelectorAll('table');
-        
-        tables.forEach(table => {
-            // جابجایی در هدر
-            const headerRow = table.querySelector('thead tr');
-            const headers = headerRow.querySelectorAll('th');
-            const fromHeader = headers[fromIndex];
-            const toHeader = headers[toIndex];
-            
-            if (fromIndex < toIndex) {
-                toHeader.after(fromHeader);
+    tables.forEach(table => {
+        const headerRow = table.querySelector('thead tr');
+        // فیلتر only visible headers
+        const visibleHeaders = Array.from(headerRow.querySelectorAll('th')).filter(
+            th => window.getComputedStyle(th).display !== 'none'
+        );
+
+        // ایندکس واقعی در جدول (cellIndex)
+        const fromRealIndex = visibleHeaders[fromIndex]?.cellIndex;
+        const toRealIndex = visibleHeaders[toIndex]?.cellIndex;
+
+        // اگر اختلال داشت (مثلاً -1 یا undefined)، هیچی نکن!
+        if (
+            fromRealIndex === undefined ||
+            toRealIndex === undefined
+        ) return;
+
+        // جابه‌جایی در thead:
+        const headers = headerRow.children;
+        const fromHeader = headers[fromRealIndex];
+        const toHeader = headers[toRealIndex];
+        if (!(fromHeader && toHeader)) return;
+        if (fromRealIndex < toRealIndex) {
+            toHeader.after(fromHeader);
+        } else {
+            toHeader.before(fromHeader);
+        }
+
+        // جابه‌جایی ردیف‌های tbody:
+        const bodyRows = table.querySelectorAll('tbody tr');
+        bodyRows.forEach(row => {
+            const cells = row.children;
+            const fromCell = cells[fromRealIndex];
+            const toCell = cells[toRealIndex];
+            if (!(fromCell && toCell)) return;
+            if (fromRealIndex < toRealIndex) {
+                toCell.after(fromCell);
             } else {
-                toHeader.before(fromHeader);
+                toCell.before(fromCell);
             }
-            
-            // جابجایی در بدنه جدول
-            const bodyRows = table.querySelectorAll('tbody tr');
-            bodyRows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                const fromCell = cells[fromIndex];
-                const toCell = cells[toIndex];
-                
-                if (fromIndex < toIndex) {
-                    toCell.after(fromCell);
-                } else {
-                    toCell.before(fromCell);
-                }
-            });
         });
+    });
         
         // بروزرسانی فیلترها بعد از جابجایی ستون‌ها
         if (typeof window.tableFilter !== 'undefined' && window.tableFilter) {
@@ -126,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || 
                          document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
         
-        fetch('/purchase/update_column_order/', {
+        fetch('/erp/update_column_order/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
