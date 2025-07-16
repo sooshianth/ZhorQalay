@@ -38,14 +38,14 @@ def get_allowed_columns(user_role):
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
          'delivered_weight', 'first_barnameh_date', 'last_barnameh_date', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
          'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',
-          'cargo', 'product_type', 'importer', 'buyer_name', 'code_melli_tahvil', 'address', 'tracking_number']
+          'cargo', 'product_type', 'importer', 'buyer_name', 'code_melli_tahvil', 'address', 'unique_buyer_id']
                 
     elif user_role == 'admin' or user_role == 'logistics_manager':
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
          'delivered_weight', 'first_barnameh_date', 'last_barnameh_date', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
          'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
           'cargo', 'product_type', 'importer', 'barbary', 'barbary_phone', 'customer', 'customer_phones', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil', 'address',
-            'tracking_number', 'barbary_confidential_number', 'barbary_customer_number', 'delivery_receiver_name', 'buyer_national_id',
+            'unique_buyer_id', 'barbary_confidential_number', 'barbary_customer_number', 'delivery_receiver_name', 'buyer_national_id',
             'buyer_user_type', 'unique_delivery_id', 'delivery_address', 'delivery_postal_code', 'vehicle_type']
 
     allowed_columns.append('actions')
@@ -95,7 +95,7 @@ def get_allowed_search_filters(global_search, request):
                 Q(code_melli_tahvil__icontains=global_search) |
                 
                 # اطلاعات ردیابی
-                Q(tracking_number__icontains=global_search) |
+                Q(unique_buyer_id__icontains=global_search) |
                 Q(shenase_takhsis_set__code__icontains=global_search) |
                 
                 # توضیحات و اطلاعات اضافی
@@ -125,7 +125,7 @@ def get_allowed_search_filters(global_search, request):
                 Q(code_melli_tahvil__icontains=global_search) |
                 
                 # اطلاعات ردیابی
-                Q(tracking_number__icontains=global_search) |
+                Q(unique_buyer_id__icontains=global_search) |
                 Q(shenase_takhsis_set__code__icontains=global_search) |
                 
                 # توضیحات و اطلاعات اضافی
@@ -154,7 +154,7 @@ def get_allowed_search_filters(global_search, request):
                 Q(code_melli_tahvil__icontains=global_search) |
                 
                 # اطلاعات ردیابی
-                Q(tracking_number__icontains=global_search) |
+                Q(unique_buyer_id__icontains=global_search) |
                 Q(shenase_takhsis_set__code__icontains=global_search) |
                 
                 # توضیحات و اطلاعات اضافی
@@ -184,7 +184,7 @@ def get_allowed_search_filters(global_search, request):
                 Q(code_melli_tahvil__icontains=global_search) |
                 
                 # اطلاعات ردیابی
-                Q(tracking_number__icontains=global_search) |
+                Q(unique_buyer_id__icontains=global_search) |
                 Q(shenase_takhsis_set__code__icontains=global_search) |
                 
                 # توضیحات و اطلاعات اضافی
@@ -380,7 +380,7 @@ def purchase_list(request):
             Q(code_melli_tahvil__icontains=global_search) |
             
             # اطلاعات ردیابی
-            Q(tracking_number__icontains=global_search) |
+            Q(unique_buyer_id__icontains=global_search) |
             Q(shenase_takhsis_set__code__icontains=global_search) |
             
             # توضیحات و اطلاعات اضافی
@@ -552,7 +552,7 @@ def purchase_list(request):
             {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
             {'id': 'code_melli_tahvil', 'name': 'کد ملی تحویل', 'field': 'code_melli_tahvil'},
             {'id': 'address', 'name': 'آدرس خریدار', 'field': 'address'},
-            {'id': 'tracking_number', 'name': 'شناسه یکتا خریدار', 'field': 'tracking_number'},
+            {'id': 'unique_buyer_id', 'name': 'شناسه یکتا خریدار', 'field': 'unique_buyer_id'},
         ]
 
         # todo: add the rest of the columns
@@ -623,7 +623,7 @@ def purchase_list(request):
             {'id': 'tahvil_phone_number', 'name': 'شماره تلفن تحویل', 'field': 'tahvil_phone_number'},
             {'id': 'code_melli_tahvil', 'name': 'کد ملی تحویل', 'field': 'code_melli_tahvil'},
             {'id': 'address', 'name': 'آدرس خریدار', 'field': 'address'},
-            {'id': 'tracking_number', 'name': 'شناسه یکتا خریدار', 'field': 'tracking_number'},
+            {'id': 'unique_buyer_id', 'name': 'شناسه یکتا خریدار', 'field': 'unique_buyer_id'},
             {'id': 'barbary_confidential_number', 'name': 'شماره باربری محرمانه', 'field': 'barbary_confidential_number'},
             {'id': 'barbary_customer_number', 'name':'شماره باربری مشتری', 'field': 'barbary_customer_number'},
             {'id': 'delivery_receiver_name', 'name':'نام تحویل گیرنده', 'field': 'delivery_receiver_name'},
@@ -1030,7 +1030,7 @@ def _export_regular_excel(purchase_ids, selected_columns):
         'address': ('آدرس', lambda p: p.address or "-"),
         'description': ('توضیحات', lambda p: p.description or "-"),
         'factor_code': ('فاکتور مبنا', lambda p: "بله" if p.factor_code else "خیر"),
-        'tracking_number': ('شماره پیگیری', lambda p: p.tracking_number or "-"),
+        'unique_buyer_id': ('شناسه یکتا خریدار', lambda p: p.unique_buyer_id or "-"),
         'code_melli_tahvil': ('کد ملی تحویل', lambda p: p.code_melli_tahvil or "-"),
         'bazaargah_phone_number': ('شماره تلفن بازارگاه', lambda p: p.bazaargah_phone_number or "-"),
         'buyer_name': ('نام خریدار', lambda p: p.buyer_name or "-"),
@@ -1979,7 +1979,7 @@ def apply_purchase_filter(request):
                         else:
                             filter_conditions &= ~Q(cargo__barbary__name__in=values)
                 
-                elif column_id in ['address', 'description', 'tracking_number', 'code_melli_tahvil', 
+                elif column_id in ['address', 'description', 'unique_buyer_id', 'code_melli_tahvil', 
                                  'bazaargah_phone_number', 'tahvil_phone_number', 'priority_reason']:
                     values = [v for v in values if v and v.strip()]
                     if values:
@@ -2087,7 +2087,7 @@ def apply_purchase_filter(request):
                 Q(code_melli_tahvil__icontains=global_search) |
                 
                 # اطلاعات ردیابی
-                Q(tracking_number__icontains=global_search) |
+                Q(unique_buyer_id__icontains=global_search) |
                 Q(shenase_takhsis_set__code__icontains=global_search) |
                 
                 # توضیحات و اطلاعات اضافی
@@ -2138,7 +2138,7 @@ def apply_purchase_filter(request):
                 'address': 'address',
                 'description': 'description',
                 'factor_code': 'factor_code',
-                'tracking_number': 'tracking_number',
+                'unique_buyer_id': 'unique_buyer_id',
                 'code_melli_tahvil': 'code_melli_tahvil',
                 'bazaargah_phone_number': 'bazaargah_phone_number',
                 'buyer_name': 'buyer_name',
@@ -2218,7 +2218,7 @@ def apply_purchase_filter(request):
                 'address': purchase.address or '-',
                 'description': purchase.description or '-',
                 'factor_code': '1' if purchase.factor_code else '0',
-                'tracking_number': purchase.tracking_number or '-',
+                'unique_buyer_id': purchase.unique_buyer_id or '-',
                 'code_melli_tahvil': purchase.code_melli_tahvil or '-',
                 'bazaargah_phone_number': purchase.bazaargah_phone_number or '-',
                 'tahvil_phone_number': purchase.tahvil_phone_number or '-',
@@ -2613,7 +2613,7 @@ def get_purchase_column_values(request):
                         else:
                             filter_conditions &= ~Q(barnamehs__barnameh_date__in=date_values)
                 
-                elif filter_column_id in ['address', 'description', 'tracking_number', 
+                elif filter_column_id in ['address', 'description', 'unique_buyer_id', 
                                         'code_melli_tahvil', 'bazaargah_phone_number', 
                                         'tahvil_phone_number', 'priority_reason',
                                         'barbary_confidential_number', 'barbary_customer_number',
@@ -2814,7 +2814,7 @@ def get_purchase_column_values(request):
             # فرمت تاریخ
             values = set([date.strftime("%Y/%m/%d") for date in values_queryset if date])
         
-        elif column_id in ['address', 'description', 'tracking_number', 'code_melli_tahvil', 
+        elif column_id in ['address', 'description', 'unique_buyer_id', 'code_melli_tahvil', 
                           'bazaargah_phone_number', 'tahvil_phone_number', 'priority_reason',
                           'barbary_confidential_number', 'barbary_customer_number', 'delivery_receiver_name',
                           'buyer_national_id', 'unique_delivery_id', 'delivery_address', 'delivery_postal_code']:

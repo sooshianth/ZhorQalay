@@ -398,6 +398,11 @@ def update_purchase(purchase, purchase_data):
         receiver_id = purchase_data.get('receiverid')  # کد ملی تحویل
         purchase_date = purchase_data.get('date')  # تاریخ خرید به فرمت جلالی (مثلا 1404/02/22)
         total_weight = int(purchase_data.get('totalweight', 0) or 0)  # وزن کل
+        tak = int(purchase_data.get('tak', 0) or 0)
+        joft = int(purchase_data.get('joft', 0) or 0)
+        tereili = int(purchase_data.get('tereili', 0) or 0)
+        delpostalcode = purchase_data.get('delpostalcode')
+        buyerpartidcode = purchase_data.get('buyerpartidcode')
         
         # Update purchase fields - بدون به‌روزرسانی وزن‌ها
         purchase.buyer_name = buyer_name
@@ -409,6 +414,17 @@ def update_purchase(purchase, purchase_data):
         purchase.tahvil_phone_number = receiver_phone
         purchase.tracking_number = trace_code
         purchase.code_melli_tahvil = receiver_id
+        purchase.delivery_postal_code = delpostalcode
+        purchase.unique_delivery_id = buyerpartidcode
+        
+        if tak == 1 and joft == 0 and tereili == 0:
+            purchase.vehicle_type = 'single'
+        elif tak == 0 and joft == 1 and tereili == 0:
+            purchase.vehicle_type = 'double'
+        elif tak == 0 and joft == 0 and tereili == 1:
+            purchase.vehicle_type = 'trailer'
+        else:
+            purchase.vehicle_type = None
         
         # تنظیم فیلد bazaargah_customer نیز برای خریدهای موجود
         if purchase.customer and not purchase.bazaargah_customer:
@@ -515,12 +531,28 @@ def create_purchase(purchase_data):
         receiver_id = purchase_data.get('receiverid')  # کد ملی تحویل
         purchase_date = purchase_data.get('date')  # تاریخ خرید به فرمت جلالی (مثلا 1404/02/22)
         total_weight = int(purchase_data.get('totalweight', 0) or 0)  # وزن کل
+        tak = int(purchase_data.get('tak', 0) or 0)
+        joft = int(purchase_data.get('joft', 0) or 0)
+        tereili = int(purchase_data.get('tereili', 0) or 0)
+        delpostalcode = purchase_data.get('delpostalcode')
+        buyerpartidcode = purchase_data.get('buyerpartidcode')
         
         # Calculate weight difference
         weight_diff = 0
         extelaf_type = None
         extelaf_weight = 0
         
+        vehicle_type = None
+        
+        if tak == 1 and joft == 0 and tereili == 0:
+            vehicle_type = 'single'
+        elif tak == 0 and joft == 1 and tereili == 0:
+            vehicle_type = 'double'
+        elif tak == 0 and joft == 0 and tereili == 1:
+            vehicle_type = 'trailer'
+        else:
+            vehicle_type = None
+
         if wbarnameshode > 0 and qty > 0:
             weight_diff = wbarnameshode - qty
             
@@ -619,6 +651,9 @@ def create_purchase(purchase_data):
             # تنظیم کارشناس فروش یکتا به مدیریت به صورت پیش‌فرض
             'unique_sales_agent': admin_sales_agent,
             'unique_sales_agent_code': admin_sales_agent.factor_code if admin_sales_agent else None,
+            'vehicle_type': vehicle_type,
+            'delivery_postal_code': delpostalcode,
+            'unique_delivery_id': buyerpartidcode,
         }
         
         # تبدیل تاریخ جلالی به فرمت مناسب
