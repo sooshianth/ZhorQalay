@@ -4,7 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from .models.BarnamehModel import Barnameh
+from .models.BarnamehModel import Barnameh, BarnamehLog
 from .models.ExcelFileModel import ExcelFile
 from .models.ApiLogModel import BKIApiLog
 from core.decorators.decorators import role_required
@@ -1748,4 +1748,47 @@ def _export_barnameh_excel(barnameh_ids, selected_columns):
     wb.save(response)
     logger.warning(f"Excel file created: {filename}")
     return response
+
+
+@role_required('logistics_manager', 'admin', 'financial_manager')
+@require_http_methods(["GET"])
+def get_barnameh_logs(request, barnameh_id):
+    """API برای دریافت لاگ‌های بارنامه"""
+    try:
+        # دریافت بارنامه
+        barnameh = get_object_or_404(Barnameh, id=barnameh_id)
+        
+        # دریافت لاگ‌های بارنامه
+        logs = BarnamehLog.objects.filter(barnameh=barnameh).order_by('-log_date')
+        
+        # تبدیل لاگ‌ها به فرمت JSON
+        logs_data = []
+        for log in logs:
+            logs_data.append({
+                'id': log.id,
+                'message': log.log_message,
+                'date': log.log_date.strftime('%Y/%m/%d %H:%M:%S'),
+                'timestamp': log.log_date.isoformat()
+            })
+        
+        return JsonResponse({
+            'status': 'success',
+            'barnameh_id': barnameh_id,
+            'barnameh_number': barnameh.number,
+            'barnameh_serial': barnameh.serial,
+            'logs': logs_data,
+            'total_logs': len(logs_data)
+        })
+        
+    except Barnameh.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'بارنامه یافت نشد'
+        }, status=404)
+    except Exception as e:
+        logger.error(f"خطا در دریافت لاگ‌های بارنامه {barnameh_id}: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'خطا در دریافت لاگ‌ها: {str(e)}'
+        }, status=500)
 

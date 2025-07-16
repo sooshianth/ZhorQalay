@@ -152,6 +152,10 @@ class Barnameh(models.Model):
         #         self.purchase.state = 'BARNAMEH_INCOMPLETE'
         #         self.purchase.save()
         super().save(*args, **kwargs)
+        
+        # بروزرسانی وضعیت فاکتور خرید مرتبط
+        if self.purchase:
+            self.purchase.set_purchase_factor_status()
 
 
 class BarnamehLog(models.Model):

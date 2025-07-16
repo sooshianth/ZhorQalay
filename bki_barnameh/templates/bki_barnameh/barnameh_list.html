@@ -774,66 +774,191 @@
         border-radius: 12px !important;
     }
 
-    /* استایل‌های مدال مدیریت ستون‌ها */
+    /* استایل‌های مدال مدیریت ستون‌ها - Overlay Style */
+#columnsModal {
+    z-index: 9999 !important;
+}
+
+#columnsModal .modal-dialog {
+    max-width: 800px !important;
+    margin: 2rem auto !important;
+}
+
 #columnsModal .modal-content {
-    border-radius: 15px;
-    overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    border-radius: 15px !important;
+    overflow: hidden !important;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3) !important;
+    border: none !important;
 }
 
 #columnsModal .modal-header {
-    border-bottom: none;
-    padding: 1.2rem 1.5rem;
+    background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
+    color: white !important;
+    border-bottom: none !important;
+    padding: 1.5rem 2rem !important;
+    border-radius: 15px 15px 0 0 !important;
+}
+
+#columnsModal .modal-header .btn-close {
+    filter: invert(1) brightness(100) !important;
 }
 
 #columnsModal .modal-body {
-    padding: 1.5rem;
+    padding: 2rem !important;
+    max-height: 70vh !important;
+    overflow-y: auto !important;
 }
 
 #columnsModal .modal-footer {
-    border-top: 1px solid #eee;
-    padding: 1rem 1.5rem;
+    border-top: 2px solid #e2e8f0 !important;
+    padding: 1.5rem 2rem !important;
+    background: #f8f9fa !important;
+    border-radius: 0 0 15px 15px !important;
 }
 
 #columnsModal .list-group {
-    max-height: 300px;
-    overflow-y: auto;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    max-height: 300px !important;
+    overflow-y: auto !important;
+    border-radius: 10px !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
+    border: 2px solid #e2e8f0 !important;
 }
 
 #columnsModal .list-group-item {
-    border-left: none;
-    border-right: none;
-    padding: 0.75rem 1.25rem;
-    display: flex;
-    align-items: center;
+    border-left: none !important;
+    border-right: none !important;
+    padding: 0.75rem 1.25rem !important;
+    display: flex !important;
+    align-items: center !important;
+    transition: all 0.2s ease !important;
+}
+
+#columnsModal .list-group-item:hover {
+    background-color: #f0f9ff !important;
+    border-color: #38a169 !important;
 }
 
 #columnsModal .list-group-item:first-child {
-    border-top: none;
+    border-top: none !important;
 }
 
 #columnsModal .list-group-item:last-child {
-    border-bottom: none;
+    border-bottom: none !important;
 }
 
 #columnsModal .form-check-input {
-    margin-left: 0.5rem;
-    margin-right: 0;
-    width: 1.1em;
-    height: 1.1em;
+    margin-left: 0.5rem !important;
+    margin-right: 0 !important;
+    width: 1.1em !important;
+    height: 1.1em !important;
+    accent-color: #38a169 !important;
 }
 
 #columnsModal .form-check-label {
-    flex-grow: 1;
-    cursor: pointer;
-    padding: 0.25rem 0;
+    flex-grow: 1 !important;
+    cursor: pointer !important;
+    padding: 0.25rem 0 !important;
+    font-weight: 500 !important;
 }
 
 #columnsModal .alert {
-    border-radius: 10px;
-    border-left: 4px solid #38a169;
+    border-radius: 10px !important;
+    border-left: 4px solid #38a169 !important;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+}
+
+/* Backdrop برای مدال */
+#columnsModal .modal-backdrop {
+    z-index: 9998 !important;
+}
+
+/* انیمیشن ورود مدال */
+#columnsModal.fade .modal-dialog {
+    transform: scale(0.8) !important;
+    transition: transform 0.3s ease-out !important;
+}
+
+#columnsModal.show .modal-dialog {
+    transform: scale(1) !important;
+}
+
+/* اطمینان از مخفی بودن مدال در ابتدا */
+#columnsModal:not(.show) {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* بهبود backdrop */
+#columnsModal .modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* انیمیشن fade برای backdrop */
+#columnsModal .modal-backdrop.fade {
+    opacity: 0 !important;
+    transition: opacity 0.3s ease-in-out !important;
+}
+
+#columnsModal .modal-backdrop.show {
+    opacity: 1 !important;
+}
+
+/* استایل‌های مدال لاگ‌ها - Overlay Style */
+#logsModal {
+    z-index: 9999 !important;
+}
+
+#logsModal .modal-dialog {
+    max-width: 900px !important;
+    margin: 2rem auto !important;
+}
+
+#logsModal .modal-content {
+    border-radius: 15px !important;
+    overflow: hidden !important;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3) !important;
+    border: none !important;
+}
+
+#logsModal .modal-header {
+    background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
+    color: white !important;
+    border-bottom: none !important;
+    padding: 1.5rem 2rem !important;
+    border-radius: 15px 15px 0 0 !important;
+}
+
+#logsModal .modal-header .btn-close {
+    filter: invert(1) brightness(100) !important;
+}
+
+#logsModal .modal-body {
+    padding: 2rem !important;
+    max-height: 70vh !important;
+    overflow-y: auto !important;
+}
+
+#logsModal .modal-footer {
+    border-top: 2px solid #e2e8f0 !important;
+    padding: 1.5rem 2rem !important;
+    background: #f8f9fa !important;
+    border-radius: 0 0 15px 15px !important;
+}
+
+/* اطمینان از مخفی بودن مدال لاگ‌ها در ابتدا */
+#logsModal:not(.show) {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* انیمیشن ورود مدال لاگ‌ها */
+#logsModal.fade .modal-dialog {
+    transform: scale(0.8) !important;
+    transition: transform 0.3s ease-out !important;
+}
+
+#logsModal.show .modal-dialog {
+    transform: scale(1) !important;
 }
     </style>
     
@@ -979,62 +1104,86 @@
     }
     
     function showLogsModal(barnamehId, barnamehNumber, barnamehSerial) {
+        console.log('نمایش لاگ‌های بارنامه:', { barnamehId, barnamehNumber, barnamehSerial });
+        
         // تنظیم عنوان modal
         document.getElementById('modalBarnamehInfo').textContent = `${barnamehNumber}/${barnamehSerial}`;
         
-        // یافتن دکمه مربوطه برای دریافت لاگ‌ها
-        const button = document.querySelector(`button[onclick*="${barnamehId}"]`);
-        if (!button) {
-            document.getElementById('logsContent').innerHTML = '<p class="text-danger">خطا در یافتن لاگ‌ها</p>';
-            return;
-        }
-        
-        const logsData = button.getAttribute('data-logs');
-        if (!logsData || logsData === '') {
-            document.getElementById('logsContent').innerHTML = '<p class="text-muted">هیچ لاگی یافت نشد</p>';
-        } else {
-            try {
-                // پارس کردن لاگ‌ها (فرمت: [{"date": "...", "message": "..."}, ...])
-                const logs = JSON.parse(`[${logsData}]`);
-                
-                let logsHtml = '<div class="timeline">';
-                logs.forEach((log, index) => {
-                    logsHtml += `
-                        <div class="timeline-item mb-3">
-                            <div class="d-flex">
-                                <div class="timeline-marker me-3 mt-1">
-                                    <div class="bg-primary rounded-circle" style="width: 12px; height: 12px;"></div>
-                                </div>
-                                <div class="timeline-content flex-grow-1">
-                                    <div class="card border-0 shadow-sm">
-                                        <div class="card-body p-3">
-                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                <small class="text-muted">
-                                                    <i class="fas fa-clock me-1"></i>
-                                                    ${log.date}
-                                                </small>
-                                                <span class="badge bg-light text-dark">#${index + 1}</span>
-                                            </div>
-                                            <p class="mb-0">${log.message}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                logsHtml += '</div>';
-                
-                document.getElementById('logsContent').innerHTML = logsHtml;
-            } catch (e) {
-                console.error('خطا در پارس کردن لاگ‌ها:', e);
-                document.getElementById('logsContent').innerHTML = '<p class="text-danger">خطا در نمایش لاگ‌ها</p>';
-            }
-        }
+        // نمایش loading
+        document.getElementById('logsContent').innerHTML = `
+            <div class="text-center p-4">
+                <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+                <p class="mt-2 text-muted">در حال بارگذاری لاگ‌ها...</p>
+            </div>
+        `;
         
         // نمایش modal
         const modal = new bootstrap.Modal(document.getElementById('logsModal'));
         modal.show();
+        
+        // دریافت لاگ‌ها از API
+        fetch(`{% url 'get_barnameh_logs' 0 %}`.replace('0', barnamehId))
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('لاگ‌های دریافت شده:', data);
+                
+                if (data.status === 'success') {
+                    if (data.logs && data.logs.length > 0) {
+                        let logsHtml = '<div class="timeline">';
+                        data.logs.forEach((log, index) => {
+                            logsHtml += `
+                                <div class="timeline-item mb-3">
+                                    <div class="d-flex">
+                                        <div class="timeline-marker me-3 mt-1">
+                                            <div class="bg-primary rounded-circle" style="width: 12px; height: 12px;"></div>
+                                        </div>
+                                        <div class="timeline-content flex-grow-1">
+                                            <div class="card border-0 shadow-sm">
+                                                <div class="card-body p-3">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-clock me-1"></i>
+                                                            ${log.date}
+                                                        </small>
+                                                        <span class="badge bg-light text-dark">#${index + 1}</span>
+                                                    </div>
+                                                    <p class="mb-0">${log.message}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        logsHtml += '</div>';
+                        
+                        document.getElementById('logsContent').innerHTML = logsHtml;
+                    } else {
+                        document.getElementById('logsContent').innerHTML = `
+                            <div class="text-center p-4">
+                                <i class="fas fa-inbox fa-2x text-muted"></i>
+                                <p class="mt-2 text-muted">هیچ لاگی برای این بارنامه یافت نشد</p>
+                            </div>
+                        `;
+                    }
+                } else {
+                    throw new Error(data.message || 'خطا در دریافت لاگ‌ها');
+                }
+            })
+            .catch(error => {
+                console.error('خطا در دریافت لاگ‌ها:', error);
+                document.getElementById('logsContent').innerHTML = `
+                    <div class="text-center p-4">
+                        <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                        <p class="mt-2 text-danger">خطا در بارگذاری لاگ‌ها: ${error.message}</p>
+                    </div>
+                `;
+            });
     }
 </script>
 
@@ -1400,6 +1549,7 @@
                                             </a>
                                             {% endif %}
                             <button type="button" class="btn btn-outline-success btn-sm item-history-btn ms-1" 
+                                    onclick="showLogsModal('{{ barnameh.id }}', '{{ barnameh.number|default:'-' }}', '{{ barnameh.serial|default:'-' }}')"
                                     data-id="{{ barnameh.id }}"
                                     data-barnameh-number="{{ barnameh.number }}"
                                     data-barnameh-serial="{{ barnameh.serial }}"
@@ -1515,9 +1665,9 @@
         <!-- Barnameh IDs will be added dynamically -->
     </form>
 
-    <!-- Modal برای نمایش لاگ‌ها -->
-    <div class="modal fade" id="logsModal" tabindex="-1" aria-labelledby="logsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+    <!-- Modal برای نمایش لاگ‌ها - Overlay Style -->
+    <div class="modal fade" id="logsModal" tabindex="-1" aria-labelledby="logsModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="logsModalLabel">
@@ -1540,15 +1690,15 @@
         </div>
     </div>
 
-    <!-- مدال مدیریت ستون‌ها -->
-<div class="modal fade" id="columnsModal" tabindex="-1" aria-labelledby="columnsModalLabel" aria-hidden="true">
+    <!-- مدال مدیریت ستون‌ها - Overlay Style -->
+<div class="modal fade" id="columnsModal" tabindex="-1" aria-labelledby="columnsModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
+            <div class="modal-header">
                 <h5 class="modal-title" id="columnsModalLabel">
                     <i class="fas fa-columns me-2"></i>مدیریت ستون‌های جدول
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="alert alert-info mb-4">
@@ -1560,7 +1710,7 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <div class="d-flex justify-content-between mb-3">
-                                <h6 class="mb-0">ستون‌های اصلی</h6>
+                                <h6 class="mb-0 text-dark fw-bold">ستون‌های اصلی</h6>
                                 <div>
                                     <button type="button" class="btn btn-sm btn-outline-primary me-2" id="selectMainColumns">
                                         <i class="fas fa-check me-1"></i>همه
@@ -1577,7 +1727,7 @@
                         
                         <div class="col-md-6 mb-3">
                             <div class="d-flex justify-content-between mb-3">
-                                <h6 class="mb-0">ستون‌های اضافی</h6>
+                                <h6 class="mb-0 text-dark fw-bold">ستون‌های اضافی</h6>
                                 <div>
                                     <button type="button" class="btn btn-sm btn-outline-primary me-2" id="selectExtraColumns">
                                         <i class="fas fa-check me-1"></i>همه
@@ -1657,35 +1807,34 @@ function clearAllSelections() {
 
 // مدیریت ستون‌های جدول
 document.addEventListener('DOMContentLoaded', function() {
-    // مدیریت مدال ستون‌ها
+    // مدیریت مدال ستون‌ها - فقط با کلیک روی دکمه باز شود
     const columnsModal = document.getElementById('columnsModal');
-    if (columnsModal) {
+    const columnsModalBtn = document.querySelector('[data-bs-target="#columnsModal"]');
+    
+    if (columnsModal && columnsModalBtn) {
+        // حذف event listener قبلی اگر وجود دارد
+        columnsModal.removeEventListener('show.bs.modal', loadColumnsConfig);
+        
+        // اضافه کردن event listener جدید
         columnsModal.addEventListener('show.bs.modal', function() {
+            console.log('مدال مدیریت ستون‌ها باز شد');
             loadColumnsConfig();
+        });
+        
+        // اضافه کردن event listener برای بستن مدال
+        columnsModal.addEventListener('hidden.bs.modal', function() {
+            console.log('مدال مدیریت ستون‌ها بسته شد');
+            // پاک کردن محتوای مدال
+            const mainColumnsList = document.getElementById('mainColumnsList');
+            const extraColumnsList = document.getElementById('extraColumnsList');
+            if (mainColumnsList) mainColumnsList.innerHTML = '';
+            if (extraColumnsList) extraColumnsList.innerHTML = '';
         });
     }
     
     // دکمه‌های مدیریت ستون‌ها
-    const selectAllBtn = document.getElementById('selectAllColumns');
-    const deselectAllBtn = document.getElementById('deselectAllColumns');
     const saveColumnsBtn = document.getElementById('saveColumnsBtn');
     const resetColumnsBtn = document.getElementById('resetColumnsBtn');
-    
-    if (selectAllBtn) {
-        selectAllBtn.addEventListener('click', function() {
-            document.querySelectorAll('#columnsContainer input[type="checkbox"]').forEach(cb => {
-                cb.checked = true;
-            });
-        });
-    }
-    
-    if (deselectAllBtn) {
-        deselectAllBtn.addEventListener('click', function() {
-            document.querySelectorAll('#columnsContainer input[type="checkbox"]').forEach(cb => {
-                cb.checked = false;
-            });
-        });
-    }
     
     if (saveColumnsBtn) {
         saveColumnsBtn.addEventListener('click', saveColumns);
@@ -1694,30 +1843,81 @@ document.addEventListener('DOMContentLoaded', function() {
     if (resetColumnsBtn) {
         resetColumnsBtn.addEventListener('click', resetColumns);
     }
+    
+    // اطمینان از اینکه مدال در ابتدا مخفی است
+    if (columnsModal) {
+        columnsModal.style.display = 'none';
+        columnsModal.classList.remove('show');
+        columnsModal.setAttribute('aria-hidden', 'true');
+    }
+    
+    // اطمینان از اینکه مدال لاگ‌ها در ابتدا مخفی است
+    const logsModal = document.getElementById('logsModal');
+    if (logsModal) {
+        logsModal.style.display = 'none';
+        logsModal.classList.remove('show');
+        logsModal.setAttribute('aria-hidden', 'true');
+    }
 });
 
 function loadColumnsConfig() {
+    console.log('در حال بارگذاری تنظیمات ستون‌ها...');
+    
+    // نمایش loading
+    const mainColumnsList = document.getElementById('mainColumnsList');
+    const extraColumnsList = document.getElementById('extraColumnsList');
+    
+    if (mainColumnsList) {
+        mainColumnsList.innerHTML = '<div class="text-center p-3"><i class="fas fa-spinner fa-spin"></i> در حال بارگذاری...</div>';
+    }
+    if (extraColumnsList) {
+        extraColumnsList.innerHTML = '<div class="text-center p-3"><i class="fas fa-spinner fa-spin"></i> در حال بارگذاری...</div>';
+    }
+    
     fetch('{% url "get_barnameh_columns_config" %}')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('تنظیمات ستون‌ها دریافت شد:', data);
             if (data.status === 'success') {
                 displayColumnsInModal(data.all_columns, data.selected_columns);
             } else {
                 console.error('خطا در دریافت تنظیمات ستون‌ها:', data.message);
-                alert('خطا در دریافت تنظیمات ستون‌ها');
+                showErrorInModal('خطا در دریافت تنظیمات ستون‌ها: ' + data.message);
             }
         })
         .catch(error => {
             console.error('خطا در بارگذاری تنظیمات ستون‌ها:', error);
-            alert('خطا در بارگذاری تنظیمات ستون‌ها');
+            showErrorInModal('خطا در بارگذاری تنظیمات ستون‌ها: ' + error.message);
         });
 }
 
-function displayColumnsInModal(allColumns, selectedColumns) {
+function showErrorInModal(message) {
     const mainColumnsList = document.getElementById('mainColumnsList');
     const extraColumnsList = document.getElementById('extraColumnsList');
     
-    if (!mainColumnsList || !extraColumnsList) return;
+    const errorHtml = `<div class="alert alert-danger m-2">
+        <i class="fas fa-exclamation-triangle me-2"></i>${message}
+    </div>`;
+    
+    if (mainColumnsList) mainColumnsList.innerHTML = errorHtml;
+    if (extraColumnsList) extraColumnsList.innerHTML = errorHtml;
+}
+
+function displayColumnsInModal(allColumns, selectedColumns) {
+    console.log('نمایش ستون‌ها در مدال:', { allColumns, selectedColumns });
+    
+    const mainColumnsList = document.getElementById('mainColumnsList');
+    const extraColumnsList = document.getElementById('extraColumnsList');
+    
+    if (!mainColumnsList || !extraColumnsList) {
+        console.error('عناصر لیست ستون‌ها یافت نشدند');
+        return;
+    }
     
     mainColumnsList.innerHTML = '';
     extraColumnsList.innerHTML = '';
@@ -1727,6 +1927,9 @@ function displayColumnsInModal(allColumns, selectedColumns) {
                         'driver_phone', 'vehicle_plate', 'receiver_name', 
                         'destination', 'barnameh_date', 'purchase_number', 
                         'shenase_takhsis_code', 'actions'];
+    
+    let mainCount = 0;
+    let extraCount = 0;
     
     allColumns.forEach(column => {
         const isMainColumn = mainColumns.includes(column.id);
@@ -1748,47 +1951,86 @@ function displayColumnsInModal(allColumns, selectedColumns) {
         
         if (isMainColumn) {
             mainColumnsList.appendChild(item);
+            mainCount++;
         } else {
             extraColumnsList.appendChild(item);
+            extraCount++;
         }
     });
     
+    console.log(`ستون‌های اصلی: ${mainCount}, ستون‌های اضافی: ${extraCount}`);
+    
+    // اضافه کردن پیام اگر لیست خالی باشد
+    if (mainCount === 0) {
+        mainColumnsList.innerHTML = '<div class="text-center p-3 text-muted">هیچ ستون اصلی یافت نشد</div>';
+    }
+    if (extraCount === 0) {
+        extraColumnsList.innerHTML = '<div class="text-center p-3 text-muted">هیچ ستون اضافی یافت نشد</div>';
+    }
+    
     // رویدادهای دکمه‌های انتخاب/عدم انتخاب
-    document.getElementById('selectMainColumns').addEventListener('click', () => {
-        mainColumnsList.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-            cb.checked = true;
-        });
-    });
+    setupColumnSelectionButtons();
+}
+
+function setupColumnSelectionButtons() {
+    const selectMainBtn = document.getElementById('selectMainColumns');
+    const deselectMainBtn = document.getElementById('deselectMainColumns');
+    const selectExtraBtn = document.getElementById('selectExtraColumns');
+    const deselectExtraBtn = document.getElementById('deselectExtraColumns');
     
-    document.getElementById('deselectMainColumns').addEventListener('click', () => {
-        mainColumnsList.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-            cb.checked = false;
-        });
-    });
+    if (selectMainBtn) {
+        selectMainBtn.onclick = () => {
+            document.querySelectorAll('#mainColumnsList input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+        };
+    }
     
-    document.getElementById('selectExtraColumns').addEventListener('click', () => {
-        extraColumnsList.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-            cb.checked = true;
-        });
-    });
+    if (deselectMainBtn) {
+        deselectMainBtn.onclick = () => {
+            document.querySelectorAll('#mainColumnsList input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+        };
+    }
     
-    document.getElementById('deselectExtraColumns').addEventListener('click', () => {
-        extraColumnsList.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-            cb.checked = false;
-        });
-    });
+    if (selectExtraBtn) {
+        selectExtraBtn.onclick = () => {
+            document.querySelectorAll('#extraColumnsList input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+        };
+    }
+    
+    if (deselectExtraBtn) {
+        deselectExtraBtn.onclick = () => {
+            document.querySelectorAll('#extraColumnsList input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+        };
+    }
 }
 
 function saveColumns() {
+    console.log('در حال ذخیره تنظیمات ستون‌ها...');
+    
     const selectedColumns = [];
     document.querySelectorAll('#columnsModal input[type="checkbox"]:checked').forEach(cb => {
         selectedColumns.push(cb.value);
     });
     
+    console.log('ستون‌های انتخاب شده:', selectedColumns);
+    
     if (selectedColumns.length === 0) {
         alert('لطفاً حداقل یک ستون انتخاب کنید');
         return;
     }
+    
+    // غیرفعال کردن دکمه ذخیره
+    const saveBtn = document.getElementById('saveColumnsBtn');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>در حال ذخیره...';
     
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
     
@@ -1802,32 +2044,82 @@ function saveColumns() {
             columns: selectedColumns
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
+        console.log('پاسخ سرور:', data);
         if (data.status === 'success') {
+            // نمایش پیام موفقیت
+            showSuccessMessage('تنظیمات ستون‌ها با موفقیت ذخیره شد');
+            
             // بستن مدال
             const modal = bootstrap.Modal.getInstance(document.getElementById('columnsModal'));
-            modal.hide();
-            
-            // نمایش پیام موفقیت
-            alert('تنظیمات ستون‌ها با موفقیت ذخیره شد');
+            if (modal) {
+                modal.hide();
+            }
             
             // رفرش صفحه برای اعمال تغییرات
             setTimeout(() => {
                 window.location.reload();
-            }, 500);
+            }, 1000);
         } else {
-            alert('خطا در ذخیره تنظیمات: ' + data.message);
+            throw new Error(data.message || 'خطا در ذخیره تنظیمات');
         }
     })
     .catch(error => {
         console.error('خطا در ذخیره تنظیمات:', error);
-        alert('خطا در ذخیره تنظیمات');
+        alert('خطا در ذخیره تنظیمات: ' + error.message);
+    })
+    .finally(() => {
+        // بازگرداندن دکمه به حالت عادی
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
     });
+}
+
+function showSuccessMessage(message) {
+    // ایجاد toast یا alert برای نمایش پیام موفقیت
+    const toastHtml = `
+        <div class="position-fixed top-0 end-0 p-3" style="z-index: 10000;">
+            <div class="toast show" role="alert">
+                <div class="toast-header bg-success text-white">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong class="me-auto">موفقیت</strong>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                </div>
+                <div class="toast-body">
+                    ${message}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const toastContainer = document.createElement('div');
+    toastContainer.innerHTML = toastHtml;
+    document.body.appendChild(toastContainer);
+    
+    // حذف toast بعد از 3 ثانیه
+    setTimeout(() => {
+        if (toastContainer.parentNode) {
+            toastContainer.parentNode.removeChild(toastContainer);
+        }
+    }, 3000);
 }
 
 function resetColumns() {
     if (confirm('آیا مطمئن هستید که می‌خواهید ستون‌ها را به حالت پیش‌فرض بازگردانید؟')) {
+        console.log('در حال بازنشانی ستون‌ها...');
+        
+        // غیرفعال کردن دکمه بازنشانی
+        const resetBtn = document.getElementById('resetColumnsBtn');
+        const originalText = resetBtn.innerHTML;
+        resetBtn.disabled = true;
+        resetBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>در حال بازنشانی...';
+        
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
         
         fetch('{% url "reset_barnameh_columns" %}', {
@@ -1837,22 +2129,39 @@ function resetColumns() {
                 'X-CSRFToken': csrfToken,
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('پاسخ بازنشانی:', data);
             if (data.status === 'success') {
-                alert('ستون‌ها به حالت پیش‌فرض بازگشت داده شدند');
+                showSuccessMessage('ستون‌ها به حالت پیش‌فرض بازگشت داده شدند');
+                
                 // بستن مدال
                 const modal = bootstrap.Modal.getInstance(document.getElementById('columnsModal'));
-                modal.hide();
+                if (modal) {
+                    modal.hide();
+                }
+                
                 // بروزرسانی صفحه
-                window.location.reload();
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
             } else {
-                alert('خطا در بازگشت ستون‌ها: ' + data.message);
+                throw new Error(data.message || 'خطا در بازگشت ستون‌ها');
             }
         })
         .catch(error => {
             console.error('خطا در بازگشت ستون‌ها:', error);
-            alert('خطا در بازگشت ستون‌ها');
+            alert('خطا در بازگشت ستون‌ها: ' + error.message);
+        })
+        .finally(() => {
+            // بازگرداندن دکمه به حالت عادی
+            resetBtn.disabled = false;
+            resetBtn.innerHTML = originalText;
         });
     }
 }

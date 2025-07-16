@@ -30,5 +30,8 @@ urlpatterns = [
     path('api/update-columns/', views.update_barnameh_columns, name='update_barnameh_columns'),
     path('api/reset-columns/', views.reset_barnameh_columns, name='reset_barnameh_columns'),
     path('api/columns-config/', views.get_barnameh_columns_config, name='get_barnameh_columns_config'),
+    
+    # API endpoint for barnameh logs
+    path('api/logs/<int:barnameh_id>/', views.get_barnameh_logs, name='get_barnameh_logs'),
 ]
 

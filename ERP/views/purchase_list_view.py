@@ -46,7 +46,7 @@ def get_allowed_columns(user_role):
          'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
           'cargo', 'product_type', 'importer', 'barbary', 'barbary_phone', 'customer', 'customer_phones', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil', 'address',
             'unique_buyer_id', 'barbary_confidential_number', 'barbary_customer_number', 'delivery_receiver_name', 'buyer_national_id',
-            'buyer_user_type', 'unique_delivery_id', 'delivery_address', 'delivery_postal_code', 'vehicle_type']
+            'buyer_user_type', 'unique_delivery_id', 'delivery_address', 'delivery_postal_code', 'vehicle_type', 'factor_status']
 
     allowed_columns.append('actions')
     return allowed_columns
@@ -553,6 +553,7 @@ def purchase_list(request):
             {'id': 'code_melli_tahvil', 'name': 'کد ملی تحویل', 'field': 'code_melli_tahvil'},
             {'id': 'address', 'name': 'آدرس خریدار', 'field': 'address'},
             {'id': 'unique_buyer_id', 'name': 'شناسه یکتا خریدار', 'field': 'unique_buyer_id'},
+            {'id': 'factor_status', 'name': 'وضعیت فاکتور', 'field': 'factor_status'},
         ]
 
         # todo: add the rest of the columns
@@ -633,6 +634,7 @@ def purchase_list(request):
             {'id': 'delivery_address', 'name':'آدرس تحویل', 'field': 'delivery_address'},
             {'id': 'delivery_postal_code', 'name':'کد پستی تحویل', 'field': 'delivery_postal_code'},
             {'id': 'vehicle_type', 'name':'نوع خودرو حمل', 'field': 'vehicle_type'},
+            {'id': 'factor_status', 'name': 'وضعیت فاکتور', 'field': 'factor_status'},
         ]
 
         # todo: add the rest of the columns
@@ -1031,6 +1033,7 @@ def _export_regular_excel(purchase_ids, selected_columns):
         'description': ('توضیحات', lambda p: p.description or "-"),
         'factor_code': ('فاکتور مبنا', lambda p: "بله" if p.factor_code else "خیر"),
         'unique_buyer_id': ('شناسه یکتا خریدار', lambda p: p.unique_buyer_id or "-"),
+        'factor_status': ('وضعیت فاکتور', lambda p: p.factor_status or "-"),
         'code_melli_tahvil': ('کد ملی تحویل', lambda p: p.code_melli_tahvil or "-"),
         'bazaargah_phone_number': ('شماره تلفن بازارگاه', lambda p: p.bazaargah_phone_number or "-"),
         'buyer_name': ('نام خریدار', lambda p: p.buyer_name or "-"),
@@ -1980,7 +1983,7 @@ def apply_purchase_filter(request):
                             filter_conditions &= ~Q(cargo__barbary__name__in=values)
                 
                 elif column_id in ['address', 'description', 'unique_buyer_id', 'code_melli_tahvil', 
-                                 'bazaargah_phone_number', 'tahvil_phone_number', 'priority_reason']:
+                                 'bazaargah_phone_number', 'tahvil_phone_number', 'priority_reason', 'factor_status']:
                     values = [v for v in values if v and v.strip()]
                     if values:
                         if filter_type == 'include':
@@ -2085,10 +2088,11 @@ def apply_purchase_filter(request):
                 Q(bazaargah_phone_number__icontains=global_search) |
                 Q(tahvil_phone_number__icontains=global_search) |
                 Q(code_melli_tahvil__icontains=global_search) |
-                
+                Q(factor_status__icontains=global_search) |
                 # اطلاعات ردیابی
                 Q(unique_buyer_id__icontains=global_search) |
                 Q(shenase_takhsis_set__code__icontains=global_search) |
+
                 
                 # توضیحات و اطلاعات اضافی
                 Q(description__icontains=global_search) |
@@ -2172,6 +2176,7 @@ def apply_purchase_filter(request):
                 'delivery_address': 'delivery_address',
                 'delivery_postal_code': 'delivery_postal_code',
                 'vehicle_type': 'vehicle_type',
+                'factor_status': 'factor_status',
             }
             
             sort_field = sort_mapping.get(column, column)
@@ -2219,6 +2224,7 @@ def apply_purchase_filter(request):
                 'description': purchase.description or '-',
                 'factor_code': '1' if purchase.factor_code else '0',
                 'unique_buyer_id': purchase.unique_buyer_id or '-',
+                'factor_status': purchase.factor_status or '-',
                 'code_melli_tahvil': purchase.code_melli_tahvil or '-',
                 'bazaargah_phone_number': purchase.bazaargah_phone_number or '-',
                 'tahvil_phone_number': purchase.tahvil_phone_number or '-',
@@ -2618,7 +2624,7 @@ def get_purchase_column_values(request):
                                         'tahvil_phone_number', 'priority_reason',
                                         'barbary_confidential_number', 'barbary_customer_number',
                                         'delivery_receiver_name', 'buyer_national_id', 'unique_delivery_id',
-                                        'delivery_address', 'delivery_postal_code']:
+                                        'delivery_address', 'delivery_postal_code', 'factor_status']:
                     values = [v for v in values if v and v.strip()]
                     if values:
                         if filter_type == 'include':
@@ -2817,7 +2823,7 @@ def get_purchase_column_values(request):
         elif column_id in ['address', 'description', 'unique_buyer_id', 'code_melli_tahvil', 
                           'bazaargah_phone_number', 'tahvil_phone_number', 'priority_reason',
                           'barbary_confidential_number', 'barbary_customer_number', 'delivery_receiver_name',
-                          'buyer_national_id', 'unique_delivery_id', 'delivery_address', 'delivery_postal_code']:
+                          'buyer_national_id', 'unique_delivery_id', 'delivery_address', 'delivery_postal_code', 'factor_status']:
             values_queryset = queryset.exclude(**{f'{column_id}__isnull': True})\
                 .exclude(**{f'{column_id}': ''}).values_list(column_id, flat=True).distinct()
             values = set(values_queryset)
