@@ -4,87 +4,109 @@ document.addEventListener('DOMContentLoaded', function() {
     function setupColumnDragAndDrop() {
         const tables = document.querySelectorAll('table');
         let draggedColumn = null;
-
+    
         tables.forEach(table => {
             const tableHeaders = table.querySelectorAll('thead tr th');
-            
-            // اضافه کردن ویژگی‌های Drag به هدرهای ستون
+    
             tableHeaders.forEach(header => {
-                // ستون‌هایی که دارای کلاس مخفی نیستند را قابل جابجایی کنیم
                 if (window.getComputedStyle(header).display !== 'none') {
                     header.setAttribute('draggable', 'true');
-                    
+    
                     header.addEventListener('dragstart', function(e) {
                         draggedColumn = this;
-                        e.dataTransfer.setData('text/plain', this.cellIndex);
                         this.style.opacity = '0.5';
-                        
-                        // اضافه کردن کلاس برای نمایش حالت کشیدن
                         this.classList.add('dragging-column');
                     });
-
+    
                     header.addEventListener('dragend', function() {
                         this.style.opacity = '1';
                         this.classList.remove('dragging-column');
                     });
-
+    
                     header.addEventListener('dragover', function(e) {
                         e.preventDefault();
                         this.classList.add('drag-over');
                     });
-
+    
                     header.addEventListener('dragleave', function() {
                         this.classList.remove('drag-over');
                     });
-
+    
                     header.addEventListener('drop', function(e) {
                         e.preventDefault();
                         this.classList.remove('drag-over');
-                        
-                        if (draggedColumn !== this) {
-                            // جابجایی ستون‌ها
-                            swapColumns(draggedColumn.cellIndex, this.cellIndex);
-                            
-                            // ذخیره ترتیب جدید ستون‌ها
-                            saveColumnOrder();
+    
+                        if (draggedColumn && draggedColumn !== this) {
+                            // اینجا هر دو رو از DOM آپدیت بگیر:
+                            const headerRow = table.querySelector('thead tr');
+                            // فقط visible headers
+                            const visibleHeaders = Array.from(headerRow.querySelectorAll('th')).filter(
+                                th => window.getComputedStyle(th).display !== 'none'
+                            );
+    
+                            // مطمئن شو هر دو visible هستن
+                            if (
+                                visibleHeaders.includes(draggedColumn) &&
+                                visibleHeaders.includes(this)
+                            ) {
+                                const fromIndex = draggedColumn.cellIndex;
+                                const toIndex = this.cellIndex;
+                                swapColumns(fromIndex, toIndex);
+                                saveColumnOrder();
+                            }
                         }
                     });
                 }
             });
         });
     }
+    
 
     // تابع برای جابجایی ستون‌ها
     function swapColumns(fromIndex, toIndex) {
         const tables = document.querySelectorAll('table');
-        
-        tables.forEach(table => {
-            // جابجایی در هدر
-            const headerRow = table.querySelector('thead tr');
-            const headers = headerRow.querySelectorAll('th');
-            const fromHeader = headers[fromIndex];
-            const toHeader = headers[toIndex];
-            
-            if (fromIndex < toIndex) {
-                toHeader.after(fromHeader);
+    tables.forEach(table => {
+        const headerRow = table.querySelector('thead tr');
+        // فیلتر only visible headers
+        const visibleHeaders = Array.from(headerRow.querySelectorAll('th')).filter(
+            th => window.getComputedStyle(th).display !== 'none'
+        );
+
+        // ایندکس واقعی در جدول (cellIndex)
+        const fromRealIndex = visibleHeaders[fromIndex]?.cellIndex;
+        const toRealIndex = visibleHeaders[toIndex]?.cellIndex;
+
+        // اگر اختلال داشت (مثلاً -1 یا undefined)، هیچی نکن!
+        if (
+            fromRealIndex === undefined ||
+            toRealIndex === undefined
+        ) return;
+
+        // جابه‌جایی در thead:
+        const headers = headerRow.children;
+        const fromHeader = headers[fromRealIndex];
+        const toHeader = headers[toRealIndex];
+        if (!(fromHeader && toHeader)) return;
+        if (fromRealIndex < toRealIndex) {
+            toHeader.after(fromHeader);
+        } else {
+            toHeader.before(fromHeader);
+        }
+
+        // جابه‌جایی ردیف‌های tbody:
+        const bodyRows = table.querySelectorAll('tbody tr');
+        bodyRows.forEach(row => {
+            const cells = row.children;
+            const fromCell = cells[fromRealIndex];
+            const toCell = cells[toRealIndex];
+            if (!(fromCell && toCell)) return;
+            if (fromRealIndex < toRealIndex) {
+                toCell.after(fromCell);
             } else {
-                toHeader.before(fromHeader);
+                toCell.before(fromCell);
             }
-            
-            // جابجایی در بدنه جدول
-            const bodyRows = table.querySelectorAll('tbody tr');
-            bodyRows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                const fromCell = cells[fromIndex];
-                const toCell = cells[toIndex];
-                
-                if (fromIndex < toIndex) {
-                    toCell.after(fromCell);
-                } else {
-                    toCell.before(fromCell);
-                }
-            });
         });
+    });
         
         // بروزرسانی فیلترها بعد از جابجایی ستون‌ها
         if (typeof window.tableFilter !== 'undefined' && window.tableFilter) {
@@ -104,6 +126,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 addUnitsToHeaders();
             }
         }, 150);
+    }
+
+    // تابع برای دریافت ترتیب ستون‌ها از سرور
+    function getColumnOrderFromServer() {
+        return new Promise((resolve, reject) => {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || 
+                             document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
+            
+            fetch('/erp/get_column_order/', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    resolve(data.column_order);
+                } else {
+                    reject(new Error(data.message || 'خطا در دریافت ترتیب ستون‌ها'));
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching column order from server:', error);
+                reject(error);
+            });
+        });
     }
 
     // تابع برای ذخیره ترتیب جدید ستون‌ها
@@ -126,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || 
                          document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
         
-        fetch('/purchase/update_column_order/', {
+        fetch('/erp/update_column_order/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -139,65 +194,167 @@ document.addEventListener('DOMContentLoaded', function() {
           .then(data => {
             if (data.status !== 'success') {
                 console.error('Error saving column order:', data.message);
+                // نمایش پیام خطا به کاربر
+                if (typeof showErrorToast === 'function') {
+                    showErrorToast('خطا در ذخیره ترتیب ستون‌ها');
+                }
+            } else {
+                // نمایش پیام موفقیت
+                if (typeof showSuccessToast === 'function') {
+                    showSuccessToast('ترتیب ستون‌ها با موفقیت ذخیره شد');
+                }
             }
         }).catch(error => {
             console.error('Error:', error);
+            // نمایش پیام خطا به کاربر
+            if (typeof showErrorToast === 'function') {
+                showErrorToast('خطا در ذخیره ترتیب ستون‌ها');
+            }
         });
     }
 
     // تابع برای اعمال ترتیب ذخیره شده ستون‌ها
-    function applySavedColumnOrder() {
-        // اولویت‌بندی برای دریافت ترتیب ستون‌ها:
-        // 1. از localStorage (برای نمایش سریع)
-        // 2. از کوکی (در صورت عدم وجود در localStorage)
-        // 3. ترتیب پیش‌فرض
-        
-        let columnOrder = null;
-        
-        // بررسی localStorage
-        const savedOrder = localStorage.getItem('purchaseListColumnOrder');
-        if (savedOrder) {
-            try {
-                columnOrder = JSON.parse(savedOrder);
-            } catch (e) {
-                console.error('Error parsing saved column order:', e);
-            }
-        }
-        
-        // اگر در localStorage نبود، از کوکی بگیریم
-        if (!columnOrder) {
-            const cookieValue = document.cookie
-                .split('; ')
-                .find(row => row.startsWith('purchase_list_column_order='));
+    async function applySavedColumnOrder() {
+        try {
+            // ابتدا از سرور دریافت کن
+            let columnOrder = await getColumnOrderFromServer();
             
-            if (cookieValue) {
+            // اگر از سرور دریافت نشد، از localStorage استفاده کن
+            if (!columnOrder || columnOrder.length === 0) {
+                const savedOrder = localStorage.getItem('purchaseListColumnOrder');
+                if (savedOrder) {
+                    try {
+                        columnOrder = JSON.parse(savedOrder);
+                    } catch (e) {
+                        console.error('Error parsing saved column order:', e);
+                        return;
+                    }
+                }
+            }
+            
+            // اگر هنوز ترتیبی نداریم، از ترتیب فعلی استفاده می‌کنیم
+            if (!columnOrder || columnOrder.length === 0) {
+                return;
+            }
+            
+            // اعمال ترتیب جدید
+            const tableHeaders = document.querySelectorAll('table thead tr th');
+            const headersArray = Array.from(tableHeaders);
+            const currentOrder = headersArray.map(header => {
+                const columnClasses = Array.from(header.classList).filter(cls => cls.startsWith('column-'));
+                return columnClasses.length > 0 ? columnClasses[0].replace('column-', '') : null;
+            }).filter(Boolean);
+            
+            // اگر ترتیب یکسان است، نیازی به تغییر نیست
+            if (JSON.stringify(columnOrder) === JSON.stringify(currentOrder)) {
+                return;
+            }
+            
+            // جابجایی ستون‌ها بر اساس ترتیب ذخیره شده
+            const tables = document.querySelectorAll('table');
+            tables.forEach(table => {
+                const headerRow = table.querySelector('thead tr');
+                const headers = Array.from(headerRow.querySelectorAll('th'));
+                const bodyRows = table.querySelectorAll('tbody tr');
+                
+                // ایجاد یک مپ از ستون‌ها بر اساس ID
+                const headerMap = {};
+                headers.forEach(header => {
+                    const columnClasses = Array.from(header.classList).filter(cls => cls.startsWith('column-'));
+                    if (columnClasses.length > 0) {
+                        const columnId = columnClasses[0].replace('column-', '');
+                        headerMap[columnId] = header;
+                    }
+                });
+                
+                // مرتب‌سازی هدرها بر اساس ترتیب ذخیره شده
+                headerRow.innerHTML = '';
+                // ابتدا ستون چک‌باکس را اضافه کن (اگر وجود دارد)
+                const checkboxColumn = headers.find(h => h.querySelector('input[type="checkbox"]'));
+                if (checkboxColumn) {
+                    headerRow.appendChild(checkboxColumn);
+                }
+                
+                // ابتدا ستون‌های مرتب شده را اضافه کن
+                columnOrder.forEach(columnId => {
+                    if (headerMap[columnId]) {
+                        headerRow.appendChild(headerMap[columnId]);
+                    }
+                });
+                
+                // سپس ستون‌های نامرتب را در انتها اضافه کن
+                currentOrder.forEach(columnId => {
+                    if (!columnOrder.includes(columnId) && headerMap[columnId]) {
+                        headerRow.appendChild(headerMap[columnId]);
+                    }
+                });
+                
+                // مرتب‌سازی سلول‌های هر سطر بر اساس ترتیب جدید
+                bodyRows.forEach(row => {
+                    const cells = Array.from(row.querySelectorAll('td'));
+                    const cellMap = {};
+                    
+                    cells.forEach((cell, index) => {
+                        const columnClasses = Array.from(headers[index].classList).filter(cls => cls.startsWith('column-'));
+                        if (columnClasses.length > 0) {
+                            const columnId = columnClasses[0].replace('column-', '');
+                            cellMap[columnId] = cell;
+                        }
+                    });
+                    
+                    // پاک کردن و اضافه کردن مجدد سلول‌ها با ترتیب جدید
+                    row.innerHTML = '';
+                    // ابتدا ستون چک‌باکس را اضافه کن (اگر وجود دارد)
+                    const checkboxCell = cells.find(c => c.querySelector('input[type="checkbox"]'));
+                    if (checkboxCell) {
+                        row.appendChild(checkboxCell);
+                    }
+                    
+                    // ابتدا سلول‌های مرتب شده را اضافه کن
+                    columnOrder.forEach(columnId => {
+                        if (cellMap[columnId]) {
+                            row.appendChild(cellMap[columnId]);
+                        }
+                    });
+                    
+                    // سپس سلول‌های نامرتب را در انتها اضافه کن
+                    currentOrder.forEach(columnId => {
+                        if (!columnOrder.includes(columnId) && cellMap[columnId]) {
+                            row.appendChild(cellMap[columnId]);
+                        }
+                    });
+                });
+            });
+            
+            // بعد از اعمال ترتیب، واحدها را دوباره اضافه کن
+            setTimeout(() => {
+                if (typeof addUnitsToHeaders === 'function') {
+                    addUnitsToHeaders();
+                }
+            }, 100);
+            
+        } catch (error) {
+            console.error('Error applying saved column order:', error);
+            // در صورت خطا، از localStorage استفاده کن
+            const savedOrder = localStorage.getItem('purchaseListColumnOrder');
+            if (savedOrder) {
                 try {
-                    columnOrder = JSON.parse(cookieValue.split('=')[1]);
+                    const columnOrder = JSON.parse(savedOrder);
+                    // اعمال ترتیب از localStorage
+                    applyColumnOrderFromArray(columnOrder);
                 } catch (e) {
-                    console.error('Error parsing cookie column order:', e);
+                    console.error('Error parsing localStorage column order:', e);
                 }
             }
         }
-        
-        // اگر هنوز ترتیبی نداریم، از ترتیب فعلی استفاده می‌کنیم
+    }
+
+    // تابع کمکی برای اعمال ترتیب ستون‌ها از آرایه
+    function applyColumnOrderFromArray(columnOrder) {
         if (!columnOrder || columnOrder.length === 0) {
             return;
         }
         
-        // اعمال ترتیب جدید
-        const tableHeaders = document.querySelectorAll('table thead tr th');
-        const headersArray = Array.from(tableHeaders);
-        const currentOrder = headersArray.map(header => {
-            const columnClasses = Array.from(header.classList).filter(cls => cls.startsWith('column-'));
-            return columnClasses.length > 0 ? columnClasses[0].replace('column-', '') : null;
-        }).filter(Boolean);
-        
-        // اگر ترتیب یکسان است، نیازی به تغییر نیست
-        if (JSON.stringify(columnOrder) === JSON.stringify(currentOrder)) {
-            return;
-        }
-        
-        // جابجایی ستون‌ها بر اساس ترتیب ذخیره شده
         const tables = document.querySelectorAll('table');
         tables.forEach(table => {
             const headerRow = table.querySelector('thead tr');
@@ -222,6 +379,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 headerRow.appendChild(checkboxColumn);
             }
             
+            // ابتدا ستون‌های مرتب شده را اضافه کن
             columnOrder.forEach(columnId => {
                 if (headerMap[columnId]) {
                     headerRow.appendChild(headerMap[columnId]);
@@ -249,6 +407,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     row.appendChild(checkboxCell);
                 }
                 
+                // ابتدا سلول‌های مرتب شده را اضافه کن
                 columnOrder.forEach(columnId => {
                     if (cellMap[columnId]) {
                         row.appendChild(cellMap[columnId]);
@@ -339,11 +498,12 @@ document.addEventListener('DOMContentLoaded', function() {
             button.disabled = true;
             
             // ارسال درخواست به سرور برای بازگردانی کامل
-            fetch('/purchase/reset_column_order/', {
+            fetch('/erp/purchase/reset_column_order/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || 
+                                   document.querySelector('input[name="csrfmiddlewaretoken"]')?.value
                 }
             })
             .then(response => response.json())
