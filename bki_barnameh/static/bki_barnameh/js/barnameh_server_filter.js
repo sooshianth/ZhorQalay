@@ -10,7 +10,7 @@ class BarnamehServerFilter {
         this.currentFilters = {};
         this.currentSort = { column: null, direction: null };
         this.currentPage = 1;
-        this.perPage = 50;
+        this.perPage = 100;
         this.totalPages = 1;
         this.totalCount = 0;
         this.isLoading = false;
@@ -33,9 +33,9 @@ class BarnamehServerFilter {
             if (selectedValue === 'all') {
                 return 10000;
             }
-            return parseInt(selectedValue) || 50;
+            return parseInt(selectedValue) || 100;
         }
-        return 50;
+        return 100;
     }
     
     init() {
@@ -107,7 +107,7 @@ class BarnamehServerFilter {
                 if (selectedValue === 'all') {
                     this.perPage = 10000;
                 } else {
-                    this.perPage = parseInt(selectedValue) || 50;
+                    this.perPage = parseInt(selectedValue) || 100;
                 }
                 this.currentPage = 1; // بازگشت به صفحه اول
                 this.applyFilters();
@@ -791,6 +791,12 @@ class BarnamehServerFilter {
                 </td>`;
             } else if (columnId === 'created_at') {
                 rowHtml += `<td class="column-created_at">${barnameh.created_at || "-"}</td>`;
+            } else if (columnId === 'transport_date') {
+                rowHtml += `<td class="column-transport_date">${barnameh.transport_date || "-"}</td>`;
+            } else if (columnId === 'factor_sodoor_season') {
+                rowHtml += `<td class="column-factor_sodoor_season">${barnameh.factor_sodoor_season || "-"}</td>`;
+            } else if (columnId === 'buyer_postal_code') {
+                rowHtml += `<td class="column-buyer_postal_code">${barnameh.buyer_postal_code || "-"}</td>`;
             } else if (columnId === 'actions') {
                 rowHtml += `<td class="text-center">
                     <div class="btn-group">
@@ -1329,9 +1335,25 @@ class BarnamehServerFilter {
             'receiver_name': 'نام گیرنده',
             'destination': 'مقصد',
             'barnameh_date': 'تاریخ بارنامه',
+            'transport_date': 'تاریخ حمل',
             'purchase_number': 'شماره خرید',
             'shenase_takhsis_code': 'شناسه تخصیص',
-            'cargo': 'کوتاژ'
+            'cargo': 'کوتاژ',
+            'company_price': 'فی خرید',
+            'customer_price': 'فی فروش',
+            'total_sales_amount': 'مبلغ کل فروش',
+            'buyer_national_code': 'شماره ملی خریدار',
+            'buyer_postal_code': 'کدپستی خریدار',
+            'buyer_address': 'آدرس خریدار',
+            'demand_amount': 'میزان تقاضا',
+            'importer': 'واردکننده',
+            'product_type': 'محصول',
+            'successful_send_date': 'تاریخ ارسال موفق',
+            'is_sent_to_bki': 'ارسال به بازارگاه',
+            'factor_sodoor_season': 'زمان صدور فاکتور فصل',
+            'is_factored': 'فاکتور صادر شده',
+            'is_created_by_excel': 'ایجاد توسط اکسل',
+            'created_at': 'تاریخ ایجاد'
         };
         
         return columnNames[columnId] || columnId;

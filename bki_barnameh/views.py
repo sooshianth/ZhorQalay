@@ -330,6 +330,124 @@ def apply_barnameh_filter(request):
                             filter_conditions &= Q(**{f'{column_id}__in': bool_values})
                         else:
                             filter_conditions &= ~Q(**{f'{column_id}__in': bool_values})
+                
+                # فیلترهای مربوط به purchase
+                elif column_id == 'cargo':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(purchase__cargo__cottage__in=values)
+                        else:
+                            filter_conditions &= ~Q(purchase__cargo__cottage__in=values)
+                
+                elif column_id in ['company_price', 'customer_price', 'total_sales_amount', 'demand_amount']:
+                    # فیلتر عددی برای قیمت‌ها
+                    try:
+                        numeric_values = []
+                        for v in values:
+                            if v and str(v).strip():
+                                cleaned_value = str(v).replace(',', '').replace('٬', '').strip()
+                                if cleaned_value.replace('.', '').isdigit():
+                                    numeric_values.append(float(cleaned_value))
+                        
+                        if numeric_values:
+                            field_mapping = {
+                                'company_price': 'purchase__company_price',
+                                'customer_price': 'purchase__customer_price',
+                                'total_sales_amount': 'purchase__total_sales_amount',
+                                'demand_amount': 'purchase__total_weight'
+                            }
+                            field_name = field_mapping.get(column_id)
+                            if field_name:
+                                if filter_type == 'include':
+                                    filter_conditions &= Q(**{f'{field_name}__in': numeric_values})
+                                else:
+                                    filter_conditions &= ~Q(**{f'{field_name}__in': numeric_values})
+                                
+                    except (ValueError, TypeError):
+                        continue
+                
+                elif column_id in ['buyer_national_code', 'buyer_address']:
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        field_mapping = {
+                            'buyer_national_code': 'purchase__buyer_national_code',
+                            'buyer_address': 'purchase__address'
+                        }
+                        field_name = field_mapping.get(column_id)
+                        if field_name:
+                            if filter_type == 'include':
+                                filter_conditions &= Q(**{f'{field_name}__in': values})
+                            else:
+                                filter_conditions &= ~Q(**{f'{field_name}__in': values})
+                
+                elif column_id == 'importer':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(purchase__cargo__vared_konandeh__name__in=values)
+                        else:
+                            filter_conditions &= ~Q(purchase__cargo__vared_konandeh__name__in=values)
+                
+                elif column_id == 'product_type':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(purchase__cargo__product_type__in=values)
+                        else:
+                            filter_conditions &= ~Q(purchase__cargo__product_type__in=values)
+                
+                elif column_id == 'successful_send_date':
+                    # فیلتر تاریخی
+                    try:
+                        date_conditions = Q()
+                        for date_str in values:
+                            if date_str and date_str.strip():
+                                if '/' in date_str:
+                                    parts = date_str.split('/')
+                                    if len(parts) == 3:
+                                        year, month, day = parts
+                                        date_obj = datetime(int(year), int(month), int(day)).date()
+                                        date_conditions |= Q(purchase__successful_send_date=date_obj)
+                        
+                        if date_conditions:
+                            if filter_type == 'include':
+                                filter_conditions &= date_conditions
+                            else:
+                                filter_conditions &= ~date_conditions
+                                
+                    except (ValueError, TypeError):
+                        continue
+                
+                elif column_id in ['factor_sodoor_season', 'buyer_postal_code']:
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(**{f'{column_id}__in': values})
+                        else:
+                            filter_conditions &= ~Q(**{f'{column_id}__in': values})
+                
+                elif column_id == 'transport_date':
+                    # فیلتر تاریخی
+                    try:
+                        date_conditions = Q()
+                        for date_str in values:
+                            if date_str and date_str.strip():
+                                if '/' in date_str:
+                                    parts = date_str.split('/')
+                                    if len(parts) == 3:
+                                        year, month, day = parts
+                                        date_obj = datetime(int(year), int(month), int(day)).date()
+                                        date_conditions |= Q(transport_date=date_obj)
+                        
+                        if date_conditions:
+                            if filter_type == 'include':
+                                filter_conditions &= date_conditions
+                            else:
+                                filter_conditions &= ~date_conditions
+                                
+                    except (ValueError, TypeError):
+                        continue
             
             # اعمال فیلترها
             if filter_conditions:
@@ -346,7 +464,14 @@ def apply_barnameh_filter(request):
                 Q(receiver_name__icontains=global_search) |
                 Q(destination__icontains=global_search) |
                 Q(purchase_number__icontains=global_search) |
-                Q(shenase_takhsis_code__icontains=global_search)
+                Q(shenase_takhsis_code__icontains=global_search) |
+                Q(purchase__cargo__cottage__icontains=global_search) |
+                Q(purchase__cargo__vared_konandeh__name__icontains=global_search) |
+                Q(purchase__cargo__product_type__icontains=global_search) |
+                Q(purchase__buyer_national_code__icontains=global_search) |
+                Q(purchase__address__icontains=global_search) |
+                Q(factor_sodoor_season__icontains=global_search) |
+                Q(buyer_postal_code__icontains=global_search)
             )
             base_queryset = base_queryset.filter(search_conditions)
         
@@ -674,6 +799,124 @@ def get_barnameh_column_values(request):
                             filter_conditions &= Q(**{f'{filter_column_id}__in': bool_values})
                         else:
                             filter_conditions &= ~Q(**{f'{filter_column_id}__in': bool_values})
+                
+                # فیلترهای مربوط به purchase
+                elif filter_column_id == 'cargo':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(purchase__cargo__cottage__in=values)
+                        else:
+                            filter_conditions &= ~Q(purchase__cargo__cottage__in=values)
+                
+                elif filter_column_id in ['company_price', 'customer_price', 'total_sales_amount', 'demand_amount']:
+                    # فیلتر عددی برای قیمت‌ها
+                    try:
+                        numeric_values = []
+                        for v in values:
+                            if v and str(v).strip():
+                                cleaned_value = str(v).replace(',', '').replace('٬', '').strip()
+                                if cleaned_value.replace('.', '').isdigit():
+                                    numeric_values.append(float(cleaned_value))
+                        
+                        if numeric_values:
+                            field_mapping = {
+                                'company_price': 'purchase__company_price',
+                                'customer_price': 'purchase__customer_price',
+                                'total_sales_amount': 'purchase__total_sales_amount',
+                                'demand_amount': 'purchase__total_weight'
+                            }
+                            field_name = field_mapping.get(filter_column_id)
+                            if field_name:
+                                if filter_type == 'include':
+                                    filter_conditions &= Q(**{f'{field_name}__in': numeric_values})
+                                else:
+                                    filter_conditions &= ~Q(**{f'{field_name}__in': numeric_values})
+                                
+                    except (ValueError, TypeError):
+                        continue
+                
+                elif filter_column_id in ['buyer_national_code', 'buyer_address']:
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        field_mapping = {
+                            'buyer_national_code': 'purchase__buyer_national_code',
+                            'buyer_address': 'purchase__address'
+                        }
+                        field_name = field_mapping.get(filter_column_id)
+                        if field_name:
+                            if filter_type == 'include':
+                                filter_conditions &= Q(**{f'{field_name}__in': values})
+                            else:
+                                filter_conditions &= ~Q(**{f'{field_name}__in': values})
+                
+                elif filter_column_id == 'importer':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(purchase__cargo__vared_konandeh__name__in=values)
+                        else:
+                            filter_conditions &= ~Q(purchase__cargo__vared_konandeh__name__in=values)
+                
+                elif filter_column_id == 'product_type':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(purchase__cargo__product_type__in=values)
+                        else:
+                            filter_conditions &= ~Q(purchase__cargo__product_type__in=values)
+                
+                elif filter_column_id == 'successful_send_date':
+                    # فیلتر تاریخی
+                    try:
+                        date_conditions = Q()
+                        for date_str in values:
+                            if date_str and date_str.strip():
+                                if '/' in date_str:
+                                    parts = date_str.split('/')
+                                    if len(parts) == 3:
+                                        year, month, day = parts
+                                        date_obj = datetime(int(year), int(month), int(day)).date()
+                                        date_conditions |= Q(purchase__successful_send_date=date_obj)
+                        
+                        if date_conditions:
+                            if filter_type == 'include':
+                                filter_conditions &= date_conditions
+                            else:
+                                filter_conditions &= ~date_conditions
+                                
+                    except (ValueError, TypeError):
+                        continue
+                
+                elif filter_column_id in ['factor_sodoor_season', 'buyer_postal_code']:
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(**{f'{filter_column_id}__in': values})
+                        else:
+                            filter_conditions &= ~Q(**{f'{filter_column_id}__in': values})
+                
+                elif filter_column_id == 'transport_date':
+                    # فیلتر تاریخی
+                    try:
+                        date_conditions = Q()
+                        for date_str in values:
+                            if date_str and date_str.strip():
+                                if '/' in date_str:
+                                    parts = date_str.split('/')
+                                    if len(parts) == 3:
+                                        year, month, day = parts
+                                        date_obj = datetime(int(year), int(month), int(day)).date()
+                                        date_conditions |= Q(transport_date=date_obj)
+                        
+                        if date_conditions:
+                            if filter_type == 'include':
+                                filter_conditions &= date_conditions
+                            else:
+                                filter_conditions &= ~date_conditions
+                                
+                    except (ValueError, TypeError):
+                        continue
             
             # اعمال فیلترها
             if filter_conditions:
@@ -737,6 +980,81 @@ def get_barnameh_column_values(request):
                     values.add('بله')
                 elif val is False:
                     values.add('خیر')
+        
+        # ستون‌های مربوط به purchase
+        elif column_id == 'cargo':
+            values_queryset = base_queryset.exclude(purchase__cargo__isnull=True)\
+                .values_list('purchase__cargo__cottage', flat=True).distinct()
+            values = set(values_queryset)
+            
+        elif column_id == 'company_price':
+            values_queryset = base_queryset.exclude(purchase__company_price__isnull=True)\
+                .exclude(purchase__company_price=0)\
+                .values_list('purchase__company_price', flat=True).distinct()
+            values = set([f"{int(value):,}" for value in values_queryset if value is not None and value > 0])
+            
+        elif column_id == 'customer_price':
+            values_queryset = base_queryset.exclude(purchase__customer_price__isnull=True)\
+                .exclude(purchase__customer_price=0)\
+                .values_list('purchase__customer_price', flat=True).distinct()
+            values = set([f"{int(value):,}" for value in values_queryset if value is not None and value > 0])
+            
+        elif column_id == 'total_sales_amount':
+            values_queryset = base_queryset.exclude(purchase__total_sales_amount__isnull=True)\
+                .exclude(purchase__total_sales_amount=0)\
+                .values_list('purchase__total_sales_amount', flat=True).distinct()
+            values = set([f"{int(value):,}" for value in values_queryset if value is not None and value > 0])
+            
+        elif column_id == 'buyer_national_code':
+            values_queryset = base_queryset.exclude(purchase__buyer_national_code__isnull=True)\
+                .exclude(purchase__buyer_national_code='')\
+                .values_list('purchase__buyer_national_code', flat=True).distinct()
+            values = set(values_queryset)
+            
+        elif column_id == 'buyer_address':
+            values_queryset = base_queryset.exclude(purchase__address__isnull=True)\
+                .exclude(purchase__address='')\
+                .values_list('purchase__address', flat=True).distinct()
+            values = set(values_queryset)
+            
+        elif column_id == 'demand_amount':
+            values_queryset = base_queryset.exclude(purchase__total_weight__isnull=True)\
+                .exclude(purchase__total_weight=0)\
+                .values_list('purchase__total_weight', flat=True).distinct()
+            values = set([f"{int(value):,}" for value in values_queryset if value is not None and value > 0])
+            
+        elif column_id == 'importer':
+            values_queryset = base_queryset.exclude(purchase__cargo__vared_konandeh__isnull=True)\
+                .values_list('purchase__cargo__vared_konandeh__name', flat=True).distinct()
+            values = set(values_queryset)
+            
+        elif column_id == 'product_type':
+            values_queryset = base_queryset.exclude(purchase__cargo__product_type__isnull=True)\
+                .exclude(purchase__cargo__product_type='')\
+                .values_list('purchase__cargo__product_type', flat=True).distinct()
+            values = set(values_queryset)
+            
+        elif column_id == 'successful_send_date':
+            values_queryset = base_queryset.exclude(purchase__successful_send_date__isnull=True)\
+                .values_list('purchase__successful_send_date', flat=True).distinct()
+            values = set([date.strftime("%Y/%m/%d") for date in values_queryset if date])
+            
+        elif column_id == 'factor_sodoor_season':
+            values_queryset = base_queryset.exclude(factor_sodoor_season__isnull=True)\
+                .exclude(factor_sodoor_season='')\
+                .values_list('factor_sodoor_season', flat=True).distinct()
+            values = set(values_queryset)
+            
+        elif column_id == 'buyer_postal_code':
+            values_queryset = base_queryset.exclude(buyer_postal_code__isnull=True)\
+                .exclude(buyer_postal_code='')\
+                .values_list('buyer_postal_code', flat=True).distinct()
+            values = set(values_queryset)
+            
+        elif column_id == 'transport_date':
+            values_queryset = base_queryset.exclude(transport_date__isnull=True)\
+                .values_list('transport_date', flat=True).distinct()
+            values = set([date.strftime("%Y/%m/%d") for date in values_queryset if date])
         
         else:
             # برای ستون‌های ناشناخته
@@ -975,7 +1293,7 @@ def barnameh_list(request):
     # دریافت پارامترهای فیلتر از GET
     global_search = request.GET.get('global_search', '')
     page = int(request.GET.get('page', 1))
-    per_page_param = request.GET.get('per_page', 50)
+    per_page_param = request.GET.get('per_page', 100)
     
     # بررسی گزینه "نمایش همه"
     if per_page_param == 'all':
@@ -984,7 +1302,7 @@ def barnameh_list(request):
         try:
             per_page = int(per_page_param)
         except (ValueError, TypeError):
-            per_page = 50
+            per_page = 100
     
     # بررسی اینکه آیا درخواست AJAX است
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
@@ -1613,7 +1931,11 @@ def export_barnameh_excel(request):
         # حذف فیلدهای خالی
         selected_columns = [col.strip() for col in selected_columns if col.strip()]
     else:
-        selected_columns = ['number', 'serial', 'tonnage', 'status', 'driver_name', 'barnameh_date']
+        # دریافت ستون‌های انتخاب شده از کوکی یا پیش‌فرض
+        from .views import get_barnameh_columns_from_cookie
+        selected_columns = get_barnameh_columns_from_cookie(request)
+        if not selected_columns:
+            selected_columns = ['number', 'serial', 'tonnage', 'status', 'driver_name', 'barnameh_date']
     
     # فیلتر کردن آیدی‌های خالی
     barnameh_ids = [bid.strip() for bid in barnameh_ids if bid.strip()]
