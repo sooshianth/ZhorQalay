@@ -1,0 +1,800 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}داشبورد پشتیبانی - ارسال پیامک{% endblock %}
+
+{% block extra_css %}
+<style>
+    .support-dashboard {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px 0;
+    }
+    
+    .dashboard-header {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .dashboard-title {
+        color: #2c3e50;
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    
+    .dashboard-subtitle {
+        color: #7f8c8d;
+        font-size: 1.1rem;
+    }
+    
+    .stats-row {
+        margin-bottom: 30px;
+    }
+    
+    .stats-card {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 12px;
+        padding: 25px;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        transition: transform 0.3s ease;
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .stats-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #3498db;
+        margin-bottom: 10px;
+    }
+    
+    .stats-label {
+        color: #7f8c8d;
+        font-size: 1rem;
+        font-weight: 500;
+    }
+    
+    .customer-search-section,
+    .message-section {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .customer-search-section h4,
+    .message-section h4 {
+        color: #2c3e50;
+        margin-bottom: 25px;
+        font-weight: 600;
+    }
+    
+    .autocomplete-container {
+        position: relative;
+    }
+    
+    .autocomplete-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .autocomplete-item {
+        padding: 12px 15px;
+        border-bottom: 1px solid #f0f0f0;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+    
+    .autocomplete-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .autocomplete-item:last-child {
+        border-bottom: none;
+    }
+    
+    .autocomplete-item-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .customer-name {
+        font-weight: 500;
+        color: #2c3e50;
+    }
+    
+    .loading-indicator {
+        padding: 15px;
+        text-align: center;
+        color: #7f8c8d;
+        font-style: italic;
+    }
+    
+    .no-results {
+        padding: 15px;
+        text-align: center;
+        color: #e74c3c;
+        font-style: italic;
+    }
+    
+    .error-message {
+        padding: 15px;
+        text-align: center;
+        color: #e74c3c;
+        background-color: #fdf2f2;
+        border-radius: 5px;
+    }
+    
+    .selected-customers {
+        background: rgba(52, 152, 219, 0.1);
+        border: 2px dashed #3498db;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 20px 0;
+    }
+    
+    .selected-customer-tag {
+        display: inline-block;
+        background: #3498db;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 20px;
+        margin: 5px;
+        font-size: 0.9rem;
+        position: relative;
+    }
+    
+    .remove-customer {
+        margin-right: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        opacity: 0.8;
+    }
+    
+    .remove-customer:hover {
+        opacity: 1;
+    }
+    
+    .template-section {
+        margin: 25px 0;
+    }
+    
+    .template-section h6 {
+        color: #34495e;
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+    
+    .template-item {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        transition: all 0.3s ease;
+    }
+    
+    .template-item:hover {
+        background: #e9ecef;
+        border-color: #3498db;
+    }
+    
+    .form-control {
+        border-radius: 8px;
+        border: 2px solid #e9ecef;
+        transition: border-color 0.3s ease;
+    }
+    
+    .form-control:focus {
+        border-color: #3498db;
+        box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+    }
+    
+    .btn {
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    .btn-success {
+        background: linear-gradient(45deg, #27ae60, #2ecc71);
+        border: none;
+    }
+    
+    .btn-outline-info {
+        border-color: #3498db;
+        color: #3498db;
+    }
+    
+    .btn-outline-info:hover {
+        background: #3498db;
+        border-color: #3498db;
+    }
+    
+    .btn-outline-secondary {
+        border-color: #95a5a6;
+        color: #95a5a6;
+    }
+    
+    .btn-outline-secondary:hover {
+        background: #95a5a6;
+        border-color: #95a5a6;
+    }
+    
+    .btn-outline-primary {
+        border-color: #3498db;
+        color: #3498db;
+    }
+    
+    .btn-outline-primary:hover {
+        background: #3498db;
+        border-color: #3498db;
+    }
+    
+    .form-text {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+    }
+    
+    .modal-content {
+        border-radius: 15px;
+        border: none;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    
+    .modal-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px 15px 0 0;
+    }
+    
+    .modal-title {
+        font-weight: 600;
+    }
+    
+    .close {
+        color: white;
+        opacity: 0.8;
+    }
+    
+    .close:hover {
+        opacity: 1;
+    }
+    
+    .alert {
+        border-radius: 8px;
+        border: none;
+    }
+    
+    .alert-info {
+        background: rgba(52, 152, 219, 0.1);
+        color: #2980b9;
+    }
+    
+    .alert-warning {
+        background: rgba(243, 156, 18, 0.1);
+        color: #d68910;
+    }
+    
+    .bg-light {
+        background: #f8f9fa !important;
+        border-radius: 8px;
+    }
+    
+    @media (max-width: 768px) {
+        .dashboard-title {
+            font-size: 2rem;
+        }
+        
+        .stats-number {
+            font-size: 2rem;
+        }
+        
+        .customer-search-section,
+        .message-section {
+            padding: 20px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="support-dashboard">
+    <div class="container">
+        <!-- هدر داشبورد -->
+        <div class="dashboard-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="dashboard-title">
+                        <i class="fas fa-headset"></i> داشبورد پشتیبانی
+                    </h1>
+                    <p class="dashboard-subtitle">
+                        ارسال پیامک به مشتریان با قالب‌های آماده و جستجوی پیشرفته
+                    </p>
+                </div>
+                <div class="col-md-4 text-md-right">
+                    <a href="{% url 'sms_api:sms_dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-right"></i> بازگشت به داشبورد اصلی
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- آمار کلی -->
+        <div class="row stats-row">
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-number" id="total-customers">0</div>
+                    <div class="stats-label">تعداد مشتریان انتخاب شده</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-number" id="total-phones">0</div>
+                    <div class="stats-label">تعداد شماره تلفن</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-number" id="message-length">0</div>
+                <div class="stats-label">طول پیام</div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-number" id="sms-count">0</div>
+                <div class="stats-label">تعداد پیامک</div>
+            </div>
+        </div>
+
+        <form method="POST" id="support-sms-form">
+            {% csrf_token %}
+            
+            <!-- بخش جستجو و انتخاب مشتریان -->
+            <div class="customer-search-section">
+                <h4><i class="fas fa-search"></i> جستجو و انتخاب مشتریان</h4>
+                
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="autocomplete-container">
+                            <input type="text" class="form-control" id="customer-search" 
+                                   name="search" value="{{ search_query }}" 
+                                   placeholder="جستجو بر اساس نام یا شماره تلفن مشتری...">
+                            <div id="autocomplete-results" class="autocomplete-results"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="button" class="btn btn-outline-info" onclick="clearSelection()">
+                            <i class="fas fa-times"></i> پاک کردن انتخاب‌ها
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- مشتریان انتخاب شده -->
+            <div class="selected-customers" id="selected-customers-display" style="display: none;">
+                <h5><i class="fas fa-users"></i> مشتریان انتخاب شده:</h5>
+                <div id="selected-customers-tags"></div>
+            </div>
+
+            <!-- بخش نوشتن پیام -->
+            <div class="message-section">
+                <h4><i class="fas fa-envelope"></i> نوشتن پیام</h4>
+                
+                <!-- انتخاب نوع اطلاع‌رسانی -->
+                <div class="form-group">
+                    <label for="notification_type">نوع اطلاع‌رسانی:</label>
+                    <select class="form-control" id="notification_type" name="notification_type">
+                        {% for code, name in notification_types %}
+                        <option value="{{ code }}" {% if code == 'SUPPORT' %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- قالب‌های موجود -->
+                <div class="template-section">
+                    <h6><i class="fas fa-file-alt"></i> قالب‌های موجود</h6>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>قالب‌های تبلیغاتی:</h6>
+                            <div id="marketing-templates">
+                                <!-- قالب‌های تبلیغاتی اینجا لود می‌شوند -->
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>قالب‌های محصولات:</h6>
+                            <div id="product-templates">
+                                <!-- قالب‌های محصولات اینجا لود می‌شوند -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- متن پیام -->
+                <div class="form-group">
+                    <label for="message">متن پیام:</label>
+                    <textarea class="form-control" id="message" name="message" rows="6" 
+                              placeholder="متن پیام خود را اینجا بنویسید یا از قالب‌های موجود استفاده کنید..."
+                              onkeyup="updateMessageStats()"></textarea>
+                    <small class="form-text text-muted">
+                        <span id="char-count">0</span> کاراکتر | 
+                        <span id="sms-count-display">0</span> پیامک
+                    </small>
+                </div>
+
+                <!-- دکمه‌های عملیات -->
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-success btn-lg" id="send-btn" disabled>
+                        <i class="fas fa-paper-plane"></i> ارسال پیامک
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-lg ml-2" onclick="previewMessage()">
+                        <i class="fas fa-eye"></i> پیش‌نمایش
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal پیش‌نمایش -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">پیش‌نمایش پیام</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <strong>مشتریان انتخاب شده:</strong> <span id="preview-customer-count">0</span> مشتری
+                </div>
+                <div class="alert alert-warning">
+                    <strong>تعداد پیامک:</strong> <span id="preview-sms-count">0</span> پیامک
+                </div>
+                <div class="border p-3 bg-light">
+                    <h6>متن پیام:</h6>
+                    <div id="preview-message-text" style="white-space: pre-wrap;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">بستن</button>
+                <button type="button" class="btn btn-success" onclick="submitForm()">تایید و ارسال</button>
+            </div>
+        </div>
+    </div>
+</div>
+    </div>
+</div>
+
+<!-- Modal پیش‌نمایش -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">پیش‌نمایش پیام</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <strong>مشتریان انتخاب شده:</strong> <span id="preview-customer-count">0</span> مشتری
+                </div>
+                <div class="alert alert-warning">
+                    <strong>تعداد پیامک:</strong> <span id="preview-sms-count">0</span> پیامک
+                </div>
+                <div class="border p-3 bg-light">
+                    <h6>متن پیام:</h6>
+                    <div id="preview-message-text" style="white-space: pre-wrap;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">بستن</button>
+                <button type="button" class="btn btn-success" onclick="submitForm()">تایید و ارسال</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    console.log('Support dashboard script loaded');
+    
+    // داده‌های قالب‌ها
+    const marketingTemplates = {% if marketing_templates %}{{ marketing_templates|safe }}{% else %}[]{% endif %};
+    const productTemplates = {% if product_templates %}{{ product_templates|safe }}{% else %}[]{% endif %};
+    
+    // متغیرهای سراسری
+    let selectedCustomers = new Set();
+    
+    // مقداردهی اولیه
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, initializing support dashboard...');
+        loadTemplates();
+        updateSelectedCustomersDisplay();
+        updateMessageStats();
+        
+        // اضافه کردن مشتریان انتخاب شده از قبل
+        {% if selected_customers %}
+            {% for customer in selected_customers %}
+            selectedCustomers.add({{ customer.id }});
+            {% endfor %}
+        {% endif %}
+        
+        // مقداردهی اولیه جستجوی زنده
+        initializeLiveSearch();
+        
+        console.log('Support dashboard initialized');
+    });
+    
+    // لود کردن قالب‌ها
+    function loadTemplates() {
+        const marketingContainer = document.getElementById('marketing-templates');
+        const productContainer = document.getElementById('product-templates');
+        
+        // قالب‌های تبلیغاتی
+        marketingTemplates.forEach(template => {
+            const div = document.createElement('div');
+            div.className = 'template-item';
+            div.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${template.name}</strong>
+                        ${template.description ? `<br><small class="text-muted">${template.description}</small>` : ''}
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" 
+                            onclick="useTemplate('${template.content.replace(/'/g, "\\'")}')">
+                        استفاده
+                    </button>
+                </div>
+            `;
+            marketingContainer.appendChild(div);
+        });
+        
+        // قالب‌های محصولات
+        productTemplates.forEach(template => {
+            const div = document.createElement('div');
+            div.className = 'template-item';
+            div.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${template.name}</strong>
+                        ${template.description ? `<br><small class="text-muted">${template.description}</small>` : ''}
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" 
+                            onclick="useTemplate('${template.content.replace(/'/g, "\\'")}')">
+                        استفاده
+                    </button>
+                </div>
+            `;
+            productContainer.appendChild(div);
+        });
+    }
+    
+    // جستجوی زنده مشتریان - مشابه general_customer_CRUD_view.html
+    function initializeLiveSearch() {
+        const searchInput = document.getElementById('customer-search');
+        const resultsContainer = document.getElementById('autocomplete-results');
+        
+        if (searchInput) {
+            searchInput.addEventListener('input', function(e) {
+                const query = e.target.value.trim();
+                
+                if (query.length < 2) {
+                    resultsContainer.style.display = 'none';
+                    return;
+                }
+                
+                // نمایش لودینگ
+                resultsContainer.innerHTML = '<div class="loading-indicator">در حال جستجو...</div>';
+                resultsContainer.style.display = 'block';
+                
+                fetch(`/sms/api/customer/search/?query=${encodeURIComponent(query)}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('خطا در جستجو');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        resultsContainer.innerHTML = '';
+                        
+                        if (data.length > 0) {
+                            data.forEach(customer => {
+                                const div = document.createElement('div');
+                                div.className = 'autocomplete-item';
+                                
+                                const displayName = customer.name || 'بدون نام';
+                                const cityInfo = customer.city ? `(${customer.city})` : '';
+                                
+                                div.setAttribute('data-customer-id', customer.id);
+                                div.innerHTML = `
+                                    <div class="autocomplete-item-content">
+                                        <span class="customer-name">${displayName} ${cityInfo}</span>
+                                        <span class="customer-phone">${customer.phone_number}</span>
+                                    </div>
+                                `;
+                                
+                                div.addEventListener('click', () => {
+                                    // اضافه کردن مشتری به لیست انتخاب‌شده
+                                    if (!selectedCustomers.has(customer.id)) {
+                                        selectedCustomers.add(customer.id);
+                                        updateSelectedCustomersDisplay();
+                                        updateFormValidation();
+                                    }
+                                    // پاک کردن فیلد جستجو
+                                    searchInput.value = '';
+                                    resultsContainer.style.display = 'none';
+                                });
+                                
+                                resultsContainer.appendChild(div);
+                            });
+                            resultsContainer.style.display = 'block';
+                        } else {
+                            resultsContainer.innerHTML = '<div class="no-results">نتیجه‌ای یافت نشد</div>';
+                            resultsContainer.style.display = 'block';
+                        }
+                    })
+                    .catch(error => {
+                        resultsContainer.innerHTML = '<div class="error-message">خطا در جستجو</div>';
+                    });
+            });
+            
+            // بستن لیست هنگام کلیک خارج
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.autocomplete-container')) {
+                    resultsContainer.style.display = 'none';
+                }
+            });
+        }
+    }
+    
+    // به‌روزرسانی نمایش مشتریان انتخاب شده
+    function updateSelectedCustomersDisplay() {
+        const container = document.getElementById('selected-customers-display');
+        const tagsContainer = document.getElementById('selected-customers-tags');
+        
+        if (selectedCustomers.size > 0) {
+            container.style.display = 'block';
+            tagsContainer.innerHTML = '';
+            
+            // برای نمایش نام مشتریان، از یک Map استفاده می‌کنیم
+            const customerNames = new Map();
+            
+            // از autocomplete results نام‌ها را ذخیره می‌کنیم
+            document.querySelectorAll('.autocomplete-item').forEach(item => {
+                const nameElement = item.querySelector('.customer-name');
+                if (nameElement) {
+                    const customerId = item.getAttribute('data-customer-id');
+                    if (customerId) {
+                        customerNames.set(customerId, nameElement.textContent.trim());
+                    }
+                }
+            });
+            
+            selectedCustomers.forEach(customerId => {
+                const customerName = customerNames.get(customerId) || `مشتری ${customerId}`;
+                
+                const tag = document.createElement('span');
+                tag.className = 'selected-customer-tag';
+                tag.innerHTML = `
+                    ${customerName}
+                    <span class="remove-customer" onclick="removeCustomer(${customerId})">×</span>
+                `;
+                tagsContainer.appendChild(tag);
+            });
+        } else {
+            container.style.display = 'none';
+        }
+        
+        // به‌روزرسانی آمار
+        document.getElementById('total-customers').textContent = selectedCustomers.size;
+        document.getElementById('total-phones').textContent = selectedCustomers.size;
+    }
+    
+    // حذف مشتری از انتخاب
+    function removeCustomer(customerId) {
+        selectedCustomers.delete(customerId);
+        updateSelectedCustomersDisplay();
+        updateFormValidation();
+    }
+    
+    // پاک کردن همه انتخاب‌ها
+    function clearSelection() {
+        selectedCustomers.clear();
+        updateSelectedCustomersDisplay();
+        updateFormValidation();
+    }
+    
+    // استفاده از قالب
+    function useTemplate(content) {
+        document.getElementById('message').value = content;
+        updateMessageStats();
+    }
+    
+    // به‌روزرسانی آمار پیام
+    function updateMessageStats() {
+        const message = document.getElementById('message').value;
+        const charCount = message.length;
+        const smsCount = Math.ceil(charCount / 70); // هر پیامک 70 کاراکتر
+        
+        document.getElementById('char-count').textContent = charCount;
+        document.getElementById('sms-count').textContent = smsCount;
+        document.getElementById('message-length').textContent = charCount;
+        document.getElementById('sms-count-display').textContent = smsCount;
+        
+        updateFormValidation();
+    }
+    
+    // اعتبارسنجی فرم
+    function updateFormValidation() {
+        const message = document.getElementById('message').value.trim();
+        const hasCustomers = selectedCustomers.size > 0;
+        const hasMessage = message.length > 0;
+        
+        document.getElementById('send-btn').disabled = !(hasCustomers && hasMessage);
+    }
+    
+    // پیش‌نمایش پیام
+    function previewMessage() {
+        const message = document.getElementById('message').value;
+        const customerCount = selectedCustomers.size;
+        const smsCount = Math.ceil(message.length / 70);
+        
+        document.getElementById('preview-customer-count').textContent = customerCount;
+        document.getElementById('preview-sms-count').textContent = smsCount;
+        document.getElementById('preview-message-text').textContent = message;
+        
+        $('#previewModal').modal('show');
+    }
+    
+    // ارسال فرم
+    function submitForm() {
+        // اضافه کردن مشتریان انتخاب شده به فرم
+        const form = document.getElementById('support-sms-form');
+        const existingInputs = form.querySelectorAll('input[name="selected_customers"]');
+        existingInputs.forEach(input => input.remove());
+        
+        selectedCustomers.forEach(customerId => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'selected_customers';
+            input.value = customerId;
+            form.appendChild(input);
+        });
+        
+        form.submit();
+    }
+    
+    // جستجو با Enter
+    document.getElementById('customer-search').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+        }
+    });
+</script>
+{% endblock %} 

@@ -21,7 +21,7 @@ from core.CustomerModel import Customer
 from core._models import CargoProduct
 import re
 from django.db import connection
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sms_api_views")
 
 @role_required('admin', 'support_agent')
 @login_required
@@ -45,6 +45,182 @@ def sms_dashboard(request):
     }
     
     return render(request, 'sms_api/sms_dashboard.html', context)
+
+
+@role_required('admin', 'support_agent')
+@login_required
+def support_customer_search(request):
+    """جستجوی زنده مشتریان برای داشبورد پشتیبانی"""
+    query = request.GET.get('query', '')
+    logger.info(f"Support customer search query: {query}")
+    results = []
+    
+    if query:
+        try:
+            # تبدیل اعداد فارسی به انگلیسی
+            persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+            english_digits = "0123456789"
+            translation_table = str.maketrans(persian_digits, english_digits)
+            query = query.translate(translation_table)
+            
+            # بررسی اینکه آیا جستجو بر اساس شماره تلفن است یا نام
+            is_phone_search = query.isdigit()
+            
+            if is_phone_search:
+                # جستجوی دقیق بر اساس شماره تلفن
+                clean_query = query
+                if clean_query.startswith('0'):
+                    clean_query = clean_query[1:]
+                
+                customers = Customer.objects.filter(
+                    Q(phone_numbers__number=clean_query) |
+                    Q(phone_number=clean_query)
+                ).distinct()[:10]
+            else:
+                # جستجوی نام با contains
+                customers = Customer.objects.filter(
+                    Q(name__icontains=query)
+                ).distinct()[:10]
+            
+            results = []
+            for customer in customers:
+                customer_info = {
+                    'id': customer.id,
+                    'name': customer.name if customer.name else 'بدون نام',
+                    'phone_number': customer.get_primary_phone() or '',
+                    'city': customer.city or '',
+                }
+                results.append(customer_info)
+                
+        except Exception as e:
+            logger.error(f"Error during customer search: {e}")
+            results = []
+    
+    return JsonResponse(results, safe=False)
+
+
+@role_required('admin', 'support_agent')
+@login_required
+def support_dashboard(request):
+    """داشبورد کارشناسان پشتیبانی برای ارسال پیامک به چندین مشتری"""
+    
+    # دریافت قالب‌های موجود
+    marketing_templates = SmsTemplate.objects.filter(template_type='marketing').order_by('-is_active', '-updated_at')
+    product_templates = SmsTemplate.objects.filter(template_type='product').order_by('-is_active', '-updated_at')
+    
+    # تبدیل قالب‌ها به JSON برای JavaScript
+    marketing_templates_list = []
+    for template in marketing_templates:
+        marketing_templates_list.append({
+            'id': template.id,
+            'name': template.name,
+            'content': template.content,
+            'description': template.description or '',
+            'is_active': template.is_active
+        })
+    marketing_templates_json = json.dumps(marketing_templates_list)
+    
+    product_templates_list = []
+    for template in product_templates:
+        product_templates_list.append({
+            'id': template.id,
+            'name': template.name,
+            'content': template.content,
+            'description': template.description or '',
+            'is_active': template.is_active
+        })
+    product_templates_json = json.dumps(product_templates_list)
+    
+    # پردازش جستجوی مشتریان (حالا فقط برای نمایش مشتریان انتخاب شده از قبل)
+    search_query = request.GET.get('search', '')
+    selected_customers = request.GET.getlist('customers')
+    
+    customers = []
+    selected_customer_objects = []
+    
+    if selected_customers:
+        # دریافت مشتریان انتخاب شده
+        selected_customer_objects = Customer.objects.filter(id__in=selected_customers)
+    
+    # پردازش ارسال پیامک
+    if request.method == 'POST':
+        try:
+            message = request.POST.get('message')
+            selected_customer_ids = request.POST.getlist('selected_customers')
+            notification_type = request.POST.get('notification_type', 'SUPPORT')
+            
+            # اعتبارسنجی
+            if not message:
+                messages.error(request, 'متن پیام نمی‌تواند خالی باشد.')
+                return redirect('sms_api:support_dashboard')
+            
+            if not selected_customer_ids:
+                messages.error(request, 'لطفاً حداقل یک مشتری را انتخاب کنید.')
+                return redirect('sms_api:support_dashboard')
+            
+            # دریافت مشتریان انتخاب شده
+            selected_customers = Customer.objects.filter(id__in=selected_customer_ids)
+            
+            if not selected_customers.exists():
+                messages.error(request, 'هیچ مشتری معتبری انتخاب نشده است.')
+                return redirect('sms_api:support_dashboard')
+            
+            # ارسال پیامک به همه مشتریان انتخاب شده
+            total_sent = 0
+            total_failed = 0
+            
+            for customer in selected_customers:
+                # دریافت همه شماره‌های تلفن مشتری که پیامک فعال دارند
+                phone_numbers = customer.get_all_phone_numbers()
+                
+                if not phone_numbers:
+                    logger.warning(f"هیچ شماره تلفن فعالی برای مشتری {customer.name} یافت نشد.")
+                    total_failed += 1
+                    continue
+                
+                # ارسال پیامک به همه شماره‌های مشتری
+                customer_sent = 0
+                for phone in phone_numbers:
+                    try:
+                        sms = queue_sms(
+                            number=phone,
+                            message=message,
+                            notification_type=notification_type
+                        )
+                        customer_sent += 1
+                        total_sent += 1
+                    except Exception as e:
+                        logger.error(f"خطا در ارسال پیامک به شماره {phone} برای مشتری {customer.name}: {str(e)}")
+                        total_failed += 1
+                
+                if customer_sent == 0:
+                    total_failed += 1
+            
+            # نمایش پیام موفقیت
+            if total_sent > 0:
+                messages.success(
+                    request, 
+                    f'پیامک با موفقیت به {total_sent} شماره ارسال شد. '
+                    f'{total_failed} شماره ناموفق بود.'
+                )
+                return redirect('sms_api:sms_dashboard')
+            else:
+                messages.error(request, 'هیچ پیامکی با موفقیت ارسال نشد.')
+                
+        except Exception as e:
+            logger.error(f"خطای غیرمنتظره در ارسال پیامک: {str(e)}")
+            messages.error(request, 'خطای غیرمنتظره رخ داد. لطفا دوباره تلاش کنید.')
+    
+    context = {
+        'search_query': search_query,
+        'customers': customers,
+        'selected_customers': selected_customer_objects,
+        'marketing_templates': marketing_templates_json,
+        'product_templates': product_templates_json,
+        'notification_types': SmsQueue.NOTIFICATION_TYPES,
+    }
+    
+    return render(request, 'sms_api/support_dashboard.html', context)
 
 
 @role_required('admin')
