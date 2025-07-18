@@ -43,4 +43,5 @@ urlpatterns = [
     path('api/templates/status/', views.get_templates_for_status, name='get_templates_for_status'),
     path('api/templates/marketing/', views.get_marketing_templates, name='get_marketing_templates'),
     path('api/templates/product/', views.get_product_templates, name='get_product_templates'),
+    path('api/preview-template/', views.preview_template_api, name='preview_template_api'),
 ] 

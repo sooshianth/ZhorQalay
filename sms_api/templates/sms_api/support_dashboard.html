@@ -371,6 +371,7 @@
 
         <form method="POST" id="support-sms-form">
             {% csrf_token %}
+            <input type="hidden" id="selected-customers-input" name="selected_customers_data" value="">
             
             <!-- بخش جستجو و انتخاب مشتریان -->
             <div class="customer-search-section">
@@ -461,7 +462,7 @@
 
 <!-- Modal پیش‌نمایش -->
 <div class="modal fade" id="previewModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">پیش‌نمایش پیام</h5>
@@ -476,41 +477,13 @@
                 <div class="alert alert-warning">
                     <strong>تعداد پیامک:</strong> <span id="preview-sms-count">0</span> پیامک
                 </div>
-                <div class="border p-3 bg-light">
-                    <h6>متن پیام:</h6>
+                <div class="border p-3 bg-light mb-3">
+                    <h6>متن قالب:</h6>
                     <div id="preview-message-text" style="white-space: pre-wrap;"></div>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">بستن</button>
-                <button type="button" class="btn btn-success" onclick="submitForm()">تایید و ارسال</button>
-            </div>
-        </div>
-    </div>
-</div>
-    </div>
-</div>
-
-<!-- Modal پیش‌نمایش -->
-<div class="modal fade" id="previewModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">پیش‌نمایش پیام</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-info">
-                    <strong>مشتریان انتخاب شده:</strong> <span id="preview-customer-count">0</span> مشتری
-                </div>
-                <div class="alert alert-warning">
-                    <strong>تعداد پیامک:</strong> <span id="preview-sms-count">0</span> پیامک
-                </div>
-                <div class="border p-3 bg-light">
-                    <h6>متن پیام:</h6>
-                    <div id="preview-message-text" style="white-space: pre-wrap;"></div>
+                <div class="border p-3">
+                    <h6>پیام‌های پردازش شده برای هر مشتری:</h6>
+                    <div id="processed-messages" class="processed-messages-container"></div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -756,6 +729,10 @@
         const hasCustomers = selectedCustomers.size > 0;
         const hasMessage = message.length > 0;
         
+        // به‌روزرسانی فیلد مخفی با مشتریان انتخاب شده
+        const selectedCustomersArray = Array.from(selectedCustomers);
+        document.getElementById('selected-customers-input').value = JSON.stringify(selectedCustomersArray);
+        
         document.getElementById('send-btn').disabled = !(hasCustomers && hasMessage);
     }
     
@@ -767,27 +744,60 @@
         
         document.getElementById('preview-customer-count').textContent = customerCount;
         document.getElementById('preview-sms-count').textContent = smsCount;
+        
+        // نمایش پیام اصلی
         document.getElementById('preview-message-text').textContent = message;
+        
+        // نمایش پیام‌های پردازش شده برای هر مشتری
+        const processedMessagesContainer = document.getElementById('processed-messages');
+        processedMessagesContainer.innerHTML = '';
+        
+        if (selectedCustomers.size > 0) {
+            // درخواست پردازش قالب از سرور
+            fetch('/sms/api/preview-template/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    message: message,
+                    customer_ids: Array.from(selectedCustomers)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    data.processed_messages.forEach(item => {
+                        const messageDiv = document.createElement('div');
+                        messageDiv.className = 'processed-message-item';
+                        messageDiv.innerHTML = `
+                            <div class="customer-info">
+                                <strong>${item.customer_name}</strong>
+                                <small class="text-muted">(${item.customer_phone})</small>
+                            </div>
+                            <div class="message-content">
+                                ${item.processed_message.replace(/\n/g, '<br>')}
+                            </div>
+                        `;
+                        processedMessagesContainer.appendChild(messageDiv);
+                    });
+                } else {
+                    processedMessagesContainer.innerHTML = '<div class="alert alert-warning">خطا در پردازش قالب</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                processedMessagesContainer.innerHTML = '<div class="alert alert-danger">خطا در ارتباط با سرور</div>';
+            });
+        }
         
         $('#previewModal').modal('show');
     }
     
     // ارسال فرم
     function submitForm() {
-        // اضافه کردن مشتریان انتخاب شده به فرم
-        const form = document.getElementById('support-sms-form');
-        const existingInputs = form.querySelectorAll('input[name="selected_customers"]');
-        existingInputs.forEach(input => input.remove());
-        
-        selectedCustomers.forEach(customerId => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'selected_customers';
-            input.value = customerId;
-            form.appendChild(input);
-        });
-        
-        form.submit();
+        document.getElementById('support-sms-form').submit();
     }
     
     // جستجو با Enter

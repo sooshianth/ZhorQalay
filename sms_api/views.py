@@ -23,6 +23,100 @@ import re
 from django.db import connection
 logger = logging.getLogger("sms_api_views")
 
+def process_template_for_customer(message, customer):
+    """
+    پردازش قالب پیامک با داده‌های مشتری
+    """
+    processed_message = message
+    
+    # داده‌های پایه مشتری
+    replacements = {
+        '{{customer_name}}': customer.name or '',
+        '{{customer_phone}}': customer.get_primary_phone() or '',
+    }
+    
+    # داده‌های کارشناس فروش
+    if hasattr(customer, 'sales_agent') and customer.sales_agent.exists():
+        sales_agents = customer.sales_agent.all()
+        agent_names = [agent.name for agent in sales_agents if hasattr(agent, 'name') and agent.name]
+        agent_phones = [agent.phone_number for agent in sales_agents if hasattr(agent, 'phone_number') and agent.phone_number]
+        
+        replacements['{{sales_agent_name}}'] = ', '.join(agent_names) if agent_names else ''
+        replacements['{{sales_agent_phone}}'] = ', '.join(agent_phones) if agent_phones else ''
+        
+        # شماره داخلی کارشناس فروش
+        first_agent = sales_agents.first()
+        if first_agent and hasattr(first_agent, 'dakheli_number') and first_agent.dakheli_number:
+            replacements['{{dakheli_number}}'] = first_agent.dakheli_number
+        else:
+            replacements['{{dakheli_number}}'] = '۳'
+    else:
+        replacements['{{sales_agent_name}}'] = ''
+        replacements['{{sales_agent_phone}}'] = ''
+        replacements['{{dakheli_number}}'] = '۳'
+    
+    # داده‌های خرید (اگر مشتری خرید داشته باشد)
+    if hasattr(customer, 'purchases') and customer.purchases.exists():
+        latest_purchase = customer.purchases.order_by('-created_at').first()
+        if latest_purchase:
+            replacements.update({
+                '{{purchase_number}}': str(latest_purchase.purchase_number or ''),
+                '{{invoice_id}}': str(latest_purchase.invoice_id or ''),
+                '{{order_weight}}': str(latest_purchase.order_weight or ''),
+                '{{customer_price}}': str(latest_purchase.customer_price or ''),
+                '{{amount_paid}}': str(latest_purchase.amount_paid or ''),
+                '{{barnameh}}': str(latest_purchase.barnameh or ''),
+                '{{barnameh_date}}': str(latest_purchase.barnameh_date or ''),
+                '{{driver_name}}': str(latest_purchase.driver_name or ''),
+                '{{driver_phone}}': str(latest_purchase.driver_phone or ''),
+                '{{shenase_takhsis}}': str(latest_purchase.shenase_takhsis or ''),
+            })
+            
+            # داده‌های اختلاف
+            if hasattr(latest_purchase, 'extelaf_weight'):
+                replacements['{{extelaf_weight}}'] = str(latest_purchase.extelaf_weight or '')
+                replacements['{{extelaf_amount}}'] = str(latest_purchase.extelaf_amount or '')
+                replacements['{{extelaf_type}}'] = str(latest_purchase.extelaf_type or '')
+            
+            # داده‌های محصول
+            if hasattr(latest_purchase, 'cargo') and latest_purchase.cargo:
+                cargo = latest_purchase.cargo
+                replacements.update({
+                    '{{cottage}}': str(cargo.cottage or ''),
+                    '{{product_type}}': str(cargo.get_product_type_display() if hasattr(cargo, 'get_product_type_display') else ''),
+                    '{{product_country}}': str(cargo.get_country_display() if hasattr(cargo, 'get_country_display') else ''),
+                    '{{port}}': str(cargo.port or ''),
+                    '{{weight}}': str(cargo.weight or ''),
+                })
+    
+    # جایگزینی همه متغیرها
+    for placeholder, value in replacements.items():
+        processed_message = processed_message.replace(placeholder, str(value))
+    
+    return processed_message
+
+@role_required('admin', 'support_agent')
+@login_required
+def preview_template_api(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            message = data.get('message', '')
+            customer_ids = data.get('customer_ids', [])
+            processed_messages = []
+            customers = Customer.objects.filter(id__in=customer_ids)
+            for customer in customers:
+                processed_message = process_template_for_customer(message, customer)
+                processed_messages.append({
+                    'customer_name': customer.name,
+                    'customer_phone': customer.get_primary_phone() or '',
+                    'processed_message': processed_message
+                })
+            return JsonResponse({'success': True, 'processed_messages': processed_messages})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
+
 @role_required('admin', 'support_agent')
 @login_required
 def sms_dashboard(request):
@@ -146,8 +240,17 @@ def support_dashboard(request):
     if request.method == 'POST':
         try:
             message = request.POST.get('message')
-            selected_customer_ids = request.POST.getlist('selected_customers')
+            selected_customers_data = request.POST.get('selected_customers_data', '')
             notification_type = request.POST.get('notification_type', 'SUPPORT')
+            
+            # پردازش مشتریان انتخاب شده
+            selected_customer_ids = []
+            if selected_customers_data:
+                try:
+                    selected_customer_ids = json.loads(selected_customers_data)
+                except json.JSONDecodeError:
+                    # اگر JSON نامعتبر بود، از روش قدیمی استفاده می‌کنیم
+                    selected_customer_ids = request.POST.getlist('selected_customers')
             
             # اعتبارسنجی
             if not message:
@@ -178,13 +281,16 @@ def support_dashboard(request):
                     total_failed += 1
                     continue
                 
+                # پردازش قالب با داده‌های مشتری
+                processed_message = process_template_for_customer(message, customer)
+                
                 # ارسال پیامک به همه شماره‌های مشتری
                 customer_sent = 0
                 for phone in phone_numbers:
                     try:
                         sms = queue_sms(
                             number=phone,
-                            message=message,
+                            message=processed_message,
                             notification_type=notification_type
                         )
                         customer_sent += 1
