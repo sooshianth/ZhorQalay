@@ -10,7 +10,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <style>
     .support-dashboard {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #ffffff;
         min-height: 100vh;
         padding: 20px 0;
     }
@@ -46,6 +46,7 @@
         text-align: center;
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
         transition: transform 0.3s ease;
+        border: 1px solid #e9ecef;
     }
     
     .stats-card:hover {
@@ -55,7 +56,7 @@
     .stats-number {
         font-size: 2.5rem;
         font-weight: bold;
-        color: #3498db;
+        color: #2c3e50;
         margin-bottom: 10px;
     }
     
@@ -72,6 +73,7 @@
         padding: 30px;
         margin-bottom: 30px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e9ecef;
     }
     
     .customer-search-section h4,
@@ -150,8 +152,8 @@
     }
     
     .selected-customers {
-        background: rgba(52, 152, 219, 0.1);
-        border: 2px dashed #3498db;
+        background: rgba(40, 167, 69, 0.1);
+        border: 2px dashed #28a745;
         border-radius: 10px;
         padding: 20px;
         margin: 20px 0;
@@ -159,7 +161,7 @@
     
     .selected-customer-tag {
         display: inline-block;
-        background: #3498db;
+        background: #28a745;
         color: white;
         padding: 8px 15px;
         border-radius: 20px;
@@ -306,36 +308,40 @@
     .btn-success {
         background: linear-gradient(45deg, #27ae60, #2ecc71);
         border: none;
+        color: white;
     }
     
     .btn-outline-info {
-        border-color: #3498db;
-        color: #3498db;
+        border-color: #17a2b8;
+        color: #17a2b8;
     }
     
     .btn-outline-info:hover {
-        background: #3498db;
-        border-color: #3498db;
+        background: #17a2b8;
+        border-color: #17a2b8;
+        color: white;
     }
     
     .btn-outline-secondary {
-        border-color: #95a5a6;
-        color: #95a5a6;
+        border-color: #6c757d;
+        color: #6c757d;
     }
     
     .btn-outline-secondary:hover {
-        background: #95a5a6;
-        border-color: #95a5a6;
+        background: #6c757d;
+        border-color: #6c757d;
+        color: white;
     }
     
     .btn-outline-primary {
-        border-color: #3498db;
-        color: #3498db;
+        border-color: #007bff;
+        color: #007bff;
     }
     
     .btn-outline-primary:hover {
-        background: #3498db;
-        border-color: #3498db;
+        background: #007bff;
+        border-color: #007bff;
+        color: white;
     }
     
     .form-text {
@@ -347,12 +353,18 @@
         border-radius: 15px;
         border: none;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        z-index: 9999;
+    }
+    
+    .modal {
+        z-index: 9999;
     }
     
     .modal-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        color: #2c3e50;
         border-radius: 15px 15px 0 0;
+        border-bottom: 1px solid #e9ecef;
     }
     
     .modal-title {
@@ -388,6 +400,136 @@
         border-radius: 8px;
     }
     
+    /* استایل‌های جدید برای اطلاعات پیام */
+    .message-info-container {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 15px 0;
+    }
+    
+    .message-info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .message-info-row:last-child {
+        margin-bottom: 0;
+    }
+    
+    .message-info-label {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    .message-info-value {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 5px 10px;
+        font-weight: 500;
+        color: #495057;
+        min-width: 80px;
+        text-align: center;
+    }
+    
+    .message-length-warning {
+        color: #dc3545;
+        font-weight: 600;
+    }
+    
+    .message-length-ok {
+        color: #28a745;
+        font-weight: 600;
+    }
+    
+    /* استایل‌های دکمه‌های متغیرها */
+    .btn-placeholder {
+        margin: 5px;
+        background-color: #f8f9fa;
+        border: 1px solid #17a2b8;
+        color: #17a2b8;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-family: 'Vazir', sans-serif;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        font-size: 0.9rem;
+    }
+    
+    .btn-placeholder:hover {
+        background-color: #17a2b8;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .btn-placeholder:active {
+        transform: scale(0.95);
+    }
+    
+    .btn-placeholder::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        transition: left 0.6s;
+    }
+    
+    .btn-placeholder:hover::before {
+        left: 100%;
+    }
+    
+    /* استایل‌های toast notification */
+    .variable-hint-toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #17a2b8;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        z-index: 9999;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        font-family: 'Vazir', sans-serif;
+        animation: slideInRight 0.3s ease-out;
+        max-width: 350px;
+        direction: rtl;
+    }
+    
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    .variable-label {
+        font-weight: bold;
+        color: #ffffff;
+    }
+    
+    .variable-code {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: monospace;
+        direction: ltr;
+        display: inline-block;
+    }
+    
     @media (max-width: 768px) {
         .dashboard-title {
             font-size: 2rem;
@@ -420,9 +562,7 @@
                     </p>
                 </div>
                 <div class="col-md-4 text-md-right">
-                    <a href="{% url 'sms_api:sms_dashboard' %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-right"></i> بازگشت به داشبورد اصلی
-                    </a>
+                    <!-- فضای خالی برای حفظ تراز -->
                 </div>
             </div>
         </div>
@@ -442,12 +582,16 @@
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stats-number" id="message-length">0</div>
-                <div class="stats-label">طول پیام</div>
+                <div class="stats-card">
+                    <div class="stats-number" id="message-length">0</div>
+                    <div class="stats-label">طول پیام</div>
+                </div>
             </div>
             <div class="col-md-3">
-                <div class="stats-number" id="sms-count">0</div>
-                <div class="stats-label">تعداد پیامک</div>
+                <div class="stats-card">
+                    <div class="stats-number" id="sms-count">0</div>
+                    <div class="stats-label">تعداد پیامک</div>
+                </div>
             </div>
         </div>
 
@@ -523,16 +667,75 @@
                     </div>
                 </div>
 
+                <!-- متغیرهای قابل استفاده -->
+                <div class="form-group mb-3">
+                    <label>متغیرهای قابل استفاده:</label>
+                    <div class="alert alert-info">
+                        <i class="fas fa-lightbulb"></i>
+                        متغیرها را با کلیک روی دکمه‌های زیر به متن پیام اضافه کنید. هر متغیر با فرمت <code>{{متغیر}}</code> در متن قرار می‌گیرد.
+                    </div>
+                    
+                    <div class="d-flex flex-wrap">
+                        <button type="button" class="btn btn-placeholder" data-placeholder="customer_name" data-label="نام مشتری">
+                            <i class="fas fa-user"></i> نام مشتری
+                        </button>
+                        <button type="button" class="btn btn-placeholder" data-placeholder="customer_phone" data-label="شماره تلفن مشتری">
+                            <i class="fas fa-phone"></i> شماره تلفن
+                        </button>
+                        <button type="button" class="btn btn-placeholder" data-placeholder="purchase_number" data-label="شماره خرید">
+                            <i class="fas fa-receipt"></i> شماره خرید
+                        </button>
+                        <button type="button" class="btn btn-placeholder" data-placeholder="invoice_id" data-label="کد فاکتور">
+                            <i class="fas fa-file-invoice"></i> کد فاکتور
+                        </button>
+                        <button type="button" class="btn btn-placeholder" data-placeholder="order_weight" data-label="وزن سفارش">
+                            <i class="fas fa-weight"></i> وزن سفارش
+                        </button>
+                        <button type="button" class="btn btn-placeholder" data-placeholder="product_type" data-label="نوع محصول">
+                            <i class="fas fa-box"></i> نوع محصول
+                        </button>
+                        <button type="button" class="btn btn-placeholder" data-placeholder="product_country" data-label="کشور محصول">
+                            <i class="fas fa-flag"></i> کشور محصول
+                        </button>
+                        <button type="button" class="btn btn-placeholder" data-placeholder="cottage" data-label="کوتاژ">
+                            <i class="fas fa-warehouse"></i> کوتاژ
+                        </button>
+                        <button type="button" class="btn btn-placeholder" data-placeholder="amount_paid" data-label="مبلغ پرداختی">
+                            <i class="fas fa-money-bill"></i> مبلغ پرداختی
+                        </button>
+                        <button type="button" class="btn btn-placeholder" data-placeholder="customer_price" data-label="فی فروش">
+                            <i class="fas fa-tag"></i> فی فروش
+                        </button>
+                        <button type="button" class="btn btn-placeholder" data-placeholder="sales_agent_name" data-label="نام کارشناس فروش">
+                            <i class="fas fa-user-tie"></i> نام کارشناس
+                        </button>
+                        <button type="button" class="btn btn-placeholder" data-placeholder="status_display" data-label="وضعیت خرید">
+                            <i class="fas fa-info-circle"></i> وضعیت خرید
+                        </button>
+                        <button type="button" class="btn btn-placeholder" data-placeholder="created_at" data-label="تاریخ ثبت">
+                            <i class="fas fa-calendar"></i> تاریخ ثبت
+                        </button>
+                    </div>
+                </div>
+
                 <!-- متن پیام -->
                 <div class="form-group">
                     <label for="message">متن پیام:</label>
                     <textarea class="form-control" id="message" name="message" rows="6" 
                               placeholder="متن پیام خود را اینجا بنویسید یا از قالب‌های موجود استفاده کنید..."
                               onkeyup="updateMessageStats()"></textarea>
-                    <small class="form-text text-muted">
-                        <span id="char-count">0</span> کاراکتر | 
-                        <span id="sms-count-display">0</span> پیامک
-                    </small>
+                    
+                    <!-- اطلاعات پیام با استایل جدید -->
+                    <div class="message-info-container">
+                        <div class="message-info-row">
+                            <span class="message-info-label">طول پیام:</span>
+                            <span class="message-info-value" id="char-count">0</span>
+                        </div>
+                        <div class="message-info-row">
+                            <span class="message-info-label">تعداد پیامک:</span>
+                            <span class="message-info-value" id="sms-count-display">0</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- دکمه‌های عملیات -->
@@ -622,18 +825,17 @@
         marketingTemplates.forEach(template => {
             const div = document.createElement('div');
             div.className = 'template-item';
-            div.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>${template.name}</strong>
-                        ${template.description ? `<br><small class="text-muted">${template.description}</small>` : ''}
-                    </div>
-                    <button type="button" class="btn btn-sm btn-outline-primary" 
-                            onclick="useTemplate('${template.content.replace(/'/g, "\\'")}')">
-                        استفاده
-                    </button>
-                </div>
-            `;
+            div.innerHTML = 
+                '<div class="d-flex justify-content-between align-items-center">' +
+                '<div>' +
+                '<strong>' + template.name + '</strong>' +
+                (template.description ? '<br><small class="text-muted">' + template.description + '</small>' : '') +
+                '</div>' +
+                '<button type="button" class="btn btn-sm btn-outline-primary" ' +
+                'onclick="useTemplate(\'' + template.content.replace(/'/g, "\\'") + '\')">' +
+                'استفاده' +
+                '</button>' +
+                '</div>';
             marketingContainer.appendChild(div);
         });
         
@@ -641,18 +843,17 @@
         productTemplates.forEach(template => {
             const div = document.createElement('div');
             div.className = 'template-item';
-            div.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>${template.name}</strong>
-                        ${template.description ? `<br><small class="text-muted">${template.description}</small>` : ''}
-                    </div>
-                    <button type="button" class="btn btn-sm btn-outline-primary" 
-                            onclick="useTemplate('${template.content.replace(/'/g, "\\'")}')">
-                        استفاده
-                    </button>
-                </div>
-            `;
+            div.innerHTML = 
+                '<div class="d-flex justify-content-between align-items-center">' +
+                '<div>' +
+                '<strong>' + template.name + '</strong>' +
+                (template.description ? '<br><small class="text-muted">' + template.description + '</small>' : '') +
+                '</div>' +
+                '<button type="button" class="btn btn-sm btn-outline-primary" ' +
+                'onclick="useTemplate(\'' + template.content.replace(/'/g, "\\'") + '\')">' +
+                'استفاده' +
+                '</button>' +
+                '</div>';
             productContainer.appendChild(div);
         });
     }
@@ -691,20 +892,21 @@
                                 div.className = 'autocomplete-item';
                                 
                                 const displayName = customer.name || 'بدون نام';
-                                const cityInfo = customer.city ? `(${customer.city})` : '';
+                                const cityInfo = customer.city ? '(' + customer.city + ')' : '';
                                 
                                 div.setAttribute('data-customer-id', customer.id);
-                                div.innerHTML = `
-                                    <div class="autocomplete-item-content">
-                                        <span class="customer-name">${displayName} ${cityInfo}</span>
-                                        <span class="customer-phone">${customer.phone_number}</span>
-                                    </div>
-                                `;
+                                div.innerHTML = 
+                                    '<div class="autocomplete-item-content">' +
+                                    '<span class="customer-name">' + displayName + ' ' + cityInfo + '</span>' +
+                                    '<span class="customer-phone">' + customer.phone_number + '</span>' +
+                                    '</div>';
                                 
                                 div.addEventListener('click', () => {
                                     // اضافه کردن مشتری به لیست انتخاب‌شده
                                     if (!selectedCustomers.has(customer.id)) {
                                         selectedCustomers.add(customer.id);
+                                        // ذخیره نام مشتری
+                                        customerNames.set(customer.id, customer.name || 'بدون نام');
                                         updateSelectedCustomersDisplay();
                                         updateFormValidation();
                                     }
@@ -747,31 +949,15 @@
             tagsContainer.innerHTML = '';
             purchaseContainer.innerHTML = '';
             
-            // برای نمایش نام مشتریان، از یک Map استفاده می‌کنیم
-            const tempCustomerNames = new Map();
-            
-            // از autocomplete results نام‌ها را ذخیره می‌کنیم
-            document.querySelectorAll('.autocomplete-item').forEach(item => {
-                const nameElement = item.querySelector('.customer-name');
-                if (nameElement) {
-                    const customerId = item.getAttribute('data-customer-id');
-                    if (customerId) {
-                        const name = nameElement.textContent.trim();
-                        tempCustomerNames.set(customerId, name);
-                        customerNames.set(customerId, name);
-                    }
-                }
-            });
-            
             selectedCustomers.forEach(customerId => {
-                const customerName = tempCustomerNames.get(customerId) || `مشتری ${customerId}`;
+                // استفاده از نام ذخیره شده
+                const customerName = customerNames.get(customerId) || 'نام نامشخص';
                 
                 const tag = document.createElement('span');
                 tag.className = 'selected-customer-tag';
-                tag.innerHTML = `
-                    ${customerName}
-                    <span class="remove-customer" onclick="removeCustomer(${customerId})">×</span>
-                `;
+                tag.innerHTML = 
+                    customerName +
+                    '<span class="remove-customer" onclick="removeCustomer(' + customerId + ')">×</span>';
                 tagsContainer.appendChild(tag);
                 
                 // ایجاد بخش انتخاب خرید برای این مشتری
@@ -795,15 +981,14 @@
         
         const purchaseItem = document.createElement('div');
         purchaseItem.className = 'customer-purchase-item';
-        purchaseItem.innerHTML = `
-            <div class="customer-purchase-header">
-                <span class="customer-purchase-name">${customerName}</span>
-            </div>
-            <select class="purchase-select" id="purchase-select-${customerId}" onchange="updatePurchaseSelection(${customerId}, this.value)">
-                <option value="">انتخاب خرید (اختیاری - آخرین خرید استفاده می‌شود)</option>
-                <option value="loading">در حال بارگذاری...</option>
-            </select>
-        `;
+        purchaseItem.innerHTML = 
+            '<div class="customer-purchase-header">' +
+            '<span class="customer-purchase-name">' + customerName + '</span>' +
+            '</div>' +
+            '<select class="purchase-select" id="purchase-select-' + customerId + '" onchange="updatePurchaseSelection(' + customerId + ', this.value)">' +
+            '<option value="">انتخاب خرید (اختیاری - آخرین خرید استفاده می‌شود)</option>' +
+            '<option value="loading">در حال بارگذاری...</option>' +
+            '</select>';
         
         purchaseContainer.appendChild(purchaseItem);
         
@@ -845,7 +1030,8 @@
         if (purchaseId) {
             selectedPurchases.set(customerId, purchaseId);
         } else {
-            selectedPurchases.delete(customerId);
+            // اگر خرید انتخاب نشده باشد، 0 ارسال می‌کنیم
+            selectedPurchases.set(customerId, 0);
         }
         updateFormValidation();
     }
@@ -880,10 +1066,33 @@
         const charCount = message.length;
         const smsCount = Math.ceil(charCount / 70); // هر پیامک 70 کاراکتر
         
-        document.getElementById('char-count').textContent = charCount;
-        document.getElementById('sms-count').textContent = smsCount;
-        document.getElementById('message-length').textContent = charCount;
-        document.getElementById('sms-count-display').textContent = smsCount;
+        const charCountElement = document.getElementById('char-count');
+        const smsCountElement = document.getElementById('sms-count-display');
+        const messageLengthElement = document.getElementById('message-length');
+        const smsCountStatsElement = document.getElementById('sms-count');
+        
+        charCountElement.textContent = charCount;
+        smsCountElement.textContent = smsCount;
+        messageLengthElement.textContent = charCount;
+        smsCountStatsElement.textContent = smsCount;
+        
+        // تغییر رنگ بر اساس طول پیام
+        if (charCount > 70) {
+            charCountElement.className = 'message-info-value message-length-warning';
+            messageLengthElement.style.color = '#dc3545';
+        } else {
+            charCountElement.className = 'message-info-value message-length-ok';
+            messageLengthElement.style.color = '#28a745';
+        }
+        
+        // تغییر رنگ تعداد پیامک
+        if (smsCount > 1) {
+            smsCountElement.className = 'message-info-value message-length-warning';
+            smsCountStatsElement.style.color = '#dc3545';
+        } else {
+            smsCountElement.className = 'message-info-value message-length-ok';
+            smsCountStatsElement.style.color = '#28a745';
+        }
         
         updateFormValidation();
     }
@@ -900,7 +1109,9 @@
         
         // به‌روزرسانی فیلد مخفی با خریدهای انتخاب شده
         const selectedPurchasesObject = {};
-        selectedPurchases.forEach((purchaseId, customerId) => {
+        selectedCustomers.forEach(customerId => {
+            // اگر خرید انتخاب شده باشد، آن را استفاده می‌کنیم، در غیر این صورت 0
+            const purchaseId = selectedPurchases.get(customerId) || 0;
             selectedPurchasesObject[customerId] = purchaseId;
         });
         document.getElementById('selected-purchases-input').value = JSON.stringify(selectedPurchasesObject);
@@ -927,7 +1138,9 @@
         if (selectedCustomers.size > 0) {
             // آماده‌سازی داده‌های خریدهای انتخاب شده
             const customerPurchases = {};
-            selectedPurchases.forEach((purchaseId, customerId) => {
+            selectedCustomers.forEach(customerId => {
+                // اگر خرید انتخاب شده باشد، آن را استفاده می‌کنیم، در غیر این صورت 0
+                const purchaseId = selectedPurchases.get(customerId) || 0;
                 customerPurchases[customerId] = purchaseId;
             });
             
@@ -949,15 +1162,14 @@
                     data.processed_messages.forEach(item => {
                         const messageDiv = document.createElement('div');
                         messageDiv.className = 'processed-message-item';
-                        messageDiv.innerHTML = `
-                            <div class="customer-info">
-                                <strong>${item.customer_name}</strong>
-                                <small class="text-muted">(${item.customer_phone})</small>
-                            </div>
-                            <div class="message-content">
-                                ${item.processed_message.replace(/\n/g, '<br>')}
-                            </div>
-                        `;
+                        messageDiv.innerHTML = 
+                            '<div class="customer-info">' +
+                            '<strong>' + item.customer_name + '</strong>' +
+                            '<small class="text-muted">(' + item.customer_phone + ')</small>' +
+                            '</div>' +
+                            '<div class="message-content">' +
+                            item.processed_message.replace(/\n/g, '<br>') +
+                            '</div>';
                         processedMessagesContainer.appendChild(messageDiv);
                     });
                 } else {
@@ -990,5 +1202,69 @@
             e.preventDefault();
         }
     });
+    
+    // اضافه کردن متغیرها به متن پیام
+    document.addEventListener('DOMContentLoaded', function() {
+        // اضافه کردن event listener برای دکمه‌های متغیرها
+        document.querySelectorAll('.btn-placeholder').forEach(button => {
+            button.addEventListener('click', function() {
+                const placeholder = this.getAttribute('data-placeholder');
+                const label = this.getAttribute('data-label');
+                const textarea = document.getElementById('message');
+                const variable = '{' + '{' + placeholder + '}' + '}';
+                
+                console.log('Placeholder:', placeholder);
+                console.log('Variable:', variable);
+                
+                // درج متغیر در موقعیت cursor
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const text = textarea.value;
+                const before = text.substring(0, start);
+                const after = text.substring(end, text.length);
+                
+                textarea.value = before + variable + after;
+                
+                // تنظیم cursor بعد از متغیر
+                textarea.selectionStart = textarea.selectionEnd = start + variable.length;
+                
+                // فوکوس روی textarea
+                textarea.focus();
+                
+                // به‌روزرسانی آمار
+                updateMessageStats();
+                
+                // نمایش پیام موفقیت
+                showVariableHint(label, variable);
+            });
+        });
+    });
+    
+    // نمایش پیام موفقیت برای اضافه شدن متغیر
+    function showVariableHint(label, variable) {
+        // حذف toast قبلی اگر وجود دارد
+        const existingToast = document.querySelector('.variable-hint-toast');
+        if (existingToast) {
+            existingToast.remove();
+        }
+        
+        const toast = document.createElement('div');
+        toast.className = 'variable-hint-toast';
+        toast.innerHTML = 
+            '<div>' +
+            '<strong>متغیر اضافه شد:</strong><br>' +
+            '<span class="variable-label">' + label + '</span> ' +
+            '<span class="variable-code">' + variable + '</span>' +
+            '</div>';
+        
+        document.body.appendChild(toast);
+        
+        // حذف toast بعد از 3 ثانیه
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 3000);
+    }
 </script>
 {% endblock %} 

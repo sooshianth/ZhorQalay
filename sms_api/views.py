@@ -21,6 +21,8 @@ from core.CustomerModel import Customer
 from core._models import CargoProduct
 import re
 from django.db import connection
+from core.decorators.det_user_role import determine_user_role
+
 logger = logging.getLogger("sms_api_views")
 
 def mask_phone_number(phone_number):
@@ -35,7 +37,12 @@ def mask_phone_number(phone_number):
     if len(phone_str) < 6:
         return phone_str
     
-    return phone_str[:3] + '*' * (len(phone_str) - 6) + phone_str[-3:]
+    # 3 رقم اول + ستاره‌ها + 3 رقم آخر
+    last_three = phone_str[:3]
+    first_three = phone_str[-3:]
+    middle_stars = '*' * (len(phone_str) - 6)
+
+    return first_three + middle_stars + last_three
 
 def process_template_for_customer(message, customer, purchase=None):
     """
@@ -61,32 +68,55 @@ def process_template_for_customer(message, customer, purchase=None):
     if purchase:
         # استفاده از خرید انتخاب شده
         selected_purchase = purchase
-    elif hasattr(customer, 'purchases_made') and customer.purchases_made.exists():
+    elif customer.purchases_made.exists():
         # استفاده از آخرین خرید اگر خرید خاصی انتخاب نشده باشد
-        selected_purchase = customer.purchases_made.order_by('-created_at').first()
+        selected_purchase = customer.purchases_made.all().order_by('-created_at').first()
     else:
         selected_purchase = None
     
     if selected_purchase:
         replacements.update({
-            '{{purchase_number}}': str(selected_purchase.purchase_number or ''),
-            '{{invoice_id}}': str(selected_purchase.invoice_id or ''),
-            '{{order_weight}}': str(selected_purchase.order_weight or ''),
-            '{{customer_price}}': str(selected_purchase.customer_price or ''),
-            '{{amount_paid}}': str(selected_purchase.amount_paid or ''),
-            '{{status_display}}': str(selected_purchase.get_state_display() if hasattr(selected_purchase, 'get_state_display') else ''),
-            '{{created_at}}': str(selected_purchase.created_at.strftime('%Y/%m/%d %H:%M') if selected_purchase.created_at else ''),
+            '{{purchase_number}}': str(selected_purchase.purchase_number or '-'),
+            '{{invoice_id}}': str(selected_purchase.invoice_id or '-'),
+            '{{order_weight}}': str(selected_purchase.order_weight or '-'),
+            '{{customer_price}}': str(selected_purchase.customer_price or '-'),
+            '{{amount_paid}}': str(selected_purchase.amount_paid or '-'),
+            '{{status_display}}': str(selected_purchase.get_state_display() if hasattr(selected_purchase, 'get_state_display') else '-'),
+            '{{created_at}}': str(selected_purchase.created_at.strftime('%Y/%m/%d %H:%M') if selected_purchase.created_at else '-'),
         })
         
         # داده‌های محصول
         if hasattr(selected_purchase, 'cargo') and selected_purchase.cargo:
             cargo = selected_purchase.cargo
             replacements.update({
-                '{{cottage}}': str(cargo.cottage or ''),
-                '{{product_type}}': str(cargo.get_product_type_display() if hasattr(cargo, 'get_product_type_display') else ''),
-                '{{product_country}}': str(cargo.get_country_display() if hasattr(cargo, 'get_country_display') else ''),
+                '{{cottage}}': str(cargo.cottage or '-'),
+                '{{product_type}}': str(cargo.get_product_type_display() if hasattr(cargo, 'get_product_type_display') else '-'),
+                '{{product_country}}': str(cargo.get_country_display() if hasattr(cargo, 'get_country_display') else '-'),
             })
-    
+        else:
+            replacements.update({
+                '{{cottage}}': '-',
+                '{{product_type}}': '-',
+                '{{product_country}}': '-',
+            })
+
+    else:
+        replacements.update({
+            '{{purchase_number}}': '-',
+            '{{invoice_id}}': '-',
+            '{{order_weight}}': '-',
+            '{{customer_price}}': '-',
+            '{{amount_paid}}': '-',
+            '{{status_display}}': '-',
+            '{{created_at}}': '-',
+        })
+        replacements.update({
+            '{{cottage}}': '-',
+            '{{product_type}}': '-',
+            '{{product_country}}': '-',
+        })
+
+
     # جایگزینی همه متغیرها
     for placeholder, value in replacements.items():
         processed_message = processed_message.replace(placeholder, str(value))
@@ -108,8 +138,10 @@ def preview_template_api(request):
                     customer = Customer.objects.get(id=customer_id)
                     purchase = None
                     
-                    if purchase_id:
+                    if purchase_id and purchase_id != 0:
                         purchase = Purchase.objects.get(id=purchase_id, customer=customer)
+                    else:
+                        purchase = None
                     
                     processed_message = process_template_for_customer(message, customer, purchase)
                     processed_messages.append({
@@ -117,7 +149,7 @@ def preview_template_api(request):
                         'customer_phone': mask_phone_number(customer.get_primary_phone()),
                         'processed_message': processed_message
                     })
-                except (Customer.DoesNotExist, Purchase.DoesNotExist):
+                except (Customer.DoesNotExist):
                     continue
                 
                     
@@ -126,7 +158,7 @@ def preview_template_api(request):
             return JsonResponse({'success': False, 'error': str(e)})
     return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
 
-@role_required('admin', 'support_agent')
+@role_required('admin')
 @login_required
 def sms_dashboard(request):
     """داشبورد مدیریت پیامک‌ها"""
@@ -206,6 +238,7 @@ def support_customer_search(request):
 @login_required
 def support_dashboard(request):
     """داشبورد کارشناسان پشتیبانی برای ارسال پیامک به چندین مشتری"""
+    user_role = determine_user_role(request.user)
     
     # دریافت قالب‌های موجود
     marketing_templates = SmsTemplate.objects.filter(template_type='marketing').order_by('-is_active', '-updated_at')
@@ -291,9 +324,23 @@ def support_dashboard(request):
             total_failed = 0
             
             for customer in selected_customers:
+                logger.info(f"ارسال پیامک به مشتری {customer.name}")
                 # دریافت همه شماره‌های تلفن مشتری که پیامک فعال دارند
                 phone_numbers = customer.get_all_phone_numbers()
-                
+                # حذف پیشوندهای 0، 0098 یا +98 و ذخیره شماره‌ها به صورت یکتا
+                cleaned_phone_numbers = set()
+                for phone in phone_numbers:
+                    original = phone
+                    if phone.startswith('0098'):
+                        phone = phone[4:]
+                    elif phone.startswith('+98'):
+                        phone = phone[3:]
+                    elif phone.startswith('0'):
+                        phone = phone[1:]
+                    cleaned_phone_numbers.add(phone)
+                phone_numbers = list(cleaned_phone_numbers)
+                logger.info(f"شماره های تلفن مشتری {customer.name}: {phone_numbers}")
+
                 if not phone_numbers:
                     logger.warning(f"هیچ شماره تلفن فعالی برای مشتری {customer.name} یافت نشد.")
                     total_failed += 1
@@ -301,11 +348,14 @@ def support_dashboard(request):
                 
                 # دریافت خرید انتخاب شده برای این مشتری
                 purchase = None
-                if str(customer.id) in selected_purchases and selected_purchases[str(customer.id)]:
+                if str(customer.id) in selected_purchases and selected_purchases[str(customer.id)] and selected_purchases[str(customer.id)] != 0:
                     try:
                         purchase = Purchase.objects.get(id=selected_purchases[str(customer.id)], customer=customer)
                     except Purchase.DoesNotExist:
                         logger.warning(f"خرید انتخاب شده برای مشتری {customer.name} یافت نشد.")
+                        purchase = None
+                else:
+                    purchase = None
                 
                 # پردازش قالب با داده‌های مشتری و خرید انتخاب شده
                 processed_message = process_template_for_customer(message, customer, purchase)
@@ -335,7 +385,13 @@ def support_dashboard(request):
                     f'پیامک با موفقیت به {total_sent} شماره ارسال شد. '
                     f'{total_failed} شماره ناموفق بود.'
                 )
-                return redirect('sms_api:sms_dashboard')
+                if user_role == 'admin':
+                    return redirect('sms_api:sms_dashboard')
+                elif user_role == 'support_agent':
+                    return redirect('sms_api:support_dashboard')
+                else:
+                    logger.warning(f"کاربر {request.user.username} به داشبورد اصلی رادر ارسال پیامک به {total_sent} شماره ارسال شد. ")
+                    return redirect('sms_api:support_dashboard')
             else:
                 messages.error(request, 'هیچ پیامکی با موفقیت ارسال نشد.')
                 
@@ -504,7 +560,7 @@ def get_default_templates():
         'ARCHIVED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} آرشیو شده است.',
     }
 
-@role_required('admin', 'support_agent')
+@role_required('admin')
 @login_required
 def create_sms(request):
     notification_types = dict(SmsQueue.NOTIFICATION_TYPES)
@@ -1725,7 +1781,9 @@ def get_customer_purchases(request):
     except Customer.DoesNotExist:
         return JsonResponse({'error': 'Customer not found'}, status=404)
 
-@role_required('admin', 'support_agent')
+
+
+@role_required('admin')
 @login_required
 def sms_detail(request, sms_id):
     """نمایش جزئیات پیامک"""
