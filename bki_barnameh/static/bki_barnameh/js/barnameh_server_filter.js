@@ -770,6 +770,8 @@ class BarnamehServerFilter {
                 rowHtml += `<td class="column-importer">${barnameh.importer || "-"}</td>`;
             } else if (columnId === 'product_type') {
                 rowHtml += `<td class="column-product_type">${barnameh.product_type || "-"}</td>`;
+            } else if (columnId === 'product_country') {
+                rowHtml += `<td class="column-product_country">${barnameh.product_country || "-"}</td>`;
             } else if (columnId === 'successful_send_date') {
                 rowHtml += `<td class="column-successful_send_date">${barnameh.successful_send_date || "-"}</td>`;
             } else if (columnId === 'is_sent_to_bki') {
@@ -820,15 +822,13 @@ class BarnamehServerFilter {
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </form>
-                            ${barnameh.status === 'BARNAMEH_COMPLETE' ? `
-                                <form action="/bki/barnameh/send-to-bki/${barnameh.id}/" method="post" class="d-inline">
-                                    <input type="hidden" name="csrfmiddlewaretoken" value="${this.getCSRFToken()}">
-                                    <button type="submit" class="btn btn-primary btn-sm rounded-circle ms-1" 
-                                            data-bs-toggle="tooltip" title="ارسال به بازارگاه">
-                                        <i class="fas fa-paper-plane"></i>
-                                    </button>
-                                </form>
-                            ` : ''}
+                            <form action="/bki/barnameh/send-to-bki/${barnameh.id}/" method="post" class="d-inline">
+                                <input type="hidden" name="csrfmiddlewaretoken" value="${this.getCSRFToken()}">
+                                <button type="submit" class="btn btn-primary btn-sm rounded-circle ms-1" 
+                                        data-bs-toggle="tooltip" title="ارسال به بازارگاه">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </form>
                         ` : `
                             <a href="/bki/barnameh/edit-in-bki/${barnameh.id}/" 
                                class="btn btn-warning btn-sm rounded-circle ms-1" 
@@ -854,12 +854,10 @@ class BarnamehServerFilter {
     
     getStatusBadgeClass(statusText) {
         const statusClasses = {
-            'بارنامه ناقص': 'bg-warning text-dark',
-            'بارنامه کامل': 'bg-success',
-            'ارسال شده به بازارگاه': 'bg-primary',
-            'BARNAMEH_INCOMPLETE': 'bg-warning text-dark',
-            'BARNAMEH_COMPLETE': 'bg-success',
-            'PURCHASE_CLOSED': 'bg-primary'
+            'ارسال نشده به بازارگاه': 'bg-warning text-dark',
+            'ارسال شده به بازارگاه': 'bg-success',
+            'NOT_SENT_TO_BKI': 'bg-warning text-dark',
+            'SENT_TO_BKI': 'bg-success'
         };
         
         return statusClasses[statusText] || 'bg-secondary';

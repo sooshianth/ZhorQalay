@@ -59,6 +59,7 @@ BARNAMEH_COLUMNS = [
     {'id': 'demand_amount', 'name': 'میزان تقاضا'},
     {'id': 'importer', 'name': 'واردکننده'},
     {'id': 'product_type', 'name': 'محصول'},
+    {'id': 'product_country', 'name': 'کشور محصول'},
     {'id': 'successful_send_date', 'name': 'تاریخ ارسال موفق به بازارگاه'},
     {'id': 'is_sent_to_bki', 'name': 'ارسال به بازارگاه'},
     {'id': 'created_at', 'name': 'تاریخ ایجاد'},
@@ -256,9 +257,8 @@ def apply_barnameh_filter(request):
                 elif column_id == 'status':
                     # تبدیل نمایش وضعیت به کد وضعیت
                     status_map = {
-                        'بارنامه ناقص': 'BARNAMEH_INCOMPLETE',
-                        'بارنامه کامل': 'BARNAMEH_COMPLETE',
-                        'ارسال شده به بازارگاه': 'PURCHASE_CLOSED'
+                        'ارسال نشده به بازارگاه': 'NOT_SENT_TO_BKI',
+                        'ارسال شده به بازارگاه': 'SENT_TO_BKI'
                     }
                     status_codes = []
                     for v in values:
@@ -392,10 +392,22 @@ def apply_barnameh_filter(request):
                 elif column_id == 'product_type':
                     values = [v for v in values if v and v.strip()]
                     if values:
-                        if filter_type == 'include':
-                            filter_conditions &= Q(purchase__cargo__product_type__in=values)
-                        else:
-                            filter_conditions &= ~Q(purchase__cargo__product_type__in=values)
+                        # تبدیل نمایش فارسی به کد محصول
+                        from core.CargoProductModel import CargoProduct
+                        product_choices = dict(CargoProduct.PRODUCT_TYPES)
+                        reverse_product_map = {v: k for k, v in product_choices.items()}
+                        product_codes = []
+                        for v in values:
+                            if v in reverse_product_map:
+                                product_codes.append(reverse_product_map[v])
+                            else:
+                                product_codes.append(v)
+                        
+                        if product_codes:
+                            if filter_type == 'include':
+                                filter_conditions &= Q(purchase__cargo__product_type__in=product_codes)
+                            else:
+                                filter_conditions &= ~Q(purchase__cargo__product_type__in=product_codes)
                 
                 elif column_id == 'successful_send_date':
                     # فیلتر تاریخی
@@ -426,6 +438,26 @@ def apply_barnameh_filter(request):
                             filter_conditions &= Q(**{f'{column_id}__in': values})
                         else:
                             filter_conditions &= ~Q(**{f'{column_id}__in': values})
+
+                elif column_id == 'product_country':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        # تبدیل نمایش فارسی به کد کشور
+                        from core.CargoProductModel import CargoProduct
+                        country_choices = dict(CargoProduct.COUNTRIES)
+                        reverse_country_map = {v: k for k, v in country_choices.items()}
+                        country_codes = []
+                        for v in values:
+                            if v in reverse_country_map:
+                                country_codes.append(reverse_country_map[v])
+                            else:
+                                country_codes.append(v)
+                        
+                        if country_codes:
+                            if filter_type == 'include':
+                                filter_conditions &= Q(purchase__cargo__country__in=country_codes)
+                            else:
+                                filter_conditions &= ~Q(purchase__cargo__country__in=country_codes)
                 
                 elif column_id == 'transport_date':
                     # فیلتر تاریخی
@@ -471,7 +503,8 @@ def apply_barnameh_filter(request):
                 Q(purchase__buyer_national_code__icontains=global_search) |
                 Q(purchase__address__icontains=global_search) |
                 Q(factor_sodoor_season__icontains=global_search) |
-                Q(buyer_postal_code__icontains=global_search)
+                Q(buyer_postal_code__icontains=global_search) |
+                Q(purchase__cargo__country__icontains=global_search)
             )
             base_queryset = base_queryset.filter(search_conditions)
         
@@ -510,6 +543,7 @@ def apply_barnameh_filter(request):
                 'importer': 'purchase__cargo__vared_konandeh__name',
                 'product_type': 'purchase__cargo__product_type',
                 'successful_send_date': 'purchase__successful_send_date',
+                'product_country': 'purchase__cargo__country',
             }
             
             # دریافت فیلد مرتب‌سازی
@@ -588,8 +622,9 @@ def apply_barnameh_filter(request):
                 'buyer_address': get_related_data(barnameh, 'purchase.address'),
                 'demand_amount': get_related_data(barnameh, 'purchase.total_weight'),
                 'importer': get_related_data(barnameh, 'purchase.cargo.vared_konandeh.name'),
-                'product_type': get_related_data(barnameh, 'purchase.cargo.product_type'),
+                'product_type': barnameh.purchase.cargo.get_product_type_display() if barnameh.purchase and barnameh.purchase.cargo and barnameh.purchase.cargo.product_type else "",
                 'successful_send_date': get_related_data(barnameh, 'purchase.successful_send_date'),
+                'product_country': barnameh.purchase.cargo.get_country_display() if barnameh.purchase and barnameh.purchase.cargo and barnameh.purchase.cargo.country else "",
             }
             results.append(result)
         
@@ -711,9 +746,8 @@ def get_barnameh_column_values(request):
                 elif filter_column_id == 'status':
                     # تبدیل نمایش وضعیت به کد وضعیت
                     status_map = {
-                        'بارنامه ناقص': 'BARNAMEH_INCOMPLETE',
-                        'بارنامه کامل': 'BARNAMEH_COMPLETE',
-                        'ارسال شده به بازارگاه': 'PURCHASE_CLOSED'
+                        'ارسال نشده به بازارگاه': 'NOT_SENT_TO_BKI',
+                        'ارسال شده به بازارگاه': 'SENT_TO_BKI'
                     }
                     status_codes = []
                     for v in values:
@@ -861,10 +895,42 @@ def get_barnameh_column_values(request):
                 elif filter_column_id == 'product_type':
                     values = [v for v in values if v and v.strip()]
                     if values:
-                        if filter_type == 'include':
-                            filter_conditions &= Q(purchase__cargo__product_type__in=values)
-                        else:
-                            filter_conditions &= ~Q(purchase__cargo__product_type__in=values)
+                        # تبدیل نمایش فارسی به کد محصول
+                        from core.CargoProductModel import CargoProduct
+                        product_choices = dict(CargoProduct.PRODUCT_TYPES)
+                        reverse_product_map = {v: k for k, v in product_choices.items()}
+                        product_codes = []
+                        for v in values:
+                            if v in reverse_product_map:
+                                product_codes.append(reverse_product_map[v])
+                            else:
+                                product_codes.append(v)
+                        
+                        if product_codes:
+                            if filter_type == 'include':
+                                filter_conditions &= Q(purchase__cargo__product_type__in=product_codes)
+                            else:
+                                filter_conditions &= ~Q(purchase__cargo__product_type__in=product_codes)
+                
+                elif filter_column_id == 'product_country':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        # تبدیل نمایش فارسی به کد کشور
+                        from core.CargoProductModel import CargoProduct
+                        country_choices = dict(CargoProduct.COUNTRIES)
+                        reverse_country_map = {v: k for k, v in country_choices.items()}
+                        country_codes = []
+                        for v in values:
+                            if v in reverse_country_map:
+                                country_codes.append(reverse_country_map[v])
+                            else:
+                                country_codes.append(v)
+                        
+                        if country_codes:
+                            if filter_type == 'include':
+                                filter_conditions &= Q(purchase__cargo__country__in=country_codes)
+                            else:
+                                filter_conditions &= ~Q(purchase__cargo__country__in=country_codes)
                 
                 elif filter_column_id == 'successful_send_date':
                     # فیلتر تاریخی
@@ -944,9 +1010,8 @@ def get_barnameh_column_values(request):
             values_queryset = base_queryset.values_list('status', flat=True).distinct()
             # تبدیل کدهای وضعیت به نمایش فارسی
             status_choices = {
-                'BARNAMEH_INCOMPLETE': 'بارنامه ناقص',
-                'BARNAMEH_COMPLETE': 'بارنامه کامل',
-                'PURCHASE_CLOSED': 'ارسال شده به بازارگاه'
+                'NOT_SENT_TO_BKI': 'ارسال نشده به بازارگاه',
+                'SENT_TO_BKI': 'ارسال شده به بازارگاه'
             }
             values = set([status_choices.get(state, state) for state in values_queryset if state])
             
@@ -1032,7 +1097,10 @@ def get_barnameh_column_values(request):
             values_queryset = base_queryset.exclude(purchase__cargo__product_type__isnull=True)\
                 .exclude(purchase__cargo__product_type='')\
                 .values_list('purchase__cargo__product_type', flat=True).distinct()
-            values = set(values_queryset)
+            # تبدیل کدهای محصول به نمایش فارسی
+            from core.CargoProductModel import CargoProduct
+            product_choices = dict(CargoProduct.PRODUCT_TYPES)
+            values = set([product_choices.get(product_type, product_type) for product_type in values_queryset if product_type])
             
         elif column_id == 'successful_send_date':
             values_queryset = base_queryset.exclude(purchase__successful_send_date__isnull=True)\
@@ -1055,6 +1123,15 @@ def get_barnameh_column_values(request):
             values_queryset = base_queryset.exclude(transport_date__isnull=True)\
                 .values_list('transport_date', flat=True).distinct()
             values = set([date.strftime("%Y/%m/%d") for date in values_queryset if date])
+
+        elif column_id == 'product_country':
+            values_queryset = base_queryset.exclude(purchase__cargo__country__isnull=True)\
+                .exclude(purchase__cargo__country='')\
+                .values_list('purchase__cargo__country', flat=True).distinct()
+            # تبدیل کدهای کشور به نمایش فارسی
+            from core.CargoProductModel import CargoProduct
+            country_choices = dict(CargoProduct.COUNTRIES)
+            values = set([country_choices.get(country, country) for country in values_queryset if country])
         
         else:
             # برای ستون‌های ناشناخته
@@ -1212,9 +1289,9 @@ def update_barnameh(barnameh_id, data):
         
         # Check if barnameh is complete
         if all([barnameh.number, barnameh.serial, barnameh.tonnage]):
-            barnameh.status = 'BARNAMEH_COMPLETE'
+            barnameh.status = 'SENT_TO_BKI'
         else:
-            barnameh.status = 'BARNAMEH_INCOMPLETE'
+            barnameh.status = 'NOT_SENT_TO_BKI'
         
         barnameh.save()
         
@@ -1314,7 +1391,8 @@ def barnameh_list(request):
         'barnameh_date', 'transport_date', 'purchase_number', 'shenase_takhsis_code',
         'is_sent_to_bki', 'barnameh_created_at', 'factor_sodoor_season', 
         'is_factored', 'is_created_by_excel', 'buyer_postal_code',
-        'is_sent_to_bki_at', 'is_created_by_excel_at', 'barnameh_updated_at'
+        'is_sent_to_bki_at', 'is_created_by_excel_at', 'barnameh_updated_at',
+        'product_country',
     ]
     
     # فیلدهای related
@@ -1439,7 +1517,7 @@ def barnameh_create(request):
             barnameh_date=data['barnameh_date'] if data['barnameh_date'] else None,
             purchase_number=data['purchase_number'],
             shenase_takhsis_code=data['shenase_takhsis_code'],
-            status='BARNAMEH_COMPLETE' if all([data['number'], data['serial'], data['tonnage']]) else 'BARNAMEH_INCOMPLETE'
+            status='NOT_SENT_TO_BKI'
         )
         
         messages.success(request, 'بارنامه با موفقیت ایجاد شد.')
@@ -1631,7 +1709,7 @@ def barnameh_api(request):
                     barnameh_date=data.get('barnameh_date'),
                     purchase_number=data.get('purchase_number'),
                     shenase_takhsis_code=data.get('shenase_takhsis_code'),
-                    status='BARNAMEH_COMPLETE' if all([data.get('number'), data.get('serial'), data.get('tonnage')]) else 'BARNAMEH_INCOMPLETE'
+                    status='SENT_TO_BKI' if all([data.get('number'), data.get('serial'), data.get('tonnage')]) else 'NOT_SENT_TO_BKI'
                 )
                 result = {
                     'success': True,

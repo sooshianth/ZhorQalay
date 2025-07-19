@@ -9,9 +9,8 @@ logger = logging.getLogger('bki_barnameh_models')
 
 class Barnameh(models.Model):
     STATUS_CHOICES = [
-        ('BARNAMEH_INCOMPLETE', 'بارنامه ناقص'),
-        ('BARNAMEH_COMPLETE', 'بارنامه کامل'),
-        ('PURCHASE_CLOSED', 'بستن خرید در بازارگاه'),
+        ('NOT_SENT_TO_BKI', 'ارسال نشده به بازارگاه'),
+        ('SENT_TO_BKI', 'ارسال شده به بازارگاه'),
     ]
     file = models.FileField(upload_to='barnameh_files/', verbose_name='فایل برنامه', null=True, blank=True)
 
@@ -28,7 +27,7 @@ class Barnameh(models.Model):
     vehicle_plate = models.CharField(max_length=255, verbose_name='پلاک خودرو', null=True, blank=True)
     receiver_name = models.CharField(max_length=255, verbose_name='نام گیرنده', null=True, blank=True)
     destination = models.CharField(max_length=255, verbose_name='مقصد', null=True, blank=True)
-    status = models.CharField(max_length=255, verbose_name='وضعیت', choices=STATUS_CHOICES, default='BARNAMEH_INCOMPLETE')
+    status = models.CharField(max_length=255, verbose_name='وضعیت', choices=STATUS_CHOICES, default='NOT_SENT_TO_BKI')
     
     # فیلد جدید برای ذخیره اطلاعات دریافتی از API بازارگاه
     bki_response_data = models.JSONField(verbose_name='اطلاعات دریافتی از بازارگاه', null=True, blank=True)
@@ -63,16 +62,16 @@ class Barnameh(models.Model):
     
     def get_company_price(self):
         """دریافت فی خرید از خرید مرتبط"""
-        return self.purchase.company_price if self.purchase else None
+        return self.purchase.cargo.company_price if (self.purchase and self.purchase.cargo) else None
     
     def get_customer_price(self):
         """دریافت فی فروش از خرید مرتبط"""
-        return self.purchase.customer_price if self.purchase else None
+        return self.purchase.cargo.customer_price if (self.purchase and self.purchase.cargo) else None
     
     def get_total_sales_amount(self):
         """محاسبه مبلغ کل فروش (فی فروش × وزن)"""
-        if self.purchase and self.purchase.customer_price and self.tonnage:
-            return float(self.purchase.customer_price) * float(self.tonnage)
+        if self.purchase and self.purchase.cargo and self.purchase.cargo.customer_price and self.tonnage:
+            return float(self.purchase.cargo.customer_price) * float(self.tonnage)
         return None
     
     def get_buyer_national_code(self):
@@ -94,6 +93,10 @@ class Barnameh(models.Model):
     def get_product_type(self):
         """دریافت نوع محصول از کوتاژ"""
         return self.purchase.cargo.get_product_type_display() if (self.purchase and self.purchase.cargo) else None
+    
+    def get_product_country(self):
+        """دریافت کشور محصول از کوتاژ"""
+        return self.purchase.cargo.get_country_display() if (self.purchase and self.purchase.cargo) else None
     
     def get_successful_send_date(self):
         """دریافت تاریخ ارسال موفق به بازارگاه"""
@@ -147,10 +150,13 @@ class Barnameh(models.Model):
 
         if self.factor_sodoor_season is not None:
             self.is_factored=True
-        # if self.purchase:
-        #     if self.purchase.state in ['INITIATED', 'SMS_SENT', 'PAYMENT_VERIFIED', 'ALLOCATION_APPROVED', 'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH']:
-        #         self.purchase.state = 'BARNAMEH_INCOMPLETE'
-        #         self.purchase.save()
+            
+        # بروزرسانی وضعیت بر اساس ارسال به بازارگاه
+        if self.is_sent_to_bki:
+            self.status = 'SENT_TO_BKI'
+        else:
+            self.status = 'NOT_SENT_TO_BKI'
+            
         super().save(*args, **kwargs)
         
         # بروزرسانی وضعیت فاکتور خرید مرتبط

@@ -1373,6 +1373,8 @@
                                     <th data-column-id="importer" data-column-type="text">واردکننده</th>
                                 {% elif column.id == 'product_type' %}
                                     <th data-column-id="product_type" data-column-type="text">محصول</th>
+                                {% elif column.id == 'product_country' %}
+                                    <th data-column-id="product_country" data-column-type="text">کشور محصول</th>
                                 {% elif column.id == 'successful_send_date' %}
                                     <th data-column-id="successful_send_date" data-column-type="date">تاریخ ارسال موفق</th>
                                 {% elif column.id == 'is_sent_to_bki' %}
@@ -1429,12 +1431,10 @@
                                     <td class="column-tonnage">{{ barnameh.tonnage|default:"-" }}</td>
                                 {% elif column.id == 'status' %}
                                     <td class="column-status">
-                                        {% if barnameh.status == 'BARNAMEH_INCOMPLETE' %}
-                                        <span class="badge rounded-pill bg-warning text-dark">بارنامه ناقص</span>
-                                        {% elif barnameh.status == 'BARNAMEH_COMPLETE' %}
-                                        <span class="badge rounded-pill bg-success">بارنامه کامل</span>
-                                        {% elif barnameh.status == 'PURCHASE_CLOSED' %}
-                                        <span class="badge rounded-pill bg-primary">ارسال شده به بازارگاه</span>
+                                        {% if barnameh.status == 'NOT_SENT_TO_BKI' %}
+                                        <span class="badge rounded-pill bg-warning text-dark">ارسال نشده به بازارگاه</span>
+                                        {% elif barnameh.status == 'SENT_TO_BKI' %}
+                                        <span class="badge rounded-pill bg-success">ارسال شده به بازارگاه</span>
                                         {% endif %}
                                     </td>
                                 {% elif column.id == 'driver_name' %}
@@ -1481,6 +1481,8 @@
                                     <td class="column-importer">{{ barnameh.get_importer|default:"-" }}</td>
                                 {% elif column.id == 'product_type' %}
                                     <td class="column-product_type">{{ barnameh.get_product_type|default:"-" }}</td>
+                                {% elif column.id == 'product_country' %}
+                                    <td class="column-product_country">{{ barnameh.get_product_country|default:"-" }}</td>
                                 {% elif column.id == 'successful_send_date' %}
                                     <td class="column-successful_send_date">{{ barnameh.get_successful_send_date|default:"-" }}</td>
                                 {% elif column.id == 'is_sent_to_bki' %}
@@ -1542,7 +1544,7 @@
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </form>
-                                            {% if barnameh.status == 'BARNAMEH_COMPLETE' and not barnameh.is_sent_to_bki %}
+                                            {% if not barnameh.is_sent_to_bki %}
                                             <form action="{% url 'send_to_bki' barnameh.id %}" method="post" class="d-inline">
                                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-primary btn-sm rounded-circle ms-1" 
