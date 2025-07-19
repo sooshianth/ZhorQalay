@@ -23,7 +23,21 @@ import re
 from django.db import connection
 logger = logging.getLogger("sms_api_views")
 
-def process_template_for_customer(message, customer):
+def mask_phone_number(phone_number):
+    """
+    مخفی کردن شماره تلفن - فقط 3 رقم اول و 3 رقم آخر نمایش داده می‌شود
+    مثال: 09123456789 -> 091*****789
+    """
+    if not phone_number:
+        return ''
+    
+    phone_str = str(phone_number).strip()
+    if len(phone_str) < 6:
+        return phone_str
+    
+    return phone_str[:3] + '*' * (len(phone_str) - 6) + phone_str[-3:]
+
+def process_template_for_customer(message, customer, purchase=None):
     """
     پردازش قالب پیامک با داده‌های مشتری
     """
@@ -32,62 +46,46 @@ def process_template_for_customer(message, customer):
     # داده‌های پایه مشتری
     replacements = {
         '{{customer_name}}': customer.name or '',
-        '{{customer_phone}}': customer.get_primary_phone() or '',
+        '{{customer_phone}}': mask_phone_number(customer.get_primary_phone()),
     }
     
     # داده‌های کارشناس فروش
     if hasattr(customer, 'sales_agent') and customer.sales_agent.exists():
         sales_agents = customer.sales_agent.all()
         agent_names = [agent.name for agent in sales_agents if hasattr(agent, 'name') and agent.name]
-        agent_phones = [agent.phone_number for agent in sales_agents if hasattr(agent, 'phone_number') and agent.phone_number]
-        
         replacements['{{sales_agent_name}}'] = ', '.join(agent_names) if agent_names else ''
-        replacements['{{sales_agent_phone}}'] = ', '.join(agent_phones) if agent_phones else ''
-        
-        # شماره داخلی کارشناس فروش
-        first_agent = sales_agents.first()
-        if first_agent and hasattr(first_agent, 'dakheli_number') and first_agent.dakheli_number:
-            replacements['{{dakheli_number}}'] = first_agent.dakheli_number
-        else:
-            replacements['{{dakheli_number}}'] = '۳'
     else:
         replacements['{{sales_agent_name}}'] = ''
-        replacements['{{sales_agent_phone}}'] = ''
-        replacements['{{dakheli_number}}'] = '۳'
     
-    # داده‌های خرید (اگر مشتری خرید داشته باشد)
-    if hasattr(customer, 'purchases') and customer.purchases.exists():
-        latest_purchase = customer.purchases.order_by('-created_at').first()
-        if latest_purchase:
+    # داده‌های خرید
+    if purchase:
+        # استفاده از خرید انتخاب شده
+        selected_purchase = purchase
+    elif hasattr(customer, 'purchases_made') and customer.purchases_made.exists():
+        # استفاده از آخرین خرید اگر خرید خاصی انتخاب نشده باشد
+        selected_purchase = customer.purchases_made.order_by('-created_at').first()
+    else:
+        selected_purchase = None
+    
+    if selected_purchase:
+        replacements.update({
+            '{{purchase_number}}': str(selected_purchase.purchase_number or ''),
+            '{{invoice_id}}': str(selected_purchase.invoice_id or ''),
+            '{{order_weight}}': str(selected_purchase.order_weight or ''),
+            '{{customer_price}}': str(selected_purchase.customer_price or ''),
+            '{{amount_paid}}': str(selected_purchase.amount_paid or ''),
+            '{{status_display}}': str(selected_purchase.get_state_display() if hasattr(selected_purchase, 'get_state_display') else ''),
+            '{{created_at}}': str(selected_purchase.created_at.strftime('%Y/%m/%d %H:%M') if selected_purchase.created_at else ''),
+        })
+        
+        # داده‌های محصول
+        if hasattr(selected_purchase, 'cargo') and selected_purchase.cargo:
+            cargo = selected_purchase.cargo
             replacements.update({
-                '{{purchase_number}}': str(latest_purchase.purchase_number or ''),
-                '{{invoice_id}}': str(latest_purchase.invoice_id or ''),
-                '{{order_weight}}': str(latest_purchase.order_weight or ''),
-                '{{customer_price}}': str(latest_purchase.customer_price or ''),
-                '{{amount_paid}}': str(latest_purchase.amount_paid or ''),
-                '{{barnameh}}': str(latest_purchase.barnameh or ''),
-                '{{barnameh_date}}': str(latest_purchase.barnameh_date or ''),
-                '{{driver_name}}': str(latest_purchase.driver_name or ''),
-                '{{driver_phone}}': str(latest_purchase.driver_phone or ''),
-                '{{shenase_takhsis}}': str(latest_purchase.shenase_takhsis or ''),
+                '{{cottage}}': str(cargo.cottage or ''),
+                '{{product_type}}': str(cargo.get_product_type_display() if hasattr(cargo, 'get_product_type_display') else ''),
+                '{{product_country}}': str(cargo.get_country_display() if hasattr(cargo, 'get_country_display') else ''),
             })
-            
-            # داده‌های اختلاف
-            if hasattr(latest_purchase, 'extelaf_weight'):
-                replacements['{{extelaf_weight}}'] = str(latest_purchase.extelaf_weight or '')
-                replacements['{{extelaf_amount}}'] = str(latest_purchase.extelaf_amount or '')
-                replacements['{{extelaf_type}}'] = str(latest_purchase.extelaf_type or '')
-            
-            # داده‌های محصول
-            if hasattr(latest_purchase, 'cargo') and latest_purchase.cargo:
-                cargo = latest_purchase.cargo
-                replacements.update({
-                    '{{cottage}}': str(cargo.cottage or ''),
-                    '{{product_type}}': str(cargo.get_product_type_display() if hasattr(cargo, 'get_product_type_display') else ''),
-                    '{{product_country}}': str(cargo.get_country_display() if hasattr(cargo, 'get_country_display') else ''),
-                    '{{port}}': str(cargo.port or ''),
-                    '{{weight}}': str(cargo.weight or ''),
-                })
     
     # جایگزینی همه متغیرها
     for placeholder, value in replacements.items():
@@ -102,16 +100,27 @@ def preview_template_api(request):
         try:
             data = json.loads(request.body)
             message = data.get('message', '')
-            customer_ids = data.get('customer_ids', [])
+            customer_purchases = data.get('customer_purchases', {})  # {customer_id: purchase_id}
             processed_messages = []
-            customers = Customer.objects.filter(id__in=customer_ids)
-            for customer in customers:
-                processed_message = process_template_for_customer(message, customer)
-                processed_messages.append({
-                    'customer_name': customer.name,
-                    'customer_phone': customer.get_primary_phone() or '',
-                    'processed_message': processed_message
-                })
+            
+            for customer_id, purchase_id in customer_purchases.items():
+                try:
+                    customer = Customer.objects.get(id=customer_id)
+                    purchase = None
+                    
+                    if purchase_id:
+                        purchase = Purchase.objects.get(id=purchase_id, customer=customer)
+                    
+                    processed_message = process_template_for_customer(message, customer, purchase)
+                    processed_messages.append({
+                        'customer_name': customer.name,
+                        'customer_phone': mask_phone_number(customer.get_primary_phone()),
+                        'processed_message': processed_message
+                    })
+                except (Customer.DoesNotExist, Purchase.DoesNotExist):
+                    continue
+                
+                    
             return JsonResponse({'success': True, 'processed_messages': processed_messages})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
@@ -181,7 +190,7 @@ def support_customer_search(request):
                 customer_info = {
                     'id': customer.id,
                     'name': customer.name if customer.name else 'بدون نام',
-                    'phone_number': customer.get_primary_phone() or '',
+                    'phone_number': mask_phone_number(customer.get_primary_phone()),
                     'city': customer.city or '',
                 }
                 results.append(customer_info)
@@ -241,6 +250,7 @@ def support_dashboard(request):
         try:
             message = request.POST.get('message')
             selected_customers_data = request.POST.get('selected_customers_data', '')
+            selected_purchases_data = request.POST.get('selected_purchases_data', '')
             notification_type = request.POST.get('notification_type', 'SUPPORT')
             
             # پردازش مشتریان انتخاب شده
@@ -251,6 +261,14 @@ def support_dashboard(request):
                 except json.JSONDecodeError:
                     # اگر JSON نامعتبر بود، از روش قدیمی استفاده می‌کنیم
                     selected_customer_ids = request.POST.getlist('selected_customers')
+            
+            # پردازش خریدهای انتخاب شده
+            selected_purchases = {}
+            if selected_purchases_data:
+                try:
+                    selected_purchases = json.loads(selected_purchases_data)
+                except json.JSONDecodeError:
+                    selected_purchases = {}
             
             # اعتبارسنجی
             if not message:
@@ -281,8 +299,16 @@ def support_dashboard(request):
                     total_failed += 1
                     continue
                 
-                # پردازش قالب با داده‌های مشتری
-                processed_message = process_template_for_customer(message, customer)
+                # دریافت خرید انتخاب شده برای این مشتری
+                purchase = None
+                if str(customer.id) in selected_purchases and selected_purchases[str(customer.id)]:
+                    try:
+                        purchase = Purchase.objects.get(id=selected_purchases[str(customer.id)], customer=customer)
+                    except Purchase.DoesNotExist:
+                        logger.warning(f"خرید انتخاب شده برای مشتری {customer.name} یافت نشد.")
+                
+                # پردازش قالب با داده‌های مشتری و خرید انتخاب شده
+                processed_message = process_template_for_customer(message, customer, purchase)
                 
                 # ارسال پیامک به همه شماره‌های مشتری
                 customer_sent = 0
@@ -1663,6 +1689,41 @@ def get_product_templates(request):
         'templates': templates_list,
         'count': len(templates_list)
     })
+
+@role_required('admin', 'support_agent')
+@login_required
+def get_customer_purchases(request):
+    """Returns all purchases for a specific customer as JSON"""
+    customer_id = request.GET.get('customer_id')
+    
+    if not customer_id:
+        return JsonResponse({'error': 'Customer ID is required'}, status=400)
+    
+    try:
+        customer = Customer.objects.get(id=customer_id)
+        purchases = customer.purchases_made.all().order_by('-created_at')
+        
+        purchases_list = []
+        for purchase in purchases:
+            purchases_list.append({
+                'id': purchase.id,
+                'purchase_number': purchase.purchase_number or '',
+                'invoice_id': purchase.invoice_id or '',
+                'order_weight': purchase.order_weight or 0,
+                'state': purchase.state,
+                'state_display': purchase.get_state_display(),
+                'created_at': purchase.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'cargo_info': f"{purchase.cargo.get_product_type_display() if purchase.cargo else ''} {purchase.cargo.get_country_display() if purchase.cargo else ''}".strip() or 'بدون محصول'
+            })
+        
+        return JsonResponse({
+            'customer_name': customer.name or 'بدون نام',
+            'customer_phone': mask_phone_number(customer.get_primary_phone()),
+            'purchases': purchases_list,
+            'count': len(purchases_list)
+        })
+    except Customer.DoesNotExist:
+        return JsonResponse({'error': 'Customer not found'}, status=404)
 
 @role_required('admin', 'support_agent')
 @login_required

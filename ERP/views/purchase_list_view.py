@@ -434,7 +434,7 @@ def purchase_list(request):
             {'id': 'delivered_weight', 'name': 'وزن بارنامه شده', 'field': 'delivered_weight', 'unit': 'کیلوگرم'},
             {'id': 'status', 'name': 'وضعیت', 'field': 'state'},
             {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
-            {'id': 'product_type', 'name': 'نام محصول', 'field': 'cargo.product_type'},
+            {'id': 'product_type', 'name': 'نام محصول', 'field': 'cargo.get_product_type_display'},
             {'id': 'customer', 'name': 'نام مشتری', 'field': 'customer.name'},
             {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
             {'id': 'bazaargah_phone_number', 'name': 'شماره تلفن بازارگاه', 'field': 'bazaargah_phone_number'},
@@ -484,7 +484,7 @@ def purchase_list(request):
             {'id': 'delivered_weight', 'name': 'وزن بارنامه شده', 'field': 'delivered_weight', 'unit': 'کیلوگرم'},
             {'id': 'status', 'name': 'وضعیت', 'field': 'state'},
             {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
-            {'id': 'product_type', 'name': 'نام محصول', 'field': 'cargo.product_type'},
+            {'id': 'product_type', 'name': 'نام محصول', 'field': 'cargo.get_product_type_display'},
             {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name'},
             {'id': 'barbary', 'name': 'نام باربری', 'field': 'cargo.barbary.name'},
             {'id': 'barbary_phone', 'name': 'شماره باربری', 'field': 'cargo.barbary.phone_number'},
@@ -547,7 +547,7 @@ def purchase_list(request):
             {'id': 'purchase_mabna_invoice', 'name': 'فاکتور خرید مبنا', 'field': 'purchase_mabna_invoice', 'unit': 'ریال'},
             {'id': 'sales_mabna_invoice', 'name': 'فاکتور فروش مبنا', 'field': 'sales_mabna_invoice', 'unit': 'ریال'},
             {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
-            {'id': 'product_type', 'name': 'نام محصول', 'field': 'cargo.product_type'},
+            {'id': 'product_type', 'name': 'نام محصول', 'field': 'cargo.get_product_type_display'},
             {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name'},
             {'id': 'buyer_name', 'name': 'نام خریدار', 'field': 'buyer_name'},
             {'id': 'code_melli_tahvil', 'name': 'کد ملی تحویل', 'field': 'code_melli_tahvil'},
@@ -614,7 +614,7 @@ def purchase_list(request):
             {'id': 'sales_mabna_invoice', 'name': 'فاکتور فروش مبنا', 'field': 'sales_mabna_invoice', 'unit': 'ریال'},
             {'id': 'mabna_profit', 'name': 'سود مبنا', 'field': 'mabna_profit', 'unit': 'ریال'},
             {'id': 'cargo', 'name': 'کوتاژ', 'field': 'cargo.cottage'},
-            {'id': 'product_type', 'name': 'نام محصول', 'field': 'cargo.product_type'},
+            {'id': 'product_type', 'name': 'نام محصول', 'field': 'cargo.get_product_type_display'},
             {'id': 'importer', 'name': 'واردکننده', 'field': 'cargo.vared_konandeh.name'},
             {'id': 'barbary', 'name': 'نام باربری', 'field': 'cargo.barbary.name'},
             {'id': 'barbary_phone', 'name': 'شماره باربری', 'field': 'cargo.barbary.phone_number'},
@@ -744,7 +744,6 @@ def purchase_list(request):
             ])
         logger.warning(f"ستون های انتخابی کاربر نامحدود {request.user.username}: {selected_columns}")
         logger.warning(f"ستون های قابل انتخاب کاربر نامحدود {request.user.username}: {all_columns}")"""
-
     # اگر درخواست AJAX است، فقط داده‌های JSON برگردان
     if is_ajax:
         return JsonResponse({
@@ -1062,7 +1061,7 @@ def _export_regular_excel(purchase_ids, selected_columns):
         'priority_reason': ('دلیل اولویت', lambda p: p.priority_reason or "-"),
         'barbary': ('نام باربری', lambda p: p.cargo.barbary.name if p.cargo and hasattr(p.cargo, 'barbary') and p.cargo.barbary else "-"),
         'barbary_phone': ('شماره باربری', lambda p: p.cargo.barbary.phone_number if p.cargo and hasattr(p.cargo, 'barbary') and p.cargo.barbary and p.cargo.barbary.phone_number else "-"),
-        'product_type': ('نام محصول', lambda p: p.cargo.get_product_type_display() if p.cargo and hasattr(p.cargo, 'product_type') and p.cargo.product_type else "-"),
+        'product_type': ('نام محصول', lambda p: p.cargo.get_product_type_display() if p.cargo and hasattr(p.cargo, 'cottage') and p.cargo.cottage else "-"),
         'first_barnameh_date': ('تاریخ اولین بارنامه', lambda p: p.barnamehs.order_by('barnameh_date').first().barnameh_date.strftime("%Y/%m/%d") if hasattr(p, 'barnamehs') and p.barnamehs.exists() and p.barnamehs.order_by('barnameh_date').first().barnameh_date else "-"),
         'last_barnameh_date': ('تاریخ آخرین بارنامه', lambda p: p.barnamehs.order_by('-barnameh_date').first().barnameh_date.strftime("%Y/%m/%d") if hasattr(p, 'barnamehs') and p.barnamehs.exists() and p.barnamehs.order_by('-barnameh_date').first().barnameh_date else "-"),
         'company_price': ('فی خرید (ریال)', lambda p: f"{p.company_price:,}" if p.company_price else "0"),

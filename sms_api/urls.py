@@ -40,6 +40,7 @@ urlpatterns = [
     
     # API endpoints
     path('api/customer/search/', views.support_customer_search, name='support_customer_search'),
+    path('api/customer/purchases/', views.get_customer_purchases, name='get_customer_purchases'),
     path('api/templates/status/', views.get_templates_for_status, name='get_templates_for_status'),
     path('api/templates/marketing/', views.get_marketing_templates, name='get_marketing_templates'),
     path('api/templates/product/', views.get_product_templates, name='get_product_templates'),

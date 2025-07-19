@@ -144,7 +144,7 @@ class CargoProduct(models.Model):
             raise ValidationError('فی فروش باید حداقل 50000 ریال باشد.')
         if self.company_price != 0 and self.company_price < 50000:
             raise ValidationError('فی خرید باید حداقل 50000 ریال باشد.')
-        
+    
     def get_product_type_display(self):
         return dict(self.PRODUCT_TYPES).get(self.product_type, _('نامشخص'))
     def get_country_display(self):
