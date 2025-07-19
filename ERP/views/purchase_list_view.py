@@ -1033,7 +1033,7 @@ def _export_regular_excel(purchase_ids, selected_columns):
         'description': ('توضیحات', lambda p: p.description or "-"),
         'factor_code': ('فاکتور مبنا', lambda p: "بله" if p.factor_code else "خیر"),
         'unique_buyer_id': ('شناسه یکتا خریدار', lambda p: p.unique_buyer_id or "-"),
-        'factor_status': ('وضعیت فاکتور', lambda p: p.factor_status or "-"),
+        'factor_status': ('وضعیت فاکتور', lambda p: p.get_factor_status_display() if p.factor_status else "-"),
         'code_melli_tahvil': ('کد ملی تحویل', lambda p: p.code_melli_tahvil or "-"),
         'bazaargah_phone_number': ('شماره تلفن بازارگاه', lambda p: p.bazaargah_phone_number or "-"),
         'buyer_name': ('نام خریدار', lambda p: p.buyer_name or "-"),
@@ -1706,11 +1706,7 @@ def get_purchase_table_configuration(request):
     """
     API برای دریافت تنظیمات ستون‌های جدول خریدها
     """
-    logger.warning(f"دریافت تنظیمات ستون‌های جدول خریدها (حذف شده!) توسط {request.user.username} و {get_client_ip(request)}")
-    return JsonResponse({
-            'status': 'error',
-            'message': "error"
-        }, status=500)
+    logger.warning(f"دریافت تنظیمات ستون‌های جدول خریدها توسط {request.user.username} و {get_client_ip(request)}")
     try:
         table_name = request.GET.get('table_name', 'purchases')
         user_role = determine_user_role(request.user)
@@ -1793,6 +1789,7 @@ def get_purchase_table_configuration(request):
                 {'id': 'delivery_address', 'name':'آدرس تحویل', 'type': 'text', 'filterable': True, 'sortable': True},
                 {'id': 'delivery_postal_code', 'name':'کد پستی تحویل', 'type': 'text', 'filterable': True, 'sortable': True},
                 {'id': 'vehicle_type', 'name':'نوع خودرو حمل', 'type': 'choice', 'filterable': True, 'sortable': True},
+                {'id': 'factor_status', 'name': 'وضعیت فاکتور', 'type': 'choice', 'filterable': True, 'sortable': True},
             ]
         
         return JsonResponse({
@@ -2111,6 +2108,26 @@ def apply_purchase_filter(request):
                             filter_conditions &= Q(shenase_takhsis_set__code__in=values)
                         else:
                             filter_conditions &= ~Q(shenase_takhsis_set__code__in=values)
+
+                elif column_id == 'product_type':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        # تبدیل نمایش فارسی به کد نوع محصول
+                        from core.CargoProductModel import CargoProduct
+                        product_map = {v: k for k, v in dict(CargoProduct.PRODUCT_TYPES).items()}
+                        product_codes = []
+                        for v in values:
+                            if v in product_map:
+                                product_codes.append(product_map[v])
+                            else:
+                                # اگر مقدار مستقیماً کد باشد
+                                product_codes.append(v)
+                        
+                        if product_codes:
+                            if filter_type == 'include':
+                                filter_conditions &= Q(cargo__product_type__in=product_codes)
+                            else:
+                                filter_conditions &= ~Q(cargo__product_type__in=product_codes)
                 
                 elif column_id == 'updated_at':
                     # فیلتر تاریخ بروزرسانی
@@ -2147,6 +2164,10 @@ def apply_purchase_filter(request):
                 Q(purchase_number__icontains=global_search) |
                 Q(invoice_id__icontains=global_search) |
                 Q(buyer_name__icontains=global_search) |
+                Q(company_price__icontains=global_search) |
+                Q(customer_price__icontains=global_search) |
+                Q(delivered_weight__icontains=global_search) |
+                Q(total_weight__icontains=global_search) |
                 
                 # اطلاعات کوتاژ و حمل‌ونقل
                 Q(cargo__cottage__icontains=global_search) |
@@ -2194,6 +2215,7 @@ def apply_purchase_filter(request):
                 'customer': 'customer__name',
                 'invoice_id': 'invoice_id',
                 'sales_agent': 'unique_sales_agent__name',
+                'product_type': 'cargo__product_type',
                 'weight': 'order_weight',
                 'cargo': 'cargo__cottage',
                 'importer': 'cargo__vared_konandeh__name',
@@ -2290,11 +2312,12 @@ def apply_purchase_filter(request):
                 'cargo': purchase.cargo.cottage if purchase.cargo else '-',
                 'barbary': purchase.cargo.barbary.name if purchase.cargo and purchase.cargo.barbary else '-',
                 'importer': purchase.cargo.vared_konandeh.name if purchase.cargo and purchase.cargo.vared_konandeh else '-',
+                'product_type': purchase.cargo.get_product_type_display() if purchase.cargo and purchase.cargo.get_product_type_display() else '-',
                 'address': purchase.address or '-',
                 'description': purchase.description or '-',
                 'factor_code': '1' if purchase.factor_code else '0',
                 'unique_buyer_id': purchase.unique_buyer_id or '-',
-                'factor_status': purchase.factor_status or '-',
+                'factor_status': purchase.get_factor_status_display() if purchase.factor_status else '-',
                 'code_melli_tahvil': purchase.code_melli_tahvil or '-',
                 'bazaargah_phone_number': purchase.bazaargah_phone_number or '-',
                 'tahvil_phone_number': purchase.tahvil_phone_number or '-',
@@ -2694,7 +2717,7 @@ def get_purchase_column_values(request):
                                         'tahvil_phone_number', 'priority_reason',
                                         'barbary_confidential_number', 'barbary_customer_number',
                                         'delivery_receiver_name', 'buyer_national_id', 'unique_delivery_id',
-                                        'delivery_address', 'delivery_postal_code', 'factor_status']:
+                                        'delivery_address', 'delivery_postal_code']:
                     values = [v for v in values if v and v.strip()]
                     if values:
                         if filter_type == 'include':
@@ -2735,6 +2758,23 @@ def get_purchase_column_values(request):
                             filter_conditions &= Q(vehicle_type__in=vehicle_type_codes)
                         else:
                             filter_conditions &= ~Q(vehicle_type__in=vehicle_type_codes)
+                
+                elif filter_column_id == 'factor_status':
+                    # تبدیل نمایش فارسی به کد وضعیت فاکتور
+                    from core.PurchaseModel import Purchase
+                    factor_status_map = {v: k for k, v in dict(Purchase.FACTOR_CHOICES).items()}
+                    factor_status_codes = []
+                    for v in values:
+                        if v in factor_status_map:
+                            factor_status_codes.append(factor_status_map[v])
+                        else:
+                            factor_status_codes.append(v)
+                    
+                    if factor_status_codes:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(factor_status__in=factor_status_codes)
+                        else:
+                            filter_conditions &= ~Q(factor_status__in=factor_status_codes)
                 
                 elif filter_column_id in ['factor_code', 'send_cottage_sms', 'is_weight_costed', 
                                         'is_ap_af', 'is_fully_tasvied', 'ready_for_invoice']:
@@ -2893,7 +2933,7 @@ def get_purchase_column_values(request):
         elif column_id in ['address', 'description', 'unique_buyer_id', 'code_melli_tahvil', 
                           'bazaargah_phone_number', 'tahvil_phone_number', 'priority_reason',
                           'barbary_confidential_number', 'barbary_customer_number', 'delivery_receiver_name',
-                          'buyer_national_id', 'unique_delivery_id', 'delivery_address', 'delivery_postal_code', 'factor_status']:
+                          'buyer_national_id', 'unique_delivery_id', 'delivery_address', 'delivery_postal_code']:
             values_queryset = queryset.exclude(**{f'{column_id}__isnull': True})\
                 .exclude(**{f'{column_id}': ''}).values_list(column_id, flat=True).distinct()
             values = set(values_queryset)
@@ -2940,6 +2980,15 @@ def get_purchase_column_values(request):
             from core.PurchaseModel import Purchase
             vehicle_choices = dict(Purchase.VEHICLE_TYPE_CHOICES)
             values = set([vehicle_choices.get(vehicle_type, vehicle_type) for vehicle_type in values_queryset if vehicle_type])
+        
+        elif column_id == 'factor_status':
+            values_queryset = queryset.exclude(factor_status__isnull=True)\
+                .exclude(factor_status='')\
+                .values_list('factor_status', flat=True).distinct()
+            # تبدیل کدهای وضعیت فاکتور به نمایش فارسی
+            from core.PurchaseModel import Purchase
+            factor_choices = dict(Purchase.FACTOR_CHOICES)
+            values = set([factor_choices.get(factor_status, factor_status) for factor_status in values_queryset if factor_status])
         
         elif column_id == 'shenase_takhsis':
             # استخراج شناسه‌های تخصیص از related objects
