@@ -705,137 +705,776 @@
         background: linear-gradient(135deg, #2f855a 0%, #276749 100%) !important;
     }
     
-    /* استایل‌های خاص برای modal فیلتر */
+    /* استایل‌های حرفه‌ای و مدرن برای modal فیلتر */
+    #barnamehFilterModal {
+        z-index: 9999 !important;
+    }
+    
     #barnamehFilterModal .modal-dialog {
-        max-width: 800px !important;
-        margin: 1.75rem auto !important;
+        max-width: 900px !important;
+        margin: 1rem auto !important;
+        transform: scale(0.95) !important;
+        transition: transform 0.3s ease-out !important;
+    }
+    
+    #barnamehFilterModal.show .modal-dialog {
+        transform: scale(1) !important;
     }
     
     #barnamehFilterModal .modal-content {
-        border-radius: 15px !important;
+        border-radius: 20px !important;
         border: none !important;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4) !important;
+        backdrop-filter: blur(10px) !important;
+        background: rgba(255, 255, 255, 0.95) !important;
     }
     
     #barnamehFilterModal .modal-header {
-        background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
+        background: linear-gradient(135deg, #065f46 0%, #047857 100%) !important;
         color: white !important;
-        border-radius: 15px 15px 0 0 !important;
-        padding: 1.5rem !important;
+        border-radius: 20px 20px 0 0 !important;
+        padding: 1.25rem 1.5rem !important;
+        border-bottom: none !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+    
+    #barnamehFilterModal .modal-header::before {
+        content: '' !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%) !important;
+        pointer-events: none !important;
+    }
+    
+    #barnamehFilterModal .modal-header .modal-title {
+        font-weight: 700 !important;
+        font-size: 1.1rem !important;
+        position: relative !important;
+        z-index: 1 !important;
+    }
+    
+    #barnamehFilterModal .modal-header .btn-close {
+        filter: brightness(0) invert(1) !important;
+        opacity: 0.8 !important;
+        transition: opacity 0.2s ease !important;
+        position: relative !important;
+        z-index: 1 !important;
+    }
+    
+    #barnamehFilterModal .modal-header .btn-close:hover {
+        opacity: 1 !important;
+        transform: scale(1.1) !important;
     }
     
     #barnamehFilterModal .modal-body {
-        padding: 2rem !important;
-        max-height: 70vh !important;
+        padding: 1.5rem !important;
+        max-height: 65vh !important;
         overflow-y: auto !important;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    }
+    
+    #barnamehFilterModal .modal-body::-webkit-scrollbar {
+        width: 8px !important;
+    }
+    
+    #barnamehFilterModal .modal-body::-webkit-scrollbar-track {
+        background: #f1f5f9 !important;
+        border-radius: 10px !important;
+    }
+    
+    #barnamehFilterModal .modal-body::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #065f46 0%, #047857 100%) !important;
+        border-radius: 10px !important;
     }
     
     #barnamehFilterModal .modal-footer {
         border-top: 2px solid #e2e8f0 !important;
-        padding: 1.5rem 2rem !important;
-        background: #f8f9fa !important;
-        border-radius: 0 0 15px 15px !important;
-    }
-    
-    #barnamehFilterModal .values-list {
-        background: #f8f9fa !important;
-        border: 2px solid #e2e8f0 !important;
-        border-radius: 10px !important;
-        padding: 1rem !important;
-    }
-    
-    #barnamehFilterModal .form-check {
-        background: white !important;
-        border-radius: 8px !important;
-        padding: 0.5rem !important;
-        margin-bottom: 0.5rem !important;
-        border: 1px solid #e2e8f0 !important;
-        transition: all 0.2s ease !important;
-    }
-    
-    #barnamehFilterModal .form-check:hover {
-        background: #f0f9ff !important;
-        border-color: #38a169 !important;
-    }
-    
-    #barnamehFilterModal .form-check-input:checked {
-        background-color: #38a169 !important;
-        border-color: #38a169 !important;
-    }
-    
-    #barnamehFilterModal .btn-group .btn {
-        border-radius: 8px !important;
-        margin: 0 2px !important;
+        padding: 1.25rem 1.5rem !important;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+        border-radius: 0 0 20px 20px !important;
+        gap: 0.5rem !important;
     }
     
     #barnamehFilterModal .filter-stats {
-        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
-        border: 2px solid #0ea5e9 !important;
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+        border: 2px solid #3b82f6 !important;
+        border-radius: 15px !important;
+        padding: 1rem !important;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.2) !important;
+        margin-bottom: 1.5rem !important;
+    }
+    
+    #barnamehFilterModal .filter-stats .row {
+        margin: 0 !important;
+    }
+    
+    #barnamehFilterModal .filter-stats .col-4 {
+        padding: 0.5rem !important;
+    }
+    
+    #barnamehFilterModal .filter-stats h6 {
+        font-size: 1.5rem !important;
+        font-weight: 700 !important;
+        color: #1e3a8a !important;
+        margin: 0 !important;
+    }
+    
+    #barnamehFilterModal .filter-stats small {
+        font-size: 0.8rem !important;
+        color: #475569 !important;
+        font-weight: 500 !important;
+    }
+    
+    #barnamehFilterModal .filter-type {
+        margin-bottom: 1.5rem !important;
+    }
+    
+    #barnamehFilterModal .filter-type .form-label {
+        font-weight: 600 !important;
+        color: #37474f !important;
+        margin-bottom: 0.75rem !important;
+        font-size: 0.95rem !important;
+    }
+    
+    #barnamehFilterModal .btn-group {
         border-radius: 12px !important;
+        overflow: hidden !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    #barnamehFilterModal .btn-group .btn {
+        border: none !important;
+        padding: 0.6rem 1rem !important;
+        font-weight: 600 !important;
+        font-size: 0.85rem !important;
+        transition: all 0.3s ease !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+    
+    #barnamehFilterModal .btn-group .btn::before {
+        content: '' !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: -100% !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent) !important;
+        transition: left 0.5s ease !important;
+    }
+    
+    #barnamehFilterModal .btn-group .btn:hover::before {
+        left: 100% !important;
+    }
+    
+    #barnamehFilterModal .btn-outline-success {
+        color: #2e7d32 !important;
+        border-color: #4caf50 !important;
+        background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%) !important;
+    }
+    
+    #barnamehFilterModal .btn-outline-success:hover,
+    #barnamehFilterModal .btn-outline-success:checked {
+        background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%) !important;
+        color: white !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3) !important;
+    }
+    
+    #barnamehFilterModal .btn-outline-danger {
+        color: #c62828 !important;
+        border-color: #f44336 !important;
+        background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%) !important;
+    }
+    
+    #barnamehFilterModal .btn-outline-danger:hover,
+    #barnamehFilterModal .btn-outline-danger:checked {
+        background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%) !important;
+        color: white !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3) !important;
+    }
+    
+    #barnamehFilterModal .search-container {
+        margin-bottom: 1.5rem !important;
+        position: relative !important;
+    }
+    
+    #barnamehFilterModal .search-container::before {
+        content: '' !important;
+        position: absolute !important;
+        top: -5px !important;
+        left: -5px !important;
+        right: -5px !important;
+        bottom: -5px !important;
+        background: linear-gradient(135deg, #065f46 0%, #047857 50%, #10b981 100%) !important;
+        border-radius: 15px !important;
+        z-index: -1 !important;
+        opacity: 0.1 !important;
+        transition: opacity 0.3s ease !important;
+    }
+    
+    #barnamehFilterModal .search-container:focus-within::before {
+        opacity: 0.2 !important;
+    }
+    
+    #barnamehFilterModal .search-container .input-group {
+        border-radius: 12px !important;
+        overflow: hidden !important;
+        box-shadow: 0 4px 15px rgba(6, 95, 70, 0.15) !important;
+        border: 2px solid transparent !important;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+        transition: all 0.3s ease !important;
+        position: relative !important;
+    }
+    
+    #barnamehFilterModal .search-container .input-group:focus-within {
+        border-color: #065f46 !important;
+        box-shadow: 0 6px 25px rgba(6, 95, 70, 0.25) !important;
+        transform: translateY(-1px) !important;
+    }
+    
+    #barnamehFilterModal .search-container .input-group-text {
+        background: linear-gradient(135deg, #065f46 0%, #047857 100%) !important;
+        border: none !important;
+        color: white !important;
+        font-weight: 600 !important;
+        padding: 0.75rem 1rem !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+    
+    #barnamehFilterModal .search-container .input-group-text::before {
+        content: '' !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: -100% !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent) !important;
+        transition: left 0.5s ease !important;
+    }
+    
+    #barnamehFilterModal .search-container .input-group:focus-within .input-group-text::before {
+        left: 100% !important;
+    }
+    
+    #barnamehFilterModal .search-container .form-control {
+        border: none !important;
+        padding: 0.75rem 1rem !important;
+        font-size: 0.9rem !important;
+        background: transparent !important;
+        color: #37474f !important;
+        font-weight: 500 !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    #barnamehFilterModal .search-container .form-control::placeholder {
+        color: #94a3b8 !important;
+        font-weight: 400 !important;
+    }
+    
+    #barnamehFilterModal .search-container .form-control:focus {
+        box-shadow: none !important;
+        background: rgba(6, 95, 70, 0.02) !important;
+        color: #065f46 !important;
+    }
+    
+    #barnamehFilterModal .search-container .btn {
+        border: none !important;
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%) !important;
+        color: #065f46 !important;
+        transition: all 0.3s ease !important;
+        font-weight: 600 !important;
+        padding: 0.75rem 1rem !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+    
+    #barnamehFilterModal .search-container .btn::before {
+        content: '' !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: -100% !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: linear-gradient(90deg, transparent, rgba(6, 95, 70, 0.1), transparent) !important;
+        transition: left 0.5s ease !important;
+    }
+    
+    #barnamehFilterModal .search-container .btn:hover {
+        background: linear-gradient(135deg, #065f46 0%, #047857 100%) !important;
+        color: white !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(6, 95, 70, 0.3) !important;
+    }
+    
+    #barnamehFilterModal .search-container .btn:hover::before {
+        left: 100% !important;
+    }
+    
+    #barnamehFilterModal .control-buttons {
+        margin-bottom: 1.5rem !important;
+    }
+    
+    #barnamehFilterModal .control-buttons .btn-group {
+        margin-bottom: 0.75rem !important;
+    }
+    
+    #barnamehFilterModal .control-buttons .btn {
+        font-size: 0.8rem !important;
+        padding: 0.5rem 0.75rem !important;
+        border-radius: 8px !important;
+        margin: 0 2px !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    #barnamehFilterModal .control-buttons .btn-outline-primary {
+        color: #065f46 !important;
+        border-color: #10b981 !important;
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%) !important;
+    }
+    
+    #barnamehFilterModal .control-buttons .btn-outline-primary:hover {
+        background: linear-gradient(135deg, #10b981 0%, #065f46 100%) !important;
+        color: white !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(6, 95, 70, 0.3) !important;
+    }
+    
+    #barnamehFilterModal .control-buttons .btn-outline-secondary {
+        color: #616161 !important;
+        border-color: #9e9e9e !important;
+        background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%) !important;
+    }
+    
+    #barnamehFilterModal .control-buttons .btn-outline-secondary:hover {
+        background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%) !important;
+        color: white !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(158, 158, 158, 0.3) !important;
+    }
+    
+    #barnamehFilterModal .control-buttons .btn-outline-info {
+        color: #0c4a6e !important;
+        border-color: #0ea5e9 !important;
+        background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%) !important;
+    }
+    
+    #barnamehFilterModal .control-buttons .btn-outline-info:hover {
+        background: linear-gradient(135deg, #0ea5e9 0%, #0c4a6e 100%) !important;
+        color: white !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(12, 74, 110, 0.3) !important;
+    }
+    
+    #barnamehFilterModal .control-buttons .btn-outline-success {
+        color: #065f46 !important;
+        border-color: #10b981 !important;
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%) !important;
+    }
+    
+    #barnamehFilterModal .control-buttons .btn-outline-success:hover {
+        background: linear-gradient(135deg, #10b981 0%, #065f46 100%) !important;
+        color: white !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(6, 95, 70, 0.3) !important;
+    }
+    
+    #barnamehFilterModal .control-buttons .btn-outline-warning {
+        color: #92400e !important;
+        border-color: #f59e0b !important;
+        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
+    }
+    
+    #barnamehFilterModal .control-buttons .btn-outline-warning:hover {
+        background: linear-gradient(135deg, #f59e0b 0%, #92400e 100%) !important;
+        color: white !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(146, 64, 14, 0.3) !important;
+    }
+    
+    #barnamehFilterModal .values-container {
+        margin-bottom: 1rem !important;
+    }
+    
+    #barnamehFilterModal .values-list {
+        background: white !important;
+        border: 2px solid #e2e8f0 !important;
+        border-radius: 15px !important;
+        padding: 1rem !important;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+        max-height: 250px !important;
+        overflow-y: auto !important;
+    }
+    
+    #barnamehFilterModal .values-list::-webkit-scrollbar {
+        width: 6px !important;
+    }
+    
+    #barnamehFilterModal .values-list::-webkit-scrollbar-track {
+        background: #f1f5f9 !important;
+        border-radius: 10px !important;
+    }
+    
+    #barnamehFilterModal .values-list::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #065f46 0%, #047857 100%) !important;
+        border-radius: 10px !important;
+    }
+    
+    #barnamehFilterModal .form-check {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+        border-radius: 10px !important;
+        padding: 0.6rem 0.8rem !important;
+        margin-bottom: 0.4rem !important;
+        border: 1px solid #e2e8f0 !important;
+        transition: all 0.3s ease !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+    
+    #barnamehFilterModal .form-check::before {
+        content: '' !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: -100% !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: linear-gradient(90deg, transparent, rgba(6, 95, 70, 0.1), transparent) !important;
+        transition: left 0.5s ease !important;
+    }
+    
+    #barnamehFilterModal .form-check:hover::before {
+        left: 100% !important;
+    }
+    
+    #barnamehFilterModal .form-check:hover {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%) !important;
+        border-color: #065f46 !important;
+        transform: translateX(3px) !important;
+        box-shadow: 0 2px 8px rgba(6, 95, 70, 0.2) !important;
+    }
+    
+    #barnamehFilterModal .form-check-input {
+        width: 1.2em !important;
+        height: 1.2em !important;
+        margin-left: 0.5rem !important;
+        margin-right: 0 !important;
+        accent-color: #065f46 !important;
+        border: 2px solid #cbd5e0 !important;
+        border-radius: 4px !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    #barnamehFilterModal .form-check-input:checked {
+        background-color: #065f46 !important;
+        border-color: #065f46 !important;
+        box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.2) !important;
+    }
+    
+    #barnamehFilterModal .form-check-input:focus {
+        box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.3) !important;
+    }
+    
+    #barnamehFilterModal .form-check-label {
+        font-weight: 500 !important;
+        color: #37474f !important;
+        cursor: pointer !important;
+        padding: 0.25rem 0 !important;
+        transition: color 0.2s ease !important;
+    }
+    
+    #barnamehFilterModal .form-check:hover .form-check-label {
+        color: #065f46 !important;
+    }
+    
+    #barnamehFilterModal .modal-footer .btn {
+        border-radius: 10px !important;
+        padding: 0.6rem 1.2rem !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        transition: all 0.3s ease !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+    
+    #barnamehFilterModal .modal-footer .btn::before {
+        content: '' !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: -100% !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent) !important;
+        transition: left 0.5s ease !important;
+    }
+    
+    #barnamehFilterModal .modal-footer .btn:hover::before {
+        left: 100% !important;
+    }
+    
+    #barnamehFilterModal .modal-footer .btn-secondary {
+        background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%) !important;
+        border: none !important;
+        color: white !important;
+    }
+    
+    #barnamehFilterModal .modal-footer .btn-secondary:hover {
+        background: linear-gradient(135deg, #757575 0%, #616161 100%) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(117, 117, 117, 0.3) !important;
+    }
+    
+    #barnamehFilterModal .modal-footer .btn-warning {
+        background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%) !important;
+        border: none !important;
+        color: white !important;
+    }
+    
+    #barnamehFilterModal .modal-footer .btn-warning:hover {
+        background: linear-gradient(135deg, #f57c00 0%, #ef6c00 100%) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(245, 124, 0, 0.3) !important;
+    }
+    
+    #barnamehFilterModal .modal-footer .btn-primary {
+        background: linear-gradient(135deg, #065f46 0%, #047857 100%) !important;
+        border: none !important;
+        color: white !important;
+    }
+    
+    #barnamehFilterModal .modal-footer .btn-primary:hover {
+        background: linear-gradient(135deg, #047857 0%, #065f46 100%) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(6, 95, 70, 0.4) !important;
     }
 
-    /* استایل‌های مدال مدیریت ستون‌ها - Overlay Style */
+    /* استایل‌های حرفه‌ای و مدرن برای مدال مدیریت ستون‌ها */
 #columnsModal {
     z-index: 9999 !important;
 }
 
 #columnsModal .modal-dialog {
-    max-width: 800px !important;
-    margin: 2rem auto !important;
+    max-width: 900px !important;
+    margin: 1rem auto !important;
+    transform: scale(0.95) !important;
+    transition: transform 0.3s ease-out !important;
+}
+
+#columnsModal.show .modal-dialog {
+    transform: scale(1) !important;
 }
 
 #columnsModal .modal-content {
-    border-radius: 15px !important;
+    border-radius: 20px !important;
     overflow: hidden !important;
-    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3) !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4) !important;
     border: none !important;
+    backdrop-filter: blur(10px) !important;
+    background: rgba(255, 255, 255, 0.95) !important;
 }
 
 #columnsModal .modal-header {
-    background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
+    background: linear-gradient(135deg, #065f46 0%, #047857 100%) !important;
     color: white !important;
     border-bottom: none !important;
-    padding: 1.5rem 2rem !important;
-    border-radius: 15px 15px 0 0 !important;
+    padding: 1.25rem 1.5rem !important;
+    border-radius: 20px 20px 0 0 !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+#columnsModal .modal-header::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%) !important;
+    pointer-events: none !important;
+}
+
+#columnsModal .modal-header .modal-title {
+    font-weight: 700 !important;
+    font-size: 1.1rem !important;
+    position: relative !important;
+    z-index: 1 !important;
 }
 
 #columnsModal .modal-header .btn-close {
-    filter: invert(1) brightness(100) !important;
+    filter: brightness(0) invert(1) !important;
+    opacity: 0.8 !important;
+    transition: opacity 0.2s ease !important;
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+#columnsModal .modal-header .btn-close:hover {
+    opacity: 1 !important;
+    transform: scale(1.1) !important;
 }
 
 #columnsModal .modal-body {
-    padding: 2rem !important;
-    max-height: 70vh !important;
+    padding: 1.5rem !important;
+    max-height: 65vh !important;
     overflow-y: auto !important;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+}
+
+#columnsModal .modal-body::-webkit-scrollbar {
+    width: 8px !important;
+}
+
+#columnsModal .modal-body::-webkit-scrollbar-track {
+    background: #f1f5f9 !important;
+    border-radius: 10px !important;
+}
+
+#columnsModal .modal-body::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #065f46 0%, #047857 100%) !important;
+    border-radius: 10px !important;
 }
 
 #columnsModal .modal-footer {
     border-top: 2px solid #e2e8f0 !important;
-    padding: 1.5rem 2rem !important;
-    background: #f8f9fa !important;
-    border-radius: 0 0 15px 15px !important;
+    padding: 1.25rem 1.5rem !important;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    border-radius: 0 0 20px 20px !important;
+    gap: 0.5rem !important;
+}
+
+#columnsModal .alert {
+    border-radius: 15px !important;
+    border-left: 4px solid #065f46 !important;
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%) !important;
+    padding: 1rem 1.25rem !important;
+    margin-bottom: 1.5rem !important;
+    box-shadow: 0 2px 8px rgba(6, 95, 70, 0.1) !important;
+}
+
+#columnsModal .alert i {
+    color: #065f46 !important;
+}
+
+#columnsModal .row {
+    margin: 0 -0.75rem !important;
+}
+
+#columnsModal .col-md-6 {
+    padding: 0 0.75rem !important;
+}
+
+#columnsModal .mb-3 {
+    margin-bottom: 1.5rem !important;
+}
+
+#columnsModal .d-flex.justify-content-between {
+    margin-bottom: 1rem !important;
+}
+
+#columnsModal .d-flex.justify-content-between h6 {
+    font-weight: 700 !important;
+    color: #37474f !important;
+    font-size: 1rem !important;
+    margin: 0 !important;
+}
+
+#columnsModal .d-flex.justify-content-between .btn {
+    font-size: 0.75rem !important;
+    padding: 0.4rem 0.6rem !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    margin-left: 0.25rem !important;
+}
+
+#columnsModal .d-flex.justify-content-between .btn-outline-primary {
+    color: #065f46 !important;
+    border-color: #10b981 !important;
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%) !important;
+}
+
+#columnsModal .d-flex.justify-content-between .btn-outline-primary:hover {
+    background: linear-gradient(135deg, #10b981 0%, #065f46 100%) !important;
+    color: white !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(6, 95, 70, 0.3) !important;
+}
+
+#columnsModal .d-flex.justify-content-between .btn-outline-secondary {
+    color: #616161 !important;
+    border-color: #9e9e9e !important;
+    background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%) !important;
+}
+
+#columnsModal .d-flex.justify-content-between .btn-outline-secondary:hover {
+    background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%) !important;
+    color: white !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(158, 158, 158, 0.3) !important;
 }
 
 #columnsModal .list-group {
-    max-height: 300px !important;
+    max-height: 280px !important;
     overflow-y: auto !important;
-    border-radius: 10px !important;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
+    border-radius: 15px !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08) !important;
     border: 2px solid #e2e8f0 !important;
+    background: white !important;
+}
+
+#columnsModal .list-group::-webkit-scrollbar {
+    width: 6px !important;
+}
+
+#columnsModal .list-group::-webkit-scrollbar-track {
+    background: #f1f5f9 !important;
+    border-radius: 10px !important;
+}
+
+#columnsModal .list-group::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #10b981 0%, #065f46 100%) !important;
+    border-radius: 10px !important;
 }
 
 #columnsModal .list-group-item {
     border-left: none !important;
     border-right: none !important;
-    padding: 0.75rem 1.25rem !important;
+    padding: 0.8rem 1rem !important;
     display: flex !important;
     align-items: center !important;
-    transition: all 0.2s ease !important;
+    transition: all 0.3s ease !important;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+#columnsModal .list-group-item::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: -100% !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: linear-gradient(90deg, transparent, rgba(6, 95, 70, 0.1), transparent) !important;
+    transition: left 0.5s ease !important;
+}
+
+#columnsModal .list-group-item:hover::before {
+    left: 100% !important;
 }
 
 #columnsModal .list-group-item:hover {
-    background-color: #f0f9ff !important;
-    border-color: #38a169 !important;
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%) !important;
+    border-color: #065f46 !important;
+    transform: translateX(3px) !important;
+    box-shadow: 0 2px 8px rgba(6, 95, 70, 0.2) !important;
 }
 
 #columnsModal .list-group-item:first-child {
@@ -849,9 +1488,22 @@
 #columnsModal .form-check-input {
     margin-left: 0.5rem !important;
     margin-right: 0 !important;
-    width: 1.1em !important;
-    height: 1.1em !important;
-    accent-color: #38a169 !important;
+    width: 1.2em !important;
+    height: 1.2em !important;
+    accent-color: #065f46 !important;
+    border: 2px solid #cbd5e0 !important;
+    border-radius: 4px !important;
+    transition: all 0.2s ease !important;
+}
+
+#columnsModal .form-check-input:checked {
+    background-color: #065f46 !important;
+    border-color: #065f46 !important;
+    box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.2) !important;
+}
+
+#columnsModal .form-check-input:focus {
+    box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.3) !important;
 }
 
 #columnsModal .form-check-label {
@@ -859,44 +1511,370 @@
     cursor: pointer !important;
     padding: 0.25rem 0 !important;
     font-weight: 500 !important;
+    color: #37474f !important;
+    transition: color 0.2s ease !important;
 }
 
-#columnsModal .alert {
+#columnsModal .list-group-item:hover .form-check-label {
+    color: #065f46 !important;
+}
+
+#columnsModal .modal-footer .btn {
     border-radius: 10px !important;
-    border-left: 4px solid #38a169 !important;
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+    padding: 0.6rem 1.2rem !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    transition: all 0.3s ease !important;
+    position: relative !important;
+    overflow: hidden !important;
 }
 
-/* Backdrop برای مدال */
-#columnsModal .modal-backdrop {
+#columnsModal .modal-footer .btn::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: -100% !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent) !important;
+    transition: left 0.5s ease !important;
+}
+
+#columnsModal .modal-footer .btn:hover::before {
+    left: 100% !important;
+}
+
+#columnsModal .modal-footer .btn-secondary {
+    background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%) !important;
+    border: none !important;
+    color: white !important;
+}
+
+#columnsModal .modal-footer .btn-secondary:hover {
+    background: linear-gradient(135deg, #757575 0%, #616161 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(117, 117, 117, 0.3) !important;
+}
+
+#columnsModal .modal-footer .btn-warning {
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%) !important;
+    border: none !important;
+    color: white !important;
+}
+
+#columnsModal .modal-footer .btn-warning:hover {
+    background: linear-gradient(135deg, #f57c00 0%, #ef6c00 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(245, 124, 0, 0.3) !important;
+}
+
+#columnsModal .modal-footer .btn-primary {
+    background: linear-gradient(135deg, #065f46 0%, #047857 100%) !important;
+    border: none !important;
+    color: white !important;
+}
+
+#columnsModal .modal-footer .btn-primary:hover {
+    background: linear-gradient(135deg, #047857 0%, #065f46 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(6, 95, 70, 0.4) !important;
+}
+
+/* Backdrop و انیمیشن‌های پیشرفته برای مدال‌ها */
+#columnsModal .modal-backdrop,
+#barnamehFilterModal .modal-backdrop {
     z-index: 9998 !important;
+    background-color: rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: blur(5px) !important;
 }
 
-/* انیمیشن ورود مدال */
-#columnsModal.fade .modal-dialog {
-    transform: scale(0.8) !important;
-    transition: transform 0.3s ease-out !important;
+/* انیمیشن‌های ورود مدال */
+#columnsModal.fade .modal-dialog,
+#barnamehFilterModal.fade .modal-dialog {
+    transform: scale(0.8) translateY(-20px) !important;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
 
-#columnsModal.show .modal-dialog {
-    transform: scale(1) !important;
+#columnsModal.show .modal-dialog,
+#barnamehFilterModal.show .modal-dialog {
+    transform: scale(1) translateY(0) !important;
 }
 
-/* اطمینان از مخفی بودن مدال در ابتدا */
-#columnsModal:not(.show) {
+/* انیمیشن fade برای backdrop */
+#columnsModal .modal-backdrop.fade,
+#barnamehFilterModal .modal-backdrop.fade {
+    opacity: 0 !important;
+    transition: opacity 0.3s ease-in-out !important;
+}
+
+#columnsModal .modal-backdrop.show,
+#barnamehFilterModal .modal-backdrop.show {
+    opacity: 1 !important;
+}
+
+/* اطمینان از مخفی بودن مدال‌ها در ابتدا */
+#columnsModal:not(.show),
+#barnamehFilterModal:not(.show) {
     display: none !important;
     visibility: hidden !important;
 }
 
-/* بهبود backdrop */
-#columnsModal .modal-backdrop {
-    background-color: rgba(0, 0, 0, 0.5) !important;
+/* استایل‌های حرفه‌ای برای جعبه نمایش فیلترهای اعمال شده */
+#filterStatusBox {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+    border: 2px solid #3b82f6 !important;
+    border-radius: 15px !important;
+    padding: 1rem 1.25rem !important;
+    margin-bottom: 1.5rem !important;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.15) !important;
+    position: relative !important;
+    overflow: hidden !important;
 }
 
-/* انیمیشن fade برای backdrop */
-#columnsModal .modal-backdrop.fade {
+#filterStatusBox::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 3px !important;
+    background: linear-gradient(90deg, #3b82f6 0%, #1e40af 50%, #1e3a8a 100%) !important;
+}
+
+#filterStatusBox .filter-status-content {
+    gap: 0.75rem !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+}
+
+#filterStatusBox .filter-status-content i.fa-filter {
+    color: #1e3a8a !important;
+    font-size: 1.1rem !important;
+    margin-left: 0.5rem !important;
+    margin-right: 0 !important;
+}
+
+#filterStatusBox .badge {
+    border-radius: 20px !important;
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    border: none !important;
+    position: relative !important;
+    overflow: hidden !important;
+    transition: all 0.3s ease !important;
+}
+
+#filterStatusBox .badge::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: -100% !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent) !important;
+    transition: left 0.5s ease !important;
+}
+
+#filterStatusBox .badge:hover::before {
+    left: 100% !important;
+}
+
+#filterStatusBox .badge.bg-primary {
+    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+    color: white !important;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3) !important;
+}
+
+#filterStatusBox .badge.bg-primary:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4) !important;
+}
+
+#filterStatusBox .badge.bg-secondary {
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%) !important;
+    color: white !important;
+    box-shadow: 0 2px 8px rgba(100, 116, 139, 0.3) !important;
+}
+
+#filterStatusBox .badge.bg-secondary:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(100, 116, 139, 0.4) !important;
+}
+
+#filterStatusBox .badge.bg-info {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+    color: white !important;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3) !important;
+}
+
+#filterStatusBox .badge.bg-info:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4) !important;
+}
+
+#filterStatusBox .badge i {
+    margin-left: 0.25rem !important;
+    margin-right: 0 !important;
+    font-size: 0.75rem !important;
+}
+
+#filterStatusBox .btn-close {
+    background: rgba(255, 255, 255, 0.3) !important;
+    border-radius: 50% !important;
+    width: 18px !important;
+    height: 18px !important;
+    padding: 0 !important;
+    margin-left: 0.5rem !important;
+    margin-right: 0 !important;
+    transition: all 0.2s ease !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+#filterStatusBox .btn-close::before {
+    content: '×' !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    font-size: 14px !important;
+    font-weight: bold !important;
+    color: white !important;
+    line-height: 1 !important;
+}
+
+#filterStatusBox .btn-close:hover {
+    background: rgba(255, 255, 255, 0.5) !important;
+    transform: scale(1.1) !important;
+}
+
+#filterStatusBox .filter-status-actions {
+    margin-top: 0.75rem !important;
+    padding-top: 0.75rem !important;
+    border-top: 1px solid rgba(59, 130, 246, 0.2) !important;
+}
+
+#filterStatusBox .filter-status-actions .btn {
+    border-radius: 10px !important;
+    padding: 0.5rem 1rem !important;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+#filterStatusBox .filter-status-actions .btn::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: -100% !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent) !important;
+    transition: left 0.5s ease !important;
+}
+
+#filterStatusBox .filter-status-actions .btn:hover::before {
+    left: 100% !important;
+}
+
+#filterStatusBox .filter-status-actions .btn-outline-danger {
+    color: #dc2626 !important;
+    border-color: #ef4444 !important;
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%) !important;
+}
+
+#filterStatusBox .filter-status-actions .btn-outline-danger:hover {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+    color: white !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3) !important;
+}
+
+/* انیمیشن ورود جعبه فیلتر */
+#filterStatusBox {
+    animation: slideInFromTop 0.4s ease-out !important;
+}
+
+@keyframes slideInFromTop {
+    from {
     opacity: 0 !important;
-    transition: opacity 0.3s ease-in-out !important;
+        transform: translateY(-20px) scale(0.95) !important;
+    }
+    to {
+        opacity: 1 !important;
+        transform: translateY(0) scale(1) !important;
+    }
+}
+
+/* بهبود responsive design */
+@media (max-width: 768px) {
+    #columnsModal .modal-dialog,
+    #barnamehFilterModal .modal-dialog {
+        max-width: 95% !important;
+        margin: 0.5rem auto !important;
+    }
+    
+    #columnsModal .modal-body,
+    #barnamehFilterModal .modal-body {
+        padding: 1rem !important;
+        max-height: 60vh !important;
+    }
+    
+    #columnsModal .modal-footer,
+    #barnamehFilterModal .modal-footer {
+        padding: 1rem !important;
+        flex-direction: column !important;
+        gap: 0.5rem !important;
+    }
+    
+    #columnsModal .modal-footer .btn,
+    #barnamehFilterModal .modal-footer .btn {
+        width: 100% !important;
+        margin: 0 !important;
+    }
+    
+    #columnsModal .d-flex.justify-content-between,
+    #barnamehFilterModal .control-buttons .btn-group {
+        flex-direction: column !important;
+        gap: 0.5rem !important;
+    }
+    
+    #columnsModal .d-flex.justify-content-between .btn,
+    #barnamehFilterModal .control-buttons .btn {
+        width: 100% !important;
+        margin: 0 !important;
+    }
+    
+    /* Responsive برای جعبه فیلتر */
+    #filterStatusBox {
+        padding: 0.75rem 1rem !important;
+        margin-bottom: 1rem !important;
+    }
+    
+    #filterStatusBox .filter-status-content {
+        gap: 0.5rem !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    
+    #filterStatusBox .badge {
+        width: 100% !important;
+        text-align: center !important;
+        margin-bottom: 0.25rem !important;
+    }
+    
+    #filterStatusBox .filter-status-actions {
+        margin-top: 0.5rem !important;
+        padding-top: 0.5rem !important;
+    }
+    
+    #filterStatusBox .filter-status-actions .btn {
+        width: 100% !important;
+        margin: 0 !important;
+    }
 }
 
 #columnsModal .modal-backdrop.show {
