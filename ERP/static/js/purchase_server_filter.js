@@ -180,54 +180,69 @@ class PurchaseServerFilter {
     
     setupFilterButtons() {
         const headers = this.tableElement.querySelectorAll('th[data-column-id]');
-        
         headers.forEach(header => {
             const columnId = header.dataset.columnId;
             const columnType = header.dataset.columnType || 'text';
-            
-            // بررسی اینکه آیا قبلاً filter button اضافه شده یا نه
             if (header.querySelector('.filter-controls')) {
                 return;
             }
-            
+            // استخراج نام و واحد از ساختار <div> داخلی
+            let name = '';
+            let unit = '';
+            const headerDiv = header.querySelector('div');
+            if (headerDiv) {
+                const divs = headerDiv.querySelectorAll('div');
+                if (divs.length > 0) {
+                    name = divs[0].textContent.trim();
+                }
+                if (divs.length > 1) {
+                    unit = divs[1].textContent.trim();
+                }
+            } else {
+                // fallback: اگر div نبود، کل متن را بگیر
+                name = header.textContent.trim();
+            }
             // ایجاد container برای کنترل‌های فیلتر
             const controlsContainer = document.createElement('div');
             controlsContainer.className = 'filter-controls d-flex align-items-center justify-content-between';
-            
-            // متن اصلی header
-            const headerText = header.textContent.trim();
-            
-            // ایجاد span برای متن
-            const textSpan = document.createElement('span');
-            textSpan.textContent = headerText;
-            textSpan.className = 'header-text';
-            
+            // ایجاد container برای نام و واحد
+            const nameUnitContainer = document.createElement('div');
+            nameUnitContainer.style.display = 'flex';
+            nameUnitContainer.style.flexDirection = 'column';
+            nameUnitContainer.style.alignItems = 'center';
+            // نام ستون
+            const nameDiv = document.createElement('div');
+            nameDiv.textContent = name;
+            nameUnitContainer.appendChild(nameDiv);
+            // واحد (در صورت وجود)
+            if (unit) {
+                const unitDiv = document.createElement('div');
+                unitDiv.textContent = unit;
+                unitDiv.style.fontSize = '0.78em';
+                unitDiv.style.color = '#aaa';
+                unitDiv.style.marginTop = '2px';
+                unitDiv.style.fontWeight = '400';
+                unitDiv.style.lineHeight = '1.2';
+                nameUnitContainer.appendChild(unitDiv);
+            }
             // ایجاد container برای دکمه‌ها
             const buttonsContainer = document.createElement('div');
             buttonsContainer.className = 'filter-buttons d-flex';
-            
             // دکمه فیلتر
             const filterBtn = document.createElement('button');
             filterBtn.className = 'btn btn-sm btn-outline-primary filter-btn me-1';
             filterBtn.innerHTML = '<i class="fas fa-filter"></i>';
-            filterBtn.title = `فیلتر ${headerText}`;
+            filterBtn.title = `فیلتر ${name}`;
             filterBtn.setAttribute('data-column-id', columnId);
             filterBtn.setAttribute('data-column-type', columnType);
-            
-            // اضافه کردن event listeners
             filterBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 this.showFilterModal(columnId, columnType, header);
             });
-            
-            // ترکیب کردن عناصر
             buttonsContainer.appendChild(filterBtn);
-            
-            controlsContainer.appendChild(textSpan);
+            controlsContainer.appendChild(nameUnitContainer);
             controlsContainer.appendChild(buttonsContainer);
-            
-            // پاک کردن محتوای قبلی header و اضافه کردن controls جدید
             header.innerHTML = '';
             header.appendChild(controlsContainer);
         });
