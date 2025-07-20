@@ -38,7 +38,10 @@ def mask_phone_number(phone_number):
         return phone_str
     
     # 3 رقم اول + ستاره‌ها + 3 رقم آخر
-    last_three = phone_str[:3]
+    if phone_str.startswith('09'):
+        last_three = phone_str[:4]
+    else:
+        last_three = phone_str[:3]
     first_three = phone_str[-3:]
     middle_stars = '*' * (len(phone_str) - 6)
 

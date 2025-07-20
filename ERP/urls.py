@@ -17,7 +17,6 @@ urlpatterns = [
     path('support_agent_profile/', support_agent_profile.support_agent_profile_view, name='support_agent_profile'),
   
     path('purchase_list/', purchase_list_view.purchase_list, name='purchase_list' ),
-    path('purchases/archived/', purchase_list_view.load_archived_purchases, name='load_archived_purchases'),
     path('purchases/update-columns/', purchase_list_view.update_columns, name='update_columns'),
     path('update_column_order/', purchase_list_view.update_column_order, name='update_column_order'),
     path('get_column_order/', purchase_list_view.get_column_order, name='get_column_order'),
@@ -27,10 +26,7 @@ urlpatterns = [
 
     path('purchases/aggregated-stats/', purchase_list_view.get_purchase_aggregated_stats, name='purchase_aggregated_stats'),
     path('purchases/section-ids/', purchase_list_view.get_section_purchase_ids, name='get_section_purchase_ids'),
-    path('cargo-products/list/', purchase_list_view.cargo_products_list, name='cargo_products_list'),
-    path('cargo-product/details/', purchase_list_view.cargo_product_details, name='cargo_product_details'),
-    path('bulk-edit-cargo/', purchase_list_view.bulk_edit_cargo, name='bulk_edit_cargo'),
-
+   
     # APIهای فیلتر سمت سرور
     path('purchases/filter/config/', purchase_list_view.get_purchase_table_configuration, name='purchase_filter_config'),
     path('purchases/filter/apply/', purchase_list_view.apply_purchase_filter, name='apply_purchase_filter'),
