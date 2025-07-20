@@ -752,7 +752,6 @@ def purchase_list(request):
             ])
         logger.warning(f"ستون های انتخابی کاربر نامحدود {request.user.username}: {selected_columns}")
         logger.warning(f"ستون های قابل انتخاب کاربر نامحدود {request.user.username}: {all_columns}")"""
-
     # اگر درخواست AJAX است، فقط داده‌های JSON برگردان
     if is_ajax:
         return JsonResponse({
@@ -1070,7 +1069,7 @@ def _export_regular_excel(purchase_ids, selected_columns):
         'priority_reason': ('دلیل اولویت', lambda p: p.priority_reason or "-"),
         'barbary': ('نام باربری', lambda p: p.cargo.barbary.name if p.cargo and hasattr(p.cargo, 'barbary') and p.cargo.barbary else "-"),
         'barbary_phone': ('شماره باربری', lambda p: p.cargo.barbary.phone_number if p.cargo and hasattr(p.cargo, 'barbary') and p.cargo.barbary and p.cargo.barbary.phone_number else "-"),
-        'product_type': ('نام محصول', lambda p: p.cargo.get_product_type_display() if p.cargo and hasattr(p.cargo, 'product_type') and p.cargo.product_type else "-"),
+        'product_type': ('نام محصول', lambda p: p.cargo.get_product_type_display() if p.cargo and hasattr(p.cargo, 'cottage') and p.cargo.cottage else "-"),
         'first_barnameh_date': ('تاریخ اولین بارنامه', lambda p: p.barnamehs.order_by('barnameh_date').first().barnameh_date.strftime("%Y/%m/%d") if hasattr(p, 'barnamehs') and p.barnamehs.exists() and p.barnamehs.order_by('barnameh_date').first().barnameh_date else "-"),
         'last_barnameh_date': ('تاریخ آخرین بارنامه', lambda p: p.barnamehs.order_by('-barnameh_date').first().barnameh_date.strftime("%Y/%m/%d") if hasattr(p, 'barnamehs') and p.barnamehs.exists() and p.barnamehs.order_by('-barnameh_date').first().barnameh_date else "-"),
         'company_price': ('فی خرید (ریال)', lambda p: f"{p.company_price:,}" if p.company_price else "0"),

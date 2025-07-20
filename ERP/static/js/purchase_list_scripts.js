@@ -5,34 +5,12 @@
 
 // ذخیره tableFilter به صورت global برای استفاده در drag_and_drop_columns.js
 
-// تابع برای اضافه کردن واحدها به هدرهای جدول
+// تابع برای اضافه کردن واحدها به هدرهای جدول - غیرفعال شده
+// واحدها باید در سمت سرور (template یا model) تعریف شوند، نه در جاوااسکریپت
 function addUnitsToHeaders() {
-    const unitsMap = {
-        'weight': 'کیلوگرم',
-        'total_weight': 'کیلوگرم', 
-        'delivered_weight': 'کیلوگرم',
-        'extelaf_weight': 'کیلوگرم',
-        'company_price': 'ریال',
-        'customer_price': 'ریال',
-        'amount_paid': 'ریال',
-        'extelaf_amount': 'ریال'
-    };
-    
-    Object.keys(unitsMap).forEach(columnId => {
-        const headers = document.querySelectorAll(`.column-${columnId}`);
-        headers.forEach(header => {
-            const currentText = header.textContent.trim();
-            const unit = unitsMap[columnId];
-            
-            // اگر واحد قبلاً اضافه نشده باشد
-            if (!header.querySelector('.header-unit')) {
-                header.innerHTML = `
-                    <span class="header-text">${currentText}</span>
-                    <span class="header-unit">(${unit})</span>
-                `;
-            }
-        });
-    });
+    // این تابع غیرفعال شده است تا از تداخل با filter buttons جلوگیری کند
+    // واحدها باید در column.name در سمت سرور اضافه شوند
+    console.log('addUnitsToHeaders disabled - units should be handled in backend');
 }
 
 // تابع مشاهده تاریخچه تغییرات کلی
@@ -1440,9 +1418,6 @@ function showErrorToast(message) {
 // تابع اصلی راه‌اندازی
 function initializePurchaseListPage() {
     console.log('🚀 Initializing Purchase List Page with Pagination...');
-    
-    // اضافه کردن واحدها به هدرهای جدول
-    addUnitsToHeaders();
     
     // راه‌اندازی دکمه خروجی اکسل
     //initializeExportButton();

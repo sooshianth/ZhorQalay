@@ -6,6 +6,7 @@ app_name = 'sms_api'
 urlpatterns = [
     # صفحات اصلی مدیریت پیامک
     path('dashboard/', views.sms_dashboard, name='sms_dashboard'),
+    path('support-dashboard/', views.support_dashboard, name='support_dashboard'),
     path('queue/', views.sms_queue, name='sms_queue'),
     path('logs/', views.sms_log, name='sms_log'),
     
@@ -38,7 +39,10 @@ urlpatterns = [
     path('templates/check/', views.template_check, name='template_check'),
     
     # API endpoints
+    path('api/customer/search/', views.support_customer_search, name='support_customer_search'),
+    path('api/customer/purchases/', views.get_customer_purchases, name='get_customer_purchases'),
     path('api/templates/status/', views.get_templates_for_status, name='get_templates_for_status'),
     path('api/templates/marketing/', views.get_marketing_templates, name='get_marketing_templates'),
     path('api/templates/product/', views.get_product_templates, name='get_product_templates'),
+    path('api/preview-template/', views.preview_template_api, name='preview_template_api'),
 ] 
