@@ -1010,8 +1010,18 @@
         // جمع‌آوری آیدی‌های انتخاب شده
         const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.id || cb.value);
         
-        // تعریف ستون‌های پیش‌فرض
-        const defaultColumns = [
+        // دریافت ستون‌های نمایش داده شده در جدول
+        const visibleColumns = [];
+        const tableHeaders = document.querySelectorAll('#barnamehTable thead th[data-column-id]');
+        tableHeaders.forEach(header => {
+            const columnId = header.getAttribute('data-column-id');
+            if (columnId && columnId !== 'actions') {
+                visibleColumns.push(columnId);
+            }
+        });
+        
+        // اگر ستون‌ای نمایش داده نشده، از ستون‌های پیش‌فرض استفاده کن
+        const columnsToExport = visibleColumns.length > 0 ? visibleColumns : [
             'number', 'serial', 'tonnage', 'status', 'driver_name', 
             'driver_phone', 'vehicle_plate', 'receiver_name', 
             'destination', 'barnameh_date', 'purchase_number', 'shenase_takhsis_code'
@@ -1043,7 +1053,7 @@
         const columnsInput = document.createElement('input');
         columnsInput.type = 'hidden';
         columnsInput.name = 'columns';
-        columnsInput.value = defaultColumns.join(',');
+        columnsInput.value = columnsToExport.join(',');
         form.appendChild(columnsInput);
         
         // ارسال form
@@ -1051,7 +1061,7 @@
         form.submit();
         document.body.removeChild(form);
         
-        console.log(`درخواست خروجی اکسل برای ${selectedIds.length} بارنامه ارسال شد`);
+        console.log(`درخواست خروجی اکسل برای ${selectedIds.length} بارنامه با ستون‌های ${columnsToExport.join(', ')} ارسال شد`);
     }
     
     function bulkSendToBki() {
@@ -1363,6 +1373,8 @@
                                     <th data-column-id="importer" data-column-type="text">واردکننده</th>
                                 {% elif column.id == 'product_type' %}
                                     <th data-column-id="product_type" data-column-type="text">محصول</th>
+                                {% elif column.id == 'product_country' %}
+                                    <th data-column-id="product_country" data-column-type="text">کشور محصول</th>
                                 {% elif column.id == 'successful_send_date' %}
                                     <th data-column-id="successful_send_date" data-column-type="date">تاریخ ارسال موفق</th>
                                 {% elif column.id == 'is_sent_to_bki' %}
@@ -1419,12 +1431,10 @@
                                     <td class="column-tonnage">{{ barnameh.tonnage|default:"-" }}</td>
                                 {% elif column.id == 'status' %}
                                     <td class="column-status">
-                                        {% if barnameh.status == 'BARNAMEH_INCOMPLETE' %}
-                                        <span class="badge rounded-pill bg-warning text-dark">بارنامه ناقص</span>
-                                        {% elif barnameh.status == 'BARNAMEH_COMPLETE' %}
-                                        <span class="badge rounded-pill bg-success">بارنامه کامل</span>
-                                        {% elif barnameh.status == 'PURCHASE_CLOSED' %}
-                                        <span class="badge rounded-pill bg-primary">ارسال شده به بازارگاه</span>
+                                        {% if barnameh.status == 'NOT_SENT_TO_BKI' %}
+                                        <span class="badge rounded-pill bg-warning text-dark">ارسال نشده به بازارگاه</span>
+                                        {% elif barnameh.status == 'SENT_TO_BKI' %}
+                                        <span class="badge rounded-pill bg-success">ارسال شده به بازارگاه</span>
                                         {% endif %}
                                     </td>
                                 {% elif column.id == 'driver_name' %}
@@ -1471,6 +1481,8 @@
                                     <td class="column-importer">{{ barnameh.get_importer|default:"-" }}</td>
                                 {% elif column.id == 'product_type' %}
                                     <td class="column-product_type">{{ barnameh.get_product_type|default:"-" }}</td>
+                                {% elif column.id == 'product_country' %}
+                                    <td class="column-product_country">{{ barnameh.get_product_country|default:"-" }}</td>
                                 {% elif column.id == 'successful_send_date' %}
                                     <td class="column-successful_send_date">{{ barnameh.get_successful_send_date|default:"-" }}</td>
                                 {% elif column.id == 'is_sent_to_bki' %}
@@ -1532,7 +1544,7 @@
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </form>
-                                            {% if barnameh.status == 'BARNAMEH_COMPLETE' and not barnameh.is_sent_to_bki %}
+                                            {% if not barnameh.is_sent_to_bki %}
                                             <form action="{% url 'send_to_bki' barnameh.id %}" method="post" class="d-inline">
                                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-primary btn-sm rounded-circle ms-1" 
@@ -1584,12 +1596,12 @@
                 <div class="pagination-per-page">
                     <label for="barnamehPerPage" class="form-label me-2">تعداد در هر صفحه:</label>
                     <select id="barnamehPerPage" class="form-select form-select-sm d-inline-block w-auto" onchange="window.location.href='?page=1&per_page='+this.value">
-                        <option value="5" {% if per_page == '5' %}selected{% endif %}>5</option>
-                        <option value="10" {% if per_page == '10' %}selected{% endif %}>10</option>
-                        <option value="25" {% if per_page == '25' %}selected{% endif %}>25</option>
-                        <option value="50" {% if per_page == '50' %}selected{% endif %}>50</option>
-                        <option value="100" {% if per_page == '100' %}selected{% endif %}>100</option>
-                        <option value="200" {% if per_page == '200' %}selected{% endif %}>200</option>
+                        <option value="5" {% if per_page == '5' or per_page == 5 %}selected{% endif %}>5</option>
+                        <option value="10" {% if per_page == '10' or per_page == 10 %}selected{% endif %}>10</option>
+                        <option value="25" {% if per_page == '25' or per_page == 25 %}selected{% endif %}>25</option>
+                        <option value="50" {% if per_page == '50' or per_page == 50 %}selected{% endif %}>50</option>
+                        <option value="100" {% if per_page == '100' or per_page == 100 or not per_page %}selected{% endif %}>100</option>
+                        <option value="200" {% if per_page == '200' or per_page == 200 %}selected{% endif %}>200</option>
                         <option value="all" {% if per_page == 'all' %}selected{% endif %}>نمایش همه</option>
                     </select>
                 </div>

@@ -763,6 +763,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.barbary %}{{ purchase.cargo.barbary.name }}{% else %}-{% endif %}</td>
                     {% elif column.id == 'product_type' %}
                     <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.product_type %}{{ purchase.cargo.get_product_type_display }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'country' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.country %}{{ purchase.cargo.get_country_display }}{% else %}-{% endif %}</td>
                     {% elif column.id == 'customer_phones' %}
                     <td class="column-{{ column.id }}">
                         {% if purchase.customer %}
@@ -1088,6 +1090,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="column-{{ column.id }}">{% if purchase.is_fully_tasvied %}بله{% else %}خیر{% endif %}</td>
                     {% elif column.id == 'is_factored' %}
                     <td class="column-{{ column.id }}">{% if purchase.is_factored %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'ready_for_invoice' %}
+                    <td class="column-{{ column.id }}">{% if purchase.ready_for_invoice %}بله{% else %}خیر{% endif %}</td>
+                    {% elif column.id == 'purchase_mabna_invoice' %}
+                    <td class="column-{{ column.id }}">{{ purchase.purchase_mabna_invoice|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'sales_mabna_invoice' %}
+                    <td class="column-{{ column.id }}">{{ purchase.sales_mabna_invoice|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'mabna_profit' %}
+                    <td class="column-{{ column.id }}">{{ purchase.mabna_profit|default:"-"|add_commas }}</td>
                     {% elif column.id == 'priority' %}
                     <td class="column-{{ column.id }}">{{ purchase.priority|default:"-" }}</td>
                     {% elif column.id == 'priority_reason' %}
@@ -1276,6 +1286,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.barbary %}{{ purchase.cargo.barbary.name }}{% else %}-{% endif %}</td>
                     {% elif column.id == 'product_type' %}
                     <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.product_type %}{{ purchase.cargo.get_product_type_display }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'country' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.country %}{{ purchase.cargo.get_country_display }}{% else %}-{% endif %}</td>
                     {% elif column.id == 'customer_phones' %}
                     <td class="column-{{ column.id }}">
                         {% if purchase.customer %}
@@ -1758,6 +1770,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.barbary %}{{ purchase.cargo.barbary.name }}{% else %}-{% endif %}</td>
                     {% elif column.id == 'product_type' %}
                     <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.product_type %}{{ purchase.cargo.get_product_type_display }}{% else %}-{% endif %}</td>
+                    {% elif column.id == 'country' %}
+                    <td class="column-{{ column.id }}">{% if purchase.cargo and purchase.cargo.country %}{{ purchase.cargo.get_country_display }}{% else %}-{% endif %}</td>
                     {% elif column.id == 'customer_phones' %}
                     <td class="column-{{ column.id }}">
                         {% if purchase.customer %}
