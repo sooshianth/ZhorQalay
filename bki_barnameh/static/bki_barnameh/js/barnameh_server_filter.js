@@ -116,52 +116,19 @@ class BarnamehServerFilter {
     }
     
     setupGlobalSearchHandler() {
-        // ایجاد input جستجوی سریع اگر وجود ندارد
-        let globalSearchInput = document.getElementById('globalBarnamehSearch');
-        
-        if (!globalSearchInput) {
-            // ایجاد container جستجوی سریع
-            const searchContainer = document.createElement('div');
-            searchContainer.className = 'global-search-container mb-3';
-            searchContainer.innerHTML = `
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="input-group">
-                            <span class="input-group-text">
-                                <i class="fas fa-search"></i>
-                            </span>
-                            <input type="text" 
-                                   id="globalBarnamehSearch" 
-                                   class="form-control" 
-                                   placeholder="جستجوی سریع در همه فیلدها..."
-                                   autocomplete="off">
-                            <button class="btn btn-outline-secondary" type="button" id="clearBarnamehSearch">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            // اضافه کردن قبل از جدول
-            const tableContainer = this.table.closest('.table-responsive');
-            if (tableContainer) {
-                tableContainer.parentNode.insertBefore(searchContainer, tableContainer);
-            }
-            
-            globalSearchInput = document.getElementById('globalBarnamehSearch');
-        }
+        // استفاده از input جستجوی سریع موجود در HTML
+        const globalSearchInput = document.getElementById('globalBarnamehSearch');
         
         if (globalSearchInput) {
-            // Debounce برای جستجو
+            // جستجوی client-side ساده برای تست
             let searchTimeout;
             globalSearchInput.addEventListener('input', (e) => {
                 clearTimeout(searchTimeout);
+                const searchValue = e.target.value.trim().toLowerCase();
+                
                 searchTimeout = setTimeout(() => {
-                    this.globalSearch = e.target.value.trim();
-                    this.currentPage = 1;
-                    this.applyFilters();
-                }, 500);
+                    this.performClientSideSearch(searchValue);
+                }, 300);
             });
             
             // دکمه پاک کردن جستجو
@@ -169,12 +136,127 @@ class BarnamehServerFilter {
             if (clearButton) {
                 clearButton.addEventListener('click', () => {
                     globalSearchInput.value = '';
-                    this.globalSearch = '';
-                    this.currentPage = 1;
-                    this.applyFilters();
+                    this.performClientSideSearch('');
                 });
             }
+            
+            // اضافه کردن event listener برای Enter key
+            globalSearchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const searchValue = e.target.value.trim().toLowerCase();
+                    this.performClientSideSearch(searchValue);
+                }
+            });
+            
+            console.log('Global search handler setup completed with client-side search');
+        } else {
+            console.warn('Global search input not found');
         }
+    }
+    
+    performClientSideSearch(searchTerm) {
+        console.log('Performing client-side search for:', searchTerm);
+        
+        const tbody = this.table.querySelector('tbody');
+        if (!tbody) return;
+        
+        const rows = tbody.querySelectorAll('tr.barnameh-row');
+        let visibleCount = 0;
+        
+        // تبدیل اعداد فارسی به انگلیسی برای جستجو بهتر
+        const normalizeSearchTerm = (text) => {
+            return text
+                .replace(/۰/g, '0')
+                .replace(/۱/g, '1')
+                .replace(/۲/g, '2')
+                .replace(/۳/g, '3')
+                .replace(/۴/g, '4')
+                .replace(/۵/g, '5')
+                .replace(/۶/g, '6')
+                .replace(/۷/g, '7')
+                .replace(/۸/g, '8')
+                .replace(/۹/g, '9')
+                .toLowerCase();
+        };
+        
+        const normalizedSearchTerm = normalizeSearchTerm(searchTerm);
+        
+        // اگر جستجو خالی است، همه ردیف‌ها را نمایش بده و highlight را حذف کن
+        if (!searchTerm) {
+            rows.forEach(row => {
+                row.style.display = '';
+                row.classList.remove('search-highlight'); // حذف highlight
+                visibleCount++;
+            });
+            console.log(`Showing all ${rows.length} rows`);
+            return;
+        }
+        
+        // جستجو در ردیف‌ها
+        rows.forEach(row => {
+            // جستجو در فیلدهای مختلف - گسترش یافته
+            const number = row.getAttribute('data-number') || '';
+            const serial = row.getAttribute('data-serial') || '';
+            const tonnage = row.getAttribute('data-tonnage') || '';
+            const status = row.getAttribute('data-status') || '';
+            const driverName = row.getAttribute('data-driver-name') || '';
+            const driverPhone = row.getAttribute('data-driver-phone') || '';
+            const vehiclePlate = row.getAttribute('data-vehicle-plate') || '';
+            const receiverName = row.getAttribute('data-receiver-name') || '';
+            const destination = row.getAttribute('data-destination') || '';
+            const barnamehDate = row.getAttribute('data-barnameh-date') || '';
+            const purchaseNumber = row.getAttribute('data-purchase-number') || '';
+            const shenaseCode = row.getAttribute('data-shenase-takhsis-code') || '';
+            const factorSeason = row.getAttribute('data-factor-sodoor-season') || '';
+            
+            // تبدیل وضعیت به فارسی برای جستجو
+            let statusText = '';
+            if (status === 'NOT_SENT_TO_BKI') {
+                statusText = 'ارسال نشده به بازارگاه';
+            } else if (status === 'SENT_TO_BKI') {
+                statusText = 'ارسال شده به بازارگاه';
+            }
+            
+            const searchFields = [
+                number, serial, tonnage, statusText, driverName, driverPhone, vehiclePlate,
+                receiverName, destination, barnamehDate, purchaseNumber, shenaseCode, factorSeason
+            ].join(' ').toLowerCase();
+            
+            // جستجو در محتوای سلول‌های جدول نیز
+            const cellTexts = [];
+            const cells = row.querySelectorAll('td');
+            cells.forEach(cell => {
+                const cellText = cell.textContent.trim();
+                if (cellText && cellText !== '-') {
+                    cellTexts.push(cellText);
+                }
+            });
+            
+            const allSearchableText = searchFields + ' ' + cellTexts.join(' ').toLowerCase();
+            const normalizedSearchableText = normalizeSearchTerm(allSearchableText);
+            
+            // جستجوی جزئی - اگر کلمه جستجو در هر بخشی از متن باشد
+            const searchWords = normalizedSearchTerm.split(/\s+/).filter(word => word.length > 0);
+            const isVisible = searchWords.every(word => normalizedSearchableText.includes(word));
+            
+            if (isVisible) {
+                row.style.display = '';
+                visibleCount++;
+                // اضافه کردن highlight به ردیف‌های یافت شده
+                row.classList.add('search-highlight');
+            } else {
+                row.style.display = 'none';
+                row.classList.remove('search-highlight');
+            }
+        });
+        
+        // نمایش پیام نتیجه
+        if (searchTerm) {
+            this.showToast(`${visibleCount} بارنامه برای "${searchTerm}" یافت شد`, 'success');
+        }
+        
+        console.log(`Search completed: ${visibleCount} results found for "${searchTerm}"`);
     }
     
     setupFilterButtons() {
@@ -609,6 +691,8 @@ class BarnamehServerFilter {
         this.showLoading();
         
         try {
+            console.log('Applying filters with global search:', this.globalSearch);
+            
             const formData = new FormData();
             formData.append('filters', JSON.stringify(this.currentFilters));
             formData.append('sort', JSON.stringify(this.currentSort));
@@ -622,6 +706,15 @@ class BarnamehServerFilter {
                 formData.append('csrfmiddlewaretoken', csrfToken);
             }
             
+            console.log('Sending request to:', this.filterUrl);
+            console.log('Form data:', {
+                filters: this.currentFilters,
+                sort: this.currentSort,
+                page: this.currentPage,
+                per_page: this.perPage,
+                global_search: this.globalSearch
+            });
+            
             const response = await fetch(this.filterUrl, {
                 method: 'POST',
                 body: formData,
@@ -630,11 +723,24 @@ class BarnamehServerFilter {
                 }
             });
             
+            console.log('Response status:', response.status);
+            
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
-            const data = await response.json();
+            const responseText = await response.text();
+            console.log('Response text:', responseText);
+            
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('JSON parse error:', parseError);
+                throw new Error('Invalid JSON response from server');
+            }
+            
+            console.log('Filter response:', data);
             
             if (data.status === 'success') {
                 this.updateTableContent(data.data, {
@@ -651,14 +757,35 @@ class BarnamehServerFilter {
                 this.totalPages = data.total_pages;
                 this.totalCount = data.total_count;
                 
-                this.showToast(`${data.data.length} بارنامه یافت شد`, 'success');
+                // نمایش پیام موفقیت فقط اگر جستجو انجام شده باشد
+                if (this.globalSearch) {
+                    this.showToast(`${data.data.length} بارنامه برای "${this.globalSearch}" یافت شد`, 'success');
+                } else if (Object.keys(this.currentFilters).length > 0) {
+                    this.showToast(`${data.data.length} بارنامه یافت شد`, 'success');
+                }
             } else {
                 throw new Error(data.message || 'خطا در اعمال فیلتر');
             }
             
         } catch (error) {
             console.error('Error applying filters:', error);
-            this.showToast('خطا در اعمال فیلتر', 'error');
+            this.showToast('خطا در اعمال فیلتر: ' + error.message, 'error');
+            
+            // در صورت خطا، جدول را به حالت عادی برگردان
+            this.hideLoading();
+            const tbody = this.table.querySelector('tbody');
+            if (tbody) {
+                const colCount = this.table.querySelectorAll('thead th').length;
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="${colCount}" class="text-center py-4">
+                            <i class="fas fa-exclamation-triangle text-danger" style="font-size: 2rem;"></i>
+                            <p class="text-danger mt-2">خطا در بارگذاری داده‌ها</p>
+                            <small class="text-muted">${error.message}</small>
+                        </td>
+                    </tr>
+                `;
+            }
         } finally {
             this.isLoading = false;
             this.hideLoading();
@@ -1093,6 +1220,19 @@ class BarnamehServerFilter {
             this.applyFilters();
         };
         
+        // تابع سراسری برای پاک کردن جستجو
+        window.clearBarnamehSearch = () => {
+            const globalSearchInput = document.getElementById('globalBarnamehSearch');
+            if (globalSearchInput) {
+                globalSearchInput.value = '';
+            }
+            if (this) {
+                this.globalSearch = '';
+                this.currentPage = 1;
+                this.applyFilters();
+            }
+        };
+        
         window.removeFilter = (columnId) => {
             delete this.currentFilters[columnId];
             this.currentPage = 1;
@@ -1222,10 +1362,31 @@ class BarnamehServerFilter {
     }
     
     showLoading() {
-        // نمایش loading indicator
-        const loadingElement = document.getElementById('barnamehTableLoading');
-        if (loadingElement) {
-            loadingElement.style.display = 'block';
+        // نمایش loading indicator در جدول
+        const tbody = this.table.querySelector('tbody');
+        if (tbody) {
+            const colCount = this.table.querySelectorAll('thead th').length;
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="${colCount}" class="text-center py-5">
+                        <div class="d-flex justify-content-center align-items-center">
+                            <div class="spinner-border text-primary me-3" role="status">
+                                <span class="visually-hidden">در حال بارگذاری...</span>
+                            </div>
+                            <span class="text-muted">در حال جستجو و بارگذاری نتایج...</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+        
+        // نمایش loading در input جستجو
+        const searchInput = document.getElementById('globalBarnamehSearch');
+        if (searchInput) {
+            searchInput.style.backgroundImage = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'20\' height=\'20\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2338a169\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpath d=\'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z\'/%3E%3C/svg%3E")';
+            searchInput.style.backgroundRepeat = 'no-repeat';
+            searchInput.style.backgroundPosition = 'right 10px center';
+            searchInput.style.backgroundSize = '20px';
         }
     }
     
@@ -1234,6 +1395,12 @@ class BarnamehServerFilter {
         const loadingElement = document.getElementById('barnamehTableLoading');
         if (loadingElement) {
             loadingElement.style.display = 'none';
+        }
+        
+        // حذف loading از input جستجو
+        const searchInput = document.getElementById('globalBarnamehSearch');
+        if (searchInput) {
+            searchInput.style.backgroundImage = 'none';
         }
     }
     
