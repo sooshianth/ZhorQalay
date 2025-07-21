@@ -91,6 +91,7 @@ class Purchase(models.Model):
     unique_buyer_id = models.CharField("شناسه یکتا خریدار", max_length=50, blank=True, null=True, unique=True)
     delivery_address = models.TextField("آدرس تحویل", blank=True, null=True)
     delivery_postal_code = models.CharField("کد پستی تحویل", max_length=10, blank=True, null=True)
+    buyer_postal_code = models.CharField("کد پستی خریدار", max_length=10, blank=True, null=True)
     
     # نوع خودرو حمل
     VEHICLE_TYPE_CHOICES = [

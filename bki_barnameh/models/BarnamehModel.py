@@ -47,6 +47,9 @@ class Barnameh(models.Model):
     transport_date = jmodels.jDateField(verbose_name='تاریخ حمل', null=True, blank=True)
     factor_sodoor_season = models.CharField(max_length=10, verbose_name='زمان صدور فاکتور فصل', null=True, blank=True)
     is_factored = models.BooleanField(default=False, verbose_name='فاکتور صادر شده')
+    
+    total_sales_amount = models.DecimalField(max_digits=18, decimal_places=2, verbose_name='مبلغ کل فروش', null=True, blank=True)
+    total_purchase_amount = models.DecimalField(max_digits=18, decimal_places=2, verbose_name='مبلغ کل خرید', null=True, blank=True)
 
     class Meta:
         verbose_name = 'بارنامه'
@@ -69,14 +72,20 @@ class Barnameh(models.Model):
         return self.purchase.cargo.customer_price if (self.purchase and self.purchase.cargo) else None
     
     def get_total_sales_amount(self):
-        """محاسبه مبلغ کل فروش (فی فروش × وزن)"""
-        if self.purchase and self.purchase.cargo and self.purchase.cargo.customer_price and self.tonnage:
-            return float(self.purchase.cargo.customer_price) * float(self.tonnage)
-        return None
+        """دریافت مبلغ کل فروش"""
+        return self.total_sales_amount  
+    
+    def get_total_purchase_amount(self):
+        """دریافت مبلغ کل خرید"""
+        return self.total_purchase_amount
     
     def get_buyer_national_code(self):
-        """دریافت شماره ملی خریدار از خرید مرتبط"""
-        return self.purchase.code_melli_tahvil if self.purchase else None
+        """دریافت شماره ملی خریدار از خرید مرتبط (buyer_national_id)"""
+        return self.purchase.buyer_national_id if self.purchase else None
+
+    def get_buyer_postal_code(self):
+        """دریافت کدپستی خریدار از خرید مرتبط (delivery_postal_code)"""
+        return self.purchase.buyer_postal_code if self.purchase else None
     
     def get_buyer_address(self):
         """دریافت آدرس خریدار از خرید مرتبط"""
@@ -148,9 +157,18 @@ class Barnameh(models.Model):
         if is_new:
             self.fill_the_purchase_number_if_we_got_shenase_takhsis()
 
+        # همسان‌سازی کدپستی خریدار با خرید مرتبط
+        if self.purchase and self.purchase.delivery_postal_code:
+            self.buyer_postal_code = self.purchase.delivery_postal_code
+
         if self.factor_sodoor_season is not None:
             self.is_factored=True
             
+        if self.purchase and self.purchase.cargo and self.purchase.cargo.customer_price and self.tonnage:
+            self.total_sales_amount = float(self.purchase.cargo.customer_price) * float(self.tonnage)
+        if self.purchase and self.purchase.cargo and self.purchase.cargo.company_price and self.tonnage:
+            self.total_purchase_amount = float(self.purchase.cargo.company_price) * float(self.tonnage)
+    
         # بروزرسانی وضعیت بر اساس ارسال به بازارگاه
         if self.is_sent_to_bki:
             self.status = 'SENT_TO_BKI'

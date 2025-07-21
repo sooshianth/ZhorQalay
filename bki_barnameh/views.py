@@ -53,6 +53,7 @@ BARNAMEH_COLUMNS = [
     {'id': 'company_price', 'name': 'فی خرید'},
     {'id': 'customer_price', 'name': 'فی فروش'},
     {'id': 'total_sales_amount', 'name': 'مبلغ کل فروش'},
+    {'id': 'total_purchase_amount', 'name': 'مبلغ کل خرید'},
     {'id': 'buyer_national_code', 'name': 'شماره ملی خریدار'},
     {'id': 'buyer_postal_code', 'name': 'کدپستی خریدار'},
     {'id': 'buyer_address', 'name': 'آدرس خریدار'},
@@ -340,7 +341,7 @@ def apply_barnameh_filter(request):
                         else:
                             filter_conditions &= ~Q(purchase__cargo__cottage__in=values)
                 
-                elif column_id in ['company_price', 'customer_price', 'total_sales_amount', 'demand_amount']:
+                elif column_id in ['company_price', 'customer_price', 'total_sales_amount', 'demand_amount', 'total_purchase_amount']:
                     # فیلتر عددی برای قیمت‌ها
                     try:
                         numeric_values = []
@@ -354,7 +355,8 @@ def apply_barnameh_filter(request):
                             field_mapping = {
                                 'company_price': 'purchase__company_price',
                                 'customer_price': 'purchase__customer_price',
-                                'total_sales_amount': 'purchase__total_sales_amount',
+                                'total_sales_amount': 'total_sales_amount',
+                                'total_purchase_amount': 'total_purchase_amount',
                                 'demand_amount': 'purchase__total_weight'
                             }
                             field_name = field_mapping.get(column_id)
@@ -536,7 +538,8 @@ def apply_barnameh_filter(request):
                 'cargo': 'purchase__cargo__cottage',
                 'company_price': 'purchase__company_price',
                 'customer_price': 'purchase__customer_price',
-                'total_sales_amount': 'purchase__total_sales_amount',
+                'total_sales_amount': 'total_sales_amount',
+                'total_purchase_amount': 'total_purchase_amount',
                 'buyer_national_code': 'purchase__buyer_national_code',
                 'buyer_address': 'purchase__address',
                 'demand_amount': 'purchase__total_weight',
@@ -612,13 +615,14 @@ def apply_barnameh_filter(request):
                 'is_created_by_excel': barnameh.is_created_by_excel,
                 'created_at': barnameh.barnameh_created_at.strftime("%Y/%m/%d") if hasattr(barnameh, 'barnameh_created_at') and barnameh.barnameh_created_at else "",
                 'factor_sodoor_season': barnameh.factor_sodoor_season or "",
-                'buyer_postal_code': barnameh.buyer_postal_code or "",
+                'buyer_postal_code': barnameh.get_buyer_postal_code() or "",
                 # Related data from purchase
                 'cargo': get_related_data(barnameh, 'purchase.cargo.cottage'),
                 'company_price': get_related_data(barnameh, 'purchase.company_price'),
                 'customer_price': get_related_data(barnameh, 'purchase.customer_price'),
-                'total_sales_amount': get_related_data(barnameh, 'purchase.total_sales_amount'),
-                'buyer_national_code': get_related_data(barnameh, 'purchase.buyer_national_code'),
+                'total_sales_amount': get_related_data(barnameh, 'total_sales_amount'),
+                'total_purchase_amount': get_related_data(barnameh, 'total_purchase_amount'),
+                'buyer_national_code': barnameh.get_buyer_national_code() or "-",
                 'buyer_address': get_related_data(barnameh, 'purchase.address'),
                 'demand_amount': get_related_data(barnameh, 'purchase.total_weight'),
                 'importer': get_related_data(barnameh, 'purchase.cargo.vared_konandeh.name'),
@@ -843,7 +847,7 @@ def get_barnameh_column_values(request):
                         else:
                             filter_conditions &= ~Q(purchase__cargo__cottage__in=values)
                 
-                elif filter_column_id in ['company_price', 'customer_price', 'total_sales_amount', 'demand_amount']:
+                elif filter_column_id in ['company_price', 'customer_price', 'total_sales_amount', 'demand_amount', 'total_purchase_amount']:
                     # فیلتر عددی برای قیمت‌ها
                     try:
                         numeric_values = []
@@ -857,8 +861,9 @@ def get_barnameh_column_values(request):
                             field_mapping = {
                                 'company_price': 'purchase__company_price',
                                 'customer_price': 'purchase__customer_price',
-                                'total_sales_amount': 'purchase__total_sales_amount',
-                                'demand_amount': 'purchase__total_weight'
+                                'total_sales_amount': 'total_sales_amount',
+                                'demand_amount': 'purchase__total_weight',
+                                'total_purchase_amount': 'total_purchase_amount'
                             }
                             field_name = field_mapping.get(filter_column_id)
                             if field_name:
@@ -1065,9 +1070,15 @@ def get_barnameh_column_values(request):
             values = set([f"{int(value):,}" for value in values_queryset if value is not None and value > 0])
             
         elif column_id == 'total_sales_amount':
-            values_queryset = base_queryset.exclude(purchase__total_sales_amount__isnull=True)\
-                .exclude(purchase__total_sales_amount=0)\
-                .values_list('purchase__total_sales_amount', flat=True).distinct()
+            values_queryset = base_queryset.exclude(total_sales_amount__isnull=True)\
+                .exclude(total_sales_amount=0)\
+                .values_list('total_sales_amount', flat=True).distinct()
+            values = set([f"{int(value):,}" for value in values_queryset if value is not None and value > 0])
+            
+        elif column_id == 'total_purchase_amount':
+            values_queryset = base_queryset.exclude(total_purchase_amount__isnull=True)\
+                .exclude(total_purchase_amount=0)\
+                .values_list('total_purchase_amount', flat=True).distinct()
             values = set([f"{int(value):,}" for value in values_queryset if value is not None and value > 0])
             
         elif column_id == 'buyer_national_code':
@@ -2086,8 +2097,9 @@ def _export_barnameh_excel(barnameh_ids, selected_columns):
         'company_price': ('فی خرید', lambda b: f"{b.get_company_price():,}" if b.get_company_price() else "-"),
         'customer_price': ('فی فروش', lambda b: f"{b.get_customer_price():,}" if b.get_customer_price() else "-"),
         'total_sales_amount': ('مبلغ کل فروش', lambda b: f"{b.get_total_sales_amount():,.0f}" if b.get_total_sales_amount() else "-"),
+        'total_purchase_amount': ('مبلغ کل خرید', lambda b: f"{b.get_total_purchase_amount():,.0f}" if b.get_total_purchase_amount() else "-"),
         'buyer_national_code': ('شماره ملی خریدار', lambda b: b.get_buyer_national_code() or "-"),
-        'buyer_postal_code': ('کدپستی خریدار', lambda b: b.buyer_postal_code or "-"),
+        'buyer_postal_code': ('کدپستی خریدار', lambda b: b.get_buyer_postal_code() or "-"),
         'buyer_address': ('آدرس خریدار', lambda b: b.get_buyer_address() or "-"),
         'demand_amount': ('میزان تقاضا', lambda b: f"{b.get_demand_amount()}" if b.get_demand_amount() else "-"),
         'importer': ('واردکننده', lambda b: str(b.get_importer()) if b.get_importer() else "-"),

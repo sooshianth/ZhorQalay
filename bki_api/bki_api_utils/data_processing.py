@@ -402,6 +402,7 @@ def update_purchase(purchase, purchase_data):
         joft = int(purchase_data.get('joft', 0) or 0)
         tereili = int(purchase_data.get('tereili', 0) or 0)
         delpostalcode = purchase_data.get('delpostalcode')
+        buyerpostalcode = purchase_data.get('buyerpostalcode')
         buyerpartidcode = purchase_data.get('buyerpartidcode')
         
         # Update purchase fields - بدون به‌روزرسانی وزن‌ها
@@ -415,6 +416,7 @@ def update_purchase(purchase, purchase_data):
         purchase.tracking_number = trace_code
         purchase.code_melli_tahvil = receiver_id
         purchase.delivery_postal_code = delpostalcode
+        purchase.buyer_postal_code = buyerpostalcode
         purchase.unique_delivery_id = buyerpartidcode
         
         if tak == 1 and joft == 0 and tereili == 0:
@@ -535,6 +537,7 @@ def create_purchase(purchase_data):
         joft = int(purchase_data.get('joft', 0) or 0)
         tereili = int(purchase_data.get('tereili', 0) or 0)
         delpostalcode = purchase_data.get('delpostalcode')
+        buyerpostalcode = purchase_data.get('buyerpostalcode')
         buyerpartidcode = purchase_data.get('buyerpartidcode')
         
         # Calculate weight difference
@@ -653,6 +656,7 @@ def create_purchase(purchase_data):
             'unique_sales_agent_code': admin_sales_agent.factor_code if admin_sales_agent else None,
             'vehicle_type': vehicle_type,
             'delivery_postal_code': delpostalcode,
+            'buyer_postal_code': buyerpostalcode,
             'unique_delivery_id': buyerpartidcode,
         }
         

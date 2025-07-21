@@ -1109,14 +1109,14 @@
                                     <i class="fas fa-file-excel me-2"></i>
                                     خروجی اکسل
                                 </button>
-                                <!-- <a href="{% url 'download_excel_template' %}" class="btn btn-success">
+                                <a href="{% url 'download_excel_template' %}" class="btn btn-success">
                                     <i class="fas fa-download me-2"></i>
                                     دانلود قالب اکسل
                                 </a>
                                 <a href="{% url 'upload_excel' %}" class="btn btn-info">
                                     <i class="fas fa-upload me-2"></i>
                                     آپلود اکسل
-                                </a> -->
+                                </a>
                                 <a href="{% url 'barnameh_create' %}" class="btn btn-primary">
                                     <i class="fas fa-plus me-2"></i>
                                     افزودن بارنامه جدید
@@ -1383,7 +1383,7 @@
                                 {% elif column.id == 'buyer_national_code' %}
                                     <td class="column-buyer_national_code">{{ barnameh.get_buyer_national_code|default:"-" }}</td>
                                 {% elif column.id == 'buyer_postal_code' %}
-                                    <td class="column-buyer_postal_code">{{ barnameh.buyer_postal_code|default:"-" }}</td>
+                                    <td class="column-buyer_postal_code">{{ barnameh.get_buyer_postal_code|default:"-" }}</td>
                                 {% elif column.id == 'buyer_address' %}
                                     <td class="column-buyer_address">{{ barnameh.get_buyer_address|default:"-" }}</td>
                                 {% elif column.id == 'demand_amount' %}
