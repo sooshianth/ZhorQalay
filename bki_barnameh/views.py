@@ -2063,6 +2063,10 @@ def _export_barnameh_excel(barnameh_ids, selected_columns):
     # تنظیم گردش متن از راست به چپ برای کل صفحه
     ws.sheet_view.rightToLeft = True
     
+    # تعریف استایل‌ها
+    header_font = Font(name='B Nazanin', size=12, bold=True, color='FFFFFF')
+    header_fill = PatternFill(start_color='38A169', end_color='38A169', fill_type='solid')  # سبز مطابق طرح
+    
     # تنظیم راست چین و وسط چین
     alignment = Alignment(horizontal='right', vertical='center', wrap_text=True)
     
@@ -2077,7 +2081,6 @@ def _export_barnameh_excel(barnameh_ids, selected_columns):
     # مپینگ کامل ستون‌ها به فیلدهای مدل بارنامه
     column_mapping = {
         'number': ('شماره بارنامه', lambda b: b.number or "تعیین نشده"),
-        'purchase_number': ('شماره خرید', lambda b: b.purchase_number or "تعیین نشده"),
         'serial': ('سریال', lambda b: b.serial or "تعیین نشده"),
         'tonnage': ('وزن (کیلوگرم)', lambda b: f"{b.tonnage}" if b.tonnage else "0"),
         'status': ('وضعیت', lambda b: b.get_status_display() if b.status else "-"),
@@ -2103,9 +2106,9 @@ def _export_barnameh_excel(barnameh_ids, selected_columns):
         'product_type': ('محصول', lambda b: b.get_product_type() or "-"),
         'product_country': ('کشور محصول', lambda b: b.get_product_country() or "-"),
         'successful_send_date': ('تاریخ ارسال موفق به بازارگاه', lambda b: b.get_successful_send_date().strftime("%Y/%m/%d") if b.get_successful_send_date() else "-"),
-        'factor_sodoor_season': ('زمان صدور فاکتور فصل', lambda b: b.factor_sodoor_season or "-"),
         'is_sent_to_bki': ('ارسال به بازارگاه', lambda b: "بله" if b.is_sent_to_bki else "خیر"),
         'created_at': ('تاریخ ایجاد', lambda b: b.barnameh_created_at.strftime("%Y/%m/%d") if b.barnameh_created_at else "-"),
+        'factor_sodoor_season': ('زمان صدور فاکتور فصل', lambda b: b.factor_sodoor_season or "-"),
     }
     
     # فقط ستون‌های انتخاب شده را اضافه می‌کنیم
@@ -2119,6 +2122,8 @@ def _export_barnameh_excel(barnameh_ids, selected_columns):
     
     # تنظیم استایل برای سطر هدر
     for i, cell in enumerate(ws[1], 1):
+        cell.font = header_font
+        cell.fill = header_fill
         cell.alignment = alignment
         cell.border = thin_border
     
@@ -2200,4 +2205,3 @@ def get_barnameh_logs(request, barnameh_id):
             'status': 'error',
             'message': f'خطا در دریافت لاگ‌ها: {str(e)}'
         }, status=500)
-
