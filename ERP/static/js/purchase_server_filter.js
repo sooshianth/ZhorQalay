@@ -608,6 +608,14 @@ class PurchaseServerFilter {
                 displayText = value;
             }
             
+            // --- Jalali display for date column ---
+            if (columnId === 'date' && value && typeof value === 'string' && value.match(/^\d{4}[-\/]\d{2}[-\/]\d{2}$/)) {
+                const jalali = formatJalaliDateString(value);
+                if (jalali && jalali !== value) {
+                    displayText = `${value} (${jalali})`;
+                }
+            }
+            
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.className = 'form-check-input me-2';
@@ -1540,6 +1548,42 @@ class PurchaseServerFilter {
         const token = document.querySelector('[name=csrfmiddlewaretoken]');
         return token ? token.value : '';
     }
+}
+
+// --- Gregorian to Jalali conversion helper (simple, for display) ---
+function gregorianToJalali(gy, gm, gd) {
+    // Basic algorithm for conversion (not 100% accurate for all edge cases, but good for UI display)
+    // Source: https://github.com/jalaali/jalaali-js/blob/master/index.js (MIT License)
+    var g_d_m = [0,31,59,90,120,151,181,212,243,273,304,334];
+    var jy = (gy <= 1600) ? 0 : 979;
+    gy -= (gy <= 1600) ? 621 : 1600;
+    var gy2 = (gm > 2) ? (gy + 1) : gy;
+    var days = (365 * gy) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) - 80 + gd + g_d_m[gm - 1];
+    jy += 33 * Math.floor(days / 12053);
+    days %= 12053;
+    jy += 4 * Math.floor(days / 1461);
+    days %= 1461;
+    if (days > 365) {
+        jy += Math.floor((days - 1) / 365);
+        days = (days - 1) % 365;
+    }
+    var jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
+    var jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+    return [jy, jm, jd];
+}
+
+function formatJalaliDateString(gregorianStr) {
+    // Accepts 'YYYY-MM-DD' or 'YYYY/MM/DD' and returns 'YYYY/MM/DD'
+    if (!gregorianStr) return '';
+    let parts = gregorianStr.split('-');
+    if (parts.length !== 3) parts = gregorianStr.split('/');
+    if (parts.length !== 3) return gregorianStr;
+    let gy = parseInt(parts[0], 10);
+    let gm = parseInt(parts[1], 10);
+    let gd = parseInt(parts[2], 10);
+    if (isNaN(gy) || isNaN(gm) || isNaN(gd)) return gregorianStr;
+    let [jy, jm, jd] = gregorianToJalali(gy, gm, gd);
+    return `${jy}/${jm.toString().padStart(2, '0')}/${jd.toString().padStart(2, '0')}`;
 }
 
 // راه‌اندازی خودکار

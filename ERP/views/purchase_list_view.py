@@ -1023,6 +1023,7 @@ def _export_regular_excel(purchase_ids, selected_columns):
         'delivery_address': ('آدرس تحویل', lambda p: p.delivery_address or "-"),
         'delivery_postal_code': ('کد پستی تحویل', lambda p: p.delivery_postal_code or "-"),
         'vehicle_type': ('نوع خودرو حمل', lambda p: p.vehicle_type or "-"),
+        'country': ('کشور محصول', lambda p: p.cargo.get_country_display() or "-"),
     }
     
     # فقط ستون‌های انتخاب شده را اضافه می‌کنیم
