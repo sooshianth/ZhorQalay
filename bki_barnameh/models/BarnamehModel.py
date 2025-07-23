@@ -66,7 +66,7 @@ class Barnameh(models.Model):
     def get_company_price(self):
         """دریافت فی خرید از خرید مرتبط"""
         try:
-            return self.purchase.cargo.company_price if (self.purchase and self.purchase.cargo) else None
+            return self.purchase.company_price if (self.purchase) else None
         except Exception as e:
             logger.error(f"خطا در دریافت فی خرید برای بارنامه {self.id}: {str(e)}")
             return None
@@ -74,27 +74,23 @@ class Barnameh(models.Model):
     def get_customer_price(self):
         """دریافت فی فروش از خرید مرتبط"""
         try:
-            return self.purchase.cargo.customer_price if (self.purchase and self.purchase.cargo) else None
+            return self.purchase.customer_price if (self.purchase) else None
         except Exception as e:
             logger.error(f"خطا در دریافت فی فروش برای بارنامه {self.id}: {str(e)}")
             return None
     
     def get_total_sales_amount(self):
         """دریافت مبلغ کل فروش"""
-        if self.total_sales_amount:
-            return self.total_sales_amount
         # اگر مقدار ذخیره شده نباشد، محاسبه کن
-        if self.purchase and self.purchase.cargo and self.purchase.cargo.customer_price and self.tonnage:
-            return float(self.purchase.cargo.customer_price) * float(self.tonnage)
+        if self.purchase and self.purchase.customer_price and self.tonnage:
+            return int(self.purchase.customer_price) * float(self.tonnage)
         return None  
     
     def get_total_purchase_amount(self):
         """دریافت مبلغ کل خرید"""
-        if self.total_purchase_amount:
-            return self.total_purchase_amount
         # اگر مقدار ذخیره شده نباشد، محاسبه کن
-        if self.purchase and self.purchase.cargo and self.purchase.cargo.company_price and self.tonnage:
-            return float(self.purchase.cargo.company_price) * float(self.tonnage)
+        if self.purchase and self.purchase.company_price and self.tonnage:
+            return int(self.purchase.company_price) * float(self.tonnage)
         return None
     
     def get_buyer_national_code(self):
@@ -192,7 +188,10 @@ class Barnameh(models.Model):
             self.status = 'SENT_TO_BKI'
         else:
             self.status = 'NOT_SENT_TO_BKI'
-            
+        
+        self.total_purchase_amount = self.get_total_purchase_amount()
+        self.total_sales_amount = self.get_total_sales_amount()
+
         super().save(*args, **kwargs)
         
         # بروزرسانی وضعیت فاکتور خرید مرتبط

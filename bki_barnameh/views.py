@@ -64,20 +64,20 @@ BARNAMEH_COLUMNS = [
     {'id': 'successful_send_date', 'name': 'تاریخ ارسال موفق به بازارگاه'},
     {'id': 'is_sent_to_bki', 'name': 'ارسال به بازارگاه'},
     {'id': 'created_at', 'name': 'تاریخ ایجاد'},
-    {'id': 'actions', 'name': 'عملیات'},
     {'id': 'factor_sodoor_season', 'name': 'زمان صدور فاکتور فصل'},
     {'id': 'is_factored', 'name': 'فاکتور صادر شده'},
-    {'id': 'is_sent_to_bki', 'name': 'ارسال به بازارگاه'},
     {'id': 'is_created_by_excel', 'name': 'ایجاد توسط اکسل'},
     {'id': 'is_sent_to_bki_at', 'name': 'تاریخ ارسال به بازارگاه'},
     {'id': 'is_created_by_excel_at', 'name': 'تاریخ ایجاد توسط اکسل'},
     {'id': 'barnameh_updated_at', 'name': 'تاریخ بروزرسانی'},
+    {'id': 'actions', 'name': 'عملیات'},
 ]
 
 # ستون‌های پیش‌فرض
 DEFAULT_BARNAMEH_COLUMNS = [
-    'number', 'serial', 'tonnage', 'status', 'driver_name', 
-    'barnameh_date', 'purchase_number', 'shenase_takhsis_code', 'total_purchase_amount', 'actions'
+    'number', 'serial', 'tonnage', 'status', 'driver_name',
+    'barnameh_date', 'purchase_number', 'shenase_takhsis_code', 
+    'total_purchase_amount', 'total_sales_amount', 'actions'
 ]
 
 def get_barnameh_columns_from_cookie(request):
