@@ -65,19 +65,37 @@ class Barnameh(models.Model):
     
     def get_company_price(self):
         """دریافت فی خرید از خرید مرتبط"""
-        return self.purchase.cargo.company_price if (self.purchase and self.purchase.cargo) else None
+        try:
+            return self.purchase.cargo.company_price if (self.purchase and self.purchase.cargo) else None
+        except Exception as e:
+            logger.error(f"خطا در دریافت فی خرید برای بارنامه {self.id}: {str(e)}")
+            return None
     
     def get_customer_price(self):
         """دریافت فی فروش از خرید مرتبط"""
-        return self.purchase.cargo.customer_price if (self.purchase and self.purchase.cargo) else None
+        try:
+            return self.purchase.cargo.customer_price if (self.purchase and self.purchase.cargo) else None
+        except Exception as e:
+            logger.error(f"خطا در دریافت فی فروش برای بارنامه {self.id}: {str(e)}")
+            return None
     
     def get_total_sales_amount(self):
         """دریافت مبلغ کل فروش"""
-        return self.total_sales_amount  
+        if self.total_sales_amount:
+            return self.total_sales_amount
+        # اگر مقدار ذخیره شده نباشد، محاسبه کن
+        if self.purchase and self.purchase.cargo and self.purchase.cargo.customer_price and self.tonnage:
+            return float(self.purchase.cargo.customer_price) * float(self.tonnage)
+        return None  
     
     def get_total_purchase_amount(self):
         """دریافت مبلغ کل خرید"""
-        return self.total_purchase_amount
+        if self.total_purchase_amount:
+            return self.total_purchase_amount
+        # اگر مقدار ذخیره شده نباشد، محاسبه کن
+        if self.purchase and self.purchase.cargo and self.purchase.cargo.company_price and self.tonnage:
+            return float(self.purchase.cargo.company_price) * float(self.tonnage)
+        return None
     
     def get_buyer_national_code(self):
         """دریافت شماره ملی خریدار از خرید مرتبط (buyer_national_id)"""

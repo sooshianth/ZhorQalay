@@ -1272,6 +1272,8 @@
                                     <th data-column-id="customer_price" data-column-type="number">فی فروش</th>
                                 {% elif column.id == 'total_sales_amount' %}
                                     <th data-column-id="total_sales_amount" data-column-type="number">مبلغ کل فروش</th>
+                                {% elif column.id == 'total_purchase_amount' %}
+                                    <th data-column-id="total_purchase_amount" data-column-type="number">مبلغ کل خرید</th>
                                 {% elif column.id == 'buyer_national_code' %}
                                     <th data-column-id="buyer_national_code" data-column-type="text">شماره ملی خریدار</th>
                                 {% elif column.id == 'buyer_postal_code' %}
@@ -1376,6 +1378,14 @@
                                     <td class="column-total_sales_amount">
                                         {% if barnameh.get_total_sales_amount %}
                                             {{ barnameh.get_total_sales_amount|floatformat:0|add_commas }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                {% elif column.id == 'total_purchase_amount' %}
+                                    <td class="column-total_purchase_amount">
+                                        {% if barnameh.get_total_purchase_amount %}
+                                            {{ barnameh.get_total_purchase_amount|floatformat:0|add_commas }}
                                         {% else %}
                                             -
                                         {% endif %}

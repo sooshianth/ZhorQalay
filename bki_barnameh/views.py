@@ -77,7 +77,7 @@ BARNAMEH_COLUMNS = [
 # ستون‌های پیش‌فرض
 DEFAULT_BARNAMEH_COLUMNS = [
     'number', 'serial', 'tonnage', 'status', 'driver_name', 
-    'barnameh_date', 'purchase_number', 'shenase_takhsis_code', 'actions'
+    'barnameh_date', 'purchase_number', 'shenase_takhsis_code', 'total_purchase_amount', 'actions'
 ]
 
 def get_barnameh_columns_from_cookie(request):
@@ -2048,9 +2048,17 @@ def export_barnameh_excel(request):
 
 def _export_barnameh_excel(barnameh_ids, selected_columns):
     """پردازش و ایجاد فایل اکسل برای بارنامه‌ها"""
-    barnamehs = Barnameh.objects.filter(id__in=barnameh_ids).order_by('-barnameh_created_at')
+    # بهینه‌سازی کوئری با select_related برای جلوگیری از N+1 queries
+    barnamehs = Barnameh.objects.select_related(
+        'purchase', 
+        'purchase__cargo'
+    ).filter(id__in=barnameh_ids).order_by('-barnameh_created_at')
     
     logger.warning(f"Found {barnamehs.count()} barnamehs")
+    
+    # لاگ کردن اطلاعات اضافی برای دیباگ
+    for barnameh in barnamehs[:5]:  # فقط 5 مورد اول
+        logger.warning(f"Barnameh {barnameh.id}: purchase={barnameh.purchase}, cargo={barnameh.purchase.cargo if barnameh.purchase else None}")
     
     if barnamehs.count() == 0:
         logger.warning("ERROR: No barnamehs found!")
@@ -2094,10 +2102,10 @@ def _export_barnameh_excel(barnameh_ids, selected_columns):
         'purchase_number': ('شماره خرید', lambda b: b.purchase_number or "-"),
         'shenase_takhsis_code': ('شناسه تخصیص', lambda b: b.shenase_takhsis_code or "-"),
         'cargo': ('کوتاژ', lambda b: str(b.get_cargo()) if b.get_cargo() else "-"),
-        'company_price': ('فی خرید', lambda b: f"{b.get_company_price():,}" if b.get_company_price() else "-"),
-        'customer_price': ('فی فروش', lambda b: f"{b.get_customer_price():,}" if b.get_customer_price() else "-"),
+        'company_price': ('فی خرید', lambda b: f"{b.get_company_price():,}" if b.get_company_price() and b.get_company_price() > 0 else "0"),
+        'customer_price': ('فی فروش', lambda b: f"{b.get_customer_price():,}" if b.get_customer_price() and b.get_customer_price() > 0 else "0"),
         'total_sales_amount': ('مبلغ کل فروش', lambda b: f"{b.get_total_sales_amount():,.0f}" if b.get_total_sales_amount() else "-"),
-        'total_purchase_amount': ('مبلغ کل خرید', lambda b: f"{b.get_total_purchase_amount():,.0f}" if b.get_total_purchase_amount() else "-"),
+        'total_purchase_amount': ('مبلغ کل خرید', lambda b: f"{b.get_total_purchase_amount():,.0f}" if b.get_total_purchase_amount() and b.get_total_purchase_amount() > 0 else "0"),
         'buyer_national_code': ('شماره ملی خریدار', lambda b: b.get_buyer_national_code() or "-"),
         'buyer_postal_code': ('کدپستی خریدار', lambda b: b.get_buyer_postal_code() or "-"),
         'buyer_address': ('آدرس خریدار', lambda b: b.get_buyer_address() or "-"),
@@ -2138,7 +2146,11 @@ def _export_barnameh_excel(barnameh_ids, selected_columns):
                     row.append(value)
                 except Exception as e:
                     logger.warning(f"خطا در استخراج مقدار {col} برای بارنامه {barnameh.id}: {str(e)}")
-                    row.append("-")
+                    # برای فیلدهای عددی، مقدار پیش‌فرض 0 قرار می‌دهیم
+                    if col in ['company_price', 'customer_price', 'total_sales_amount', 'total_purchase_amount', 'tonnage']:
+                        row.append("0")
+                    else:
+                        row.append("-")
         
         ws.append(row)
         
