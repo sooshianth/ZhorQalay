@@ -50,8 +50,8 @@ class Purchase(models.Model):
     sales_agent = models.ManyToManyField(SalesAgent, through='PuchaseSalesAgent', verbose_name="کارشناس فروش", blank=True, related_name='purchase_assignments')
     address = models.TextField("آدرس خریدار", blank=True, null=True)
     description = models.TextField("توضیحات", blank=True, null=True)
-    company_price = models.DecimalField("فی خرید(ریال)", max_digits=26, decimal_places=20, default=0)
-    customer_price = models.DecimalField("فی فروش(ریال)", max_digits=26, decimal_places=20, default=0)
+    company_price = models.DecimalField("فی خرید(ریال)", max_digits=18, decimal_places=10, default=0)
+    customer_price = models.DecimalField("فی فروش(ریال)", max_digits=18, decimal_places=10, default=0)
     factor_code = models.BooleanField("فاکتور کد", default=False)
     
     purchase_number = models.CharField("شماره خرید بازارگاه", max_length=7, blank=True, null=True, unique=True)
@@ -943,6 +943,15 @@ class Purchase(models.Model):
             # اگر هیچ بارنامه‌ای فاکتور صادر نشده دارد
             self.factor_status = 'not_factored'
             super().save(update_fields=['factor_status'])
+    
+    def get_total_barnameh_weight(self):
+        """محاسبه مجموع وزن بارنامه‌ها"""
+        total_weight = 0
+        try:
+            total_weight = self.barnamehs.aggregate(Sum('tonnage'))['tonnage__sum'] or 0
+        except Exception as e:
+            logger.error(f"خطا در محاسبه مجموع وزن بارنامه‌ها برای خرید {self.id}: {str(e)}")
+        return total_weight
                 
 
 

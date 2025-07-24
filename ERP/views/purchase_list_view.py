@@ -1,11 +1,12 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import Q, Sum
 from openpyxl import Workbook
 from django.views.decorators.http import require_POST
 from django.http import HttpResponse, JsonResponse
 import json
 from django.utils import timezone
+import logging
 import logging
 import traceback
 
@@ -27,22 +28,20 @@ def get_allowed_columns(user_role):
     if user_role == 'sales_agent':
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight', 'delivered_weight',
          'status', 'cargo', 'product_type', 'country', 'customer', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number']
-        
+    
     elif user_role == 'support_agent':
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'weight',
          'delivered_weight', 'status', 'cargo', 'product_type', 'country', 'importer', 'barbary', 'barbary_phone', 'customer',
           'buyer_name']
           
-                
     elif user_role == 'financial_manager':
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
-         'delivered_weight', 'first_barnameh_date', 'last_barnameh_date', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
-         'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',
-          'cargo', 'product_type', 'country', 'importer', 'buyer_name', 'code_melli_tahvil', 'address', 'unique_buyer_id']
-                
+         'delivered_weight', 'total_barnameh_weight', 'first_barnameh_date', 'last_barnameh_date', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
+         'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',          'cargo', 'product_type', 'country', 'importer', 'buyer_name', 'code_melli_tahvil', 'address', 'unique_buyer_id']
+    
     elif user_role == 'admin' or user_role == 'logistics_manager':
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
-         'delivered_weight', 'first_barnameh_date', 'last_barnameh_date', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
+         'delivered_weight', 'total_barnameh_weight', 'first_barnameh_date', 'last_barnameh_date', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
          'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
           'cargo', 'product_type', 'country', 'importer', 'barbary', 'barbary_phone', 'customer', 'customer_phones', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil', 'address',
             'unique_buyer_id', 'barbary_confidential_number', 'barbary_customer_number', 'delivery_receiver_name', 'buyer_national_id',
@@ -56,23 +55,21 @@ def get_default_columns(user_role):
     if user_role == 'sales_agent':
         selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'weight',
              'delivered_weight', 'status', 'cargo', 'product_type', 'customer', 'buyer_name']
-    
     elif user_role == 'support_agent':
         selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'weight', 
             'delivered_weight', 'status', 'cargo', 'product_type', 'importer' , 'customer', 'buyer_name']
     
     elif user_role == 'financial_manager':
         selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
-             'delivered_weight', 'status', 'description', 'is_fully_tasvied',
+             'delivered_weight', 'total_barnameh_weight', 'status', 'description', 'is_fully_tasvied',
              'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',
              'cargo', 'product_type', 'importer', 'buyer_name']
-    
     elif user_role == 'admin' or user_role == 'logistics_manager':
         selected_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
-            'delivered_weight', 'status', 'description', 'is_fully_tasvied',
+            'delivered_weight', 'total_barnameh_weight', 'status', 'description', 'is_fully_tasvied',
             'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
             'cargo', 'product_type', 'importer', 'buyer_name', 'tahvil_phone_number', 'code_melli_tahvil']
-          
+    
     return selected_columns
 
 def get_allowed_search_filters(global_search, request):
@@ -526,9 +523,9 @@ def purchase_list(request):
         # اطمینان از حضور ستون actions
         if 'actions' not in selected_columns:
             selected_columns.append('actions')
-        
-        logger.warning(f"ستون های انتخابی مسئول پیگیری {request.user.username}: {selected_columns}")
+            logger.warning(f"ستون های انتخابی مسئول پیگیری {request.user.username}: {selected_columns}")
         logger.info(f"ستون های قابل انتخاب مسئول پیگیری {request.user.username}: {all_columns}")
+    
     elif user_role == 'financial_manager':
         all_columns = [
             {'id': 'actions', 'name': 'جزئیات'},
@@ -540,6 +537,7 @@ def purchase_list(request):
             {'id': 'customer_price', 'name': 'فی فروش', 'field': 'customer_price', 'unit': 'ریال'},
             {'id': 'weight', 'name': 'وزن خرید', 'field': 'order_weight', 'unit': 'کیلوگرم'},
             {'id': 'delivered_weight', 'name': 'وزن بارنامه شده', 'field': 'delivered_weight', 'unit': 'کیلوگرم'},
+            {'id': 'total_barnameh_weight', 'name': 'مجموع وزن بارنامه‌ها', 'field': 'get_total_barnameh_weight()', 'unit': 'تن'},
             {'id': 'first_barnameh_date', 'name': 'تاریخ اولین بارنامه', 'field': 'barnamehs.first.barnameh_date', 'format': 'date'},
             {'id': 'last_barnameh_date', 'name': 'تاریخ آخرین بارنامه', 'field': 'barnamehs.last.barnameh_date', 'format': 'date'},
             {'id': 'extelaf_type', 'name': 'نوع اختلاف', 'field': 'extelaf_type'},
@@ -604,9 +602,9 @@ def purchase_list(request):
             {'id': 'date', 'name': 'تاریخ', 'field': 'created_at', 'format': 'date'},
             {'id': 'sales_agent', 'name': 'نماینده فروش', 'field': 'customer.sales_agent.name'},
             {'id': 'company_price', 'name': 'فی خرید', 'field': 'company_price', 'unit': 'ریال'},
-            {'id': 'customer_price', 'name': 'فی فروش', 'field': 'customer_price', 'unit': 'ریال'},
-            {'id': 'weight', 'name': 'وزن خرید', 'field': 'order_weight', 'unit': 'کیلوگرم'},
+            {'id': 'customer_price', 'name': 'فی فروش', 'field': 'customer_price', 'unit': 'ریال'},            {'id': 'weight', 'name': 'وزن خرید', 'field': 'order_weight', 'unit': 'کیلوگرم'},
             {'id': 'delivered_weight', 'name': 'وزن بارنامه شده', 'field': 'delivered_weight', 'unit': 'کیلوگرم'},
+            {'id': 'total_barnameh_weight', 'name': 'مجموع وزن بارنامه‌ها', 'field': 'get_total_barnameh_weight()', 'unit': 'تن'},
             {'id': 'first_barnameh_date', 'name': 'تاریخ اولین بارنامه', 'field': 'barnamehs.first.barnameh_date', 'format': 'date'},
             {'id': 'last_barnameh_date', 'name': 'تاریخ آخرین بارنامه', 'field': 'barnamehs.last.barnameh_date', 'format': 'date'},
             {'id': 'extelaf_type', 'name': 'نوع اختلاف', 'field': 'extelaf_type'},
