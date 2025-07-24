@@ -1417,6 +1417,8 @@
           {% endfor %}
         </tbody>
       </table>
+      مجموع وزن بارنامه ها: {{ purchase.get_total_barnameh_weight|default:"-"|add_commas }}
+
     </div>
     {% else %}
     <div class="alert alert-info mt-3 text-center">

@@ -590,6 +590,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="column-{{ column.id }}">{{ purchase.customer_price|default:"-"|add_commas }}</td>
                     {% elif column.id == 'delivered_weight' %}
                     <td class="column-{{ column.id }}">{{ purchase.delivered_weight|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'total_barnameh_weight' %}
+                    <td class="column-{{ column.id }}">{{ purchase.get_total_barnameh_weight|default:"-"|add_commas }}</td>
                     {% elif column.id == 'shenase_takhsis' %}
                     <td class="column-{{ column.id }}">
                         {% if purchase.shenase_takhsis_set.exists %}
@@ -814,6 +816,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             -
                         {% endif %}
                     </td>
+                    {% elif column.id == 'total_barnameh_weight' %}
+                    <td class="column-{{ column.id }}">{{ purchase.get_total_barnameh_weight|default:"-"|add_commas }}</td>
                     {% endif %}
                 {% endif %}
             {% endfor %}
@@ -995,6 +999,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div style="display: block; font-size: 0.78em; color: #aaa; margin-top: 2px; font-weight: 400; line-height: 1.2;">{{ column.unit }}</div>
                         {% endif %}
                     </div>
+                </th>
                 {% endif %}
             {% endfor %}
         </tr>
@@ -1125,6 +1130,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="column-{{ column.id }}">{{ purchase.buyer_name|default:"-" }}</td>
                     {% elif column.id == 'delivered_weight' %}
                     <td class="column-{{ column.id }}">{{ purchase.delivered_weight|default:"-"|add_commas }}</td>
+                    {% elif column.id == 'total_barnameh_weight' %}
+                    <td class="column-{{ column.id }}">{{ purchase.get_total_barnameh_weight|default:"-"|add_commas }}</td>
                     {% elif column.id == 'status' %}
                     <td class="column-{{ column.id }}">
                         {% if purchase.state == 'ARCHIVED' or purchase.is_archived %}
@@ -1327,6 +1334,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             -
                         {% endif %}
                     </td>
+                    {% elif column.id == 'total_barnameh_weight' %}
+                    <td class="column-{{ column.id }}">{{ purchase.get_total_barnameh_weight|default:"-"|add_commas }}</td>
                     {% endif %}
                 {% endif %}
             {% endfor %}
@@ -1820,6 +1829,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             -
                         {% endif %}
                     </td>
+                    {% elif column.id == 'total_barnameh_weight' %}
+                    <td class="column-{{ column.id }}">{{ purchase.get_total_barnameh_weight|default:"-"|add_commas }}</td>
                     {% endif %}
                 {% endif %}
             {% endfor %}
