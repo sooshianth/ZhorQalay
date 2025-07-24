@@ -50,8 +50,8 @@ class Purchase(models.Model):
     sales_agent = models.ManyToManyField(SalesAgent, through='PuchaseSalesAgent', verbose_name="کارشناس فروش", blank=True, related_name='purchase_assignments')
     address = models.TextField("آدرس خریدار", blank=True, null=True)
     description = models.TextField("توضیحات", blank=True, null=True)
-    company_price = models.PositiveIntegerField("فی خرید(ریال)", default=0)
-    customer_price = models.PositiveIntegerField("فی فروش(ریال)", default=0)
+    company_price = models.DecimalField("فی خرید(ریال)", max_digits=26, decimal_places=20, default=0)
+    customer_price = models.DecimalField("فی فروش(ریال)", max_digits=26, decimal_places=20, default=0)
     factor_code = models.BooleanField("فاکتور کد", default=False)
     
     purchase_number = models.CharField("شماره خرید بازارگاه", max_length=7, blank=True, null=True, unique=True)
