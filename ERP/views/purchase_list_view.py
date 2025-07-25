@@ -2093,6 +2093,7 @@ def apply_purchase_filter(request):
                 'country': purchase.cargo.get_country_display() if purchase.cargo and purchase.cargo.get_country_display() else '-',
                 'address': purchase.address or '-',
                 'description': purchase.description or '-',
+                'total_barnameh_weight': f"{purchase.get_total_barnameh_weight():,}" if purchase.get_total_barnameh_weight() else '-',
                 'factor_code': '1' if purchase.factor_code else '0',
                 'unique_buyer_id': purchase.unique_buyer_id or '-',
                 'factor_status': purchase.get_factor_status_display() if purchase.factor_status else '-',
