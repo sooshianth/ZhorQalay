@@ -1,17 +1,17 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM fully loaded');
     
-    // Initialize table filter first
-    const tableFilter = new TableFilter({
-        tableSelector: '.enable-filter',
-        enableToast: true,
-        enableIndicators: true,
-        enableSummary: true,
-        enableClearAll: true,
-        autoDetectColumns: true
-    });
-    tableFilter.init();
-    console.log('Table filter initialized');
+    // OLD: Initialize table filter first - DISABLED FOR SERVER-SIDE FILTERING
+    // const tableFilter = new TableFilter({
+    //     tableSelector: '.enable-filter',
+    //     enableToast: true,
+    //     enableIndicators: true,
+    //     enableSummary: true,
+    //     enableClearAll: true,
+    //     autoDetectColumns: true
+    // });
+    // tableFilter.init();
+    // console.log('Table filter initialized');
     
     // Initialize columns management
     initializeColumnManagement();
@@ -279,7 +279,7 @@ function toggleFavorite(customerId, iconElement) {
     formData.append('customer_id', customerId);
     
     // ارسال درخواست
-    fetch('/sales/toggle_favorite/', {
+    fetch('/sales/customers/toggle-favorite/', {
         method: 'POST',
         headers: {
             'X-CSRFToken': csrfToken
@@ -632,9 +632,21 @@ function applyColumnVisibility(preferences) {
             return;
         }
         
-        // Find all elements with column class
-        const columnElements = document.querySelectorAll(`.column-${columnId}`);
+        // Find table header with data-column-id
+        const headerElement = document.querySelector(`th[data-column-id="${columnId}"]`);
         
+        if (headerElement) {
+            if (isVisible) {
+                headerElement.style.display = '';
+                headerElement.classList.remove('d-none');
+            } else {
+                headerElement.style.display = 'none';
+                headerElement.classList.add('d-none');
+            }
+        }
+        
+        // Also find elements with column class for compatibility
+        const columnElements = document.querySelectorAll(`.column-${columnId}`);
         columnElements.forEach(element => {
             if (isVisible) {
                 element.style.display = '';
@@ -644,7 +656,37 @@ function applyColumnVisibility(preferences) {
                 element.classList.add('d-none');
             }
         });
+        
+        // Apply visibility to table cells in body
+        const table = document.querySelector('#customersTable');
+        if (table) {
+            const headers = table.querySelectorAll('th[data-column-id]');
+            const columnIndex = Array.from(headers).findIndex(h => h.dataset.columnId === columnId);
+            
+            if (columnIndex !== -1) {
+                // Apply to all rows in tbody
+                const rows = table.querySelectorAll('tbody tr');
+                rows.forEach(row => {
+                    const cell = row.cells[columnIndex];
+                    if (cell) {
+                        if (isVisible) {
+                            cell.style.display = '';
+                            cell.classList.remove('d-none');
+                        } else {
+                            cell.style.display = 'none';
+                            cell.classList.add('d-none');
+                        }
+                    }
+                });
+            }
+        }
     });
+    
+    // اگر server filter فعال است، جدول را دوباره render کن
+    if (window.customerServerFilter) {
+        // فراخوانی مجدد برای بروزرسانی جدول با ستون‌های جدید
+        window.customerServerFilter.applyFilters();
+    }
     
     console.log('Applied column visibility:', preferences);
 }
