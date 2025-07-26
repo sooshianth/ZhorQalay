@@ -49,7 +49,6 @@ BARNAMEH_COLUMNS = [
     {'id': 'transport_date', 'name': 'تاریخ حمل'},
     {'id': 'purchase_number', 'name': 'شماره خرید'},
     {'id': 'shenase_takhsis_code', 'name': 'شناسه تخصیص'},
-    {'id': 'buyer_name', 'name': 'نام خریدار'}, # <-- این خط را اضافه کن
     {'id': 'cargo', 'name': 'کوتاژ'},
     {'id': 'company_price', 'name': 'فی خرید'},
     {'id': 'customer_price', 'name': 'فی فروش'},
@@ -79,7 +78,6 @@ BARNAMEH_COLUMNS = [
 DEFAULT_BARNAMEH_COLUMNS = [
     'number', 'serial', 'tonnage', 'status', 'driver_name',
     'barnameh_date', 'purchase_number', 'shenase_takhsis_code', 
-        'buyer_name',
     'total_purchase_amount', 'total_sales_amount', 'actions'
 ]
 
@@ -535,7 +533,6 @@ def apply_barnameh_filter(request):
                 'transport_date': 'transport_date',
                 'purchase_number': 'purchase_number',
                 'shenase_takhsis_code': 'shenase_takhsis_code',
-                'buyer_name': 'purchase__buyer_name',
                 'is_sent_to_bki': 'is_sent_to_bki',
                 'is_factored': 'is_factored',
                 'is_created_by_excel': 'is_created_by_excel',
@@ -617,7 +614,6 @@ def apply_barnameh_filter(request):
                 'transport_date': barnameh.transport_date.strftime("%Y/%m/%d") if barnameh.transport_date else "",
                 'purchase_number': barnameh.purchase_number or "",
                 'shenase_takhsis_code': barnameh.shenase_takhsis_code or "",
-                'buyer_name': get_related_data(barnameh, 'purchase.buyer_name'),
                 'is_sent_to_bki': barnameh.is_sent_to_bki,
                 'is_factored': barnameh.is_factored,
                 'is_created_by_excel': barnameh.is_created_by_excel,
@@ -756,11 +752,6 @@ def get_barnameh_column_values(request):
                         else:
                             filter_conditions &= ~Q(purchase_number__in=values)
                         
-                elif column_id == 'buyer_name':
-                    values_queryset = base_queryset.exclude(purchase__buyer_name__isnull=True)\
-                        .exclude(purchase__buyer_name='').values_list('purchase__buyer_name', flat=True).distinct()
-                    values = set(values_queryset)
-
                 elif filter_column_id == 'status':
                     # تبدیل نمایش وضعیت به کد وضعیت
                     status_map = {
@@ -796,15 +787,7 @@ def get_barnameh_column_values(request):
                             filter_conditions &= Q(**{f'{filter_column_id}__in': values})
                         else:
                             filter_conditions &= ~Q(**{f'{filter_column_id}__in': values})
-
-                elif filter_column_id == 'buyer_name':
-                    values = [v for v in values if v and v.strip()]
-                    if values:
-                        if filter_type == 'include':
-                            filter_conditions &= Q(purchase__buyer_name__in=values)
-                        else:
-                            filter_conditions &= ~Q(purchase__buyer_name__in=values)
-                            
+                
                 elif filter_column_id == 'tonnage':
                     # فیلتر عددی
                     try:
@@ -2130,7 +2113,6 @@ def _export_barnameh_excel(barnameh_ids, selected_columns):
         'transport_date': ('تاریخ حمل', lambda b: b.transport_date.strftime("%Y/%m/%d") if b.transport_date else "-"),
         'purchase_number': ('شماره خرید', lambda b: b.purchase_number or "-"),
         'shenase_takhsis_code': ('شناسه تخصیص', lambda b: b.shenase_takhsis_code or "-"),
-        'buyer_name': ('نام خریدار', lambda b: b.purchase.buyer_name if b.purchase else "-"),
         'cargo': ('کوتاژ', lambda b: str(b.get_cargo()) if b.get_cargo() else "-"),
         'company_price': ('فی خرید', lambda b: f"{b.get_company_price():,}" if b.get_company_price() and b.get_company_price() > 0 else "0"),
         'customer_price': ('فی فروش', lambda b: f"{b.get_customer_price():,}" if b.get_customer_price() and b.get_customer_price() > 0 else "0"),
