@@ -54,6 +54,18 @@
     --transition-slow: all 0.5s ease;
 }
 
+/* لینک‌های نام مشتری */
+.hover-link {
+    transition: all 0.2s ease-in-out;
+    color: var(--primary-color) !important;
+}
+
+.hover-link:hover {
+    color: var(--primary-light) !important;
+    text-decoration: underline !important;
+    transform: translateX(-2px);
+}
+
 /* Reset & Base Styles */
 * {
     box-sizing: border-box;

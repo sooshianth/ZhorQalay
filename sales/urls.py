@@ -36,6 +36,8 @@ from .views.customer_list_view import (
     get_sms_templates,
     send_sms_to_selected,
     get_active_products,
+    apply_customer_filter,
+    get_customer_column_values,
 )
 
 # Sales agent purchases view
@@ -50,6 +52,8 @@ urlpatterns = [
     path('customers/toggle-favorite/', toggle_favorite, name='toggle_favorite'),
     path('customers/send-sms/', send_sms_to_selected, name='send_sms_to_selected'),
     path('customers/get-sms-templates/', get_sms_templates, name='get_sms_templates'),
+    path('customers/filter/apply/', apply_customer_filter, name='apply_customer_filter'),
+    path('customers/filter/column-values/', get_customer_column_values, name='get_customer_column_values'),
     
     # Customer CRUD endpoints
     path('customer/', general_customer_CRUD_view, name='general_customer_CRUD'),

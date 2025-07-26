@@ -14,148 +14,23 @@ from sms_api.apis import queue_sms, render_template
 from sms_api.models import SmsTemplate
 import json
 import re
+import logging
+from datetime import datetime
+
+logger = logging.getLogger("sales_customer_list_view")
 
 @role_required('sales_agent', 'admin')
 @login_required
 def enhanced_customer_list_view(request):
+    """
+    نمایش لیست پیشرفته مشتریان با فیلتر سمت سرور
+    """
     if not hasattr(request.user, 'sales_agent'):
         messages.error(request, "شما مجاز به مشاهده این بخش نیستید.")
         return redirect('sales_agent_login')
 
     sales_agent = request.user.sales_agent
-    customers = sales_agent.get_all_customers()
     
-    # فیلتر جستجو
-    search_query = request.GET.get('search', '')
-    if search_query:
-        # تمیز کردن شماره تلفن از کاراکترهای غیرعددی برای جستجوی بهتر
-        clean_search = ''.join(c for c in search_query if c.isdigit())
-        
-        customers = customers.filter(
-            Q(name__icontains=search_query) |
-            Q(phone_number__icontains=clean_search) |
-            Q(phone_numbers__number__icontains=clean_search)
-        ).distinct()
-
-    # فیلتر مورد علاقه
-    favorites_only = request.GET.get('favorites_only', '') == 'true'
-    if favorites_only:
-        customers = customers.filter(is_favorite=True)
-
-    # فیلتر شهرها (حالت چند انتخابی)
-    city_filter = request.GET.getlist('city', [])
-    if city_filter:
-        customers = customers.filter(city__in=city_filter)
-
-    # فیلتر حوزه فعالیت (حالت چند انتخابی)
-    activity_filter = request.GET.getlist('activity', [])
-    if activity_filter:
-        customers = customers.filter(field_of_activity__code__in=activity_filter)
-
-    # فیلتر ترجیحات پرداخت
-    payment_filter = request.GET.getlist('payment', [])
-    if payment_filter:
-        customers = customers.filter(purchase_preferences__code__in=payment_filter)
-
-    # فیلتر ترجیحات محصول
-    product_filter = request.GET.getlist('product', [])
-    if product_filter:
-        customers = customers.filter(product_preferences__code__in=product_filter)
-
-    # فیلتر وضعیت فعال/غیرفعال
-    status_filter = request.GET.get('status', '')
-    if status_filter == 'active':
-        customers = customers.filter(is_active=True)
-    elif status_filter == 'inactive':
-        customers = customers.filter(is_active=False)
-    elif status_filter == 'blocked':
-        customers = customers.filter(is_blocked=True)
-
-    # فیلتر حداقل تعداد خریدها
-    min_purchases = request.GET.get('min_purchases', '')
-    if min_purchases and min_purchases.isdigit():
-        customers = customers.annotate(
-            purchase_count=Count('purchases_made')
-        ).filter(purchase_count__gte=int(min_purchases))
-
-    # فیلتر آخرین خرید در X روز گذشته
-    last_purchase_days = request.GET.get('last_purchase_days', '')
-    if last_purchase_days and last_purchase_days.isdigit():
-        date_threshold = timezone.now() - timedelta(days=int(last_purchase_days))
-        customers = customers.filter(
-            purchases_made__created_at__gte=date_threshold
-        ).distinct()
-
-    # فیلتر ترجیح واتساپ یا پیامک
-    sms_preference = request.GET.get('sms_preference', '')
-    if sms_preference == 'yes':
-        customers = customers.filter(sms_preference=True)
-    elif sms_preference == 'no':
-        customers = customers.filter(sms_preference=False)
-
-    whatsapp_preference = request.GET.get('whatsapp_preference', '')
-    if whatsapp_preference == 'yes':
-        customers = customers.filter(whatsapp_preference=True)
-    elif whatsapp_preference == 'no':
-        customers = customers.filter(whatsapp_preference=False)
-
-    # محاسبه حجم کل خرید برای هر مشتری
-    customers = customers.annotate(
-        total_purchase_weight=Sum('purchases_made__order_weight', default=0)
-    )
-
-    # مرتب‌سازی
-    SORT_OPTIONS = {
-        'name_asc': 'name',
-        'name_desc': '-name',
-        'city_asc': 'city',
-        'city_desc': '-city',
-        'purchase_asc': 'purchase_count',
-        'purchase_desc': '-purchase_count',
-        'updated_asc': 'updated_at',
-        'updated_desc': '-updated_at',
-        'amount_asc': 'total_purchase_weight',
-        'amount_desc': '-total_purchase_weight',
-        'favorite_asc': 'is_favorite',
-        'favorite_desc': '-is_favorite',
-        'phone_asc': 'phone_number',
-        'phone_desc': '-phone_number',
-    }
-    
-    sort_key = request.GET.get('sort', 'name_asc')
-    sort_field = SORT_OPTIONS.get(sort_key, 'name')
-    
-    # اگر مرتب‌سازی بر اساس خریدهاست و هنوز annotate نشده
-    if sort_field in ['purchase_count', '-purchase_count'] and 'purchase_count' not in [f.name for f in customers.query.annotations]:
-        customers = customers.annotate(purchase_count=Count('purchases_made'))
-    
-    customers = customers.order_by(sort_field)
-
-    # بررسی درخواست AJAX برای جستجوی real-time
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        # برای درخواست‌های AJAX، فقط نتایج محدودتری برمی‌گردانیم
-        customers_data = []
-        limited_customers = customers
-        
-        for customer in limited_customers:
-            customers_data.append({
-                'id': customer.id,
-                'name': customer.name,
-                'phone': customer.get_primary_phone(),
-                'city': customer.city or '',
-                'purchase_count': customer.purchases_made.count(),
-                'total_weight': float(customer.total_purchase_weight or 0),
-                'is_favorite': customer.is_favorite,
-                'field_of_activity': customer.get_field_of_activity_display()
-            })
-        
-        return JsonResponse({
-            'customers': customers_data,
-            'total_count': customers.count()
-        })
-
-
-
     # دریافت لیست‌های مورد نیاز برای فیلترها
     all_cities = Customer.objects.values_list('city', flat=True).distinct().exclude(city__isnull=True).exclude(city='').order_by('city')
     all_activities = ActivityField.objects.all().order_by('code')
@@ -165,64 +40,30 @@ def enhanced_customer_list_view(request):
     # محاسبه سهمیه پیامک
     sms_quota = getattr(settings, 'SALES_AGENT_SMS_QOUTA', 0)
     
-    # اضافه کردن اطلاعات بیشتر برای هر مشتری با prefetch_related برای بهینه‌سازی
-    customers_with_preferences = customers.prefetch_related(
-        'purchase_preferences',
-        'product_preferences',
-        'purchases_made'
-    )
-    
-    # صفحه‌بندی
-    paginator = Paginator(customers_with_preferences, 25)
-    page_number = request.GET.get('page')
-    try:
-        page_obj = paginator.page(page_number)
-    except PageNotAnInteger:
-        page_obj = paginator.page(1)
-    except EmptyPage:
-        page_obj = paginator.page(paginator.num_pages)
-    
-    # اضافه کردن اطلاعات بیشتر برای هر مشتری
-    for customer in page_obj:
-        # محاسبه آخرین خرید
-        if customer.purchases_made.exists():
-            customer.last_purchase_date = customer.purchases_made.first().created_at
-        else:
-            customer.last_purchase_date = None
-            
-        # محاسبه وزن کل خریدها
-        total_weight = 0
-        for purchase in customer.purchases_made.all():
-            if purchase.order_weight:
-                total_weight += purchase.order_weight
-        customer.total_purchase_weight = total_weight
+    # محاسبه تعداد کل مشتریان
+    total_customers = sales_agent.get_all_customers().count()
 
-    # آماده‌سازی context
+    # آماده‌سازی context - فقط اطلاعات اولیه
     context = {
-        'customers': page_obj,
-        'search_query': search_query,
-        'favorites_only': favorites_only,
-        'city_filter': city_filter,
-        'activity_filter': activity_filter,
-        'payment_filter': payment_filter,
-        'product_filter': product_filter,
-        'status_filter': status_filter,
-        'min_purchases': min_purchases,
-        'last_purchase_days': last_purchase_days,
-        'sms_preference': sms_preference,
-        'whatsapp_preference': whatsapp_preference,
-        'sort_key': sort_key,
         'all_cities': all_cities,
         'all_activities': all_activities,
         'all_payment_preferences': all_payment_preferences,
         'all_product_preferences': all_product_preferences,
         'sms_quota': sms_quota,
-        'total_customers': customers.count(),
-        'has_filters': any([
-            search_query, favorites_only, city_filter, activity_filter,
-            payment_filter, product_filter, status_filter, min_purchases,
-            last_purchase_days, sms_preference, whatsapp_preference
-        ])
+        'total_customers': total_customers,
+        'has_filters': False,  # فیلترها در سمت کلاینت مدیریت می‌شوند
+        'search_query': '',
+        'favorites_only': False,
+        'city_filter': [],
+        'activity_filter': [],
+        'payment_filter': [],
+        'product_filter': [],
+        'status_filter': '',
+        'min_purchases': '',
+        'last_purchase_days': '',
+        'sms_preference': '',
+        'whatsapp_preference': '',
+        'sort_key': 'name_asc',
     }
     
     return render(request, 'customer_list.html', context)
@@ -510,3 +351,605 @@ def create_support_task_from_customer(request):
             'status': 'error',
             'message': f'خطا در ایجاد تسک: {str(e)}'
         }, status=500) 
+
+@role_required('sales_agent', 'admin')
+@login_required
+@require_POST
+def apply_customer_filter(request):
+    """
+    API برای اعمال فیلتر سمت سرور به مشتریان
+    """
+    logger.warning(f"درخواست فیلتر مشتری توسط {request.user.username} انجام شده.")
+    try:
+        # بررسی دسترسی کارشناس فروش
+        if not hasattr(request.user, 'sales_agent'):
+            return JsonResponse({'success': False, 'error': 'شما مجاز به مشاهده این بخش نیستید'}, status=403)
+
+        sales_agent = request.user.sales_agent
+        
+        # دریافت پارامترهای فیلتر
+        filters = json.loads(request.POST.get('filters', '{}'))
+        sort_config = json.loads(request.POST.get('sort', '{}'))
+        # دریافت پارامترهای pagination
+        page_param = request.POST.get('page', '1')
+        per_page_param = request.POST.get('per_page', '25')
+        # دریافت پارامتر جستجوی سریع
+        global_search = request.POST.get('global_search', '').strip()
+        
+        logger.info(f"🔍 Global search received: '{global_search}'")
+        
+        try:
+            page = int(page_param)
+            per_page = int(per_page_param)
+        except (ValueError, TypeError):
+            logger.error(f"❌ مقادیر pagination نامعتبر: page={page_param}, per_page={per_page_param}")
+            page = 1
+            per_page = 25
+        
+        # ایجاد QuerySet پایه
+        base_queryset = sales_agent.get_all_customers().prefetch_related(
+            'field_of_activity',
+            'purchase_preferences', 
+            'product_preferences',
+            'purchases_made',
+            'phone_numbers'
+        )
+        
+        # اعمال فیلترها - فقط اگر فیلتر وجود داشته باشد
+        if filters:
+            filter_conditions = Q()
+            
+            for column_id, filter_data in filters.items():
+                if not filter_data.get('values'):
+                    continue
+                    
+                values = filter_data['values']
+                filter_type = filter_data.get('type', 'include')
+                
+                if column_id == 'name':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(name__in=values)
+                        else:
+                            filter_conditions &= ~Q(name__in=values)
+                        
+                elif column_id == 'phone_number':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        # تمیز کردن شماره تلفن از کاراکترهای غیرعددی
+                        clean_values = []
+                        for v in values:
+                            clean_v = ''.join(c for c in v if c.isdigit())
+                            if clean_v:
+                                clean_values.append(clean_v)
+                        
+                        if clean_values:
+                            phone_conditions = Q()
+                            for clean_v in clean_values:
+                                phone_conditions |= Q(phone_number__icontains=clean_v) | Q(phone_numbers__number__icontains=clean_v)
+                            
+                            if filter_type == 'include':
+                                filter_conditions &= phone_conditions
+                            else:
+                                filter_conditions &= ~phone_conditions
+                        
+                elif column_id == 'city':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(city__in=values)
+                        else:
+                            filter_conditions &= ~Q(city__in=values)
+                        
+                elif column_id == 'field_of_activity':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        # برای ManyToMany field، باید از ActivityField objects استفاده کنیم
+                        from core.CustomerModel import ActivityField
+                        activity_objects = []
+                        for value in values:
+                            # پیدا کردن ActivityField که __str__() آن معادل value است
+                            for activity in ActivityField.objects.all():
+                                if str(activity) == value:
+                                    activity_objects.append(activity)
+                                    break
+                        
+                        if activity_objects:
+                            if filter_type == 'include':
+                                filter_conditions &= Q(field_of_activity__in=activity_objects)
+                            else:
+                                filter_conditions &= ~Q(field_of_activity__in=activity_objects)
+                        
+                elif column_id == 'purchase_preferences':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        # برای ManyToMany field، باید از PaymentPreference objects استفاده کنیم
+                        from core.CustomerModel import PaymentPreference
+                        payment_objects = []
+                        for value in values:
+                            for payment in PaymentPreference.objects.all():
+                                if str(payment) == value:
+                                    payment_objects.append(payment)
+                                    break
+                        
+                        if payment_objects:
+                            if filter_type == 'include':
+                                filter_conditions &= Q(purchase_preferences__in=payment_objects)
+                            else:
+                                filter_conditions &= ~Q(purchase_preferences__in=payment_objects)
+                        
+                elif column_id == 'product_preferences':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        # برای ManyToMany field، باید از ProductPreference objects استفاده کنیم
+                        from core.CustomerModel import ProductPreference
+                        product_objects = []
+                        for value in values:
+                            for product in ProductPreference.objects.all():
+                                if str(product) == value:
+                                    product_objects.append(product)
+                                    break
+                        
+                        if product_objects:
+                            if filter_type == 'include':
+                                filter_conditions &= Q(product_preferences__in=product_objects)
+                            else:
+                                filter_conditions &= ~Q(product_preferences__in=product_objects)
+                        
+                elif column_id in ['is_favorite', 'is_active', 'sms_preference', 'whatsapp_preference']:
+                    bool_values = []
+                    for v in values:
+                        if v.lower() in ['بله', 'true', '1', 'yes']:
+                            bool_values.append(True)
+                        elif v.lower() in ['خیر', 'false', '0', 'no']:
+                            bool_values.append(False)
+                    
+                    if bool_values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(**{f'{column_id}__in': bool_values})
+                        else:
+                            filter_conditions &= ~Q(**{f'{column_id}__in': bool_values})
+                
+                elif column_id == 'purchase_count':
+                    # فیلتر عددی برای تعداد خریدها
+                    try:
+                        numeric_values = []
+                        for v in values:
+                            if v and str(v).strip():
+                                cleaned_value = str(v).replace(',', '').replace('٬', '').strip()
+                                if cleaned_value.replace('.', '').isdigit():
+                                    numeric_values.append(int(cleaned_value))
+                        
+                        if numeric_values:
+                            # ابتدا annotate کنیم
+                            base_queryset = base_queryset.annotate(
+                                purchase_count_annotation=Count('purchases_made')
+                            )
+                            if filter_type == 'include':
+                                filter_conditions &= Q(purchase_count_annotation__in=numeric_values)
+                            else:
+                                filter_conditions &= ~Q(purchase_count_annotation__in=numeric_values)
+                                
+                    except (ValueError, TypeError):
+                        continue
+                
+                elif column_id == 'total_purchase_weight':
+                    # فیلتر عددی برای وزن کل خریدها
+                    try:
+                        numeric_values = []
+                        for v in values:
+                            if v and str(v).strip():
+                                cleaned_value = str(v).replace(',', '').replace('٬', '').strip()
+                                if cleaned_value.replace('.', '').isdigit():
+                                    numeric_values.append(float(cleaned_value))
+                        
+                        if numeric_values:
+                            # ابتدا annotate کنیم
+                            base_queryset = base_queryset.annotate(
+                                total_weight_annotation=Sum('purchases_made__order_weight', default=0)
+                            )
+                            if filter_type == 'include':
+                                filter_conditions &= Q(total_weight_annotation__in=numeric_values)
+                            else:
+                                filter_conditions &= ~Q(total_weight_annotation__in=numeric_values)
+                                
+                    except (ValueError, TypeError):
+                        continue
+                
+                elif column_id in ['description']:
+                    # فقط description (added_description) موجود است
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(added_description__in=values)
+                        else:
+                            filter_conditions &= ~Q(added_description__in=values)
+                
+                elif column_id == 'created_at':
+                    # فیلتر تاریخی
+                    try:
+                        date_conditions = Q()
+                        for date_str in values:
+                            if date_str and date_str.strip():
+                                if '/' in date_str:
+                                    parts = date_str.split('/')
+                                    if len(parts) == 3:
+                                        year, month, day = parts
+                                        date_obj = datetime(int(year), int(month), int(day)).date()
+                                        date_conditions |= Q(created_at__date=date_obj)
+                        
+                        if date_conditions:
+                            if filter_type == 'include':
+                                filter_conditions &= date_conditions
+                            else:
+                                filter_conditions &= ~date_conditions
+                                
+                    except (ValueError, TypeError):
+                        continue
+            
+            # اعمال فیلترها
+            if filter_conditions:
+                base_queryset = base_queryset.filter(filter_conditions)
+        
+        # اعمال جستجوی سریع
+        if global_search and global_search.strip():
+            logger.info(f"🔍 Applying global search for: '{global_search}'")
+            clean_search = ''.join(c for c in global_search if c.isdigit())
+            search_conditions = (
+                Q(name__icontains=global_search) |
+                Q(phone_number__icontains=clean_search) |
+                Q(phone_numbers__number__icontains=clean_search) |
+                Q(city__icontains=global_search) |
+                Q(added_description__icontains=global_search)
+            )
+            base_queryset = base_queryset.filter(search_conditions).distinct()
+            logger.info(f"🔍 Global search applied, queryset count: {base_queryset.count()}")
+        else:
+            logger.info("🔍 No global search applied")
+        
+        # اعمال مرتب‌سازی
+        if sort_config and sort_config.get('column'):
+            sort_column = sort_config['column']
+            sort_direction = sort_config.get('direction', 'asc')
+            
+            # تعیین نام فیلد برای مرتب‌سازی
+            sort_field_mapping = {
+                'name': 'name',
+                'phone_number': 'phone_number',
+                'city': 'city',
+                'field_of_activity': 'field_of_activity__name',
+                'is_favorite': 'is_favorite',
+                'is_active': 'is_active',
+                'is_blocked': 'is_blocked',
+                'sms_preference': 'sms_preference',
+                'whatsapp_preference': 'whatsapp_preference',
+                'created_at': 'created_at',
+                'updated_at': 'updated_at',
+                'purchase_count': 'purchase_count_annotation',
+                'total_purchase_weight': 'total_weight_annotation',
+            }
+            
+            # دریافت فیلد مرتب‌سازی
+            sort_field = sort_field_mapping.get(sort_column, sort_column)
+            
+            # اگر مرتب‌سازی بر اساس فیلدهای محاسبه شده است، annotate کنیم
+            if sort_column == 'purchase_count' and 'purchase_count_annotation' not in [f.name for f in base_queryset.query.annotations]:
+                base_queryset = base_queryset.annotate(
+                    purchase_count_annotation=Count('purchases_made')
+                )
+            elif sort_column == 'total_purchase_weight' and 'total_weight_annotation' not in [f.name for f in base_queryset.query.annotations]:
+                base_queryset = base_queryset.annotate(
+                    total_weight_annotation=Sum('purchases_made__order_weight', default=0)
+                )
+            
+            if sort_direction == 'desc':
+                sort_field = f'-{sort_field}'
+                
+            try:
+                base_queryset = base_queryset.order_by(sort_field)
+                logger.info(f"مرتب‌سازی اعمال شد: {sort_field}")
+            except Exception as e:
+                logger.warning(f"خطا در مرتب‌سازی: {e}")
+                base_queryset = base_queryset.order_by('name')
+        else:
+            # مرتب‌سازی پیش‌فرض
+            base_queryset = base_queryset.order_by('name')
+        
+        # محاسبه تعداد کل قبل از pagination
+        total_count = base_queryset.count()
+        
+        # اعمال pagination
+        if per_page == 999999:  # نمایش همه
+            page_obj = base_queryset
+            paginator = None
+        else:
+            from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+            paginator = Paginator(base_queryset, per_page)
+            try:
+                page_obj = paginator.page(page)
+            except (EmptyPage, PageNotAnInteger):
+                page_obj = paginator.page(1)
+                page = 1
+        
+        # فرمت نتایج برای JSON response
+        results = []
+        for customer in page_obj:
+            # محاسبه اطلاعات اضافی
+            purchase_count = customer.purchases_made.count()
+            total_weight = sum(p.order_weight or 0 for p in customer.purchases_made.all())
+            last_purchase = customer.purchases_made.first()
+            
+            # دریافت شماره تلفن اصلی
+            primary_phone = customer.get_primary_phone() if hasattr(customer, 'get_primary_phone') else customer.phone_number
+            
+            # Debug logging
+            logger.info(f"Customer {customer.id}: name={customer.name}, city={customer.city}")
+            logger.info(f"  field_of_activity count: {customer.field_of_activity.count()}")
+            logger.info(f"  purchase_preferences count: {customer.purchase_preferences.count()}")
+            logger.info(f"  product_preferences count: {customer.product_preferences.count()}")
+            
+            result = {
+                'id': customer.id,
+                'name': customer.name or "",
+                'phone_number': primary_phone or "",
+                'city': customer.city or "",
+                'field_of_activity': ", ".join([str(f) for f in customer.field_of_activity.all()]) or "",
+                'purchase_preferences': ", ".join([str(p) for p in customer.purchase_preferences.all()]) or "",
+                'product_preferences': ", ".join([str(p) for p in customer.product_preferences.all()]) or "",
+                'is_favorite': customer.is_favorite,
+                'is_active': customer.is_active,
+                'sms_preference': customer.sms_preference,
+                'whatsapp_preference': customer.whatsapp_preference,
+                'purchase_count': purchase_count,
+                'total_purchase_weight': total_weight,
+                'last_purchase_date': last_purchase.created_at.strftime("%Y/%m/%d") if last_purchase else "",
+                'created_at': customer.created_at.strftime("%Y/%m/%d") if customer.created_at else "",
+                'updated_at': customer.updated_at.strftime("%Y/%m/%d") if customer.updated_at else "",
+                'address': "",  # فیلد address در مدل وجود ندارد
+                'description': customer.added_description or "",
+                'national_code': "",  # فیلد national_code در مدل وجود ندارد
+            }
+            
+            # Debug logging برای نتیجه نهایی
+            logger.info(f"Final result for customer {customer.id}: {result}")
+            results.append(result)
+        
+        # اطلاعات pagination
+        if paginator:
+            pagination_info = {
+                'current_page': page_obj.number,
+                'total_pages': paginator.num_pages,
+                'total_count': total_count,
+                'has_next': page_obj.has_next(),
+                'has_previous': page_obj.has_previous(),
+                'page_size': per_page,
+                'start_index': page_obj.start_index(),
+                'end_index': page_obj.end_index()
+            }
+        else:
+            pagination_info = {
+                'current_page': 1,
+                'total_pages': 1,
+                'total_count': total_count,
+                'has_next': False,
+                'has_previous': False,
+                'page_size': total_count,
+                'start_index': 1,
+                'end_index': total_count
+            }
+        
+        return JsonResponse({
+            'status': 'success',
+            'data': results,
+            'total_count': total_count,
+            'start_index': pagination_info['start_index'],
+            'end_index': pagination_info['end_index'],
+            'current_page': pagination_info['current_page'],
+            'total_pages': pagination_info['total_pages'],
+            'has_next': pagination_info['has_next'],
+            'has_previous': pagination_info['has_previous'],
+            'filter_applied': bool(filters),
+            'sort_applied': bool(sort_config)
+        })
+        
+    except Exception as e:
+        logger.error(f"خطا در اعمال فیلتر به مشتریان: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'خطا در اعمال فیلتر: {str(e)}'
+        }, status=500)
+
+@role_required('sales_agent', 'admin')
+@login_required
+@require_POST
+def get_customer_column_values(request):
+    """
+    API برای دریافت مقادیر منحصر به فرد یک ستون برای فیلتر
+    """
+    logger.warning(f"API برای دریافت مقادیر منحصر به فرد ستون مشتری توسط {request.user.username}.")
+    try:
+        # بررسی دسترسی کارشناس فروش
+        if not hasattr(request.user, 'sales_agent'):
+            return JsonResponse({'success': False, 'error': 'شما مجاز به مشاهده این بخش نیستید'}, status=403)
+
+        sales_agent = request.user.sales_agent
+        column_id = request.POST.get('column_id')
+        search_term = request.POST.get('search', '')
+        # دریافت فیلترهای فعلی
+        current_filters = request.POST.get('current_filters', '{}')
+        # دریافت جستجوی سریع
+        global_search = request.POST.get('global_search', '')
+        
+        try:
+            current_filters = json.loads(current_filters) if current_filters else {}
+        except (json.JSONDecodeError, TypeError):
+            current_filters = {}
+        
+        if not column_id:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'شناسه ستون ارسال نشده است'
+            }, status=400)
+        
+        # ایجاد QuerySet پایه
+        base_queryset = sales_agent.get_all_customers().prefetch_related(
+            'field_of_activity',
+            'purchase_preferences',
+            'product_preferences',
+            'purchases_made',
+            'phone_numbers'
+        )
+        
+        # اعمال فیلترهای فعلی (بجز فیلتر ستون فعلی)
+        if current_filters:
+            filter_conditions = Q()
+            
+            for filter_column_id, filter_data in current_filters.items():
+                # رد کردن فیلتر ستون فعلی
+                if filter_column_id == column_id:
+                    continue
+                    
+                if not filter_data.get('values'):
+                    continue
+                    
+                values = filter_data['values']
+                filter_type = filter_data.get('type', 'include')
+                
+                if filter_column_id == 'name':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(name__in=values)
+                        else:
+                            filter_conditions &= ~Q(name__in=values)
+                        
+                elif filter_column_id == 'city':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(city__in=values)
+                        else:
+                            filter_conditions &= ~Q(city__in=values)
+                        
+                # اضافه کردن فیلترهای بیشتر در صورت نیاز
+            
+            # اعمال فیلترها
+            if filter_conditions:
+                base_queryset = base_queryset.filter(filter_conditions)
+        
+        # اعمال جستجوی سریع
+        if global_search and global_search.strip():
+            clean_search = ''.join(c for c in global_search if c.isdigit())
+            search_conditions = (
+                Q(name__icontains=global_search) |
+                Q(phone_number__icontains=clean_search) |
+                Q(phone_numbers__number__icontains=clean_search) |
+                Q(city__icontains=global_search)
+            )
+            base_queryset = base_queryset.filter(search_conditions).distinct()
+        
+        # دریافت مقادیر بر اساس نوع ستون
+        values = []
+        
+        if column_id == 'name':
+            values_qs = base_queryset.values_list('name', flat=True).distinct().exclude(name__isnull=True).exclude(name='')
+            values = list(values_qs)
+            
+        elif column_id == 'phone_number':
+            # شامل تمام شماره‌های تلفن
+            phone_values = set()
+            for customer in base_queryset:
+                if customer.phone_number:
+                    phone_values.add(customer.phone_number)
+                for phone in customer.phone_numbers.all():
+                    if phone.number:
+                        phone_values.add(phone.number)
+            values = list(phone_values)
+            
+        elif column_id == 'city':
+            values_qs = base_queryset.values_list('city', flat=True).distinct().exclude(city__isnull=True).exclude(city='')
+            values = list(values_qs)
+            
+        elif column_id == 'field_of_activity':
+            # برای ManyToMany field، باید همه ActivityField objects را دریافت کنیم که در customers موجود استاس
+            from core.CustomerModel import ActivityField
+            activity_values = set()
+            for customer in base_queryset.prefetch_related('field_of_activity'):
+                for activity in customer.field_of_activity.all():
+                    activity_values.add(str(activity))
+            values = list(activity_values)
+            
+        elif column_id == 'purchase_preferences':
+            # برای ManyToMany field، باید همه PaymentPreference objects را دریافت کنیم
+            from core.CustomerModel import PaymentPreference
+            pref_values = set()
+            for customer in base_queryset.prefetch_related('purchase_preferences'):
+                for pref in customer.purchase_preferences.all():
+                    pref_values.add(str(pref))
+            values = list(pref_values)
+            
+        elif column_id == 'product_preferences':
+            # برای ManyToMany field، باید همه ProductPreference objects را دریافت کنیم
+            from core.CustomerModel import ProductPreference
+            pref_values = set()
+            for customer in base_queryset.prefetch_related('product_preferences'):
+                for pref in customer.product_preferences.all():
+                    pref_values.add(str(pref))
+            values = list(pref_values)
+            
+        elif column_id in ['is_favorite', 'is_active', 'sms_preference', 'whatsapp_preference']:
+            # مقادیر boolean
+            bool_values = base_queryset.values_list(column_id, flat=True).distinct()
+            values = ['بله' if v else 'خیر' for v in bool_values]
+            
+        elif column_id == 'purchase_count':
+            # محاسبه تعداد خریدها
+            count_values = set()
+            for customer in base_queryset:
+                count = customer.purchases_made.count()
+                count_values.add(count)
+            values = sorted(list(count_values))
+            
+        elif column_id == 'total_purchase_weight':
+            # محاسبه وزن کل خریدها
+            weight_values = set()
+            for customer in base_queryset:
+                total_weight = sum(p.order_weight or 0 for p in customer.purchases_made.all())
+                if total_weight > 0:
+                    weight_values.add(total_weight)
+            values = sorted(list(weight_values))
+            
+        elif column_id == 'description':
+            # فقط added_description موجود است
+            values_qs = base_queryset.values_list('added_description', flat=True).distinct().exclude(added_description__isnull=True).exclude(added_description='')
+            values = list(values_qs)
+            
+        elif column_id in ['created_at', 'updated_at']:
+            # تاریخ‌ها
+            date_values = set()
+            for customer in base_queryset:
+                date_val = getattr(customer, column_id, None)
+                if date_val:
+                    date_values.add(date_val.strftime("%Y/%m/%d"))
+            values = sorted(list(date_values))
+        
+        # فیلتر کردن بر اساس search_term
+        if search_term:
+            values = [v for v in values if search_term.lower() in str(v).lower()]
+        
+        # محدود کردن تعداد نتایج
+        values = values[:100]
+        
+        return JsonResponse({
+            'status': 'success',
+            'values': values,
+            'count': len(values)
+        })
+        
+    except Exception as e:
+        logger.error(f"خطا در دریافت مقادیر ستون مشتری: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'خطا در دریافت مقادیر: {str(e)}'
+        }, status=500)
