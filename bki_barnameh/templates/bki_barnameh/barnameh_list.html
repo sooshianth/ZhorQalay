@@ -1274,6 +1274,8 @@
                                     <th data-column-id="total_sales_amount" data-column-type="number">مبلغ کل فروش</th>
                                 {% elif column.id == 'total_purchase_amount' %}
                                     <th data-column-id="total_purchase_amount" data-column-type="number">مبلغ کل خرید</th>
+                                {% elif column.id == 'buyer_name' %}
+                                    <th data-column-id="buyer_name" data-column-type="text">نام خریدار</th>
                                 {% elif column.id == 'buyer_national_code' %}
                                     <th data-column-id="buyer_national_code" data-column-type="text">شماره ملی خریدار</th>
                                 {% elif column.id == 'buyer_postal_code' %}
@@ -1390,6 +1392,8 @@
                                             -
                                         {% endif %}
                                     </td>
+                                {% elif column.id == 'buyer_name' %}
+                                    <td class="column-buyer_name">{{ barnameh.get_buyer_name|default:"-" }}</td>
                                 {% elif column.id == 'buyer_national_code' %}
                                     <td class="column-buyer_national_code">{{ barnameh.get_buyer_national_code|default:"-" }}</td>
                                 {% elif column.id == 'buyer_postal_code' %}

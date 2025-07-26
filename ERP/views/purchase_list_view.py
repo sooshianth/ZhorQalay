@@ -984,6 +984,7 @@ def _export_regular_excel(purchase_ids, selected_columns):
         'tahvil_phone_number': ('شماره تلفن تحویل', lambda p: p.tahvil_phone_number or "-"),
         'send_cottage_sms': ('ارسال پیامک کوتاژ', lambda p: "بله" if p.send_cottage_sms else "خیر"),
         'total_weight': ('وزن کل (کیلوگرم)', lambda p: f"{p.total_weight:,}" if p.total_weight else "0"),
+        'total_barnameh_weight': ('مجموع وزن بارنامه‌ها (کیلوگرم)', lambda p: f"{p.get_total_barnameh_weight():,}" if p.get_total_barnameh_weight() else "0"),
         'delivered_weight': ('وزن بارنامه شده (کیلوگرم)', lambda p: f"{p.delivered_weight:,}" if p.delivered_weight else "0"),
         'type': ('نوع خرید', lambda p: "بازارگاه" if p.type == "bazaargah" else "خارج از بازارگاه" if p.type == "non_bazaargah" else p.type or "-"),
         'payment_method': ('شیوه پرداخت', lambda p: p.payment_method or "-"),
@@ -1866,6 +1867,34 @@ def apply_purchase_filter(request):
                         else:
                             filter_conditions &= ~Q(**{f'{column_id}__in': numeric_values})
                 
+                elif column_id == 'total_barnameh_weight':
+                    # فیلتر ویژه برای وزن کل بارنامه‌ها
+                    numeric_values = []
+                    for v in values:
+                        try:
+                            clean_value = str(v).replace(',', '').strip()
+                            if clean_value:
+                                numeric_values.append(float(clean_value))
+                        except (ValueError, TypeError):
+                            continue
+                    
+                    if numeric_values:
+                        # چون total_barnameh_weight محاسبه شده است، نیاز به رویکرد خاص داریم
+                        purchase_ids = []
+                        for purchase in queryset.prefetch_related('barnamehs'):
+                            total_weight = purchase.get_total_barnameh_weight()
+                            if total_weight:
+                                if filter_type == 'include' and total_weight in numeric_values:
+                                    purchase_ids.append(purchase.id)
+                                elif filter_type == 'exclude' and total_weight not in numeric_values:
+                                    purchase_ids.append(purchase.id)
+                        
+                        if purchase_ids:
+                            filter_conditions &= Q(id__in=purchase_ids)
+                        else:
+                            # اگر هیچ خریدی شرایط را برآورده نکند، نتیجه خالی برگردان
+                            filter_conditions &= Q(id__in=[])
+                
                 elif column_id in ['type', 'payment_method', 'extelaf_type', 'priority']:
                     # فیلترهای choice
                     values = [v for v in values if v and v.strip()]
@@ -2594,6 +2623,37 @@ def get_purchase_column_values(request):
                             filter_conditions &= Q(**{f'{filter_column_id}__in': numeric_values})
                         else:
                             filter_conditions &= ~Q(**{f'{filter_column_id}__in': numeric_values})
+                
+                elif filter_column_id == 'total_barnameh_weight':
+                    # فیلتر ویژه برای وزن کل بارنامه‌ها
+                    numeric_values = []
+                    for v in values:
+                        try:
+                            clean_value = str(v).replace(',', '').strip()
+                            if clean_value:
+                                numeric_values.append(float(clean_value))
+                        except (ValueError, TypeError):
+                            continue
+                    
+                    if numeric_values:
+                        # برای فیلتر total_barnameh_weight نیاز به یک رویکرد خاص داریم
+                        # چون این مقدار محاسبه شده است و در دیتابیس مستقیم نیست
+                        purchase_ids = []
+                        # استفاده از queryset قبل از اعمال فیلتر فعلی
+                        base_purchases = Purchase.objects.all()
+                        for purchase in base_purchases.prefetch_related('barnamehs'):
+                            total_weight = purchase.get_total_barnameh_weight()
+                            if total_weight:
+                                if filter_type == 'include' and total_weight in numeric_values:
+                                    purchase_ids.append(purchase.id)
+                                elif filter_type == 'exclude' and total_weight not in numeric_values:
+                                    purchase_ids.append(purchase.id)
+                        
+                        if purchase_ids:
+                            filter_conditions &= Q(id__in=purchase_ids)
+                        else:
+                            # اگر هیچ خریدی شرایط را برآورده نکند، نتیجه خالی برگردان
+                            filter_conditions &= Q(id__in=[])
             
             # اعمال فیلترها
             if filter_conditions:
@@ -2745,6 +2805,15 @@ def get_purchase_column_values(request):
                 .exclude(**{column_id: 0})\
                 .values_list(column_id, flat=True).distinct()
             values = set([f"{int(value):,}" for value in values_queryset if value is not None and value > 0])
+        
+        elif column_id == 'total_barnameh_weight':
+            # استخراج وزن کل بارنامه‌ها برای هر خرید
+            total_weights = []
+            for purchase in queryset.prefetch_related('barnamehs'):
+                total_weight = purchase.get_total_barnameh_weight()
+                if total_weight and total_weight > 0:
+                    total_weights.append(total_weight)
+            values = set([f"{int(weight):,}" for weight in total_weights])
         
         elif column_id in ['type', 'payment_method', 'extelaf_type']:
             values_queryset = queryset.exclude(**{f'{column_id}__isnull': True})\

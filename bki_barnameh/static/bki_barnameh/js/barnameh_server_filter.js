@@ -885,6 +885,10 @@ class BarnamehServerFilter {
                 rowHtml += `<td class="column-customer_price">${barnameh.customer_price || "-"}</td>`;
             } else if (columnId === 'total_sales_amount') {
                 rowHtml += `<td class="column-total_sales_amount">${barnameh.total_sales_amount || "-"}</td>`;
+            } else if (columnId === 'total_purchase_amount') {
+                rowHtml += `<td class="column-total_purchase_amount">${barnameh.total_purchase_amount || "-"}</td>`;
+            } else if (columnId === 'buyer_name') {
+                rowHtml += `<td class="column-buyer_name">${barnameh.buyer_name || "-"}</td>`;
             } else if (columnId === 'buyer_national_code') {
                 rowHtml += `<td class="column-buyer_national_code">${barnameh.buyer_national_code || "-"}</td>`;
             } else if (columnId === 'buyer_postal_code') {
@@ -1507,6 +1511,7 @@ class BarnamehServerFilter {
             'company_price': 'فی خرید',
             'customer_price': 'فی فروش',
             'total_sales_amount': 'مبلغ کل فروش',
+            'buyer_name': 'نام خریدار',
             'buyer_national_code': 'شماره ملی خریدار',
             'buyer_postal_code': 'کدپستی خریدار',
             'buyer_address': 'آدرس خریدار',
