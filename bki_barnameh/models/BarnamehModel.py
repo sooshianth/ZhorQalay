@@ -97,6 +97,10 @@ class Barnameh(models.Model):
         """دریافت شماره ملی خریدار از خرید مرتبط (buyer_national_id)"""
         return self.purchase.buyer_national_id if self.purchase else None
 
+    def get_buyer_name(self):
+        """دریافت نام خریدار از خرید مرتبط (buyer_name)"""
+        return self.purchase.buyer_name if self.purchase else None
+
     def get_buyer_postal_code(self):
         """دریافت کدپستی خریدار از خرید مرتبط (delivery_postal_code)"""
         return self.purchase.buyer_postal_code if self.purchase else None
