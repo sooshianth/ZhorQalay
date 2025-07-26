@@ -910,7 +910,8 @@
         const columnsToExport = visibleColumns.length > 0 ? visibleColumns : [
             'number', 'serial', 'tonnage', 'status', 'driver_name', 
             'driver_phone', 'vehicle_plate', 'receiver_name', 
-            'destination', 'barnameh_date', 'purchase_number', 'shenase_takhsis_code'
+            'destination', 'barnameh_date', 'purchase_number', 'shenase_takhsis_code', 
+            'buyer_name'
         ];
         
         // ایجاد form برای ارسال
@@ -1264,6 +1265,8 @@
                                     <th data-column-id="purchase_number" data-column-type="text">شناسه خرید</th>
                                 {% elif column.id == 'shenase_takhsis_code' %}
                                     <th data-column-id="shenase_takhsis_code" data-column-type="text">شناسه تخصیص</th>
+                                    {% elif column.id == 'buyer_name' %}
+                                        <th data-column-id="buyer_name" data-column-type="text">نام خریدار</th>
                                 {% elif column.id == 'cargo' %}
                                     <th data-column-id="cargo" data-column-type="text">کوتاژ</th>
                                 {% elif column.id == 'company_price' %}
@@ -1319,6 +1322,7 @@
                         data-status="{{ barnameh.status }}"
                         data-purchase-number="{{ barnameh.purchase_number|default:'' }}"
                         data-shenase-takhsis-code="{{ barnameh.shenase_takhsis_code|default:'' }}"
+                        data-buyer-name="{{ barnameh.get_buyer_name|default:'' }}"
                         data-driver-name="{{ barnameh.driver_name|default:'' }}"
                         data-driver-phone="{{ barnameh.driver_phone|default:'' }}"
                         data-vehicle-plate="{{ barnameh.vehicle_plate|default:'' }}"
@@ -1370,6 +1374,8 @@
                                     <td class="column-purchase_number">{{ barnameh.purchase_number|default:"-" }}</td>
                                 {% elif column.id == 'shenase_takhsis_code' %}
                                     <td class="column-shenase_takhsis_code">{{ barnameh.shenase_takhsis_code|default:"-" }}</td>
+                                {% elif column.id == 'buyer_name' %}
+                                    <td class="column-buyer_name">{{ barnameh.get_buyer_name|default:"-" }}</td>
                                 {% elif column.id == 'cargo' %}
                                     <td class="column-cargo">{{ barnameh.get_cargo|default:"-" }}</td>
                                 {% elif column.id == 'company_price' %}
@@ -1895,7 +1901,7 @@ function displayColumnsInModal(allColumns, selectedColumns) {
     const mainColumns = ['number', 'serial', 'tonnage', 'status', 'driver_name', 
                         'driver_phone', 'vehicle_plate', 'receiver_name', 
                         'destination', 'barnameh_date', 'purchase_number', 
-                        'shenase_takhsis_code', 'actions'];
+                        'shenase_takhsis_code', 'buyer_name', 'actions'];
     
     let mainCount = 0;
     let extraCount = 0;
