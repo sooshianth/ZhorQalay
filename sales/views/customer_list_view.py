@@ -374,7 +374,9 @@ def apply_customer_filter(request):
         page_param = request.POST.get('page', '1')
         per_page_param = request.POST.get('per_page', '25')
         # دریافت پارامتر جستجوی سریع
-        global_search = request.POST.get('global_search', '')
+        global_search = request.POST.get('global_search', '').strip()
+        
+        logger.info(f"🔍 Global search received: '{global_search}'")
         
         try:
             page = int(page_param)
@@ -592,6 +594,7 @@ def apply_customer_filter(request):
         
         # اعمال جستجوی سریع
         if global_search and global_search.strip():
+            logger.info(f"🔍 Applying global search for: '{global_search}'")
             clean_search = ''.join(c for c in global_search if c.isdigit())
             search_conditions = (
                 Q(name__icontains=global_search) |
@@ -601,6 +604,9 @@ def apply_customer_filter(request):
                 Q(added_description__icontains=global_search)
             )
             base_queryset = base_queryset.filter(search_conditions).distinct()
+            logger.info(f"🔍 Global search applied, queryset count: {base_queryset.count()}")
+        else:
+            logger.info("🔍 No global search applied")
         
         # اعمال مرتب‌سازی
         if sort_config and sort_config.get('column'):

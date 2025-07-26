@@ -128,44 +128,83 @@ class CustomerServerFilter {
     }
     
     setupGlobalSearchHandler() {
+        console.log('CustomerServerFilter: Setting up global search handler...');
+        
         // پیدا کردن input جستجوی سریع
-        const globalSearchInput = document.querySelector('#real-time-search, #globalSearch, #global_search, [name="global_search"], [name="search"]');
+        const globalSearchInput = document.querySelector('#real-time-search');
         
-        console.log('CustomerServerFilter: Global search input found:', globalSearchInput);
-        console.log('CustomerServerFilter: Input element details:', {
-            id: globalSearchInput?.id,
-            name: globalSearchInput?.name,
-            value: globalSearchInput?.value,
-            tagName: globalSearchInput?.tagName
-        });
+        console.log('CustomerServerFilter: Real-time search input found:', globalSearchInput);
         
-        if (globalSearchInput && !globalSearchInput.hasAttribute('data-server-filter-listener')) {
-            console.log('CustomerServerFilter: Setting up search listener');
-            globalSearchInput.setAttribute('data-server-filter-listener', 'true');
+        if (!globalSearchInput) {
+            console.warn('CustomerServerFilter: Real-time search input (#real-time-search) not found');
+            return;
+        }
+        
+        // حذف event listener قبلی
+        globalSearchInput.removeEventListener('input', globalSearchInput._searchHandler);
+        globalSearchInput.removeEventListener('keyup', globalSearchInput._searchHandler);
+        
+        console.log('CustomerServerFilter: Adding new search listener');
+        
+        let searchTimeout;
+        
+        // تعریف handler جدید
+        const searchHandler = (e) => {
+            const searchValue = e.target.value.trim();
+            console.log('CustomerServerFilter: Search input changed to:', searchValue);
             
-            let searchTimeout;
-            globalSearchInput.addEventListener('input', (e) => {
-                console.log('CustomerServerFilter: Search input changed:', e.target.value);
-                clearTimeout(searchTimeout);
+            // لغو timeout قبلی
+            clearTimeout(searchTimeout);
+            
+            // نمایش loading indicator
+            const loadingIndicator = document.querySelector('#search-loading');
+            if (loadingIndicator) {
+                loadingIndicator.classList.remove('d-none');
+                console.log('CustomerServerFilter: Showing loading indicator');
+            }
+            
+            // تنظیم timeout جدید برای جستجو
+            searchTimeout = setTimeout(() => {
+                console.log('CustomerServerFilter: Executing search for:', searchValue);
                 
-                // نمایش loading indicator
-                const loadingIndicator = document.querySelector('#search-loading');
-                if (loadingIndicator) {
-                    loadingIndicator.classList.remove('d-none');
-                }
+                // تنظیم مجدد صفحه به 1
+                this.currentPage = 1;
                 
-                searchTimeout = setTimeout(() => {
-                    this.currentPage = 1;
-                    this.applyFilters();
-                    
+                // اعمال فیلترها
+                this.applyFilters().then(() => {
                     // مخفی کردن loading indicator
                     if (loadingIndicator) {
                         loadingIndicator.classList.add('d-none');
+                        console.log('CustomerServerFilter: Hiding loading indicator');
                     }
-                }, 500);
-            });
-        } else if (!globalSearchInput) {
-            console.warn('CustomerServerFilter: Global search input not found');
+                }).catch((error) => {
+                    console.error('CustomerServerFilter: Search error:', error);
+                    if (loadingIndicator) {
+                        loadingIndicator.classList.add('d-none');
+                    }
+                });
+            }, 300);
+        };
+        
+        // ذخیره reference برای حذف بعدی
+        globalSearchInput._searchHandler = searchHandler;
+        
+        // اضافه کردن event listener
+        globalSearchInput.addEventListener('input', searchHandler);
+        globalSearchInput.addEventListener('keyup', searchHandler);
+        
+        // تست اولیه
+        console.log('CustomerServerFilter: Search handler setup completed');
+        console.log('CustomerServerFilter: Input value:', globalSearchInput.value);
+        console.log('CustomerServerFilter: Input placeholder:', globalSearchInput.placeholder);
+        
+        // اگر مقدار اولیه وجود دارد، جستجو کن
+        if (globalSearchInput.value && globalSearchInput.value.trim()) {
+            console.log('CustomerServerFilter: Initial search value detected, applying filters');
+            setTimeout(() => {
+                this.currentPage = 1;
+                this.applyFilters();
+            }, 500);
         }
     }
     
@@ -554,15 +593,27 @@ class CustomerServerFilter {
             formData.append('page', this.currentPage.toString());
             formData.append('per_page', this.perPage.toString());
             
-            const globalSearchInput = document.querySelector('#real-time-search, #globalSearch, #global_search');
-            if (globalSearchInput && globalSearchInput.value) {
-                formData.append('global_search', globalSearchInput.value);
+            // دریافت مقدار جستجوی عمومی
+            const globalSearchInput = document.querySelector('#real-time-search');
+            const searchValue = globalSearchInput ? globalSearchInput.value.trim() : '';
+            
+            if (searchValue) {
+                formData.append('global_search', searchValue);
+                console.log('CustomerServerFilter: Adding global search:', searchValue);
+            } else {
+                console.log('CustomerServerFilter: No global search value');
             }
             
             formData.append('csrfmiddlewaretoken', this.getCSRFToken());
             
             console.log('CustomerServerFilter: Sending request to', this.filterUrl);
-            console.log('CustomerServerFilter: Form data:', Object.fromEntries(formData));
+            console.log('CustomerServerFilter: Request data:', {
+                filters: this.currentFilters,
+                sort: this.currentSort,
+                page: this.currentPage,
+                per_page: this.perPage,
+                global_search: searchValue
+            });
             
             const response = await fetch(this.filterUrl, {
                 method: 'POST',
@@ -711,7 +762,11 @@ class CustomerServerFilter {
                     break;
                     
                 case 'name':
-                    cellsHtml += `<td class="fw-bold"${cellStyle}>${customer.name || ''}</td>`;
+                    cellsHtml += `<td class="fw-bold"${cellStyle}>
+                        <a href="/sales/customer/?customer_id=${customer.id}" class="text-decoration-none text-primary fw-bold hover-link">
+                            ${customer.name || ''}
+                        </a>
+                    </td>`;
                     break;
                     
                 case 'phone_number':
@@ -763,21 +818,6 @@ class CustomerServerFilter {
                     
                 case 'updated_at':
                     cellsHtml += `<td${cellStyle}>${customer.updated_at || ''}</td>`;
-                    break;
-                    
-                case 'actions':
-                    cellsHtml += `
-                        <td${cellStyle}>
-                            <div class="btn-group" role="group">
-                                <a href="/sales/customer/?customer_id=${customer.id}" class="btn btn-sm btn-primary">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <button class="btn btn-sm btn-info view-details-btn" data-customer-id="${customer.id}">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
-                        </td>
-                    `;
                     break;
                     
                 default:
@@ -1138,12 +1178,26 @@ function formatJalaliDateString(gregorianStr) {
 // راه‌اندازی خودکار
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Customer Server Filter: DOM loaded');
+    
     // راه‌اندازی فیلتر برای جدول مشتریان
     const customerTable = document.querySelector('#customersTable');
     if (customerTable) {
         console.log('Customer Server Filter: Table found, initializing...');
         window.customerServerFilter = new CustomerServerFilter('#customersTable');
         console.log('Customer Server Filter: Initialized successfully');
+        
+        // تست جستجوی عمومی
+        setTimeout(() => {
+            const searchInput = document.querySelector('#real-time-search');
+            if (searchInput) {
+                console.log('Customer Server Filter: Search input found in DOM test');
+                console.log('Customer Server Filter: Search input value:', searchInput.value);
+                console.log('Customer Server Filter: Search input has listener:', searchInput.hasAttribute('data-server-filter-listener'));
+            } else {
+                console.warn('Customer Server Filter: Search input NOT found in DOM test');
+            }
+        }, 1000);
+        
     } else {
         console.warn('Customer Server Filter: Table #customersTable not found');
     }
