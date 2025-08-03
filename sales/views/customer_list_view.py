@@ -254,7 +254,7 @@ def get_active_products(request):
         products_list.append({
             'id': product.id,
             'cottage': product.cottage,
-            'product_type': product.type,
+            'product_type': product.type_of_product,
             'product_type_display': product.get_product_type_display(),
             'country': product.country,
             'country_display': product.get_country_display(),

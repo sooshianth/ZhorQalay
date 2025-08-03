@@ -78,6 +78,11 @@ bki_api/__pycache__
 /bki_api/management/__pycache__
 /bki_api/bki_api_utils/__pycache__
 
+/major/__pycache__
+/major/models/__pycache__
+/major/migrations/__pycache__
+
+
 # Environment files
 .env
 

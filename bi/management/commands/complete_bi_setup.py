@@ -510,7 +510,7 @@ class Command(BaseCommand):
             amount_paid = order_weight * product.customer_price
             
             purchase_number = None
-            if product.type == 'bazaargah':
+            if product.type_of_product == 'bazaargah':
                 purchase_number = str(random.randint(1000000, 9999999))
             
             days_ago = random.randint(1, 180)
@@ -520,7 +520,7 @@ class Command(BaseCommand):
                 customer=customer,
                 cargo=product,
                 state=random.choice(states),
-                type=product.type,
+                type=product.type_of_product,
                 order_weight=order_weight,
                 delivered_weight=order_weight - random.randint(0, 1000),
                 amount_paid=amount_paid,

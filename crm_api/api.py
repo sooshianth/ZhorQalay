@@ -215,8 +215,8 @@ class PurchaseInfoAPI(View):
                     'product_type_display': purchase.cargo.get_product_type_display(),
                     'country': purchase.cargo.country,
                     'country_display': purchase.cargo.get_country_display(),
-                    'type': purchase.cargo.type,
-                    
+                    'type': purchase.cargo.type_of_product,
+
                     # اطلاعات تکمیلی محصول
                     'port': purchase.cargo.port,
                     'loading_time': purchase.cargo.loading_time,

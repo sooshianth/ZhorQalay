@@ -2,6 +2,7 @@ from django.db import models
 from django_jalali.db import models as jmodels
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+from major.models.Product import Product
 
 class VaredKonandeh(models.Model):
     name = models.CharField(max_length=50, verbose_name='نام', blank=True, null=True)
@@ -50,11 +51,7 @@ class VaredKonandehTransaction(models.Model):
         verbose_name_plural = 'تراکنش های وارد کننده'
  
 
-class CargoProduct(models.Model):
-    PURCHASE_TYPES = [
-        ('bazaargah', 'خرید بازارگاه'),
-        ('non_bazaargah', 'خرید خارج از بازارگاه'),
-]
+class CargoProduct(Product):
     PRODUCT_TYPES = [
         ('corn', 'ذرت'),
         ('barley', 'جو'),
@@ -93,7 +90,6 @@ class CargoProduct(models.Model):
         ('سایر', 'سایر')
     ]
     
-    type = models.CharField(_('نوع خرید'), max_length=25, choices=PURCHASE_TYPES, default='bazaargah')
     cottage = models.CharField(_('کوتاژ'), unique=True, max_length=8, null=True, blank=True)
     company_price = models.PositiveIntegerField("فی خرید(ریال)", default=0)
     customer_price = models.PositiveIntegerField("فی فروش(ریال)", default=0)
@@ -102,11 +98,8 @@ class CargoProduct(models.Model):
     vared_konandeh = models.ForeignKey(VaredKonandeh, on_delete=models.CASCADE, null=True, blank=True)
     port = models.CharField(_("محل بارگیری"), max_length=25, choices=PORTS, default='بندر امام خمینی')
     loading_time = models.CharField(_('زمان بارگیری'), max_length=50, null=True, blank=True)
-    description = models.CharField(_('توضیحات'), max_length=300, null=True, blank=True)
     weight = models.PositiveIntegerField(_('وزن موجود'), default=100000000, null=True, blank=True)
-    created_at = jmodels.jDateTimeField(_('تاریخ ثبت'), auto_now_add=True)
     last_modified = jmodels.jDateTimeField(_('تاریخ آخرین ویرایش'), auto_now=True)
-    status = models.BooleanField(_('فعال/غیرفعال'), default=True)
     barbary = models.ForeignKey(Barbary, on_delete=models.CASCADE, null=True, blank=True)
 
     class Meta:
@@ -136,15 +129,20 @@ class CargoProduct(models.Model):
         # برای اطمینان از صحت قیمت‌ها، بدون تغییر و گرد کردن آنها
         # اگر کد پنهانی برای گرد کردن وجود داشته، باید اینجا بررسی شود
         
-        if self.type == 'bazaargah' and not self.cottage.isdigit() and not len(str(self.cottage)) == 8:
+        if self.type_of_product == 'bazaargah' and not self.cottage.isdigit() and not len(str(self.cottage)) == 8:
             raise ValidationError('کوتاژ برای خرید بازارگاه باید ۸ رقم عددی باشد.')
-        if self.type == 'non_bazaargah' and not self.cottage.isdigit() and not len(str(self.cottage)) == 3:
+        if self.type_of_product == 'non_bazaargah' and not self.cottage.isdigit() and not len(str(self.cottage)) == 3:
             raise ValidationError('کوتاژ برای خرید خارج از بازارگاه باید ۳ رقم عددی باشد.')
         if self.customer_price != 0 and self.customer_price < 50000:
             raise ValidationError('فی فروش باید حداقل 50000 ریال باشد.')
         if self.company_price != 0 and self.company_price < 50000:
             raise ValidationError('فی خرید باید حداقل 50000 ریال باشد.')
-    
+
+    def save(self, *args, **kwargs):
+        self.type_of_product = 'Bazargah'
+        self.name = self.product_type
+        super().save(*args, **kwargs)
+
     def get_product_type_display(self):
         return dict(self.PRODUCT_TYPES).get(self.product_type, _('نامشخص'))
     def get_country_display(self):

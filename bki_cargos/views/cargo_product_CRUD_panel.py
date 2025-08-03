@@ -83,7 +83,6 @@ def cargo_product_crud_panel(request, product_id=None):
     
     return render(request, 'cargo_product_crud_panel.html', {
         'product': product, 
-        'purchase_types': CargoProduct.PURCHASE_TYPES, 
         'product_types': CargoProduct.PRODUCT_TYPES, 
         'countries': CargoProduct.COUNTRIES, 
         'ports': CargoProduct.PORTS,
@@ -285,7 +284,7 @@ def bulk_edit_purchase_cargo(request):
                 cargo.cottage = cottage
             
             if 'type' in request.POST and request.POST.get('type'):
-                cargo.type = request.POST.get('type')
+                cargo.type_of_product = request.POST.get('type')
             
             if 'company_price' in request.POST and request.POST.get('company_price'):
                 cargo.company_price = int(request.POST.get('company_price'))

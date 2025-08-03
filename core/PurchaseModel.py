@@ -729,7 +729,7 @@ class Purchase(models.Model):
             self.invoice_id = f"{factor_code}{str(new_serial).zfill(6)}"
 
         if self.cargo:
-            self.type = self.cargo.type
+            self.type = self.cargo.type_of_product
             if self.customer_price == 0:
                 self.price = self.cargo.customer_price
             if self.company_price == 0:
