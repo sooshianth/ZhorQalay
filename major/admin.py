@@ -27,11 +27,11 @@ class HazinahAdmin(admin.ModelAdmin):
         'is_recurring', 'priority', 'due_date'
     )
     search_fields = (
-        'title', 'description','created_by__username', 'approved_by__username'
+        'title', 'description', 'created_by__username', 'approved_by__username'
     )
     readonly_fields = (
         'final_amount', 'created_at', 'updated_at', 'payment_status',
-        'total_transactions_amount', 'remaining_amount'
+        'total_transactions_amount', 'remaining_amount', 'approval_date'
     )
     list_per_page = 25
     date_hierarchy = 'expense_date'

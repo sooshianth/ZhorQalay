@@ -216,6 +216,7 @@ class Hazinah(models.Model):
     
     def save(self, *args, **kwargs):
         """ذخیره با محاسبه مبلغ نهایی و تأیید خودکار"""
+        from django.utils import timezone
         
         # محاسبه مبلغ نهایی
         self.final_amount = self.amount + self.tax_amount - self.discount_amount
@@ -225,7 +226,7 @@ class Hazinah(models.Model):
         if (self.approval_status == 'pending' and 
             self.final_amount < AUTO_APPROVAL_THRESHOLD):
             self.approval_status = 'auto_approved'
-            self.approval_date = jmodels.jDateTimeField().value_from_object(self)
+            self.approval_date = timezone.now()
         
         super().save(*args, **kwargs)
     
@@ -338,10 +339,12 @@ class Hazinah(models.Model):
     
     def approve(self, approved_by_user, notes=None):
         """تأیید هزینه"""
+        from django.utils import timezone
+        
         if self.can_be_approved():
             self.approval_status = 'approved'
             self.approved_by = approved_by_user
-            self.approval_date = jmodels.jDateTimeField().value_from_object(self)
+            self.approval_date = timezone.now()
             if notes:
                 self.approval_notes = notes
             self.save()
@@ -350,10 +353,12 @@ class Hazinah(models.Model):
     
     def reject(self, rejected_by_user, notes=None):
         """رد هزینه"""
+        from django.utils import timezone
+        
         if self.can_be_approved():
             self.approval_status = 'rejected'
             self.approved_by = rejected_by_user
-            self.approval_date = jmodels.jDateTimeField().value_from_object(self)
+            self.approval_date = timezone.now()
             if notes:
                 self.approval_notes = notes
             self.save()
