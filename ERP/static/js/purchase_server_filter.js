@@ -1450,6 +1450,7 @@ class PurchaseServerFilter {
                     <option value="50" ${this.perPage == 50 ? 'selected' : ''}>50</option>
                     <option value="100" ${this.perPage == 100 ? 'selected' : ''}>100</option>
                     <option value="200" ${this.perPage == 200 ? 'selected' : ''}>200</option>
+                    <option value="all" ${this.perPage == 'all' ? 'selected' : ''}>نمایش همه</option>
                 </select>
             </div>
         `;
@@ -1459,7 +1460,8 @@ class PurchaseServerFilter {
         if (perPageSelect && !perPageSelect.hasAttribute('data-listener-added')) {
             perPageSelect.setAttribute('data-listener-added', 'true');
             perPageSelect.addEventListener('change', (e) => {
-                this.perPage = parseInt(e.target.value);
+                const value = e.target.value;
+                this.perPage = value === 'all' ? 'all' : parseInt(value, 10);
                 this.currentPage = 1; // بازگشت به صفحه اول
                 this.applyFilters();
             });
