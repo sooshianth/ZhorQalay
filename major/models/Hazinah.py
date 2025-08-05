@@ -89,15 +89,7 @@ class Hazinah(models.Model):
     )
     approval_date = jmodels.jDateTimeField(_('تاریخ تأیید'), null=True, blank=True)
     approval_notes = models.TextField(_('یادداشت تأیید'), blank=True, null=True)
-    
-    # توجه: اطلاعات پرداخت از طریق مدل Transaction مدیریت می‌شود
-    # payment_status, payment_method, payment_date, payment_reference حذف شدند
-    
-    # اطلاعات طرف حساب
-    vendor_name = models.CharField(_('نام فروشنده/تأمین‌کننده'), max_length=200, blank=True, null=True)
-    vendor_phone = models.CharField(_('شماره تماس فروشنده'), max_length=15, blank=True, null=True)
-    vendor_address = models.TextField(_('آدرس فروشنده'), blank=True, null=True)
-    
+
     # اطلاعات مالی اضافی
     tax_amount = models.DecimalField(
         _('مبلغ مالیات'), 

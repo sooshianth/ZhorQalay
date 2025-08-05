@@ -183,13 +183,16 @@ class Transaction(models.Model):
             raise ValidationError(_('لطفا فقط یکی از هزینه و درآمد را مشخص کنید.'))
 
     def __str__(self):
-        return f"{self.wallet.varedkonandeh.name} - {self.get_transaction_type_display()} - {self.amount:,} ریال"
+        return f"{self.get_transaction_type_display()} - {self.amount:,} ریال"
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         # هنگام تایید تراکنش، کیف پول را بروزرسانی کن
         if self.status == 'approved':
             self.wallet.calculate_balance()
+
+    def get_transaction_type_display(self):
+        return dict(self.TRANSACTION_TYPES).get(self.transaction_type, _('نامشخص'))
 
     def approve(self, approved_by_user):
         """تأیید تراکنش"""

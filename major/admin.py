@@ -6,6 +6,8 @@ from django.utils.translation import gettext_lazy as _
 from .models.NonBazargahProduct import NonBazargahProduct
 from .models.Product import Product
 from .models.Hazinah import Hazinah
+from .models.Invoice import Invoice
+from .models.InvoiceItem import InvoiceItem
 
 
 @admin.register(NonBazargahProduct)
@@ -25,8 +27,7 @@ class HazinahAdmin(admin.ModelAdmin):
         'is_recurring', 'priority', 'due_date'
     )
     search_fields = (
-        'title', 'description', 'vendor_name', 'vendor_phone',
-        'created_by__username', 'approved_by__username'
+        'title', 'description','created_by__username', 'approved_by__username'
     )
     readonly_fields = (
         'final_amount', 'created_at', 'updated_at', 'payment_status',
@@ -44,10 +45,6 @@ class HazinahAdmin(admin.ModelAdmin):
         }),
         ('محصولات مرتبط', {
             'fields': ('cargo_product', 'non_bazargah_product'),
-            'classes': ('collapse',)
-        }),
-        ('اطلاعات فروشنده', {
-            'fields': ('vendor_name', 'vendor_phone', 'vendor_address'),
             'classes': ('collapse',)
         }),
         ('تاریخ و زمان‌بندی', {
@@ -161,5 +158,106 @@ class HazinahAdmin(admin.ModelAdmin):
         if not change:  # اگر ایجاد جدید است
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
+
+
+class InvoiceItemInline(admin.TabularInline):
+    model = InvoiceItem
+    extra = 1
+    fields = ('product_type', 'cargo_product', 'non_bazargah_product', 'price', 'amount', 'get_formatted_total_price')
+    readonly_fields = ('get_formatted_total_price',)
+    
+    def get_formatted_total_price(self, obj):
+        if obj.pk:  # فقط برای آبجکت‌های ذخیره شده
+            return obj.get_formatted_total_price()
+        return "0 ریال"
+    get_formatted_total_price.short_description = 'قیمت کل'
+
+
+@admin.register(Invoice)
+class InvoiceAdmin(admin.ModelAdmin):
+    list_display = (
+        'invoice_id', 'type', 'get_related_object_name', 
+        'get_formatted_total_amount', 'get_items_count', 
+        'issue_date', 'created_at'
+    )
+    list_filter = ('type', 'issue_date', 'created_at')
+    search_fields = ('invoice_id', 'description', 'hazinah__title', 'income__title')
+    readonly_fields = ('get_total_amount', 'get_items_count', 'created_at')
+    inlines = [InvoiceItemInline]
+    date_hierarchy = 'issue_date'
+    list_per_page = 20
+    
+    fieldsets = (
+        ('اطلاعات اصلی فاکتور', {
+            'fields': ('invoice_id', 'type', 'description', 'issue_date')
+        }),
+        ('مرتبط با', {
+            'fields': ('hazinah', 'income')
+        }),
+        ('پیوست‌ها و اطلاعات اضافی', {
+            'fields': ('attachment', 'created_at'),
+            'classes': ('collapse',)
+        }),
+        ('خلاصه مالی', {
+            'fields': ('get_total_amount', 'get_items_count'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_related_object_name(self, obj):
+        related = obj.get_related_object()
+        if related:
+            return str(related)
+        return "نامشخص"
+    get_related_object_name.short_description = 'مرتبط با'
+    
+    def get_formatted_total_amount(self, obj):
+        total = obj.get_total_amount()
+        return format_html('{} ریال', f'{total:,}') if total > 0 else '0 ریال'
+    get_formatted_total_amount.short_description = 'مبلغ کل'
+    get_formatted_total_amount.admin_order_field = 'get_total_amount'
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'hazinah', 'income'
+        ).prefetch_related('items')
+
+
+@admin.register(InvoiceItem)
+class InvoiceItemAdmin(admin.ModelAdmin):
+    list_display = (
+        'invoice', 'product_type', 'get_product_name', 
+        'formatted_price', 'amount', 'get_formatted_total_price'
+    )
+    list_filter = ('product_type', 'invoice__type')
+    search_fields = (
+        'invoice__invoice_id', 'cargo_product__name', 
+        'non_bazargah_product__name'
+    )
+    readonly_fields = ('get_total_price', 'get_formatted_total_price')
+    
+    fieldsets = (
+        ('اطلاعات آیتم', {
+            'fields': ('invoice', 'product_type')
+        }),
+        ('محصول', {
+            'fields': ('cargo_product', 'non_bazargah_product')
+        }),
+        ('قیمت و مقدار', {
+            'fields': ('price', 'amount', 'get_total_price', 'get_formatted_total_price')
+        }),
+    )
+    
+    def formatted_price(self, obj):
+        if obj.price:
+            return format_html('{} ریال', f'{obj.price:,}')
+        return '0 ریال'
+    formatted_price.short_description = 'قیمت واحد'
+    formatted_price.admin_order_field = 'price'
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'invoice', 'cargo_product', 'non_bazargah_product'
+        )
 
 
