@@ -149,7 +149,7 @@
                 {% endif %}
                 
                 <!-- دسته چهارم: مدیریت داده‌ها -->
-                {% if request.user.is_superuser %}
+                {% if request.user.is_superuser or request.user.logistics_manager %}
                 <div class="menu-category">
                     <div class="category-title" data-toggle="collapse" data-target="data-management">
                         <i class="fas fa-database category-icon"></i>
