@@ -14,7 +14,7 @@ linenumber = settings.SMS_LINE_NUMBER
 
 sms_account = SmsIr(api_key, linenumber)
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sms_api_api")
 
 def render_template(template_type, context_data):
     """
@@ -110,6 +110,7 @@ def send_purchase_status_notification(purchase):
     """
     # List of states that should receive SMS notifications
     NOTIFY_STATES = [
+        'INITIATED',
         'PAYMENT_VERIFIED',    # ثبت خرید در بازارگاه
         'ALLOCATION_APPROVED', # تایید تخصیص
         'ADDRESS_SENT',        # ارسال آدرس به واردکننده
@@ -145,7 +146,7 @@ def send_purchase_status_notification(purchase):
     
     try:
         # Get all customer phone numbers
-        phone_numbers = purchase.customer.get_all_phone_numbers()
+        phone_numbers = purchase.customer.get_all_phone_numbers(purchase, True)
         if not phone_numbers:
             logger.warning(f"No phone numbers found for customer {purchase.customer.name}")
             return False
@@ -269,6 +270,8 @@ def send_purchase_status_notification(purchase):
         results = []
         for phone in phone_numbers:
             try:
+                logger.debug(f"Queuing SMS for {phone} for purchase {purchase.invoice_id}, status: {status}")
+                continue
                 result = queue_sms(phone, message, notification_type=status, purchase=purchase)
                 results.append(result)
                 logger.info(f"SMS queued for {phone} for purchase {purchase.invoice_id}, status: {status}")
@@ -500,7 +503,7 @@ def send_new_purchase_notification(purchase):
     
     try:
         # Get all customer phone numbers instead of just the primary one
-        phone_numbers = purchase.customer.get_all_phone_numbers()
+        phone_numbers = purchase.customer.get_all_phone_numbers(purchase, True)
         if not phone_numbers:
             print(f"No phone numbers found for customer {purchase.customer.name}")
             return False
@@ -575,7 +578,7 @@ def send_payment_confirmation(purchase):
     
     try:
         # Get all customer phone numbers instead of just the primary one
-        phone_numbers = purchase.customer.get_all_phone_numbers()
+        phone_numbers = purchase.customer.get_all_phone_numbers(purchase)
         if not phone_numbers:
             print(f"No phone numbers found for customer {purchase.customer.name}")
             return False
@@ -623,7 +626,7 @@ def send_address_notification(purchase):
     
     try:
         # Get all customer phone numbers instead of just the primary one
-        phone_numbers = purchase.customer.get_all_phone_numbers()
+        phone_numbers = purchase.customer.get_all_phone_numbers(purchase, True)
         if not phone_numbers:
             print(f"No phone numbers found for customer {purchase.customer.name}")
             return False
@@ -668,7 +671,7 @@ def send_barnameh_notification(purchase):
     
     try:
         # Get all customer phone numbers instead of just the primary one
-        phone_numbers = purchase.customer.get_all_phone_numbers()
+        phone_numbers = purchase.customer.get_all_phone_numbers(purchase, True)
         if not phone_numbers:
             print(f"No phone numbers found for customer {purchase.customer.name}")
             return False
@@ -715,7 +718,7 @@ def send_extelaf_notification(purchase):
     
     try:
         # Get all customer phone numbers instead of just the primary one
-        phone_numbers = purchase.customer.get_all_phone_numbers()
+        phone_numbers = purchase.customer.get_all_phone_numbers(purchase, True)
         if not phone_numbers:
             print(f"No phone numbers found for customer {purchase.customer.name}")
             return False

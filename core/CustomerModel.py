@@ -223,13 +223,16 @@ class Customer(models.Model):
             return first_phone.number
         return self.phone_number or ''
 
-    def get_all_phone_numbers(self):
+    def get_all_phone_numbers(self, current_purchase=None, is_tahvil=False):
         """
         Returns a list of all phone numbers associated with this customer that have SMS enabled.
         Includes phone numbers from the PhoneNumber model (with sms_enabled=True),
         purchase phone numbers (bazaargah and tahvil), and if it exists,
         the legacy phone_number field.
         """
+        if self.sms_preference == False:
+            return []
+        
         numbers = set()
         
         # Get SMS-enabled phone numbers from the PhoneNumber model
@@ -240,16 +243,30 @@ class Customer(models.Model):
         for purchase in self.purchases_made.all():
             if purchase.bazaargah_phone_number:
                 numbers.add(purchase.bazaargah_phone_number)
-            if purchase.tahvil_phone_number:
-                numbers.add(purchase.tahvil_phone_number)
-        
+
+        # Add tahvil phone number if applicable
+        if is_tahvil:
+            if current_purchase:
+                if current_purchase.tahvil_phone_number:
+                    numbers.add(current_purchase.tahvil_phone_number)
+
         # Add the legacy phone number if it exists, is not already in the list,
         # and customer has SMS preference enabled
         if (self.phone_number and self.phone_number not in numbers and 
             self.sms_preference):
             numbers.add(self.phone_number)
+
+        cleaned_phone_numbers = set()
+        for phone in numbers:
+            if phone.startswith('0098'):
+                phone = phone[4:]
+            elif phone.startswith('+98'):
+                phone = phone[3:]
+            elif phone.startswith('0'):
+                phone = phone[1:]
+            cleaned_phone_numbers.add(phone)
             
-        return list(numbers)
+        return list(cleaned_phone_numbers)
 
     def get_tasks_by_time(self):
         return self.tasks.order_by('due_date')
