@@ -245,7 +245,7 @@ class PurchaseInfoAPI(View):
                 'name': customer.name,
                 'city': customer.city,
                 'phone_number': customer.get_primary_phone(),
-                'all_phone_numbers': customer.get_all_phone_numbers(),
+                'all_phone_numbers': customer.get_all_phone_numbers(purchase, True),
                 
                 # اطلاعات تکمیلی
                 'field_of_activity': customer.get_field_of_activity_display(),
@@ -604,7 +604,7 @@ class CustomerPurchasesAPI(View):
                     'name': customer.name,
                     'city': customer.city,
                     'phone_number': customer.get_primary_phone(),
-                    'all_phone_numbers': customer.get_all_phone_numbers(),
+                    'all_phone_numbers': customer.get_all_phone_numbers(purchase, True),
                     'field_of_activity': customer.get_field_of_activity_display(),
                     'whatsapp_preference': customer.whatsapp_preference,
                     'sms_preference': customer.sms_preference,

@@ -82,7 +82,7 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
         logger.info(f"📱 Customer SMS preference: {customer.sms_preference}")
         if customer.sms_preference:
             # اضافه کردن همه شماره‌های مشتری (فارغ از کارشناس فروش)
-            customer_phones = customer.get_all_phone_numbers()
+            customer_phones = customer.get_all_phone_numbers(instance.purchase, True)
             logger.info(f"📞 Found {len(customer_phones)} phone numbers for customer: {customer_phones}")
             for phone in customer_phones:
                 if phone and phone not in phone_numbers:
@@ -103,7 +103,7 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
             from core.PurchaseModel import Purchase
             purchase = Purchase.objects.get(purchase_number=instance.purchase_number)
             if purchase.customer and purchase.customer.sms_preference:
-                customer_phones = purchase.customer.get_all_phone_numbers()
+                customer_phones = customer.get_all_phone_numbers(instance.purchase, True)
                 logger.info(f"📞 Found {len(customer_phones)} phone numbers from purchase_number lookup")
                 for phone in customer_phones:
                     if phone and phone not in phone_numbers:

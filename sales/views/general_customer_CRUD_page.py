@@ -31,6 +31,9 @@ from core.decorators.decorators import role_required
 
 import json
 from django.template.loader import render_to_string
+import logging
+
+logger = logging.getLogger("general_customer_CRUD_view")
 
 def persian_digits_to_english(persian_text):
     """تبدیل اعداد فارسی به انگلیسی در یک رشته."""
@@ -837,7 +840,8 @@ def general_customer_CRUD_view(request):
             if assignment_id:
                 initial_data['assignment_id'] = assignment_id
             form = CustomerForm(initial=initial_data, sales_agent=sales_agent)
-
+    if customer:
+        logger.debug(f"phones: {all_phone_numbers}, phone function: {customer.get_all_phone_numbers()}")
     context = {
         'form': form,
         'customer': customer,

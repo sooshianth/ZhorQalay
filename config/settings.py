@@ -416,6 +416,16 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
+        'general_customer_CRUD_view': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'sms_api_api': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        }
     },
 }
 
