@@ -1,12 +1,15 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.forms import ValidationError
 from django_jalali.db import models as jmodels
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator, MaxValueValidator
+from bki_barnameh.models.BarnamehModel import Barnameh
 from core.CargoProductModel import CargoProduct, VaredKonandeh, Barbary
 from django.db.models import Sum, Q, F
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+from major.models import Hazinah
 
 class Wallet(models.Model):
     varedkonandeh = models.ForeignKey(VaredKonandeh, on_delete=models.CASCADE, related_name='wallet', verbose_name=_('وارد کننده'))
@@ -50,7 +53,7 @@ class Wallet(models.Model):
                 amount = weight * purchase.company_price
                 total_debt += amount
         
-        # محاسبه تراکنش‌های دستی
+        # محاسبه تراکنش‌های دستی (شامل هزینه‌ها و درآمدها)
         manual_transactions = self.transactions.filter(status='approved')
         manual_total = manual_transactions.aggregate(
             total=Sum('amount')
@@ -121,20 +124,26 @@ class Wallet(models.Model):
 
 class Transaction(models.Model):
     TRANSACTION_TYPES = [
-        ('deposit', _('واریز')),
-        ('withdrawal', _('برداشت')),
-        ('adjustment', _('تعدیل')),
-        ('purchase_debt', _('بدهی خرید')),
+        ('Hazinah', _('هزینه')),
+        ('Income', _('درآمد'))
     ]
     
     STATUS_CHOICES = [
-        ('pending', _('در انتظار تایید')),
-        ('approved', _('تایید شده')),
-        ('rejected', _('لغو شده')),
+        ('paid', _('پرداخت شده')),
+        ('unpaid', _('پرداخت نشده')),
+        ('patially_paid', _('پرداخت جزیی'))
     ]
 
-    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='transactions', verbose_name=_('کیف پول'))
-    transaction_type = models.CharField(_('نوع تراکنش'), max_length=20, choices=TRANSACTION_TYPES, default='deposit')
+    PAYMENT_METHOD = [
+        ('cash', _('نقدی')),
+        ('bank_transfer', _('انتقال بانکی')),
+        ('check', _('چک')),
+        ('card', _('کارت')),
+        ('other', _('سایر'))
+    ]
+
+    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='transactions', verbose_name=_('کیف پول'), null=True, blank=True)
+    transaction_type = models.CharField(_('نوع تراکنش'), max_length=20, choices=TRANSACTION_TYPES)
     amount = models.BigIntegerField(_('مقدار (ریال)'), default=0)
     description = models.TextField(_('توضیحات'), blank=True, null=True)
     file = models.FileField(_('فایل پیوست'), upload_to='fledger_transactions/', blank=True, null=True)
@@ -146,10 +155,32 @@ class Transaction(models.Model):
     created_at = jmodels.jDateTimeField(_('تاریخ ایجاد'), auto_now_add=True)
     updated_at = jmodels.jDateTimeField(_('تاریخ بروزرسانی'), auto_now=True)
 
+    hazinah = models.ForeignKey(Hazinah, on_delete=models.CASCADE,
+                                related_name='transactions', verbose_name=_('هزینه'),
+                                 null=True, blank=True)
+
+    income = models.ForeignKey(Barnameh, on_delete=models.CASCADE,
+                                related_name='transactions', verbose_name=_('درآمد'),
+                                null=True, blank=True)
+
+    payment_method = models.CharField(_('روش پرداخت'), max_length=20, choices=PAYMENT_METHOD, null=True , blank=True)
+
     class Meta:
         verbose_name = _('تراکنش')
         verbose_name_plural = _('تراکنش ها')
         ordering = ['-created_at']
+
+    def clean(self):
+        super().clean()
+    
+        if self.transaction_type == 'Hazinah' and not self.hazinah:
+            raise ValidationError(_('لطفا هزینه را مشخص کنید.'))
+        
+        if self.transaction_type == 'Income' and not self.income:
+            raise ValidationError(_('لطفا درآمد را مشخص کنید.'))
+
+        if self.income and self.hazinah:
+            raise ValidationError(_('لطفا فقط یکی از هزینه و درآمد را مشخص کنید.'))
 
     def __str__(self):
         return f"{self.wallet.varedkonandeh.name} - {self.get_transaction_type_display()} - {self.amount:,} ریال"
@@ -159,6 +190,40 @@ class Transaction(models.Model):
         # هنگام تایید تراکنش، کیف پول را بروزرسانی کن
         if self.status == 'approved':
             self.wallet.calculate_balance()
+
+    def approve(self, approved_by_user):
+        """تأیید تراکنش"""
+        if self.status == 'pending':
+            self.status = 'approved'
+            self.approved_by = approved_by_user
+            from django.utils import timezone
+            self.approved_at = timezone.now()
+            self.save()
+            return True
+        return False
+    
+    def reject(self, rejected_by_user):
+        """رد تراکنش"""
+        if self.status == 'pending':
+            self.status = 'rejected'
+            self.approved_by = rejected_by_user
+            from django.utils import timezone
+            self.approved_at = timezone.now()
+            self.save()
+            return True
+        return False
+    
+    def cancel(self):
+        """لغو تراکنش"""
+        if self.status in ['pending', 'approved']:
+            self.status = 'cancelled'
+            self.save()
+            # بروزرسانی کیف پول
+            self.wallet.calculate_balance()
+            return True
+        return False
+
+    
 
 
 class LedgerEntry(models.Model):
