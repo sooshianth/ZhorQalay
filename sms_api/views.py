@@ -951,7 +951,6 @@ def delete_sms(request, sms_id):
 
 @role_required('admin')
 @login_required
-@require_POST
 def suspend_sms(request, sms_id):
     """تعلیق پیامک"""
     sms = get_object_or_404(SmsQueue, id=sms_id)
