@@ -225,48 +225,99 @@ class Customer(models.Model):
 
     def get_all_phone_numbers(self, current_purchase=None, is_tahvil=False):
         """
-        Returns a list of all phone numbers associated with this customer that have SMS enabled.
+        Returns a list of all unique phone numbers associated with this customer that have SMS enabled.
         Includes phone numbers from the PhoneNumber model (with sms_enabled=True),
         purchase phone numbers (bazaargah and tahvil), and if it exists,
         the legacy phone_number field.
+        
+        This method ensures no duplicate phone numbers are returned by:
+        1. Normalizing all phone numbers to a standard format (removing prefixes)
+        2. Using a set to automatically eliminate duplicates
+        3. Filtering out invalid/empty numbers
         """
         if self.sms_preference == False:
             return []
         
-        numbers = set()
+        raw_numbers = []
         
         # Get SMS-enabled phone numbers from the PhoneNumber model
         for phone in self.phone_numbers.filter(sms_enabled=True):
-            numbers.add(phone.number)
+            if phone.number:
+                raw_numbers.append(phone.number)
         
         # Add phone numbers from purchases (bazaargah and tahvil)
         for purchase in self.purchases_made.all():
             if purchase.bazaargah_phone_number:
-                numbers.add(purchase.bazaargah_phone_number)
+                raw_numbers.append(purchase.bazaargah_phone_number)
 
         # Add tahvil phone number if applicable
-        if is_tahvil:
-            if current_purchase:
-                if current_purchase.tahvil_phone_number:
-                    numbers.add(current_purchase.tahvil_phone_number)
+        if is_tahvil and current_purchase and current_purchase.tahvil_phone_number:
+            raw_numbers.append(current_purchase.tahvil_phone_number)
 
-        # Add the legacy phone number if it exists, is not already in the list,
-        # and customer has SMS preference enabled
-        if (self.phone_number and self.phone_number not in numbers and 
-            self.sms_preference):
-            numbers.add(self.phone_number)
+        # Add the legacy phone number if it exists and customer has SMS preference enabled
+        if self.phone_number and self.sms_preference:
+            raw_numbers.append(self.phone_number)
 
-        cleaned_phone_numbers = set()
-        for phone in numbers:
-            if phone.startswith('0098'):
-                phone = phone[4:]
-            elif phone.startswith('+98'):
-                phone = phone[3:]
-            elif phone.startswith('0'):
-                phone = phone[1:]
-            cleaned_phone_numbers.add(phone)
-            
-        return list(cleaned_phone_numbers)
+        # Normalize and deduplicate phone numbers
+        normalized_numbers = set()
+        for phone in raw_numbers:
+            if phone:
+                # Convert to string and strip whitespace
+                phone_str = str(phone).strip()
+                
+                # Skip empty or invalid numbers
+                if not phone_str or phone_str.lower() in ['none', 'null', 'nan', '']:
+                    continue
+                
+                # Convert Persian digits to English digits
+                persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+                english_digits = "0123456789"
+                translation_table = str.maketrans(persian_digits, english_digits)
+                phone_str = phone_str.translate(translation_table)
+                
+                # Remove non-digit characters except + at the beginning
+                if phone_str.startswith('+'):
+                    # Keep the + and remove other non-digits
+                    cleaned = '+' + ''.join(c for c in phone_str[1:] if c.isdigit())
+                else:
+                    # Remove all non-digits
+                    cleaned = ''.join(c for c in phone_str if c.isdigit())
+                
+                # Skip if no digits found
+                if not any(c.isdigit() for c in cleaned):
+                    continue
+                
+                # Normalize prefixes
+                if cleaned.startswith('+98'):
+                    cleaned = cleaned[3:]
+                elif cleaned.startswith('0098'):
+                    cleaned = cleaned[4:]
+                elif cleaned.startswith('98') and len(cleaned) >= 12:  # 98 + حداقل 10 digits
+                    cleaned = cleaned[2:]
+                elif cleaned.startswith('0') and len(cleaned) >= 11:  # 0 + حداقل 10 digits
+                    cleaned = cleaned[1:]
+                
+                # Final validation: should be 10 digits starting with 9
+                if len(cleaned) == 10 and cleaned.startswith('9') and cleaned.isdigit():
+                    normalized_numbers.add(cleaned)
+                elif len(cleaned) >= 10:
+                    # Try to extract a valid 10-digit number
+                    for i in range(len(cleaned) - 9):
+                        potential_number = cleaned[i:i+10]
+                        if potential_number.startswith('9') and potential_number.isdigit():
+                            normalized_numbers.add(potential_number)
+                            break
+        
+        # Convert set back to list and sort for consistent ordering
+        result = sorted(list(normalized_numbers))
+        
+        # Log for debugging (only if there are duplicates found)
+        if len(raw_numbers) > len(result) and len(raw_numbers) > 1:
+            logger.info(f"Customer {self.id}: Removed {len(raw_numbers) - len(result)} duplicate phone numbers")
+            logger.debug(f"Raw numbers: {raw_numbers}")
+            logger.debug(f"Final unique numbers: {result}")
+        
+        return result
 
     def get_tasks_by_time(self):
         return self.tasks.order_by('due_date')
