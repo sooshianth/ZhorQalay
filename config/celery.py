@@ -66,11 +66,11 @@ app.conf.beat_schedule = {
     },
     'update-purchases-last-month': {
         'task': 'bki_api.tasks.update_purchases_last_month',
-        'schedule': crontab(minute=0, hour='*/4'),  # هر 4 ساعت
+        'schedule': crontab(minute=0, hour='8,12,16,20'),  # هر 4 ساعت از 8 صبح: 8، 12، 16، 20
     },
     'update-purchases-all-time': {
         'task': 'bki_api.tasks.update_purchases_all_time',
-        'schedule': crontab(minute=0, hour='*/8'),  # هر 8 ساعت
+        'schedule': crontab(minute=0, hour='5,13,21'),  # هر 8 ساعت: 5 صبح، 1 ظهر، 9 شب
     },
     'check-purchases-for-support-tasks': {
         'task': 'core.tasks.tasks.check_purchases_for_support_tasks',
