@@ -575,10 +575,12 @@
 
                     <!-- Actions -->
                     <div class="transaction-actions">
+                        {% if transaction.wallet and transaction.wallet.id %}
                         <a href="{% url 'fledger:wallet_detail' transaction.wallet.id %}" class="action-btn btn-view">
                             <i class="fas fa-eye"></i>
                             مشاهده کیف پول
                         </a>
+                        {% endif %}
 
                         {% if transaction.status == 'pending' %}
                         <a href="{% url 'fledger:edit_transaction' transaction.id %}" class="action-btn btn-edit">

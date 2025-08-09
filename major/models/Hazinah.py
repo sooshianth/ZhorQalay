@@ -37,7 +37,9 @@ class Hazinah(models.Model):
         ('pending', 'در انتظار تأیید'),
         ('approved', 'تأیید شده'),
         ('rejected', 'رد شده'),
-        ('auto_approved', 'تأیید خودکار')
+        ('auto_approved', 'تأیید خودکار'),
+        ('pending_admin', 'در انتظار تأیید ادمین'),
+        ('financial_approved', 'تأیید مدیر مالی')
     ]
     
     PAYMENT_STATUS = [
@@ -51,7 +53,7 @@ class Hazinah(models.Model):
     title = models.CharField(_('عنوان هزینه'), max_length=200)
     description = models.TextField(_('توضیحات'), blank=True, null=True)
     cost_type = models.CharField(_('نوع هزینه'), max_length=30, choices=COST_TYPES)
-    amount = models.DecimalField(_('مبلغ (ریال)'), max_digits=15, decimal_places=0)
+    amount = models.DecimalField(_('مبلغ (ریال)'), max_digits=15, decimal_places=0, null=True, blank=True)
     
     # ارتباط با محصولات (در صورت نیاز)
     cargo_product = models.ForeignKey(
@@ -194,12 +196,7 @@ class Hazinah(models.Model):
             raise ValidationError({
                 'description': _('برای هزینه‌های دیگر، توضیحات الزامی است.')
             })
-        
-        # بررسی مبلغ
-        if self.amount <= 0:
-            raise ValidationError({
-                'amount': _('مبلغ باید بیشتر از صفر باشد.')
-            })
+
         
         # بررسی تاریخ سررسید
         if self.due_date and self.expense_date and self.due_date < self.expense_date:
@@ -212,28 +209,37 @@ class Hazinah(models.Model):
             raise ValidationError({
                 'recurring_period': _('برای هزینه تکراری، دوره تکرار باید مشخص شود.')
             })
-        
-        # اگر مبلغ تخفیف یا مالیات بیشتر از مبلغ اصلی باشد
-        if self.discount_amount > self.amount:
-            raise ValidationError({
-                'discount_amount': _('مبلغ تخفیف نمی‌تواند بیشتر از مبلغ اصلی باشد.')
-            })
+
     
     def save(self, *args, **kwargs):
-        """ذخیره با محاسبه مبلغ نهایی و تأیید خودکار"""
+        """ذخیره با محاسبه مبلغ نهایی و بررسی تأیید خودکار"""
         from django.utils import timezone
+        
+        # اگر هزینه ذخیره شده و فاکتور دارد، مبلغ را از فاکتورها محاسبه کن
+        # فقط در صورتی که از طریق update_from_invoices فراخوانی نشده باشد
+        if (self.pk and self.has_invoices and 
+            not getattr(self, '_updating_from_invoices', False)):
+            self.amount = self.calculate_amount_from_invoices()
         
         # محاسبه مبلغ نهایی
         self.final_amount = self.amount + self.tax_amount - self.discount_amount
 
-        AUTO_APPROVAL_THRESHOLD = Decimal('100000000')  
-        
-        if (self.approval_status == 'pending' and 
-            self.final_amount < AUTO_APPROVAL_THRESHOLD):
-            self.approval_status = 'auto_approved'
-            self.approval_date = timezone.now()
+        # بررسی تأیید خودکار برای هزینه‌های جدید
+        if not self.pk and self.approval_status == 'pending':
+            self.approval_status = self._get_auto_approval_status()
+            if self.approval_status == 'auto_approved':
+                self.approval_date = timezone.now()
+                self.approval_notes = 'تأیید خودکار - مبلغ کمتر از 10 میلیون تومان'
         
         super().save(*args, **kwargs)
+    
+    def update_amount_from_invoices(self):
+        """بروزرسانی مبلغ هزینه از فاکتورها"""
+        if self.has_invoices:
+            self._updating_from_invoices = True
+            self.amount = self.calculate_amount_from_invoices()
+            self.save()
+            delattr(self, '_updating_from_invoices')
     
     def __str__(self):
         product_info = ""
@@ -335,40 +341,124 @@ class Hazinah(models.Model):
     
     def can_be_approved(self):
         """آیا این هزینه قابل تأیید است؟"""
-        return self.approval_status == 'pending'
+        return self.approval_status in ['pending', 'financial_approved']
     
     def can_be_paid(self):
         """آیا این هزینه قابل پرداخت است؟"""
         return (self.approval_status in ['approved', 'auto_approved'] and 
                 self.payment_status in ['unpaid', 'partial'])
+
+    def _get_auto_approval_status(self):
+        """تعیین وضعیت تأیید بر اساس مبلغ"""
+        # تبدیل ریال به تومان (تقسیم بر 10)
+        amount_toman = self.final_amount / 10
+        
+        if amount_toman <= 10000000:  # 10 میلیون تومان
+            return 'auto_approved'
+        elif amount_toman <= 20000000:  # 20 میلیون تومان
+            return 'pending'  # نیاز به تأیید مدیر مالی
+        else:
+            return 'pending'  # نیاز به تأیید مدیر مالی و سپس ادمین
+
+    def get_required_approval_level(self):
+        """تعیین سطح تأیید مورد نیاز"""
+        amount_toman = self.final_amount / 10
+        
+        if amount_toman <= 10000000:
+            return 'auto'
+        elif amount_toman <= 20000000:
+            return 'financial_manager'
+        else:
+            return 'admin'
+
+    def can_be_approved_by(self, user):
+        """بررسی اینکه آیا کاربر می‌تواند این هزینه را تأیید کند"""
+        if not hasattr(user, 'role'):
+            return False
+            
+        required_level = self.get_required_approval_level()
+        user_role = user.role
+        
+        if required_level == 'auto':
+            return False  # تأیید خودکار
+        elif required_level == 'financial_manager':
+            return user_role in ['admin', 'financial_manager']
+        else:  # admin required
+            if self.approval_status == 'pending':
+                return user_role in ['admin', 'financial_manager']
+            elif self.approval_status == 'financial_approved':
+                return user_role == 'admin'
+            
+        return False
+
+    def get_approval_info(self):
+        """اطلاعات وضعیت تأیید"""
+        amount_toman = self.final_amount / 10
+        required_level = self.get_required_approval_level()
+        
+        info = {
+            'amount_toman': amount_toman,
+            'required_level': required_level,
+            'current_status': self.approval_status,
+        }
+        
+        if required_level == 'auto':
+            info['message'] = 'تأیید خودکار (کمتر از 10 میلیون تومان)'
+        elif required_level == 'financial_manager':
+            info['message'] = 'نیاز به تأیید مدیر مالی (10-20 میلیون تومان)'
+        else:
+            info['message'] = 'نیاز به تأیید مدیر مالی و ادمین (بیش از 20 میلیون تومان)'
+            
+        return info
     
     def approve(self, approved_by_user, notes=None):
-        """تأیید هزینه"""
+        """تأیید هزینه با در نظر گیری سطح دسترسی"""
         from django.utils import timezone
+        from django.core.exceptions import ValidationError
         
-        if self.can_be_approved():
+        if not self.can_be_approved_by(approved_by_user):
+            raise ValidationError('شما مجاز به تأیید این هزینه نیستید.')
+        
+        required_level = self.get_required_approval_level()
+        user_role = getattr(approved_by_user, 'role', None)
+        
+        if required_level == 'admin' and user_role == 'financial_manager':
+            # مدیر مالی در حال تأیید هزینه‌ای که نیاز به تأیید ادمین دارد
+            self.approval_status = 'financial_approved'
+            self.approved_by = approved_by_user
+            self.approval_date = timezone.now()
+            if notes:
+                self.approval_notes = f"تأیید مدیر مالی: {notes}"
+        else:
+            # تأیید نهایی
             self.approval_status = 'approved'
             self.approved_by = approved_by_user
             self.approval_date = timezone.now()
             if notes:
-                self.approval_notes = notes
-            self.save()
-            return True
-        return False
+                if self.approval_notes:
+                    self.approval_notes += f"\n\nتأیید نهایی: {notes}"
+                else:
+                    self.approval_notes = notes
+        
+        self.save()
+        return True
     
     def reject(self, rejected_by_user, notes=None):
         """رد هزینه"""
         from django.utils import timezone
+        from django.core.exceptions import ValidationError
         
-        if self.can_be_approved():
-            self.approval_status = 'rejected'
-            self.approved_by = rejected_by_user
-            self.approval_date = timezone.now()
-            if notes:
-                self.approval_notes = notes
-            self.save()
-            return True
-        return False
+        valid_statuses = ['pending', 'financial_approved']
+        if self.approval_status not in valid_statuses:
+            raise ValidationError('فقط هزینه‌های در انتظار تأیید قابل رد هستند.')
+        
+        self.approval_status = 'rejected'
+        self.approved_by = rejected_by_user
+        self.approval_date = timezone.now()
+        if notes:
+            self.approval_notes = notes
+        self.save()
+        return True
     
     def create_payment_transaction(self, amount, wallet, payment_method=None, payment_reference=None, created_by=None, description=None):
         """ایجاد تراکنش پرداخت برای این هزینه"""
@@ -530,3 +620,43 @@ class Hazinah(models.Model):
                 total_pending += expense.remaining_amount
         
         return total_pending
+    
+    # متدهای مربوط به فاکتورها
+    def calculate_amount_from_invoices(self):
+        """محاسبه مبلغ کل از روی فاکتورهای مرتبط"""
+        total = Decimal('0')
+        for invoice in self.invoices.all():
+            total += invoice.get_total_amount()
+        return total
+    
+    @property
+    def has_invoices(self):
+        """آیا این هزینه فاکتور دارد؟"""
+        return self.invoices.exists()
+    
+    @property
+    def invoices(self):
+        """فاکتورهای مرتبط با این هزینه"""
+        return self.invoice_set.all()
+    
+    @property
+    def total_invoice_amount(self):
+        """کل مبلغ فاکتورهای مرتبط"""
+        return self.calculate_amount_from_invoices()
+    
+    def get_invoice_summary(self):
+        """خلاصه‌ای از فاکتورهای مرتبط"""
+        invoices = self.invoices.all()
+        total_amount = Decimal('0')
+        total_items = 0
+        
+        for invoice in invoices:
+            total_amount += invoice.get_total_amount()
+            total_items += invoice.get_items_count()
+        
+        return {
+            'count': invoices.count(),
+            'total_amount': total_amount,
+            'total_items': total_items,
+            'invoices': invoices
+        }

@@ -1,0 +1,318 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'fledger/css/fledger.css' %}">
+
+<style>
+    .invoice-hero {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        padding: 2.5rem 2rem;
+        border-radius: 1.5rem;
+        margin-bottom: 2.5rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(245, 158, 11, 0.3);
+    }
+
+    .invoice-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .invoice-form-container {
+        background: white;
+        border-radius: 1.25rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        overflow: hidden;
+    }
+
+    .form-section-header {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #e2e8f0;
+        margin: 0;
+    }
+
+    .form-section-header h3 {
+        margin: 0;
+        color: #1e293b;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .form-section-body {
+        padding: 2rem;
+    }
+
+    .invoice-item-card {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border: 1px solid #fbbf24;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+
+    .invoice-item-card h4 {
+        color: #92400e;
+        margin: 0 0 1.5rem 0;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .invoice-item-card h4::before {
+        content: '✏️';
+        font-size: 1.2rem;
+    }
+
+    .form-actions-container {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        padding: 1.5rem 2rem;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .breadcrumb-nav {
+        background: white;
+        padding: 1rem 2rem;
+        border-radius: 1rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        border: 1px solid #f1f5f9;
+    }
+
+    .breadcrumb-nav a {
+        color: #f59e0b;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .breadcrumb-nav a:hover {
+        color: #d97706;
+        text-decoration: underline;
+    }
+
+    .breadcrumb-nav span {
+        color: #64748b;
+        margin: 0 0.5rem;
+    }
+
+    .current-file-info {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border: 1px solid #fbbf24;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .current-file-info i {
+        color: #92400e;
+        margin-left: 0.5rem;
+    }
+</style>
+
+<div class="fledger-container">
+    <!-- Breadcrumb Navigation -->
+    <div class="breadcrumb-nav">
+        <a href="{% url 'fledger:fledger_dashboard' %}">داشبورد</a>
+        <span>/</span>
+        <a href="{% url 'fledger:hazinah_list' %}">لیست هزینه‌ها</a>
+        <span>/</span>
+        <a href="{% url 'fledger:hazinah_detail' hazinah.id %}">{{ hazinah.title }}</a>
+        <span>/</span>
+        <span>ویرایش فاکتور {{ invoice.invoice_id }}</span>
+    </div>
+
+    <!-- Hero Section -->
+    <div class="invoice-hero">
+        <div class="hero-content">
+            <h1>
+                <i class="fas fa-edit"></i>
+                {{ title }}
+            </h1>
+            <p>ویرایش فاکتور در هزینه: <strong>{{ hazinah.title }}</strong></p>
+        </div>
+    </div>
+
+    <div class="invoice-form-container">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- اطلاعات فاکتور -->
+            <div class="form-section-header">
+                <h3>
+                    <i class="fas fa-file-invoice"></i>
+                    اطلاعات فاکتور
+                </h3>
+            </div>
+            <div class="form-section-body">
+                <div class="fledger-form-row">
+                    <div class="form-group-fledger">
+                        <label class="form-label-fledger">{{ invoice_form.invoice_id.label }}</label>
+                        {{ invoice_form.invoice_id }}
+                        {% if invoice_form.invoice_id.errors %}
+                            <div class="text-danger">{{ invoice_form.invoice_id.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group-fledger">
+                        <label class="form-label-fledger">{{ invoice_form.issue_date.label }}</label>
+                        {{ invoice_form.issue_date }}
+                        {% if invoice_form.issue_date.errors %}
+                            <div class="text-danger">{{ invoice_form.issue_date.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-group-fledger">
+                    <label class="form-label-fledger">{{ invoice_form.description.label }}</label>
+                    {{ invoice_form.description }}
+                    {% if invoice_form.description.errors %}
+                        <div class="text-danger">{{ invoice_form.description.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group-fledger">
+                    <label class="form-label-fledger">{{ invoice_form.attachment.label }}</label>
+                    {{ invoice_form.attachment }}
+                    {% if invoice_form.attachment.errors %}
+                        <div class="text-danger">{{ invoice_form.attachment.errors }}</div>
+                    {% endif %}
+                    {% if invoice.attachment %}
+                        <div class="current-file-info">
+                            <i class="fas fa-file"></i>
+                            فایل فعلی: <a href="{{ invoice.attachment.url }}" target="_blank">دانلود</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- آیتم‌های فاکتور -->
+            <div class="form-section-header">
+                <h3>
+                    <i class="fas fa-list"></i>
+                    آیتم‌های فاکتور
+                </h3>
+            </div>
+            <div class="form-section-body">
+                {{ invoice_formset.management_form }}
+                
+                <div id="invoice-items-container">
+                    {% for form in invoice_formset %}
+                        <div class="invoice-item-card">
+                            <h4>آیتم {{ forloop.counter }}</h4>
+                            
+                            <div class="fledger-form-row">
+                                <div class="form-group-fledger">
+                                    <label class="form-label-fledger">{{ form.product_type.label }}</label>
+                                    {{ form.product_type }}
+                                    {% if form.product_type.errors %}
+                                        <div class="text-danger">{{ form.product_type.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group-fledger">
+                                    <label class="form-label-fledger">{{ form.cargo_product.label }}</label>
+                                    {{ form.cargo_product }}
+                                    {% if form.cargo_product.errors %}
+                                        <div class="text-danger">{{ form.cargo_product.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="fledger-form-row">
+                                <div class="form-group-fledger">
+                                    <label class="form-label-fledger">{{ form.non_bazargah_product.label }}</label>
+                                    {{ form.non_bazargah_product }}
+                                    {% if form.non_bazargah_product.errors %}
+                                        <div class="text-danger">{{ form.non_bazargah_product.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group-fledger">
+                                    <label class="form-label-fledger">{{ form.price.label }}</label>
+                                    {{ form.price }}
+                                    {% if form.price.errors %}
+                                        <div class="text-danger">{{ form.price.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="fledger-form-row">
+                                <div class="form-group-fledger">
+                                    <label class="form-label-fledger">{{ form.amount.label }}</label>
+                                    {{ form.amount }}
+                                    {% if form.amount.errors %}
+                                        <div class="text-danger">{{ form.amount.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if form.DELETE %}
+                                    <div class="form-group-fledger">
+                                        <div class="fledger-checkbox">
+                                            {{ form.DELETE }}
+                                            <label for="{{ form.DELETE.id_for_label }}">حذف این آیتم</label>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            {{ form.id }}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- خطاهای کلی فرم -->
+            {% if invoice_form.non_field_errors %}
+            <div class="fledger-form-errors">
+                {% for error in invoice_form.non_field_errors %}
+                    <div class="text-danger">{{ error }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            {% if invoice_formset.non_form_errors %}
+            <div class="fledger-form-errors">
+                {% for error in invoice_formset.non_form_errors %}
+                    <div class="text-danger">{{ error }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- دکمه‌های عملیات -->
+            <div class="form-actions-container">
+                <div class="fledger-form-actions">
+                    <a href="{% url 'fledger:hazinah_detail' hazinah.id %}" class="btn-fledger btn-fledger-secondary">
+                        <i class="fas fa-times"></i>
+                        انصراف
+                    </a>
+                    <button type="submit" class="btn-fledger btn-fledger-success">
+                        <i class="fas fa-save"></i>
+                        ذخیره تغییرات
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

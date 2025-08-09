@@ -11,7 +11,11 @@ from core.decorators.decorators import role_required
 from core.PurchaseModel import Purchase
 from core.CargoProductModel import VaredKonandeh
 from fledger.models import Wallet, Transaction, LedgerEntry
-from fledger.forms import TransactionForm, TransactionEditForm
+from fledger.forms import TransactionForm, TransactionEditForm, HazinahForm, HazinahPaymentForm, InvoiceForm, InvoiceItemFormSet
+from major.models.Hazinah import Hazinah
+from major.models.Invoice import Invoice
+from major.models.InvoiceItem import InvoiceItem
+from bki_barnameh.models.BarnamehModel import Barnameh
 
 
 # if wallet_index is 0, then the weight should be calculated based on the order_weight of the purchase else it should be calculated based on the delivery_weight of the purchase
@@ -485,6 +489,444 @@ def ajax_get_varedkonandeh_info(request, varedkonandeh_id):
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+
+# ==================== ویوهای مدیریت هزینه‌ها ====================
+
+@role_required('admin', 'financial_manager')
+def hazinah_list(request):
+    """لیست هزینه‌ها"""
     
+    # فیلترهای جستجو
+    search_query = request.GET.get('search', '')
+    cost_type_filter = request.GET.get('cost_type', '')
+    approval_status_filter = request.GET.get('approval_status', '')
+    
+    # کوئری پایه
+    hazinah_list = Hazinah.objects.select_related(
+        'created_by', 'approved_by', 'cargo_product', 'non_bazargah_product'
+    ).prefetch_related('transactions')
+    
+    # اضافه کردن اطلاعات تأیید برای هر هزینه
+    for hazinah in hazinah_list:
+        hazinah.can_be_approved_by = hazinah.can_be_approved_by(request.user)
+    
+    # اعمال فیلترها
+    if search_query:
+        hazinah_list = hazinah_list.filter(
+            Q(title__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+    
+    if cost_type_filter:
+        hazinah_list = hazinah_list.filter(cost_type=cost_type_filter)
+    
+    if approval_status_filter:
+        hazinah_list = hazinah_list.filter(approval_status=approval_status_filter)
+    
+    # مرتب‌سازی
+    hazinah_list = hazinah_list.order_by('-created_at')
+    
+    # صفحه‌بندی
+    paginator = Paginator(hazinah_list, 20)
+    page_number = request.GET.get('page')
+    hazinah_page = paginator.get_page(page_number)
+    
+    # آمار کلی
+    total_count = Hazinah.objects.count()
+    pending_count = Hazinah.objects.filter(approval_status='pending').count()
+    approved_count = Hazinah.objects.filter(approval_status='approved').count()
+    
+    context = {
+        'hazinah_page': hazinah_page,
+        'search_query': search_query,
+        'cost_type_filter': cost_type_filter,
+        'approval_status_filter': approval_status_filter,
+        'cost_type_choices': Hazinah.COST_TYPES,
+        'approval_status_choices': Hazinah.APPROVAL_STATUS,
+        'total_count': total_count,
+        'pending_count': pending_count,
+        'approved_count': approved_count,
+    }
+    
+    return render(request, 'fledger/hazinah_list.html', context)
+
+
+@role_required('admin', 'financial_manager')
+def hazinah_detail(request, hazinah_id):
+    """جزئیات هزینه"""
+    hazinah = get_object_or_404(
+        Hazinah.objects.select_related(
+            'created_by', 'approved_by', 'cargo_product', 'non_bazargah_product'
+        ).prefetch_related(
+            'transactions__wallet__varedkonandeh',
+            'invoice_set__items__cargo_product',
+            'invoice_set__items__non_bazargah_product'
+        ),
+        id=hazinah_id
+    )
+    
+    # تراکنش‌های مربوط به این هزینه
+    transactions = hazinah.transactions.all().order_by('-created_at')
+    
+    # آمار پرداخت
+    total_paid = transactions.filter(status='approved').aggregate(
+        total=Sum('amount')
+    )['total'] or 0
+    
+    remaining_amount = hazinah.final_amount - total_paid if hazinah.final_amount else hazinah.amount - total_paid
+    
+    # اطلاعات تأیید
+    approval_info = hazinah.get_approval_info()
+    can_approve = hazinah.can_be_approved_by(request.user)
+    
+    context = {
+        'hazinah': hazinah,
+        'transactions': transactions,
+        'total_paid': total_paid,
+        'remaining_amount': remaining_amount,
+        'payment_percentage': (total_paid / hazinah.final_amount * 100) if hazinah.final_amount and hazinah.final_amount > 0 else 0,
+        'approval_info': approval_info,
+        'can_approve': can_approve,
+    }
+    
+    return render(request, 'fledger/hazinah_detail.html', context)
+
+
+@role_required('admin', 'financial_manager')
+def create_hazinah(request):
+    """ایجاد هزینه جدید"""
+    if request.method == 'POST':
+        hazinah_form = HazinahForm(request.POST, request.FILES)
+        
+        if hazinah_form.is_valid():
+            try:
+                hazinah = hazinah_form.save(commit=False)
+                hazinah.created_by = request.user
+                
+                # اگر مبلغ وارد نشده، آن را صفر قرار دهید
+                if not hazinah.amount:
+                    hazinah.amount = 0
+                
+                hazinah.save()
+                
+                messages.success(request, 'هزینه با موفقیت ثبت شد. حالا می‌توانید فاکتورهای مربوطه را اضافه کنید.')
+                return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+                    
+            except Exception as e:
+                messages.error(request, f'خطا در ثبت هزینه: {str(e)}')
+    else:
+        hazinah_form = HazinahForm()
+    
+    context = {
+        'hazinah_form': hazinah_form,
+        'title': 'ثبت هزینه جدید'
+    }
+    
+    return render(request, 'fledger/create_hazinah.html', context)
+
+
+@role_required('admin', 'financial_manager')
+def edit_hazinah(request, hazinah_id):
+    """ویرایش هزینه"""
+    hazinah = get_object_or_404(Hazinah, id=hazinah_id)
+    
+    # فقط هزینه‌های در انتظار تأیید قابل ویرایش هستند
+    if hazinah.approval_status != 'pending':
+        messages.error(request, 'فقط هزینه‌های در انتظار تأیید قابل ویرایش هستند.')
+        return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+    
+    if request.method == 'POST':
+        form = HazinahForm(request.POST, request.FILES, instance=hazinah)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'هزینه با موفقیت بروزرسانی شد.')
+            return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+    else:
+        form = HazinahForm(instance=hazinah)
+    
+    context = {
+        'form': form,
+        'hazinah': hazinah,
+        'title': 'ویرایش هزینه'
+    }
+    
+    return render(request, 'fledger/edit_hazinah.html', context)
+
+
+@role_required('admin', 'financial_manager')
+@require_POST
+def approve_hazinah(request, hazinah_id):
+    """تأیید هزینه"""
+    hazinah = get_object_or_404(Hazinah, id=hazinah_id)
+    
+    if not hazinah.can_be_approved():
+        messages.error(request, 'این هزینه قابل تأیید نیست.')
+        return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+    
+    if not hazinah.can_be_approved_by(request.user):
+        messages.error(request, 'شما مجاز به تأیید این هزینه نیستید.')
+        return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+    
+    approval_notes = request.POST.get('approval_notes', '')
+    
+    try:
+        hazinah.approve(request.user, approval_notes)
+        
+        if hazinah.approval_status == 'financial_approved':
+            messages.success(request, 'هزینه توسط مدیر مالی تأیید شد. در انتظار تأیید ادمین.')
+        else:
+            messages.success(request, 'هزینه با موفقیت تأیید شد.')
+            
+    except Exception as e:
+        messages.error(request, f'خطا در تأیید هزینه: {str(e)}')
+    
+    return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+
+
+@role_required('admin', 'financial_manager')
+@require_POST
+def reject_hazinah(request, hazinah_id):
+    """رد هزینه"""
+    hazinah = get_object_or_404(Hazinah, id=hazinah_id)
+    
+    if not hazinah.can_be_approved():
+        messages.error(request, 'این هزینه قابل رد نیست.')
+        return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+    
+    rejection_notes = request.POST.get('rejection_notes', '')
+    
+    try:
+        hazinah.reject(request.user, rejection_notes)
+        messages.success(request, 'هزینه رد شد.')
+    except Exception as e:
+        messages.error(request, f'خطا در رد هزینه: {str(e)}')
+    
+    return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+
+
+@role_required('admin', 'financial_manager')
+def pay_hazinah(request, hazinah_id):
+    """پرداخت هزینه (ایجاد تراکنش)"""
+    hazinah = get_object_or_404(Hazinah, id=hazinah_id)
+    
+    # بررسی اینکه هزینه تأیید شده باشد
+    if hazinah.approval_status != 'approved':
+        messages.error(request, 'فقط هزینه‌های تأیید شده قابل پرداخت هستند.')
+        return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+    
+    # محاسبه مبلغ باقی‌مانده
+    remaining_amount = hazinah.remaining_amount
+    
+    if remaining_amount <= 0:
+        messages.info(request, 'این هزینه به طور کامل پرداخت شده است.')
+        return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+    
+    if request.method == 'POST':
+        form = HazinahPaymentForm(request.POST, request.FILES)
+        if form.is_valid():
+            payment_amount = form.cleaned_data['amount']
+            
+            # بررسی اینکه مبلغ پرداخت از باقی‌مانده بیشتر نباشد
+            if payment_amount > remaining_amount:
+                messages.error(request, f'مبلغ پرداخت نمی‌تواند بیشتر از مبلغ باقی‌مانده ({remaining_amount:,} ریال) باشد.')
+            else:
+                try:
+                    with transaction.atomic():
+                        # ایجاد تراکنش
+                        new_transaction = Transaction.objects.create(
+                            wallet=form.cleaned_data['wallet'],
+                            transaction_type='Hazinah',
+                            amount=payment_amount,
+                            description=form.cleaned_data['description'],
+                            file=form.cleaned_data['attachment'],
+                            hazinah=hazinah,
+                            payment_method=form.cleaned_data['payment_method'],
+                            created_by=request.user,
+                            status='approved',  # تراکنش‌های پرداخت هزینه به طور خودکار تأیید می‌شوند
+                            approved_by=request.user,
+                            approved_at=timezone.now()
+                        )
+                        
+                        # بروزرسانی موجودی کیف پول
+                        new_transaction.wallet.calculate_balance()
+                        
+                        messages.success(request, f'پرداخت {payment_amount:,} ریال با موفقیت ثبت شد.')
+                        return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+                        
+                except Exception as e:
+                    messages.error(request, f'خطا در ثبت پرداخت: {str(e)}')
+    else:
+        # پیش‌فرض مبلغ پرداخت برابر با مبلغ باقی‌مانده
+        initial_data = {'amount': remaining_amount}
+        form = HazinahPaymentForm(initial=initial_data)
+    
+    context = {
+        'form': form,
+        'hazinah': hazinah,
+        'remaining_amount': remaining_amount,
+    }
+    
+    return render(request, 'fledger/pay_hazinah.html', context)
+
+
+@role_required('admin', 'financial_manager')
+@require_POST
+def delete_hazinah(request, hazinah_id):
+    """حذف هزینه"""
+    hazinah = get_object_or_404(Hazinah, id=hazinah_id)
+    
+    # بررسی اینکه هزینه تراکنش نداشته باشد
+    if hazinah.has_transactions:
+        messages.error(request, 'هزینه‌هایی که تراکنش دارند قابل حذف نیستند.')
+        return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+    
+    try:
+        hazinah_title = hazinah.title
+        hazinah.delete()
+        messages.success(request, f'هزینه "{hazinah_title}" با موفقیت حذف شد.')
+        return redirect('fledger:hazinah_list')
+    except Exception as e:
+        messages.error(request, f'خطا در حذف هزینه: {str(e)}')
+        return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+
+
+# ==================== View های مربوط به فاکتورها ====================
+
+@role_required('admin', 'financial_manager')
+def add_invoice_to_hazinah(request, hazinah_id):
+    """افزودن فاکتور جدید به هزینه"""
+    hazinah = get_object_or_404(Hazinah, id=hazinah_id)
+    
+    # فقط هزینه‌های در انتظار تأیید قابل ویرایش هستند
+    if hazinah.approval_status not in ['pending']:
+        messages.error(request, 'فقط هزینه‌های در انتظار تأیید قابل ویرایش هستند.')
+        return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+    
+    if request.method == 'POST':
+        invoice_form = InvoiceForm(request.POST, request.FILES)
+        invoice_formset = InvoiceItemFormSet(request.POST)
+        
+        if invoice_form.is_valid() and invoice_formset.is_valid():
+            try:
+                with transaction.atomic():
+                    # ایجاد فاکتور
+                    invoice = invoice_form.save(commit=False)
+                    invoice.hazinah = hazinah
+                    invoice.type = 'Hazinah'
+                    invoice.save()
+                    
+                    # ایجاد آیتم‌های فاکتور
+                    invoice_formset.instance = invoice
+                    invoice_formset.save()
+                    
+                    # بروزرسانی مبلغ هزینه
+                    hazinah.update_amount_from_invoices()
+                    
+                    messages.success(request, 'فاکتور با موفقیت اضافه شد.')
+                    return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+                    
+            except Exception as e:
+                messages.error(request, f'خطا در افزودن فاکتور: {str(e)}')
+    else:
+        invoice_form = InvoiceForm()
+        invoice_formset = InvoiceItemFormSet()
+    
+    context = {
+        'hazinah': hazinah,
+        'invoice_form': invoice_form,
+        'invoice_formset': invoice_formset,
+        'title': f'افزودن فاکتور به هزینه: {hazinah.title}'
+    }
+    
+    return render(request, 'fledger/add_invoice.html', context)
+
+
+@role_required('admin', 'financial_manager')
+def edit_invoice(request, hazinah_id, invoice_id):
+    """ویرایش فاکتور"""
+    hazinah = get_object_or_404(Hazinah, id=hazinah_id)
+    invoice = get_object_or_404(Invoice, id=invoice_id, hazinah=hazinah)
+    
+    # فقط هزینه‌های در انتظار تأیید قابل ویرایش هستند
+    if hazinah.approval_status not in ['pending']:
+        messages.error(request, 'فقط هزینه‌های در انتظار تأیید قابل ویرایش هستند.')
+        return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+    
+    if request.method == 'POST':
+        invoice_form = InvoiceForm(request.POST, request.FILES, instance=invoice)
+        invoice_formset = InvoiceItemFormSet(request.POST, instance=invoice)
+        
+        if invoice_form.is_valid() and invoice_formset.is_valid():
+            try:
+                with transaction.atomic():
+                    # ویرایش فاکتور
+                    invoice_form.save()
+                    
+                    # ویرایش آیتم‌های فاکتور
+                    invoice_formset.save()
+                    
+                    # بروزرسانی مبلغ هزینه
+                    hazinah.update_amount_from_invoices()
+                    
+                    messages.success(request, 'فاکتور با موفقیت ویرایش شد.')
+                    return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+                    
+            except Exception as e:
+                messages.error(request, f'خطا در ویرایش فاکتور: {str(e)}')
+    else:
+        invoice_form = InvoiceForm(instance=invoice)
+        invoice_formset = InvoiceItemFormSet(instance=invoice)
+    
+    context = {
+        'hazinah': hazinah,
+        'invoice': invoice,
+        'invoice_form': invoice_form,
+        'invoice_formset': invoice_formset,
+        'title': f'ویرایش فاکتور: {invoice.invoice_id}'
+    }
+    
+    return render(request, 'fledger/edit_invoice.html', context)
+
+
+@role_required('admin', 'financial_manager')
+def delete_invoice(request, hazinah_id, invoice_id):
+    """حذف فاکتور"""
+    hazinah = get_object_or_404(Hazinah, id=hazinah_id)
+    invoice = get_object_or_404(Invoice, id=invoice_id, hazinah=hazinah)
+    
+    # فقط هزینه‌های در انتظار تأیید قابل ویرایش هستند
+    if hazinah.approval_status not in ['pending']:
+        messages.error(request, 'فقط هزینه‌های در انتظار تأیید قابل ویرایش هستند.')
+        return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+    
+    # بررسی اینکه آیا این آخرین فاکتور است
+    if hazinah.invoices.count() <= 1:
+        messages.warning(request, 'با حذف این فاکتور، هزینه بدون فاکتور خواهد شد و مبلغ آن به صفر تبدیل می‌شود.')
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                invoice_id_str = invoice.invoice_id
+                invoice.delete()
+                
+                # بروزرسانی مبلغ هزینه
+                hazinah.amount = hazinah.calculate_amount_from_invoices()
+                hazinah.save()
+                
+                messages.success(request, f'فاکتور "{invoice_id_str}" با موفقیت حذف شد.')
+                return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+                
+        except Exception as e:
+            messages.error(request, f'خطا در حذف فاکتور: {str(e)}')
+            return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+    
+    context = {
+        'hazinah': hazinah,
+        'invoice': invoice,
+        'title': f'حذف فاکتور: {invoice.invoice_id}'
+    }
+    
+    return render(request, 'fledger/delete_invoice.html', context)
 
 

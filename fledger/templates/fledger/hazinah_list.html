@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}لیست هزینه‌ها{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'fledger/css/fledger.css' %}">
+
+<div class="fledger-container">
+    <div class="fledger-header">
+        <h1>
+            <i class="fas fa-money-bill-wave"></i>
+            مدیریت هزینه‌ها
+        </h1>
+        <div class="fledger-header-actions">
+            <a href="{% url 'fledger:create_hazinah' %}" class="btn-fledger btn-fledger-success">
+                <i class="fas fa-plus"></i>
+                ثبت هزینه جدید
+            </a>
+        </div>
+    </div>
+
+    <!-- آمار کلی -->
+    <div class="fledger-stats">
+        <div class="fledger-stat-card">
+            <div class="fledger-stat-icon">
+                <i class="fas fa-list"></i>
+            </div>
+            <div class="fledger-stat-content">
+                <h3>{{ total_count }}</h3>
+                <p>کل هزینه‌ها</p>
+            </div>
+        </div>
+        <div class="fledger-stat-card">
+            <div class="fledger-stat-icon pending">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="fledger-stat-content">
+                <h3>{{ pending_count }}</h3>
+                <p>در انتظار تأیید</p>
+            </div>
+        </div>
+        <div class="fledger-stat-card">
+            <div class="fledger-stat-icon approved">
+                <i class="fas fa-check"></i>
+            </div>
+            <div class="fledger-stat-content">
+                <h3>{{ approved_count }}</h3>
+                <p>تأیید شده</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- فیلترها -->
+    <div class="fledger-filters">
+        <form method="get" class="fledger-filter-form">
+            <div class="fledger-filter-group">
+                <input type="text" name="search" value="{{ search_query }}" 
+                       placeholder="جستجو در عنوان و توضیحات..." class="form-control-fledger">
+            </div>
+            
+            <div class="fledger-filter-group">
+                <select name="cost_type" class="form-control-fledger">
+                    <option value="">همه انواع هزینه</option>
+                    {% for value, label in cost_type_choices %}
+                        <option value="{{ value }}" {% if cost_type_filter == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="fledger-filter-group">
+                <select name="approval_status" class="form-control-fledger">
+                    <option value="">همه وضعیت‌ها</option>
+                    {% for value, label in approval_status_choices %}
+                        <option value="{{ value }}" {% if approval_status_filter == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="fledger-filter-actions">
+                <button type="submit" class="btn-fledger btn-fledger-primary">
+                    <i class="fas fa-search"></i>
+                    جستجو
+                </button>
+                <a href="{% url 'fledger:hazinah_list' %}" class="btn-fledger btn-fledger-secondary">
+                    <i class="fas fa-times"></i>
+                    پاک کردن
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- جدول هزینه‌ها -->
+    <div class="fledger-table-container">
+        <table class="fledger-table">
+            <thead>
+                <tr>
+                    <th>عنوان</th>
+                    <th>نوع هزینه</th>
+                    <th>مبلغ</th>
+                    <th>وضعیت تأیید</th>
+                    <th>وضعیت پرداخت</th>
+                    <th>تاریخ هزینه</th>
+                    <th>ثبت کننده</th>
+                    <th>عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for hazinah in hazinah_page %}
+                <tr>
+                    <td>
+                        <a href="{% url 'fledger:hazinah_detail' hazinah.id %}" class="fledger-link">
+                            {{ hazinah.title }}
+                        </a>
+                    </td>
+                    <td>{{ hazinah.get_cost_type_display }}</td>
+                    <td class="fledger-amount">{{ hazinah.amount|floatformat:0 }} ریال</td>
+                    <td>
+                        <span class="fledger-badge fledger-badge-{{ hazinah.get_approval_status_display_color }}">
+                            {{ hazinah.get_approval_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="fledger-badge fledger-badge-{{ hazinah.get_payment_status_display_color }}">
+                            {{ hazinah.payment_status }}
+                        </span>
+                    </td>
+                    <td>{{ hazinah.expense_date }}</td>
+                    <td>{{ hazinah.created_by.get_full_name|default:hazinah.created_by.username }}</td>
+                    <td>
+                        <div class="fledger-actions">
+                            <a href="{% url 'fledger:hazinah_detail' hazinah.id %}" 
+                               class="btn-fledger btn-fledger-info btn-fledger-sm" 
+                               title="مشاهده جزئیات">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            
+                            {% if hazinah.approval_status == 'pending' %}
+                                <a href="{% url 'fledger:edit_hazinah' hazinah.id %}" 
+                                   class="btn-fledger btn-fledger-warning btn-fledger-sm"
+                                   title="ویرایش">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                
+                                {% if hazinah.can_be_approved_by %}
+                                <form method="post" action="{% url 'fledger:approve_hazinah' hazinah.id %}" 
+                                      style="display: inline;" 
+                                      onsubmit="return confirm('آیا از تأیید این هزینه مطمئن هستید؟');">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            class="btn-fledger btn-fledger-success btn-fledger-sm"
+                                            title="تأیید سریع">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            {% endif %}
+                            
+                            {% if hazinah.approval_status == 'financial_approved' %}
+                                <span class="btn-fledger btn-fledger-info btn-fledger-sm" 
+                                      title="در انتظار تأیید ادمین">
+                                    <i class="fas fa-hourglass-half"></i>
+                                </span>
+                                
+                                {% if user.role == 'admin' %}
+                                <form method="post" action="{% url 'fledger:approve_hazinah' hazinah.id %}" 
+                                      style="display: inline;" 
+                                      onsubmit="return confirm('آیا از تأیید نهایی این هزینه مطمئن هستید؟');">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            class="btn-fledger btn-fledger-success btn-fledger-sm"
+                                            title="تأیید نهایی (ادمین)">
+                                        <i class="fas fa-check-double"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            {% endif %}
+                            
+                            {% if hazinah.approval_status in 'approved,auto_approved' and hazinah.remaining_amount > 0 %}
+                                <a href="{% url 'fledger:pay_hazinah' hazinah.id %}" 
+                                   class="btn-fledger btn-fledger-success btn-fledger-sm"
+                                   title="پرداخت">
+                                    <i class="fas fa-credit-card"></i>
+                                </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="fledger-empty">
+                        <i class="fas fa-inbox"></i>
+                        هیچ هزینه‌ای یافت نشد.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- صفحه‌بندی -->
+    {% if hazinah_page.has_other_pages %}
+    <div class="fledger-pagination">
+        {% if hazinah_page.has_previous %}
+            <a href="?page={{ hazinah_page.previous_page_number }}&search={{ search_query }}&cost_type={{ cost_type_filter }}&approval_status={{ approval_status_filter }}" 
+               class="btn-fledger btn-fledger-secondary">قبلی</a>
+        {% endif %}
+        
+        <span class="fledger-page-info">
+            صفحه {{ hazinah_page.number }} از {{ hazinah_page.paginator.num_pages }}
+        </span>
+        
+        {% if hazinah_page.has_next %}
+            <a href="?page={{ hazinah_page.next_page_number }}&search={{ search_query }}&cost_type={{ cost_type_filter }}&approval_status={{ approval_status_filter }}" 
+               class="btn-fledger btn-fledger-secondary">بعدی</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

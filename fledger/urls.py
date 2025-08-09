@@ -19,6 +19,21 @@ urlpatterns = [
     path('transactions/<int:transaction_id>/approve/', views.approve_transaction, name='approve_transaction'),
     path('transactions/<int:transaction_id>/reject/', views.reject_transaction, name='reject_transaction'),
     
+    # مدیریت هزینه‌ها
+    path('hazinah/', views.hazinah_list, name='hazinah_list'),
+    path('hazinah/create/', views.create_hazinah, name='create_hazinah'),
+    path('hazinah/<int:hazinah_id>/', views.hazinah_detail, name='hazinah_detail'),
+    path('hazinah/<int:hazinah_id>/edit/', views.edit_hazinah, name='edit_hazinah'),
+    path('hazinah/<int:hazinah_id>/approve/', views.approve_hazinah, name='approve_hazinah'),
+    path('hazinah/<int:hazinah_id>/reject/', views.reject_hazinah, name='reject_hazinah'),
+    path('hazinah/<int:hazinah_id>/pay/', views.pay_hazinah, name='pay_hazinah'),
+    path('hazinah/<int:hazinah_id>/delete/', views.delete_hazinah, name='delete_hazinah'),
+    
+    # مدیریت فاکتورهای هزینه
+    path('hazinah/<int:hazinah_id>/invoice/add/', views.add_invoice_to_hazinah, name='add_invoice_to_hazinah'),
+    path('hazinah/<int:hazinah_id>/invoice/<int:invoice_id>/edit/', views.edit_invoice, name='edit_invoice'),
+    path('hazinah/<int:hazinah_id>/invoice/<int:invoice_id>/delete/', views.delete_invoice, name='delete_invoice'),
+    
     # دفتر کل
     path('ledger/', views.ledger_entries, name='ledger_entries'),
     
