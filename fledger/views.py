@@ -167,6 +167,11 @@ def approve_transaction(request, transaction_id):
         print(f"📊 Transaction status: {trans.status}")
         
         if trans.status == 'pending':
+            # اگر تراکنش مربوط به پرداخت هزینه است، فقط ادمین مجاز به تایید است
+            if trans.transaction_type == 'Hazinah' and not (request.user.is_superuser or request.user.is_staff):
+                messages.error(request, 'فقط ادمین مجاز به تایید پرداخت هزینه است.')
+                return redirect('fledger:wallet_detail', wallet_id=trans.wallet.id) if trans.wallet else redirect('fledger:transaction_list')
+
             with transaction.atomic():
                 trans.status = 'approved'
                 trans.approved_by = request.user
@@ -532,10 +537,25 @@ def hazinah_list(request):
     page_number = request.GET.get('page')
     hazinah_page = paginator.get_page(page_number)
     
-    # آمار کلی
+    # آمار کلی و مالی
     total_count = Hazinah.objects.count()
     pending_count = Hazinah.objects.filter(approval_status='pending').count()
-    approved_count = Hazinah.objects.filter(approval_status='approved').count()
+    approved_count = Hazinah.objects.filter(approval_status__in=['approved', 'auto_approved']).count()
+    rejected_count = Hazinah.objects.filter(approval_status='rejected').count()
+    financial_approved_count = Hazinah.objects.filter(approval_status='financial_approved').count()
+    
+    # آمار مالی
+    total_amount = Hazinah.objects.aggregate(total=Sum('final_amount'))['total'] or 0
+    pending_amount = Hazinah.objects.filter(approval_status='pending').aggregate(total=Sum('final_amount'))['total'] or 0
+    approved_amount = Hazinah.objects.filter(approval_status__in=['approved', 'auto_approved']).aggregate(total=Sum('final_amount'))['total'] or 0
+    
+    # آمار پرداخت
+    total_paid_transactions = Transaction.objects.filter(
+        hazinah__isnull=False, 
+        status='approved'
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    remaining_amount = approved_amount - total_paid_transactions
     
     context = {
         'hazinah_page': hazinah_page,
@@ -547,6 +567,13 @@ def hazinah_list(request):
         'total_count': total_count,
         'pending_count': pending_count,
         'approved_count': approved_count,
+        'rejected_count': rejected_count,
+        'financial_approved_count': financial_approved_count,
+        'total_amount': total_amount,
+        'pending_amount': pending_amount,
+        'approved_amount': approved_amount,
+        'total_paid_transactions': total_paid_transactions,
+        'remaining_amount': remaining_amount,
     }
     
     return render(request, 'fledger/hazinah_list.html', context)
@@ -710,10 +737,7 @@ def pay_hazinah(request, hazinah_id):
     """پرداخت هزینه (ایجاد تراکنش)"""
     hazinah = get_object_or_404(Hazinah, id=hazinah_id)
     
-    # بررسی اینکه هزینه تأیید شده باشد
-    if hazinah.approval_status != 'approved':
-        messages.error(request, 'فقط هزینه‌های تأیید شده قابل پرداخت هستند.')
-        return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+    # پرداخت صرفاً ثبت اطلاعات است و بعداً ادمین تراکنش را تایید می‌کند
     
     # محاسبه مبلغ باقی‌مانده
     remaining_amount = hazinah.remaining_amount
@@ -727,35 +751,32 @@ def pay_hazinah(request, hazinah_id):
         if form.is_valid():
             payment_amount = form.cleaned_data['amount']
             
-            # بررسی اینکه مبلغ پرداخت از باقی‌مانده بیشتر نباشد
-            if payment_amount > remaining_amount:
-                messages.error(request, f'مبلغ پرداخت نمی‌تواند بیشتر از مبلغ باقی‌مانده ({remaining_amount:,} ریال) باشد.')
-            else:
-                try:
-                    with transaction.atomic():
-                        # ایجاد تراکنش
-                        new_transaction = Transaction.objects.create(
-                            wallet=form.cleaned_data['wallet'],
-                            transaction_type='Hazinah',
-                            amount=payment_amount,
-                            description=form.cleaned_data['description'],
-                            file=form.cleaned_data['attachment'],
-                            hazinah=hazinah,
-                            payment_method=form.cleaned_data['payment_method'],
-                            created_by=request.user,
-                            status='approved',  # تراکنش‌های پرداخت هزینه به طور خودکار تأیید می‌شوند
-                            approved_by=request.user,
-                            approved_at=timezone.now()
-                        )
-                        
-                        # بروزرسانی موجودی کیف پول
-                        new_transaction.wallet.calculate_balance()
-                        
-                        messages.success(request, f'پرداخت {payment_amount:,} ریال با موفقیت ثبت شد.')
-                        return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
-                        
-                except Exception as e:
-                    messages.error(request, f'خطا در ثبت پرداخت: {str(e)}')
+            try:
+                with transaction.atomic():
+                    # ایجاد تراکنش (نیاز به تأیید ادمین). بدون کیف پول و روش پرداخت در فرم.
+                    new_transaction = Transaction.objects.create(
+                        wallet=None,
+                        transaction_type='Hazinah',
+                        amount=payment_amount,
+                        description=form.cleaned_data['description'],
+                        file=form.cleaned_data['attachment'],
+                        hazinah=hazinah,
+                        payment_method=None,
+                        created_by=request.user,
+                        status='pending'
+                    )
+
+                    # اگر تاریخ پرداخت ثبت شده بود، به عنوان approved_at موقت ذخیره نمی‌کنیم؛ فقط در توضیحات اشاره می‌کنیم
+                    paid_at = form.cleaned_data.get('paid_at')
+                    if paid_at:
+                        new_transaction.description = f"{new_transaction.description or ''}\nتاریخ انجام پرداخت: {paid_at}"
+                        new_transaction.save()
+
+                    messages.success(request, f'درخواست پرداخت {payment_amount:,} ریال ثبت شد و در انتظار تأیید ادمین است.')
+                    return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+
+            except Exception as e:
+                messages.error(request, f'خطا در ثبت پرداخت: {str(e)}')
     else:
         # پیش‌فرض مبلغ پرداخت برابر با مبلغ باقی‌مانده
         initial_data = {'amount': remaining_amount}
@@ -798,9 +819,9 @@ def add_invoice_to_hazinah(request, hazinah_id):
     """افزودن فاکتور جدید به هزینه"""
     hazinah = get_object_or_404(Hazinah, id=hazinah_id)
     
-    # فقط هزینه‌های در انتظار تأیید قابل ویرایش هستند
-    if hazinah.approval_status not in ['pending']:
-        messages.error(request, 'فقط هزینه‌های در انتظار تأیید قابل ویرایش هستند.')
+    # بررسی وضعیت هزینه - اجازه افزودن فاکتور به هزینه‌های pending یا auto_approved
+    if hazinah.approval_status not in ['pending', 'auto_approved']:
+        messages.error(request, 'فقط هزینه‌های در انتظار تأیید یا تأیید شده خودکار قابل ویرایش هستند.')
         return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
     
     if request.method == 'POST':
@@ -848,9 +869,9 @@ def edit_invoice(request, hazinah_id, invoice_id):
     hazinah = get_object_or_404(Hazinah, id=hazinah_id)
     invoice = get_object_or_404(Invoice, id=invoice_id, hazinah=hazinah)
     
-    # فقط هزینه‌های در انتظار تأیید قابل ویرایش هستند
-    if hazinah.approval_status not in ['pending']:
-        messages.error(request, 'فقط هزینه‌های در انتظار تأیید قابل ویرایش هستند.')
+    # بررسی وضعیت هزینه - اجازه ویرایش فاکتور برای هزینه‌های pending یا auto_approved
+    if hazinah.approval_status not in ['pending', 'auto_approved']:
+        messages.error(request, 'فقط هزینه‌های در انتظار تأیید یا تأیید شده خودکار قابل ویرایش هستند.')
         return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
     
     if request.method == 'POST':
@@ -895,9 +916,9 @@ def delete_invoice(request, hazinah_id, invoice_id):
     hazinah = get_object_or_404(Hazinah, id=hazinah_id)
     invoice = get_object_or_404(Invoice, id=invoice_id, hazinah=hazinah)
     
-    # فقط هزینه‌های در انتظار تأیید قابل ویرایش هستند
-    if hazinah.approval_status not in ['pending']:
-        messages.error(request, 'فقط هزینه‌های در انتظار تأیید قابل ویرایش هستند.')
+    # بررسی وضعیت هزینه - اجازه حذف فاکتور برای هزینه‌های pending یا auto_approved
+    if hazinah.approval_status not in ['pending', 'auto_approved']:
+        messages.error(request, 'فقط هزینه‌های در انتظار تأیید یا تأیید شده خودکار قابل ویرایش هستند.')
         return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
     
     # بررسی اینکه آیا این آخرین فاکتور است

@@ -234,10 +234,33 @@ class Hazinah(models.Model):
         super().save(*args, **kwargs)
     
     def update_amount_from_invoices(self):
-        """بروزرسانی مبلغ هزینه از فاکتورها"""
+        """بروزرسانی مبلغ هزینه از فاکتورها و بررسی مجدد وضعیت تأیید"""
+        from django.utils import timezone
+        
         if self.has_invoices:
             self._updating_from_invoices = True
+            old_amount = self.amount
             self.amount = self.calculate_amount_from_invoices()
+            
+            # محاسبه مبلغ نهایی جدید
+            new_final_amount = self.amount + self.tax_amount - self.discount_amount
+            
+            # بررسی مجدد وضعیت تأیید اگر مبلغ تغییر کرده باشد
+            if old_amount != self.amount and self.approval_status in ['auto_approved', 'pending']:
+                new_approval_status = self._get_auto_approval_status()
+                
+                # اگر وضعیت تأیید تغییر کرده باشد
+                if new_approval_status != self.approval_status:
+                    self.approval_status = new_approval_status
+                    
+                    if new_approval_status == 'auto_approved':
+                        self.approval_date = timezone.now()
+                        self.approval_notes = 'تأیید خودکار - مبلغ کمتر از 10 میلیون تومان'
+                    elif new_approval_status == 'pending':
+                        # اگر از auto_approved به pending تغییر کرده، تاریخ تأیید را پاک کن
+                        self.approval_date = None
+                        self.approval_notes = ''
+            
             self.save()
             delattr(self, '_updating_from_invoices')
     
@@ -325,7 +348,9 @@ class Hazinah(models.Model):
             'pending': 'warning',
             'approved': 'success',
             'rejected': 'danger',
-            'auto_approved': 'info'
+            'auto_approved': 'info',
+            'pending_admin': 'warning',
+            'financial_approved': 'info'
         }
         return colors.get(self.approval_status, 'secondary')
     
@@ -353,7 +378,10 @@ class Hazinah(models.Model):
         # تبدیل ریال به تومان (تقسیم بر 10)
         amount_toman = self.final_amount / 10
         
-        if amount_toman <= 10000000:  # 10 میلیون تومان
+        # اگر مبلغ صفر یا منفی است، همیشه نیاز به تأیید دستی دارد
+        if amount_toman <= 0:
+            return 'pending'
+        elif amount_toman <= 10000000:  # 10 میلیون تومان
             return 'auto_approved'
         elif amount_toman <= 20000000:  # 20 میلیون تومان
             return 'pending'  # نیاز به تأیید مدیر مالی
@@ -364,29 +392,35 @@ class Hazinah(models.Model):
         """تعیین سطح تأیید مورد نیاز"""
         amount_toman = self.final_amount / 10
         
-        if amount_toman <= 10000000:
+        if amount_toman <= 0:
+            return 'financial_manager'  # هزینه‌های صفر نیاز به تأیید مدیر مالی دارند
+        elif amount_toman <= 10000000:
             return 'auto'
         elif amount_toman <= 20000000:
             return 'financial_manager'
         else:
-            return 'admin'
+            return 'admin'  # نیاز به تأیید مدیر مالی و سپس ادمین
 
     def can_be_approved_by(self, user):
         """بررسی اینکه آیا کاربر می‌تواند این هزینه را تأیید کند"""
-        if not hasattr(user, 'role'):
+        from core.decorators.det_user_role import determine_user_role
+        
+        if not user.is_authenticated:
             return False
             
         required_level = self.get_required_approval_level()
-        user_role = user.role
+        user_role = determine_user_role(user)
         
         if required_level == 'auto':
             return False  # تأیید خودکار
         elif required_level == 'financial_manager':
             return user_role in ['admin', 'financial_manager']
-        else:  # admin required
+        else:  # admin required (بالای 20 میلیون)
             if self.approval_status == 'pending':
-                return user_role in ['admin', 'financial_manager']
+                # فقط مدیر مالی می‌تواند تأیید اولیه کند
+                return user_role == 'financial_manager'
             elif self.approval_status == 'financial_approved':
+                # فقط ادمین می‌تواند تأیید نهایی کند
                 return user_role == 'admin'
             
         return False
@@ -415,12 +449,13 @@ class Hazinah(models.Model):
         """تأیید هزینه با در نظر گیری سطح دسترسی"""
         from django.utils import timezone
         from django.core.exceptions import ValidationError
+        from core.decorators.det_user_role import determine_user_role
         
         if not self.can_be_approved_by(approved_by_user):
             raise ValidationError('شما مجاز به تأیید این هزینه نیستید.')
         
         required_level = self.get_required_approval_level()
-        user_role = getattr(approved_by_user, 'role', None)
+        user_role = determine_user_role(approved_by_user)
         
         if required_level == 'admin' and user_role == 'financial_manager':
             # مدیر مالی در حال تأیید هزینه‌ای که نیاز به تأیید ادمین دارد

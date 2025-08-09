@@ -81,7 +81,7 @@ class TransactionForm(forms.ModelForm):
         
         # تنظیم queryset برای فیلدها
         self.fields['wallet'].queryset = Wallet.objects.select_related('varedkonandeh').all()
-        self.fields['hazinah'].queryset = Hazinah.objects.filter(approval_status='approved')
+        self.fields['hazinah'].queryset = Hazinah.objects.filter(approval_status__in=['approved', 'auto_approved'])
         self.fields['income'].queryset = Barnameh.objects.all()
         
     def clean_amount(self):
@@ -167,7 +167,7 @@ class TransactionEditForm(forms.ModelForm):
         self.fields['income'].label = 'درآمد (اختیاری)'
         
         # تنظیم queryset برای فیلدها
-        self.fields['hazinah'].queryset = Hazinah.objects.filter(approval_status='approved')
+        self.fields['hazinah'].queryset = Hazinah.objects.filter(approval_status__in=['approved', 'auto_approved'])
         self.fields['income'].queryset = Barnameh.objects.all()
         
     def clean_amount(self):
@@ -301,10 +301,10 @@ class HazinahPaymentForm(forms.Form):
     """
     فرم پرداخت هزینه (ایجاد تراکنش برای هزینه)
     """
-    wallet = forms.ModelChoiceField(
-        queryset=Wallet.objects.select_related('varedkonandeh').all(),
-        label='کیف پول',
-        widget=forms.Select(attrs={'class': 'form-control-fledger'})
+    paid_at = forms.DateField(
+        label='تاریخ پرداخت',
+        required=False,
+        widget=forms.DateInput(attrs={'class': 'form-control-fledger datepicker', 'type': 'date'})
     )
     
     amount = forms.DecimalField(
@@ -317,12 +317,6 @@ class HazinahPaymentForm(forms.Form):
             'min': '0',
             'step': '1',
         })
-    )
-    
-    payment_method = forms.ChoiceField(
-        label='روش پرداخت',
-        choices=Transaction.PAYMENT_METHOD,
-        widget=forms.Select(attrs={'class': 'form-control-fledger'})
     )
     
     description = forms.CharField(
@@ -461,8 +455,9 @@ InvoiceItemFormSet = inlineformset_factory(
     Invoice, 
     InvoiceItem, 
     form=InvoiceItemForm,
-    extra=1,  # یک فرم خالی اضافی
-    min_num=1,  # حداقل یک آیتم
+    extra=1,  # فقط یک فرم خالی اضافی نمایش داده می‌شود
+    min_num=1,  # حداقل یک آیتم لازم است
+    max_num=10,  # حداکثر 10 آیتم مجاز
     can_delete=True,  # امکان حذف آیتم‌ها
     validate_min=True
 )

@@ -6,6 +6,144 @@
 {% block content %}
 <link rel="stylesheet" href="{% static 'fledger/css/fledger.css' %}">
 
+<style>
+    /* آمار مالی */
+    .financial-stats {
+        background: white;
+        border-radius: 1.25rem;
+        padding: 2rem;
+        margin: 2rem 0;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+    }
+
+    .financial-stats h2 {
+        margin: 0 0 1.5rem 0;
+        color: #1e293b;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .financial-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .financial-stat-card {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .financial-stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 4px;
+        height: 100%;
+        background: #64748b;
+        transition: all 0.3s ease;
+    }
+
+    .financial-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .financial-stat-card.total::before { background: #8b5cf6; }
+    .financial-stat-card.pending::before { background: #f59e0b; }
+    .financial-stat-card.approved::before { background: #10b981; }
+    .financial-stat-card.paid::before { background: #3b82f6; }
+    .financial-stat-card.remaining::before { background: #ef4444; }
+
+    .financial-stat-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 3rem;
+        height: 3rem;
+        border-radius: 0.75rem;
+        margin-bottom: 1rem;
+        font-size: 1.25rem;
+    }
+
+    .financial-stat-card.total .financial-stat-icon {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        color: white;
+    }
+
+    .financial-stat-card.pending .financial-stat-icon {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+    }
+
+    .financial-stat-card.approved .financial-stat-icon {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+    }
+
+    .financial-stat-card.paid .financial-stat-icon {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+    }
+
+    .financial-stat-card.remaining .financial-stat-icon {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+    }
+
+    .financial-stat-content h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #1e293b;
+        direction: ltr;
+        text-align: right;
+    }
+
+    .financial-stat-content p {
+        margin: 0 0 0.25rem 0;
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .financial-stat-content small {
+        color: #94a3b8;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    /* آیکون‌های جدید برای آمار کلی */
+    .fledger-stat-icon.financial-approved {
+        background: linear-gradient(135deg, #06b6d4, #0891b2);
+        color: white;
+    }
+
+    .fledger-stat-icon.rejected {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+    }
+
+    @media (max-width: 768px) {
+        .financial-stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .financial-stat-content h3 {
+            font-size: 1.25rem;
+        }
+    }
+</style>
+
 <div class="fledger-container">
     <div class="fledger-header">
         <h1>
@@ -47,6 +185,92 @@
             <div class="fledger-stat-content">
                 <h3>{{ approved_count }}</h3>
                 <p>تأیید شده</p>
+            </div>
+        </div>
+        {% if financial_approved_count > 0 %}
+        <div class="fledger-stat-card">
+            <div class="fledger-stat-icon financial-approved">
+                <i class="fas fa-user-check"></i>
+            </div>
+            <div class="fledger-stat-content">
+                <h3>{{ financial_approved_count }}</h3>
+                <p>تأیید مدیر مالی</p>
+            </div>
+        </div>
+        {% endif %}
+        {% if rejected_count > 0 %}
+        <div class="fledger-stat-card">
+            <div class="fledger-stat-icon rejected">
+                <i class="fas fa-times"></i>
+            </div>
+            <div class="fledger-stat-content">
+                <h3>{{ rejected_count }}</h3>
+                <p>رد شده</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- آمار مالی -->
+    <div class="financial-stats">
+        <h2>
+            <i class="fas fa-chart-line"></i>
+            آمار مالی
+        </h2>
+        <div class="financial-stats-grid">
+            <div class="financial-stat-card total">
+                <div class="financial-stat-icon">
+                    <i class="fas fa-coins"></i>
+                </div>
+                <div class="financial-stat-content">
+                    <h3>{{ total_amount|floatformat:0 }}</h3>
+                    <p>کل مبلغ هزینه‌ها</p>
+                    <small>ریال</small>
+                </div>
+            </div>
+            
+            <div class="financial-stat-card pending">
+                <div class="financial-stat-icon">
+                    <i class="fas fa-hourglass-half"></i>
+                </div>
+                <div class="financial-stat-content">
+                    <h3>{{ pending_amount|floatformat:0 }}</h3>
+                    <p>در انتظار تأیید</p>
+                    <small>ریال</small>
+                </div>
+            </div>
+            
+            <div class="financial-stat-card approved">
+                <div class="financial-stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="financial-stat-content">
+                    <h3>{{ approved_amount|floatformat:0 }}</h3>
+                    <p>تأیید شده</p>
+                    <small>ریال</small>
+                </div>
+            </div>
+            
+            <div class="financial-stat-card paid">
+                <div class="financial-stat-icon">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                <div class="financial-stat-content">
+                    <h3>{{ total_paid_transactions|floatformat:0 }}</h3>
+                    <p>پرداخت شده</p>
+                    <small>ریال</small>
+                </div>
+            </div>
+            
+            <div class="financial-stat-card remaining">
+                <div class="financial-stat-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="financial-stat-content">
+                    <h3>{{ remaining_amount|floatformat:0 }}</h3>
+                    <p>باقی‌مانده</p>
+                    <small>ریال</small>
+                </div>
             </div>
         </div>
     </div>

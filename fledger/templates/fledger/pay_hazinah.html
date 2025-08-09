@@ -6,6 +6,44 @@
 {% block content %}
 <link rel="stylesheet" href="{% static 'fledger/css/fledger.css' %}">
 
+<style>
+    .fledger-info-banner {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        border: 1px solid #60a5fa;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin: 2rem 0;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .info-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+        border-radius: 50%;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+
+    .info-content h4 {
+        color: #1d4ed8;
+        margin: 0 0 0.5rem 0;
+        font-weight: 700;
+    }
+
+    .info-content p {
+        color: #1e40af;
+        margin: 0;
+        line-height: 1.6;
+    }
+</style>
+
 <div class="fledger-container">
     <div class="fledger-header">
         <h1>
@@ -63,6 +101,17 @@
         </div>
     </div>
 
+    <!-- اطلاع‌رسانی -->
+    <div class="fledger-info-banner">
+        <div class="info-icon">
+            <i class="fas fa-info-circle"></i>
+        </div>
+        <div class="info-content">
+            <h4>نکته مهم</h4>
+            <p>درخواست پرداخت شما پس از ثبت، در انتظار تأیید ادمین قرار می‌گیرد و پس از تأیید، از موجودی کیف پول کسر خواهد شد.</p>
+        </div>
+    </div>
+
     <!-- فرم پرداخت -->
     <div class="fledger-form">
         <form method="post" enctype="multipart/form-data">
@@ -73,18 +122,10 @@
                 
                 <div class="fledger-form-row">
                     <div class="form-group-fledger">
-                        <label class="form-label-fledger">{{ form.wallet.label }}</label>
-                        {{ form.wallet }}
-                        {% if form.wallet.errors %}
-                            <div class="text-danger">{{ form.wallet.errors }}</div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="form-group-fledger">
-                        <label class="form-label-fledger">{{ form.payment_method.label }}</label>
-                        {{ form.payment_method }}
-                        {% if form.payment_method.errors %}
-                            <div class="text-danger">{{ form.payment_method.errors }}</div>
+                        <label class="form-label-fledger">{{ form.paid_at.label }}</label>
+                        {{ form.paid_at }}
+                        {% if form.paid_at.errors %}
+                            <div class="text-danger">{{ form.paid_at.errors }}</div>
                         {% endif %}
                     </div>
                 </div>

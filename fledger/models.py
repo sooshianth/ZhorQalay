@@ -187,8 +187,8 @@ class Transaction(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # هنگام تایید تراکنش، کیف پول را بروزرسانی کن
-        if self.status == 'approved':
+        # هنگام تایید تراکنش، در صورت وجود کیف پول آن را بروزرسانی کن
+        if self.status == 'approved' and self.wallet:
             self.wallet.calculate_balance()
 
     def get_transaction_type_display(self):
