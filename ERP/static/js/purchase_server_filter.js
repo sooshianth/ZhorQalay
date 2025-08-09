@@ -44,8 +44,8 @@ class PurchaseServerFilter {
         // بررسی selector موجود در template
         const perPageSelector = document.querySelector(`#${this.section}PerPage`);
         if (perPageSelector && perPageSelector.value) {
-            const value = parseInt(perPageSelector.value);
-            return value;
+            const value = perPageSelector.value;
+            return value === 'all' ? 'all' : parseInt(value);
         }
         
         return 25; // پیش‌فرض
@@ -101,8 +101,8 @@ class PurchaseServerFilter {
             if (!existingSelector.hasAttribute('data-server-filter-listener')) {
                 existingSelector.setAttribute('data-server-filter-listener', 'true');
                 existingSelector.addEventListener('change', (e) => {
-                    const newPerPage = parseInt(e.target.value);
-                    this.perPage = newPerPage;
+                    const value = e.target.value;
+                    this.perPage = value === 'all' ? 'all' : parseInt(value);
                     this.currentPage = 1; // بازگشت به صفحه اول
                     this.applyFilters();
                 });
@@ -125,6 +125,7 @@ class PurchaseServerFilter {
                 <option value="50" ${this.perPage === 50 ? 'selected' : ''}>50</option>
                 <option value="100" ${this.perPage === 100 ? 'selected' : ''}>100</option>
                 <option value="200" ${this.perPage === 200 ? 'selected' : ''}>200</option>
+                <option value="all" ${this.perPage === 'all' ? 'selected' : ''}>نمایش همه</option>
             </select>
         `;
         
@@ -133,8 +134,8 @@ class PurchaseServerFilter {
         // اضافه کردن event listener
         const select = perPageContainer.querySelector('select');
         select.addEventListener('change', (e) => {
-            const newPerPage = parseInt(e.target.value);
-            this.perPage = newPerPage;
+            const value = e.target.value;
+            this.perPage = value === 'all' ? 'all' : parseInt(value);
             this.currentPage = 1; // بازگشت به صفحه اول
             this.applyFilters();
         });
@@ -862,7 +863,7 @@ class PurchaseServerFilter {
             formData.append('filters', JSON.stringify(this.currentFilters));
             formData.append('sort', JSON.stringify(this.currentSort));
             formData.append('page', this.currentPage.toString());
-            formData.append('per_page', this.perPage.toString());
+            formData.append('per_page', this.perPage);
             formData.append('section', this.section);
             
             // دریافت مقدار global_search از input
