@@ -65,19 +65,22 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
     
     logger.info(f"✅ Barnameh {instance.id} eligible for SMS - created={created}, is_created_by_excel={getattr(instance, 'is_created_by_excel', False)}, number={instance.number}")
     
-    # بررسی تاریخ بارنامه - فقط برای بارنامه‌های معمولی (نه آپلود شده از اکسل)
-    # بارنامه‌های آپلود شده از اکسل معمولاً داده‌های تاریخی هستند و باید اطلاع‌رسانی شوند
+    # بررسی تاریخ بارنامه برای همه حالت‌ها (اکسل و غیر اکسل)
+    # شرط: اگر تاریخ بارنامه 3 روز یا بیشتر قبل از امروز باشد (قدیمی)، پیامک ارسال نشود
     is_excel_upload = getattr(instance, 'is_created_by_excel', False)
-    if instance.barnameh_date and not is_excel_upload:
+    if instance.barnameh_date:
         today = jdate.today()
-        date_diff = abs((instance.barnameh_date - today).days)
-        if date_diff > 2:
-            logger.info(f"Barnameh {instance.id} date is more than 2 days away from today ({date_diff} days), skipping SMS (not Excel upload)")
+        # فقط اختلاف گذشته؛ تاریخ‌های آینده شامل نمی‌شود
+        past_days = (today - instance.barnameh_date).days
+        if past_days >= 3:
+            logger.info(
+                f"Barnameh {instance.id} is older than or equal to 3 days (past_days={past_days}), skipping SMS"
+            )
             return
     
-    # برای بارنامه‌های آپلود شده از اکسل، محدودیت تاریخی اعمال نمی‌شود
+    # نکته: برای بارنامه‌های آپلود شده از اکسل نیز همین محدودیت زمانی اعمال می‌شود
     if is_excel_upload:
-        logger.info(f"📊 Excel upload detected for barnameh {instance.id} - bypassing date restriction")
+        logger.info(f"📊 Excel upload detected for barnameh {instance.id} - date restriction still applies")
     
     # جمع‌آوری شماره‌های تلفن مشتری برای ارسال پیامک
     phone_numbers = []
