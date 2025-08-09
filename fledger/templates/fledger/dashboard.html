@@ -587,9 +587,15 @@
                     {% for transaction in recent_transactions %}
                     <tr>
                         <td>
+                            {% if transaction.wallet and transaction.wallet.id %}
                             <a href="{% url 'fledger:wallet_detail' transaction.wallet.id %}" class="wallet-name">
                                 {{ transaction.wallet.varedkonandeh.name }}
                             </a>
+                            {% elif transaction.hazinah %}
+                            <span class="wallet-name">پرداخت هزینه: {{ transaction.hazinah.title }}</span>
+                            {% else %}
+                            <span class="wallet-name text-muted">-</span>
+                            {% endif %}
                         </td>
                         <td>
                             <span class="transaction-badge badge-{{ transaction.transaction_type }}">
