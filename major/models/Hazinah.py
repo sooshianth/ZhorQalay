@@ -190,6 +190,11 @@ class Hazinah(models.Model):
                 'non_bazargah_product': _('برای هزینه خرید محصول، انتخاب محصول اجباری است.')
             })
         
+        if self.cost_type == 'other' and not self.description:
+            raise ValidationError({
+                'description': _('برای هزینه‌های دیگر، توضیحات الزامی است.')
+            })
+        
         # بررسی مبلغ
         if self.amount <= 0:
             raise ValidationError({

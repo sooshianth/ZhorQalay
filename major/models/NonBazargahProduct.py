@@ -10,4 +10,6 @@ class NonBazargahProduct(Product):
     def save(self, *args, **kwargs):
         self.type_of_product = 'NonBazargah'
         super().save(*args, **kwargs)
-    
+
+    def __str__(self):
+        return f"{self.name}"

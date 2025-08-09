@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from .models.NonBazargahProduct import NonBazargahProduct
+from .models.NonBazargahPurchase import NonBazargahPurchase
 from .models.Product import Product
 from .models.Hazinah import Hazinah
 from .models.Invoice import Invoice
@@ -13,6 +14,71 @@ from .models.InvoiceItem import InvoiceItem
 @admin.register(NonBazargahProduct)
 class NonBazargahProductAdmin(admin.ModelAdmin):
     list_display = ('name', 'created_at', 'status')
+
+
+@admin.register(NonBazargahPurchase)
+class NonBazargahPurchaseAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'product', 'customer', 'unique_sales_agent', 
+        'total_weight', 'unit', 'state', 'company_price', 
+        'customer_price', 'created_at'
+    )
+    list_filter = (
+        'state', 'unit', 'type', 'buyer_user_type', 
+        'vehicle_type', 'created_at', 'updated_at'
+    )
+    search_fields = (
+        'customer__phone_number', 'customer__first_name', 'customer__last_name',
+        'buyer_name', 'delivery_receiver_name', 'unique_sales_agent_code',
+        'barbary_confidential_number', 'barbary_customer_number'
+    )
+    readonly_fields = ('created_at', 'updated_at')
+    list_per_page = 25
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('اطلاعات اصلی خرید', {
+            'fields': (
+                'customer', 'product', 'unit', 'state', 'description',
+                'unique_sales_agent_code', 'unique_sales_agent'
+            )
+        }),
+        ('اطلاعات مالی', {
+            'fields': (
+                'company_price', 'customer_price', 'amount_paid', 'total_weight'
+            )
+        }),
+        ('اطلاعات خریدار', {
+            'fields': (
+                'buyer_name', 'buyer_national_id', 'buyer_user_type',
+                'address', 'buyer_postal_code'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('اطلاعات تحویل', {
+            'fields': (
+                'delivery_receiver_name', 'delivery_address', 
+                'delivery_postal_code', 'tahvil_phone_number', 'code_melli_tahvil'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('اطلاعات باربری و حمل', {
+            'fields': (
+                'barbary_confidential_number', 'barbary_customer_number',
+                'vehicle_type'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('تاریخ‌ها', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'customer', 'product', 'unique_sales_agent'
+        )
 
 
 @admin.register(Hazinah)
