@@ -684,7 +684,7 @@ class Purchase(models.Model):
         self.sales_mabna_invoice = customer_price * base_weight
         
         # محاسبه سود مبنا
-        self.mabna_profit = self.sales_mabna_invoice - self.purchase_mabna_invoice
+        self.mabna_profit = max(self.sales_mabna_invoice - self.purchase_mabna_invoice, 0)
         
 
                 
