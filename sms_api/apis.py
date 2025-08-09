@@ -462,7 +462,7 @@ def process_sms_queue(batch_size=20, sms_account=sms_account):
     pending_messages = SmsQueue.objects.filter(
         status='pending',
         is_suspended=False,
-        scheduled_for__lte=timezone.now()  # فقط پیام‌هایی که زمان ارسال آنها فرا رسیده
+        # scheduled_for__lte=timezone.now()  # فقط پیام‌هایی که زمان ارسال آنها فرا رسیده
     ).order_by('scheduled_for', 'created_at')[:batch_size]
     
     count = pending_messages.count()
