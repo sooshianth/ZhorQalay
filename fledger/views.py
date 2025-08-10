@@ -762,7 +762,7 @@ def pay_hazinah(request, hazinah_id):
                         hazinah=hazinah,
                         payment_method=None,
                         created_by=request.user,
-                        status='approved'  # تغییر: تراکنش‌های پرداخت هزینه بلافاصله تأیید می‌شوند
+                        status='pending'  # تراکنش‌های پرداخت هزینه نیاز به تایید دارند
                     )
 
                     # اگر تاریخ پرداخت ثبت شده بود، به عنوان approved_at موقت ذخیره نمی‌کنیم؛ فقط در توضیحات اشاره می‌کنیم
@@ -771,7 +771,7 @@ def pay_hazinah(request, hazinah_id):
                         new_transaction.description = f"{new_transaction.description or ''}\nتاریخ انجام پرداخت: {paid_at}"
                         new_transaction.save()
 
-                    messages.success(request, f'پرداخت {payment_amount:,} ریال با موفقیت ثبت شد.')
+                    messages.success(request, f'پرداخت {payment_amount:,} ریال با موفقیت ثبت شد و در انتظار تایید است.')
                     return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
 
             except Exception as e:
@@ -904,6 +904,8 @@ def add_invoice_to_hazinah(request, hazinah_id):
                     invoice = invoice_form.save(commit=False)
                     invoice.hazinah = hazinah
                     invoice.type = 'Hazinah'
+                    # در صورتی که هزینه مشخص شده، فیلد income را خالی کن
+                    invoice.income = None
                     invoice.save()
                     
                     # ایجاد آیتم‌های فاکتور
@@ -919,7 +921,12 @@ def add_invoice_to_hazinah(request, hazinah_id):
             except Exception as e:
                 messages.error(request, f'خطا در افزودن فاکتور: {str(e)}')
     else:
-        invoice_form = InvoiceForm()
+        # پیش‌تعیین نوع فاکتور به عنوان هزینه و انتخاب هزینه مربوطه
+        initial_data = {
+            'type': 'Hazinah',
+            'hazinah': hazinah
+        }
+        invoice_form = InvoiceForm(initial=initial_data)
         invoice_formset = InvoiceItemFormSet()
     
     context = {
@@ -955,8 +962,12 @@ def edit_invoice(request, hazinah_id, invoice_id):
         if invoice_form.is_valid() and invoice_formset.is_valid():
             try:
                 with transaction.atomic():
-                    # ویرایش فاکتور
-                    invoice_form.save()
+                    # ویرایش فاکتور - اطمینان از اینکه نوع هزینه باقی می‌ماند
+                    updated_invoice = invoice_form.save(commit=False)
+                    updated_invoice.hazinah = hazinah
+                    updated_invoice.type = 'Hazinah'
+                    updated_invoice.income = None  # اطمینان از خالی بودن فیلد درآمد
+                    updated_invoice.save()
                     
                     # ویرایش آیتم‌های فاکتور
                     invoice_formset.save()
@@ -1028,5 +1039,77 @@ def delete_invoice(request, hazinah_id, invoice_id):
     }
     
     return render(request, 'fledger/delete_invoice.html', context)
+
+
+@role_required('admin', 'financial_manager')
+def invoice_detail(request, invoice_id):
+    """مشاهده جزئیات فاکتور"""
+    invoice = get_object_or_404(
+        Invoice.objects.select_related('hazinah', 'income').prefetch_related('items__cargo_product', 'items__non_bazargah_product'),
+        id=invoice_id
+    )
+    
+    context = {
+        'invoice': invoice,
+        'title': f'جزئیات فاکتور: {invoice.invoice_id}'
+    }
+    
+    return render(request, 'fledger/invoice_detail.html', context)
+
+
+@role_required('admin', 'financial_manager')
+def create_invoice(request):
+    """ایجاد فاکتور جدید (مستقل)"""
+    if request.method == 'POST':
+        invoice_form = InvoiceForm(request.POST, request.FILES)
+        invoice_formset = InvoiceItemFormSet(request.POST)
+        
+        if invoice_form.is_valid() and invoice_formset.is_valid():
+            try:
+                with transaction.atomic():
+                    # ایجاد فاکتور
+                    invoice = invoice_form.save()
+                    
+                    # ایجاد آیتم‌های فاکتور
+                    for form in invoice_formset:
+                        if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
+                            item = form.save(commit=False)
+                            item.invoice = invoice
+                            item.save()
+                    
+                    # بروزرسانی مبلغ هزینه/درآمد مرتبط در صورت نیاز
+                    if invoice.hazinah and invoice.hazinah.cost_type == 'product_purchase':
+                        invoice.hazinah.amount = invoice.hazinah.calculate_amount_from_invoices()
+                        invoice.hazinah.save()
+                    
+                    messages.success(request, f'فاکتور "{invoice.invoice_id}" با موفقیت ایجاد شد.')
+                    return redirect('fledger:invoice_detail', invoice_id=invoice.id)
+                    
+            except Exception as e:
+                messages.error(request, f'خطا در ایجاد فاکتور: {str(e)}')
+        else:
+            # نمایش خطاهای validation
+            if not invoice_form.is_valid():
+                for field, errors in invoice_form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{invoice_form[field].label if field != "__all__" else "خطای عمومی"}: {error}')
+            
+            if not invoice_formset.is_valid():
+                for form_errors in invoice_formset.errors:
+                    for field, errors in form_errors.items():
+                        for error in errors:
+                            if error:  # فقط خطاهای غیر خالی
+                                messages.error(request, f'آیتم فاکتور - {field}: {error}')
+    else:
+        invoice_form = InvoiceForm()
+        invoice_formset = InvoiceItemFormSet()
+    
+    context = {
+        'invoice_form': invoice_form,
+        'invoice_formset': invoice_formset,
+        'title': 'ایجاد فاکتور جدید'
+    }
+    
+    return render(request, 'fledger/create_invoice.html', context)
 
 

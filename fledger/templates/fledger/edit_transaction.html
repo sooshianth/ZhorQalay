@@ -131,10 +131,17 @@
             </div>
 
             <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                {% if transaction.wallet and transaction.wallet.id %}
                 <a href="{% url 'fledger:wallet_detail' transaction.wallet.id %}" class="btn-fledger btn-fledger-secondary">
                     <i class="fas fa-times"></i>
                     انصراف
                 </a>
+                {% else %}
+                <a href="{% url 'fledger:transaction_list' %}" class="btn-fledger btn-fledger-secondary">
+                    <i class="fas fa-times"></i>
+                    انصراف
+                </a>
+                {% endif %}
                 <button type="submit" class="btn-fledger btn-fledger-success">
                     <i class="fas fa-save"></i>
                     ذخیره تغییرات

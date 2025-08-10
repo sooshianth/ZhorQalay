@@ -33,6 +33,30 @@
     .hero-content {
         position: relative;
         z-index: 2;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .hero-info {
+        flex: 1;
+    }
+
+    .hero-info h1 {
+        margin: 0 0 0.5rem 0;
+    }
+
+    .hero-info p {
+        margin: 0;
+        opacity: 0.9;
+    }
+
+    .hero-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
     }
 
     .stats-grid {
@@ -275,6 +299,18 @@
         text-decoration: none;
     }
 
+    .btn-edit {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        color: #92400e;
+        border: 1px solid #fbbf24;
+    }
+
+    .btn-edit:hover {
+        background: linear-gradient(135deg, #fde68a 0%, #fbbf24 100%);
+        color: #78350f;
+        text-decoration: none;
+    }
+
     .pagination-container {
         padding: 1.5rem;
         background: #f8fafc;
@@ -315,11 +351,19 @@
     <!-- Hero Section -->
     <div class="invoice-hero">
         <div class="hero-content">
-            <h1>
-                <i class="fas fa-file-invoice"></i>
-                مدیریت فاکتورها
-            </h1>
-            <p>مشاهده و مدیریت تمام فاکتورهای ثبت شده در سیستم</p>
+            <div class="hero-info">
+                <h1>
+                    <i class="fas fa-file-invoice"></i>
+                    مدیریت فاکتورها
+                </h1>
+                <p>مشاهده و مدیریت تمام فاکتورهای ثبت شده در سیستم</p>
+            </div>
+            <div class="hero-actions">
+                <a href="{% url 'fledger:create_invoice' %}" class="btn-fledger btn-fledger-primary">
+                    <i class="fas fa-plus"></i>
+                    ایجاد فاکتور جدید
+                </a>
+            </div>
         </div>
     </div>
 
@@ -491,11 +535,16 @@
                     </td>
                     <td>
                         <div class="table-actions">
+                            <a href="{% url 'fledger:invoice_detail' invoice.id %}" 
+                               class="btn-sm btn-view" title="مشاهده جزئیات فاکتور">
+                                <i class="fas fa-eye"></i>
+                                جزئیات
+                            </a>
                             {% if invoice.hazinah %}
                                 <a href="{% url 'fledger:hazinah_detail' invoice.hazinah.id %}" 
-                                   class="btn-sm btn-view" title="مشاهده جزئیات هزینه">
-                                    <i class="fas fa-eye"></i>
-                                    مشاهده
+                                   class="btn-sm btn-edit" title="مشاهده هزینه مرتبط">
+                                    <i class="fas fa-link"></i>
+                                    هزینه
                                 </a>
                             {% endif %}
                         </div>

@@ -351,7 +351,7 @@ class InvoiceForm(forms.ModelForm):
     
     class Meta:
         model = Invoice
-        fields = ['invoice_id', 'issue_date', 'description', 'attachment']
+        fields = ['invoice_id', 'type', 'hazinah', 'income', 'issue_date', 'description', 'attachment']
         
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -368,22 +368,53 @@ class InvoiceForm(forms.ModelForm):
         
         # تنظیم لیبل‌ها
         self.fields['invoice_id'].label = 'شماره فاکتور'
+        self.fields['type'].label = 'نوع فاکتور'
+        self.fields['hazinah'].label = 'انتخاب هزینه'
+        self.fields['income'].label = 'انتخاب درآمد'
         self.fields['issue_date'].label = 'تاریخ صدور (اختیاری)'
         self.fields['description'].label = 'توضیحات (اختیاری)'
         self.fields['attachment'].label = 'فایل پیوست (اختیاری)'
         
         # تنظیم فیلدهای اختیاری
+        self.fields['hazinah'].required = False
+        self.fields['income'].required = False
         self.fields['issue_date'].required = False
         self.fields['description'].required = False
         self.fields['attachment'].required = False
         
-        # تنظیم placeholder
+        # فیلتر کردن هزینه‌ها - فقط هزینه‌های تایید شده یا در انتظار تایید
+        self.fields['hazinah'].queryset = Hazinah.objects.filter(
+            approval_status__in=['pending', 'auto_approved', 'approved', 'financial_approved']
+        ).order_by('-created_at')
+        
+        # فیلتر کردن درآمدها - برنامه‌ها که درآمد محسوب می‌شوند
+        from bki_barnameh.models.BarnamehModel import Barnameh
+        self.fields['income'].queryset = Barnameh.objects.all().order_by('-barnameh_created_at')
+        
+        # تنظیم placeholder ها
         self.fields['invoice_id'].widget.attrs.update({
             'placeholder': 'شماره فاکتور',
         })
         self.fields['description'].widget.attrs.update({
             'placeholder': 'توضیحات فاکتور (اختیاری)',
         })
+        
+    def clean(self):
+        cleaned_data = super().clean()
+        invoice_type = cleaned_data.get('type')
+        hazinah = cleaned_data.get('hazinah')
+        income = cleaned_data.get('income')
+        
+        if invoice_type == 'Hazinah' and not hazinah:
+            raise forms.ValidationError('لطفاً هزینه مربوطه را انتخاب کنید.')
+        
+        if invoice_type == 'Income' and not income:
+            raise forms.ValidationError('لطفاً درآمد مربوطه را انتخاب کنید.')
+        
+        if hazinah and income:
+            raise forms.ValidationError('نمی‌توانید همزمان هزینه و درآمد انتخاب کنید.')
+        
+        return cleaned_data
 
 
 class InvoiceItemForm(forms.ModelForm):
