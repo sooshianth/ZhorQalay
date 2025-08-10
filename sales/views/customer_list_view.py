@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Q, Count, Sum, F
+from django.db.models import Q, Count, Sum, F, Max
 from django.utils import timezone
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.http import HttpResponse, JsonResponse
@@ -587,6 +587,40 @@ def apply_customer_filter(request):
                                 
                     except (ValueError, TypeError):
                         continue
+                
+                elif column_id == 'last_purchase_date':
+                    # فیلتر بر اساس تاریخ آخرین خرید
+                    try:
+                        # برای این فیلتر باید customer هایی را پیدا کنیم که آخرین خریدشان در تاریخ‌های مشخص شده است
+                        customer_ids_with_last_purchase = []
+                        
+                        for date_str in values:
+                            if date_str and date_str.strip():
+                                if '/' in date_str:
+                                    parts = date_str.split('/')
+                                    if len(parts) == 3:
+                                        year, month, day = parts
+                                        date_obj = datetime(int(year), int(month), int(day)).date()
+                                        
+                                        # پیدا کردن مشتریانی که آخرین خریدشان در این تاریخ است
+                                        from core.PurchaseModel import Purchase
+                                        customers_with_purchase_on_date = base_queryset.filter(
+                                            purchases_made__created_at__date=date_obj
+                                        ).distinct()
+                                        
+                                        for customer in customers_with_purchase_on_date:
+                                            last_purchase = customer.purchases_made.first()
+                                            if last_purchase and last_purchase.created_at.date() == date_obj:
+                                                customer_ids_with_last_purchase.append(customer.id)
+                        
+                        if customer_ids_with_last_purchase:
+                            if filter_type == 'include':
+                                filter_conditions &= Q(id__in=customer_ids_with_last_purchase)
+                            else:
+                                filter_conditions &= ~Q(id__in=customer_ids_with_last_purchase)
+                                
+                    except (ValueError, TypeError):
+                        continue
             
             # اعمال فیلترها
             if filter_conditions:
@@ -595,14 +629,30 @@ def apply_customer_filter(request):
         # اعمال جستجوی سریع
         if global_search and global_search.strip():
             logger.info(f"🔍 Applying global search for: '{global_search}'")
-            clean_search = ''.join(c for c in global_search if c.isdigit())
-            search_conditions = (
-                Q(name__icontains=global_search) |
-                Q(phone_number__icontains=clean_search) |
-                Q(phone_numbers__number__icontains=clean_search) |
-                Q(city__icontains=global_search) |
-                Q(added_description__icontains=global_search)
-            )
+            
+            # تمیز کردن جستجو برای شماره تلفن (فقط اعداد)
+            clean_search_for_phone = ''.join(c for c in global_search if c.isdigit())
+            
+            # ساخت شرایط جستجو
+            search_conditions = Q(name__icontains=global_search)  # جستجو در نام
+            
+            # اگر جستجو شامل اعداد است، در شماره‌های تلفن نیز جستجو کن
+            if clean_search_for_phone:
+                search_conditions |= Q(phone_number__icontains=clean_search_for_phone)
+                search_conditions |= Q(phone_numbers__number__icontains=clean_search_for_phone)
+            
+            # جستجو در شهر و توضیحات
+            search_conditions |= Q(city__icontains=global_search)
+            search_conditions |= Q(added_description__icontains=global_search)
+            
+            # اگر جستجو فقط حروف باشد، امکان جستجو در فیلدهای مرتبط دیگر
+            if global_search.isalpha():
+                # جستجو در حوزه فعالیت
+                from core.CustomerModel import ActivityField
+                matching_activities = ActivityField.objects.filter(code__icontains=global_search)
+                if matching_activities.exists():
+                    search_conditions |= Q(field_of_activity__in=matching_activities)
+            
             base_queryset = base_queryset.filter(search_conditions).distinct()
             logger.info(f"🔍 Global search applied, queryset count: {base_queryset.count()}")
         else:
@@ -628,20 +678,43 @@ def apply_customer_filter(request):
                 'updated_at': 'updated_at',
                 'purchase_count': 'purchase_count_annotation',
                 'total_purchase_weight': 'total_weight_annotation',
+                'last_purchase_date': 'last_purchase_annotation',
             }
             
             # دریافت فیلد مرتب‌سازی
             sort_field = sort_field_mapping.get(sort_column, sort_column)
             
             # اگر مرتب‌سازی بر اساس فیلدهای محاسبه شده است، annotate کنیم
-            if sort_column == 'purchase_count' and 'purchase_count_annotation' not in [f.name for f in base_queryset.query.annotations]:
-                base_queryset = base_queryset.annotate(
-                    purchase_count_annotation=Count('purchases_made')
-                )
-            elif sort_column == 'total_purchase_weight' and 'total_weight_annotation' not in [f.name for f in base_queryset.query.annotations]:
-                base_queryset = base_queryset.annotate(
-                    total_weight_annotation=Sum('purchases_made__order_weight', default=0)
-                )
+            if sort_column == 'purchase_count':
+                try:
+                    if not hasattr(base_queryset.query, 'annotations') or 'purchase_count_annotation' not in base_queryset.query.annotations:
+                        base_queryset = base_queryset.annotate(
+                            purchase_count_annotation=Count('purchases_made')
+                        )
+                except:
+                    base_queryset = base_queryset.annotate(
+                        purchase_count_annotation=Count('purchases_made')
+                    )
+            elif sort_column == 'total_purchase_weight':
+                try:
+                    if not hasattr(base_queryset.query, 'annotations') or 'total_weight_annotation' not in base_queryset.query.annotations:
+                        base_queryset = base_queryset.annotate(
+                            total_weight_annotation=Sum('purchases_made__order_weight', default=0)
+                        )
+                except:
+                    base_queryset = base_queryset.annotate(
+                        total_weight_annotation=Sum('purchases_made__order_weight', default=0)
+                    )
+            elif sort_column == 'last_purchase_date':
+                try:
+                    if not hasattr(base_queryset.query, 'annotations') or 'last_purchase_annotation' not in base_queryset.query.annotations:
+                        base_queryset = base_queryset.annotate(
+                            last_purchase_annotation=Max('purchases_made__created_at')
+                        )
+                except:
+                    base_queryset = base_queryset.annotate(
+                        last_purchase_annotation=Max('purchases_made__created_at')
+                    )
             
             if sort_direction == 'desc':
                 sort_field = f'-{sort_field}'
@@ -840,13 +913,22 @@ def get_customer_column_values(request):
         
         # اعمال جستجوی سریع
         if global_search and global_search.strip():
-            clean_search = ''.join(c for c in global_search if c.isdigit())
-            search_conditions = (
-                Q(name__icontains=global_search) |
-                Q(phone_number__icontains=clean_search) |
-                Q(phone_numbers__number__icontains=clean_search) |
-                Q(city__icontains=global_search)
-            )
+            logger.info(f"🔍 Applying global search in column values for: '{global_search}'")
+            
+            # تمیز کردن جستجو برای شماره تلفن (فقط اعداد)
+            clean_search_for_phone = ''.join(c for c in global_search if c.isdigit())
+            
+            # ساخت شرایط جستجو
+            search_conditions = Q(name__icontains=global_search)  # جستجو در نام
+            
+            # اگر جستجو شامل اعداد است، در شماره‌های تلفن نیز جستجو کن
+            if clean_search_for_phone:
+                search_conditions |= Q(phone_number__icontains=clean_search_for_phone)
+                search_conditions |= Q(phone_numbers__number__icontains=clean_search_for_phone)
+            
+            # جستجو در شهر
+            search_conditions |= Q(city__icontains=global_search)
+            
             base_queryset = base_queryset.filter(search_conditions).distinct()
         
         # دریافت مقادیر بر اساس نوع ستون
@@ -933,6 +1015,15 @@ def get_customer_column_values(request):
                 if date_val:
                     date_values.add(date_val.strftime("%Y/%m/%d"))
             values = sorted(list(date_values))
+            
+        elif column_id == 'last_purchase_date':
+            # تاریخ آخرین خرید
+            date_values = set()
+            for customer in base_queryset:
+                last_purchase = customer.purchases_made.first()  # فرض بر این است که قبلاً مرتب شده‌اند
+                if last_purchase:
+                    date_values.add(last_purchase.created_at.strftime("%Y/%m/%d"))
+            values = sorted(list(date_values), reverse=True)  # جدیدترین‌ها اول
         
         # فیلتر کردن بر اساس search_term
         if search_term:

@@ -214,6 +214,11 @@ class CustomerServerFilter {
             const columnId = header.dataset.columnId;
             const columnType = header.dataset.columnType || 'text';
             
+            // skip selection and favorite columns
+            if (columnId === 'selection' || columnId === 'is_favorite') {
+                return;
+            }
+            
             // اضافه کردن دکمه فیلتر
             if (!header.querySelector('.filter-btn')) {
                 const filterBtn = document.createElement('button');
@@ -227,18 +232,9 @@ class CustomerServerFilter {
                 header.appendChild(filterBtn);
             }
             
-            // اضافه کردن دکمه مرتب‌سازی
-            header.style.cursor = 'pointer';
-            header.onclick = (e) => {
-                if (e.target.closest('.filter-btn')) return;
-                
-                let direction = 'asc';
-                if (this.currentSort.column === columnId && this.currentSort.direction === 'asc') {
-                    direction = 'desc';
-                }
-                
-                this.toggleSort(columnId, direction);
-            };
+            // حذف قابلیت مرتب‌سازی مستقیم روی header
+            // مرتب‌سازی حالا از طریق دکمه‌های داخل modal انجام می‌شود
+            header.style.cursor = 'default';
         });
     }
     
@@ -391,6 +387,49 @@ class CustomerServerFilter {
             <input type="text" id="filterSearch" class="form-control" placeholder="تایپ کنید...">
         `;
         
+        // دکمه‌های مرتب‌سازی
+        const sortContainer = document.createElement('div');
+        sortContainer.className = 'mb-3';
+        sortContainer.innerHTML = `
+            <label class="form-label">مرتب‌سازی:</label>
+            <div class="btn-group w-100" role="group">
+                <button type="button" class="btn btn-outline-primary sort-btn" data-direction="asc">
+                    <i class="fas fa-sort-amount-up me-2"></i>صعودی
+                </button>
+                <button type="button" class="btn btn-outline-primary sort-btn" data-direction="desc">
+                    <i class="fas fa-sort-amount-down me-2"></i>نزولی
+                </button>
+            </div>
+        `;
+        
+        // اضافه کردن event listener برای دکمه‌های مرتب‌سازی
+        const sortButtons = sortContainer.querySelectorAll('.sort-btn');
+        sortButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // حذف کلاس active از همه دکمه‌ها
+                sortButtons.forEach(b => b.classList.remove('btn-primary', 'active'));
+                sortButtons.forEach(b => b.classList.add('btn-outline-primary'));
+                
+                // اضافه کردن کلاس active به دکمه کلیک شده
+                btn.classList.remove('btn-outline-primary');
+                btn.classList.add('btn-primary', 'active');
+                
+                // اعمال مرتب‌سازی
+                const direction = btn.dataset.direction;
+                this.toggleSort(columnId, direction);
+                modal.remove();
+            });
+        });
+        
+        // تنظیم وضعیت فعلی مرتب‌سازی
+        if (this.currentSort.column === columnId) {
+            const activeBtn = sortContainer.querySelector(`[data-direction="${this.currentSort.direction}"]`);
+            if (activeBtn) {
+                activeBtn.classList.remove('btn-outline-primary');
+                activeBtn.classList.add('btn-primary', 'active');
+            }
+        }
+        
         // لیست مقادیر
         const valuesContainer = document.createElement('div');
         valuesContainer.className = 'values-container';
@@ -472,6 +511,7 @@ class CustomerServerFilter {
         });
         
         modalBody.appendChild(filterTypeContainer);
+        modalBody.appendChild(sortContainer);
         modalBody.appendChild(searchContainer);
         modalBody.appendChild(valuesContainer);
         
