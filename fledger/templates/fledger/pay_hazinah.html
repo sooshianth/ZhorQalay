@@ -84,7 +84,13 @@
             
             <div class="fledger-detail-item">
                 <label>مبلغ باقی‌مانده:</label>
-                <span class="fledger-amount highlight">{{ remaining_amount|floatformat:0 }} ریال</span>
+                <span class="fledger-amount highlight">
+                    {% if remaining_amount > 0 %}
+                        {{ remaining_amount|floatformat:0 }} ریال
+                    {% else %}
+                        <span style="color: #28a745; font-weight: bold;">پرداخت کامل شده</span>
+                    {% endif %}
+                </span>
             </div>
             
             <div class="fledger-detail-item">
@@ -108,7 +114,7 @@
         </div>
         <div class="info-content">
             <h4>نکته مهم</h4>
-            <p>درخواست پرداخت شما پس از ثبت، در انتظار تأیید ادمین قرار می‌گیرد و پس از تأیید، از موجودی کیف پول کسر خواهد شد.</p>
+            <p>پرداخت شما بلافاصله ثبت و اعمال می‌شود. لطفاً مبلغ و اطلاعات پرداخت را با دقت وارد کنید.</p>
         </div>
     </div>
 
@@ -189,7 +195,7 @@
         <i class="fas fa-exclamation-triangle"></i>
         <div>
             <h3>توجه</h3>
-            <p>پس از ثبت پرداخت، تراکنش به طور خودکار تأیید شده و موجودی کیف پول بروزرسانی خواهد شد.</p>
+            <p>پس از ثبت پرداخت، تراکنش بلافاصله تأیید شده و سیستم بروزرسانی خواهد شد. مطمئن شوید که اطلاعات وارد شده صحیح است.</p>
         </div>
     </div>
 </div>
@@ -198,15 +204,21 @@
 // محاسبه خودکار مبلغ باقی‌مانده پس از پرداخت
 document.addEventListener('DOMContentLoaded', function() {
     const amountInput = document.getElementById('{{ form.amount.id_for_label }}');
-    const remainingAmount = {{ remaining_amount }};
+    const remainingAmount = {{ remaining_amount|default:0 }};
     
-    amountInput.addEventListener('input', function() {
-        const paymentAmount = parseFloat(this.value) || 0;
-        const newRemaining = remainingAmount - paymentAmount;
+    if (amountInput && remainingAmount > 0) {
+        // تنظیم حداکثر مقدار برای input
+        amountInput.setAttribute('max', remainingAmount);
         
-        // نمایش مبلغ باقی‌مانده جدید (اختیاری)
-        console.log('مبلغ باقی‌مانده پس از پرداخت:', newRemaining.toLocaleString(), 'ریال');
-    });
+        amountInput.addEventListener('input', function() {
+            const paymentAmount = parseFloat(this.value) || 0;
+            
+            // محدود کردن مقدار ورودی
+            if (paymentAmount > remainingAmount) {
+                this.value = remainingAmount;
+            }
+        });
+    }
 });
 </script>
 {% endblock %}

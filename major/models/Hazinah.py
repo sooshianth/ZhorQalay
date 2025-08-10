@@ -3,7 +3,6 @@ from django_jalali.db import models as jmodels
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from decimal import Decimal
-from .NonBazargahProduct import NonBazargahProduct
 
 class Hazinah(models.Model):
     """
@@ -54,25 +53,6 @@ class Hazinah(models.Model):
     description = models.TextField(_('توضیحات'), blank=True, null=True)
     cost_type = models.CharField(_('نوع هزینه'), max_length=30, choices=COST_TYPES)
     amount = models.DecimalField(_('مبلغ (ریال)'), max_digits=15, decimal_places=0, null=True, blank=True)
-    
-    # ارتباط با محصولات (در صورت نیاز)
-    cargo_product = models.ForeignKey(
-        'core.CargoProduct',
-        on_delete=models.CASCADE, 
-        null=True, 
-        blank=True,
-        verbose_name=_('محصول بازارگاه'),
-        help_text=_('در صورتی که هزینه مربوط به محصول بازارگاه است')
-    )
-    
-    non_bazargah_product = models.ForeignKey(
-        NonBazargahProduct,
-        on_delete=models.CASCADE, 
-        null=True, 
-        blank=True,
-        verbose_name=_('محصول خارج از بازارگاه'),
-        help_text=_('در صورتی که هزینه مربوط به محصول خارج از بازارگاه است')
-    )
     
     # اطلاعات تأیید
     approval_status = models.CharField(
@@ -178,26 +158,18 @@ class Hazinah(models.Model):
         """اعتبارسنجی داده‌ها"""
         super().clean()
         
-        # بررسی انتخاب محصول
-        if self.cargo_product and self.non_bazargah_product:
+        # اگر نوع هزینه "خرید محصول" است، مبلغ اختیاری است (از فاکتور محاسبه می‌شود)
+        # برای سایر انواع هزینه، مبلغ الزامی است
+        if self.cost_type != 'product_purchase' and not self.amount:
             raise ValidationError({
-                'cargo_product': _('نمی‌توانید هم‌زمان هر دو نوع محصول را انتخاب کنید.'),
-                'non_bazargah_product': _('نمی‌توانید هم‌زمان هر دو نوع محصول را انتخاب کنید.')
-            })
-        
-        # اگر نوع هزینه "خرید محصول" است، باید یکی از محصولات انتخاب شود
-        if self.cost_type == 'product_purchase' and not (self.cargo_product or self.non_bazargah_product):
-            raise ValidationError({
-                'cargo_product': _('برای هزینه خرید محصول، انتخاب محصول اجباری است.'),
-                'non_bazargah_product': _('برای هزینه خرید محصول، انتخاب محصول اجباری است.')
+                'amount': _('برای این نوع هزینه، وارد کردن مبلغ الزامی است.')
             })
         
         if self.cost_type == 'other' and not self.description:
             raise ValidationError({
-                'description': _('برای هزینه‌های دیگر، توضیحات الزامی است.')
+                'description': _('برای هزینه‌های "سایر"، توضیحات الزامی است.')
             })
 
-        
         # بررسی تاریخ سررسید
         if self.due_date and self.expense_date and self.due_date < self.expense_date:
             raise ValidationError({
@@ -215,11 +187,15 @@ class Hazinah(models.Model):
         """ذخیره با محاسبه مبلغ نهایی و بررسی تأیید خودکار"""
         from django.utils import timezone
         
-        # اگر هزینه ذخیره شده و فاکتور دارد، مبلغ را از فاکتورها محاسبه کن
+        # اگر نوع هزینه "خرید محصول" است و فاکتور دارد، مبلغ را از فاکتورها محاسبه کن
         # فقط در صورتی که از طریق update_from_invoices فراخوانی نشده باشد
-        if (self.pk and self.has_invoices and 
+        if (self.pk and self.cost_type == 'product_purchase' and self.has_invoices and 
             not getattr(self, '_updating_from_invoices', False)):
             self.amount = self.calculate_amount_from_invoices()
+        
+        # اگر مبلغ تنظیم نشده (برای هزینه‌های خرید محصول بدون فاکتور)، آن را صفر قرار بده
+        if not self.amount:
+            self.amount = 0
         
         # محاسبه مبلغ نهایی
         self.final_amount = self.amount + self.tax_amount - self.discount_amount
@@ -237,7 +213,8 @@ class Hazinah(models.Model):
         """بروزرسانی مبلغ هزینه از فاکتورها و بررسی مجدد وضعیت تأیید"""
         from django.utils import timezone
         
-        if self.has_invoices:
+        # فقط برای هزینه‌های خرید محصول
+        if self.cost_type == 'product_purchase' and self.has_invoices:
             self._updating_from_invoices = True
             old_amount = self.amount
             self.amount = self.calculate_amount_from_invoices()
@@ -265,27 +242,7 @@ class Hazinah(models.Model):
             delattr(self, '_updating_from_invoices')
     
     def __str__(self):
-        product_info = ""
-        if self.cargo_product:
-            product_info = f" - {self.cargo_product}"
-        elif self.non_bazargah_product:
-            product_info = f" - {self.non_bazargah_product}"
-        
-        return f"{self.get_cost_type_display()} - {self.title} - {self.amount:,} ریال{product_info}"
-    
-    @property
-    def related_product(self):
-        """برگرداندن محصول مرتبط (هر کدام که انتخاب شده باشد)"""
-        return self.cargo_product or self.non_bazargah_product
-    
-    @property 
-    def product_type_display(self):
-        """نمایش نوع محصول مرتبط"""
-        if self.cargo_product:
-            return "بازارگاه"
-        elif self.non_bazargah_product:
-            return "خارج از بازارگاه"
-        return "بدون محصول"
+        return f"{self.get_cost_type_display()} - {self.title} - {self.amount:,} ریال"
     
     @property
     def payment_status(self):
@@ -295,10 +252,10 @@ class Hazinah(models.Model):
         if not transactions.exists():
             return 'unpaid'
         
-        # برای هزینه‌ها، تراکنش‌ها منفی هستند (amount < 0)
-        total_paid = sum(abs(transaction.amount) for transaction in transactions if transaction.amount < 0)
-        # اگر تراکنش مثبت باشد (مثل برگشت) از کل کم می‌شود
-        total_refunded = sum(transaction.amount for transaction in transactions if transaction.amount > 0)
+        # برای هزینه‌ها، تراکنش‌های پرداخت مثبت ذخیره می‌شوند
+        total_paid = sum(transaction.amount for transaction in transactions if transaction.amount > 0)
+        # اگر تراکنش منفی باشد (مثل برگشت) از کل کم می‌شود
+        total_refunded = sum(abs(transaction.amount) for transaction in transactions if transaction.amount < 0)
         net_paid = total_paid - total_refunded
         
         if net_paid <= 0:
@@ -312,10 +269,10 @@ class Hazinah(models.Model):
     def total_transactions_amount(self):
         """محاسبه مجموع مبلغ تراکنش‌های تأیید شده"""
         transactions = self.transactions.filter(status='approved')
-        # برای هزینه‌ها، تراکنش‌ها منفی هستند (amount < 0)
-        total_paid = sum(abs(transaction.amount) for transaction in transactions if transaction.amount < 0)
-        # اگر تراکنش مثبت باشد (مثل برگشت) از کل کم می‌شود
-        total_refunded = sum(transaction.amount for transaction in transactions if transaction.amount > 0)
+        # برای هزینه‌ها، تراکنش‌های پرداخت مثبت ذخیره می‌شوند
+        total_paid = sum(transaction.amount for transaction in transactions if transaction.amount > 0)
+        # اگر تراکنش منفی باشد (مثل برگشت) از کل کم می‌شود
+        total_refunded = sum(abs(transaction.amount) for transaction in transactions if transaction.amount < 0)
         return total_paid - total_refunded
     
     @property

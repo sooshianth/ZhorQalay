@@ -150,8 +150,8 @@
         <div class="info-content">
             <h4>راهنمای ثبت هزینه</h4>
             <p>
-                پس از ثبت هزینه، می‌توانید فاکتورهای مربوطه را اضافه کنید. 
-                در صورت اضافه کردن فاکتور، مبلغ هزینه به صورت خودکار از فاکتورها محاسبه خواهد شد.
+                برای هزینه‌های خرید محصول، پس از ثبت هزینه می‌توانید فاکتورهای مربوطه را اضافه کنید و مبلغ به صورت خودکار محاسبه خواهد شد.
+                برای سایر انواع هزینه‌ها، مبلغ را مستقیماً وارد کنید.
             </p>
         </div>
     </div>
@@ -270,38 +270,6 @@
                 </div>
             </div>
 
-            <!-- ارتباط با محصولات -->
-            <div class="form-section-header">
-                <h3>
-                    <i class="fas fa-box"></i>
-                    ارتباط با محصولات
-                </h3>
-            </div>
-            <div class="form-section-body">
-                <div class="fledger-form-row">
-                    <div class="form-group-fledger">
-                        <label class="form-label-fledger">{{ hazinah_form.cargo_product.label }}</label>
-                        {{ hazinah_form.cargo_product }}
-                        {% if hazinah_form.cargo_product.errors %}
-                            <div class="text-danger">{{ hazinah_form.cargo_product.errors }}</div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="form-group-fledger">
-                        <label class="form-label-fledger">{{ hazinah_form.non_bazargah_product.label }}</label>
-                        {{ hazinah_form.non_bazargah_product }}
-                        {% if hazinah_form.non_bazargah_product.errors %}
-                            <div class="text-danger">{{ hazinah_form.non_bazargah_product.errors }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <div class="fledger-form-note">
-                    <i class="fas fa-info-circle"></i>
-                    لطفاً فقط یکی از انواع محصولات را انتخاب کنید.
-                </div>
-            </div>
-
             <!-- تنظیمات تکرار -->
             <div class="form-section-header">
                 <h3>
@@ -396,6 +364,43 @@ document.addEventListener('DOMContentLoaded', function() {
     if (isRecurringCheckbox) {
         isRecurringCheckbox.addEventListener('change', toggleRecurringPeriod);
         toggleRecurringPeriod(); // اجرای اولیه
+    }
+
+    // تنظیم الزامی بودن مبلغ بر اساس نوع هزینه
+    const costTypeSelect = document.getElementById('{{ hazinah_form.cost_type.id_for_label }}');
+    const amountInput = document.getElementById('{{ hazinah_form.amount.id_for_label }}');
+    const amountGroup = amountInput ? amountInput.closest('.form-group-fledger') : null;
+    
+    function toggleAmountRequirement() {
+        if (costTypeSelect && amountInput && amountGroup) {
+            const isProductPurchase = costTypeSelect.value === 'product_purchase';
+            const label = amountGroup.querySelector('label');
+            
+            if (isProductPurchase) {
+                amountInput.removeAttribute('required');
+                if (label) {
+                    label.textContent = label.textContent.replace(' *', '');
+                    if (!label.textContent.includes('(اختیاری)')) {
+                        label.textContent += ' (اختیاری - از فاکتور محاسبه می‌شود)';
+                    }
+                }
+                amountGroup.style.opacity = '0.7';
+            } else {
+                amountInput.setAttribute('required', 'required');
+                if (label) {
+                    label.textContent = label.textContent.replace(' (اختیاری - از فاکتور محاسبه می‌شود)', '');
+                    if (!label.textContent.includes(' *')) {
+                        label.textContent += ' *';
+                    }
+                }
+                amountGroup.style.opacity = '1';
+            }
+        }
+    }
+    
+    if (costTypeSelect) {
+        costTypeSelect.addEventListener('change', toggleAmountRequirement);
+        toggleAmountRequirement(); // اجرای اولیه
     }
 });
 </script>

@@ -194,9 +194,8 @@ class HazinahForm(forms.ModelForm):
         model = Hazinah
         fields = [
             'title', 'description', 'cost_type', 'amount', 
-            'cargo_product', 'non_bazargah_product', 'expense_date',
-            'due_date', 'tax_amount', 'discount_amount', 'priority',
-            'is_recurring', 'recurring_period', 'attachment'
+            'expense_date', 'due_date', 'tax_amount', 'discount_amount', 
+            'priority', 'is_recurring', 'recurring_period', 'attachment'
         ]
         
     def __init__(self, *args, **kwargs):
@@ -247,8 +246,6 @@ class HazinahForm(forms.ModelForm):
         self.fields['description'].label = 'توضیحات'
         self.fields['cost_type'].label = 'نوع هزینه'
         self.fields['amount'].label = 'مبلغ (ریال)'
-        self.fields['cargo_product'].label = 'محصول بازارگاه (اختیاری)'
-        self.fields['non_bazargah_product'].label = 'محصول غیر بازارگاه (اختیاری)'
         self.fields['expense_date'].label = 'تاریخ هزینه'
         self.fields['due_date'].label = 'سررسید پرداخت (اختیاری)'
         self.fields['tax_amount'].label = 'مبلغ مالیات (اختیاری)'
@@ -260,29 +257,23 @@ class HazinahForm(forms.ModelForm):
         
         # تنظیم فیلدهای اختیاری
         self.fields['description'].required = False
-        self.fields['amount'].required = False  # اختیاری چون از فاکتورها محاسبه می‌شود
-        self.fields['cargo_product'].required = False
-        self.fields['non_bazargah_product'].required = False
+        self.fields['amount'].required = False  # برای خرید محصول اختیاری است
         self.fields['due_date'].required = False
         self.fields['tax_amount'].required = False
         self.fields['discount_amount'].required = False
         self.fields['recurring_period'].required = False
         self.fields['attachment'].required = False
         
-        # تنظیم queryset برای محصولات
-        self.fields['cargo_product'].queryset = CargoProduct.objects.all()
-        self.fields['non_bazargah_product'].queryset = NonBazargahProduct.objects.all()
-        
     def clean(self):
         cleaned_data = super().clean()
-        cargo_product = cleaned_data.get('cargo_product')
-        non_bazargah_product = cleaned_data.get('non_bazargah_product')
+        cost_type = cleaned_data.get('cost_type')
+        amount = cleaned_data.get('amount')
         is_recurring = cleaned_data.get('is_recurring')
         recurring_period = cleaned_data.get('recurring_period')
         
-        # بررسی اینکه فقط یکی از محصولات انتخاب شده باشد
-        if cargo_product and non_bazargah_product:
-            raise forms.ValidationError('لطفاً فقط یکی از انواع محصولات را انتخاب کنید.')
+        # برای انواع هزینه غیر از خرید محصول، مبلغ الزامی است
+        if cost_type != 'product_purchase' and not amount:
+            raise forms.ValidationError('برای این نوع هزینه، وارد کردن مبلغ الزامی است.')
         
         # بررسی دوره تکرار برای هزینه‌های تکراری
         if is_recurring and not recurring_period:
@@ -335,10 +326,21 @@ class HazinahPaymentForm(forms.Form):
         widget=forms.FileInput(attrs={'class': 'form-control-fledger'})
     )
     
+    def __init__(self, *args, **kwargs):
+        self.hazinah = kwargs.pop('hazinah', None)
+        super().__init__(*args, **kwargs)
+    
     def clean_amount(self):
         amount = self.cleaned_data.get('amount')
         if amount is not None and amount <= 0:
             raise forms.ValidationError('مبلغ پرداخت باید بزرگتر از صفر باشد.')
+        
+        # بررسی حداکثر مبلغ قابل پرداخت
+        if self.hazinah:
+            remaining_amount = self.hazinah.remaining_amount
+            if amount > remaining_amount:
+                raise forms.ValidationError(f'مبلغ پرداخت نمی‌تواند بیشتر از مبلغ باقی‌مانده ({remaining_amount:,} ریال) باشد.')
+        
         return amount
 
 
