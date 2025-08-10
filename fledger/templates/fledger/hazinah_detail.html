@@ -684,76 +684,35 @@
         </div>
     </div>
 
-    <!-- عملیات تأیید/رد -->
-    {% if hazinah.can_be_approved and can_approve %}
-    <div class="fledger-detail-card approval-card">
-        <h2>
-            <i class="fas fa-gavel"></i>
-            عملیات تأیید
-            {% if hazinah.approval_status == 'financial_approved' %}
-            <span class="approval-level-badge">تأیید ادمین</span>
-            {% elif approval_info.required_level == 'admin' %}
-            <span class="approval-level-badge">تأیید مرحله اول</span>
-            {% endif %}
-        </h2>
-        
-        <div class="fledger-approval-actions">
-            <form method="post" action="{% url 'fledger:approve_hazinah' hazinah.id %}" class="approval-form">
-                {% csrf_token %}
-                <div class="fledger-approval-form">
-                    <label for="approval_notes">یادداشت تأیید:</label>
-                    <textarea name="approval_notes" id="approval_notes" 
-                              placeholder="دلیل تأیید یا توضیحات اضافی (اختیاری)" 
-                              class="form-control-fledger" rows="3"></textarea>
-                    <button type="submit" class="btn-fledger btn-fledger-success btn-approve">
-                        <i class="fas fa-check"></i>
-                        {% if hazinah.approval_status == 'financial_approved' %}
-                            تأیید نهایی (ادمین)
-                        {% else %}
-                            تأیید هزینه
-                        {% endif %}
-                    </button>
-                </div>
-            </form>
-            
-            <form method="post" action="{% url 'fledger:reject_hazinah' hazinah.id %}" class="rejection-form">
-                {% csrf_token %}
-                <div class="fledger-approval-form">
-                    <label for="rejection_notes">دلیل رد:</label>
-                    <textarea name="rejection_notes" id="rejection_notes" 
-                              placeholder="دلیل رد هزینه" 
-                              class="form-control-fledger" rows="3"></textarea>
-                    <button type="submit" class="btn-fledger btn-fledger-danger btn-reject">
-                        <i class="fas fa-times"></i>
-                        رد هزینه
-                    </button>
-                </div>
-            </form>
-        </div>
-        
-        {% if approval_info.required_level == 'admin' and hazinah.approval_status == 'pending' %}
-        <div class="approval-workflow-info">
-            <i class="fas fa-info-circle"></i>
-            <p>این هزینه به دلیل مبلغ بالا (بیش از 20 میلیون تومان) نیاز به تأیید دو مرحله‌ای دارد:</p>
-            <ol>
-                <li>تأیید مدیر مالی</li>
-                <li>تأیید نهایی ادمین</li>
-            </ol>
-        </div>
-        {% endif %}
-    </div>
-    {% elif not can_approve and hazinah.can_be_approved %}
-    <div class="fledger-detail-card warning-card">
-        <h2>
-            <i class="fas fa-exclamation-triangle"></i>
-            محدودیت دسترسی
-        </h2>
-        <p>شما مجاز به تأیید این هزینه نیستید. {{ approval_info.message }}</p>
-    </div>
-    {% endif %}
-
     <!-- اطلاعات تأیید -->
-    {% if hazinah.approved_by %}
+    <div class="fledger-detail-card">
+        <h2>
+            <i class="fas fa-clipboard-check"></i>
+            اطلاعات تأیید
+        </h2>
+        
+        <div class="fledger-detail-grid">
+            <div class="fledger-detail-item">
+                <label>مبلغ (تومان):</label>
+                <span class="fledger-amount highlight">{{ approval_info.amount_toman|floatformat:0 }} تومان</span>
+            </div>
+            
+            <div class="fledger-detail-item">
+                <label>سطح تأیید مورد نیاز:</label>
+                <span>{{ approval_info.required_level_display }}</span>
+            </div>
+            
+            <div class="fledger-detail-item">
+                <label>وضعیت فعلی:</label>
+                <span class="fledger-badge fledger-badge-{{ hazinah.get_approval_status_display_color }}">
+                    {{ hazinah.get_approval_status_display }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- اطلاعات تأیید کننده -->
+    {% if hazinah.approved_by %}    <!-- اطلاعات تأیید -->
     <div class="fledger-detail-card">
         <h2>
             <i class="fas fa-user-check"></i>

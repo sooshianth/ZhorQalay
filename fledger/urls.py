@@ -30,6 +30,7 @@ urlpatterns = [
     path('hazinah/<int:hazinah_id>/delete/', views.delete_hazinah, name='delete_hazinah'),
     
     # مدیریت فاکتورهای هزینه
+    path('invoices/', views.invoice_list, name='invoice_list'),
     path('hazinah/<int:hazinah_id>/invoice/add/', views.add_invoice_to_hazinah, name='add_invoice_to_hazinah'),
     path('hazinah/<int:hazinah_id>/invoice/<int:invoice_id>/edit/', views.edit_invoice, name='edit_invoice'),
     path('hazinah/<int:hazinah_id>/invoice/<int:invoice_id>/delete/', views.delete_invoice, name='delete_invoice'),

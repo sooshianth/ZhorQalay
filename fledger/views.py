@@ -814,6 +814,71 @@ def delete_hazinah(request, hazinah_id):
 # ==================== View های مربوط به فاکتورها ====================
 
 @role_required('admin', 'financial_manager')
+def invoice_list(request):
+    """لیست تمام فاکتورها"""
+    search_query = request.GET.get('search', '')
+    invoice_type_filter = request.GET.get('type', '')
+    status_filter = request.GET.get('status', '')
+    
+    invoices = Invoice.objects.select_related('hazinah', 'income').prefetch_related('items').all()
+    
+    # فیلتر جستجو
+    if search_query:
+        invoices = invoices.filter(
+            Q(invoice_id__icontains=search_query) |
+            Q(description__icontains=search_query) |
+            Q(hazinah__title__icontains=search_query) |
+            Q(income__title__icontains=search_query)
+        )
+    
+    # فیلتر نوع فاکتور
+    if invoice_type_filter:
+        invoices = invoices.filter(type=invoice_type_filter)
+    
+    # فیلتر وضعیت (بر اساس وضعیت تأیید هزینه/درآمد مرتبط)
+    if status_filter == 'approved':
+        invoices = invoices.filter(
+            Q(hazinah__approval_status='approved') |
+            Q(income__approval_status='approved')
+        )
+    elif status_filter == 'pending':
+        invoices = invoices.filter(
+            Q(hazinah__approval_status__in=['pending', 'auto_approved']) |
+            Q(income__approval_status__in=['pending', 'auto_approved'])
+        )
+    elif status_filter == 'rejected':
+        invoices = invoices.filter(
+            Q(hazinah__approval_status='rejected') |
+            Q(income__approval_status='rejected')
+        )
+    
+    # مرتب‌سازی بر اساس تاریخ ایجاد (جدیدترین‌ها اول)
+    invoices = invoices.order_by('-created_at')
+    
+    # صفحه‌بندی
+    paginator = Paginator(invoices, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # آمار فاکتورها
+    total_invoices = Invoice.objects.count()
+    expense_invoices = Invoice.objects.filter(type='Hazinah').count()
+    income_invoices = Invoice.objects.filter(type='Income').count()
+    
+    context = {
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'invoice_type_filter': invoice_type_filter,
+        'status_filter': status_filter,
+        'total_invoices': total_invoices,
+        'expense_invoices': expense_invoices,
+        'income_invoices': income_invoices,
+    }
+    
+    return render(request, 'fledger/invoice_list.html', context)
+
+
+@role_required('admin', 'financial_manager')
 def add_invoice_to_hazinah(request, hazinah_id):
     """افزودن فاکتور جدید به هزینه"""
     hazinah = get_object_or_404(Hazinah, id=hazinah_id)

@@ -109,10 +109,6 @@ class HazinahAdmin(admin.ModelAdmin):
                 'tax_amount', 'discount_amount', 'final_amount'
             )
         }),
-        ('محصولات مرتبط', {
-            'fields': ('cargo_product', 'non_bazargah_product'),
-            'classes': ('collapse',)
-        }),
         ('تاریخ و زمان‌بندی', {
             'fields': ('expense_date', 'due_date', 'created_at', 'updated_at')
         }),
@@ -216,7 +212,6 @@ class HazinahAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related(
-            'cargo_product', 'non_bazargah_product', 
             'created_by', 'approved_by'
         )
     
