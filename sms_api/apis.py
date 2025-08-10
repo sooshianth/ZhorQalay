@@ -1,6 +1,6 @@
 from django.utils import timezone
 import json
-from .models import SmsLog, SmsQueue, is_celery_active, SmsTemplate
+from .models import SmsLog, SmsQueue, is_celery_active, SmsTemplate, SmsConfig
 from sms_ir import SmsIr
 from django.conf import settings
 from core.templatetags.custom_filters import to_persian_digits
@@ -454,6 +454,9 @@ def queue_sms(number:str, message:str, notification_type='custom', purchase=None
         raise  # Re-raise the exception to be handled by the caller
 
 def process_sms_queue(batch_size=20, sms_account=sms_account):
+    if not SmsConfig.is_sms_enabled():
+        logger.info("SMS processing is disabled")
+        return []
     """
     Process a batch of queued SMS messages
     To be run by a scheduled task (e.g., celery, cron job)

@@ -152,3 +152,37 @@ class SmsTemplate(models.Model):
         elif self.template_type != 'purchase':
             self.status = None
         super().save(*args, **kwargs)
+
+class SmsConfig(models.Model):
+    """
+    مدل تنظیمات پیامک برای کنترل فعال یا غیرفعال بودن ارسال پیامک‌ها توسط ادمین از طریق پنل ادمین.
+    """
+    sms_enabled = models.BooleanField(
+        default=False,
+        verbose_name="ارسال پیامک فعال باشد؟",
+        help_text="در صورت غیرفعال بودن، هیچ پیامکی ارسال نخواهد شد."
+    )
+
+    class Meta:
+        verbose_name = "تنظیمات پیامک"
+        verbose_name_plural = "تنظیمات پیامک"
+
+    def __str__(self):
+        return "تنظیمات پیامک"
+
+    def save(self, *args, **kwargs):
+        # فقط یک رکورد تنظیمات باید وجود داشته باشد (Singleton)
+        if not self.pk and SmsConfig.objects.exists():
+            raise ValueError("فقط یک رکورد تنظیمات پیامک می‌تواند وجود داشته باشد.")
+        super().save(*args, **kwargs)
+
+    @staticmethod
+    def is_sms_enabled():
+        """
+        بررسی فعال بودن ارسال پیامک از طریق تنظیمات.
+        اگر رکوردی وجود نداشت، پیش‌فرض فعال است.
+        """
+        config = SmsConfig.objects.first()
+        if config is not None:
+            return config.sms_enabled
+        return False
