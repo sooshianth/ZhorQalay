@@ -1,6 +1,6 @@
 from django.utils import timezone
 import json
-from .models import SmsLog, SmsQueue, is_celery_active, SmsTemplate
+from .models import SmsLog, SmsQueue, is_celery_active, SmsTemplate, SmsConfig
 from sms_ir import SmsIr
 from django.conf import settings
 from core.templatetags.custom_filters import to_persian_digits
@@ -14,7 +14,83 @@ linenumber = settings.SMS_LINE_NUMBER
 
 sms_account = SmsIr(api_key, linenumber)
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sms_api_api")
+
+def normalize_phone_number(phone_number):
+    """
+    نرمال‌سازی شماره تلفن به فرمت استاندارد (10 رقمی شروع با 9)
+    
+    Args:
+        phone_number (str): شماره تلفن خام
+        
+    Returns:
+        str: شماره تلفن نرمال شده یا None اگر نامعتبر باشد
+    """
+    if not phone_number:
+        return None
+    
+    # تبدیل به رشته و حذف فضاهای خالی
+    phone_str = str(phone_number).strip()
+    
+    # تبدیل اعداد فارسی به انگلیسی
+    persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+    english_digits = "0123456789"
+    translation_table = str.maketrans(persian_digits, english_digits)
+    phone_str = phone_str.translate(translation_table)
+    
+    # حذف کاراکترهای غیرعددی (به جز + در ابتدا)
+    if phone_str.startswith('+'):
+        cleaned = '+' + ''.join(c for c in phone_str[1:] if c.isdigit())
+    else:
+        cleaned = ''.join(c for c in phone_str if c.isdigit())
+    
+    # اگر هیچ عددی نداشت، None برگردان
+    if not any(c.isdigit() for c in cleaned):
+        return None
+    
+    # حذف پیشوندهای مختلف
+    if cleaned.startswith('+98'):
+        cleaned = cleaned[3:]
+    elif cleaned.startswith('0098'):
+        cleaned = cleaned[4:]
+    elif cleaned.startswith('98') and len(cleaned) >= 12:  # 98 + حداقل 10 digits
+        cleaned = cleaned[2:]
+    elif cleaned.startswith('0') and len(cleaned) >= 11:  # 0 + حداقل 10 digits
+        cleaned = cleaned[1:]
+    
+    # اعتبارسنجی نهایی: باید 10 رقم و شروع با 9 باشد
+    if len(cleaned) == 10 and cleaned.startswith('9') and cleaned.isdigit():
+        return cleaned
+    
+    # تلاش برای استخراج شماره معتبر از رشته طولانی‌تر
+    if len(cleaned) > 10:
+        for i in range(len(cleaned) - 9):
+            potential_number = cleaned[i:i+10]
+            if potential_number.startswith('9') and potential_number.isdigit():
+                return potential_number
+    
+    return None
+
+def normalize_phone_numbers_list(phone_numbers):
+    """
+    نرمال‌سازی لیستی از شماره‌های تلفن و حذف تکرارها
+    
+    Args:
+        phone_numbers (list): لیست شماره‌های تلفن خام
+        
+    Returns:
+        list: لیست شماره‌های تلفن نرمال شده و بدون تکرار
+    """
+    if not phone_numbers:
+        return []
+    
+    normalized_set = set()
+    for phone in phone_numbers:
+        normalized = normalize_phone_number(phone)
+        if normalized:
+            normalized_set.add(normalized)
+    
+    return sorted(list(normalized_set))
 
 def render_template(template_type, context_data):
     """
@@ -110,6 +186,7 @@ def send_purchase_status_notification(purchase):
     """
     # List of states that should receive SMS notifications
     NOTIFY_STATES = [
+        'INITIATED',
         'PAYMENT_VERIFIED',    # ثبت خرید در بازارگاه
         'ALLOCATION_APPROVED', # تایید تخصیص
         'ADDRESS_SENT',        # ارسال آدرس به واردکننده
@@ -145,7 +222,7 @@ def send_purchase_status_notification(purchase):
     
     try:
         # Get all customer phone numbers
-        phone_numbers = purchase.customer.get_all_phone_numbers()
+        phone_numbers = purchase.customer.get_all_phone_numbers(purchase, True)
         if not phone_numbers:
             logger.warning(f"No phone numbers found for customer {purchase.customer.name}")
             return False
@@ -269,6 +346,8 @@ def send_purchase_status_notification(purchase):
         results = []
         for phone in phone_numbers:
             try:
+                logger.debug(f"Queuing SMS for {phone} for purchase {purchase.invoice_id}, status: {status}")
+                continue
                 result = queue_sms(phone, message, notification_type=status, purchase=purchase)
                 results.append(result)
                 logger.info(f"SMS queued for {phone} for purchase {purchase.invoice_id}, status: {status}")
@@ -337,27 +416,20 @@ def queue_sms(number:str, message:str, notification_type='custom', purchase=None
             logger.error(f"SMS queue error: Empty number or message")
             raise ValueError("شماره تلفن و متن پیام نمی‌توانند خالی باشند")
             
-        # Clean up the phone number format
+        # استفاده از تابع نرمال‌سازی جدید
         original_number = number
-        if number.startswith('+98'):
-            number = '0' + number[3:]
-        elif number.startswith('0098'):
-            number = '0' + number[4:]
-        elif not number.startswith('0'):
-            number = '0' + number
-            
-        # Ensure the number is valid (11 digits starting with 09)
-        if not (number.startswith('09') and len(number) == 11):
-            # Try adding 0 before 9 if number starts with 9
-            if number.startswith('9') and len(number) == 10:
-                number = '0' + number
-            else:
-                logger.error(f"SMS queue error: Invalid phone number format: {original_number} -> {number}")
-                raise ValueError(f"فرمت شماره تلفن {number} نامعتبر است. باید با 09 شروع شود و 11 رقم باشد.")
+        normalized_number = normalize_phone_number(number)
+        
+        if not normalized_number:
+            logger.error(f"SMS queue error: Invalid phone number format: {original_number}")
+            raise ValueError(f"فرمت شماره تلفن {original_number} نامعتبر است. باید 10 رقم باشد و با 9 شروع شود.")
+        
+        # تبدیل به فرمت 11 رقمی برای ذخیره (اضافه کردن 0)
+        number = '0' + normalized_number
         
         # Log the SMS being queued
         purchase_info = f"Purchase: {purchase.id}" if purchase else "No purchase"
-        logger.info(f"Queueing SMS to {number} - Type: {notification_type} - {purchase_info}")
+        logger.info(f"Queueing SMS to {number} (normalized from {original_number}) - Type: {notification_type} - {purchase_info}")
                 
         # Create queue entry
         status = 'suspended' if suspended else 'pending'
@@ -382,6 +454,9 @@ def queue_sms(number:str, message:str, notification_type='custom', purchase=None
         raise  # Re-raise the exception to be handled by the caller
 
 def process_sms_queue(batch_size=20, sms_account=sms_account):
+    if not SmsConfig.is_sms_enabled():
+        logger.info("SMS processing is disabled")
+        return []
     """
     Process a batch of queued SMS messages
     To be run by a scheduled task (e.g., celery, cron job)
@@ -390,7 +465,7 @@ def process_sms_queue(batch_size=20, sms_account=sms_account):
     pending_messages = SmsQueue.objects.filter(
         status='pending',
         is_suspended=False,
-        scheduled_for__lte=timezone.now()  # فقط پیام‌هایی که زمان ارسال آنها فرا رسیده
+        # scheduled_for__lte=timezone.now()  # فقط پیام‌هایی که زمان ارسال آنها فرا رسیده
     ).order_by('scheduled_for', 'created_at')[:batch_size]
     
     count = pending_messages.count()
@@ -500,7 +575,7 @@ def send_new_purchase_notification(purchase):
     
     try:
         # Get all customer phone numbers instead of just the primary one
-        phone_numbers = purchase.customer.get_all_phone_numbers()
+        phone_numbers = purchase.customer.get_all_phone_numbers(purchase, True)
         if not phone_numbers:
             print(f"No phone numbers found for customer {purchase.customer.name}")
             return False
@@ -575,7 +650,7 @@ def send_payment_confirmation(purchase):
     
     try:
         # Get all customer phone numbers instead of just the primary one
-        phone_numbers = purchase.customer.get_all_phone_numbers()
+        phone_numbers = purchase.customer.get_all_phone_numbers(purchase)
         if not phone_numbers:
             print(f"No phone numbers found for customer {purchase.customer.name}")
             return False
@@ -623,7 +698,7 @@ def send_address_notification(purchase):
     
     try:
         # Get all customer phone numbers instead of just the primary one
-        phone_numbers = purchase.customer.get_all_phone_numbers()
+        phone_numbers = purchase.customer.get_all_phone_numbers(purchase, True)
         if not phone_numbers:
             print(f"No phone numbers found for customer {purchase.customer.name}")
             return False
@@ -668,7 +743,7 @@ def send_barnameh_notification(purchase):
     
     try:
         # Get all customer phone numbers instead of just the primary one
-        phone_numbers = purchase.customer.get_all_phone_numbers()
+        phone_numbers = purchase.customer.get_all_phone_numbers(purchase, True)
         if not phone_numbers:
             print(f"No phone numbers found for customer {purchase.customer.name}")
             return False
@@ -715,7 +790,7 @@ def send_extelaf_notification(purchase):
     
     try:
         # Get all customer phone numbers instead of just the primary one
-        phone_numbers = purchase.customer.get_all_phone_numbers()
+        phone_numbers = purchase.customer.get_all_phone_numbers(purchase, True)
         if not phone_numbers:
             print(f"No phone numbers found for customer {purchase.customer.name}")
             return False

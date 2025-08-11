@@ -245,7 +245,7 @@ class PurchaseInfoAPI(View):
                 'name': customer.name,
                 'city': customer.city,
                 'phone_number': customer.get_primary_phone(),
-                'all_phone_numbers': customer.get_all_phone_numbers(),
+                'all_phone_numbers': customer.get_all_phone_numbers(purchase, True),
                 
                 # اطلاعات تکمیلی
                 'field_of_activity': customer.get_field_of_activity_display(),
@@ -331,6 +331,11 @@ class PurchaseInfoAPI(View):
                 allocation_data.append({
                     'code': allocation.code,
                     'weight': allocation.weight,
+                    'barnameh_weight': getattr(allocation, 'barnameh_weight', None),
+                    'receiver_name': getattr(allocation, 'receiver_name', None),
+                    'delivery_phone': purchase.tahvil_phone_number,
+                    'delivery_national_id': purchase.code_melli_tahvil,
+                    'delivery_address': purchase.address,
                     'created_at': allocation.created_at.isoformat() if allocation.created_at else None,
                 })
             
@@ -599,7 +604,7 @@ class CustomerPurchasesAPI(View):
                     'name': customer.name,
                     'city': customer.city,
                     'phone_number': customer.get_primary_phone(),
-                    'all_phone_numbers': customer.get_all_phone_numbers(),
+                    'all_phone_numbers': customer.get_all_phone_numbers(purchase, True),
                     'field_of_activity': customer.get_field_of_activity_display(),
                     'whatsapp_preference': customer.whatsapp_preference,
                     'sms_preference': customer.sms_preference,

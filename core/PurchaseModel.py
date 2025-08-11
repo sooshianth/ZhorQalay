@@ -652,7 +652,7 @@ class Purchase(BasePurchase):
         self.sales_mabna_invoice = customer_price * base_weight
         
         # محاسبه سود مبنا
-        self.mabna_profit = self.sales_mabna_invoice - self.purchase_mabna_invoice
+        self.mabna_profit = max(self.sales_mabna_invoice - self.purchase_mabna_invoice, 0)
         
 
                 
@@ -737,7 +737,9 @@ class Purchase(BasePurchase):
         if is_new and self.customer.sms_preference and has_non_admin:
             if self.send_cottage_sms:
                 from sms_api.apis import send_purchase_status_notification
+                logger.debug(f"Sending cottage SMS for purchase: {self.id}")
                 send_purchase_status_notification(self)
+                logger.debug(f"SMS sent successfully for purchase: {self.id}")
                 # تنظیم وضعیت SMS ارسال شده
             if not PurchaseStateChange.objects.filter(purchase=self, new_state='SMS_SENT').exists():
                 PurchaseStateChange.objects.create(

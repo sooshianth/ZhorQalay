@@ -951,7 +951,6 @@ def delete_sms(request, sms_id):
 
 @role_required('admin')
 @login_required
-@require_POST
 def suspend_sms(request, sms_id):
     """تعلیق پیامک"""
     sms = get_object_or_404(SmsQueue, id=sms_id)
@@ -971,22 +970,26 @@ def suspend_sms(request, sms_id):
 
 @role_required('admin')
 @login_required
-@require_POST
 def resume_sms(request, sms_id):
+    logger.debug(f"Resuming SMS with ID: {sms_id}")
     """از سرگیری پیامک معلق"""
-    sms = get_object_or_404(SmsQueue, id=sms_id)
-    
-    # فقط پیامک‌های معلق قابل از سرگیری هستند
-    if sms.status != 'suspended':
-        messages.error(request, 'فقط پیامک‌های معلق قابل از سرگیری هستند.')
+    try:
+        sms = get_object_or_404(SmsQueue, id=sms_id)
+        
+        # فقط پیامک‌های معلق قابل از سرگیری هستند
+        if sms.status != 'suspended':
+            messages.error(request, 'فقط پیامک‌های معلق قابل از سرگیری هستند.')
+            return redirect('sms_api:sms_detail', sms_id=sms.id)
+        
+        sms.status = 'pending'
+        sms.is_suspended = False
+        sms.save()
+        messages.success(request, 'پیامک با موفقیت از سرگرفته شد.')
         return redirect('sms_api:sms_detail', sms_id=sms.id)
-    
-    sms.status = 'pending'
-    sms.is_suspended = False
-    sms.save()
-    
-    messages.success(request, 'پیامک با موفقیت از سرگرفته شد.')
-    return redirect('sms_api:sms_detail', sms_id=sms.id)
+    except Exception as e:
+        logger.error(f"Error resuming SMS with ID {sms_id}: {e}")
+        messages.error(request, 'خطا در از سرگیری پیامک.')
+        return redirect('sms_api:sms_detail', sms_id=sms.id)
 
 
 @role_required('admin')

@@ -45,10 +45,10 @@ def send_sms_on_purchase_create(sender, instance, created, **kwargs):
     """
     ارسال پیامک به مشتری هنگام ایجاد خرید جدید
     """
+    logger.debug(f"Initializing SMS sending process for new purchase: {instance.id}")
     if not created:  # فقط اگر Purchase جدید ایجاد شده باشد
         return
-        
-    logger.info(f"New purchase created: {instance.id}, checking SMS conditions")
+    logger.debug(f"New purchase created: {instance.id}, checking SMS conditions")
     
     # اگر مشتری وجود ندارد یا تنظیمات sms_preference غیرفعال است، پیامک ارسال نمی‌شود
     if not instance.customer or not instance.customer.sms_preference:
@@ -218,7 +218,7 @@ def send_sms_on_state_change(sender, instance, created, **kwargs):
         
         # ارسال به همه شماره‌های مشتری
         success_count = 0
-        for phone in purchase.customer.get_all_phone_numbers():
+        for phone in purchase.customer.get_all_phone_numbers(purchase, True):
             try:
                 queue_sms(
                     number=phone,

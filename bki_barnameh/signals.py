@@ -49,24 +49,38 @@ def create_default_barnameh_template():
 @receiver(post_save, sender=Barnameh)
 def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
     """
-    ارسال پیامک به مشتری هنگام ایجاد بارنامه جدید - با متن هاردکد شده
+    ارسال پیامک به مشتری هنگام ایجاد یا بروزرسانی بارنامه از اکسل
     """
     # لاگ اولیه برای تایید اجرای سیگنال
-    logger.info(f"🚨 SIGNAL TRIGGERED: Barnameh {instance.id} post_save signal - created={created}, number={instance.number}")
+    logger.info(f"🚨 SIGNAL TRIGGERED: Barnameh {instance.id} post_save signal - created={created}, number={instance.number}, is_created_by_excel={getattr(instance, 'is_created_by_excel', False)}")
     
-    if not created:  # فقط اگر Barnameh جدید ایجاد شده باشد
-        logger.info(f"⏭️ Skipping SMS for barnameh {instance.id} - not a new creation (created={created})")
+    # بررسی شرایط ارسال پیامک:
+    # 1. بارنامه جدید ایجاد شده باشد (created=True)
+    # 2. یا بارنامه از طریق اکسل ایجاد/بروزرسانی شده باشد (is_created_by_excel=True)
+    should_send_sms = created or getattr(instance, 'is_created_by_excel', False)
+    
+    if not should_send_sms:
+        logger.info(f"⏭️ Skipping SMS for barnameh {instance.id} - not eligible (created={created}, is_created_by_excel={getattr(instance, 'is_created_by_excel', False)})")
         return
     
-    logger.info(f"✅ New barnameh created: {instance.id} (number: {instance.number}), sending hardcoded SMS")
+    logger.info(f"✅ Barnameh {instance.id} eligible for SMS - created={created}, is_created_by_excel={getattr(instance, 'is_created_by_excel', False)}, number={instance.number}")
     
-    # بررسی تاریخ بارنامه - اگر بیشتر از 2 روز با امروز فاصله داشت، ارسال نکن
+    # بررسی تاریخ بارنامه برای همه حالت‌ها (اکسل و غیر اکسل)
+    # شرط: اگر تاریخ بارنامه 3 روز یا بیشتر قبل از امروز باشد (قدیمی)، پیامک ارسال نشود
+    is_excel_upload = getattr(instance, 'is_created_by_excel', False)
     if instance.barnameh_date:
         today = jdate.today()
-        date_diff = abs((instance.barnameh_date - today).days)
-        if date_diff > 2:
-            logger.info(f"Barnameh {instance.id} date is more than 2 days away from today ({date_diff} days), skipping SMS")
+        # فقط اختلاف گذشته؛ تاریخ‌های آینده شامل نمی‌شود
+        past_days = (today - instance.barnameh_date).days
+        if past_days >= 3:
+            logger.info(
+                f"Barnameh {instance.id} is older than or equal to 3 days (past_days={past_days}), skipping SMS"
+            )
             return
+    
+    # نکته: برای بارنامه‌های آپلود شده از اکسل نیز همین محدودیت زمانی اعمال می‌شود
+    if is_excel_upload:
+        logger.info(f"📊 Excel upload detected for barnameh {instance.id} - date restriction still applies")
     
     # جمع‌آوری شماره‌های تلفن مشتری برای ارسال پیامک
     phone_numbers = []
@@ -81,13 +95,10 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
         # بررسی تنظیمات SMS مشتری
         logger.info(f"📱 Customer SMS preference: {customer.sms_preference}")
         if customer.sms_preference:
-            # اضافه کردن همه شماره‌های مشتری (فارغ از کارشناس فروش)
-            customer_phones = customer.get_all_phone_numbers()
-            logger.info(f"📞 Found {len(customer_phones)} phone numbers for customer: {customer_phones}")
-            for phone in customer_phones:
-                if phone and phone not in phone_numbers:
-                    phone_numbers.append(phone)
-                    logger.info(f"✅ Added customer phone {phone} for barnameh {instance.id}")
+            # استفاده از متد بهبود یافته get_all_phone_numbers که خودش تکرارها رو حذف می‌کنه
+            customer_phones = customer.get_all_phone_numbers(instance.purchase, True)
+            logger.info(f"📞 Found {len(customer_phones)} unique phone numbers for customer: {customer_phones}")
+            phone_numbers.extend(customer_phones)
         else:
             logger.warning(f"❌ Customer SMS not sent for barnameh {instance.id}: SMS preference is disabled")
     else:
@@ -103,12 +114,9 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
             from core.PurchaseModel import Purchase
             purchase = Purchase.objects.get(purchase_number=instance.purchase_number)
             if purchase.customer and purchase.customer.sms_preference:
-                customer_phones = purchase.customer.get_all_phone_numbers()
-                logger.info(f"📞 Found {len(customer_phones)} phone numbers from purchase_number lookup")
-                for phone in customer_phones:
-                    if phone and phone not in phone_numbers:
-                        phone_numbers.append(phone)
-                        logger.info(f"✅ Added customer phone {phone} from purchase_number lookup")
+                customer_phones = purchase.customer.get_all_phone_numbers(purchase, True)
+                logger.info(f"📞 Found {len(customer_phones)} unique phone numbers from purchase_number lookup")
+                phone_numbers.extend(customer_phones)
                 # بروزرسانی ارتباط بارنامه با خرید
                 if not instance.purchase:
                     instance.purchase = purchase
@@ -187,6 +195,12 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
         
         if success_count > 0:
             logger.info(f"🎉 Successfully queued SMS for new barnameh {instance.id} to {success_count} numbers")
+            
+            # بعد از ارسال موفق پیامک، فیلد is_created_by_excel را False کن تا از ارسال تکراری جلوگیری شود
+            if getattr(instance, 'is_created_by_excel', False):
+                instance.is_created_by_excel = False
+                instance.save(update_fields=['is_created_by_excel'])
+                logger.info(f"🔄 Reset is_created_by_excel flag for barnameh {instance.id} after successful SMS")
         else:
             logger.warning(f"⚠️ Failed to queue SMS for any numbers for barnameh {instance.id}")
     

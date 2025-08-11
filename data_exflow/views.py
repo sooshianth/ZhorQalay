@@ -27,6 +27,8 @@ from django.utils.encoding import smart_str
 import csv
 from openpyxl.utils import get_column_letter
 import logging
+from core.decorators.decorators import role_required
+
 
 logger = logging.getLogger("data_exflow_views")
 
@@ -88,7 +90,7 @@ def validate_content_type(content_type_id):
         raise ValidationError(f"خطا در اعتبارسنجی مدل: {str(e)}")
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
+@role_required('admin','logistics_manager') 
 def index_view(request):
     """نمایش داشبورد اصلی"""
     logger.warning(f"Index view called by {get_client_ip(request)}, user: {request.user}")
@@ -190,7 +192,7 @@ def index_view(request):
 # ---------------------------
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
+@role_required('admin','logistics_manager') 
 def import_view(request):
     """Main import view showing available models to import."""
     models = get_all_registered_models()
@@ -241,7 +243,7 @@ def import_view(request):
 
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
+@role_required('admin','logistics_manager') 
 def import_upload(request):
     """Handle file upload for import."""
     if request.method != 'POST':
@@ -308,7 +310,7 @@ def import_upload(request):
 
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
+@role_required('admin','logistics_manager') 
 def import_preview(request, session_id):
     """Preview the uploaded file contents."""
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
@@ -364,7 +366,7 @@ def import_preview(request, session_id):
 
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
+@role_required('admin','logistics_manager') 
 def import_map_fields(request, session_id):
     """Map file columns to model fields."""
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
@@ -486,7 +488,7 @@ def import_map_fields(request, session_id):
 
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
+@role_required('admin','logistics_manager')  
 def import_validate(request, session_id):
     """Validate the import data against the model."""
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
@@ -578,7 +580,7 @@ def import_validate(request, session_id):
 
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
+@role_required('admin','logistics_manager') 
 def import_process(request, session_id):
     """Process the import operation."""
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
@@ -635,7 +637,7 @@ def import_process(request, session_id):
 
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
+@role_required('admin','logistics_manager') 
 def import_results(request, session_id):
     """Show import results."""
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
@@ -665,7 +667,7 @@ def import_results(request, session_id):
 
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
+@role_required('admin','logistics_manager') 
 def import_revert(request, session_id):
     """Revert an import operation."""
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
@@ -723,7 +725,7 @@ def import_revert(request, session_id):
 # ---------------------------
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
+@role_required('admin','logistics_manager') 
 def export_view(request):
     """Main export view showing available models to export."""
     # Get all registered models organized by app
@@ -747,7 +749,7 @@ def export_view(request):
 
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
+@role_required('admin','logistics_manager') 
 def export_select_fields(request):
     """Select fields to export."""
     if request.method != 'POST':
@@ -795,7 +797,7 @@ def export_select_fields(request):
 
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
+@role_required('admin','logistics_manager') 
 def export_confirm(request):
     """Confirm export settings and process the export."""
     if request.method != 'POST':
@@ -847,7 +849,7 @@ def export_confirm(request):
 
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
+@role_required('admin','logistics_manager') 
 def export_download(request, session_id):
     """Show download page for the exported file."""
     logger.warning(f"Export download called by {get_client_ip(request)}, user: {request.user}")
@@ -915,7 +917,7 @@ def export_download(request, session_id):
 
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
+@role_required('admin','logistics_manager') 
 def export_process(request):
     """Process the export operation."""
     if request.method != 'POST':
@@ -972,7 +974,7 @@ def export_process(request):
 # ---------------------------
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
+@role_required('admin','logistics_manager') 
 def api_get_models(request):
     """API endpoint to get all registered models."""
     models = get_all_registered_models()
@@ -980,7 +982,7 @@ def api_get_models(request):
 
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
+@role_required('admin','logistics_manager') 
 def api_get_model_fields(request, app_label=None, model_name=None):
     """API endpoint for getting model fields."""
     # Get content type ID from URL or query param
@@ -1159,7 +1161,7 @@ def api_get_model_fields(request, app_label=None, model_name=None):
 
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
+@role_required('admin','logistics_manager') 
 def api_edit_cell(request, session_id):
     """API endpoint to edit a cell in the preview."""
     if request.method != 'POST':
@@ -1230,7 +1232,7 @@ def api_edit_cell(request, session_id):
 
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
+@role_required('admin','logistics_manager') 
 def api_list_contenttypes(request):
     """API endpoint to list all content types."""
     try:
@@ -1259,7 +1261,7 @@ def api_list_contenttypes(request):
 
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
+@role_required('admin','logistics_manager')      
 def download_sample_file(request):
     """Download a sample file with valid choices values."""
     content_type_id = request.GET.get('content_type_id')

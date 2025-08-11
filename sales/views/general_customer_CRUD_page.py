@@ -31,6 +31,9 @@ from core.decorators.decorators import role_required
 
 import json
 from django.template.loader import render_to_string
+import logging
+
+logger = logging.getLogger("general_customer_CRUD_view")
 
 def persian_digits_to_english(persian_text):
     """تبدیل اعداد فارسی به انگلیسی در یک رشته."""
@@ -672,6 +675,38 @@ def general_customer_CRUD_view(request):
                 messages.error(request, "لطفاً حداقل یک شماره تلفن انتخاب کنید")
                 return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
             
+            # حذف شماره‌های تکراری و نرمال‌سازی
+            normalized_phones = set()
+            for phone in selected_phones:
+                if phone:
+                    phone_str = str(phone).strip()
+                    # تبدیل اعداد فارسی به انگلیسی
+                    persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+                    english_digits = "0123456789"
+                    translation_table = str.maketrans(persian_digits, english_digits)
+                    phone_str = phone_str.translate(translation_table)
+                    
+                    # حذف کاراکترهای غیرعددی
+                    cleaned = ''.join(c for c in phone_str if c.isdigit())
+                    
+                    # نرمال‌سازی پیشوندها
+                    if cleaned.startswith('0098'):
+                        cleaned = cleaned[4:]
+                    elif cleaned.startswith('98') and len(cleaned) == 12:
+                        cleaned = cleaned[2:]
+                    elif cleaned.startswith('0') and len(cleaned) == 11:
+                        cleaned = cleaned[1:]
+                    
+                    # اعتبارسنجی نهایی
+                    if len(cleaned) == 10 and cleaned.startswith('9') and cleaned.isdigit():
+                        normalized_phones.add(cleaned)
+            
+            selected_phones = list(normalized_phones)
+            
+            if not selected_phones:
+                messages.error(request, "هیچ شماره معتبری انتخاب نشده است")
+                return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}')
+            
             try:
                 from sms_api.apis import queue_sms
                 sent_count = 0
@@ -837,7 +872,8 @@ def general_customer_CRUD_view(request):
             if assignment_id:
                 initial_data['assignment_id'] = assignment_id
             form = CustomerForm(initial=initial_data, sales_agent=sales_agent)
-
+    if customer:
+        logger.debug(f"phones: {all_phone_numbers}, phone function: {customer.get_all_phone_numbers()}")
     context = {
         'form': form,
         'customer': customer,

@@ -1596,7 +1596,11 @@ def apply_purchase_filter(request):
         
         try:
             page = int(page_param)
-            per_page = int(per_page_param)
+            # بررسی گزینه "نمایش همه"
+            if per_page_param == 'all':
+                per_page = 10000  # عدد بزرگ برای نمایش همه
+            else:
+                per_page = int(per_page_param)
         except (ValueError, TypeError):
             logger.error(f"❌ مقادیر pagination نامعتبر: page={page_param}, per_page={per_page_param}")
             page = 1

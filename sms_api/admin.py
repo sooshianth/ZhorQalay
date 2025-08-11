@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import SmsLog, SmsQueue, SmsTemplate
+from .models import SmsLog, SmsQueue, SmsTemplate, SmsConfig
 from .apis import process_sms_queue
 from django.utils import timezone
 from django import forms
@@ -87,3 +87,14 @@ class SmsTemplateAdmin(admin.ModelAdmin):
     search_fields = ('name', 'content')
 
 
+@admin.register(SmsConfig)
+class SmsConfigAdmin(admin.ModelAdmin):
+    list_display = ('sms_enabled',)
+    list_filter = ('sms_enabled',)
+    search_fields = ('sms_enabled',)
+    def has_add_permission(self, request):
+        if SmsConfig.objects.exists():
+            return False
+        return True
+    def has_change_permission(self, request, obj=None):
+        return True

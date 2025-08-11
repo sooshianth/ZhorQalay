@@ -152,19 +152,23 @@ def process_excel_file(excel_file_id):
                 
                 if existing_barnameh:
                     # Update existing barnameh with new data
-                    logger.info(f"📝 Updating existing barnameh {barnameh_number} from Excel")
+                    logger.info(f"📝 Updating existing barnameh {barnameh_number} from Excel - will trigger SMS signal")
                     for key, value in barnameh_data.items():
                         setattr(existing_barnameh, key, value)
+                    
+                    # مطمئن شویم که فیلد is_created_by_excel تنظیم شده تا سیگنال پیامک فعال شود
+                    existing_barnameh.is_created_by_excel = True
                     existing_barnameh.save()
                     barnameh = existing_barnameh
+                    logger.info(f"✅ Updated barnameh {barnameh.id} with is_created_by_excel=True for SMS trigger")
                 else:
                     # Create new barnameh
-                    logger.info(f"🆕 Creating new barnameh {barnameh_number} from Excel")
+                    logger.info(f"🆕 Creating new barnameh {barnameh_number} from Excel - will trigger SMS signal")
                     barnameh = Barnameh.objects.create(
                         number=barnameh_number,
                         **barnameh_data
                     )
-                    logger.info(f"✅ Successfully created barnameh {barnameh.id} with number {barnameh.number}")
+                    logger.info(f"✅ Successfully created barnameh {barnameh.id} with number {barnameh.number} and is_created_by_excel=True")
                 
                 # اگر Purchase پیدا شد، ارتباط دوطرفه را برقرار کن
                 if purchase_obj and barnameh:
