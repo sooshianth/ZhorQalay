@@ -97,7 +97,6 @@ class CargoProduct(Product):
     customer_price = models.PositiveIntegerField("فی فروش(ریال)", default=0)
     product_type = models.CharField(_('نوع محصول'), max_length=25, choices=PRODUCT_TYPES, )
     country = models.CharField(_('کشور'), max_length=20, choices=COUNTRIES)
-    vared_konandeh = models.ForeignKey(VaredKonandeh, on_delete=models.CASCADE, null=True, blank=True)
     port = models.CharField(_("محل بارگیری"), max_length=25, choices=PORTS, default='بندر امام خمینی')
     loading_time = models.CharField(_('زمان بارگیری'), max_length=50, null=True, blank=True)
     weight = models.PositiveIntegerField(_('وزن موجود'), default=100000000, null=True, blank=True)

@@ -12,6 +12,8 @@ class Product(models.Model):
     created_at = jmodels.jDateTimeField(_('تاریخ ثبت'), auto_now_add=True)
     status = models.BooleanField(_('فعال/غیرفعال'), default=True, null=True, blank=True)
     type_of_product = models.CharField(_('نوع محصول'), max_length=20, choices=TYPE_CHOICES, null=True, blank=True)
+    vared_konandeh = models.ForeignKey('core.VaredKonandeh', on_delete=models.CASCADE, null=True, blank=True)
+
 
     class Meta:
         abstract = True
