@@ -24,6 +24,9 @@ logger = logging.getLogger("core_purchase")
 
 
 class Purchase(BasePurchase):
+    # Override customer field with specific related_name
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, verbose_name='مشتری', null=True, blank=True, related_name='purchases_made')
+    
     # وضعیت‌های مختلف خرید
     STATUS_CHOICES = [
         ('INITIATED', 'شروع شده'), # system

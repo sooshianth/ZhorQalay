@@ -3,6 +3,8 @@ from .BasePurchase import BasePurchase
 from .NonBazargahProduct import NonBazargahProduct
 
 class NonBazargahPurchase(BasePurchase):
+    # Override customer field with specific related_name
+    customer = models.ForeignKey('core.Customer', on_delete=models.CASCADE, verbose_name='مشتری', null=True, blank=True, related_name='non_bazargah_purchases_made')
     
     UNIT_CHOICES = [
         ('Kilo', 'کیلوگرم'),
