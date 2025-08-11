@@ -733,7 +733,7 @@ def apply_customer_filter(request):
         total_count = base_queryset.count()
         
         # اعمال pagination
-        if per_page == 999999:  # نمایش همه
+        if per_page >= 10000:  # نمایش همه (10000 یا بیشتر)
             page_obj = base_queryset
             paginator = None
         else:
