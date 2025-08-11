@@ -2,6 +2,7 @@ from django.db import models
 from django_jalali.db import models as jmodels
 from django.utils import timezone
 from core.PurchaseModel import Purchase, ShenaseTakhsis
+from major.models.NonBazargahPurchase import NonBazargahPurchase
 
 import logging
 
@@ -51,6 +52,18 @@ class Barnameh(models.Model):
     total_sales_amount = models.DecimalField(max_digits=18, decimal_places=2, verbose_name='مبلغ کل فروش', null=True, blank=True)
     total_purchase_amount = models.DecimalField(max_digits=18, decimal_places=2, verbose_name='مبلغ کل خرید', null=True, blank=True)
 
+    #فیلد های جدید
+    # --------------------------------
+    BARNAMEH_TYPE_CHOICES = [
+        ('Bazargah', 'بازارگاهی'),
+        ('Non_Bazargah', 'خارج بازارگاهی')
+    ]
+
+    origin = models.CharField(max_length=255, verbose_name='مبدا', null=True, blank=True)
+    rent = models.PositiveBigIntegerField(verbose_name='کرایه', null=True, blank=True)
+    type = models.CharField(max_length=20, verbose_name='نوع بارنامه', choices=BARNAMEH_TYPE_CHOICES, null=True, blank=True)
+    non_bazargah_purchase = models.ForeignKey(NonBazargahPurchase, on_delete=models.CASCADE, verbose_name='خرید غیر بازارگاهی', null=True, blank=True)
+
     class Meta:
         verbose_name = 'بارنامه'
         verbose_name_plural = 'بارنامه ها'
@@ -66,7 +79,13 @@ class Barnameh(models.Model):
     def get_company_price(self):
         """دریافت فی خرید از خرید مرتبط"""
         try:
-            return self.purchase.company_price if (self.purchase) else None
+            if self.purchase:
+                return self.purchase.company_price
+            elif self.non_bazargah_purchase and not self.purchase:
+                return self.non_bazargah_purchase.company_price
+            else:
+                return None
+            
         except Exception as e:
             logger.error(f"خطا در دریافت فی خرید برای بارنامه {self.id}: {str(e)}")
             return None
@@ -74,7 +93,13 @@ class Barnameh(models.Model):
     def get_customer_price(self):
         """دریافت فی فروش از خرید مرتبط"""
         try:
-            return self.purchase.customer_price if (self.purchase) else None
+            if self.purchase:
+                return self.purchase.customer_price
+            elif self.non_bazargah_purchase and not self.purchase:
+                return self.non_bazargah_purchase.customer_price
+            else:
+                return None
+            
         except Exception as e:
             logger.error(f"خطا در دریافت فی فروش برای بارنامه {self.id}: {str(e)}")
             return None
@@ -95,24 +120,36 @@ class Barnameh(models.Model):
     
     def get_buyer_national_code(self):
         """دریافت شماره ملی خریدار از خرید مرتبط (buyer_national_id)"""
-        return self.purchase.buyer_national_id if self.purchase else None
+        if self.purchase:
+            return self.purchase.buyer_national_id
+        elif self.non_bazargah_purchase and not self.purchase:
+            return self.non_bazargah_purchase.buyer_national_id
+        return None
 
     def get_buyer_name(self):
         """دریافت نام خریدار از خرید مرتبط (buyer_name)"""
-        return self.purchase.buyer_name if self.purchase else None
+        if self.purchase:
+            return self.purchase.buyer_name
+        elif self.non_bazargah_purchase and not self.purchase:
+            return self.non_bazargah_purchase.buyer_name
+        return None
 
     def get_buyer_postal_code(self):
         """دریافت کدپستی خریدار از خرید مرتبط (delivery_postal_code)"""
-        return self.purchase.buyer_postal_code if self.purchase else None
-    
-    def get_buyer_name(self):
-        """دریافت نام خریدار از خرید مرتبط"""
-        return self.purchase.buyer_name if self.purchase else None
+        if self.purchase:
+            return self.purchase.buyer_postal_code
+        elif self.non_bazargah_purchase and not self.purchase:
+            return self.non_bazargah_purchase.buyer_postal_code
+        return None
     
     def get_buyer_address(self):
         """دریافت آدرس خریدار از خرید مرتبط"""
-        return self.purchase.address if self.purchase else None
-    
+        if self.purchase:
+            return self.purchase.address
+        elif self.non_bazargah_purchase and not self.purchase:
+            return self.non_bazargah_purchase.address
+        return None
+
     def get_demand_amount(self):
         """دریافت میزان تقاضا از خرید مرتبط"""
         return self.purchase.order_weight if self.purchase else None
@@ -133,6 +170,9 @@ class Barnameh(models.Model):
         """دریافت تاریخ ارسال موفق به بازارگاه"""
         return self.is_sent_to_bki_at
     
+    def get_non_product(self):
+        return self.non_bazargah_purchase.product
+
     def set_the_purchase_and_shenase_takhsis(self):
         try:
             if self.shenase_takhsis_code:
@@ -196,7 +236,12 @@ class Barnameh(models.Model):
             self.status = 'SENT_TO_BKI'
         else:
             self.status = 'NOT_SENT_TO_BKI'
-        
+
+        if self.purchase and not self.non_bazargah_purchase:
+            self.type = 'Bazargah'
+        else:
+            self.type = 'Non_Bazargah'
+
         self.total_purchase_amount = self.get_total_purchase_amount()
         self.total_sales_amount = self.get_total_sales_amount()
 

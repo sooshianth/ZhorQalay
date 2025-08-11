@@ -10,6 +10,8 @@ class VaredKonandeh(models.Model):
     email = models.EmailField(max_length=50, verbose_name='ایمیل', blank=True, null=True)
     website = models.URLField(max_length=200, verbose_name='وبسایت', blank=True, null=True)
     balance = models.IntegerField(verbose_name='کیف پول', blank=True, null=True)
+    address = models.CharField(max_length=300, verbose_name='آدرس', null=True, blank=True)
+    is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال', null=True, blank=True)
 
     def __str__(self):
         return self.name
