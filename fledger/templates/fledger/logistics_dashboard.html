@@ -1,18 +1,5 @@
 {% extends 'base.html' %}
-{% load s    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 3rem;
-    }
-
-    @media (max-width: 768px) {
-        .stats-grid {
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-    }%}
+{% load static %}
 {% load custom_filters %}
 
 {% block title %}داشبورد لجستیک{% endblock %}
@@ -47,55 +34,118 @@
         z-index: 2;
     }
 
+    /* استایل برای عنوان‌های بخش‌ها */
+    .section-title {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        color: white;
+        padding: 1.2rem 1.8rem;
+        border-radius: 0.75rem;
+        margin-bottom: 1.8rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        box-shadow: 0 8px 25px rgba(5, 150, 105, 0.25);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .section-title::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 100px;
+        height: 100px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+
+    .section-title i {
+        font-size: 1.1rem;
+        opacity: 0.9;
+    }
+
+    .section-title h2 {
+        margin: 0;
+        color: white;
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    /* بهبود استایل آمار */
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 2rem;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
         margin-bottom: 3rem;
     }
 
     .stat-card {
         background: white;
-        padding: 2.5rem;
-        border-radius: 1.25rem;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        padding: 1.8rem;
+        border-radius: 1rem;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
         border: 1px solid #f1f5f9;
         position: relative;
         overflow: hidden;
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        border-right: 4px solid transparent;
     }
 
     .stat-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
     }
 
     .stat-card.cargo {
-        border-top: 4px solid #3b82f6;
+        border-right-color: #3b82f6;
     }
 
     .stat-card.purchase {
-        border-top: 4px solid #059669;
+        border-right-color: #059669;
     }
 
     .stat-card.barnameh {
-        border-top: 4px solid #dc2626;
+        border-right-color: #dc2626;
     }
 
     .stat-card.expense {
-        border-top: 4px solid #7c2d12;
+        border-right-color: #7c2d12;
+    }
+
+    .stat-card.shipping {
+        border-right-color: #7c3aed;
+    }
+
+    .stat-card.bazargah-purchase {
+        border-right-color: #0ea5e9;
+    }
+
+    .stat-card.non-bazargah-purchase {
+        border-right-color: #8b5cf6;
+    }
+
+    .stat-card.bazargah-bill {
+        border-right-color: #f59e0b;
+    }
+
+    .stat-card.non-bazargah-bill {
+        border-right-color: #ef4444;
     }
 
     .stat-icon {
-        width: 64px;
-        height: 64px;
-        border-radius: 1rem;
+        width: 50px;
+        height: 50px;
+        border-radius: 0.8rem;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 1.5rem;
-        font-size: 1.5rem;
+        margin-bottom: 1.2rem;
+        font-size: 1.2rem;
         color: white;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
     }
 
     .stat-icon.cargo {
@@ -114,58 +164,85 @@
         background: linear-gradient(135deg, #7c2d12, #451a03);
     }
 
+    .stat-icon.shipping {
+        background: linear-gradient(135deg, #7c3aed, #5b21b6);
+    }
+
+    .stat-icon.bazargah-purchase {
+        background: linear-gradient(135deg, #0ea5e9, #0284c7);
+    }
+
+    .stat-icon.non-bazargah-purchase {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    }
+
+    .stat-icon.bazargah-bill {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+    }
+
+    .stat-icon.non-bazargah-bill {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+
     .stat-content h3 {
-        font-size: 2.2rem;
+        font-size: 1.8rem;
         font-weight: 700;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.4rem;
         color: #1e293b;
         line-height: 1.2;
     }
 
     .stat-label {
         color: #64748b;
-        font-size: 1rem;
+        font-size: 0.9rem;
         font-weight: 500;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.6rem;
     }
 
-    .section-title {
-        font-size: 1.75rem;
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 2rem;
-        position: relative;
-        padding-bottom: 0.75rem;
+    .stat-content small {
+        font-size: 0.8rem;
+        color: #6b7280;
     }
 
-    .section-title::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 60px;
-        height: 3px;
-        background: linear-gradient(90deg, #059669, #10b981);
-        border-radius: 2px;
-    }
-
+    /* بهبود استایل جداول */
     .data-table {
         background: white;
         border-radius: 1rem;
         overflow: hidden;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
         border: 1px solid #e2e8f0;
-        margin-bottom: 2rem;
+        margin-bottom: 2.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .data-table:hover {
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
     }
 
     .table-header {
-        background: #f8fafc;
-        padding: 1.5rem 2rem;
-        border-bottom: 1px solid #e2e8f0;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 1.8rem 2rem;
+        border-bottom: 2px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        position: relative;
+    }
+
+    .table-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, #059669, #10b981, #059669);
     }
 
     .table-header h4 {
-        color: #374151;
+        color: #1e293b;
         font-size: 1.125rem;
         font-weight: 600;
         margin: 0;
@@ -173,27 +250,28 @@
 
     .table-content {
         padding: 0;
-        max-height: 400px;
+        max-height: 600px;
         overflow-y: auto;
         overflow-x: hidden;
     }
 
     .table-content::-webkit-scrollbar {
-        width: 8px;
+        width: 10px;
     }
 
     .table-content::-webkit-scrollbar-track {
-        background: #f1f5f9;
+        background: #f8fafc;
         border-radius: 10px;
     }
 
     .table-content::-webkit-scrollbar-thumb {
-        background: linear-gradient(135deg, #059669, #10b981);
+        background: linear-gradient(135deg, #cbd5e1, #94a3b8);
         border-radius: 10px;
+        border: 2px solid #f8fafc;
     }
 
     .table-content::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(135deg, #047857, #059669);
+        background: linear-gradient(135deg, #94a3b8, #64748b);
     }
 
     .table-content table {
@@ -202,88 +280,146 @@
     }
 
     .table-content th {
-        padding: 1rem 1.5rem;
+        padding: 1.3rem 1.5rem;
         text-align: right;
-        color: #6b7280;
+        color: #475569;
         font-weight: 600;
         font-size: 0.875rem;
-        background: #f9fafb;
-        border-bottom: 1px solid #e5e7eb;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-bottom: 2px solid #e2e8f0;
         position: sticky;
         top: 0;
         z-index: 10;
+        letter-spacing: 0.025em;
     }
 
     .table-content td {
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid #f3f4f6;
-        color: #374151;
+        padding: 1.3rem 1.5rem;
+        border-bottom: 1px solid #f1f5f9;
+        color: #334155;
+        transition: all 0.2s ease;
+        font-size: 0.875rem;
     }
 
     .table-content tr:hover {
-        background: #f9fafb;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        transform: scale(1.01);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     }
 
+    .table-content tr:hover td {
+        color: #1e293b;
+    }
+
+    /* بهبود استایل badge ها */
     .weight-badge {
-        background: #dbeafe;
+        background: linear-gradient(135deg, #dbeafe, #bfdbfe);
         color: #1e40af;
-        padding: 0.25rem 0.75rem;
-        border-radius: 1rem;
+        padding: 0.5rem 1rem;
+        border-radius: 1.2rem;
         font-size: 0.875rem;
         font-weight: 600;
+        display: inline-block;
+        box-shadow: 0 3px 10px rgba(59, 130, 246, 0.15);
+        border: 1px solid rgba(59, 130, 246, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .weight-badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 15px rgba(59, 130, 246, 0.25);
     }
 
     .price-badge {
-        background: #dcfce7;
+        background: linear-gradient(135deg, #dcfce7, #bbf7d0);
         color: #166534;
-        padding: 0.25rem 0.75rem;
-        border-radius: 1rem;
+        padding: 0.5rem 1rem;
+        border-radius: 1.2rem;
         font-size: 0.875rem;
         font-weight: 600;
+        display: inline-block;
+        box-shadow: 0 3px 10px rgba(34, 197, 94, 0.15);
+        border: 1px solid rgba(34, 197, 94, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .price-badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 15px rgba(34, 197, 94, 0.25);
     }
 
     .status-badge {
-        padding: 0.25rem 0.75rem;
-        border-radius: 1rem;
-        font-size: 0.75rem;
+        padding: 0.5rem 1rem;
+        border-radius: 1.2rem;
+        font-size: 0.8rem;
         font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
     }
 
     .status-active {
-        background: #dcfce7;
+        background: linear-gradient(135deg, #dcfce7, #bbf7d0);
         color: #166534;
+        border-color: rgba(34, 197, 94, 0.2);
+    }
+
+    .status-active:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 15px rgba(34, 197, 94, 0.2);
     }
 
     .status-inactive {
-        background: #fee2e2;
+        background: linear-gradient(135deg, #fee2e2, #fecaca);
         color: #991b1b;
+        border-color: rgba(239, 68, 68, 0.2);
     }
 
+    .status-inactive:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 15px rgba(239, 68, 68, 0.2);
+    }
+
+    /* بهبود استایل تب‌ها */
     .tabs {
-        margin-bottom: 2rem;
+        margin-bottom: 2.5rem;
     }
 
     .tab-buttons {
         display: flex;
         gap: 0.5rem;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1.8rem;
+        background: #f8fafc;
+        padding: 0.5rem;
+        border-radius: 0.75rem;
+        border: 1px solid #e2e8f0;
     }
 
     .tab-button {
-        padding: 0.75rem 1.5rem;
-        border: 2px solid #e5e7eb;
-        background: white;
+        padding: 0.8rem 1.5rem;
+        border: 2px solid transparent;
+        background: transparent;
         color: #6b7280;
-        border-radius: 0.75rem;
+        border-radius: 0.5rem;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.3s ease;
+        font-size: 0.875rem;
     }
 
     .tab-button.active {
         border-color: #059669;
         background: #059669;
         color: white;
+        box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3);
+    }
+
+    .tab-button:hover:not(.active) {
+        background: #f1f5f9;
+        color: #374151;
     }
 
     .tab-content {
@@ -292,43 +428,305 @@
 
     .tab-content.active {
         display: block;
+        animation: fadeIn 0.3s ease;
     }
 
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* بهبود استایل summary box */
     .summary-box {
-        background: #f0f9ff;
+        background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
         border: 1px solid #0ea5e9;
         border-radius: 0.75rem;
         padding: 1.5rem;
-        margin-bottom: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 15px rgba(14, 165, 233, 0.1);
     }
 
     .summary-item {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.8rem;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba(14, 165, 233, 0.2);
     }
 
     .summary-item:last-child {
         margin-bottom: 0;
         font-weight: 700;
-        border-top: 1px solid #0ea5e9;
-        padding-top: 0.5rem;
+        border-top: 2px solid #0ea5e9;
+        border-bottom: none;
+        padding-top: 0.8rem;
+        color: #0c4a6e;
     }
 
     .no-data {
         text-align: center;
         padding: 3rem;
         color: #6b7280;
+        background: #f9fafb;
+        border-radius: 0.75rem;
+        border: 2px dashed #d1d5db;
+    }
+
+    /* بهبود فیلترهای زمانی */
+    .filters-section {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-radius: 1.2rem;
+        padding: 2.2rem;
+        margin-bottom: 2.5rem;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+        border: 1px solid #e2e8f0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .filters-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #059669, #10b981, #059669);
+    }
+
+    .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 1.8rem;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .filter-group label {
+        font-weight: 600;
+        color: #374151;
+        font-size: 0.9rem;
+        margin-bottom: 0.2rem;
+    }
+
+    .filter-group input[type="text"] {
+        padding: 0.8rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 0.6rem;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .filter-group input[type="text"]:focus {
+        outline: none;
+        border-color: #059669;
+        box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1), 0 4px 15px rgba(5, 150, 105, 0.1);
+        transform: translateY(-1px);
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 1.2rem;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    /* بهبود استایل دکمه‌ها */
+    .btn {
+        padding: 0.8rem 1.8rem;
+        border-radius: 0.6rem;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        font-size: 0.9rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #059669, #10b981);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #047857, #059669);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(5, 150, 105, 0.3);
+    }
+
+    .btn-secondary {
+        background: linear-gradient(135deg, #6b7280, #4b5563);
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: linear-gradient(135deg, #4b5563, #374151);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(107, 114, 128, 0.3);
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: linear-gradient(135deg, #059669, #047857);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: linear-gradient(135deg, #dc2626, #b91c1c);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3);
+    }
+
+    /* بهبود استایل دکمه‌های خروجی */
+    .export-buttons {
+        display: flex;
+        gap: 1.2rem;
+        margin: 1.5rem 0;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .export-buttons .btn {
+        min-width: 200px;
+        justify-content: center;
+    }
+
+    /* بهبود responsive design */
+    @media (max-width: 1200px) {
+        .stats-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+        
+        .filters-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        
+        .filters-grid {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        
+        .filter-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .export-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .export-buttons .btn {
+            min-width: 100%;
+            max-width: 300px;
+        }
+
+        .table-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .tab-buttons {
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .tab-button {
+            width: 100%;
+            text-align: center;
+        }
+    }
+
+    /* بهبود استایل کلی صفحه */
+    body {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        min-height: 100vh;
+    }
+
+    /* بهبود فاصله‌گذاری کلی */
+    .logistics-hero {
+        margin-bottom: 3rem;
+    }
+
+    .filters-section {
+        margin-bottom: 3rem;
+    }
+
+    .stats-grid {
+        margin-bottom: 3.5rem;
+    }
+
+    .data-table {
+        margin-bottom: 3rem;
+    }
+
+    /* بهبود استایل برای بخش‌های مختلف */
+    section {
+        margin-bottom: 3rem;
+    }
+
+    /* بهبود استایل برای جداول */
+    .table-content table {
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    /* بهبود استایل برای input ها */
+    input.jalali-datepicker {
+        font-family: inherit;
+        direction: rtl;
+    }
+
+    /* بهبود استایل برای آیکون‌ها */
+    .fas, .fa {
+        transition: all 0.3s ease;
+    }
+
+    .btn:hover .fas,
+    .btn:hover .fa {
+        transform: scale(1.1);
     }
 </style>
 
 <div class="logistics-hero">
     <div class="hero-content">
         <h1 style="font-size: 2.5rem; margin-bottom: 1rem; font-weight: 800;">
-            <i class="fas fa-truck-loading"></i> داشبورد لجستیک
+            <i class="fas fa-truck-loading"></i> داشبورد مدیریت منابع
         </h1>
         <p style="font-size: 1.25rem; opacity: 0.9; margin: 0;">
-            رصد و مدیریت خرید، فروش و حمل‌ونقل محصولات
+            بررسی منابع، خرید، هزینه و درآمد
         </p>
     </div>
 </div>
@@ -368,8 +766,8 @@
         </div>
     </div>
 
-    <div class="stat-card" style="border-top: 4px solid #7c3aed;">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #7c3aed, #5b21b6);">
+    <div class="stat-card shipping">
+        <div class="stat-icon shipping">
             <i class="fas fa-shipping-fast"></i>
         </div>
         <div class="stat-content">
@@ -389,12 +787,9 @@
             <small style="color: #6b7280;">درآمدهای ثبت شده</small>
         </div>
     </div>
-</div>
 
-<!-- آمار تفصیلی خرید -->
-<div class="stats-grid" style="margin-top: 1rem;">
-    <div class="stat-card" style="border-top: 4px solid #0ea5e9;">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #0ea5e9, #0284c7);">
+    <div class="stat-card bazargah-purchase">
+        <div class="stat-icon bazargah-purchase">
             <i class="fas fa-balance-scale"></i>
         </div>
         <div class="stat-content">
@@ -404,8 +799,8 @@
         </div>
     </div>
 
-    <div class="stat-card" style="border-top: 4px solid #8b5cf6;">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+    <div class="stat-card non-bazargah-purchase">
+        <div class="stat-icon non-bazargah-purchase">
             <i class="fas fa-balance-scale"></i>
         </div>
         <div class="stat-content">
@@ -415,8 +810,8 @@
         </div>
     </div>
 
-    <div class="stat-card" style="border-top: 4px solid #f59e0b;">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+    <div class="stat-card bazargah-bill">
+        <div class="stat-icon bazargah-bill">
             <i class="fas fa-truck"></i>
         </div>
         <div class="stat-content">
@@ -426,8 +821,8 @@
         </div>
     </div>
 
-    <div class="stat-card" style="border-top: 4px solid #ef4444;">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+    <div class="stat-card non-bazargah-bill">
+        <div class="stat-icon non-bazargah-bill">
             <i class="fas fa-truck"></i>
         </div>
         <div class="stat-content">
@@ -440,9 +835,10 @@
 
 <!-- کوتاژ‌های فعال -->
 <section class="mb-5">
-    <h2 class="section-title">
-        <i class="fas fa-boxes"></i> کوتاژ‌های فعال
-    </h2>
+    <div class="section-title">
+        <i class="fas fa-boxes"></i>
+        <h2>کوتاژ‌های فعال</h2>
+    </div>
     
     <div class="data-table">
         <div class="table-header">
@@ -498,11 +894,62 @@
     </div>
 </section>
 
+<!-- فیلترهای زمانی -->
+<div class="filters-section">
+    <h3 style="margin-bottom: 1.5rem; color: #1e293b; font-size: 1.25rem;">
+        <i class="fas fa-filter"></i> فیلترهای زمانی
+    </h3>
+    
+    <form method="GET" action="">
+        <div class="filters-grid">
+            <!-- فیلتر بارنامه‌ها -->
+            <div class="filter-group">
+                <label>تاریخ شروع بارنامه‌ها:</label>
+                <input type="text" name="start_date" value="{{ start_date }}" placeholder="1402/01/01" class="jalali-datepicker">
+            </div>
+            
+            <div class="filter-group">
+                <label>تاریخ پایان بارنامه‌ها:</label>
+                <input type="text" name="end_date" value="{{ end_date }}" placeholder="1402/12/29" class="jalali-datepicker">
+            </div>
+            
+            <!-- فیلتر هزینه‌ها -->
+            <div class="filter-group">
+                <label>تاریخ شروع هزینه‌ها:</label>
+                <input type="text" name="expense_start_date" value="{{ expense_start_date }}" placeholder="1402/01/01" class="jalali-datepicker">
+            </div>
+            
+            <div class="filter-group">
+                <label>تاریخ پایان هزینه‌ها:</label>
+                <input type="text" name="expense_end_date" value="{{ expense_end_date }}" placeholder="1402/12/29" class="jalali-datepicker">
+            </div>
+        </div>
+        
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i> اعمال فیلتر
+            </button>
+            
+            <a href="{% url 'fledger:logistics_dashboard' %}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> پاک کردن فیلترها
+            </a>
+        </div>
+    </form>
+</div>
+
 <!-- هزینه‌های خرید محصول -->
 <section class="mb-5">
-    <h2 class="section-title">
-        <i class="fas fa-shopping-cart"></i> هزینه‌های خرید محصول
-    </h2>
+    <div class="section-title">
+        <i class="fas fa-shopping-cart"></i>
+        <h2>هزینه‌های خرید محصول</h2>
+    </div>
+    
+    <!-- دکمه خروجی اکسل -->
+    <div class="export-buttons">
+        <a href="?export=expenses&expense_start_date={{ expense_start_date }}&expense_end_date={{ expense_end_date }}" class="btn btn-success">
+            <i class="fas fa-file-excel"></i> خروجی اکسل هزینه‌ها
+        </a>
+    </div>
     
     <div class="tabs">
         <div class="tab-buttons">
@@ -688,9 +1135,17 @@
 
 <!-- درآمدها از بارنامه‌ها -->
 <section class="mb-5">
-    <h2 class="section-title">
-        <i class="fas fa-money-bill-wave"></i> درآمدها از بارنامه‌ها
-    </h2>
+    <div class="section-title">
+        <i class="fas fa-money-bill-wave"></i>
+        <h2>درآمدها از بارنامه‌ها</h2>
+    </div>
+    
+    <!-- دکمه خروجی اکسل -->
+    <div class="export-buttons">
+        <a href="?export=barnamehs&start_date={{ start_date }}&end_date={{ end_date }}" class="btn btn-success">
+            <i class="fas fa-file-excel"></i> خروجی اکسل بارنامه‌ها
+        </a>
+    </div>
     
     <div class="tabs">
         <div class="tab-buttons">
@@ -932,6 +1387,18 @@ document.addEventListener('DOMContentLoaded', function() {
     if (bazargahBillTab && bazargahBillContent) {
         bazargahBillTab.classList.add('active');
         bazargahBillContent.classList.add('active');
+    }
+    
+    // راه‌اندازی تقویم جلالی
+    if (typeof $.fn.datepicker !== 'undefined') {
+        $('.jalali-datepicker').datepicker({
+            format: 'yyyy/mm/dd',
+            autoclose: true,
+            todayBtn: 'linked',
+            clearBtn: true,
+            language: 'fa',
+            calendar: 'persian'
+        });
     }
 });
 </script>

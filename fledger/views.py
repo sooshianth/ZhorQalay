@@ -1122,6 +1122,45 @@ def logistics_dashboard(request):
     """
     from major.models.Invoice import Invoice
     from major.models.InvoiceItem import InvoiceItem
+    from django_jalali.db import models as jmodels
+    from datetime import datetime
+    import jdatetime
+    
+    # دریافت فیلترهای زمانی از درخواست
+    start_date_str = request.GET.get('start_date', '')
+    end_date_str = request.GET.get('end_date', '')
+    expense_start_date_str = request.GET.get('expense_start_date', '')
+    expense_end_date_str = request.GET.get('expense_end_date', '')
+    
+    # تبدیل تاریخ‌های جلالی به datetime برای فیلتر کردن
+    start_date = None
+    end_date = None
+    expense_start_date = None
+    expense_end_date = None
+    
+    if start_date_str:
+        try:
+            start_date = jdatetime.datetime.strptime(start_date_str, '%Y/%m/%d').date()
+        except:
+            start_date = None
+    
+    if end_date_str:
+        try:
+            end_date = jdatetime.datetime.strptime(end_date_str, '%Y/%m/%d').date()
+        except:
+            end_date = None
+    
+    if expense_start_date_str:
+        try:
+            expense_start_date = jdatetime.datetime.strptime(expense_start_date_str, '%Y/%m/%d').date()
+        except:
+            expense_start_date = None
+    
+    if expense_end_date_str:
+        try:
+            expense_end_date = jdatetime.datetime.strptime(expense_end_date_str, '%Y/%m/%d').date()
+        except:
+            expense_end_date = None
     
     # لیست کوتاژ‌های فعال (همه)
     active_cargos = CargoProduct.objects.filter(status=True).select_related('vared_konandeh').order_by('-last_modified')
@@ -1130,11 +1169,58 @@ def logistics_dashboard(request):
     total_active_cargos = CargoProduct.objects.filter(status=True).count()
     total_inactive_cargos = CargoProduct.objects.filter(status=False).count()
     
-    # هزینه‌های مربوط به خرید محصول (فقط نوع product_purchase)
-    product_purchase_expenses = Hazinah.objects.filter(
+    # فیلتر کردن هزینه‌ها بر اساس تاریخ
+    product_purchase_expenses_query = Hazinah.objects.filter(
         cost_type='product_purchase',
         approval_status__in=['approved', 'auto_approved']
-    ).select_related('approved_by').prefetch_related('invoice_set').order_by('-created_at')[:20]
+    )
+    
+    if expense_start_date:
+        product_purchase_expenses_query = product_purchase_expenses_query.filter(
+            expense_date__gte=expense_start_date
+        )
+    
+    if expense_end_date:
+        product_purchase_expenses_query = product_purchase_expenses_query.filter(
+            expense_date__lte=expense_end_date
+        )
+    
+    product_purchase_expenses = product_purchase_expenses_query.select_related('approved_by').prefetch_related('invoice_set').order_by('-created_at')
+    
+    # فیلتر کردن بارنامه‌ها بر اساس تاریخ
+    bazargah_bills_query = Barnameh.objects.filter(
+        type='Bazargah',
+        purchase__isnull=False
+    )
+    
+    if start_date:
+        bazargah_bills_query = bazargah_bills_query.filter(
+            barnameh_created_at__gte=start_date
+        )
+    
+    if end_date:
+        bazargah_bills_query = bazargah_bills_query.filter(
+            barnameh_created_at__lte=end_date
+        )
+    
+    bazargah_bills = bazargah_bills_query.select_related('purchase', 'purchase__cargo').order_by('-barnameh_created_at')
+    
+    non_bazargah_bills_query = Barnameh.objects.filter(
+        type='Non_Bazargah',
+        non_bazargah_purchase__isnull=False
+    )
+    
+    if start_date:
+        non_bazargah_bills_query = non_bazargah_bills_query.filter(
+            barnameh_created_at__gte=start_date
+        )
+    
+    if end_date:
+        non_bazargah_bills_query = non_bazargah_bills_query.filter(
+            barnameh_created_at__lte=end_date
+        )
+    
+    non_bazargah_bills = non_bazargah_bills_query.select_related('non_bazargah_purchase', 'non_bazargah_purchase__product').order_by('-barnameh_created_at')
     
     # پردازش هزینه‌ها و استخراج اطلاعات از فاکتورها
     processed_expenses = []
@@ -1197,18 +1283,6 @@ def logistics_dashboard(request):
         
         processed_expenses.append(expense_data)
     
-    # بارنامه‌های بازارگاهی (درآمدها)
-    bazargah_bills = Barnameh.objects.filter(
-        type='Bazargah',
-        purchase__isnull=False
-    ).select_related('purchase', 'purchase__cargo').order_by('-barnameh_created_at')[:20]
-    
-    # بارنامه‌های غیر بازارگاهی (درآمدها) 
-    non_bazargah_bills = Barnameh.objects.filter(
-        type='Non_Bazargah',
-        non_bazargah_purchase__isnull=False
-    ).select_related('non_bazargah_purchase', 'non_bazargah_purchase__product').order_by('-barnameh_created_at')[:20]
-    
     # آمار بارنامه‌ها (درآمدها)
     total_bazargah_bill_weight = 0
     total_bazargah_bill_revenue = 0
@@ -1232,10 +1306,30 @@ def logistics_dashboard(request):
         total_non_bazargah_bill_revenue += revenue
         non_bazargah_bills_with_revenue.append(bill)
     
-    # هزینه‌های عمومی (سایر انواع هزینه)
-    recent_expenses = Hazinah.objects.filter(
+    # هزینه‌های عمومی (سایر انواع هزینه) - با فیلتر زمانی
+    recent_expenses_query = Hazinah.objects.filter(
         approval_status__in=['approved', 'auto_approved']
-    ).exclude(cost_type='product_purchase').order_by('-created_at')[:10]
+    ).exclude(cost_type='product_purchase')
+    
+    if expense_start_date:
+        recent_expenses_query = recent_expenses_query.filter(
+            expense_date__gte=expense_start_date
+        )
+    
+    if expense_end_date:
+        recent_expenses_query = recent_expenses_query.filter(
+            expense_date__lte=expense_end_date
+        )
+    
+    recent_expenses = recent_expenses_query.order_by('-created_at')
+    
+    # بررسی درخواست خروجی اکسل
+    export_type = request.GET.get('export', '')
+    
+    if export_type == 'expenses':
+        return export_expenses_to_excel(request, processed_expenses, expense_start_date, expense_end_date)
+    elif export_type == 'barnamehs':
+        return export_barnamehs_to_excel(request, bazargah_bills, non_bazargah_bills, start_date, end_date)
     
     context = {
         # کوتاژ‌ها
@@ -1266,6 +1360,239 @@ def logistics_dashboard(request):
         # آمار کلی
         'total_expenses_count': len(processed_expenses),
         'total_barnamehs_count': len(bazargah_bills) + len(non_bazargah_bills),
+        
+        # فیلترهای زمانی
+        'start_date': start_date_str,
+        'end_date': end_date_str,
+        'expense_start_date': expense_start_date_str,
+        'expense_end_date': expense_end_date_str,
     }
     
     return render(request, 'fledger/logistics_dashboard.html', context)
+
+
+def export_expenses_to_excel(request, processed_expenses, start_date, end_date):
+    """
+    خروجی اکسل از هزینه‌های خرید محصول
+    """
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from django.http import HttpResponse
+    import jdatetime
+    
+    # ایجاد فایل اکسل
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "هزینه‌ها"
+    
+    # تنظیم جهت راست به چپ برای کل شیت
+    ws.sheet_view.rightToLeft = True
+    
+    # تنظیم ستون‌ها
+    headers = [
+        'عنوان هزینه', 'تاریخ هزینه', 'نوع محصول', 'کوتاژ/محصول', 'کشور/توضیحات', 'وزن/مقدار', 'فی واحد (ریال)', 'مبلغ کل (ریال)', 'شماره فاکتور'
+    ]
+    
+    # استایل‌های هدر
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="059669", end_color="059669", fill_type="solid")
+    header_alignment = Alignment(horizontal="center", vertical="center", textRotation=0)
+    
+    # اضافه کردن هدرها
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+    
+    # تنظیم عرض ستون‌ها
+    column_widths = [25, 15, 20, 25, 20, 15, 20, 20, 20]
+    for col, width in enumerate(column_widths, 1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = width
+    
+    # اضافه کردن داده‌ها
+    row = 2
+    for expense_data in processed_expenses:
+        expense = expense_data['expense']
+        
+        # آیتم‌های بازارگاهی
+        for item in expense_data['bazargah_items']:
+            ws.cell(row=row, column=1, value=expense.title)
+            ws.cell(row=row, column=2, value=expense.expense_date.strftime('%Y/%m/%d') if expense.expense_date else '')
+            ws.cell(row=row, column=3, value='بازارگاهی')
+            ws.cell(row=row, column=4, value=item['product'].cottage if item['product'].cottage else '')
+            ws.cell(row=row, column=5, value=item['product'].get_country_display() if hasattr(item['product'], 'get_country_display') else '')
+            ws.cell(row=row, column=6, value=item['weight'])
+            ws.cell(row=row, column=7, value=item['price'])
+            ws.cell(row=row, column=8, value=item['total_amount'])
+            ws.cell(row=row, column=9, value=item['invoice'].invoice_id if item['invoice'].invoice_id else '')
+            
+            # تنظیم جهت راست به چپ برای سلول‌ها
+            for col in range(1, 10):
+                cell = ws.cell(row=row, column=col)
+                cell.alignment = Alignment(horizontal="right", vertical="center")
+            
+            row += 1
+        
+        # آیتم‌های غیر بازارگاهی
+        for item in expense_data['non_bazargah_items']:
+            ws.cell(row=row, column=1, value=expense.title)
+            ws.cell(row=row, column=2, value=expense.expense_date.strftime('%Y/%m/%d') if expense.expense_date else '')
+            ws.cell(row=row, column=3, value='خارج بازارگاه')
+            ws.cell(row=row, column=4, value=item['product'].name if item['product'].name else '')
+            ws.cell(row=row, column=5, value=item['product'].description if hasattr(item['product'], 'description') and item['product'].description else '')
+            ws.cell(row=row, column=6, value=item['weight'])
+            ws.cell(row=row, column=7, value=item['price'])
+            ws.cell(row=row, column=8, value=item['total_amount'])
+            ws.cell(row=row, column=9, value=item['invoice'].invoice_id if item['invoice'].invoice_id else '')
+            
+            # تنظیم جهت راست به چپ برای سلول‌ها
+            for col in range(1, 10):
+                cell = ws.cell(row=row, column=col)
+                cell.alignment = Alignment(horizontal="right", vertical="center")
+            
+            row += 1
+    
+    # ایجاد نام فایل منحصر به فرد و توصیفی
+    current_jalali = jdatetime.datetime.now()
+    timestamp = current_jalali.strftime('%Y%m%d_%H%M%S')
+    filename = f"هزینه_های_خرید_محصول_{timestamp}"
+    
+    if start_date:
+        if isinstance(start_date, str) and start_date.strip():
+            start_date_clean = start_date.replace('/', '').replace('-', '')
+            filename += f"_از_{start_date_clean}"
+        elif hasattr(start_date, 'strftime'):
+            start_date_clean = start_date.strftime('%Y%m%d')
+            filename += f"_از_{start_date_clean}"
+    if end_date:
+        if isinstance(end_date, str) and end_date.strip():
+            end_date_clean = end_date.replace('/', '').replace('-', '')
+            filename += f"_تا_{end_date_clean}"
+        elif hasattr(end_date, 'strftime'):
+            end_date_clean = end_date.strftime('%Y%m%d')
+            filename += f"_تا_{end_date_clean}"
+    
+    filename += ".xlsx"
+    
+    # پاسخ HTTP
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    wb.save(response)
+    return response
+
+
+def export_barnamehs_to_excel(request, bazargah_bills, non_bazargah_bills, start_date, end_date):
+    """
+    خروجی اکسل از بارنامه‌ها
+    """
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from django.http import HttpResponse
+    import jdatetime
+    
+    # ایجاد فایل اکسل
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "بارنامه‌ها"
+    
+    # تنظیم جهت راست به چپ برای کل شیت
+    ws.sheet_view.rightToLeft = True
+    
+    # تنظیم ستون‌ها
+    headers = [
+        'شماره بارنامه', 'نوع', 'کوتاژ/محصول', 'مشتری', 'وزن/مقدار',
+        'فی فروش (ریال)', 'کل درآمد (ریال)', 'تاریخ صدور', 'وضعیت'
+    ]
+    
+    # استایل‌های هدر
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="059669", end_color="059669", fill_type="solid")
+    header_alignment = Alignment(horizontal="center", vertical="center", textRotation=0)
+    
+    # اضافه کردن هدرها
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+    
+    # تنظیم عرض ستون‌ها
+    column_widths = [20, 15, 25, 25, 15, 20, 20, 15, 20]
+    for col, width in enumerate(column_widths, 1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = width
+    
+    # اضافه کردن داده‌ها
+    row = 2
+    
+    # بارنامه‌های بازارگاهی
+    for bill in bazargah_bills:
+        ws.cell(row=row, column=1, value=bill.number or '')
+        ws.cell(row=row, column=2, value='بازارگاهی')
+        ws.cell(row=row, column=3, value=bill.purchase.cargo.name if bill.purchase and bill.purchase.cargo else '')
+        ws.cell(row=row, column=4, value=bill.get_buyer_name() or '')
+        ws.cell(row=row, column=5, value=bill.tonnage or 0)
+        ws.cell(row=row, column=6, value=bill.get_customer_price() or 0)
+        ws.cell(row=row, column=7, value=bill.total_sales_amount or 0)
+        ws.cell(row=row, column=8, value=bill.barnameh_created_at.strftime('%Y/%m/%d') if bill.barnameh_created_at else '')
+        ws.cell(row=row, column=9, value='فعال' if bill.status == 'SENT_TO_BKI' else 'غیرفعال')
+        
+        # تنظیم جهت راست به چپ برای سلول‌ها
+        for col in range(1, 10):
+            cell = ws.cell(row=row, column=col)
+            cell.alignment = Alignment(horizontal="right", vertical="center")
+        
+        row += 1
+    
+    # بارنامه‌های غیر بازارگاهی
+    for bill in non_bazargah_bills:
+        ws.cell(row=row, column=1, value=bill.number or '')
+        ws.cell(row=row, column=2, value='خارج بازارگاه')
+        ws.cell(row=row, column=3, value=bill.non_bazargah_purchase.product.name if bill.non_bazargah_purchase and bill.non_bazargah_purchase.product else '')
+        ws.cell(row=row, column=4, value=bill.get_buyer_name() or '')
+        ws.cell(row=row, column=5, value=bill.tonnage or 0)
+        ws.cell(row=row, column=6, value=bill.get_customer_price() or 0)
+        ws.cell(row=row, column=7, value=bill.total_sales_amount or 0)
+        ws.cell(row=row, column=8, value=bill.barnameh_created_at.strftime('%Y/%m/%d') if bill.barnameh_created_at else '')
+        ws.cell(row=row, column=9, value='فعال' if bill.status == 'SENT_TO_BKI' else 'غیرفعال')
+        
+        # تنظیم جهت راست به چپ برای سلول‌ها
+        for col in range(1, 10):
+            cell = ws.cell(row=row, column=col)
+            cell.alignment = Alignment(horizontal="right", vertical="center")
+        
+        row += 1
+    
+    # ایجاد نام فایل منحصر به فرد و توصیفی
+    current_jalali = jdatetime.datetime.now()
+    timestamp = current_jalali.strftime('%Y%m%d_%H%M%S')
+    filename = f"بارنامه_ها_{timestamp}"
+    
+    if start_date:
+        if isinstance(start_date, str) and start_date.strip():
+            start_date_clean = start_date.replace('/', '').replace('-', '')
+            filename += f"_از_{start_date_clean}"
+        elif hasattr(start_date, 'strftime'):
+            start_date_clean = start_date.strftime('%Y%m%d')
+            filename += f"_از_{start_date_clean}"
+    if end_date:
+        if isinstance(end_date, str) and end_date.strip():
+            end_date_clean = end_date.replace('/', '').replace('-', '')
+            filename += f"_تا_{end_date_clean}"
+        elif hasattr(end_date, 'strftime'):
+            end_date_clean = end_date.strftime('%Y%m%d')
+            filename += f"_تا_{end_date_clean}"
+    
+    filename += ".xlsx"
+    
+    # پاسخ HTTP
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    wb.save(response)
+    return response
