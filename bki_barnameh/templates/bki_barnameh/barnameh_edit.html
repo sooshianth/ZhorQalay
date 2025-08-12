@@ -59,9 +59,9 @@
                                 <label for="barnameh_date" class="form-label fw-bold">تاریخ بارنامه</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
-                                    <input type="text" class="form-control" id="barnameh_date" name="barnameh_date" value="{{ barnameh.barnameh_date|default:'' }}" placeholder="1402/01/01">
+                                    <input type="text" class="form-control" id="barnameh_date" name="barnameh_date" value="{{ barnameh.barnameh_date|default:'' }}" placeholder="1402/01/01" pattern="\d{4}[-/.]\d{1,2}[-/.]\d{1,2}" title="تاریخ را به فرمت 1402/01/01، 1402-01-01 یا 1402.01.01 وارد کنید">
                                 </div>
-                                <div class="form-text text-muted small">مثال: 1402/01/01</div>
+                                <div class="form-text text-muted small">مثال: 1402/01/01، 1402-01-01 یا 1402.01.01</div>
                             </div>
                         </div>
                     </div>
@@ -178,6 +178,45 @@
                 form.classList.add('was-validated')
             }, false)
         })
+        
+        // اعتبارسنجی تاریخ بارنامه
+        document.getElementById('barnameh_date').addEventListener('input', function(e) {
+            var input = e.target;
+            var value = input.value;
+            
+            // حذف کاراکترهای غیرمجاز
+            value = value.replace(/[^\d\-/.]/g, '');
+            input.value = value;
+            
+            // بررسی فرمت تاریخ
+            if (value) {
+                var datePattern = /^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}$/;
+                if (datePattern.test(value)) {
+                    input.setCustomValidity('');
+                    input.classList.remove('is-invalid');
+                    input.classList.add('is-valid');
+                } else {
+                    input.setCustomValidity('تاریخ را به فرمت صحیح وارد کنید');
+                    input.classList.remove('is-valid');
+                    input.classList.add('is-invalid');
+                }
+            } else {
+                input.setCustomValidity('');
+                input.classList.remove('is-valid', 'is-invalid');
+            }
+        });
+        
+        // تبدیل خودکار جداکننده‌ها
+        document.getElementById('barnameh_date').addEventListener('blur', function(e) {
+            var input = e.target;
+            var value = input.value;
+            
+            if (value) {
+                // تبدیل - و . به /
+                value = value.replace(/[-.]/g, '/');
+                input.value = value;
+            }
+        });
     })()
     
     // اطمینان از نمایش صحیح کارت‌ها

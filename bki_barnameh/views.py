@@ -34,6 +34,41 @@ from .excel_management.views import upload_excel_view, download_excel_template, 
 
 logger = logging.getLogger('bki_barnameh_views')
 
+def parse_jalali_date(date_string):
+    """
+    تبدیل رشته تاریخ شمسی به تاریخ جلالی
+    پشتیبانی از فرمت‌های مختلف: 1402/01/01، 1402-01-01، 1402.01.01
+    """
+    if not date_string or not isinstance(date_string, str):
+        return None
+    
+    # حذف فاصله‌ها و تبدیل جداکننده‌های مختلف به /
+    date_string = date_string.strip().replace('-', '/').replace('.', '/')
+    
+    try:
+        # تقسیم تاریخ به بخش‌های مختلف
+        parts = date_string.split('/')
+        if len(parts) != 3:
+            raise ValueError("فرمت تاریخ باید به صورت YYYY/MM/DD باشد")
+        
+        year, month, day = int(parts[0]), int(parts[1]), int(parts[2])
+        
+        # بررسی معتبر بودن تاریخ
+        if year < 1300 or year > 1500:
+            raise ValueError("سال باید بین 1300 تا 1500 باشد")
+        if month < 1 or month > 12:
+            raise ValueError("ماه باید بین 1 تا 12 باشد")
+        if day < 1 or day > 31:
+            raise ValueError("روز باید بین 1 تا 31 باشد")
+        
+        # ایجاد تاریخ جلالی
+        return jdatetime.date(year, month, day)
+        
+    except ValueError as e:
+        raise ValueError(f"فرمت تاریخ نامعتبر: {date_string}. {str(e)}")
+    except Exception as e:
+        raise ValueError(f"خطا در تبدیل تاریخ: {str(e)}")
+
 # تعریف تمام ستون‌های قابل نمایش در جدول بارنامه
 BARNAMEH_COLUMNS = [
     {'id': 'number', 'name': 'شماره بارنامه'},
@@ -1289,12 +1324,10 @@ def update_barnameh(barnameh_id, data):
         
         if 'barnameh_date' in data:
             try:
-                if isinstance(data['barnameh_date'], str):
-                    # Assuming format is like '1402/01/01'
-                    parts = data['barnameh_date'].split('/')
-                    if len(parts) == 3:
-                        year, month, day = int(parts[0]), int(parts[1]), int(parts[2])
-                        barnameh.barnameh_date = jdatetime.date(year, month, day)
+                if isinstance(data['barnameh_date'], str) and data['barnameh_date'].strip():
+                    barnameh.barnameh_date = parse_jalali_date(data['barnameh_date'])
+                elif data['barnameh_date'] is None:
+                    barnameh.barnameh_date = None
                 else:
                     barnameh.barnameh_date = data['barnameh_date']
             except Exception as e:
@@ -1528,6 +1561,16 @@ def barnameh_create(request):
             'shenase_takhsis_code': request.POST.get('shenase_takhsis_code'),
         }
         
+        # پردازش تاریخ بارنامه
+        barnameh_date = None
+        if data['barnameh_date']:
+            try:
+                barnameh_date = parse_jalali_date(data['barnameh_date'])
+            except Exception as e:
+                logger.error(f"خطا در تبدیل تاریخ بارنامه: {str(e)}")
+                messages.error(request, f'خطا در تبدیل تاریخ: {str(e)}')
+                return render(request, 'bki_barnameh/barnameh_create.html')
+        
         barnameh = Barnameh.objects.create(
             number=data['number'],
             serial=data['serial'],
@@ -1537,7 +1580,7 @@ def barnameh_create(request):
             vehicle_plate=data['vehicle_plate'],
             receiver_name=data['receiver_name'],
             destination=data['destination'],
-            barnameh_date=data['barnameh_date'] if data['barnameh_date'] else None,
+            barnameh_date=barnameh_date,
             purchase_number=data['purchase_number'],
             shenase_takhsis_code=data['shenase_takhsis_code'],
             status='NOT_SENT_TO_BKI'
