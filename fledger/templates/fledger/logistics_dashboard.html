@@ -1,0 +1,833 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}داشبورد لجستیک{% endblock %}
+
+{% block content %}
+<style>
+    /* Custom CSS for Logistics Dashboard */
+    .logistics-hero {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        padding: 3rem 2rem;
+        border-radius: 1.5rem;
+        margin-bottom: 2.5rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(5, 150, 105, 0.3);
+    }
+
+    .logistics-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 2.5rem;
+        border-radius: 1.25rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+    }
+
+    .stat-card.cargo {
+        border-top: 4px solid #3b82f6;
+    }
+
+    .stat-card.purchase {
+        border-top: 4px solid #059669;
+    }
+
+    .stat-card.barnameh {
+        border-top: 4px solid #dc2626;
+    }
+
+    .stat-card.expense {
+        border-top: 4px solid #7c2d12;
+    }
+
+    .stat-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+        color: white;
+    }
+
+    .stat-icon.cargo {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    }
+
+    .stat-icon.purchase {
+        background: linear-gradient(135deg, #059669, #047857);
+    }
+
+    .stat-icon.barnameh {
+        background: linear-gradient(135deg, #dc2626, #b91c1c);
+    }
+
+    .stat-icon.expense {
+        background: linear-gradient(135deg, #7c2d12, #451a03);
+    }
+
+    .stat-content h3 {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: #1e293b;
+        line-height: 1.2;
+    }
+
+    .stat-label {
+        color: #64748b;
+        font-size: 1rem;
+        font-weight: 500;
+        margin-bottom: 0.75rem;
+    }
+
+    .section-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 2rem;
+        position: relative;
+        padding-bottom: 0.75rem;
+    }
+
+    .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 60px;
+        height: 3px;
+        background: linear-gradient(90deg, #059669, #10b981);
+        border-radius: 2px;
+    }
+
+    .data-table {
+        background: white;
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e2e8f0;
+        margin-bottom: 2rem;
+    }
+
+    .table-header {
+        background: #f8fafc;
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .table-header h4 {
+        color: #374151;
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .table-content {
+        padding: 0;
+    }
+
+    .table-content table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .table-content th {
+        padding: 1rem 1.5rem;
+        text-align: right;
+        color: #6b7280;
+        font-weight: 600;
+        font-size: 0.875rem;
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .table-content td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #f3f4f6;
+        color: #374151;
+    }
+
+    .table-content tr:hover {
+        background: #f9fafb;
+    }
+
+    .weight-badge {
+        background: #dbeafe;
+        color: #1e40af;
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .price-badge {
+        background: #dcfce7;
+        color: #166534;
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .status-active {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .status-inactive {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .tabs {
+        margin-bottom: 2rem;
+    }
+
+    .tab-buttons {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .tab-button {
+        padding: 0.75rem 1.5rem;
+        border: 2px solid #e5e7eb;
+        background: white;
+        color: #6b7280;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .tab-button.active {
+        border-color: #059669;
+        background: #059669;
+        color: white;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    .summary-box {
+        background: #f0f9ff;
+        border: 1px solid #0ea5e9;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .summary-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+
+    .summary-item:last-child {
+        margin-bottom: 0;
+        font-weight: 700;
+        border-top: 1px solid #0ea5e9;
+        padding-top: 0.5rem;
+    }
+
+    .no-data {
+        text-align: center;
+        padding: 3rem;
+        color: #6b7280;
+    }
+</style>
+
+<div class="logistics-hero">
+    <div class="hero-content">
+        <h1 style="font-size: 2.5rem; margin-bottom: 1rem; font-weight: 800;">
+            <i class="fas fa-truck-loading"></i> داشبورد لجستیک
+        </h1>
+        <p style="font-size: 1.25rem; opacity: 0.9; margin: 0;">
+            رصد و مدیریت خرید، فروش و حمل‌ونقل محصولات
+        </p>
+    </div>
+</div>
+
+<!-- آمار کلی -->
+<div class="stats-grid">
+    <div class="stat-card cargo">
+        <div class="stat-icon cargo">
+            <i class="fas fa-boxes"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-label">کوتاژ‌های فعال</div>
+            <h3>{{ total_active_cargos|default:0 }}</h3>
+            <small style="color: #6b7280;">غیرفعال: {{ total_inactive_cargos|default:0 }}</small>
+        </div>
+    </div>
+
+    <div class="stat-card expense">
+        <div class="stat-icon expense">
+            <i class="fas fa-shopping-cart"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-label">هزینه‌های خرید محصول</div>
+            <h3>{{ total_expenses_count|default:0 }}</h3>
+            <small style="color: #6b7280;">تأیید شده</small>
+        </div>
+    </div>
+
+    <div class="stat-card purchase">
+        <div class="stat-icon purchase">
+            <i class="fas fa-weight"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-label">کل وزن خریداری شده</div>
+            <h3>{{ total_bazargah_weight|add:total_non_bazargah_weight|floatformat:0|default:0 }}</h3>
+            <small style="color: #6b7280;">کیلوگرم</small>
+        </div>
+    </div>
+
+    <div class="stat-card barnameh">
+        <div class="stat-icon barnameh">
+            <i class="fas fa-file-invoice"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-label">کل بارنامه‌ها</div>
+            <h3>{{ total_barnamehs_count|default:0 }}</h3>
+            <small style="color: #6b7280;">درآمدهای ثبت شده</small>
+        </div>
+    </div>
+</div>
+
+<!-- کوتاژ‌های فعال -->
+<section class="mb-5">
+    <h2 class="section-title">
+        <i class="fas fa-boxes"></i> کوتاژ‌های فعال
+    </h2>
+    
+    <div class="data-table">
+        <div class="table-header">
+            <h4>لیست محصولات فعال</h4>
+        </div>
+        <div class="table-content">
+            {% if active_cargos %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>کوتاژ</th>
+                            <th>نوع محصول</th>
+                            <th>کشور</th>
+                            <th>واردکننده</th>
+                            <th>فی خرید</th>
+                            <th>فی فروش</th>
+                            <th>وزن موجود</th>
+                            <th>وضعیت</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cargo in active_cargos %}
+                        <tr>
+                            <td><strong>{{ cargo.cottage }}</strong></td>
+                            <td>{{ cargo.get_product_type_display }}</td>
+                            <td>{{ cargo.get_country_display }}</td>
+                            <td>{{ cargo.vared_konandeh.name|default:"نامشخص" }}</td>
+                            <td>
+                                <span class="price-badge">{{ cargo.company_price|floatformat:0|default:"0" }} ریال</span>
+                            </td>
+                            <td>
+                                <span class="price-badge">{{ cargo.customer_price|floatformat:0|default:"0" }} ریال</span>
+                            </td>
+                            <td>
+                                <span class="weight-badge">{{ cargo.weight|floatformat:0|default:"0" }} کیلو</span>
+                            </td>
+                            <td>
+                                <span class="status-badge status-active">
+                                    <i class="fas fa-check-circle"></i> فعال
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="no-data">
+                    <i class="fas fa-box-open" style="font-size: 3rem; margin-bottom: 1rem; color: #d1d5db;"></i>
+                    <p>هیچ کوتاژ فعالی یافت نشد</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- هزینه‌های خرید محصول -->
+<section class="mb-5">
+    <h2 class="section-title">
+        <i class="fas fa-shopping-cart"></i> هزینه‌های خرید محصول
+    </h2>
+    
+    <div class="tabs">
+        <div class="tab-buttons">
+            <button class="tab-button active" onclick="showTab(event, 'bazargah-expenses')">
+                بازارگاهی
+            </button>
+            <button class="tab-button" onclick="showTab(event, 'non-bazargah-expenses')">
+                خارج بازارگاه
+            </button>
+        </div>
+
+        <!-- هزینه‌های بازارگاهی -->
+        <div id="bazargah-expenses" class="tab-content active">
+            <div class="summary-box">
+                <div class="summary-item">
+                    <span>کل وزن:</span>
+                    <span>{{ total_bazargah_weight|floatformat:0|default:"0" }} کیلوگرم</span>
+                </div>
+                <div class="summary-item">
+                    <span>کل هزینه:</span>
+                    <span>{{ total_bazargah_expenses|floatformat:0|default:"0" }} ریال</span>
+                </div>
+            </div>
+
+            <div class="data-table">
+                <div class="table-header">
+                    <h4>هزینه‌های خرید محصولات بازارگاهی</h4>
+                </div>
+                <div class="table-content">
+                    {% if processed_expenses %}
+                        {% for expense_data in processed_expenses %}
+                            {% if expense_data.bazargah_items %}
+                                <div style="margin-bottom: 2rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;">
+                                    <div style="background: #f9fafb; padding: 1rem; border-bottom: 1px solid #e5e7eb;">
+                                        <h5 style="margin: 0; color: #374151;">
+                                            <i class="fas fa-receipt"></i> {{ expense_data.expense.title }}
+                                        </h5>
+                                        <small style="color: #6b7280;">
+                                            تاریخ: {{ expense_data.expense.expense_date|date:"Y/m/d" }} | 
+                                            فاکتورها: {{ expense_data.invoice_count }}
+                                        </small>
+                                    </div>
+                                    <table style="width: 100%;">
+                                        <thead>
+                                            <tr>
+                                                <th>کوتاژ</th>
+                                                <th>نوع محصول</th>
+                                                <th>کشور</th>
+                                                <th>وزن</th>
+                                                <th>فی واحد</th>
+                                                <th>مبلغ کل</th>
+                                                <th>شماره فاکتور</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in expense_data.bazargah_items %}
+                                            <tr>
+                                                <td><strong>{{ item.product.cottage }}</strong></td>
+                                                <td>{{ item.product.get_product_type_display }}</td>
+                                                <td>{{ item.product.get_country_display }}</td>
+                                                <td>
+                                                    <span class="weight-badge">{{ item.weight }} کیلو</span>
+                                                </td>
+                                                <td>{{ item.price|floatformat:0|default:"0" }} ریال</td>
+                                                <td>
+                                                    <span class="price-badge">{{ item.total_amount|floatformat:0 }} ریال</span>
+                                                </td>
+                                                <td>{{ item.invoice.invoice_id }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr style="background: #f3f4f6; font-weight: bold;">
+                                                <td colspan="3">جمع این هزینه:</td>
+                                                <td>
+                                                    <span class="weight-badge">{{ expense_data.total_bazargah_weight }} کیلو</span>
+                                                </td>
+                                                <td colspan="2">
+                                                    <span class="price-badge">{{ expense_data.total_bazargah_amount|floatformat:0 }} ریال</span>
+                                                </td>
+                                                <td></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-data">
+                            <i class="fas fa-shopping-cart" style="font-size: 3rem; margin-bottom: 1rem; color: #d1d5db;"></i>
+                            <p>هیچ هزینه خرید محصول بازارگاهی یافت نشد</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- هزینه‌های غیر بازارگاهی -->
+        <div id="non-bazargah-expenses" class="tab-content">
+            <div class="summary-box">
+                <div class="summary-item">
+                    <span>کل وزن:</span>
+                    <span>{{ total_non_bazargah_weight|floatformat:0|default:"0" }} کیلوگرم</span>
+                </div>
+                <div class="summary-item">
+                    <span>کل هزینه:</span>
+                    <span>{{ total_non_bazargah_expenses|floatformat:0|default:"0" }} ریال</span>
+                </div>
+            </div>
+
+            <div class="data-table">
+                <div class="table-header">
+                    <h4>هزینه‌های خرید محصولات غیر بازارگاهی</h4>
+                </div>
+                <div class="table-content">
+                    {% if processed_expenses %}
+                        {% for expense_data in processed_expenses %}
+                            {% if expense_data.non_bazargah_items %}
+                                <div style="margin-bottom: 2rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;">
+                                    <div style="background: #f9fafb; padding: 1rem; border-bottom: 1px solid #e5e7eb;">
+                                        <h5 style="margin: 0; color: #374151;">
+                                            <i class="fas fa-receipt"></i> {{ expense_data.expense.title }}
+                                        </h5>
+                                        <small style="color: #6b7280;">
+                                            تاریخ: {{ expense_data.expense.expense_date|date:"Y/m/d" }} | 
+                                            فاکتورها: {{ expense_data.invoice_count }}
+                                        </small>
+                                    </div>
+                                    <table style="width: 100%;">
+                                        <thead>
+                                            <tr>
+                                                <th>نام محصول</th>
+                                                <th>دسته‌بندی</th>
+                                                <th>مقدار</th>
+                                                <th>فی واحد</th>
+                                                <th>مبلغ کل</th>
+                                                <th>شماره فاکتور</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in expense_data.non_bazargah_items %}
+                                            <tr>
+                                                <td><strong>{{ item.product.name }}</strong></td>
+                                                <td>{{ item.product.category.name|default:"نامشخص" }}</td>
+                                                <td>
+                                                    <span class="weight-badge">{{ item.weight }}</span>
+                                                </td>
+                                                <td>{{ item.price|floatformat:0|default:"0" }} ریال</td>
+                                                <td>
+                                                    <span class="price-badge">{{ item.total_amount|floatformat:0 }} ریال</span>
+                                                </td>
+                                                <td>{{ item.invoice.invoice_id }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr style="background: #f3f4f6; font-weight: bold;">
+                                                <td colspan="2">جمع این هزینه:</td>
+                                                <td>
+                                                    <span class="weight-badge">{{ expense_data.total_non_bazargah_weight }}</span>
+                                                </td>
+                                                <td colspan="2">
+                                                    <span class="price-badge">{{ expense_data.total_non_bazargah_amount|floatformat:0 }} ریال</span>
+                                                </td>
+                                                <td></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-data">
+                            <i class="fas fa-shopping-cart" style="font-size: 3rem; margin-bottom: 1rem; color: #d1d5db;"></i>
+                            <p>هیچ هزینه خرید محصول غیر بازارگاهی یافت نشد</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- درآمدها از بارنامه‌ها -->
+<section class="mb-5">
+    <h2 class="section-title">
+        <i class="fas fa-money-bill-wave"></i> درآمدها از بارنامه‌ها
+    </h2>
+    
+    <div class="tabs">
+        <div class="tab-buttons">
+            <button class="tab-button active" onclick="showTab(event, 'bazargah-bills')">
+                بازارگاهی
+            </button>
+            <button class="tab-button" onclick="showTab(event, 'non-bazargah-bills')">
+                خارج بازارگاه
+            </button>
+        </div>
+
+        <!-- بارنامه‌های بازارگاهی -->
+        <div id="bazargah-bills" class="tab-content active">
+            <div class="summary-box">
+                <div class="summary-item">
+                    <span>کل وزن:</span>
+                    <span>{{ total_bazargah_bill_weight|floatformat:0|default:"0" }} کیلوگرم</span>
+                </div>
+                <div class="summary-item">
+                    <span>کل درآمد:</span>
+                    <span>{{ total_bazargah_bill_revenue|floatformat:0|default:"0" }} ریال</span>
+                </div>
+            </div>
+
+            <div class="data-table">
+                <div class="table-header">
+                    <h4>بارنامه‌های بازارگاهی اخیر</h4>
+                </div>
+                <div class="table-content">
+                    {% if bazargah_bills %}
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>شماره بارنامه</th>
+                                    <th>کوتاژ</th>
+                                    <th>مشتری</th>
+                                    <th>وزن</th>
+                                    <th>فی فروش</th>
+                                    <th>کل درآمد</th>
+                                    <th>تاریخ صدور</th>
+                                    <th>وضعیت</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for bill in bazargah_bills %}
+                                <tr>
+                                    <td><strong>{{ bill.number|default:"نامشخص" }}</strong></td>
+                                    <td>{{ bill.purchase.cargo.name|default:"نامشخص" }}</td>
+                                    <td>{{ bill.get_buyer_name|default:"نامشخص" }}</td>
+                                    <td>
+                                        <span class="weight-badge">{{ bill.tonnage|floatformat:0 }} کیلو</span>
+                                    </td>
+                                    <td>{{ bill.get_customer_price|floatformat:0|default:0 }} ریال</td>
+                                    <td>
+                                        <span class="price-badge">{{ bill.total_sales_amount|floatformat:0|default:0 }} ریال</span>
+                                    </td>
+                                    <td>{{ bill.barnameh_created_at|date:"Y/m/d" }}</td>
+                                    <td>
+                                        {% if bill.is_paid %}
+                                            <span class="status-badge status-active">پرداخت شده</span>
+                                        {% else %}
+                                            <span class="status-badge status-inactive">در انتظار پرداخت</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="no-data">
+                            <i class="fas fa-file-invoice" style="font-size: 3rem; margin-bottom: 1rem; color: #d1d5db;"></i>
+                            <p>هیچ بارنامه بازارگاهی یافت نشد</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- بارنامه‌های غیر بازارگاهی -->
+        <div id="non-bazargah-bills" class="tab-content">
+            <div class="summary-box">
+                <div class="summary-item">
+                    <span>کل وزن:</span>
+                    <span>{{ total_non_bazargah_bill_weight|floatformat:0|default:"0" }} کیلوگرم</span>
+                </div>
+                <div class="summary-item">
+                    <span>کل درآمد:</span>
+                    <span>{{ total_non_bazargah_bill_revenue|floatformat:0|default:"0" }} ریال</span>
+                </div>
+            </div>
+
+            <div class="data-table">
+                <div class="table-header">
+                    <h4>بارنامه‌های غیر بازارگاهی اخیر</h4>
+                </div>
+                <div class="table-content">
+                    {% if non_bazargah_bills %}
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>شماره بارنامه</th>
+                                    <th>محصول</th>
+                                    <th>مشتری</th>
+                                    <th>مقدار</th>
+                                    <th>فی فروش</th>
+                                    <th>کل درآمد</th>
+                                    <th>تاریخ صدور</th>
+                                    <th>وضعیت</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for bill in non_bazargah_bills %}
+                                <tr>
+                                    <td><strong>{{ bill.number|default:"نامشخص" }}</strong></td>
+                                    <td>{{ bill.non_bazargah_purchase.product.name|default:"نامشخص" }}</td>
+                                    <td>{{ bill.get_buyer_name|default:"نامشخص" }}</td>
+                                    <td>
+                                        <span class="weight-badge">{{ bill.tonnage|floatformat:0 }}</span>
+                                    </td>
+                                    <td>{{ bill.get_customer_price|floatformat:0|default:0 }} ریال</td>
+                                    <td>
+                                        <span class="price-badge">{{ bill.total_sales_amount|floatformat:0|default:0 }} ریال</span>
+                                    </td>
+                                    <td>{{ bill.barnameh_created_at|date:"Y/m/d" }}</td>
+                                    <td>
+                                        {% if bill.is_paid %}
+                                            <span class="status-badge status-active">پرداخت شده</span>
+                                        {% else %}
+                                            <span class="status-badge status-inactive">در انتظار پرداخت</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="no-data">
+                            <i class="fas fa-file-invoice" style="font-size: 3rem; margin-bottom: 1rem; color: #d1d5db;"></i>
+                            <p>هیچ بارنامه غیر بازارگاهی یافت نشد</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- هزینه‌های عمومی -->
+<section class="mb-5">
+    <h2 class="section-title">
+        <i class="fas fa-receipt"></i> هزینه‌های عمومی اخیر
+    </h2>
+    
+    <div class="data-table">
+        <div class="table-header">
+            <h4>هزینه‌های تأیید شده</h4>
+        </div>
+        <div class="table-content">
+            {% if recent_expenses %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>عنوان</th>
+                            <th>نوع هزینه</th>
+                            <th>مبلغ</th>
+                            <th>وضعیت</th>
+                            <th>تاریخ هزینه</th>
+                            <th>تاریخ ثبت</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in recent_expenses %}
+                        <tr>
+                            <td><strong>{{ expense.title }}</strong></td>
+                            <td>{{ expense.get_cost_type_display }}</td>
+                            <td>
+                                <span class="price-badge">{{ expense.final_amount|default:expense.amount|floatformat:0|default:"0" }} ریال</span>
+                            </td>
+                            <td>
+                                <span class="status-badge status-active">
+                                    {{ expense.get_approval_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ expense.expense_date|date:"Y/m/d" }}</td>
+                            <td>{{ expense.created_at|date:"Y/m/d" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="no-data">
+                    <i class="fas fa-receipt" style="font-size: 3rem; margin-bottom: 1rem; color: #d1d5db;"></i>
+                    <p>هیچ هزینه‌ای یافت نشد</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<script>
+function showTab(evt, tabName) {
+    // پنهان کردن همه محتویات تب
+    var tabcontents = document.getElementsByClassName("tab-content");
+    for (var i = 0; i < tabcontents.length; i++) {
+        tabcontents[i].classList.remove("active");
+    }
+    
+    // حذف کلاس active از همه دکمه‌های تب
+    var tabbuttons = document.getElementsByClassName("tab-button");
+    for (var i = 0; i < tabbuttons.length; i++) {
+        tabbuttons[i].classList.remove("active");
+    }
+    
+    // نمایش تب انتخاب شده و اضافه کردن کلاس active به دکمه کلیک شده
+    document.getElementById(tabName).classList.add("active");
+    evt.currentTarget.classList.add("active");
+}
+
+// تنظیم تب‌های اول به عنوان فعال هنگام بارگذاری صفحه
+document.addEventListener('DOMContentLoaded', function() {
+    // فعال کردن اولین تب در هر بخش
+    var firstTabs = document.querySelectorAll('.tab-buttons .tab-button:first-child');
+    var firstContents = document.querySelectorAll('.tab-content:first-of-type');
+    
+    firstTabs.forEach(function(tab) {
+        tab.classList.add('active');
+    });
+    
+    firstContents.forEach(function(content) {
+        content.classList.add('active');
+    });
+});
+</script>
+
+{% endblock %}

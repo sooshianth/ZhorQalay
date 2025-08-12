@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from core.decorators.decorators import role_required
 from core.PurchaseModel import Purchase
-from core.CargoProductModel import VaredKonandeh
+from core.CargoProductModel import VaredKonandeh, CargoProduct
 from fledger.models import Wallet, Transaction, LedgerEntry
 from fledger.forms import TransactionForm, TransactionEditForm, HazinahForm, HazinahPaymentForm, InvoiceForm, InvoiceItemFormSet
 from major.models.Hazinah import Hazinah
@@ -1113,3 +1113,159 @@ def create_invoice(request):
     return render(request, 'fledger/create_invoice.html', context)
 
 
+# ==================== داشبورد لجستیک ====================
+
+@role_required('admin', 'logistics_manager')
+def logistics_dashboard(request):
+    """
+    داشبورد اختصاصی مدیر لجستیک برای رصد خرید و فروش
+    """
+    from major.models.Invoice import Invoice
+    from major.models.InvoiceItem import InvoiceItem
+    
+    # لیست کوتاژ‌های فعال
+    active_cargos = CargoProduct.objects.filter(status=True).select_related('vared_konandeh').order_by('-last_modified')[:50]
+    
+    # آمار کلی کوتاژ‌ها
+    total_active_cargos = CargoProduct.objects.filter(status=True).count()
+    total_inactive_cargos = CargoProduct.objects.filter(status=False).count()
+    
+    # هزینه‌های مربوط به خرید محصول (فقط نوع product_purchase)
+    product_purchase_expenses = Hazinah.objects.filter(
+        cost_type='product_purchase',
+        approval_status__in=['approved', 'auto_approved']
+    ).select_related('approved_by').prefetch_related('invoice_set').order_by('-created_at')[:20]
+    
+    # پردازش هزینه‌ها و استخراج اطلاعات از فاکتورها
+    processed_expenses = []
+    total_bazargah_expenses = 0
+    total_non_bazargah_expenses = 0
+    total_bazargah_weight = 0
+    total_non_bazargah_weight = 0
+    
+    for expense in product_purchase_expenses:
+        expense_data = {
+            'expense': expense,
+            'bazargah_items': [],
+            'non_bazargah_items': [],
+            'total_bazargah_amount': 0,
+            'total_non_bazargah_amount': 0,
+            'total_bazargah_weight': 0,
+            'total_non_bazargah_weight': 0,
+            'invoice_count': 0
+        }
+        
+        # بررسی فاکتورهای مرتبط
+        for invoice in expense.invoice_set.all():
+            expense_data['invoice_count'] += 1
+            
+            # بررسی آیتم‌های فاکتور
+            for item in invoice.items.all():
+                if item.product_type == 'Bazargah' and item.cargo_product:
+                    item_total = item.get_total_price()
+                    item_weight = item.amount or 0
+                    
+                    expense_data['bazargah_items'].append({
+                        'product': item.cargo_product,
+                        'weight': item_weight,
+                        'price': item.price,
+                        'total_amount': item_total,
+                        'invoice': invoice
+                    })
+                    
+                    expense_data['total_bazargah_amount'] += item_total
+                    expense_data['total_bazargah_weight'] += item_weight
+                    total_bazargah_expenses += item_total
+                    total_bazargah_weight += item_weight
+                    
+                elif item.product_type == 'NonBazargah' and item.non_bazargah_product:
+                    item_total = item.get_total_price()
+                    item_weight = item.amount or 0
+                    
+                    expense_data['non_bazargah_items'].append({
+                        'product': item.non_bazargah_product,
+                        'weight': item_weight,
+                        'price': item.price,
+                        'total_amount': item_total,
+                        'invoice': invoice
+                    })
+                    
+                    expense_data['total_non_bazargah_amount'] += item_total
+                    expense_data['total_non_bazargah_weight'] += item_weight
+                    total_non_bazargah_expenses += item_total
+                    total_non_bazargah_weight += item_weight
+        
+        processed_expenses.append(expense_data)
+    
+    # بارنامه‌های بازارگاهی (درآمدها)
+    bazargah_bills = Barnameh.objects.filter(
+        type='Bazargah',
+        purchase__isnull=False
+    ).select_related('purchase', 'purchase__cargo').order_by('-barnameh_created_at')[:20]
+    
+    # بارنامه‌های غیر بازارگاهی (درآمدها) 
+    non_bazargah_bills = Barnameh.objects.filter(
+        type='Non_Bazargah',
+        non_bazargah_purchase__isnull=False
+    ).select_related('non_bazargah_purchase', 'non_bazargah_purchase__product').order_by('-barnameh_created_at')[:20]
+    
+    # آمار بارنامه‌ها (درآمدها)
+    total_bazargah_bill_weight = 0
+    total_bazargah_bill_revenue = 0
+    
+    bazargah_bills_with_revenue = []
+    for bill in bazargah_bills:
+        weight = bill.tonnage or 0
+        total_bazargah_bill_weight += weight
+        revenue = bill.total_sales_amount or 0
+        total_bazargah_bill_revenue += revenue
+        bazargah_bills_with_revenue.append(bill)
+    
+    total_non_bazargah_bill_weight = 0
+    total_non_bazargah_bill_revenue = 0
+    
+    non_bazargah_bills_with_revenue = []
+    for bill in non_bazargah_bills:
+        weight = bill.tonnage or 0
+        total_non_bazargah_bill_weight += weight
+        revenue = bill.total_sales_amount or 0
+        total_non_bazargah_bill_revenue += revenue
+        non_bazargah_bills_with_revenue.append(bill)
+    
+    # هزینه‌های عمومی (سایر انواع هزینه)
+    recent_expenses = Hazinah.objects.filter(
+        approval_status__in=['approved', 'auto_approved']
+    ).exclude(cost_type='product_purchase').order_by('-created_at')[:10]
+    
+    context = {
+        # کوتاژ‌ها
+        'active_cargos': active_cargos,
+        'total_active_cargos': total_active_cargos,
+        'total_inactive_cargos': total_inactive_cargos,
+        
+        # هزینه‌های خرید محصول با جزئیات
+        'processed_expenses': processed_expenses,
+        'total_bazargah_expenses': total_bazargah_expenses,
+        'total_non_bazargah_expenses': total_non_bazargah_expenses,
+        'total_bazargah_weight': total_bazargah_weight,
+        'total_non_bazargah_weight': total_non_bazargah_weight,
+        
+        # بارنامه‌های بازارگاهی
+        'bazargah_bills': bazargah_bills_with_revenue,
+        'total_bazargah_bill_weight': total_bazargah_bill_weight,
+        'total_bazargah_bill_revenue': total_bazargah_bill_revenue,
+        
+        # بارنامه‌های غیر بازارگاهی
+        'non_bazargah_bills': non_bazargah_bills_with_revenue,
+        'total_non_bazargah_bill_weight': total_non_bazargah_bill_weight,
+        'total_non_bazargah_bill_revenue': total_non_bazargah_bill_revenue,
+        
+        # هزینه‌های عمومی
+        'recent_expenses': recent_expenses,
+        
+        # آمار کلی
+        'total_expenses_count': len(processed_expenses),
+        'total_barnamehs_count': len(bazargah_bills) + len(non_bazargah_bills),
+    }
+    
+    return render(request, 'fledger/logistics_dashboard.html', context)

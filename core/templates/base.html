@@ -148,7 +148,22 @@
                 </div>
                 {% endif %}
                 
-                <!-- دسته چهارم: مدیریت داده‌ها -->
+                <!-- دسته چهارم: لجستیک -->
+                {% if request.user.is_superuser or request.user.logistics_manager %}
+                <div class="menu-category">
+                    <div class="category-title" data-toggle="collapse" data-target="logistics-management">
+                        <i class="fas fa-truck-loading category-icon"></i>
+                        <span>لجستیک</span>
+                        <i class="fas fa-chevron-down category-arrow"></i>
+                    </div>
+                    
+                    <div class="submenu-container collapsed" id="logistics-management">
+                        <li><a href="{% url 'fledger:logistics_dashboard' %}"><i class="fas fa-tachometer-alt"></i> داشبورد لجستیک</a></li>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- دسته پنجم: مدیریت داده‌ها -->
                 {% if request.user.is_superuser or request.user.logistics_manager %}
                 <div class="menu-category">
                     <div class="category-title" data-toggle="collapse" data-target="data-management">
@@ -163,7 +178,7 @@
                 </div>
                 {% endif %}
                 
-                <!-- دسته پنجم: امور مالی -->
+                <!-- دسته ششم: امور مالی -->
                 {% if request.user.is_superuser or request.user.is_staff or request.user.financial_manager %}
                 <div class="menu-category">
                     <div class="category-title" data-toggle="collapse" data-target="financial-management">
@@ -178,7 +193,7 @@
                 </div>
                 {% endif %}
                 
-                <!-- دسته ششم: هوش تجاری -->
+                <!-- دسته هفتم: هوش تجاری -->
                 {% if request.user.is_superuser or request.user.is_staff %}
                 <div class="menu-category">
                     <div class="category-title" data-toggle="collapse" data-target="business-intelligence">
@@ -193,7 +208,7 @@
                 </div>
                 {% endif %}
                 
-                <!-- دسته هفتم: منابع انسانی -->
+                <!-- دسته هشتم: منابع انسانی -->
                 <div class="menu-category">
                     <div class="category-title" data-toggle="collapse" data-target="reports-management">
                         <i class="fas fa-user-tie category-icon"></i>

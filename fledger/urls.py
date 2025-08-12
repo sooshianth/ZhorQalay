@@ -44,6 +44,9 @@ urlpatterns = [
     path('recalculate-wallets/', views.recalculate_all_wallets, name='recalculate_wallets'),
     path('sync-purchases/', views.sync_purchases_to_ledger, name='sync_purchases'),
     
+    # داشبورد لجستیک
+    path('logistics/', views.logistics_dashboard, name='logistics_dashboard'),
+    
     # AJAX endpoints
     path('ajax/varedkonandeh/<int:varedkonandeh_id>/', views.ajax_get_varedkonandeh_info, name='ajax_varedkonandeh_info'),
 ]
