@@ -167,6 +167,20 @@ def process_template_placeholders(message, purchase=None, customer=None):
     
     # داده‌های خرید
     if purchase:
+        # دریافت شناسه‌های تخصیص از مدل ShenaseTakhsis
+        shenase_takhsis_values = []
+        if hasattr(purchase, 'shenase_takhsis_set'):
+            shenase_takhsis_objects = purchase.shenase_takhsis_set.all()
+            if shenase_takhsis_objects.exists():
+                shenase_takhsis_values = [obj.code for obj in shenase_takhsis_objects if obj.code]
+        
+        # اگر شناسه‌های تخصیص از مدل ShenaseTakhsis وجود نداشت، از فیلد مستقیم استفاده کن
+        if not shenase_takhsis_values and purchase.shenase_takhsis:
+            shenase_takhsis_values = [purchase.shenase_takhsis]
+        
+        # تبدیل لیست به رشته با جداکننده کاما
+        shenase_takhsis_display = ', '.join(shenase_takhsis_values) if shenase_takhsis_values else '-'
+        
         replacements = {
             '{{purchase_number}}': str(purchase.purchase_number or ''),
             '{{invoice_id}}': str(purchase.invoice_id or ''),
@@ -177,7 +191,7 @@ def process_template_placeholders(message, purchase=None, customer=None):
             '{{barnameh_date}}': str(purchase.barnameh_date or ''),
             '{{driver_name}}': str(purchase.driver_name or ''),
             '{{driver_phone}}': str(purchase.driver_phone or ''),
-            '{{shenase_takhsis}}': str(purchase.shenase_takhsis or ''),
+            '{{shenase_takhsis}}': shenase_takhsis_display,
         }
         
         # اضافه کردن داده‌های اختلاف اگر موجود باشد

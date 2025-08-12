@@ -13,7 +13,8 @@ document.addEventListener('DOMContentLoaded', function() {
         customer_price: '30000',
         sales_agent_name: 'مهندس رضایی',
         status_display: 'ثبت شده',
-        created_at: '1403/03/15'
+        created_at: '1403/03/15',
+        shenase_takhsis: 'ABC123456789'
     };
 
     const contentTextarea = document.getElementById('content');

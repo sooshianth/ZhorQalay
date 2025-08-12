@@ -78,6 +78,20 @@ def process_template_for_customer(message, customer, purchase=None):
         selected_purchase = None
     
     if selected_purchase:
+        # دریافت شناسه‌های تخصیص از مدل ShenaseTakhsis
+        shenase_takhsis_values = []
+        if hasattr(selected_purchase, 'shenase_takhsis_set'):
+            shenase_takhsis_objects = selected_purchase.shenase_takhsis_set.all()
+            if shenase_takhsis_objects.exists():
+                shenase_takhsis_values = [obj.code for obj in shenase_takhsis_objects if obj.code]
+        
+        # اگر شناسه‌های تخصیص از مدل ShenaseTakhsis وجود نداشت، از فیلد مستقیم استفاده کن
+        if not shenase_takhsis_values and selected_purchase.shenase_takhsis:
+            shenase_takhsis_values = [selected_purchase.shenase_takhsis]
+        
+        # تبدیل لیست به رشته با جداکننده کاما
+        shenase_takhsis_display = ', '.join(shenase_takhsis_values) if shenase_takhsis_values else '-'
+        
         replacements.update({
             '{{purchase_number}}': str(selected_purchase.purchase_number or '-'),
             '{{invoice_id}}': str(selected_purchase.invoice_id or '-'),
@@ -86,6 +100,7 @@ def process_template_for_customer(message, customer, purchase=None):
             '{{amount_paid}}': str(selected_purchase.amount_paid or '-'),
             '{{status_display}}': str(selected_purchase.get_state_display() if hasattr(selected_purchase, 'get_state_display') else '-'),
             '{{created_at}}': str(selected_purchase.created_at.strftime('%Y/%m/%d %H:%M') if selected_purchase.created_at else '-'),
+            '{{shenase_takhsis}}': shenase_takhsis_display,
         })
         
         # داده‌های محصول
@@ -112,6 +127,7 @@ def process_template_for_customer(message, customer, purchase=None):
             '{{amount_paid}}': '-',
             '{{status_display}}': '-',
             '{{created_at}}': '-',
+            '{{shenase_takhsis}}': '-',
         })
         replacements.update({
             '{{cottage}}': '-',
