@@ -1123,8 +1123,8 @@ def logistics_dashboard(request):
     from major.models.Invoice import Invoice
     from major.models.InvoiceItem import InvoiceItem
     
-    # لیست کوتاژ‌های فعال
-    active_cargos = CargoProduct.objects.filter(status=True).select_related('vared_konandeh').order_by('-last_modified')[:50]
+    # لیست کوتاژ‌های فعال (همه)
+    active_cargos = CargoProduct.objects.filter(status=True).select_related('vared_konandeh').order_by('-last_modified')
     
     # آمار کلی کوتاژ‌ها
     total_active_cargos = CargoProduct.objects.filter(status=True).count()

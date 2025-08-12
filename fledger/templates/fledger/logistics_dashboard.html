@@ -1,5 +1,18 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load s    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+    }%}
 {% load custom_filters %}
 
 {% block title %}داشبورد لجستیک{% endblock %}
@@ -160,6 +173,27 @@
 
     .table-content {
         padding: 0;
+        max-height: 400px;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .table-content::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .table-content::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 10px;
+    }
+
+    .table-content::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #059669, #10b981);
+        border-radius: 10px;
+    }
+
+    .table-content::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #047857, #059669);
     }
 
     .table-content table {
@@ -175,6 +209,9 @@
         font-size: 0.875rem;
         background: #f9fafb;
         border-bottom: 1px solid #e5e7eb;
+        position: sticky;
+        top: 0;
+        z-index: 10;
     }
 
     .table-content td {
@@ -331,6 +368,17 @@
         </div>
     </div>
 
+    <div class="stat-card" style="border-top: 4px solid #7c3aed;">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #7c3aed, #5b21b6);">
+            <i class="fas fa-shipping-fast"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-label">کل وزن فروخته شده</div>
+            <h3>{{ total_bazargah_bill_weight|add:total_non_bazargah_bill_weight|floatformat:0|default:0 }}</h3>
+            <small style="color: #6b7280;">کیلوگرم</small>
+        </div>
+    </div>
+
     <div class="stat-card barnameh">
         <div class="stat-icon barnameh">
             <i class="fas fa-file-invoice"></i>
@@ -339,6 +387,53 @@
             <div class="stat-label">کل بارنامه‌ها</div>
             <h3>{{ total_barnamehs_count|default:0 }}</h3>
             <small style="color: #6b7280;">درآمدهای ثبت شده</small>
+        </div>
+    </div>
+</div>
+
+<!-- آمار تفصیلی خرید -->
+<div class="stats-grid" style="margin-top: 1rem;">
+    <div class="stat-card" style="border-top: 4px solid #0ea5e9;">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #0ea5e9, #0284c7);">
+            <i class="fas fa-balance-scale"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-label">وزن خرید بازارگاهی</div>
+            <h3>{{ total_bazargah_weight|floatformat:0|default:0 }}</h3>
+            <small style="color: #6b7280;">کیلوگرم</small>
+        </div>
+    </div>
+
+    <div class="stat-card" style="border-top: 4px solid #8b5cf6;">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+            <i class="fas fa-balance-scale"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-label">وزن خرید غیربازارگاهی</div>
+            <h3>{{ total_non_bazargah_weight|floatformat:0|default:0 }}</h3>
+            <small style="color: #6b7280;">کیلوگرم</small>
+        </div>
+    </div>
+
+    <div class="stat-card" style="border-top: 4px solid #f59e0b;">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+            <i class="fas fa-truck"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-label">وزن بارنامه بازارگاهی</div>
+            <h3>{{ total_bazargah_bill_weight|floatformat:0|default:0 }}</h3>
+            <small style="color: #6b7280;">کیلوگرم</small>
+        </div>
+    </div>
+
+    <div class="stat-card" style="border-top: 4px solid #ef4444;">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+            <i class="fas fa-truck"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-label">وزن بارنامه غیربازارگاهی</div>
+            <h3>{{ total_non_bazargah_bill_weight|floatformat:0|default:0 }}</h3>
+            <small style="color: #6b7280;">کیلوگرم</small>
         </div>
     </div>
 </div>
@@ -411,7 +506,7 @@
     
     <div class="tabs">
         <div class="tab-buttons">
-            <button class="tab-button active" onclick="showTab(event, 'bazargah-expenses')">
+            <button class="tab-button" onclick="showTab(event, 'bazargah-expenses')">
                 بازارگاهی
             </button>
             <button class="tab-button" onclick="showTab(event, 'non-bazargah-expenses')">
@@ -420,7 +515,7 @@
         </div>
 
         <!-- هزینه‌های بازارگاهی -->
-        <div id="bazargah-expenses" class="tab-content active">
+        <div id="bazargah-expenses" class="tab-content">
             <div class="summary-box">
                 <div class="summary-item">
                     <span>کل وزن:</span>
@@ -599,7 +694,7 @@
     
     <div class="tabs">
         <div class="tab-buttons">
-            <button class="tab-button active" onclick="showTab(event, 'bazargah-bills')">
+            <button class="tab-button" onclick="showTab(event, 'bazargah-bills')">
                 بازارگاهی
             </button>
             <button class="tab-button" onclick="showTab(event, 'non-bazargah-bills')">
@@ -608,7 +703,7 @@
         </div>
 
         <!-- بارنامه‌های بازارگاهی -->
-        <div id="bazargah-bills" class="tab-content active">
+        <div id="bazargah-bills" class="tab-content">
             <div class="summary-box">
                 <div class="summary-item">
                     <span>کل وزن:</span>
@@ -797,14 +892,17 @@
 
 <script>
 function showTab(evt, tabName) {
-    // پنهان کردن همه محتویات تب
-    var tabcontents = document.getElementsByClassName("tab-content");
+    // پیدا کردن container مربوط به این تب
+    var tabContainer = evt.currentTarget.closest('.tabs');
+    
+    // پنهان کردن همه محتویات تب در همین container
+    var tabcontents = tabContainer.querySelectorAll('.tab-content');
     for (var i = 0; i < tabcontents.length; i++) {
         tabcontents[i].classList.remove("active");
     }
     
-    // حذف کلاس active از همه دکمه‌های تب
-    var tabbuttons = document.getElementsByClassName("tab-button");
+    // حذف کلاس active از همه دکمه‌های تب در همین container
+    var tabbuttons = tabContainer.querySelectorAll('.tab-button');
     for (var i = 0; i < tabbuttons.length; i++) {
         tabbuttons[i].classList.remove("active");
     }
@@ -814,19 +912,27 @@ function showTab(evt, tabName) {
     evt.currentTarget.classList.add("active");
 }
 
-// تنظیم تب‌های اول به عنوان فعال هنگام بارگذاری صفحه
+// تنظیم تب‌های بازارگاهی به عنوان فعال هنگام بارگذاری صفحه
 document.addEventListener('DOMContentLoaded', function() {
-    // فعال کردن اولین تب در هر بخش
-    var firstTabs = document.querySelectorAll('.tab-buttons .tab-button:first-child');
-    var firstContents = document.querySelectorAll('.tab-content:first-of-type');
+    // فعال کردن تب‌های بازارگاهی به صورت پیش‌فرض
     
-    firstTabs.forEach(function(tab) {
-        tab.classList.add('active');
-    });
+    // فعال کردن تب بازارگاهی در بخش هزینه‌ها
+    var bazargahExpenseTab = document.querySelector('button[onclick="showTab(event, \'bazargah-expenses\')"]');
+    var bazargahExpenseContent = document.getElementById('bazargah-expenses');
     
-    firstContents.forEach(function(content) {
-        content.classList.add('active');
-    });
+    if (bazargahExpenseTab && bazargahExpenseContent) {
+        bazargahExpenseTab.classList.add('active');
+        bazargahExpenseContent.classList.add('active');
+    }
+    
+    // فعال کردن تب بازارگاهی در بخش بارنامه‌ها
+    var bazargahBillTab = document.querySelector('button[onclick="showTab(event, \'bazargah-bills\')"]');
+    var bazargahBillContent = document.getElementById('bazargah-bills');
+    
+    if (bazargahBillTab && bazargahBillContent) {
+        bazargahBillTab.classList.add('active');
+        bazargahBillContent.classList.add('active');
+    }
 });
 </script>
 
