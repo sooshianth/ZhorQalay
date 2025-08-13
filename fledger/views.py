@@ -1302,7 +1302,7 @@ def logistics_dashboard(request):
     for bill in non_bazargah_bills:
         weight = bill.tonnage or 0
         total_non_bazargah_bill_weight += weight
-        revenue = bill.total_sales_amount or 0
+        revenue = bill.get_total_sales_amount() or 0
         total_non_bazargah_bill_revenue += revenue
         non_bazargah_bills_with_revenue.append(bill)
     
@@ -1473,7 +1473,8 @@ def export_expenses_to_excel(request, processed_expenses, start_date, end_date):
             end_date_clean = end_date.strftime('%Y%m%d')
             filename += f"_تا_{end_date_clean}"
     
-    filename += ".xlsx"
+    date = timezone.now().strftime('%Y%m%d_%H%M')
+    filename = f"expenses_{date}.xlsx"
     
     # پاسخ HTTP
     response = HttpResponse(
@@ -1585,9 +1586,10 @@ def export_barnamehs_to_excel(request, bazargah_bills, non_bazargah_bills, start
         elif hasattr(end_date, 'strftime'):
             end_date_clean = end_date.strftime('%Y%m%d')
             filename += f"_تا_{end_date_clean}"
-    
-    filename += ".xlsx"
-    
+
+    date = timezone.now().strftime('%Y%m%d_%H%M')
+    filename = f"barnamehs_{date}.xlsx"
+
     # پاسخ HTTP
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
