@@ -16,7 +16,8 @@ class NonBazargahPurchase(BasePurchase):
         ('initiated', 'شروع شده')
         # بعدا باید تکمیل بشه
     ]
-
+    
+    purchase_number = models.CharField("شماره خرید", max_length=7, blank=True, null=True, unique=True)
     product = models.ForeignKey(NonBazargahProduct, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="محصول", related_name="non_bazargah_purchases")
     unit = models.CharField(max_length=100, null=True, blank=True, verbose_name="واحد", choices=UNIT_CHOICES)
     state = models.CharField(max_length=100, null=True, blank=True, verbose_name="وضعیت", default='initiated')
@@ -24,3 +25,6 @@ class NonBazargahPurchase(BasePurchase):
     class Meta:
         verbose_name = "خرید خارج بازارگاه"
         verbose_name_plural = "خریدهای خارج بازارگاه"
+
+    def __str__(self):
+        return f"خرید: {self.purchase_number} - {self.product.name if self.product else 'Unknown Product'}"

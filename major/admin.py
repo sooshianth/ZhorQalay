@@ -19,12 +19,12 @@ class NonBazargahProductAdmin(admin.ModelAdmin):
 @admin.register(NonBazargahPurchase)
 class NonBazargahPurchaseAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'product', 'customer', 'unique_sales_agent', 
-        'total_weight', 'unit', 'state', 'company_price', 
+        'id', 'purchase_number', 'product', 'customer', 'unique_sales_agent',
+        'total_weight', 'unit', 'state', 'company_price',
         'customer_price', 'created_at'
     )
     list_filter = (
-        'state', 'unit', 'type', 'buyer_user_type', 
+        'state', 'unit', 'type', 'buyer_user_type', 'purchase_number',
         'vehicle_type', 'created_at', 'updated_at'
     )
     search_fields = (
@@ -39,7 +39,7 @@ class NonBazargahPurchaseAdmin(admin.ModelAdmin):
     fieldsets = (
         ('اطلاعات اصلی خرید', {
             'fields': (
-                'customer', 'product', 'unit', 'state', 'description',
+                'customer', 'product', 'unit', 'state', 'description', 'purchase_number',
                 'unique_sales_agent_code', 'unique_sales_agent'
             )
         }),
