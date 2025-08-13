@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="{% static 'fledger/css/fledger.css' %}">
 
 <style>
-    /* آمار مالی */
+    /* آمار مالی - کوچک‌تر و در یک خط */
     .financial-stats {
         background: white;
         border-radius: 1.25rem;
@@ -15,31 +15,64 @@
         margin: 2rem 0;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
         border: 1px solid #f1f5f9;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .financial-stats::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #065f46, #047857, #059669, #10b981);
+        border-radius: 1.25rem 1.25rem 0 0;
     }
 
     .financial-stats h2 {
         margin: 0 0 1.5rem 0;
-        color: #1e293b;
+        color: #065f46;
         font-weight: 700;
         display: flex;
         align-items: center;
         gap: 0.75rem;
+        text-align: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .financial-stats h2::after {
+        content: '';
+        position: absolute;
+        bottom: -0.75rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80px;
+        height: 3px;
+        background: linear-gradient(90deg, #047857, #059669);
+        border-radius: 2px;
     }
 
     .financial-stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 1.5rem;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1rem;
     }
 
     .financial-stat-card {
-        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-        border-radius: 1rem;
-        padding: 1.5rem;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 0.875rem;
+        padding: 1.25rem 1rem;
         border: 1px solid #e2e8f0;
         transition: all 0.3s ease;
         position: relative;
         overflow: hidden;
+        text-align: center;
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
 
     .financial-stat-card::before {
@@ -47,15 +80,15 @@
         position: absolute;
         top: 0;
         right: 0;
-        width: 4px;
+        width: 3px;
         height: 100%;
         background: #64748b;
         transition: all 0.3s ease;
     }
 
     .financial-stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
     }
 
     .financial-stat-card.total::before { background: #8b5cf6; }
@@ -68,11 +101,11 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 3rem;
-        height: 3rem;
+        width: 2.5rem;
+        height: 2.5rem;
         border-radius: 0.75rem;
-        margin-bottom: 1rem;
-        font-size: 1.25rem;
+        margin: 0 auto 0.75rem;
+        font-size: 1rem;
     }
 
     .financial-stat-card.total .financial-stat-icon {
@@ -102,44 +135,431 @@
 
     .financial-stat-content h3 {
         margin: 0 0 0.5rem 0;
-        font-size: 1.5rem;
+        font-size: 1.25rem;
         font-weight: 800;
         color: #1e293b;
         direction: ltr;
-        text-align: right;
+        text-align: center;
     }
 
     .financial-stat-content p {
         margin: 0 0 0.25rem 0;
         color: #64748b;
         font-weight: 600;
-        font-size: 0.875rem;
+        font-size: 0.75rem;
+        text-align: center;
     }
 
     .financial-stat-content small {
         color: #94a3b8;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         font-weight: 500;
+        text-align: center;
     }
 
-    /* آیکون‌های جدید برای آمار کلی */
+    /* فیلترهای بهبود یافته */
+    .fledger-filters {
+        background: white;
+        border-radius: 1.25rem;
+        padding: 2rem;
+        margin: 2rem 0;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .fledger-filters::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #065f46, #047857, #059669, #10b981);
+        border-radius: 1.25rem 1.25rem 0 0;
+    }
+
+    .fledger-filter-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        align-items: end;
+    }
+
+    .fledger-filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .fledger-filter-group label {
+        font-weight: 600;
+        color: #065f46;
+        font-size: 0.875rem;
+    }
+
+    .form-control-fledger {
+        padding: 0.75rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 0.75rem;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+        background: #f8fafc;
+    }
+
+    .form-control-fledger:focus {
+        outline: none;
+        border-color: #047857;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.1);
+    }
+
+    .fledger-filter-actions {
+        display: flex;
+        gap: 1rem;
+        grid-column: 1 / -1;
+        justify-content: center;
+        margin-top: 1rem;
+    }
+
+    /* جدول بهبود یافته */
+    .fledger-table-container {
+        background: white;
+        border-radius: 1.25rem;
+        padding: 2rem;
+        margin: 2rem 0;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .fledger-table-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #065f46, #047857, #059669, #10b981);
+        border-radius: 1.25rem 1.25rem 0 0;
+    }
+
+    .fledger-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+    }
+
+    .fledger-table thead {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    }
+
+    .fledger-table th {
+        padding: 1rem 1.5rem;
+        text-align: right;
+        font-weight: 600;
+        color: #065f46;
+        border-bottom: 2px solid #e2e8f0;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        white-space: nowrap;
+    }
+
+    .fledger-table tbody tr {
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.3s ease;
+    }
+
+    .fledger-table tbody tr:nth-child(even) {
+        background-color: #f8fafc;
+    }
+
+    .fledger-table tbody tr:nth-child(odd) {
+        background-color: #ffffff;
+    }
+
+    .fledger-table tbody tr:hover {
+        background-color: #e0f2fe !important;
+        transform: scale(1.01);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .fledger-table td {
+        padding: 1rem 1.5rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .fledger-link {
+        color: #065f46;
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.3s ease;
+    }
+
+    .fledger-link:hover {
+        color: #047857;
+        text-decoration: none;
+    }
+
+    .fledger-amount {
+        font-weight: 700;
+        color: #1e293b;
+        direction: ltr;
+        text-align: right;
+    }
+
+    .fledger-badge {
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        display: inline-block;
+        text-align: center;
+        min-width: 80px;
+    }
+
+    .fledger-badge-pending {
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        color: #92400e;
+    }
+
+    .fledger-badge-approved {
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        color: #047857;
+    }
+
+    .fledger-badge-rejected {
+        background: linear-gradient(135deg, #fed7d7, #feb2b2);
+        color: #c53030;
+    }
+
+    .fledger-badge-financial_approved {
+        background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+        color: #1d4ed8;
+    }
+
+    .fledger-badge-paid {
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        color: #047857;
+    }
+
+    .fledger-badge-unpaid {
+        background: linear-gradient(135deg, #fed7d7, #feb2b2);
+        color: #c53030;
+    }
+
+    .fledger-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .btn-fledger-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+        border-radius: 0.5rem;
+        min-width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .fledger-empty {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: #64748b;
+        font-size: 1rem;
+    }
+
+    .fledger-empty i {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        display: block;
+        color: #94a3b8;
+    }
+
+    /* صفحه‌بندی بهبود یافته */
+    .fledger-pagination {
+        background: white;
+        border-radius: 1.25rem;
+        padding: 2rem;
+        margin: 2rem 0;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .fledger-page-info {
+        color: #065f46;
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+        background: #f0fdf4;
+        border-radius: 0.5rem;
+        border: 1px solid #bbf7d0;
+    }
+
+    /* آمار کلی - در یک خط */
+    .fledger-stats {
+        background: white;
+        border-radius: 1.25rem;
+        padding: 2rem;
+        margin: 2rem 0;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .fledger-stats::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #065f46, #047857, #059669, #10b981);
+        border-radius: 1.25rem 1.25rem 0 0;
+    }
+
+    .fledger-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .fledger-stat-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        text-align: center;
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .fledger-stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #047857, #059669);
+    }
+
+    .fledger-stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    }
+
+    .fledger-stat-icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        font-size: 1.25rem;
+        color: white;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .fledger-stat-icon.pending {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+    }
+
+    .fledger-stat-icon.approved {
+        background: linear-gradient(135deg, #10b981, #059669);
+    }
+
     .fledger-stat-icon.financial-approved {
         background: linear-gradient(135deg, #06b6d4, #0891b2);
-        color: white;
     }
 
     .fledger-stat-icon.rejected {
         background: linear-gradient(135deg, #ef4444, #dc2626);
-        color: white;
+    }
+
+    .fledger-stat-content h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #1e293b;
+        direction: ltr;
+        text-align: center;
+    }
+
+    .fledger-stat-content p {
+        margin: 0;
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-align: center;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1200px) {
+        .financial-stats-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
     }
 
     @media (max-width: 768px) {
         .financial-stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .fledger-filter-form {
             grid-template-columns: 1fr;
         }
         
-        .financial-stat-content h3 {
-            font-size: 1.25rem;
+        .fledger-filter-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .fledger-table {
+            font-size: 0.75rem;
+        }
+        
+        .fledger-table th,
+        .fledger-table td {
+            padding: 0.75rem 1rem;
+        }
+        
+        .fledger-actions {
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .financial-stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .fledger-table-container {
+            padding: 1rem;
+            overflow-x: auto;
         }
     }
 </style>
@@ -279,11 +699,13 @@
     <div class="fledger-filters">
         <form method="get" class="fledger-filter-form">
             <div class="fledger-filter-group">
+                <label>جستجو:</label>
                 <input type="text" name="search" value="{{ search_query }}" 
                        placeholder="جستجو در عنوان و توضیحات..." class="form-control-fledger">
             </div>
             
             <div class="fledger-filter-group">
+                <label>نوع هزینه:</label>
                 <select name="cost_type" class="form-control-fledger">
                     <option value="">همه انواع هزینه</option>
                     {% for value, label in cost_type_choices %}
@@ -295,6 +717,7 @@
             </div>
             
             <div class="fledger-filter-group">
+                <label>وضعیت تأیید:</label>
                 <select name="approval_status" class="form-control-fledger">
                     <option value="">همه وضعیت‌ها</option>
                     {% for value, label in approval_status_choices %}
@@ -306,10 +729,10 @@
             </div>
             
             <div class="fledger-filter-actions">
-                <button type="submit" class="btn-fledger btn-fledger-primary">
+                <a type="submit" class="btn-fledger btn-fledger-primary">
                     <i class="fas fa-search"></i>
                     جستجو
-                </button>
+                </a>
                 <a href="{% url 'fledger:hazinah_list' %}" class="btn-fledger btn-fledger-secondary">
                     <i class="fas fa-times"></i>
                     پاک کردن

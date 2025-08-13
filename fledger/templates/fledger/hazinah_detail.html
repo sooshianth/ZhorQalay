@@ -8,14 +8,14 @@
 
 <style>
     .hazinah-detail-hero {
-        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+        background: linear-gradient(135deg, #065f46 0%, #047857 50%, #059669 100%);
         padding: 2.5rem 2rem;
         border-radius: 1.5rem;
         margin-bottom: 2.5rem;
         color: white;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 20px 40px rgba(6, 182, 212, 0.3);
+        box-shadow: 0 20px 40px rgba(6, 95, 70, 0.3);
     }
 
     .hazinah-detail-hero::before {
@@ -67,19 +67,334 @@
     }
 
     .breadcrumb-nav a {
-        color: #06b6d4;
+        color: #047857;
         text-decoration: none;
         font-weight: 600;
     }
 
     .breadcrumb-nav a:hover {
-        color: #0891b2;
+        color: #065f46;
         text-decoration: underline;
     }
 
     .breadcrumb-nav span {
         color: #64748b;
         margin: 0 0.5rem;
+    }
+
+    /* کارت‌های اطلاعات */
+    .fledger-detail-card {
+        background: white;
+        border-radius: 1.25rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .fledger-detail-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #065f46, #047857, #059669, #10b981);
+        border-radius: 1.25rem 1.25rem 0 0;
+    }
+
+    .fledger-detail-card h2 {
+        margin: 0 0 1.5rem 0;
+        color: #065f46;
+        font-weight: 700;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        position: relative;
+    }
+
+    .fledger-detail-card h2::after {
+        content: '';
+        position: absolute;
+        bottom: -0.75rem;
+        left: 0;
+        width: 80px;
+        height: 3px;
+        background: linear-gradient(90deg, #047857, #059669);
+        border-radius: 2px;
+    }
+
+    .fledger-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .fledger-detail-item {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 1.25rem;
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s ease;
+    }
+
+    .fledger-detail-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        border-color: #047857;
+    }
+
+    .fledger-detail-item label {
+        display: block;
+        font-weight: 600;
+        color: #065f46;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .fledger-detail-item span {
+        color: #1e293b;
+        font-weight: 500;
+        font-size: 1rem;
+    }
+
+    .fledger-amount {
+        font-weight: 700;
+        color: #1e293b;
+        direction: ltr;
+        text-align: right;
+    }
+
+    .fledger-amount.highlight {
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        color: #047857 !important;
+        padding: 0.5rem 1rem;
+        border-radius: 0.75rem;
+        display: inline-block;
+        box-shadow: 0 2px 8px rgba(6, 95, 70, 0.2);
+        font-weight: 700;
+        font-size: 1.1rem;
+        text-shadow: none;
+        -webkit-text-fill-color: #047857 !important;
+        background-clip: unset;
+        -webkit-background-clip: unset;
+    }
+
+    .fledger-amount.success {
+        color: #047857 !important;
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        padding: 0.5rem 1rem;
+        border-radius: 0.75rem;
+        display: inline-block;
+        -webkit-text-fill-color: #047857 !important;
+        background-clip: unset;
+        -webkit-background-clip: unset;
+    }
+
+    .fledger-amount.warning {
+        color: #92400e !important;
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        padding: 0.5rem 1rem;
+        border-radius: 0.75rem;
+        display: inline-block;
+        -webkit-text-fill-color: #92400e !important;
+        background-clip: unset;
+        -webkit-background-clip: unset;
+    }
+
+    .fledger-detail-description {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 1.5rem;
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        margin-top: 1.5rem;
+    }
+
+    .fledger-detail-description label {
+        display: block;
+        font-weight: 600;
+        color: #065f46;
+        margin-bottom: 0.75rem;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .fledger-detail-description p {
+        margin: 0;
+        color: #1e293b;
+        line-height: 1.6;
+        font-size: 1rem;
+    }
+
+    .fledger-detail-attachment {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 1.5rem;
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        margin-top: 1.5rem;
+        text-align: center;
+    }
+
+    .fledger-detail-attachment label {
+        display: block;
+        font-weight: 600;
+        color: #065f46;
+        margin-bottom: 1rem;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    /* کارت‌های فاکتور */
+    .invoice-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+
+    .invoice-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .invoice-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .invoice-header h4 {
+        margin: 0;
+        color: #065f46;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .invoice-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .invoice-items {
+        margin-top: 1.5rem;
+    }
+
+    .invoice-items h5 {
+        margin: 0 0 1rem 0;
+        color: #065f46;
+        font-weight: 600;
+        font-size: 1.125rem;
+    }
+
+    .invoice-items-table {
+        overflow-x: auto;
+        border-radius: 0.75rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .invoice-items-table table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+    }
+
+    .invoice-items-table th {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        padding: 1rem;
+        text-align: right;
+        font-weight: 600;
+        color: #065f46;
+        border-bottom: 2px solid #e2e8f0;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .invoice-items-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
+
+    .invoice-items-table tbody tr:nth-child(even) {
+        background-color: #f8fafc;
+    }
+
+    .invoice-items-table tbody tr:hover {
+        background-color: #e0f2fe;
+    }
+
+    .invoice-attachment {
+        margin-top: 1.5rem;
+        text-align: center;
+        padding: 1rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-radius: 0.75rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .invoice-attachment label {
+        display: block;
+        font-weight: 600;
+        color: #065f46;
+        margin-bottom: 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    .invoice-summary {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        padding: 1.5rem;
+        border-radius: 1rem;
+        border: 1px solid #bbf7d0;
+        margin-top: 2rem;
+    }
+
+    .invoice-summary h4 {
+        margin: 0 0 1rem 0;
+        color: #065f46;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: #64748b;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        display: block;
+        color: #94a3b8;
+    }
+
+    .empty-state p {
+        margin: 0.5rem 0;
+        font-size: 1rem;
+    }
+
+    .empty-state .text-muted {
+        color: #94a3b8;
+        font-size: 0.875rem;
     }
 
     /* سیستم تأیید چندمرحله‌ای */
@@ -200,10 +515,104 @@
         line-height: 1.6;
     }
 
+    /* آمار پرداخت */
+    .fledger-payment-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .fledger-payment-stat {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 1.5rem;
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .fledger-payment-stat:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .fledger-payment-stat label {
+        display: block;
+        font-weight: 600;
+        color: #065f46;
+        margin-bottom: 0.75rem;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .fledger-payment-stat span {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .fledger-percentage {
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        color: #047857;
+        padding: 0.5rem 1rem;
+        border-radius: 0.75rem;
+        display: inline-block;
+        box-shadow: 0 2px 8px rgba(6, 95, 70, 0.2);
+    }
+
+    .fledger-progress-bar {
+        background: #e2e8f0;
+        border-radius: 1rem;
+        height: 1rem;
+        overflow: hidden;
+        margin-top: 1rem;
+    }
+
+    .fledger-progress-fill {
+        background: linear-gradient(90deg, #047857, #059669);
+        height: 100%;
+        border-radius: 1rem;
+        transition: width 0.6s ease;
+    }
+
+    /* منطقه خطر */
+    .fledger-detail-card.danger {
+        border-left: 4px solid #ef4444;
+    }
+
+    .fledger-detail-card.danger h2 {
+        color: #dc2626;
+    }
+
+    .fledger-detail-card.danger p {
+        color: #991b1b;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Responsive Design */
     @media (max-width: 768px) {
         .approval-actions {
             grid-template-columns: 1fr;
             gap: 1rem;
+        }
+        
+        .fledger-detail-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .fledger-payment-stats {
+            grid-template-columns: 1fr;
+        }
+        
+        .hero-content {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .hero-actions {
+            justify-content: center;
         }
     }
 </style>
@@ -671,35 +1080,16 @@
                     {% if approval_info.required_level == 'auto' %}fledger-badge-success
                     {% elif approval_info.required_level == 'financial_manager' %}fledger-badge-warning
                     {% else %}fledger-badge-danger{% endif %}">
-                    {{ approval_info.message }}
+                    {% if approval_info.required_level == 'auto' %}
+                        تأیید خودکار
+                    {% elif approval_info.required_level == 'financial_manager' %}
+                        تأیید مدیر مالی
+                    {% elif approval_info.required_level == 'admin' %}
+                        تأیید ادمین
+                    {% else %}
+                        {{ approval_info.required_level_display|default:"تعیین نشده" }}
+                    {% endif %}
                 </span>
-            </div>
-            
-            <div class="fledger-detail-item">
-                <label>وضعیت فعلی:</label>
-                <span class="fledger-badge fledger-badge-{{ hazinah.get_approval_status_display_color }}">
-                    {{ hazinah.get_approval_status_display }}
-                </span>
-            </div>
-        </div>
-    </div>
-
-    <!-- اطلاعات تأیید -->
-    <div class="fledger-detail-card">
-        <h2>
-            <i class="fas fa-clipboard-check"></i>
-            اطلاعات تأیید
-        </h2>
-        
-        <div class="fledger-detail-grid">
-            <div class="fledger-detail-item">
-                <label>مبلغ (تومان):</label>
-                <span class="fledger-amount highlight">{{ approval_info.amount_toman|floatformat:0 }} تومان</span>
-            </div>
-            
-            <div class="fledger-detail-item">
-                <label>سطح تأیید مورد نیاز:</label>
-                <span>{{ approval_info.required_level_display }}</span>
             </div>
             
             <div class="fledger-detail-item">
