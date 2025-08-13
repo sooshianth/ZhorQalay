@@ -500,12 +500,19 @@ def process_sms_queue(batch_size=20, sms_account=sms_account):
                 sms.save()
                 
                 # ثبت در لاگ
+                # Ensure response is JSON serializable
+                try:
+                    serializable_response = response
+                    # If response is not serializable, convert to string
+                    json.dumps(response)
+                except TypeError:
+                    serializable_response = str(response)
                 SmsLog.objects.create(
                     recipient_number=recipient,
                     message=sms.message,
                     notification_type=sms.notification_type,
                     status='sent',
-                    api_response=json.dumps(response) if response else None,
+                    api_response=json.dumps(serializable_response) if serializable_response else None,
                     purchase=sms.purchase
                 )
                 
