@@ -607,7 +607,14 @@ class SupportAgentTaskAdmin(ListChartMixin, admin.ModelAdmin):
     ordering = ('-created_at',)
     date_hierarchy = 'created_at'
 
-
+from core.SalesAgentModel import PhoneAssignment
+@admin.register(PhoneAssignment)
+class PhoneAssignmentAdmin(ListChartMixin, admin.ModelAdmin):
+    list_display = ('phone_number', 'sales_agent', 'status', 'created_at', 'updated_at')
+    list_filter = ('status', 'sales_agent')
+    search_fields = ('phone_number', 'sales_agent__name')
+    ordering = ('-created_at',)
+    date_hierarchy = 'created_at'
 
 
 

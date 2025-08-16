@@ -112,8 +112,10 @@ def send_sms_on_state_change(sender, instance, created, **kwargs):
     ارسال پیامک به مشتری هنگام تغییر وضعیت خرید
     """
     if not created:  # فقط برای رکوردهای جدید تغییر وضعیت
+        logger.log("Ignoring duplicate state change")
         return
-    
+    logger.log(f"Processing state change to {instance.new_state} for purchase {instance.purchase.id}")
+
     # اگر پیامک قبلا ارسال شده، دیگر ارسال نکن
     if instance.sms_sent:
         logger.info(f"SMS already sent for state change to {instance.new_state} for purchase {instance.purchase.id}")

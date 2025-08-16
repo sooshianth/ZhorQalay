@@ -132,47 +132,38 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
         return
 
     try:
-        # ساخت متن پیامک هاردکد شده
-        message = "مشتری گرامی"
+        # ساخت متن پیامک کوتاه و صرفه‌جویانه
+        message = "بارنامه صادر شد:\n"
         
-        # اضافه کردن اطلاعات اصلی بارنامه
-        purchase_number = get_safe_value(instance.purchase.purchase_number if instance.purchase else None, "نامشخص")
-        shenase_takhsis = get_safe_value(instance.shenase_takhsis_code, "نامشخص")
-        barnameh_number = get_safe_value(instance.number, "نامشخص")
-        barnameh_serial = get_safe_value(instance.serial, "نامشخص")
-        barnameh_weight = get_safe_value(instance.tonnage, "نامشخص")
+        # اضافه کردن اطلاعات اصلی بارنامه (فقط در صورت وجود)
+        purchase_number = get_safe_value(instance.purchase.purchase_number if instance.purchase else None)
+        if purchase_number:
+            message += f"شماره خرید: {convert_to_persian_numbers(purchase_number)}\n"
         
-        message += f" بارنامه خرید {purchase_number} با شناسه تخصیص {shenase_takhsis} به شماره بارنامه {barnameh_number} و سریال {barnameh_serial} به وزن {barnameh_weight} صادر گردید."
+        barnameh_number = get_safe_value(instance.number)
+        if barnameh_number:
+            message += f"شماره بارنامه: {convert_to_persian_numbers(barnameh_number)}\n"
         
-        # اضافه کردن اطلاعات اختیاری (راننده، ماشین و ...)
-        optional_info = []
+        barnameh_serial = get_safe_value(instance.serial)
+        if barnameh_serial:
+            message += f"سریال: {convert_to_persian_numbers(barnameh_serial)}\n"
         
+        # اضافه کردن تاریخ بارنامه
+        if instance.barnameh_date:
+            barnameh_date = convert_to_persian_numbers(instance.barnameh_date.strftime("%Y/%m/%d"))
+            message += f"تاریخ: {barnameh_date}\n"
+        
+        # اضافه کردن اطلاعات راننده (فقط در صورت وجود)
         driver_name = get_safe_value(instance.driver_name)
         if driver_name:
-            optional_info.append(f"نام راننده: {driver_name}")
+            message += f"نام راننده: {driver_name}\n"
         
         driver_phone = get_safe_value(instance.driver_phone)
         if driver_phone:
-            optional_info.append(f"شماره راننده: {driver_phone}")
+            message += f"شماره راننده: {convert_to_persian_numbers(driver_phone)}\n"
         
-        vehicle_plate = get_safe_value(instance.vehicle_plate)
-        if vehicle_plate:
-            optional_info.append(f"پلاک خودرو: {vehicle_plate}")
-        
-        receiver_name = get_safe_value(instance.receiver_name)
-        if receiver_name:
-            optional_info.append(f"نام گیرنده: {receiver_name}")
-        
-        destination = get_safe_value(instance.destination)
-        if destination:
-            optional_info.append(f"مقصد: {destination}")
-        
-        # اگر اطلاعات اضافی موجود بود، آنها را اضافه کن
-        if optional_info:
-            message += "\n" + "\n".join(optional_info)
-        
-        # اضافه کردن اطلاعات تماس شرکت
-        message += "\n۰۲۱-۶۶۵۶۲۲۱۶ ☎️\nشرکت تامین نهاده سیمرغ"
+        # اضافه کردن نام شرکت
+        message += "تأمین نهاده سیمرغ"
         
         logger.info(f"📝 Hardcoded SMS message created for barnameh {instance.id}")
         logger.debug(f"📄 SMS content: {message}")
@@ -241,4 +232,26 @@ def get_safe_value(value, default=""):
     """
     if is_valid_value(value):
         return str(value).strip()
-    return default 
+    return default
+
+def convert_to_persian_numbers(text):
+    """
+    تبدیل اعداد انگلیسی به فارسی برای صرفه‌جویی در هزینه‌های پیامک
+    """
+    if not text:
+        return text
+    
+    # دیکشنری تبدیل اعداد انگلیسی به فارسی
+    persian_numbers = {
+        '0': '۰', '1': '۱', '2': '۲', '3': '۳', '4': '۴',
+        '5': '۵', '6': '۶', '7': '۷', '8': '۸', '9': '۹'
+    }
+    
+    # تبدیل متن به رشته
+    text_str = str(text)
+    
+    # تبدیل اعداد
+    for eng, per in persian_numbers.items():
+        text_str = text_str.replace(eng, per)
+    
+    return text_str 

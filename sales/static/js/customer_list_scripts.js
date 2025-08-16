@@ -501,8 +501,10 @@ function initializeTableCheckboxes() {
     console.log('Table checkboxes initialized successfully');
 }
 
-// فراخوانی تابع راه‌اندازی checkbox ها
-initializeTableCheckboxes();
+    // فراخوانی تابع راه‌اندازی checkbox ها
+    initializeTableCheckboxes();
+    
+
 
 // نمایش پنل ارسال پیامک
 var sendSmsBtn = document.getElementById('send-sms-btn');
@@ -690,6 +692,8 @@ function applyColumnVisibility(preferences) {
     
     console.log('Applied column visibility:', preferences);
 }
+
+
 
 // اضافه کردن انیمیشن برای فیلدهای فیلتر
 const filterInputs = document.querySelectorAll('#filters-container input, #filters-container select');

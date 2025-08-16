@@ -5,6 +5,9 @@ class CoreConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'core'
     verbose_name = 'داده‌های اصلی'
+
     def ready(self):
-        # اتصال سیگنال‌ها
+        # Load app signals (non‑DB)
         import core.zignals
+        # Load SQLite PRAGMA signal handler
+        import core.db_pragmas

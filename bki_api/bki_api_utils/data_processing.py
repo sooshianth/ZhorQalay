@@ -396,6 +396,7 @@ def update_purchase(purchase, purchase_data):
         receiver_phone = purchase_data.get('receiverphone')  # شماره تلفن تحویل
         trace_code = purchase_data.get('tracecode')  # شماره پیگیری
         receiver_id = purchase_data.get('receiverid')  # کد ملی تحویل
+        buyer_national_id = purchase_data.get('buyerid')  # شناسه ملی خریدار
         purchase_date = purchase_data.get('date')  # تاریخ خرید به فرمت جلالی (مثلا 1404/02/22)
         total_weight = int(purchase_data.get('totalweight', 0) or 0)  # وزن کل
         tak = int(purchase_data.get('tak', 0) or 0)
@@ -415,6 +416,7 @@ def update_purchase(purchase, purchase_data):
         purchase.tahvil_phone_number = receiver_phone
         purchase.tracking_number = trace_code
         purchase.code_melli_tahvil = receiver_id
+        purchase.buyer_national_id = buyer_national_id
         purchase.delivery_postal_code = delpostalcode
         purchase.buyer_postal_code = buyerpostalcode
         purchase.unique_delivery_id = buyerpartidcode
@@ -531,6 +533,7 @@ def create_purchase(purchase_data):
         receiver_phone = purchase_data.get('receiverphone')  # شماره تلفن تحویل
         trace_code = purchase_data.get('tracecode')  # شماره پیگیری
         receiver_id = purchase_data.get('receiverid')  # کد ملی تحویل
+        buyer_national_id = purchase_data.get('buyerid')  # شناسه ملی خریدار
         purchase_date = purchase_data.get('date')  # تاریخ خرید به فرمت جلالی (مثلا 1404/02/22)
         total_weight = int(purchase_data.get('totalweight', 0) or 0)  # وزن کل
         tak = int(purchase_data.get('tak', 0) or 0)
@@ -651,6 +654,7 @@ def create_purchase(purchase_data):
             'tahvil_phone_number': receiver_phone,
             'tracking_number': trace_code,
             'code_melli_tahvil': receiver_id,
+            'buyer_national_id': buyer_national_id,
             # تنظیم کارشناس فروش یکتا به مدیریت به صورت پیش‌فرض
             'unique_sales_agent': admin_sales_agent,
             'unique_sales_agent_code': admin_sales_agent.factor_code if admin_sales_agent else None,
@@ -823,7 +827,7 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
     logger.debug(f"Debug - Purchase {purchase_number}: {len(purchase_data_list)} allocation records")
     logger.debug(f"Debug - Total order weight (sum of qty): {total_order_weight}")
     logger.debug(f"Debug - Total delivered weight (sum of wbarnameshode): {total_delivered_weight}")
-    
+
     for i, entry in enumerate(purchase_data_list):
         takhsisid = entry.get('allocationid')
         qty = int(entry.get('qty', 0) or 0)
@@ -1046,4 +1050,4 @@ def process_purchase_data_batch(purchase_data_list, create_if_not_exists=True):
             error_count += 1
             errors[purchase_id] = str(e)
     
-    return processed_count, created_count, error_count, errors 
+    return processed_count, created_count, error_count, errors

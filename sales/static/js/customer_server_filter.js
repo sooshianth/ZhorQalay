@@ -103,7 +103,7 @@ class CustomerServerFilter {
         const tableContainer = this.tableElement.closest('.table-responsive') || this.tableElement.parentNode;
         
         const perPageContainer = document.createElement('div');
-        perPageContainer.className = 'per-page-container mb-3 d-flex align-items-center';
+        perPageContainer.className = 'per-page-container mb-3 d-flex align-items-center gap-3';
         perPageContainer.innerHTML = `
             <label for="customerPerPageFilter" class="form-label me-2">تعداد در هر صفحه:</label>
             <select id="customerPerPageFilter" class="form-select form-select-sm w-auto">
@@ -113,6 +113,9 @@ class CustomerServerFilter {
                 <option value="50" ${this.perPage === 50 ? 'selected' : ''}>50</option>
                 <option value="100" ${this.perPage === 100 ? 'selected' : ''}>100</option>
                 <option value="200" ${this.perPage === 200 ? 'selected' : ''}>200</option>
+                <option value="500" ${this.perPage === 500 ? 'selected' : ''}>500</option>
+                <option value="1000" ${this.perPage === 1000 ? 'selected' : ''}>1000</option>
+                <option value="10000" ${this.perPage === 10000 ? 'selected' : ''}>10000</option>
             </select>
         `;
         
@@ -125,6 +128,25 @@ class CustomerServerFilter {
             this.currentPage = 1;
             this.applyFilters();
         });
+        
+        // اضافه کردن event listener برای دکمه انتخاب همه
+        const selectAllBtn = perPageContainer.querySelector('#selectAllCustomersBtn');
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener('click', () => {
+                // تنظیم تعداد به 10000
+                this.perPage = 10000;
+                this.currentPage = 1;
+                
+                // بروزرسانی select
+                select.value = '10000';
+                
+                // اعمال فیلترها
+                this.applyFilters();
+                
+                // نمایش پیام موفقیت
+                this.showToast('تعداد نمایش به 10000 تغییر یافت. در حال بارگذاری همه مشتریان...', 'success');
+            });
+        }
     }
     
     setupGlobalSearchHandler() {
