@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from django.views.generic.base import RedirectView
 
 
@@ -43,5 +43,8 @@ urlpatterns = [
 
     path('purchase_CRUD/notifications/', notification_view.get_notifications, name='get_notifications'),
     path('purchase_CRUD/notifications/<int:notification_id>/read/', notification_view.mark_notification_read, name='mark_notification_read'),
+
+    # اضافه کردن URL های خریدهای خارج از بازارگاه
+    path('major/', include('major.urls')),
 
 ]

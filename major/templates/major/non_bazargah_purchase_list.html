@@ -1,0 +1,321 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}لیست خریدهای خارج از بازارگاه{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        background: #134e16;
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        text-align: center;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    .page-header h1 {
+        margin: 0;
+        font-size: 2.5rem;
+        font-weight: bold;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    .page-header p {
+        margin: 15px 0 0 0;
+        opacity: 0.9;
+        font-size: 1.2rem;
+    }
+    
+    .stats-row {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 30px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        border: none;
+    }
+    
+    .stats-item {
+        text-align: center;
+        padding: 15px;
+        display: inline-block;
+        margin: 0 20px;
+    }
+    
+    .stats-item .number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #134e16;
+        margin-bottom: 10px;
+    }
+    
+    .stats-item .label {
+        color: #6c757d;
+        font-size: 1.1rem;
+        font-weight: 500;
+    }
+    
+    .table-container {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        border: none;
+    }
+    
+    .table {
+        margin-bottom: 0;
+    }
+    
+    .table thead th {
+        background: #134e16;
+        color: white;
+        border: none;
+        font-weight: 600;
+        padding: 15px 12px;
+        font-size: 0.95rem;
+    }
+    
+    .table tbody tr {
+        transition: all 0.3s ease;
+    }
+    
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .table tbody td {
+        padding: 15px 12px;
+        vertical-align: middle;
+        border-top: 1px solid #dee2e6;
+        font-size: 0.9rem;
+    }
+    
+    .badge {
+        font-size: 0.8rem;
+        padding: 8px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    
+    .badge.bg-primary {
+        background: #134e16 !important;
+    }
+    
+    .pagination {
+        margin-top: 25px;
+        justify-content: center;
+    }
+    
+    .page-link {
+        border: 1px solid #134e16;
+        color: #134e16;
+        padding: 12px 18px;
+        margin: 0 3px;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+    
+    .page-link:hover {
+        background-color: #134e16;
+        color: white;
+        border-color: #134e16;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(27, 94, 32, 0.4);
+    }
+    
+    .page-item.active .page-link {
+        background: #134e16;
+        border-color: #134e16;
+        color: white;
+        box-shadow: 0 4px 15px rgba(27, 94, 32, 0.4);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+    
+    .empty-state h5 {
+        font-size: 1.5rem;
+        margin-bottom: 15px;
+        color: #495057;
+    }
+    
+    .empty-state p {
+        font-size: 1.1rem;
+        opacity: 0.7;
+    }
+    
+    @media (max-width: 768px) {
+        .page-header h1 {
+            font-size: 2rem;
+        }
+        
+        .page-header p {
+            font-size: 1rem;
+        }
+        
+        .stats-item .number {
+            font-size: 2rem;
+        }
+        
+        .table-container {
+            padding: 15px;
+        }
+        
+        .table thead th,
+        .table tbody td {
+            padding: 10px 8px;
+            font-size: 0.85rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- هدر صفحه -->
+    <div class="page-header">
+        <h1><i class="fas fa-shopping-cart"></i> لیست خریدهای خارج از بازارگاه</h1>
+        <p>مدیریت و پیگیری خریدهای خارج از سیستم بازارگاه</p>
+    </div>
+
+    <!-- آمار کلی -->
+    <div class="stats-row">
+        <div class="stats-item">
+            <div class="number">{{ total_purchases|default:0 }}</div>
+            <div class="label">کل خریدها</div>
+        </div>
+        <div class="stats-item">
+            <div class="number">{{ page_obj.paginator.count|default:0 }}</div>
+            <div class="label">نمایش داده شده</div>
+        </div>
+        <div class="stats-item">
+            <div class="number">{{ page_obj.paginator.num_pages|default:1 }}</div>
+            <div class="label">تعداد صفحات</div>
+        </div>
+    </div>
+
+    <!-- جدول خریدها -->
+    <div class="table-container">
+        <h5 class="mb-4">
+            <i class="fas fa-list"></i> لیست خریدهای خارج از بازارگاه
+        </h5>
+        
+        {% if purchases %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>شماره خرید</th>
+                            <th>تاریخ</th>
+                            <th>نماینده فروش</th>
+                            <th>وزن (کیلوگرم)</th>
+                            <th>وضعیت</th>
+                            <th>محصول</th>
+                            <th>واحد</th>
+                            <th>مشتری</th>
+                            <th>نام خریدار</th>
+                            {% if user_role not in 'sales_agent,support_agent' %}
+                                <th>فی خرید (ریال)</th>
+                                <th>فی فروش (ریال)</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for purchase in purchases %}
+                            <tr>
+                                <td>
+                                    <strong>{{ purchase.purchase_number|default:"تعیین نشده" }}</strong>
+                                </td>
+                                <td>{{ purchase.created_at|date:"Y/m/d" }}</td>
+                                <td>{{ purchase.unique_sales_agent.name|default:"تعیین نشده" }}</td>
+                                <td>{{ purchase.total_weight|intcomma|default:"0" }}</td>
+                                <td>
+                                    <span class="badge bg-{% if purchase.state == 'initiated' %}primary{% else %}secondary{% endif %}">
+                                        {{ purchase.get_state_display|default:purchase.state }}
+                                    </span>
+                                </td>
+                                <td>{{ purchase.product.name|default:"تعیین نشده" }}</td>
+                                <td>{{ purchase.get_unit_display|default:purchase.unit }}</td>
+                                <td>{{ purchase.customer.name|default:"نامشخص" }}</td>
+                                <td>{{ purchase.buyer_name|default:"-" }}</td>
+                                {% if user_role not in 'sales_agent,support_agent' %}
+                                    <td>{{ purchase.company_price|intcomma|default:"0" }}</td>
+                                    <td>{{ purchase.customer_price|intcomma|default:"0" }}</td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if page_obj.paginator.num_pages > 1 %}
+                <nav aria-label="صفحه‌بندی">
+                    <ul class="pagination">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1">
+                                    <i class="fas fa-angle-double-right"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                                    <i class="fas fa-angle-right"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for page_num in page_obj.paginator.page_range %}
+                            {% if page_num == page_obj.number %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                            {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_num }}">{{ page_num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                                    <i class="fas fa-angle-left"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">
+                                    <i class="fas fa-angle-double-left"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
+            
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <h5>هیچ خریدی یافت نشد</h5>
+                <p>در حال حاضر هیچ خریدی در سیستم ثبت نشده است.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
