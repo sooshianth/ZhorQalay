@@ -1,5 +1,6 @@
 from django.urls import path, include
 from django.views.generic.base import RedirectView
+from django.shortcuts import render
 
 from .views import (
     sales_agent_profile_view,
@@ -26,7 +27,9 @@ from .views.phone_assignment_views import (
     sales_phone_assignment_list,
     archive_phone_assignment,
     add_customer_from_assignment,
-    update_phone_notes
+    update_phone_notes,
+    delete_phone_assignment,
+    bulk_delete_phone_assignments
 )
 
 # Customer list views
@@ -82,6 +85,9 @@ urlpatterns = [
     path('phone-assignment/<int:pk>/archive/', archive_phone_assignment, name='archive_phone_assignment'),
     path('phone-assignment/<int:pk>/convert/', add_customer_from_assignment, name='add_customer_from_assignment'),
     path('phone-assignment/<int:pk>/notes/', update_phone_notes, name='update_phone_notes'),
+    path('phone-assignment/<int:pk>/delete/', delete_phone_assignment, name='delete_phone_assignment'),
+    path('phone-assignment/bulk-delete/', bulk_delete_phone_assignments, name='bulk_delete_phone_assignments'),
+    path('phone-assignment/excel-format-guide/', lambda request: render(request, 'phone_assignment/excel_format_guide.html'), name='excel_format_guide'),
     
     # Sales purchases view
     

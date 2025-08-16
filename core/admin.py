@@ -610,7 +610,7 @@ class SupportAgentTaskAdmin(ListChartMixin, admin.ModelAdmin):
 from core.SalesAgentModel import PhoneAssignment
 @admin.register(PhoneAssignment)
 class PhoneAssignmentAdmin(ListChartMixin, admin.ModelAdmin):
-    list_display = ('phone_number', 'sales_agent', 'status', 'created_at', 'updated_at')
+    list_display = ('phone_number', 'sales_agent', 'status', 'customer_name', 'sub_branch', 'sub_branch_phone', 'city', 'user_type', 'created_at',)
     list_filter = ('status', 'sales_agent')
     search_fields = ('phone_number', 'sales_agent__name')
     ordering = ('-created_at',)
