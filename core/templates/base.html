@@ -125,6 +125,7 @@
                         {% endif %}
                         {% if request.user.is_superuser or request.user.is_staff or request.user.logistics_manager or request.user.financial_manager %}
                         <li><a href="{% url 'barnameh_list' %}"><i class="fas fa-truck"></i> بارنامه‌ها</a></li>
+                        <li><a href="{% url 'non_bazargah_barnameh_list' %}"><i class="fas fa-truck"></i> بارنامه‌های غیر بازارگاه</a></li>
                         {% endif %}
                     </div>
                 </div>
