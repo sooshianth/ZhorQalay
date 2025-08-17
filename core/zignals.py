@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 from datetime import timedelta
@@ -12,7 +12,7 @@ from core.PurchaseModel import PurchaseStateChange
 logger = logging.getLogger("core_zignals")
 
 
-@receiver(post_save, sender=Purchase)
+@receiver(post_save, sender=Purchase, dispatch_uid="create_task_for_purchase")
 def create_task_for_purchase(sender, instance, created, **kwargs):
     if created:  # فقط اگر Purchase جدید ایجاد شده باشد
         # ایجاد تسک برای ۱۵ دقیقه بعد
@@ -40,7 +40,7 @@ def create_task_for_purchase(sender, instance, created, **kwargs):
             )
 
 # سیگنال جدید برای ارسال پیامک هنگام ایجاد خرید جدید
-@receiver(post_save, sender=Purchase)
+@receiver(post_save, sender=Purchase, dispatch_uid="send_sms_on_purchase_create")
 def send_sms_on_purchase_create(sender, instance, created, **kwargs):
     """
     ارسال پیامک به مشتری هنگام ایجاد خرید جدید
@@ -106,7 +106,7 @@ def send_sms_on_purchase_create(sender, instance, created, **kwargs):
         logger.warning(f"Error processing SMS for new purchase {instance.id}: {str(e)}")
 
 
-@receiver(post_save, sender=PurchaseStateChange)
+@receiver(post_save, sender=PurchaseStateChange, dispatch_uid="send_sms_on_state_change")
 def send_sms_on_state_change(sender, instance, created, **kwargs):
     """
     ارسال پیامک به مشتری هنگام تغییر وضعیت خرید
@@ -287,3 +287,56 @@ def send_sms_on_state_change(sender, instance, created, **kwargs):
     
     except Exception as e:
         logger.warning(f"Error processing SMS for state change (Purchase ID: {purchase.id}): {str(e)}")
+
+
+# سیگنال برای تشخیص تغییر مستقیم وضعیت در مدل Purchase
+@receiver(pre_save, sender=Purchase, dispatch_uid="track_purchase_state_change")
+def track_purchase_state_change(sender, instance, **kwargs):
+    """
+    ردیابی تغییرات وضعیت خرید قبل از ذخیره
+    """
+    if instance.pk:  # فقط برای آپدیت، نه برای ایجاد
+        try:
+            # دریافت وضعیت قبلی از دیتابیس
+            old_instance = Purchase.objects.get(pk=instance.pk)
+            instance._old_state = old_instance.state
+        except Purchase.DoesNotExist:
+            instance._old_state = None
+    else:
+        instance._old_state = None
+
+
+@receiver(post_save, sender=Purchase, dispatch_uid="handle_direct_purchase_state_change")
+def handle_direct_purchase_state_change(sender, instance, created, **kwargs):
+    """
+    مدیریت تغییر مستقیم وضعیت خرید (بدون استفاده از change_state)
+    """
+    if created:
+        return  # برای خریدهای جدید کاری نکن
+    
+    # بررسی اینکه آیا وضعیت تغییر کرده
+    old_state = getattr(instance, '_old_state', None)
+    current_state = instance.state
+    
+    if old_state and old_state != current_state:
+        logger.info(f"🔄 تغییر مستقیم وضعیت خرید {instance.purchase_number}: {old_state} → {current_state}")
+        
+        # بررسی اینکه آیا رکورد PurchaseStateChange برای این تغییر وجود دارد
+        recent_state_change = PurchaseStateChange.objects.filter(
+            purchase=instance,
+            previous_state=old_state,
+            new_state=current_state,
+            changed_at__gte=timezone.now() - timedelta(minutes=5)
+        ).exists()
+        
+        if not recent_state_change:
+            # ایجاد رکورد تغییر وضعیت برای تریگر کردن سیگنال پیامک
+            logger.info(f"📝 ایجاد رکورد تغییر وضعیت برای تغییر مستقیم: {old_state} → {current_state}")
+            PurchaseStateChange.objects.create(
+                purchase=instance,
+                previous_state=old_state,
+                new_state=current_state,
+                notes='تغییر مستقیم وضعیت توسط سیستم یا API'
+            )
+        else:
+            logger.debug(f"✅ رکورد تغییر وضعیت برای خرید {instance.purchase_number} قبلاً موجود است")

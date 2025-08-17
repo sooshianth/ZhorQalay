@@ -176,27 +176,39 @@ def create_state_change_record(purchase, previous_state, new_state, notes="تغ�
         notes (str): Additional notes for the state change
     """
     try:
-        # Check if a state change record already exists for this transition
+        # اگر وضعیت قبلی و جدید یکسان هستند، رکورد ایجاد نکن
+        if previous_state == new_state:
+            logger.debug(f"🔄 وضعیت خرید {purchase.purchase_number} تغییری نداشته: {new_state}")
+            return
+        
+        # Check if a state change record already exists for this exact transition in the last hour
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        one_hour_ago = timezone.now() - timedelta(hours=1)
         existing_record = PurchaseStateChange.objects.filter(
             purchase=purchase,
+            previous_state=previous_state,
             new_state=new_state,
-            sms_sent=True
+            changed_at__gte=one_hour_ago
         ).exists()
         
         if not existing_record:
-            PurchaseStateChange.objects.create(
+            state_change = PurchaseStateChange.objects.create(
                 purchase=purchase,
                 previous_state=previous_state,
                 new_state=new_state,
                 sms_sent=False,  # سیگنال خودش این رو True می‌کنه
                 notes=notes
             )
-            logger.info(f"✅ رکورد تغییر وضعیت برای خرید {purchase.purchase_number} ایجاد شد: {previous_state} → {new_state}")
+            logger.info(f"✅ رکورد تغییر وضعیت برای خرید {purchase.purchase_number} ایجاد شد: {previous_state} → {new_state} (ID: {state_change.id})")
         else:
-            logger.info(f"ℹ️ رکورد تغییر وضعیت برای خرید {purchase.purchase_number} قبلاً موجود است: {new_state}")
+            logger.info(f"ℹ️ رکورد تغییر وضعیت مشابه برای خرید {purchase.purchase_number} در ساعت گذشته موجود است: {previous_state} → {new_state}")
             
     except Exception as e:
         logger.error(f"❌ خطا در ایجاد رکورد تغییر وضعیت برای خرید {purchase.purchase_number}: {str(e)}")
+        import traceback
+        logger.error(f"جزئیات خطا: {traceback.format_exc()}")
 
 
 def create_or_get_customer(buyer_name, buyer_phone, buyer_address, province_code):
