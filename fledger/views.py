@@ -58,9 +58,87 @@ def fledger_dashboard(request):
 
 
 @role_required('admin', 'financial_manager')
+def varedkonandeh_wallet_list(request):
+    """
+    لیست کیف پول‌های واردکنندگان
+    """
+    search_query = request.GET.get('search', '')
+    balance_filter = request.GET.get('balance_filter', 'all')
+    
+    # فقط کیف پول‌های متعلق به واردکنندگان
+    wallets = Wallet.objects.filter(varedkonandeh__isnull=False).select_related('varedkonandeh').all()
+    
+    if search_query:
+        wallets = wallets.filter(
+            Q(varedkonandeh__name__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+    
+    if balance_filter == 'positive':
+        wallets = wallets.filter(balance__gt=0)
+    elif balance_filter == 'negative':
+        wallets = wallets.filter(balance__lt=0)
+    elif balance_filter == 'zero':
+        wallets = wallets.filter(balance=0)
+    
+    # صفحه‌بندی
+    paginator = Paginator(wallets, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'balance_filter': balance_filter,
+        'wallet_type': 'varedkonandeh',
+    }
+    
+    return render(request, 'fledger/varedkonandeh_wallet_list.html', context)
+
+
+@role_required('admin', 'financial_manager')
+def customer_wallet_list(request):
+    """
+    لیست کیف پول‌های مشتریان
+    """
+    search_query = request.GET.get('search', '')
+    balance_filter = request.GET.get('balance_filter', 'all')
+    
+    # فقط کیف پول‌های متعلق به مشتریان
+    wallets = Wallet.objects.filter(customer__isnull=False).select_related('customer').all()
+    
+    if search_query:
+        wallets = wallets.filter(
+            Q(customer__name__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+    
+    if balance_filter == 'positive':
+        wallets = wallets.filter(balance__gt=0)
+    elif balance_filter == 'negative':
+        wallets = wallets.filter(balance__lt=0)
+    elif balance_filter == 'zero':
+        wallets = wallets.filter(balance=0)
+    
+    # صفحه‌بندی
+    paginator = Paginator(wallets, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'balance_filter': balance_filter,
+        'wallet_type': 'customer',
+    }
+    
+    return render(request, 'fledger/customer_wallet_list.html', context)
+
+
+@role_required('admin', 'financial_manager')
 def wallet_list(request):
     """
-    لیست کیف پول‌ها
+    لیست کیف پول‌ها (عمومی - برای backward compatibility)
     """
     search_query = request.GET.get('search', '')
     balance_filter = request.GET.get('balance_filter', 'all')
@@ -95,9 +173,74 @@ def wallet_list(request):
 
 
 @role_required('admin', 'financial_manager')
-def wallet_detail(request, wallet_id):
+def varedkonandeh_wallet_detail(request, wallet_id):
     """
     جزئیات کیف پول واردکننده
+    """
+    wallet = get_object_or_404(Wallet, id=wallet_id, varedkonandeh__isnull=False)
+    
+    # محاسبه مجدد موجودی
+    wallet.calculate_balance()
+    
+    # تراکنش‌های کیف پول
+    transactions = wallet.transactions.all().order_by('-created_at')
+    
+    # خلاصه خریدها
+    purchase_summary = wallet.get_purchase_summary()
+    
+    # ثبت‌های دفتر - فقط خریدهایی که آدرس ارسال شده باشد
+    ledger_entries = LedgerEntry.objects.filter(
+        varedkonandeh=wallet.varedkonandeh,
+        purchase__is_address_sent__in=['1', 'True']  # پشتیبانی از هر دو فرمت
+    ).order_by('-created_at')[:20]
+    
+    context = {
+        'wallet': wallet,
+        'transactions': transactions,
+        'purchase_summary': purchase_summary,
+        'ledger_entries': ledger_entries,
+        'wallet_type': 'varedkonandeh',
+    }
+    
+    return render(request, 'fledger/varedkonandeh_wallet_detail.html', context)
+
+
+@role_required('admin', 'financial_manager')
+def customer_wallet_detail(request, wallet_id):
+    """
+    جزئیات کیف پول مشتری
+    """
+    wallet = get_object_or_404(Wallet, id=wallet_id, customer__isnull=False)
+    
+    # محاسبه مجدد موجودی
+    wallet.calculate_balance()
+    
+    # تراکنش‌های کیف پول
+    transactions = wallet.transactions.all().order_by('-created_at')
+    
+    # آمار تراکنش‌ها
+    transaction_stats = {
+        'total_transactions': transactions.count(),
+        'approved_transactions': transactions.filter(status='approved').count(),
+        'pending_transactions': transactions.filter(status='pending').count(),
+        'total_income': transactions.filter(status='approved', amount__gt=0).aggregate(total=Sum('amount'))['total'] or 0,
+        'total_expenses': abs(transactions.filter(status='approved', amount__lt=0).aggregate(total=Sum('amount'))['total'] or 0),
+    }
+    
+    context = {
+        'wallet': wallet,
+        'transactions': transactions,
+        'transaction_stats': transaction_stats,
+        'wallet_type': 'customer',
+    }
+    
+    return render(request, 'fledger/customer_wallet_detail.html', context)
+
+
+@role_required('admin', 'financial_manager')
+def wallet_detail(request, wallet_id):
+    """
+    جزئیات کیف پول (عمومی - برای backward compatibility)
     """
     wallet = get_object_or_404(Wallet, id=wallet_id)
     
@@ -113,7 +256,7 @@ def wallet_detail(request, wallet_id):
     # ثبت‌های دفتر - فقط خریدهایی که آدرس ارسال شده باشد
     ledger_entries = LedgerEntry.objects.filter(
         varedkonandeh=wallet.varedkonandeh,
-        purchase__is_address_sent__in=['1', 'True']  # پشتیبانی از هر دو فرمت
+        purchase__is_address_sent__in=['1', '1', 'True']  # پشتیبانی از هر دو فرمت
     ).order_by('-created_at')[:20]
     
     context = {

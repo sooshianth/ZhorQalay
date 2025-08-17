@@ -927,11 +927,18 @@
             عملیات سریع
         </h2>
         <div class="quick-actions">
-            <a href="{% url 'fledger:wallet_list' %}" class="action-btn">
+            <a href="{% url 'fledger:varedkonandeh_wallet_list' %}" class="action-btn">
                 <div class="action-icon">
-                    <i class="fas fa-wallet"></i>
+                    <i class="fas fa-industry"></i>
                 </div>
-                <span>مدیریت کیف پول‌ها</span>
+                <span>کیف پول واردکنندگان</span>
+            </a>
+
+            <a href="{% url 'fledger:customer_wallet_list' %}" class="action-btn">
+                <div class="action-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <span>کیف پول مشتریان</span>
             </a>
 
             <a href="{% url 'fledger:transaction_list' %}" class="action-btn">

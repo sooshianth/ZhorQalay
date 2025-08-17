@@ -1,0 +1,534 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}لیست کیف پول‌های واردکنندگان{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'fledger/css/fledger.css' %}">
+
+<style>
+    .varedkonandeh-wallets-hero {
+        background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+        padding: 2.5rem 2rem;
+        border-radius: 1.5rem;
+        margin-bottom: 2.5rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(30, 64, 175, 0.3);
+    }
+
+    .varedkonandeh-wallets-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .breadcrumb-nav {
+        background: white;
+        padding: 1rem 2rem;
+        border-radius: 1rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        border: 1px solid #f1f5f9;
+    }
+
+    .breadcrumb-nav a {
+        color: #1e40af;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .breadcrumb-nav a:hover {
+        color: #3b82f6;
+        text-decoration: underline;
+    }
+
+    .breadcrumb-nav span {
+        color: #64748b;
+        margin: 0 0.5rem;
+    }
+
+    .filters-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 1.25rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+    }
+
+    .filters-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: 1.5rem;
+        align-items: end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .filter-label {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 0.9rem;
+    }
+
+    .filter-input {
+        padding: 0.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        font-size: 0.9rem;
+        transition: border-color 0.3s ease;
+    }
+
+    .filter-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .filter-btn {
+        background: linear-gradient(135deg, #1e40af, #3b82f6);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .filter-btn:hover {
+        background: linear-gradient(135deg, #1e3a8a, #2563eb);
+        transform: translateY(-2px);
+    }
+
+    .wallets-container {
+        background: white;
+        border-radius: 1.25rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        overflow: hidden;
+    }
+
+    .wallets-header {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .wallets-title {
+        margin: 0;
+        color: #1e293b;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .wallets-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .wallets-table thead {
+        background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    }
+
+    .wallets-table th {
+        padding: 1.25rem 1.5rem;
+        text-align: right;
+        font-weight: 600;
+        color: #1e293b;
+        border-bottom: 2px solid #e2e8f0;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .wallets-table tbody tr {
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.3s ease;
+    }
+
+    .wallets-table tbody tr:nth-child(even) {
+        background-color: #f8fafc;
+    }
+
+    .wallets-table tbody tr:hover {
+        background-color: #e0f2fe !important;
+        transform: scale(1.01);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .wallets-table td {
+        padding: 1.25rem 1.5rem;
+        vertical-align: middle;
+    }
+
+    .wallet-name {
+        font-weight: 600;
+        color: #1e40af;
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+
+    .wallet-name:hover {
+        color: #3b82f6;
+        text-decoration: none;
+    }
+
+    .balance-value {
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+
+    .balance-positive {
+        color: #047857;
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        padding: 0.5rem 1rem;
+        border-radius: 0.75rem;
+        display: inline-block;
+        font-weight: 800;
+        box-shadow: 0 4px 12px rgba(6, 95, 70, 0.2);
+    }
+
+    .balance-negative {
+        color: #dc2626;
+        background: linear-gradient(135deg, #fed7d7, #feb2b2);
+        padding: 0.5rem 1rem;
+        border-radius: 0.75rem;
+        display: inline-block;
+        font-weight: 800;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+    }
+
+    .balance-zero {
+        color: #64748b;
+        background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+        padding: 0.5rem 1rem;
+        border-radius: 0.75rem;
+        display: inline-block;
+        font-weight: 800;
+    }
+
+    .wallet-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .action-link {
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        text-decoration: none;
+        font-size: 0.8rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .action-link.view {
+        background: linear-gradient(135deg, #3b82f6, #60a5fa);
+        color: white;
+    }
+
+    .action-link.view:hover {
+        background: linear-gradient(135deg, #2563eb, #3b82f6);
+        transform: translateY(-2px);
+    }
+
+    .action-link.transaction {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+    }
+
+    .action-link.transaction:hover {
+        background: linear-gradient(135deg, #059669, #10b981);
+        transform: translateY(-2px);
+    }
+
+    .pagination-container {
+        background: white;
+        padding: 2rem;
+        border-radius: 1.25rem;
+        margin-top: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        text-align: center;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .pagination a, .pagination span {
+        padding: 0.75rem 1rem;
+        border-radius: 0.5rem;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        border: 1px solid #e2e8f0;
+    }
+
+    .pagination a {
+        color: #3b82f6;
+        background: white;
+    }
+
+    .pagination a:hover {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+    }
+
+    .pagination .current {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+    }
+
+    .no-wallets {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: #64748b;
+    }
+
+    .no-wallets i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: #cbd5e1;
+    }
+
+    @media (max-width: 768px) {
+        .filters-form {
+            grid-template-columns: 1fr;
+        }
+        
+        .wallets-table {
+            font-size: 0.8rem;
+        }
+        
+        .wallets-table th,
+        .wallets-table td {
+            padding: 0.75rem 0.5rem;
+        }
+        
+        .wallet-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+
+<div class="fledger-container">
+    <!-- Breadcrumb Navigation -->
+    <div class="breadcrumb-nav">
+        <a href="{% url 'fledger:fledger_dashboard' %}">داشبورد</a>
+        <span>/</span>
+        <span>کیف پول واردکنندگان</span>
+    </div>
+
+    <!-- Hero Section -->
+    <div class="varedkonandeh-wallets-hero">
+        <div class="hero-content">
+            <h1>
+                <i class="fas fa-industry"></i>
+                مدیریت کیف پول واردکنندگان
+            </h1>
+            <p>رصد و مدیریت موجودی مالی تمام واردکنندگان شرکت</p>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filters-section">
+        <form method="get" class="filters-form">
+            <div class="filter-group">
+                <label class="filter-label">جستجو</label>
+                <input type="text" name="search" value="{{ search_query }}" 
+                       placeholder="نام واردکننده یا توضیحات..." 
+                       class="filter-input">
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">فیلتر موجودی</label>
+                <select name="balance_filter" class="filter-input">
+                    <option value="all" {% if balance_filter == 'all' %}selected{% endif %}>همه</option>
+                    <option value="positive" {% if balance_filter == 'positive' %}selected{% endif %}>موجودی مثبت</option>
+                    <option value="negative" {% if balance_filter == 'negative' %}selected{% endif %}>موجودی منفی</option>
+                    <option value="zero" {% if balance_filter == 'zero' %}selected{% endif %}>موجودی صفر</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="filter-btn">
+                <i class="fas fa-search"></i>
+                اعمال فیلتر
+            </button>
+        </form>
+    </div>
+
+    <!-- Wallets List -->
+    <div class="wallets-container">
+        <div class="wallets-header">
+            <h2 class="wallets-title">
+                <i class="fas fa-list"></i>
+                لیست کیف پول‌ها
+                {% if page_obj %}
+                <span style="font-size: 0.9rem; color: #64748b; margin-right: 1rem;">
+                    ({{ page_obj.paginator.count }} مورد)
+                </span>
+                {% endif %}
+            </h2>
+        </div>
+
+        {% if page_obj %}
+        <div style="overflow-x: auto;">
+            <table class="wallets-table">
+                <thead>
+                    <tr>
+                        <th>نام واردکننده</th>
+                        <th>توضیحات</th>
+                        <th>موجودی فعلی</th>
+                        <th>تاریخ آخرین بروزرسانی</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for wallet in page_obj %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'fledger:varedkonandeh_wallet_detail' wallet.id %}" class="wallet-name">
+                                {{ wallet.varedkonandeh.name }}
+                            </a>
+                        </td>
+                        <td>
+                            <span style="color: #64748b;">
+                                {{ wallet.description|default:"-"|truncatechars:50 }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if wallet.balance > 0 %}
+                                <span class="balance-value balance-positive">
+                                    {{ wallet.balance|format_rial_amount }}
+                                </span>
+                            {% elif wallet.balance < 0 %}
+                                <span class="balance-value balance-negative">
+                                    {{ wallet.balance|format_rial_amount }}
+                                </span>
+                            {% else %}
+                                <span class="balance-value balance-zero">
+                                    0 ریال
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td style="color: #64748b; font-size: 0.9rem;">
+                            {{ wallet.updated_at|date:"Y/m/d H:i" }}
+                        </td>
+                        <td>
+                            <div class="wallet-actions">
+                                <a href="{% url 'fledger:varedkonandeh_wallet_detail' wallet.id %}" 
+                                   class="action-link view">
+                                    <i class="fas fa-eye"></i>
+                                    مشاهده
+                                </a>
+                                <a href="{% url 'fledger:create_transaction' %}?wallet={{ wallet.id }}" 
+                                   class="action-link transaction">
+                                    <i class="fas fa-plus"></i>
+                                    تراکنش
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="no-wallets">
+            <i class="fas fa-inbox"></i>
+            <h3>هیچ کیف پولی یافت نشد</h3>
+            <p>با تغییر فیلترها یا جستجو، کیف پول‌های مورد نظر را پیدا کنید.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj and page_obj.has_other_pages %}
+    <div class="pagination-container">
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if balance_filter %}&balance_filter={{ balance_filter }}{% endif %}">
+                    <i class="fas fa-angle-double-right"></i>
+                </a>
+                <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if balance_filter %}&balance_filter={{ balance_filter }}{% endif %}">
+                    <i class="fas fa-angle-right"></i>
+                </a>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <span class="current">{{ num|to_persian_digits }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if balance_filter %}&balance_filter={{ balance_filter }}{% endif %}">
+                        {{ num|to_persian_digits }}
+                    </a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if balance_filter %}&balance_filter={{ balance_filter }}{% endif %}">
+                    <i class="fas fa-angle-left"></i>
+                </a>
+                <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if balance_filter %}&balance_filter={{ balance_filter }}{% endif %}">
+                    <i class="fas fa-angle-double-left"></i>
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-submit form on filter change
+    const balanceFilter = document.querySelector('select[name="balance_filter"]');
+    if (balanceFilter) {
+        balanceFilter.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+    
+    // Highlight current row on hover
+    const tableRows = document.querySelectorAll('.wallets-table tbody tr');
+    tableRows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.cursor = 'pointer';
+        });
+        
+        row.addEventListener('click', function() {
+            const viewLink = this.querySelector('.action-link.view');
+            if (viewLink) {
+                window.location.href = viewLink.href;
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

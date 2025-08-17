@@ -49,10 +49,10 @@ class TransactionAdmin(admin.ModelAdmin):
     )
     list_filter = (
         'status', 'transaction_type', 'payment_method', 
-        'created_at', 'approved_at'
+        'created_at', 'approved_at', 'wallet__varedkonandeh', 'wallet__customer'
     )
     search_fields = (
-        'wallet__varedkonandeh__name', 'description', 
+        'wallet__varedkonandeh__name', 'wallet__customer__name', 'description', 
         'created_by__username', 'hazinah__title',
         'income__title'
     )
@@ -86,9 +86,14 @@ class TransactionAdmin(admin.ModelAdmin):
     
     def wallet_name(self, obj):
         if obj.wallet:
-            return obj.wallet.varedkonandeh.name
+            if obj.wallet.varedkonandeh:
+                return f"واردکننده: {obj.wallet.varedkonandeh.name}"
+            elif obj.wallet.customer:
+                return f"مشتری: {obj.wallet.customer.name}"
+            else:
+                return 'کیف پول عمومی'
         return 'بدون کیف پول'
-    wallet_name.short_description = 'واردکننده'
+    wallet_name.short_description = 'صاحب کیف پول'
     wallet_name.admin_order_field = 'wallet__varedkonandeh__name'
     
     def formatted_amount(self, obj):
@@ -137,7 +142,7 @@ class TransactionAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related(
-            'wallet', 'wallet__varedkonandeh', 'hazinah', 'income',
+            'wallet', 'wallet__varedkonandeh', 'wallet__customer', 'hazinah', 'income',
             'created_by', 'approved_by'
         )
     

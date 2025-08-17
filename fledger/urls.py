@@ -7,7 +7,15 @@ urlpatterns = [
     # داشبورد اصلی
     path('', views.fledger_dashboard, name='fledger_dashboard'),
     
-    # مدیریت کیف پول‌ها
+    # مدیریت کیف پول واردکنندگان
+    path('varedkonandeh-wallets/', views.varedkonandeh_wallet_list, name='varedkonandeh_wallet_list'),
+    path('varedkonandeh-wallets/<int:wallet_id>/', views.varedkonandeh_wallet_detail, name='varedkonandeh_wallet_detail'),
+    
+    # مدیریت کیف پول مشتریان
+    path('customer-wallets/', views.customer_wallet_list, name='customer_wallet_list'),
+    path('customer-wallets/<int:wallet_id>/', views.customer_wallet_detail, name='customer_wallet_detail'),
+    
+    # مدیریت کیف پول‌ها (عمومی - برای backward compatibility)
     path('wallets/', views.wallet_list, name='wallet_list'),
     path('wallets/<int:wallet_id>/', views.wallet_detail, name='wallet_detail'),
     
