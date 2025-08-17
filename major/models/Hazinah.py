@@ -201,12 +201,34 @@ class Hazinah(models.Model):
         # محاسبه مبلغ نهایی
         self.final_amount = self.amount + self.tax_amount - self.discount_amount
 
-        # بررسی تأیید خودکار برای هزینه‌های جدید
-        if not self.pk and self.approval_status == 'pending':
-            self.approval_status = self._get_auto_approval_status()
-            if self.approval_status == 'auto_approved':
-                self.approval_date = timezone.now()
-                self.approval_notes = 'تأیید خودکار - مبلغ کمتر از 10 میلیون تومان'
+        # بررسی تأیید خودکار برای هزینه‌های جدید یا تغییر یافته
+        if not self.pk:
+            # هزینه جدید
+            if self.approval_status == 'pending':
+                self.approval_status = self._get_auto_approval_status()
+                if self.approval_status == 'auto_approved':
+                    self.approval_date = timezone.now()
+                    self.approval_notes = 'تأیید خودکار - مبلغ کمتر از 10 میلیون تومان'
+        else:
+            # هزینه موجود - بررسی تغییرات مبلغ
+            try:
+                old_instance = Hazinah.objects.get(pk=self.pk)
+                if old_instance.amount != self.amount or old_instance.tax_amount != self.tax_amount or old_instance.discount_amount != self.discount_amount:
+                    # مبلغ تغییر کرده - بررسی مجدد وضعیت تایید
+                    new_approval_status = self._get_auto_approval_status()
+                    if new_approval_status != self.approval_status:
+                        self.approval_status = new_approval_status
+                        
+                        if new_approval_status == 'auto_approved':
+                            self.approval_date = timezone.now()
+                            self.approval_notes = 'تأیید خودکار - مبلغ کمتر از 10 میلیون تومان'
+                        elif new_approval_status == 'pending':
+                            # پاک کردن اطلاعات تایید قبلی
+                            self.approval_date = None
+                            self.approval_notes = ''
+                            self.approved_by = None
+            except Hazinah.DoesNotExist:
+                pass  # هزینه جدید است
         
         super().save(*args, **kwargs)
     
@@ -224,7 +246,7 @@ class Hazinah(models.Model):
             new_final_amount = self.amount + self.tax_amount - self.discount_amount
             
             # بررسی مجدد وضعیت تأیید اگر مبلغ تغییر کرده باشد
-            if old_amount != self.amount and self.approval_status in ['auto_approved', 'pending']:
+            if old_amount != self.amount:
                 new_approval_status = self._get_auto_approval_status()
                 
                 # اگر وضعیت تأیید تغییر کرده باشد
@@ -238,6 +260,11 @@ class Hazinah(models.Model):
                         # اگر از auto_approved به pending تغییر کرده، تاریخ تأیید را پاک کن
                         self.approval_date = None
                         self.approval_notes = ''
+                        # پاک کردن اطلاعات تایید قبلی
+                        self.approved_by = None
+                        if hasattr(self, 'approval_notes') and self.approval_notes:
+                            # حذف یادداشت‌های تایید قبلی
+                            self.approval_notes = ''
             
             self.save()
             delattr(self, '_updating_from_invoices')

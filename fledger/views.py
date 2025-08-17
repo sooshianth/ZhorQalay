@@ -1198,9 +1198,8 @@ def delete_invoice(request, hazinah_id, invoice_id):
                 invoice_id_str = invoice.invoice_id
                 invoice.delete()
                 
-                # بروزرسانی مبلغ هزینه
-                hazinah.amount = hazinah.calculate_amount_from_invoices()
-                hazinah.save()
+                # بروزرسانی مبلغ هزینه و بررسی مجدد وضعیت تأیید
+                hazinah.update_amount_from_invoices()
                 
                 messages.success(request, f'فاکتور "{invoice_id_str}" با موفقیت حذف شد.')
                 return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
@@ -1254,10 +1253,9 @@ def create_invoice(request):
                             item.invoice = invoice
                             item.save()
                     
-                    # بروزرسانی مبلغ هزینه/درآمد مرتبط در صورت نیاز
+                    # بروزرسانی مبلغ هزینه/درآمد مرتبط و بررسی مجدد وضعیت تأیید
                     if invoice.hazinah and invoice.hazinah.cost_type in ['product_purchase', 'customer_allocation']:
-                        invoice.hazinah.amount = invoice.hazinah.calculate_amount_from_invoices()
-                        invoice.hazinah.save()
+                        invoice.hazinah.update_amount_from_invoices()
                     
                     messages.success(request, f'فاکتور "{invoice.invoice_id}" با موفقیت ایجاد شد.')
                     return redirect('fledger:invoice_detail', invoice_id=invoice.id)

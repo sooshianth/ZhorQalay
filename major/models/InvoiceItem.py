@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 from .Invoice import Invoice
 from django.forms import ValidationError
 from .NonBazargahProduct import NonBazargahProduct
@@ -59,3 +61,23 @@ class InvoiceItem(models.Model):
     class Meta:
         verbose_name = 'آیتم فاکتور'
         verbose_name_plural = 'آیتم‌های فاکتور'
+
+
+# سیگنال‌های Django برای به‌روزرسانی خودکار وضعیت تایید هزینه
+@receiver([post_save, post_delete], sender=InvoiceItem)
+def update_hazinah_approval_status(sender, instance, **kwargs):
+    """
+    به‌روزرسانی خودکار وضعیت تایید هزینه در زمان تغییر آیتم‌های فاکتور
+    """
+    try:
+        if instance.invoice and instance.invoice.hazinah:
+            hazinah = instance.invoice.hazinah
+            # فقط برای هزینه‌های خرید محصول و تخصیص مشتری
+            if hazinah.cost_type in ['product_purchase', 'customer_allocation']:
+                # بررسی مجدد وضعیت تایید
+                hazinah.update_amount_from_invoices()
+    except Exception as e:
+        # در صورت بروز خطا، لاگ کنید اما اجازه دهید برنامه ادامه یابد
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"خطا در به‌روزرسانی خودکار وضعیت تایید هزینه: {str(e)}")

@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 from django.forms import ValidationError
 from .Hazinah import Hazinah
 from django_jalali.db import models as jmodels
@@ -42,6 +44,17 @@ class Invoice(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+        
+        # به‌روزرسانی خودکار وضعیت تایید هزینه در صورت نیاز
+        try:
+            if self.hazinah and self.hazinah.cost_type in ['product_purchase', 'customer_allocation']:
+                # بررسی مجدد وضعیت تایید
+                self.hazinah.update_amount_from_invoices()
+        except Exception as e:
+            # در صورت بروز خطا، لاگ کنید اما اجازه دهید برنامه ادامه یابد
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"خطا در به‌روزرسانی خودکار وضعیت تایید هزینه در save: {str(e)}")
 
     def __str__(self):
         return f"فاکتور {self.invoice_id} - {self.get_type_display()}"
@@ -65,3 +78,20 @@ class Invoice(models.Model):
         elif self.type == 'Income' and self.income:
             return self.income
         return None
+
+
+# سیگنال‌های Django برای به‌روزرسانی خودکار وضعیت تایید هزینه
+@receiver([post_save, post_delete], sender=Invoice)
+def update_hazinah_approval_status_from_invoice(sender, instance, **kwargs):
+    """
+    به‌روزرسانی خودکار وضعیت تایید هزینه در زمان تغییر فاکتور
+    """
+    try:
+        if instance.hazinah and instance.hazinah.cost_type in ['product_purchase', 'customer_allocation']:
+            # بررسی مجدد وضعیت تایید
+            instance.hazinah.update_amount_from_invoices()
+    except Exception as e:
+        # در صورت بروز خطا، لاگ کنید اما اجازه دهید برنامه ادامه یابد
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"خطا در به‌روزرسانی خودکار وضعیت تایید هزینه از فاکتور: {str(e)}")
