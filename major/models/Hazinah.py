@@ -253,11 +253,19 @@ class Hazinah(models.Model):
         if not transactions.exists():
             return 'unpaid'
         
-        # برای هزینه‌ها، تراکنش‌های پرداخت مثبت ذخیره می‌شوند
-        total_paid = sum(transaction.amount for transaction in transactions if transaction.amount > 0)
-        # اگر تراکنش منفی باشد (مثل برگشت) از کل کم می‌شود
-        total_refunded = sum(abs(transaction.amount) for transaction in transactions if transaction.amount < 0)
-        net_paid = total_paid - total_refunded
+        # برای هزینه‌های تخصیص مشتری، تراکنش‌های Income در کیف پول مشتری مثبت هستند
+        if self.cost_type == 'customer_allocation':
+            # مجموع تراکنش‌های مثبت (درآمد برای مشتری)
+            total_paid = sum(transaction.amount for transaction in transactions if transaction.amount > 0)
+            # مجموع تراکنش‌های منفی (هزینه برای مشتری)
+            total_refunded = sum(abs(transaction.amount) for transaction in transactions if transaction.amount < 0)
+            net_paid = total_paid - total_refunded
+        else:
+            # برای سایر هزینه‌ها، تراکنش‌های پرداخت مثبت ذخیره می‌شوند
+            total_paid = sum(transaction.amount for transaction in transactions if transaction.amount > 0)
+            # اگر تراکنش منفی باشد (مثل برگشت) از کل کم می‌شود
+            total_refunded = sum(abs(transaction.amount) for transaction in transactions if transaction.amount < 0)
+            net_paid = total_paid - total_refunded
         
         if net_paid <= 0:
             return 'unpaid'
@@ -270,11 +278,20 @@ class Hazinah(models.Model):
     def total_transactions_amount(self):
         """محاسبه مجموع مبلغ تراکنش‌های تأیید شده"""
         transactions = self.transactions.filter(status='approved')
-        # برای هزینه‌ها، تراکنش‌های پرداخت مثبت ذخیره می‌شوند
-        total_paid = sum(transaction.amount for transaction in transactions if transaction.amount > 0)
-        # اگر تراکنش منفی باشد (مثل برگشت) از کل کم می‌شود
-        total_refunded = sum(abs(transaction.amount) for transaction in transactions if transaction.amount < 0)
-        return total_paid - total_refunded
+        
+        # برای هزینه‌های تخصیص مشتری، تراکنش‌های Income در کیف پول مشتری مثبت هستند
+        if self.cost_type == 'customer_allocation':
+            # مجموع تراکنش‌های مثبت (درآمد برای مشتری)
+            total_paid = sum(transaction.amount for transaction in transactions if transaction.amount > 0)
+            # مجموع تراکنش‌های منفی (هزینه برای مشتری)
+            total_refunded = sum(abs(transaction.amount) for transaction in transactions if transaction.amount < 0)
+            return total_paid - total_refunded
+        else:
+            # برای سایر هزینه‌ها، تراکنش‌های پرداخت مثبت ذخیره می‌شوند
+            total_paid = sum(transaction.amount for transaction in transactions if transaction.amount > 0)
+            # اگر تراکنش منفی باشد (مثل برگشت) از کل کم می‌شود
+            total_refunded = sum(abs(transaction.amount) for transaction in transactions if transaction.amount < 0)
+            return total_paid - total_refunded
     
     @property
     def remaining_amount(self):
@@ -466,19 +483,7 @@ class Hazinah(models.Model):
         if amount > self.remaining_amount:
             return None, "مبلغ نمی‌تواند بیشتر از مبلغ باقی‌مانده باشد"
         
-        # ایجاد تراکنش اصلی
-        transaction = Transaction.objects.create(
-            wallet=wallet,
-            transaction_type='Hazinah',
-            amount=-amount,  # منفی چون هزینه است
-            hazinah=self,
-            payment_method=payment_method,
-            description=description or f"پرداخت هزینه: {self.title}",
-            created_by=created_by,
-            status='pending'  # در انتظار تأیید
-        )
-        
-        # اگر نوع هزینه "تخصیص مشتری" است، تراکنش به کیف پول مشتری نیز اضافه شود
+        # اگر نوع هزینه "تخصیص مشتری" است، تراکنش در کیف پول مشتری ثبت شود
         if self.cost_type == 'customer_allocation':
             # از فاکتورهای این هزینه، مشتری را پیدا کن
             invoice = self.invoices.first()
@@ -489,19 +494,38 @@ class Hazinah(models.Model):
                     defaults={'description': f'کیف پول {invoice.customer.name}'}
                 )
                 
-                # تراکنش مثبت برای مشتری
-                Transaction.objects.create(
+                # تراکنش مثبت برای مشتری (درآمد)
+                transaction = Transaction.objects.create(
                     wallet=customer_wallet,
                     transaction_type='Income',
                     amount=amount,  # مثبت چون درآمد برای مشتری است
                     hazinah=self,
                     payment_method=payment_method,
-                    description=f"تخصیص از هزینه: {self.title}",
+                    description=description or f"تخصیص از هزینه: {self.title}",
                     created_by=created_by,
                     status='pending'
                 )
-        
-        return transaction, "تراکنش با موفقیت ایجاد شد"
+                
+                # بروزرسانی موجودی کیف پول مشتری
+                customer_wallet.calculate_balance()
+                
+                return transaction, "تراکنش تخصیص مشتری با موفقیت ایجاد شد"
+            else:
+                return None, "برای هزینه‌های تخصیص مشتری، مشتری باید مشخص باشد"
+        else:
+            # برای سایر انواع هزینه، تراکنش منفی در کیف پول واردکننده
+            transaction = Transaction.objects.create(
+                wallet=wallet,
+                transaction_type='Hazinah',
+                amount=-amount,  # منفی چون هزینه است
+                hazinah=self,
+                payment_method=payment_method,
+                description=description or f"پرداخت هزینه: {self.title}",
+                created_by=created_by,
+                status='pending'  # در انتظار تأیید
+            )
+            
+            return transaction, "تراکنش با موفقیت ایجاد شد"
     
     def get_payment_history(self):
         """تاریخچه پرداخت‌های این هزینه"""
@@ -522,10 +546,18 @@ class Hazinah(models.Model):
         }
         
         for transaction in transactions:
-            if transaction.amount < 0:  # هزینه (منفی)
-                summary['total_paid'] += abs(transaction.amount)
-            else:  # برگشت (مثبت)
-                summary['total_refunded'] += transaction.amount
+            if self.cost_type == 'customer_allocation':
+                # برای هزینه‌های تخصیص مشتری، تراکنش‌های مثبت پرداخت هستند
+                if transaction.amount > 0:  # درآمد (مثبت)
+                    summary['total_paid'] += transaction.amount
+                else:  # هزینه (منفی)
+                    summary['total_refunded'] += abs(transaction.amount)
+            else:
+                # برای سایر هزینه‌ها، تراکنش‌های منفی پرداخت هستند
+                if transaction.amount < 0:  # هزینه (منفی)
+                    summary['total_paid'] += abs(transaction.amount)
+                else:  # برگشت (مثبت)
+                    summary['total_refunded'] += transaction.amount
                 
             if not summary['last_payment_date'] or transaction.approved_at > summary['last_payment_date']:
                 summary['last_payment_date'] = transaction.approved_at
@@ -605,7 +637,10 @@ class Hazinah(models.Model):
         """محاسبه کل مبلغ پرداخت شده (بر اساس تراکنش‌های تأیید شده)"""
         from fledger.models import Transaction
         
-        queryset = Transaction.objects.filter(
+        total_paid = Decimal('0')
+        
+        # تراکنش‌های هزینه (Hazinah) - مبلغ منفی
+        hazinah_transactions = Transaction.objects.filter(
             hazinah__isnull=False,
             transaction_type='Hazinah',
             status='approved',
@@ -613,15 +648,37 @@ class Hazinah(models.Model):
         )
         
         if year:
-            queryset = queryset.filter(approved_at__year=year)
+            hazinah_transactions = hazinah_transactions.filter(approved_at__year=year)
         if month:
-            queryset = queryset.filter(approved_at__month=month)
+            hazinah_transactions = hazinah_transactions.filter(approved_at__month=month)
         
-        total = queryset.aggregate(
+        hazinah_total = hazinah_transactions.aggregate(
             total=models.Sum('amount')
         )['total'] or Decimal('0')
         
-        return abs(total)  # برگرداندن مقدار مثبت
+        total_paid += abs(hazinah_total)
+        
+        # تراکنش‌های درآمد (Income) برای هزینه‌های تخصیص مشتری - مبلغ مثبت
+        income_transactions = Transaction.objects.filter(
+            hazinah__isnull=False,
+            hazinah__cost_type='customer_allocation',
+            transaction_type='Income',
+            status='approved',
+            amount__gt=0  # درآمدها مثبت هستند
+        )
+        
+        if year:
+            income_transactions = income_transactions.filter(approved_at__year=year)
+        if month:
+            income_transactions = income_transactions.filter(approved_at__month=month)
+        
+        income_total = income_transactions.aggregate(
+            total=models.Sum('amount')
+        )['total'] or Decimal('0')
+        
+        total_paid += income_total
+        
+        return total_paid
     
     @classmethod
     def get_pending_payment_amount(cls):

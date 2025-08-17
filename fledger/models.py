@@ -49,25 +49,30 @@ class Wallet(models.Model):
         
         total_debt = 0
         
-        # تمام خریدهایی که کارگو آنها متعلق به این واردکننده است و آدرس ارسال شده باشد
-        purchases = Purchase.objects.filter(
-            cargo__vared_konandeh=self.varedkonandeh,
-            is_canceled=False,
-            is_archived=False,
-            is_address_sent__in=['1', 'True']  # پشتیبانی از هر دو فرمت برای backward compatibility
-        )
-        
-        for purchase in purchases:
-            # تعیین وزن بر اساس wallet_index
-            if purchase.wallet_index == '0':
-                weight = purchase.order_weight or 0
-            else:  # wallet_index == '1'
-                weight = purchase.delivered_weight or 0
+        # اگر کیف پول متعلق به واردکننده است
+        if self.varedkonandeh:
+            # تمام خریدهایی که کارگو آنها متعلق به این واردکننده است و آدرس ارسال شده باشد
+            purchases = Purchase.objects.filter(
+                cargo__vared_konandeh=self.varedkonandeh,
+                is_canceled=False,
+                is_archived=False,
+                is_address_sent__in=['1', 'True']  # پشتیبانی از هر دو فرمت برای backward compatibility
+            )
             
-            # محاسبه مبلغ: وزن × فی خرید
-            if weight > 0 and purchase.company_price > 0:
-                amount = weight * purchase.company_price
-                total_debt += amount
+            for purchase in purchases:
+                # تعیین وزن بر اساس wallet_index
+                if purchase.wallet_index == '0':
+                    weight = purchase.order_weight or 0
+                else:  # wallet_index == '1'
+                    weight = purchase.delivered_weight or 0
+                
+                # محاسبه مبلغ: وزن × فی خرید
+                if weight > 0 and purchase.company_price > 0:
+                    amount = weight * purchase.company_price
+                    total_debt += amount
+        
+        # اگر کیف پول متعلق به مشتری است، بدهی صفر است
+        # (مشتری‌ها بدهی خرید ندارند، فقط تراکنش‌های مالی دارند)
         
         # محاسبه تراکنش‌های دستی (شامل هزینه‌ها و درآمدها)
         manual_transactions = self.transactions.filter(status='approved')
@@ -192,10 +197,12 @@ class Transaction(models.Model):
         if self.transaction_type == 'Hazinah' and not self.hazinah:
             raise ValidationError(_('لطفا هزینه را مشخص کنید.'))
         
-        if self.transaction_type == 'Income' and not self.income:
-            raise ValidationError(_('لطفا درآمد را مشخص کنید.'))
-
-        if self.income and self.hazinah:
+        if self.transaction_type == 'Income' and not self.income and not self.hazinah:
+            raise ValidationError(_('لطفا درآمد یا هزینه را مشخص کنید.'))
+        
+        # اجازه می‌دهیم که تراکنش‌های Income برای هزینه‌های تخصیص مشتری با hazinah مرتبط باشند
+        # اما اگر همزمان income و hazinah انتخاب شده باشند، خطا می‌دهیم
+        if self.income and self.hazinah and not (self.hazinah.cost_type == 'customer_allocation' and self.transaction_type == 'Income'):
             raise ValidationError(_('لطفا فقط یکی از هزینه و درآمد را مشخص کنید.'))
 
     def __str__(self):

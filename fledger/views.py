@@ -756,18 +756,48 @@ def pay_hazinah(request, hazinah_id):
             
             try:
                 with transaction.atomic():
-                    # ایجاد تراکنش (نیاز به تأیید ادمین). بدون کیف پول و روش پرداخت در فرم.
-                    new_transaction = Transaction.objects.create(
-                        wallet=None,
-                        transaction_type='Hazinah',
-                        amount=payment_amount,
-                        description=form.cleaned_data['description'],
-                        file=form.cleaned_data['attachment'],
-                        hazinah=hazinah,
-                        payment_method=None,
-                        created_by=request.user,
-                        status='pending'  # تراکنش‌های پرداخت هزینه نیاز به تایید دارند
-                    )
+                    # اگر هزینه از نوع تخصیص مشتری باشد، تراکنش در کیف پول مشتری ثبت شود
+                    if hazinah.cost_type == 'customer_allocation':
+                        # از فاکتورهای این هزینه، مشتری را پیدا کن
+                        invoice = hazinah.invoices.first()
+                        if invoice and invoice.customer:
+                            # کیف پول مشتری را پیدا یا ایجاد کن
+                            customer_wallet, created = Wallet.objects.get_or_create(
+                                customer=invoice.customer,
+                                defaults={'description': f'کیف پول {invoice.customer.name}'}
+                            )
+                            
+                            # ایجاد تراکنش در کیف پول مشتری (مثبت چون درآمد برای مشتری است)
+                            new_transaction = Transaction.objects.create(
+                                wallet=customer_wallet,
+                                transaction_type='Income',
+                                amount=payment_amount,  # مثبت چون درآمد برای مشتری است
+                                description=form.cleaned_data['description'] or f"تخصیص از هزینه: {hazinah.title}",
+                                file=form.cleaned_data['attachment'],
+                                hazinah=hazinah,
+                                payment_method=None,
+                                created_by=request.user,
+                                status='pending'  # تراکنش‌های پرداخت هزینه نیاز به تایید دارند
+                            )
+                            
+                            # بروزرسانی موجودی کیف پول مشتری
+                            customer_wallet.calculate_balance()
+                        else:
+                            messages.error(request, 'برای هزینه‌های تخصیص مشتری، مشتری باید مشخص باشد.')
+                            return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
+                    else:
+                        # برای سایر انواع هزینه، تراکنش بدون کیف پول (مانند قبل)
+                        new_transaction = Transaction.objects.create(
+                            wallet=None,
+                            transaction_type='Hazinah',
+                            amount=payment_amount,
+                            description=form.cleaned_data['description'],
+                            file=form.cleaned_data['attachment'],
+                            hazinah=hazinah,
+                            payment_method=None,
+                            created_by=request.user,
+                            status='pending'  # تراکنش‌های پرداخت هزینه نیاز به تایید دارند
+                        )
 
                     # اگر تاریخ پرداخت ثبت شده بود، به عنوان approved_at موقت ذخیره نمی‌کنیم؛ فقط در توضیحات اشاره می‌کنیم
                     paid_at = form.cleaned_data.get('paid_at')
