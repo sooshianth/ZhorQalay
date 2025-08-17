@@ -163,7 +163,8 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
             message += f"شماره راننده: {convert_to_persian_numbers(driver_phone)}\n"
         
         # اضافه کردن نام شرکت
-        message += "تأمین نهاده سیمرغ"
+        message += "تأمین نهاده سیمرغ\n"
+        message += "☎ 021-66562216"
         
         logger.info(f"📝 Hardcoded SMS message created for barnameh {instance.id}")
         logger.debug(f"📄 SMS content: {message}")
