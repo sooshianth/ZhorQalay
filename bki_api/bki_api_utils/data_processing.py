@@ -483,12 +483,27 @@ def update_purchase(purchase, purchase_data):
         # Process allocation ID
         if takhsisid and takhsisid != '0':
             # Check if the allocation ID already exists
-            if not ShenaseTakhsis.objects.filter(purchase=purchase, code=takhsisid).exists():
-                # Create a new allocation ID with the correct weight
+            existing_takhsis = ShenaseTakhsis.objects.filter(purchase=purchase, code=takhsisid).first()
+            if existing_takhsis:
+                # Update existing allocation with delivery information
+                existing_takhsis.weight = qty
+                existing_takhsis.code_melli_tahvil = receiver_id
+                existing_takhsis.tahvil_phone_number = receiver_phone
+                existing_takhsis.delivery_receiver_name = buyer_name  # استفاده از نام خریدار به عنوان نام تحویل‌گیرنده
+                existing_takhsis.delivery_address = buyer_address  # استفاده از آدرس خریدار به عنوان آدرس تحویل
+                existing_takhsis.delivery_postal_code = delpostalcode
+                existing_takhsis.save()
+            else:
+                # Create a new allocation ID with the correct weight and delivery information
                 ShenaseTakhsis.objects.create(
                     purchase=purchase,
                     code=takhsisid,
-                    weight=qty  # Use the allocation weight (takhsisweight)
+                    weight=qty,  # Use the allocation weight (takhsisweight)
+                    code_melli_tahvil=receiver_id,
+                    tahvil_phone_number=receiver_phone,
+                    delivery_receiver_name=buyer_name,  # استفاده از نام خریدار به عنوان نام تحویل‌گیرنده
+                    delivery_address=buyer_address,  # استفاده از آدرس خریدار به عنوان آدرس تحویل
+                    delivery_postal_code=delpostalcode
                 )
         
         return purchase, None
@@ -693,7 +708,12 @@ def create_purchase(purchase_data):
             ShenaseTakhsis.objects.create(
                 purchase=purchase,
                 code=takhsisid,
-                weight=qty  # Use the allocation weight (takhsisweight)
+                weight=qty,  # Use the allocation weight (takhsisweight)
+                code_melli_tahvil=receiver_id,
+                tahvil_phone_number=receiver_phone,
+                delivery_receiver_name=buyer_name,  # استفاده از نام خریدار به عنوان نام تحویل‌گیرنده
+                delivery_address=buyer_address,  # استفاده از آدرس خریدار به عنوان آدرس تحویل
+                delivery_postal_code=delpostalcode
             )
         
         return purchase, None
@@ -911,14 +931,36 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
             takhsisid = entry.get('allocationid')
             takhsis_weight = int(entry.get('qty', 0) or 0)
             
+            # Extract delivery information for this entry
+            entry_buyer_name = entry.get('buyername')
+            entry_buyer_address = entry.get('buyeraddress') 
+            entry_receiver_phone = entry.get('receiverphone')
+            entry_receiver_id = entry.get('receiverid')
+            entry_delpostalcode = entry.get('delpostalcode')
+            
             if takhsisid and takhsisid != '0':
                 # Check if the allocation ID already exists
-                if not ShenaseTakhsis.objects.filter(purchase=purchase, code=takhsisid).exists():
-                    # Create a new allocation ID
+                existing_takhsis = ShenaseTakhsis.objects.filter(purchase=purchase, code=takhsisid).first()
+                if existing_takhsis:
+                    # Update existing allocation with delivery information
+                    existing_takhsis.weight = takhsis_weight
+                    existing_takhsis.code_melli_tahvil = entry_receiver_id
+                    existing_takhsis.tahvil_phone_number = entry_receiver_phone
+                    existing_takhsis.delivery_receiver_name = entry_buyer_name
+                    existing_takhsis.delivery_address = entry_buyer_address
+                    existing_takhsis.delivery_postal_code = entry_delpostalcode
+                    existing_takhsis.save()
+                else:
+                    # Create a new allocation ID with delivery information
                     ShenaseTakhsis.objects.create(
                         purchase=purchase,
                         code=takhsisid,
-                        weight=takhsis_weight
+                        weight=takhsis_weight,
+                        code_melli_tahvil=entry_receiver_id,
+                        tahvil_phone_number=entry_receiver_phone,
+                        delivery_receiver_name=entry_buyer_name,
+                        delivery_address=entry_buyer_address,
+                        delivery_postal_code=entry_delpostalcode
                     )
         
         return purchase, False, None
@@ -970,14 +1012,36 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
             takhsisid = entry.get('allocationid')
             takhsis_weight = int(entry.get('qty', 0) or 0)
             
+            # Extract delivery information for this entry
+            entry_buyer_name = entry.get('buyername')
+            entry_buyer_address = entry.get('buyeraddress') 
+            entry_receiver_phone = entry.get('receiverphone')
+            entry_receiver_id = entry.get('receiverid')
+            entry_delpostalcode = entry.get('delpostalcode')
+            
             if takhsisid and takhsisid != '0':
                 # Check if the allocation ID already exists
-                if not ShenaseTakhsis.objects.filter(purchase=purchase, code=takhsisid).exists():
-                    # Create a new allocation ID
+                existing_takhsis = ShenaseTakhsis.objects.filter(purchase=purchase, code=takhsisid).first()
+                if existing_takhsis:
+                    # Update existing allocation with delivery information
+                    existing_takhsis.weight = takhsis_weight
+                    existing_takhsis.code_melli_tahvil = entry_receiver_id
+                    existing_takhsis.tahvil_phone_number = entry_receiver_phone
+                    existing_takhsis.delivery_receiver_name = entry_buyer_name
+                    existing_takhsis.delivery_address = entry_buyer_address
+                    existing_takhsis.delivery_postal_code = entry_delpostalcode
+                    existing_takhsis.save()
+                else:
+                    # Create a new allocation ID with delivery information
                     ShenaseTakhsis.objects.create(
                         purchase=purchase,
                         code=takhsisid,
-                        weight=takhsis_weight
+                        weight=takhsis_weight,
+                        code_melli_tahvil=entry_receiver_id,
+                        tahvil_phone_number=entry_receiver_phone,
+                        delivery_receiver_name=entry_buyer_name,
+                        delivery_address=entry_buyer_address,
+                        delivery_postal_code=entry_delpostalcode
                     )
         
         return purchase, True, None

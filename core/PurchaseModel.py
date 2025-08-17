@@ -57,10 +57,8 @@ class Purchase(models.Model):
     purchase_number = models.CharField("شماره خرید بازارگاه", max_length=7, blank=True, null=True, unique=True)
     tracking_number = models.CharField("شماره پیگیری", max_length=6, blank=True, null=True)
     shenase_takhsis = models.CharField("شناسه تخصیص", max_length=255, blank=True, null=True, unique=False)
-    code_melli_tahvil = models.CharField("کد ملی تحویل", max_length=255, blank=True, null=True)
     bazaargah_phone_number = models.CharField("شماره تلفن بازارگاه", max_length=15, blank=True, null=True)
     buyer_name = models.CharField("نام خریدار", max_length=255, blank=True, null=True)
-    tahvil_phone_number = models.CharField("شماره تلفن تحویل", max_length=15, blank=True, null=True)
     bazaargah_customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, verbose_name="مشتری بازارگاه", null=True, blank=True, related_name='bazaargah_purchases')
     unique_sales_agent_code = models.CharField("کد کارشناس فروش", max_length=50, blank=True, null=True)
     unique_sales_agent = models.ForeignKey(SalesAgent, on_delete=models.SET_NULL, verbose_name="کارشناس فروش", null=True, blank=True, related_name='unique_sales_agent_purchases')
@@ -81,16 +79,18 @@ class Purchase(models.Model):
     barbary_customer_number = models.CharField("شماره باربری مشتری", max_length=50, blank=True, null=True,
                                              help_text="شماره ارائه شده به مشتری از طرف باربری")
     
+    code_melli_tahvil = models.CharField("کد ملی تحویل", max_length=255, blank=True, null=True)
+    tahvil_phone_number = models.CharField("شماره تلفن تحویل", max_length=15, blank=True, null=True)
     delivery_receiver_name = models.CharField("نام تحویل گیرنده", max_length=255, blank=True, null=True)
-    buyer_national_id = models.CharField("شناسه ملی خریدار", max_length=20, blank=True, null=True)
+    delivery_address = models.TextField("آدرس تحویل", blank=True, null=True)
+    delivery_postal_code = models.CharField("کد پستی تحویل", max_length=10, blank=True, null=True)
 
+    buyer_national_id = models.CharField("شناسه ملی خریدار", max_length=20, blank=True, null=True)
     buyer_user_type = models.CharField("نوع کاربری خریدار", max_length=20, choices=FIELD_OF_ACTIVITY, blank=True, null=True)
     
     # فیلدهای آدرس و تحویل
     unique_delivery_id = models.CharField("شناسه یکتا تحویل", max_length=50, blank=True, null=True, unique=True)
     unique_buyer_id = models.CharField("شناسه یکتا خریدار", max_length=50, blank=True, null=True, unique=True)
-    delivery_address = models.TextField("آدرس تحویل", blank=True, null=True)
-    delivery_postal_code = models.CharField("کد پستی تحویل", max_length=10, blank=True, null=True)
     buyer_postal_code = models.CharField("کد پستی خریدار", max_length=10, blank=True, null=True)
     
     # نوع خودرو حمل
@@ -995,6 +995,12 @@ class ShenaseTakhsis(models.Model):
     purchase_number = models.CharField("شماره خرید", max_length=255, null=True, blank=True)
     code = models.CharField("شناسه تخصیص", max_length=255, unique=True)
     weight = models.PositiveIntegerField(verbose_name="وزن تخصیص", null=True, blank=True)
+    code_melli_tahvil = models.CharField("کد ملی تحویل", max_length=255, blank=True, null=True)
+    tahvil_phone_number = models.CharField("شماره تلفن تحویل", max_length=15, blank=True, null=True)
+    delivery_receiver_name = models.CharField("نام تحویل گیرنده", max_length=255, blank=True, null=True)
+    delivery_address = models.TextField("آدرس تحویل", blank=True, null=True)
+    delivery_postal_code = models.CharField("کد پستی تحویل", max_length=10, blank=True, null=True)
+    
     created_at = jmodels.jDateTimeField("تاریخ ثبت", auto_now_add=True)
 
     def save(self, *args, **kwargs):

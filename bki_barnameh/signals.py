@@ -99,6 +99,14 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
             customer_phones = customer.get_all_phone_numbers(instance.purchase, True)
             logger.info(f"📞 Found {len(customer_phones)} unique phone numbers for customer: {customer_phones}")
             phone_numbers.extend(customer_phones)
+            
+            # 🎯 اضافه کردن شماره تحویل از تخصیص (اگر موجود باشد)
+            if instance.shenase_takhsis and instance.shenase_takhsis.tahvil_phone_number:
+                allocation_phone = instance.shenase_takhsis.tahvil_phone_number.strip()
+                if allocation_phone and allocation_phone not in phone_numbers:
+                    phone_numbers.append(allocation_phone)
+                    logger.info(f"📱 Added allocation delivery phone: {allocation_phone} for barnameh {instance.id}")
+            
         else:
             logger.warning(f"❌ Customer SMS not sent for barnameh {instance.id}: SMS preference is disabled")
     else:
@@ -117,6 +125,14 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
                 customer_phones = purchase.customer.get_all_phone_numbers(purchase, True)
                 logger.info(f"📞 Found {len(customer_phones)} unique phone numbers from purchase_number lookup")
                 phone_numbers.extend(customer_phones)
+                
+                # 🎯 اضافه کردن شماره تحویل از تخصیص (اگر موجود باشد)
+                if instance.shenase_takhsis and instance.shenase_takhsis.tahvil_phone_number:
+                    allocation_phone = instance.shenase_takhsis.tahvil_phone_number.strip()
+                    if allocation_phone and allocation_phone not in phone_numbers:
+                        phone_numbers.append(allocation_phone)
+                        logger.info(f"📱 Added allocation delivery phone from purchase lookup: {allocation_phone} for barnameh {instance.id}")
+                
                 # بروزرسانی ارتباط بارنامه با خرید
                 if not instance.purchase:
                     instance.purchase = purchase
@@ -126,6 +142,13 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
             logger.warning(f"❌ Purchase with number {instance.purchase_number} not found")
         except Exception as e:
             logger.error(f"❌ Error finding purchase by number: {str(e)}")
+    
+    # 🎯 اگر هنوز شماره‌ای پیدا نشد اما تخصیص موجود است، از شماره تحویل تخصیص استفاده کن
+    if not phone_numbers and instance.shenase_takhsis and instance.shenase_takhsis.tahvil_phone_number:
+        allocation_phone = instance.shenase_takhsis.tahvil_phone_number.strip()
+        if allocation_phone:
+            phone_numbers.append(allocation_phone)
+            logger.info(f"📱 Using only allocation delivery phone: {allocation_phone} for barnameh {instance.id} (no customer phones found)")
     
     if not phone_numbers:
         logger.warning(f"❌ No phone numbers found for barnameh {instance.id}, will not send SMS")

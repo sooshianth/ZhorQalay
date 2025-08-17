@@ -100,7 +100,7 @@ def process_template_for_customer(message, customer, purchase=None):
             '{{amount_paid}}': str(selected_purchase.amount_paid or '-'),
             '{{status_display}}': str(selected_purchase.get_state_display() if hasattr(selected_purchase, 'get_state_display') else '-'),
             '{{created_at}}': str(selected_purchase.created_at.strftime('%Y/%m/%d %H:%M') if selected_purchase.created_at else '-'),
-            '{{shenase_takhsis}}': shenase_takhsis_display,
+            '{{shenase_takhsis}}': str(shenase_takhsis_display) if shenase_takhsis_display else '-',
         })
         
         # داده‌های محصول
