@@ -112,9 +112,17 @@ def send_sms_on_state_change(sender, instance, created, **kwargs):
     ارسال پیامک به مشتری هنگام تغییر وضعیت خرید
     """
     if not created:  # فقط برای رکوردهای جدید تغییر وضعیت
-        logger.log("Ignoring duplicate state change")
+        logger.debug("Ignoring duplicate state change")
         return
-    logger.log(f"Processing state change to {instance.new_state} for purchase {instance.purchase.id}")
+    
+    # بررسی اینکه تغییر وضعیت تازه است (کمتر از 1 روز)
+    if instance.changed_at:
+        time_diff = timezone.now() - instance.changed_at
+        if time_diff.days >= 1:
+            logger.info(f"State change is older than 1 day, skipping SMS for purchase {instance.purchase.id}")
+            return
+    
+    logger.debug(f"Processing state change to {instance.new_state} for purchase {instance.purchase.id}")
 
     # اگر پیامک قبلا ارسال شده، دیگر ارسال نکن
     if instance.sms_sent:
@@ -126,6 +134,7 @@ def send_sms_on_state_change(sender, instance, created, **kwargs):
     
     # اگر مشتری وجود ندارد یا تنظیمات sms_preference غیرفعال است، پیامک ارسال نمی‌شود
     if not purchase.customer or not purchase.customer.sms_preference:
+        logger.debug(f"SMS not sent for purchase {purchase.id}: No customer or SMS preference disabled")
         return
     
     # بررسی اینکه کارشناسان فروش مشتری فقط ادمین‌ها نباشند
@@ -137,6 +146,7 @@ def send_sms_on_state_change(sender, instance, created, **kwargs):
             break
     
     if not has_non_admin:
+        logger.debug(f"SMS not sent for purchase {purchase.id}: Only admin sales agents")
         return
     
     try:
@@ -168,6 +178,14 @@ def send_sms_on_state_change(sender, instance, created, **kwargs):
         template_vars['extelaf_type'] = str(purchase.extelaf_type or '')
         template_vars['extelaf_weight'] = str(purchase.extelaf_weight or '')
         template_vars['extelaf_amount'] = str(purchase.extelaf_amount or '')
+        
+        # شناسه تخصیص‌ها
+        shenase_takhsis_list = purchase.shenase_takhsis_set.all()
+        if shenase_takhsis_list.exists():
+            shenase_codes = [st.code for st in shenase_takhsis_list if st.code]
+            template_vars['shenase_takhsis'] = ', '.join(shenase_codes) if shenase_codes else ''
+        else:
+            template_vars['shenase_takhsis'] = str(purchase.shenase_takhsis or '')
         
         # اگر اطلاعات بارنامه وجود دارد
         if hasattr(purchase, 'barnameh') and purchase.barnameh:
@@ -218,9 +236,36 @@ def send_sms_on_state_change(sender, instance, created, **kwargs):
             placeholder = '{{' + key + '}}'
             message = message.replace(placeholder, str(value))
         
-        # ارسال به همه شماره‌های مشتری
+        # جمع‌آوری همه شماره‌های تلفن مرتبط
+        all_phone_numbers = set()
+        
+        # شماره‌های مشتری
+        customer_phones = purchase.customer.get_all_phone_numbers(purchase, True)
+        all_phone_numbers.update(customer_phones)
+        
+        # شماره بازارگاه
+        if purchase.bazaargah_phone_number:
+            # پاکسازی شماره بازارگاه
+            cleaned_bazaargah = purchase.customer._clean_phone_number(purchase.bazaargah_phone_number)
+            if cleaned_bazaargah:
+                all_phone_numbers.add(cleaned_bazaargah)
+        
+        # شماره‌های تحویل از شناسه تخصیص‌ها
+        for shenase in purchase.shenase_takhsis_set.all():
+            if shenase.tahvil_phone_number:
+                cleaned_tahvil = purchase.customer._clean_phone_number(shenase.tahvil_phone_number)
+                if cleaned_tahvil:
+                    all_phone_numbers.add(cleaned_tahvil)
+        
+        # شماره تحویل اصلی خرید
+        if purchase.tahvil_phone_number:
+            cleaned_main_tahvil = purchase.customer._clean_phone_number(purchase.tahvil_phone_number)
+            if cleaned_main_tahvil:
+                all_phone_numbers.add(cleaned_main_tahvil)
+        
+        # ارسال پیامک به همه شماره‌ها
         success_count = 0
-        for phone in purchase.customer.get_all_phone_numbers(purchase, True):
+        for phone in all_phone_numbers:
             try:
                 queue_sms(
                     number=phone,

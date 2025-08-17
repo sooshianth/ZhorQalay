@@ -319,6 +319,57 @@ class Customer(models.Model):
         
         return result
 
+    def _clean_phone_number(self, phone_number):
+        """
+        پاکسازی و استاندارد کردن شماره تلفن
+        """
+        if not phone_number:
+            return None
+            
+        phone_str = str(phone_number).strip()
+        
+        # Skip empty or invalid numbers
+        if not phone_str or phone_str.lower() in ['none', 'null', 'nan', '']:
+            return None
+        
+        # Convert Persian digits to English digits
+        persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+        english_digits = "0123456789"
+        translation_table = str.maketrans(persian_digits, english_digits)
+        phone_str = phone_str.translate(translation_table)
+        
+        # Remove non-digit characters except + at the beginning
+        if phone_str.startswith('+'):
+            cleaned = '+' + ''.join(c for c in phone_str[1:] if c.isdigit())
+        else:
+            cleaned = ''.join(c for c in phone_str if c.isdigit())
+        
+        # Skip if no digits found
+        if not any(c.isdigit() for c in cleaned):
+            return None
+        
+        # Normalize prefixes
+        if cleaned.startswith('+98'):
+            cleaned = cleaned[3:]
+        elif cleaned.startswith('0098'):
+            cleaned = cleaned[4:]
+        elif cleaned.startswith('98') and len(cleaned) >= 12:
+            cleaned = cleaned[2:]
+        elif cleaned.startswith('0') and len(cleaned) >= 11:
+            cleaned = cleaned[1:]
+        
+        # Final validation: should be 10 digits starting with 9
+        if len(cleaned) == 10 and cleaned.startswith('9') and cleaned.isdigit():
+            return cleaned
+        elif len(cleaned) >= 10:
+            # Try to extract a valid 10-digit number
+            for i in range(len(cleaned) - 9):
+                potential_number = cleaned[i:i+10]
+                if potential_number.startswith('9') and potential_number.isdigit():
+                    return potential_number
+        
+        return None
+
     def get_tasks_by_time(self):
         return self.tasks.order_by('due_date')
 

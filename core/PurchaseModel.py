@@ -786,13 +786,24 @@ class Purchase(models.Model):
             super().save(update_fields=['extelaf_amount'])
 
         if self.state == 'PURCHASE_CLOSED':
+            new_state = None
             if self.extelaf_type == 'کسری':
-                self.state = 'PAY_KASRI'
+                new_state = 'PAY_KASRI'
             elif self.extelaf_type == 'سرک':
-                self.state = 'RECIEIVE_SARAK'
-            if self.extelaf_weight == 0:
-                self.state = 'FULLY_SETTLED'
-            super().save(update_fields=['state'])
+                new_state = 'RECIEIVE_SARAK'
+            elif self.extelaf_weight == 0:
+                new_state = 'FULLY_SETTLED'
+            
+            if new_state and new_state != self.state:
+                # ایجاد رکورد تغییر وضعیت برای تریگر کردن سیگنال پیامک
+                PurchaseStateChange.objects.create(
+                    purchase=self,
+                    previous_state=self.state,
+                    new_state=new_state,
+                    notes='تغییر خودکار وضعیت بر اساس نوع اختلاف'
+                )
+                self.state = new_state
+                super().save(update_fields=['state'])
 
         # محاسبه خودکار amount_paid فقط در صورتی که مقدار تنظیم نشده باشد
         # یا در حالت‌های خاص که نیاز به بازمحاسبه داریم
