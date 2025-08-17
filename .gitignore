@@ -81,6 +81,9 @@ bki_api/__pycache__
 /major/__pycache__
 /major/models/__pycache__
 /major/migrations/__pycache__
+/major/tests/__pycache__
+/major/templates/__pycache__
+/major/views/__pycache__
 
 
 # Environment files

@@ -150,7 +150,7 @@
         <div class="info-content">
             <h4>راهنمای ثبت هزینه</h4>
             <p>
-                برای هزینه‌های خرید محصول، پس از ثبت هزینه می‌توانید فاکتورهای مربوطه را اضافه کنید و مبلغ به صورت خودکار محاسبه خواهد شد.
+                برای هزینه‌های خرید محصول و تخصیص مشتری، پس از ثبت هزینه می‌توانید فاکتورهای مربوطه را اضافه کنید و مبلغ به صورت خودکار محاسبه خواهد شد.
                 برای سایر انواع هزینه‌ها، مبلغ را مستقیماً وارد کنید.
             </p>
         </div>
@@ -373,15 +373,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function toggleAmountRequirement() {
         if (costTypeSelect && amountInput && amountGroup) {
-            const isProductPurchase = costTypeSelect.value === 'product_purchase';
+            const isAmountOptional = costTypeSelect.value === 'product_purchase' || costTypeSelect.value === 'customer_allocation';
             const label = amountGroup.querySelector('label');
             
-            if (isProductPurchase) {
+            if (isAmountOptional) {
                 amountInput.removeAttribute('required');
                 if (label) {
                     label.textContent = label.textContent.replace(' *', '');
                     if (!label.textContent.includes('(اختیاری)')) {
-                        label.textContent += ' (اختیاری - از فاکتور محاسبه می‌شود)';
+                        const optionalText = costTypeSelect.value === 'customer_allocation' 
+                            ? ' (اختیاری - از فاکتور مشتری محاسبه می‌شود)'
+                            : ' (اختیاری - از فاکتور محاسبه می‌شود)';
+                        label.textContent += optionalText;
                     }
                 }
                 amountGroup.style.opacity = '0.7';

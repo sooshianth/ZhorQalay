@@ -18,6 +18,7 @@ class Invoice(models.Model):
     description = models.CharField(max_length=255, verbose_name='توضیحات', null=True, blank=True)
     attachment = models.FileField(verbose_name='پیوست', upload_to='invoices/attachments/', null=True, blank=True)
     created_at = jmodels.jDateField(verbose_name='تاریخ ثبت', auto_now_add=True)
+    customer = models.ForeignKey('core.Customer', on_delete=models.CASCADE, related_name='invoices_customer', verbose_name='مشتری', null=True, blank=True)
 
     class Meta:
         verbose_name = 'فاکتور'
@@ -32,8 +33,11 @@ class Invoice(models.Model):
         if self.type == 'Income' and not self.income:
             raise ValidationError('لطفا درآمد را انتخاب کنید.')
         
-        if self.income and  self.hazinah:
+        if self.income and self.hazinah:
             raise ValidationError('لطفا فقط یکی از هزینه یا درآمد را انتخاب کنید.')
+
+        if self.hazinah and self.hazinah.cost_type == 'customer_allocation' and not self.customer:
+            raise ValidationError('لطفا مشتری را انتخاب کنید.')
 
     def save(self, *args, **kwargs):
         self.full_clean()

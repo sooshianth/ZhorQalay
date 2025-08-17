@@ -12,7 +12,8 @@ from django.dispatch import receiver
 from major.models import Hazinah
 
 class Wallet(models.Model):
-    varedkonandeh = models.ForeignKey(VaredKonandeh, on_delete=models.CASCADE, related_name='wallet', verbose_name=_('وارد کننده'))
+    varedkonandeh = models.ForeignKey(VaredKonandeh, on_delete=models.CASCADE, related_name='wallet', verbose_name=_('وارد کننده'), null=True, blank=True)
+    customer = models.ForeignKey('core.Customer', on_delete=models.CASCADE, related_name='wallet_customer', verbose_name=_('مشتری'), null=True, blank=True)
     description = models.TextField(_('توضیحات'), blank=True, null=True)
     balance = models.BigIntegerField(_('موجودی (ریال)'), default=0)
     created_at = jmodels.jDateTimeField(_('تاریخ ایجاد'), auto_now_add=True)
@@ -22,8 +23,23 @@ class Wallet(models.Model):
         verbose_name = _('کیف پول')
         verbose_name_plural = _('کیف پول ها')
 
+    def clean(self):
+        """اعتبارسنجی: هر کیف پول باید فقط یک نوع owner داشته باشد"""
+        super().clean()
+        
+        if not self.varedkonandeh and not self.customer:
+            raise ValidationError('کیف پول باید متعلق به یک واردکننده یا مشتری باشد.')
+        
+        if self.varedkonandeh and self.customer:
+            raise ValidationError('کیف پول نمی‌تواند همزمان متعلق به واردکننده و مشتری باشد.')
+
     def __str__(self):
-        return f"{self.varedkonandeh.name} - {self.balance:,} ریال"
+        if self.varedkonandeh:
+            return f"{self.varedkonandeh.name} - {self.balance:,} ریال"
+        elif self.customer:
+            return f"{self.customer.name} (مشتری) - {self.balance:,} ریال"
+        else:
+            return f"کیف پول ناشناس - {self.balance:,} ریال"
 
     def calculate_balance(self):
         """

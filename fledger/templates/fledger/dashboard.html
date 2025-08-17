@@ -223,6 +223,10 @@
         box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4);
     }
 
+    .text-blue {
+        color: #3b82f6 !important;
+    }
+
     .stat-value {
         font-size: 2rem;
         font-weight: 800;
@@ -1020,7 +1024,7 @@
                 <div class="data-card-header">
                     <h3 class="data-card-title">
                         <i class="fas fa-arrow-up text-success"></i>
-                        بیشترین موجودی‌ها
+                        بیشترین موجودی‌ها (واردکنندگان)
                     </h3>
                 </div>
                 <table class="enhanced-table">
@@ -1039,6 +1043,36 @@
                                     </span>
                                 </td>
                             </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- Customer Wallets -->
+            {% if customer_wallets %}
+            <div class="data-card">
+                <div class="data-card-header">
+                    <h3 class="data-card-title">
+                        <i class="fas fa-users text-blue"></i>
+                        کیف پول‌های مشتری‌ها
+                    </h3>
+                </div>
+                <table class="enhanced-table">
+                    <tbody>
+                        {% for wallet in customer_wallets %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'fledger:wallet_detail' wallet.id %}" class="wallet-name">
+                                    {{ wallet.customer.name }}
+                                </a>
+                            </td>
+                            <td class="text-left">
+                                <span class="balance-value {% if wallet.balance >= 0 %}balance-positive{% else %}balance-negative{% endif %}">
+                                    {{ wallet.balance|format_rial_amount }}
+                                </span>
+                            </td>
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>

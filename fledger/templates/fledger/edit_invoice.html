@@ -191,6 +191,18 @@
                     {% endif %}
                 </div>
                 
+                <!-- فیلد مشتری برای تخصیص مشتری -->
+                <div class="form-group-fledger" id="customer-field">
+                    <label class="form-label-fledger">{{ invoice_form.customer.label }}</label>
+                    {{ invoice_form.customer }}
+                    {% if invoice_form.customer.errors %}
+                        <div class="text-danger">{{ invoice_form.customer.errors }}</div>
+                    {% endif %}
+                    <div class="fledger-form-help" id="customer-help">
+                        برای هزینه‌های تخصیص مشتری، انتخاب مشتری الزامی است.
+                    </div>
+                </div>
+                
                 <div class="form-group-fledger">
                     <label class="form-label-fledger">{{ invoice_form.attachment.label }}</label>
                     {{ invoice_form.attachment }}
@@ -315,4 +327,28 @@
         </form>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // مخفی/نمایش فیلد مشتری بر اساس نوع هزینه
+    function toggleCustomerField() {
+        const customerField = document.getElementById('customer-field');
+        const customerHelp = document.getElementById('customer-help');
+        
+        // بررسی نوع هزینه از داده‌های سمت سرور
+        const hazinahCostType = '{{ hazinah.cost_type }}';
+        
+        if (hazinahCostType === 'customer_allocation') {
+            customerField.style.display = 'block';
+            customerHelp.style.display = 'block';
+        } else {
+            customerField.style.display = 'none';
+            customerHelp.style.display = 'none';
+        }
+    }
+    
+    // اجرای اولیه
+    toggleCustomerField();
+});
+</script>
 {% endblock %}

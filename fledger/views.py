@@ -32,10 +32,13 @@ def fledger_dashboard(request):
     pending_transactions = Transaction.objects.filter(status='pending').count()
     
     # واردکنندگان با بیشترین بدهی (منفی ترین موجودی)
-    top_debtors = Wallet.objects.filter(balance__lt=0).order_by('balance')[:5]
+    top_debtors = Wallet.objects.filter(balance__lt=0, varedkonandeh__isnull=False).order_by('balance')[:5]
     
     # واردکنندگان با بیشترین موجودی مثبت
-    top_creditors = Wallet.objects.filter(balance__gt=0).order_by('-balance')[:5]
+    top_creditors = Wallet.objects.filter(balance__gt=0, varedkonandeh__isnull=False).order_by('-balance')[:5]
+    
+    # کیف پول‌های مشتری‌ها
+    customer_wallets = Wallet.objects.filter(customer__isnull=False).order_by('-balance')[:10]
     
     # تراکنش‌های اخیر
     recent_transactions = Transaction.objects.filter(status='approved').order_by('-created_at')[:10]
@@ -47,6 +50,7 @@ def fledger_dashboard(request):
         'pending_transactions': pending_transactions,
         'top_debtors': top_debtors,
         'top_creditors': top_creditors,
+        'customer_wallets': customer_wallets,
         'recent_transactions': recent_transactions,
     }
     
@@ -883,9 +887,9 @@ def add_invoice_to_hazinah(request, hazinah_id):
     """افزودن فاکتور جدید به هزینه"""
     hazinah = get_object_or_404(Hazinah, id=hazinah_id)
     
-    # بررسی اینکه هزینه از نوع خرید محصول باشد
-    if hazinah.cost_type != 'product_purchase':
-        messages.error(request, 'فقط برای هزینه‌های خرید محصول می‌توان فاکتور اضافه کرد.')
+    # بررسی اینکه هزینه از نوع خرید محصول یا تخصیص مشتری باشد
+    if hazinah.cost_type not in ['product_purchase', 'customer_allocation']:
+        messages.error(request, 'فقط برای هزینه‌های خرید محصول و تخصیص مشتری می‌توان فاکتور اضافه کرد.')
         return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
     
     # بررسی وضعیت هزینه - اجازه افزودن فاکتور به هزینه‌های pending یا auto_approved
@@ -945,9 +949,9 @@ def edit_invoice(request, hazinah_id, invoice_id):
     hazinah = get_object_or_404(Hazinah, id=hazinah_id)
     invoice = get_object_or_404(Invoice, id=invoice_id, hazinah=hazinah)
     
-    # بررسی اینکه هزینه از نوع خرید محصول باشد
-    if hazinah.cost_type != 'product_purchase':
-        messages.error(request, 'فقط برای هزینه‌های خرید محصول می‌توان فاکتور ویرایش کرد.')
+    # بررسی اینکه هزینه از نوع خرید محصول یا تخصیص مشتری باشد
+    if hazinah.cost_type not in ['product_purchase', 'customer_allocation']:
+        messages.error(request, 'فقط برای هزینه‌های خرید محصول و تخصیص مشتری می‌توان فاکتور ویرایش کرد.')
         return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
     
     # بررسی وضعیت هزینه - اجازه ویرایش فاکتور برای هزینه‌های pending یا auto_approved
@@ -1001,9 +1005,9 @@ def delete_invoice(request, hazinah_id, invoice_id):
     hazinah = get_object_or_404(Hazinah, id=hazinah_id)
     invoice = get_object_or_404(Invoice, id=invoice_id, hazinah=hazinah)
     
-    # بررسی اینکه هزینه از نوع خرید محصول باشد
-    if hazinah.cost_type != 'product_purchase':
-        messages.error(request, 'فقط برای هزینه‌های خرید محصول می‌توان فاکتور حذف کرد.')
+    # بررسی اینکه هزینه از نوع خرید محصول یا تخصیص مشتری باشد
+    if hazinah.cost_type not in ['product_purchase', 'customer_allocation']:
+        messages.error(request, 'فقط برای هزینه‌های خرید محصول و تخصیص مشتری می‌توان فاکتور حذف کرد.')
         return redirect('fledger:hazinah_detail', hazinah_id=hazinah.id)
     
     # بررسی وضعیت هزینه - اجازه حذف فاکتور برای هزینه‌های pending یا auto_approved
@@ -1078,7 +1082,7 @@ def create_invoice(request):
                             item.save()
                     
                     # بروزرسانی مبلغ هزینه/درآمد مرتبط در صورت نیاز
-                    if invoice.hazinah and invoice.hazinah.cost_type == 'product_purchase':
+                    if invoice.hazinah and invoice.hazinah.cost_type in ['product_purchase', 'customer_allocation']:
                         invoice.hazinah.amount = invoice.hazinah.calculate_amount_from_invoices()
                         invoice.hazinah.save()
                     
@@ -1169,9 +1173,9 @@ def logistics_dashboard(request):
     total_active_cargos = CargoProduct.objects.filter(status=True).count()
     total_inactive_cargos = CargoProduct.objects.filter(status=False).count()
     
-    # فیلتر کردن هزینه‌ها بر اساس تاریخ
+    # فیلتر کردن هزینه‌ها بر اساس تاریخ (شامل خرید محصول و تخصیص مشتری)
     product_purchase_expenses_query = Hazinah.objects.filter(
-        cost_type='product_purchase',
+        cost_type__in=['product_purchase', 'customer_allocation'],
         approval_status__in=['approved', 'auto_approved']
     )
     
@@ -1309,7 +1313,7 @@ def logistics_dashboard(request):
     # هزینه‌های عمومی (سایر انواع هزینه) - با فیلتر زمانی
     recent_expenses_query = Hazinah.objects.filter(
         approval_status__in=['approved', 'auto_approved']
-    ).exclude(cost_type='product_purchase')
+    ).exclude(cost_type__in=['product_purchase', 'customer_allocation'])
     
     if expense_start_date:
         recent_expenses_query = recent_expenses_query.filter(

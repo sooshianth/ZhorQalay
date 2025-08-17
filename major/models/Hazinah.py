@@ -11,6 +11,7 @@ class Hazinah(models.Model):
     
     COST_TYPES = [
         ('product_purchase', 'خرید محصول'),
+        ('customer_allocation', 'تخصیص مشتری در کارخانه'),
         ('transportation', 'کرایه و حمل‌ونقل'),
         ('overhead', 'هزینه‌های سربار'),
         ('maintenance', 'تعمیر و نگهداری'),
@@ -158,9 +159,9 @@ class Hazinah(models.Model):
         """اعتبارسنجی داده‌ها"""
         super().clean()
         
-        # اگر نوع هزینه "خرید محصول" است، مبلغ اختیاری است (از فاکتور محاسبه می‌شود)
+        # اگر نوع هزینه "خرید محصول" یا "تخصیص مشتری" است، مبلغ اختیاری است (از فاکتور محاسبه می‌شود)
         # برای سایر انواع هزینه، مبلغ الزامی است
-        if self.cost_type != 'product_purchase' and not self.amount:
+        if self.cost_type not in ['product_purchase', 'customer_allocation'] and not self.amount:
             raise ValidationError({
                 'amount': _('برای این نوع هزینه، وارد کردن مبلغ الزامی است.')
             })
@@ -187,9 +188,9 @@ class Hazinah(models.Model):
         """ذخیره با محاسبه مبلغ نهایی و بررسی تأیید خودکار"""
         from django.utils import timezone
         
-        # اگر نوع هزینه "خرید محصول" است و فاکتور دارد، مبلغ را از فاکتورها محاسبه کن
+        # اگر نوع هزینه "خرید محصول" یا "تخصیص مشتری" است و فاکتور دارد، مبلغ را از فاکتورها محاسبه کن
         # فقط در صورتی که از طریق update_from_invoices فراخوانی نشده باشد
-        if (self.pk and self.cost_type == 'product_purchase' and self.has_invoices and 
+        if (self.pk and self.cost_type in ['product_purchase', 'customer_allocation'] and self.has_invoices and 
             not getattr(self, '_updating_from_invoices', False)):
             self.amount = self.calculate_amount_from_invoices()
         
@@ -213,8 +214,8 @@ class Hazinah(models.Model):
         """بروزرسانی مبلغ هزینه از فاکتورها و بررسی مجدد وضعیت تأیید"""
         from django.utils import timezone
         
-        # فقط برای هزینه‌های خرید محصول
-        if self.cost_type == 'product_purchase' and self.has_invoices:
+        # فقط برای هزینه‌های خرید محصول و تخصیص مشتری
+        if self.cost_type in ['product_purchase', 'customer_allocation'] and self.has_invoices:
             self._updating_from_invoices = True
             old_amount = self.amount
             self.amount = self.calculate_amount_from_invoices()
@@ -465,7 +466,7 @@ class Hazinah(models.Model):
         if amount > self.remaining_amount:
             return None, "مبلغ نمی‌تواند بیشتر از مبلغ باقی‌مانده باشد"
         
-        # ایجاد تراکنش
+        # ایجاد تراکنش اصلی
         transaction = Transaction.objects.create(
             wallet=wallet,
             transaction_type='Hazinah',
@@ -476,6 +477,29 @@ class Hazinah(models.Model):
             created_by=created_by,
             status='pending'  # در انتظار تأیید
         )
+        
+        # اگر نوع هزینه "تخصیص مشتری" است، تراکنش به کیف پول مشتری نیز اضافه شود
+        if self.cost_type == 'customer_allocation':
+            # از فاکتورهای این هزینه، مشتری را پیدا کن
+            invoice = self.invoices.first()
+            if invoice and invoice.customer:
+                # کیف پول مشتری را پیدا یا ایجاد کن
+                customer_wallet, created = wallet.__class__.objects.get_or_create(
+                    customer=invoice.customer,
+                    defaults={'description': f'کیف پول {invoice.customer.name}'}
+                )
+                
+                # تراکنش مثبت برای مشتری
+                Transaction.objects.create(
+                    wallet=customer_wallet,
+                    transaction_type='Income',
+                    amount=amount,  # مثبت چون درآمد برای مشتری است
+                    hazinah=self,
+                    payment_method=payment_method,
+                    description=f"تخصیص از هزینه: {self.title}",
+                    created_by=created_by,
+                    status='pending'
+                )
         
         return transaction, "تراکنش با موفقیت ایجاد شد"
     

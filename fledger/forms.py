@@ -257,7 +257,7 @@ class HazinahForm(forms.ModelForm):
         
         # تنظیم فیلدهای اختیاری
         self.fields['description'].required = False
-        self.fields['amount'].required = False  # برای خرید محصول اختیاری است
+        self.fields['amount'].required = False  # برای خرید محصول و تخصیص مشتری اختیاری است
         self.fields['due_date'].required = False
         self.fields['tax_amount'].required = False
         self.fields['discount_amount'].required = False
@@ -271,8 +271,8 @@ class HazinahForm(forms.ModelForm):
         is_recurring = cleaned_data.get('is_recurring')
         recurring_period = cleaned_data.get('recurring_period')
         
-        # برای انواع هزینه غیر از خرید محصول، مبلغ الزامی است
-        if cost_type != 'product_purchase' and not amount:
+        # برای انواع هزینه غیر از خرید محصول و تخصیص مشتری، مبلغ الزامی است
+        if cost_type not in ['product_purchase', 'customer_allocation'] and not amount:
             raise forms.ValidationError('برای این نوع هزینه، وارد کردن مبلغ الزامی است.')
         
         # بررسی دوره تکرار برای هزینه‌های تکراری
@@ -351,7 +351,7 @@ class InvoiceForm(forms.ModelForm):
     
     class Meta:
         model = Invoice
-        fields = ['invoice_id', 'type', 'hazinah', 'income', 'issue_date', 'description', 'attachment']
+        fields = ['invoice_id', 'type', 'hazinah', 'income', 'customer', 'issue_date', 'description', 'attachment']
         
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -371,6 +371,7 @@ class InvoiceForm(forms.ModelForm):
         self.fields['type'].label = 'نوع فاکتور'
         self.fields['hazinah'].label = 'انتخاب هزینه'
         self.fields['income'].label = 'انتخاب درآمد'
+        self.fields['customer'].label = 'مشتری (برای تخصیص مشتری)'
         self.fields['issue_date'].label = 'تاریخ صدور (اختیاری)'
         self.fields['description'].label = 'توضیحات (اختیاری)'
         self.fields['attachment'].label = 'فایل پیوست (اختیاری)'
@@ -378,6 +379,7 @@ class InvoiceForm(forms.ModelForm):
         # تنظیم فیلدهای اختیاری
         self.fields['hazinah'].required = False
         self.fields['income'].required = False
+        self.fields['customer'].required = False
         self.fields['issue_date'].required = False
         self.fields['description'].required = False
         self.fields['attachment'].required = False
@@ -404,6 +406,7 @@ class InvoiceForm(forms.ModelForm):
         invoice_type = cleaned_data.get('type')
         hazinah = cleaned_data.get('hazinah')
         income = cleaned_data.get('income')
+        customer = cleaned_data.get('customer')
         
         if invoice_type == 'Hazinah' and not hazinah:
             raise forms.ValidationError('لطفاً هزینه مربوطه را انتخاب کنید.')
@@ -413,6 +416,10 @@ class InvoiceForm(forms.ModelForm):
         
         if hazinah and income:
             raise forms.ValidationError('نمی‌توانید همزمان هزینه و درآمد انتخاب کنید.')
+        
+        # بررسی مشتری برای تخصیص مشتری
+        if hazinah and hazinah.cost_type == 'customer_allocation' and not customer:
+            raise forms.ValidationError('برای هزینه‌های تخصیص مشتری، انتخاب مشتری الزامی است.')
         
         return cleaned_data
 
