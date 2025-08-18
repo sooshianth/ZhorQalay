@@ -318,6 +318,79 @@
         color: #cbd5e1;
     }
 
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .badge-success {
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        color: #047857;
+    }
+
+    .badge-warning {
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        color: #92400e;
+    }
+
+    .badge-danger {
+        background: linear-gradient(135deg, #fed7d7, #feb2b2);
+        color: #dc2626;
+    }
+
+    .overall-stats {
+        background: white;
+        padding: 2rem;
+        border-radius: 1.25rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        text-align: center;
+    }
+
+    .stats-row {
+        display: flex;
+        justify-content: space-around;
+        gap: 2rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .overall-stats .stat-item {
+        flex: 1;
+        min-width: 150px;
+        padding: 1rem;
+        border-radius: 1rem;
+        background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+        border: 1px solid #cbd5e1;
+        transition: all 0.3s ease;
+    }
+
+    .overall-stats .stat-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+    }
+
+    .overall-stats .stat-value {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+        line-height: 1;
+    }
+
+    .overall-stats .stat-label {
+        font-size: 0.9rem;
+        color: #64748b;
+        font-weight: 600;
+    }
+
     @media (max-width: 768px) {
         .filters-form {
             grid-template-columns: 1fr;
@@ -334,6 +407,19 @@
         
         .wallet-actions {
             flex-direction: column;
+        }
+
+        .hero-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .stats-row {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .stat-item {
+            min-width: 100%;
         }
     }
 </style>
@@ -354,6 +440,28 @@
                 مدیریت کیف پول مشتریان
             </h1>
             <p>رصد و مدیریت موجودی مالی تمام مشتریان شرکت</p>
+        </div>
+    </div>
+
+    <!-- آمار کلی -->
+    <div class="overall-stats">
+        <div class="stats-row">
+            <div class="stat-item">
+                <div class="stat-value">{{ total_wallets|to_persian_digits }}</div>
+                <div class="stat-label">کل کیف پول‌ها</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">{{ total_customers|to_persian_digits }}</div>
+                <div class="stat-label">کل مشتریان</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">{{ total_transactions|to_persian_digits }}</div>
+                <div class="stat-label">کل تراکنش‌ها</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">{{ total_balance|format_rial_amount }}</div>
+                <div class="stat-label">مجموع موجودی</div>
+            </div>
         </div>
     </div>
 
@@ -406,7 +514,8 @@
                         <th>نام مشتری</th>
                         <th>توضیحات</th>
                         <th>موجودی فعلی</th>
-                        <th>تاریخ آخرین بروزرسانی</th>
+                        <th>آمار تراکنش‌ها</th>
+                        <th>آخرین تراکنش</th>
                         <th>عملیات</th>
                     </tr>
                 </thead>
@@ -417,6 +526,10 @@
                             <a href="{% url 'fledger:customer_wallet_detail' wallet.id %}" class="wallet-name">
                                 {{ wallet.customer.name }}
                             </a>
+                            <br>
+                            <small style="color: #64748b;">
+                                {{ wallet.customer.phone_number|default:"بدون شماره تماس" }}
+                            </small>
                         </td>
                         <td>
                             <span style="color: #64748b;">
@@ -438,8 +551,46 @@
                                 </span>
                             {% endif %}
                         </td>
-                        <td style="color: #64748b; font-size: 0.9rem;">
-                            {{ wallet.updated_at|date:"Y/m/d H:i" }}
+                        <td>
+                            <div style="text-align: center;">
+                                <div style="margin-bottom: 0.5rem;">
+                                    <strong>{{ wallet.transaction_count|to_persian_digits }}</strong> کل
+                                </div>
+                                <div style="font-size: 0.8rem; color: #64748b;">
+                                    <span class="badge badge-success">{{ wallet.approved_transactions|to_persian_digits }}</span> تأیید شده
+                                    <br>
+                                    <span class="badge badge-warning">{{ wallet.pending_transactions|to_persian_digits }}</span> در انتظار
+                                </div>
+                                {% if wallet.hazinah_transactions > 0 %}
+                                <div style="font-size: 0.8rem; color: #7c3aed; margin-top: 0.5rem;">
+                                    <i class="fas fa-receipt"></i> {{ wallet.hazinah_transactions|to_persian_digits }} هزینه
+                                </div>
+                                {% endif %}
+                                {% if wallet.income_transactions > 0 %}
+                                <div style="font-size: 0.8rem; color: #10b981; margin-top: 0.25rem;">
+                                    <i class="fas fa-arrow-up"></i> {{ wallet.income_transactions|to_persian_digits }} درآمد
+                                </div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            {% if wallet.last_transaction %}
+                                <div style="text-align: center;">
+                                    <div style="font-size: 0.8rem; color: #64748b;">
+                                        {{ wallet.last_transaction.created_at|date:"Y/m/d" }}
+                                    </div>
+                                    <div style="font-size: 0.7rem; color: #7c3aed;">
+                                        {{ wallet.last_transaction.get_transaction_type_display }}
+                                    </div>
+                                    {% if wallet.last_transaction.hazinah %}
+                                        <div style="font-size: 0.7rem; color: #dc2626;">
+                                            <i class="fas fa-link"></i> {{ wallet.last_transaction.hazinah.title|truncatechars:30 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <span style="color: #cbd5e1; font-size: 0.8rem;">بدون تراکنش</span>
+                            {% endif %}
                         </td>
                         <td>
                             <div class="wallet-actions">

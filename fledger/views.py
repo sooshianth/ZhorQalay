@@ -104,8 +104,11 @@ def customer_wallet_list(request):
     search_query = request.GET.get('search', '')
     balance_filter = request.GET.get('balance_filter', 'all')
     
-    # فقط کیف پول‌های متعلق به مشتریان
-    wallets = Wallet.objects.filter(customer__isnull=False).select_related('customer').all()
+    # فقط کیف پول‌های متعلق به مشتریان با اطلاعات کامل
+    wallets = Wallet.objects.filter(customer__isnull=False).select_related('customer').prefetch_related(
+        'transactions__hazinah',
+        'transactions__income'
+    ).all()
     
     if search_query:
         wallets = wallets.filter(
@@ -120,16 +123,47 @@ def customer_wallet_list(request):
     elif balance_filter == 'zero':
         wallets = wallets.filter(balance=0)
     
+    # اضافه کردن آمار برای هر کیف پول
+    for wallet in wallets:
+        # محاسبه آمار تراکنش‌ها
+        transactions = wallet.transactions.all()
+        wallet.transaction_count = transactions.count()
+        wallet.approved_transactions = transactions.filter(status='approved').count()
+        wallet.pending_transactions = transactions.filter(status='pending').count()
+        
+        # آمار هزینه‌ها
+        wallet.hazinah_transactions = transactions.filter(hazinah__isnull=False).count()
+        wallet.customer_allocation_count = transactions.filter(
+            hazinah__isnull=False, 
+            hazinah__cost_type='customer_allocation'
+        ).count()
+        
+        # آمار درآمدها
+        wallet.income_transactions = transactions.filter(income__isnull=False).count()
+        
+        # آخرین تراکنش
+        wallet.last_transaction = transactions.first()
+    
     # صفحه‌بندی
     paginator = Paginator(wallets, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    
+    # آمار کلی
+    total_wallets = wallets.count()
+    total_customers = wallets.values('customer').distinct().count()
+    total_transactions = sum(w.transaction_count for w in wallets)
+    total_balance = sum(w.balance for w in wallets)
     
     context = {
         'page_obj': page_obj,
         'search_query': search_query,
         'balance_filter': balance_filter,
         'wallet_type': 'customer',
+        'total_wallets': total_wallets,
+        'total_customers': total_customers,
+        'total_transactions': total_transactions,
+        'total_balance': total_balance,
     }
     
     return render(request, 'fledger/customer_wallet_list.html', context)
@@ -215,8 +249,13 @@ def customer_wallet_detail(request, wallet_id):
     # محاسبه مجدد موجودی
     wallet.calculate_balance()
     
-    # تراکنش‌های کیف پول
-    transactions = wallet.transactions.all().order_by('-created_at')
+    # تراکنش‌های کیف پول با اطلاعات کامل
+    transactions = wallet.transactions.select_related(
+        'hazinah', 'income', 'created_by', 'approved_by'
+    ).prefetch_related(
+        'hazinah__invoice_set__items__cargo_product',
+        'hazinah__invoice_set__items__non_bazargah_product'
+    ).all().order_by('-created_at')
     
     # آمار تراکنش‌ها
     transaction_stats = {
@@ -227,10 +266,81 @@ def customer_wallet_detail(request, wallet_id):
         'total_expenses': abs(transactions.filter(status='approved', amount__lt=0).aggregate(total=Sum('amount'))['total'] or 0),
     }
     
+    # آمار هزینه‌های مرتبط
+    hazinah_stats = {
+        'total_hazinah_transactions': transactions.filter(hazinah__isnull=False).count(),
+        'customer_allocation_transactions': transactions.filter(
+            hazinah__isnull=False, 
+            hazinah__cost_type='customer_allocation'
+        ).count(),
+        'total_hazinah_amount': transactions.filter(
+            hazinah__isnull=False, 
+            status='approved'
+        ).aggregate(total=Sum('amount'))['total'] or 0,
+    }
+    
+    # آمار درآمدها
+    income_stats = {
+        'total_income_transactions': transactions.filter(income__isnull=False).count(),
+        'total_income_amount': transactions.filter(
+            income__isnull=False, 
+            status='approved'
+        ).aggregate(total=Sum('amount'))['total'] or 0,
+    }
+    
+    # جمع‌آوری محصولات از هزینه‌های مرتبط
+    products_summary = {}
+    
+    # محصولات بازارگاهی
+    bazargah_products = {}
+    for transaction in transactions.filter(hazinah__isnull=False):
+        hazinah = transaction.hazinah
+        if hazinah and hazinah.invoices.exists():
+            for invoice in hazinah.invoices.all():
+                for item in invoice.items.all():
+                    if item.product_type == 'Bazargah' and item.cargo_product:
+                        product_key = f"bazargah_{item.cargo_product.id}"
+                        if product_key not in bazargah_products:
+                            bazargah_products[product_key] = {
+                                'type': 'بازارگاهی',
+                                'name': item.cargo_product.cottage or 'نامشخص',
+                                'country': item.cargo_product.get_country_display() if hasattr(item.cargo_product, 'get_country_display') else '',
+                                'total_weight': 0,
+                                'total_amount': 0,
+                                'purchase_count': 0,
+                                'product_id': item.cargo_product.id
+                            }
+                        bazargah_products[product_key]['total_weight'] += item.amount or 0
+                        bazargah_products[product_key]['total_amount'] += item.get_total_price()
+                        bazargah_products[product_key]['purchase_count'] += 1
+                    
+                    elif item.product_type == 'NonBazargah' and item.non_bazargah_product:
+                        product_key = f"non_bazargah_{item.non_bazargah_product.id}"
+                        if product_key not in bazargah_products:
+                            bazargah_products[product_key] = {
+                                'type': 'خارج بازارگاه',
+                                'name': item.non_bazargah_product.name or 'نامشخص',
+                                'description': item.non_bazargah_product.description or '',
+                                'total_weight': 0,
+                                'total_amount': 0,
+                                'purchase_count': 0,
+                                'product_id': item.non_bazargah_product.id
+                            }
+                        bazargah_products[product_key]['total_weight'] += item.amount or 0
+                        bazargah_products[product_key]['total_amount'] += item.get_total_price()
+                        bazargah_products[product_key]['purchase_count'] += 1
+    
+    # تبدیل به لیست و مرتب‌سازی بر اساس مبلغ کل
+    products_list = list(bazargah_products.values())
+    products_list.sort(key=lambda x: x['total_amount'], reverse=True)
+    
     context = {
         'wallet': wallet,
         'transactions': transactions,
         'transaction_stats': transaction_stats,
+        'hazinah_stats': hazinah_stats,
+        'income_stats': income_stats,
+        'products_list': products_list,
         'wallet_type': 'customer',
     }
     
