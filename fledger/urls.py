@@ -15,9 +15,7 @@ urlpatterns = [
     path('customer-wallets/', views.customer_wallet_list, name='customer_wallet_list'),
     path('customer-wallets/<int:wallet_id>/', views.customer_wallet_detail, name='customer_wallet_detail'),
     
-    # مدیریت کیف پول‌ها (عمومی - برای backward compatibility)
-    path('wallets/', views.wallet_list, name='wallet_list'),
-    path('wallets/<int:wallet_id>/', views.wallet_detail, name='wallet_detail'),
+
     
     # مدیریت تراکنش‌ها
     path('transactions/', views.transaction_list, name='transaction_list'),

@@ -601,10 +601,22 @@
                     <!-- Actions -->
                     <div class="transaction-actions">
                         {% if transaction.wallet and transaction.wallet.id %}
-                        <a href="{% url 'fledger:wallet_detail' transaction.wallet.id %}" class="action-btn btn-view">
-                            <i class="fas fa-eye"></i>
-                            مشاهده کیف پول
-                        </a>
+                            {% if transaction.wallet.varedkonandeh %}
+                                <a href="{% url 'fledger:varedkonandeh_wallet_detail' transaction.wallet.id %}" class="action-btn btn-view">
+                                    <i class="fas fa-eye"></i>
+                                    مشاهده کیف پول واردکننده
+                                </a>
+                            {% elif transaction.wallet.customer %}
+                                <a href="{% url 'fledger:customer_wallet_detail' transaction.wallet.id %}" class="action-btn btn-view">
+                                    <i class="fas fa-eye"></i>
+                                    مشاهده کیف پول مشتری
+                                </a>
+                            {% else %}
+                                <a href="#" class="action-btn btn-view" style="opacity: 0.5; cursor: not-allowed;" title="نوع کیف پول نامشخص">
+                                    <i class="fas fa-eye"></i>
+                                    مشاهده کیف پول
+                                </a>
+                            {% endif %}
                         {% endif %}
 
                         {% if transaction.status == 'pending' %}

@@ -1009,7 +1009,7 @@
                         {% for wallet in top_debtors %}
                         <tr>
                             <td>
-                                <a href="{% url 'fledger:wallet_detail' wallet.id %}" class="wallet-name">
+                                <a href="{% url 'fledger:varedkonandeh_wallet_detail' wallet.id %}" class="wallet-name">
                                     {{ wallet.varedkonandeh.name }}
                                 </a>
                             </td>
@@ -1038,18 +1038,17 @@
                     <tbody>
                         {% for wallet in top_creditors %}
                         <tr>
-                            <tr>
-                                <td>
-                                    <a href="{% url 'fledger:wallet_detail' wallet.id %}" class="wallet-name">
-                                        {{ wallet.varedkonandeh.name }}
-                                    </a>
-                                </td>
-                                <td class="text-left">
-                                    <span class="balance-value balance-positive">
-                                        {{ wallet.balance|format_rial_amount }}
-                                    </span>
-                                </td>
-                            </tr>
+                            <td>
+                                <a href="{% url 'fledger:varedkonandeh_wallet_detail' wallet.id %}" class="wallet-name">
+                                    {{ wallet.varedkonandeh.name }}
+                                </a>
+                            </td>
+                            <td class="text-left">
+                                <span class="balance-value balance-positive">
+                                    {{ wallet.balance|format_rial_amount }}
+                                </span>
+                            </td>
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -1070,7 +1069,7 @@
                         {% for wallet in customer_wallets %}
                         <tr>
                             <td>
-                                <a href="{% url 'fledger:wallet_detail' wallet.id %}" class="wallet-name">
+                                <a href="{% url 'fledger:customer_wallet_detail' wallet.id %}" class="wallet-name">
                                     {{ wallet.customer.name }}
                                 </a>
                             </td>
@@ -1114,13 +1113,21 @@
                     <tr>
                         <td>
                             {% if transaction.wallet and transaction.wallet.id %}
-                            <a href="{% url 'fledger:wallet_detail' transaction.wallet.id %}" class="wallet-name">
-                                {{ transaction.wallet.varedkonandeh.name }}
-                            </a>
+                                {% if transaction.wallet.varedkonandeh %}
+                                    <a href="{% url 'fledger:varedkonandeh_wallet_detail' transaction.wallet.id %}" class="wallet-name">
+                                        {{ transaction.wallet.varedkonandeh.name }}
+                                    </a>
+                                {% elif transaction.wallet.customer %}
+                                    <a href="{% url 'fledger:customer_wallet_detail' transaction.wallet.id %}" class="wallet-name">
+                                        {{ transaction.wallet.customer.name }}
+                                    </a>
+                                {% else %}
+                                    <span class="wallet-name text-muted">-</span>
+                                {% endif %}
                             {% elif transaction.hazinah %}
-                            <span class="wallet-name">پرداخت هزینه: {{ transaction.hazinah.title }}</span>
+                                <span class="wallet-name">پرداخت هزینه: {{ transaction.hazinah.title }}</span>
                             {% else %}
-                            <span class="wallet-name text-muted">-</span>
+                                <span class="wallet-name text-muted">-</span>
                             {% endif %}
                         </td>
                         <td>

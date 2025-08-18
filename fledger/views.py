@@ -169,41 +169,7 @@ def customer_wallet_list(request):
     return render(request, 'fledger/customer_wallet_list.html', context)
 
 
-@role_required('admin', 'financial_manager')
-def wallet_list(request):
-    """
-    لیست کیف پول‌ها (عمومی - برای backward compatibility)
-    """
-    search_query = request.GET.get('search', '')
-    balance_filter = request.GET.get('balance_filter', 'all')
-    
-    wallets = Wallet.objects.select_related('varedkonandeh').all()
-    
-    if search_query:
-        wallets = wallets.filter(
-            Q(varedkonandeh__name__icontains=search_query) |
-            Q(description__icontains=search_query)
-        )
-    
-    if balance_filter == 'positive':
-        wallets = wallets.filter(balance__gt=0)
-    elif balance_filter == 'negative':
-        wallets = wallets.filter(balance__lt=0)
-    elif balance_filter == 'zero':
-        wallets = wallets.filter(balance=0)
-    
-    # صفحه‌بندی
-    paginator = Paginator(wallets, 20)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    context = {
-        'page_obj': page_obj,
-        'search_query': search_query,
-        'balance_filter': balance_filter,
-    }
-    
-    return render(request, 'fledger/wallet_list.html', context)
+
 
 
 @role_required('admin', 'financial_manager')
@@ -347,36 +313,7 @@ def customer_wallet_detail(request, wallet_id):
     return render(request, 'fledger/customer_wallet_detail.html', context)
 
 
-@role_required('admin', 'financial_manager')
-def wallet_detail(request, wallet_id):
-    """
-    جزئیات کیف پول (عمومی - برای backward compatibility)
-    """
-    wallet = get_object_or_404(Wallet, id=wallet_id)
-    
-    # محاسبه مجدد موجودی
-    wallet.calculate_balance()
-    
-    # تراکنش‌های کیف پول
-    transactions = wallet.transactions.all().order_by('-created_at')
-    
-    # خلاصه خریدها
-    purchase_summary = wallet.get_purchase_summary()
-    
-    # ثبت‌های دفتر - فقط خریدهایی که آدرس ارسال شده باشد
-    ledger_entries = LedgerEntry.objects.filter(
-        varedkonandeh=wallet.varedkonandeh,
-        purchase__is_address_sent__in=['1', '1', 'True']  # پشتیبانی از هر دو فرمت
-    ).order_by('-created_at')[:20]
-    
-    context = {
-        'wallet': wallet,
-        'transactions': transactions,
-        'purchase_summary': purchase_summary,
-        'ledger_entries': ledger_entries,
-    }
-    
-    return render(request, 'fledger/wallet_detail.html', context)
+
 
 
 @role_required('admin', 'financial_manager')
@@ -398,7 +335,15 @@ def create_transaction(request):
                     new_transaction.save()
                     
                     messages.success(request, f'تراکنش {new_transaction.get_transaction_type_display()} با موفقیت ایجاد شد.')
-                    return redirect('fledger:wallet_detail', wallet_id=new_transaction.wallet.id)
+                    if new_transaction.wallet:
+                        if new_transaction.wallet.varedkonandeh:
+                            return redirect('fledger:varedkonandeh_wallet_detail', wallet_id=new_transaction.wallet.id)
+                        elif new_transaction.wallet.customer:
+                            return redirect('fledger:customer_wallet_detail', wallet_id=new_transaction.wallet.id)
+                        else:
+                            return redirect('fledger:wallet_detail', wallet_id=new_transaction.wallet.id)
+                    else:
+                        return redirect('fledger:transaction_list')
                     
             except Exception as e:
                 messages.error(request, f'خطا در ایجاد تراکنش: {str(e)}')
@@ -427,7 +372,15 @@ def approve_transaction(request, transaction_id):
             # اگر تراکنش مربوط به پرداخت هزینه است، فقط ادمین مجاز به تایید است
             if trans.transaction_type == 'Hazinah' and not (request.user.is_superuser or request.user.is_staff):
                 messages.error(request, 'فقط ادمین مجاز به تایید پرداخت هزینه است.')
-                return redirect('fledger:wallet_detail', wallet_id=trans.wallet.id) if trans.wallet else redirect('fledger:transaction_list')
+                if trans.wallet:
+                    if trans.wallet.varedkonandeh:
+                        return redirect('fledger:varedkonandeh_wallet_detail', wallet_id=trans.wallet.id)
+                    elif trans.wallet.customer:
+                        return redirect('fledger:customer_wallet_detail', wallet_id=trans.wallet.id)
+                    else:
+                        return redirect('fledger:wallet_detail', wallet_id=trans.wallet.id)
+                else:
+                    return redirect('fledger:transaction_list')
 
             with transaction.atomic():
                 trans.status = 'approved'
@@ -441,7 +394,15 @@ def approve_transaction(request, transaction_id):
             messages.warning(request, 'این تراکنش قبلاً تایید یا لغو شده است.')
             print(f"⚠️ Transaction {transaction_id} already processed: {trans.status}")
         
-        return redirect('fledger:wallet_detail', wallet_id=trans.wallet.id)
+        if trans.wallet:
+            if trans.wallet.varedkonandeh:
+                return redirect('fledger:varedkonandeh_wallet_detail', wallet_id=trans.wallet.id)
+            elif trans.wallet.customer:
+                return redirect('fledger:customer_wallet_detail', wallet_id=trans.wallet.id)
+            else:
+                return redirect('fledger:wallet_detail', wallet_id=trans.wallet.id)
+        else:
+            return redirect('fledger:transaction_list')
         
     except Exception as e:
         print(f"❌ Error approving transaction {transaction_id}: {str(e)}")
@@ -474,7 +435,15 @@ def reject_transaction(request, transaction_id):
             messages.warning(request, 'این تراکنش قبلاً تایید یا لغو شده است.')
             print(f"⚠️ Transaction {transaction_id} already processed: {trans.status}")
         
-        return redirect('fledger:wallet_detail', wallet_id=trans.wallet.id)
+        if trans.wallet:
+            if trans.wallet.varedkonandeh:
+                return redirect('fledger:varedkonandeh_wallet_detail', wallet_id=trans.wallet.id)
+            elif trans.wallet.customer:
+                return redirect('fledger:customer_wallet_detail', wallet_id=trans.wallet.id)
+            else:
+                return redirect('fledger:wallet_detail', wallet_id=trans.wallet.id)
+        else:
+            return redirect('fledger:transaction_list')
         
     except Exception as e:
         print(f"❌ Error rejecting transaction {transaction_id}: {str(e)}")
@@ -644,7 +613,15 @@ def edit_transaction(request, transaction_id):
     # فقط تراکنش‌های در انتظار قابل ویرایش هستند
     if transaction_obj.status != 'pending':
         messages.error(request, 'فقط تراکنش‌های در انتظار تایید قابل ویرایش هستند.')
-        return redirect('fledger:wallet_detail', wallet_id=transaction_obj.wallet.id)
+        if transaction_obj.wallet:
+            if transaction_obj.wallet.varedkonandeh:
+                return redirect('fledger:varedkonandeh_wallet_detail', wallet_id=transaction_obj.wallet.id)
+            elif transaction_obj.wallet.customer:
+                return redirect('fledger:customer_wallet_detail', wallet_id=transaction_obj.wallet.id)
+            else:
+                return redirect('fledger:wallet_detail', wallet_id=transaction_obj.wallet.id)
+        else:
+            return redirect('fledger:transaction_list')
     
     if request.method == 'POST':
         form = TransactionEditForm(request.POST, request.FILES, instance=transaction_obj)
@@ -660,7 +637,15 @@ def edit_transaction(request, transaction_id):
                     
                 print(f"✅ Transaction {transaction_id} updated successfully")
                 messages.success(request, 'تراکنش با موفقیت ویرایش شد.')
-                return redirect('fledger:wallet_detail', wallet_id=transaction_obj.wallet.id)
+                if transaction_obj.wallet:
+                    if transaction_obj.wallet.varedkonandeh:
+                        return redirect('fledger:varedkonandeh_wallet_detail', wallet_id=transaction_obj.wallet.id)
+                    elif transaction_obj.wallet.customer:
+                        return redirect('fledger:customer_wallet_detail', wallet_id=transaction_obj.wallet.id)
+                    else:
+                        return redirect('fledger:wallet_detail', wallet_id=transaction_obj.wallet.id)
+                else:
+                    return redirect('fledger:transaction_list')
                     
             except Exception as e:
                 print(f"❌ Error updating transaction {transaction_id}: {str(e)}")
@@ -709,13 +694,31 @@ def delete_transaction(request, transaction_id):
     # فقط تراکنش‌های در انتظار یا لغو شده قابل حذف هستند
     if transaction_obj.status == 'approved':
         messages.error(request, 'تراکنش‌های تایید شده قابل حذف نیستند.')
-        return redirect('fledger:wallet_detail', wallet_id=transaction_obj.wallet.id)
+        if transaction_obj.wallet:
+            if transaction_obj.wallet.varedkonandeh:
+                return redirect('fledger:varedkonandeh_wallet_detail', wallet_id=transaction_obj.wallet.id)
+            elif transaction_obj.wallet.customer:
+                return redirect('fledger:customer_wallet_detail', wallet_id=transaction_obj.wallet.id)
+            else:
+                return redirect('fledger:wallet_detail', wallet_id=transaction_obj.wallet.id)
+        else:
+            return redirect('fledger:transaction_list')
     
     wallet_id = transaction_obj.wallet.id
     transaction_obj.delete()
     
     messages.success(request, 'تراکنش با موفقیت حذف شد.')
-    return redirect('fledger:wallet_detail', wallet_id=wallet_id)
+    # بررسی نوع کیف پول برای redirect مناسب
+    try:
+        wallet = Wallet.objects.get(id=wallet_id)
+        if wallet.varedkonandeh:
+            return redirect('fledger:varedkonandeh_wallet_detail', wallet_id=wallet_id)
+        elif wallet.customer:
+            return redirect('fledger:customer_wallet_detail', wallet_id=wallet_id)
+        else:
+            return redirect('fledger:wallet_detail', wallet_id=wallet_id)
+    except Wallet.DoesNotExist:
+        return redirect('fledger:transaction_list')
 
 
 @role_required('admin', 'financial_manager')  
