@@ -188,6 +188,11 @@ class PurchaseInfoAPI(View):
                 'vehicle_type_display': purchase.get_vehicle_type_display() if purchase.vehicle_type else None,
                 'is_address_sent': purchase.is_address_sent,
                 
+                # اطلاعات محصول کوتاه
+                'cargo_product_type': purchase.cargo.get_product_type_display() if purchase.cargo else 'نامشخص',
+                'cargo_country': purchase.cargo.get_country_display() if purchase.cargo else 'نامشخص',
+                'cargo_cottage': purchase.cargo.cottage if purchase.cargo else 'نامشخص',
+                
                 # اطلاعات اختلاف
                 'extelaf_type': purchase.extelaf_type,
                 'extelaf_weight': purchase.extelaf_weight,
@@ -332,7 +337,7 @@ class PurchaseInfoAPI(View):
                     'code': allocation.code,
                     'weight': allocation.weight,
                     'barnameh_weight': getattr(allocation, 'barnameh_weight', None),
-                    'receiver_name': getattr(allocation, 'receiver_name', None),
+                    'delivery_receiver_name': getattr(allocation, 'delivery_receiver_name', None),
                     'delivery_phone': purchase.tahvil_phone_number,
                     'delivery_national_id': purchase.code_melli_tahvil,
                     'delivery_address': purchase.address,
