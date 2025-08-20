@@ -15,7 +15,7 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("crm_api_api")
 
 def clean_phone_number(phone: str) -> str:
     """تمیز کردن شماره تلفن"""
