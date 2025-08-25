@@ -112,6 +112,7 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
         'OPTIONS': {
             'timeout': 10,  # Wait up to 10 seconds before 'database is locked'
+            'init_command': 'PRAGMA journal_mode=WAL; PRAGMA busy_timeout=10000;'
         }
     }
 }

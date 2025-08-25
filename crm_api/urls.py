@@ -19,3 +19,4 @@ urlpatterns = [
     # API برای دریافت لیست محصولات فعال بازارگاهی
     path('cargo-products/', CargoProductsAPI.as_view(), name='cargo_products'),
 ]
+

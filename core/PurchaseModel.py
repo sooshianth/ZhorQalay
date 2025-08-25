@@ -87,6 +87,7 @@ class Purchase(models.Model):
 
     buyer_national_id = models.CharField("شناسه ملی خریدار", max_length=20, blank=True, null=True)
     buyer_user_type = models.CharField("نوع کاربری خریدار", max_length=20, choices=FIELD_OF_ACTIVITY, blank=True, null=True)
+    buyer_account = models.CharField("حساب خریدار", max_length=100, blank=True, null=True, help_text="حساب خریدار دریافت شده از BKI API")
     
     # فیلدهای آدرس و تحویل
     unique_delivery_id = models.CharField("شناسه یکتا تحویل", max_length=50, blank=True, null=True, unique=True)

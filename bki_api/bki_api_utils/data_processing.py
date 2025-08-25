@@ -417,6 +417,7 @@ def update_purchase(purchase, purchase_data):
         delpostalcode = purchase_data.get('delpostalcode')
         buyerpostalcode = purchase_data.get('buyerpostalcode')
         buyerpartidcode = purchase_data.get('buyerpartidcode')
+        buyer_account = purchase_data.get('buyeracc')  # حساب خریدار از BKI API
         
         # Update purchase fields - بدون به‌روزرسانی وزن‌ها
         purchase.buyer_name = buyer_name
@@ -432,6 +433,7 @@ def update_purchase(purchase, purchase_data):
         purchase.delivery_postal_code = delpostalcode
         purchase.buyer_postal_code = buyerpostalcode
         purchase.unique_delivery_id = buyerpartidcode
+        purchase.buyer_account = buyer_account
         
         if tak == 1 and joft == 0 and tereili == 0:
             purchase.vehicle_type = 'single'
@@ -569,6 +571,7 @@ def create_purchase(purchase_data):
         delpostalcode = purchase_data.get('delpostalcode')
         buyerpostalcode = purchase_data.get('buyerpostalcode')
         buyerpartidcode = purchase_data.get('buyerpartidcode')
+        buyer_account = purchase_data.get('buyeracc')  # حساب خریدار از BKI API
         
         # Calculate weight difference
         weight_diff = 0
@@ -689,6 +692,7 @@ def create_purchase(purchase_data):
             'delivery_postal_code': delpostalcode,
             'buyer_postal_code': buyerpostalcode,
             'unique_delivery_id': buyerpartidcode,
+            'buyer_account': buyer_account,
         }
         
         # تبدیل تاریخ جلالی به فرمت مناسب
