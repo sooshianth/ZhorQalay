@@ -337,10 +337,11 @@ class PurchaseInfoAPI(View):
                     'code': allocation.code,
                     'weight': allocation.weight,
                     'barnameh_weight': getattr(allocation, 'barnameh_weight', None),
-                    'delivery_receiver_name': getattr(allocation, 'delivery_receiver_name', None),
-                    'delivery_phone': purchase.tahvil_phone_number,
-                    'delivery_national_id': purchase.code_melli_tahvil,
-                    'delivery_address': purchase.address,
+                    'delivery_receiver_name': allocation.delivery_receiver_name or purchase.delivery_receiver_name or purchase.buyer_name,
+                    'delivery_phone': allocation.tahvil_phone_number or purchase.tahvil_phone_number,
+                    'delivery_national_id': allocation.code_melli_tahvil or purchase.code_melli_tahvil or purchase.buyer_national_id,
+                    'delivery_address': allocation.delivery_address or purchase.delivery_address or purchase.address,
+                    'delivery_postal_code': allocation.delivery_postal_code or purchase.delivery_postal_code,
                     'created_at': allocation.created_at.isoformat() if allocation.created_at else None,
                 })
             
@@ -402,6 +403,74 @@ class PurchaseInfoAPI(View):
             
         except Exception as e:
             logger.error(f"خطا در API اطلاعات خرید: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'error': 'خطای داخلی سرور'
+            }, status=500)
+
+
+class CargoProductsAPI(View):
+    """API برای دریافت لیست محصولات فعال CargoProduct با جزئیات کامل"""
+
+    def get(self, request):
+        try:
+            product_type = request.GET.get('type')  # اختیاری: فیلتر بر اساس نوع خرید
+
+            queryset = CargoProduct.objects.filter(status=True)
+            if product_type:
+                queryset = queryset.filter(type=product_type)
+
+            # برای بهینه‌سازی، روابط را پیش‌بارگذاری می‌کنیم
+            queryset = queryset.select_related('vared_konandeh', 'barbary')
+
+            products = []
+            for cargo in queryset:
+                products.append({
+                    # فیلدهای اصلی
+                    'id': cargo.id,
+                    'type': cargo.type,
+                    'cottage': cargo.cottage,
+                    'product_type': cargo.product_type,
+                    'product_type_display': cargo.get_product_type_display(),
+                    'country': cargo.country,
+                    'country_display': cargo.get_country_display(),
+                    'port': cargo.port,
+                    'loading_time': cargo.loading_time,
+                    'description': cargo.description,
+                    'status': cargo.status,
+                    'weight': cargo.weight,
+                    'customer_price': cargo.customer_price,
+                    'company_price': cargo.company_price,
+                    'created_at': cargo.created_at.isoformat() if cargo.created_at else None,
+                    'last_modified': cargo.last_modified.isoformat() if cargo.last_modified else None,
+
+                    # اطلاعات باربری
+                    'barbary': {
+                        'id': cargo.barbary.id if cargo.barbary else None,
+                        'name': cargo.barbary.name if cargo.barbary else None,
+                        'phone_number': cargo.barbary.phone_number if cargo.barbary else None,
+                        'email': cargo.barbary.email if cargo.barbary else None,
+                        'description': cargo.barbary.description if cargo.barbary else None,
+                    } if cargo.barbary else None,
+
+                    # اطلاعات واردکننده
+                    'vared_konandeh': {
+                        'id': cargo.vared_konandeh.id if cargo.vared_konandeh else None,
+                        'name': cargo.vared_konandeh.name if cargo.vared_konandeh else None,
+                        'phone_number': cargo.vared_konandeh.phone_number if cargo.vared_konandeh else None,
+                        'email': cargo.vared_konandeh.email if cargo.vared_konandeh else None,
+                        'website': cargo.vared_konandeh.website if cargo.vared_konandeh else None,
+                    } if cargo.vared_konandeh else None,
+                })
+
+            return JsonResponse({
+                'success': True,
+                'count': len(products),
+                'products': products
+            })
+
+        except Exception as e:
+            logger.error(f"خطا در API لیست محصولات: {str(e)}")
             return JsonResponse({
                 'success': False,
                 'error': 'خطای داخلی سرور'
