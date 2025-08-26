@@ -152,15 +152,19 @@ def process_excel_file(excel_file_id):
                 
                 if existing_barnameh:
                     # Update existing barnameh with new data
-                    logger.info(f"📝 Updating existing barnameh {barnameh_number} from Excel - will trigger SMS signal")
+                    logger.info(f"📝 Updating existing barnameh {barnameh_number} from Excel - will NOT trigger SMS signal (duplicate)")
                     for key, value in barnameh_data.items():
-                        setattr(existing_barnameh, key, value)
+                        # برای بارنامه‌های تکراری، is_created_by_excel را False می‌گذاریم تا پیامک ارسال نشود
+                        if key == 'is_created_by_excel':
+                            setattr(existing_barnameh, key, False)
+                        else:
+                            setattr(existing_barnameh, key, value)
                     
-                    # مطمئن شویم که فیلد is_created_by_excel تنظیم شده تا سیگنال پیامک فعال شود
-                    existing_barnameh.is_created_by_excel = True
+                    # مطمئن شویم که فیلد is_created_by_excel برای تکراری‌ها False است
+                    existing_barnameh.is_created_by_excel = False
                     existing_barnameh.save()
                     barnameh = existing_barnameh
-                    logger.info(f"✅ Updated barnameh {barnameh.id} with is_created_by_excel=True for SMS trigger")
+                    logger.info(f"✅ Updated barnameh {barnameh.id} with is_created_by_excel=False (no SMS for duplicate)")
                 else:
                     # Create new barnameh
                     logger.info(f"🆕 Creating new barnameh {barnameh_number} from Excel - will trigger SMS signal")

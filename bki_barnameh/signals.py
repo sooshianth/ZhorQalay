@@ -49,14 +49,16 @@ def create_default_barnameh_template():
 @receiver(post_save, sender=Barnameh)
 def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
     """
-    ارسال پیامک به مشتری هنگام ایجاد یا بروزرسانی بارنامه از اکسل
+    ارسال پیامک به مشتری هنگام ایجاد بارنامه جدید (از UI یا اکسل)
+    نکته: برای بارنامه‌های تکراری در اکسل پیامک ارسال نمی‌شود
     """
     # لاگ اولیه برای تایید اجرای سیگنال
     logger.info(f"🚨 SIGNAL TRIGGERED: Barnameh {instance.id} post_save signal - created={created}, number={instance.number}, is_created_by_excel={getattr(instance, 'is_created_by_excel', False)}")
     
     # بررسی شرایط ارسال پیامک:
     # 1. بارنامه جدید ایجاد شده باشد (created=True)
-    # 2. یا بارنامه از طریق اکسل ایجاد/بروزرسانی شده باشد (is_created_by_excel=True)
+    # 2. یا بارنامه جدید از طریق اکسل ایجاد شده باشد (is_created_by_excel=True)
+    # نکته: برای بارنامه‌های تکراری در اکسل، is_created_by_excel=False تنظیم می‌شود
     should_send_sms = created or getattr(instance, 'is_created_by_excel', False)
     
     if not should_send_sms:
