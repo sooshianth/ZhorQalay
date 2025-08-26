@@ -75,9 +75,9 @@ function setupCharacterCounter(textareaId, counterId) {
             counter.textContent = this.value.length;
             
             // Add warning color if approaching limit
-            if (this.value.length > 230) {
+            if (this.value.length > 4500) {
                 counter.style.color = '#f57c00';
-            } else if (this.value.length > 250) {
+            } else if (this.value.length > 4700) {
                 counter.style.color = '#d32f2f';
         } else {
                 counter.style.color = '#666';

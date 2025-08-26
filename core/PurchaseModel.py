@@ -764,23 +764,8 @@ class Purchase(models.Model):
                     has_non_admin = True
                     break
 
-        # Send SMS notification for new purchase only on creation
-        if is_new and self.customer.sms_preference and has_non_admin:
-            if self.send_cottage_sms:
-                from sms_api.apis import send_purchase_status_notification
-                logger.debug(f"Sending cottage SMS for purchase: {self.id}")
-                send_purchase_status_notification(self)
-                logger.debug(f"SMS sent successfully for purchase: {self.id}")
-                # تنظیم وضعیت SMS ارسال شده
-            if not PurchaseStateChange.objects.filter(purchase=self, new_state='SMS_SENT').exists():
-                PurchaseStateChange.objects.create(
-                    purchase=self,
-                    previous_state='INITIATED',
-                    new_state='SMS_SENT',
-                    notes='پیامک خودکار ارسال شد'
-                )
-                self.state = 'SMS_SENT'
-                super().save(update_fields=['state'])
+        # SMS notification is now handled by the signal in core/zignals.py
+        # This section is removed to prevent duplicate SMS sending
 
         if self.extelaf_weight:
             self.extelaf_amount = self.extelaf_weight * self.customer_price

@@ -7,6 +7,23 @@ is_celery_active = False
 
 class SmsQueue(models.Model):
     NOTIFICATION_TYPES = [
+        # وضعیت‌های خرید
+        ('INITIATED', 'شروع شده'),
+        ('SMS_SENT', 'پیامک ارسال شده'),
+        ('PAYMENT_VERIFIED', 'ثبت خرید در بازارگاه'),
+        ('ALLOCATION_APPROVED', 'ثبت تخصیص در بازارگاه'),
+        ('ADDRESS_SENT', 'ارسال آدرس به واردکننده'),
+        ('WAITING_FOR_BARNAMEH', 'در انتظار بارنامه'),
+        ('BARNAMEH_INCOMPLETE', 'صدور بارنامه (ناقص)'),
+        ('BARNAMEH_ISSUED', 'صدور بارنامه'),
+        ('PURCHASE_CLOSED', 'بستن خرید در بازارگاه'),
+        ('PAY_KASRI', 'پرداخت کسری'),
+        ('RECIEIVE_SARAK', 'دریافت سرک'),
+        ('FULLY_SETTLED', 'تسویه کامل'),
+        ('INVOICE_ISSUED', 'صدور فاکتور'),
+        ('CANCELED', 'لغو شده'),
+        ('ARCHIVED', 'آرشیو شده'),
+        # نوع‌های قدیمی برای سازگاری
         ('new_purchase', 'اطلاع رسانی خرید جدید'),
         ('payment_confirmation', 'تایید پرداخت'),
         ('address_notification', 'اطلاع رسانی آدرس'),
@@ -23,7 +40,7 @@ class SmsQueue(models.Model):
     ]
 
     recipient_number = models.CharField(max_length=11, verbose_name="شماره گیرنده")
-    message = models.TextField(max_length=255, verbose_name="متن پیام")
+    message = models.TextField(max_length=4800, verbose_name="متن پیام")
     notification_type = models.CharField(max_length=30, choices=NOTIFICATION_TYPES, default='custom', verbose_name="نوع اطلاع رسانی")
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending', verbose_name="وضعیت")
     is_suspended = models.BooleanField(default=False, verbose_name="معلق شده")
@@ -61,7 +78,7 @@ class SmsQueue(models.Model):
 
 class SmsLog(models.Model):
     recipient_number = models.CharField(max_length=11, verbose_name="شماره گیرنده")
-    message = models.TextField(max_length=255, verbose_name="متن پیام")
+    message = models.TextField(max_length=4800, verbose_name="متن پیام")
     notification_type = models.CharField(max_length=30, null=True, blank=True, verbose_name="نوع اطلاع رسانی")
     sent_at = jmodels.jDateTimeField(auto_now_add=True, verbose_name="تاریخ ارسال")
     status = models.CharField(max_length=10, default='sent', verbose_name="وضعیت")
@@ -162,6 +179,13 @@ class SmsConfig(models.Model):
         verbose_name="ارسال پیامک فعال باشد؟",
         help_text="در صورت غیرفعال بودن، هیچ پیامکی ارسال نخواهد شد."
     )
+    
+    # تنظیم جدید برای نحوه تشخیص موفقیت ارسال
+    assume_success_on_no_error = models.BooleanField(
+        default=True,
+        verbose_name="فرض موفقیت در عدم وجود خطا؟",
+        help_text="اگر فعال باشد، در صورتی که API خطا نده، پیامک موفق تلقی می‌شود (مناسب برای پروداکشن)"
+    )
 
     class Meta:
         verbose_name = "تنظیمات پیامک"
@@ -186,3 +210,13 @@ class SmsConfig(models.Model):
         if config is not None:
             return config.sms_enabled
         return False
+    
+    @staticmethod
+    def should_assume_success_on_no_error():
+        """
+        بررسی اینکه آیا باید در عدم وجود خطا، ارسال پیامک موفق تلقی شود.
+        """
+        config = SmsConfig.objects.first()
+        if config is not None:
+            return config.assume_success_on_no_error
+        return True  # پیش‌فرض: فرض موفقیت
