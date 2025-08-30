@@ -25,7 +25,7 @@ def check_api_key(request):
     try:
         if getattr(settings, 'DEBUG', False):
             return True
-        api_key = request.headers.get('X-API-KEY') or request.META.get('HTTP_X_API_KEY')
+        api_key = request.headers.get('X-API-KEY')
         expected_key = getattr(settings, 'CRM_API_KEY', None)
         if api_key and expected_key and api_key == expected_key:
             return True
