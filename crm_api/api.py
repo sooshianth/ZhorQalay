@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.conf import settings
 from core.PurchaseModel import Purchase, ShenaseTakhsis, PurchaseStateChange
 from core.CargoProductModel import CargoProduct
 from bki_barnameh.models.BarnamehModel import Barnameh
@@ -14,6 +15,32 @@ import logging
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
+
+def check_api_key(request):
+    """
+    Check API key from request headers. If DEBUG is True, always accept.
+    Log unauthorized requests with IP, path, and method.
+    Handle exceptions gracefully.
+    """
+    try:
+        if getattr(settings, 'DEBUG', False):
+            return True
+        api_key = request.headers.get('X-API-KEY') or request.META.get('HTTP_X_API_KEY')
+        expected_key = getattr(settings, 'CRM_API_KEY', None)
+        if api_key and expected_key and api_key == expected_key:
+            return True
+        # Log unauthorized attempt
+        ip = request.META.get('REMOTE_ADDR', 'unknown')
+        path = request.path
+        method = request.method
+        logger.warning(f"Unauthorized API access: IP={ip}, Path={path}, Method={method}, ProvidedKey={api_key}")
+        return False
+    except Exception as e:
+        ip = request.META.get('REMOTE_ADDR', 'unknown')
+        path = getattr(request, 'path', 'unknown')
+        method = getattr(request, 'method', 'unknown')
+        logger.error(f"API key check exception: {str(e)} | IP={ip}, Path={path}, Method={method}")
+        return False
 
 logger = logging.getLogger("crm_api_api")
 
@@ -114,6 +141,8 @@ class PurchaseInfoAPI(View):
     """API برای دریافت اطلاعات خرید"""
     
     def post(self, request):
+        if not check_api_key(request):
+            return JsonResponse({'success': False, 'error': 'API key missing or invalid'}, status=401)
         try:
             # پارس کردن JSON data
             data = json.loads(request.body)
@@ -413,6 +442,8 @@ class CargoProductsAPI(View):
     """API برای دریافت لیست محصولات فعال CargoProduct با جزئیات کامل"""
 
     def get(self, request):
+        if not check_api_key(request):
+            return JsonResponse({'success': False, 'error': 'API key missing or invalid'}, status=401)
         try:
             product_type = request.GET.get('type')  # اختیاری: فیلتر بر اساس نوع خرید
 
@@ -481,6 +512,8 @@ class CustomerPurchasesAPI(View):
     """API برای دریافت لیست خریدهای یک مشتری بر اساس شماره تلفن"""
     
     def post(self, request):
+        if not check_api_key(request):
+            return JsonResponse({'success': False, 'error': 'API key missing or invalid'}, status=401)
         try:
             data = json.loads(request.body)
             phone_number = data.get('phone_number')
@@ -723,6 +756,8 @@ class PhoneValidationAPI(View):
     """API برای احراز هویت شماره تلفن و بررسی اجازه دسترسی به CRM"""
     
     def post(self, request):
+        if not check_api_key(request):
+            return JsonResponse({'success': False, 'error': 'API key missing or invalid'}, status=401)
         try:
             data = json.loads(request.body)
             phone_number = data.get('phone_number')
@@ -885,6 +920,8 @@ class HealthCheckAPI(View):
     """API برای بررسی وضعیت سلامت سرویس"""
     
     def get(self, request):
+        if not check_api_key(request):
+            return JsonResponse({'success': False, 'error': 'API key missing or invalid'}, status=401)
         try:
             # بررسی اتصال به دیتابیس
             customers_count = Customer.objects.count()
@@ -916,5 +953,7 @@ class HealthCheckAPI(View):
             }, status=500)
     
     def post(self, request):
+        if not check_api_key(request):
+            return JsonResponse({'success': False, 'error': 'API key missing or invalid'}, status=401)
         # همان response برای POST requests
         return self.get(request)
