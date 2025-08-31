@@ -91,8 +91,8 @@ def can_api_update_state(current_state, new_state):
     Returns:
         bool: True if API can make this change, False otherwise
     """
-    # States that are only managed by operators (not API)
-    operator_only_states = {
+    # States that API cannot set (target states that are operator-only)
+    api_cannot_set_states = {
         'ADDRESS_SENT',
         'WAITING_FOR_BARNAMEH',
         'PAY_KASRI',
@@ -103,15 +103,22 @@ def can_api_update_state(current_state, new_state):
         'ARCHIVED'
     }
     
-    # If current state is operator-only, API cannot change it
-    if current_state in operator_only_states:
+    # States that API absolutely cannot change FROM (completely locked)
+    completely_locked_states = {
+        'CANCELED',
+        'ARCHIVED'
+    }
+    
+    # If current state is completely locked, API cannot change it at all
+    if current_state in completely_locked_states:
         return False
     
-    # If new state is operator-only, API cannot set it
-    if new_state in operator_only_states:
+    # If new state is something API cannot set, block it
+    if new_state in api_cannot_set_states:
         return False
     
-    # API can only make progressive changes
+    # API can make progressive changes from any other state
+    # This allows API to progress from operator states like ADDRESS_SENT to API states like PURCHASE_CLOSED
     return is_state_progression(current_state, new_state)
 
 
@@ -406,6 +413,8 @@ def update_purchase(purchase, purchase_data):
         fee = int(purchase_data.get('fee', 0) or 0)
         total_value = int(purchase_data.get('totalvalue', 0) or 0)  # مبلغ کل پرداختی
         receiver_phone = purchase_data.get('receiverphone')  # شماره تلفن تحویل
+        receiver_name = purchase_data.get('receivername')  # نام تحویل‌گیرنده
+        receiver_address = purchase_data.get('receiveraddress')  # آدرس تحویل‌گیرنده
         trace_code = purchase_data.get('tracecode')  # شماره پیگیری
         receiver_id = purchase_data.get('receiverid')  # کد ملی تحویل
         buyer_national_id = purchase_data.get('buyerid')  # شناسه ملی خریدار
@@ -415,6 +424,7 @@ def update_purchase(purchase, purchase_data):
         joft = int(purchase_data.get('joft', 0) or 0)
         tereili = int(purchase_data.get('tereili', 0) or 0)
         delpostalcode = purchase_data.get('delpostalcode')
+        receiverpostalcode = purchase_data.get('receiverzip')  # کد پستی تحویل‌گیرنده
         buyerpostalcode = purchase_data.get('buyerpostalcode')
         buyerpartidcode = purchase_data.get('buyerpartidcode')
         buyer_account = purchase_data.get('buyeracc')  # حساب خریدار از BKI API
@@ -503,9 +513,9 @@ def update_purchase(purchase, purchase_data):
                 existing_takhsis.weight = qty
                 existing_takhsis.code_melli_tahvil = receiver_id
                 existing_takhsis.tahvil_phone_number = receiver_phone
-                existing_takhsis.delivery_receiver_name = buyer_name  # استفاده از نام خریدار به عنوان نام تحویل‌گیرنده
-                existing_takhsis.delivery_address = buyer_address  # استفاده از آدرس خریدار به عنوان آدرس تحویل
-                existing_takhsis.delivery_postal_code = delpostalcode
+                existing_takhsis.delivery_receiver_name = receiver_name or buyer_name  # استفاده از نام تحویل‌گیرنده یا نام خریدار
+                existing_takhsis.delivery_address = receiver_address or buyer_address  # استفاده از آدرس تحویل‌گیرنده یا آدرس خریدار
+                existing_takhsis.delivery_postal_code = receiverpostalcode or delpostalcode
                 existing_takhsis.save()
             else:
                 # Create a new allocation ID with the correct weight and delivery information
@@ -515,9 +525,9 @@ def update_purchase(purchase, purchase_data):
                     weight=qty,  # Use the allocation weight (takhsisweight)
                     code_melli_tahvil=receiver_id,
                     tahvil_phone_number=receiver_phone,
-                    delivery_receiver_name=buyer_name,  # استفاده از نام خریدار به عنوان نام تحویل‌گیرنده
-                    delivery_address=buyer_address,  # استفاده از آدرس خریدار به عنوان آدرس تحویل
-                    delivery_postal_code=delpostalcode
+                    delivery_receiver_name=receiver_name or buyer_name,  # استفاده از نام تحویل‌گیرنده یا نام خریدار
+                    delivery_address=receiver_address or buyer_address,  # استفاده از آدرس تحویل‌گیرنده یا آدرس خریدار
+                    delivery_postal_code=receiverpostalcode or delpostalcode
                 )
         
         return purchase, None
@@ -560,6 +570,8 @@ def create_purchase(purchase_data):
         fee = int(purchase_data.get('fee', 0) or 0)
         total_value = int(purchase_data.get('totalvalue', 0) or 0)  # مبلغ کل پرداختی
         receiver_phone = purchase_data.get('receiverphone')  # شماره تلفن تحویل
+        receiver_name = purchase_data.get('receivername')  # نام تحویل‌گیرنده
+        receiver_address = purchase_data.get('receiveraddress')  # آدرس تحویل‌گیرنده
         trace_code = purchase_data.get('tracecode')  # شماره پیگیری
         receiver_id = purchase_data.get('receiverid')  # کد ملی تحویل
         buyer_national_id = purchase_data.get('buyerid')  # شناسه ملی خریدار
@@ -569,6 +581,7 @@ def create_purchase(purchase_data):
         joft = int(purchase_data.get('joft', 0) or 0)
         tereili = int(purchase_data.get('tereili', 0) or 0)
         delpostalcode = purchase_data.get('delpostalcode')
+        receiverpostalcode = purchase_data.get('receiverzip')  # کد پستی تحویل‌گیرنده
         buyerpostalcode = purchase_data.get('buyerpostalcode')
         buyerpartidcode = purchase_data.get('buyerpartidcode')
         buyer_account = purchase_data.get('buyeracc')  # حساب خریدار از BKI API
@@ -931,8 +944,10 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
                 create_state_change_record(purchase, previous_state, suggested_state)
             else:
                 reason = ""
-                if purchase.state in {'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'PAY_KASRI', 'RECIEIVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED', 'ARCHIVED'}:
-                    reason = "(وضعیت فعلی فقط توسط اپراتور قابل تغییر است)"
+                if purchase.state in {'CANCELED', 'ARCHIVED'}:
+                    reason = "(وضعیت فعلی قفل شده و قابل تغییر نیست)"
+                elif suggested_state in {'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'PAY_KASRI', 'RECIEIVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED', 'ARCHIVED'}:
+                    reason = "(وضعیت پیشنهادی فقط توسط اپراتور قابل تنظیم است)"
                 elif not is_state_progression(purchase.state, suggested_state):
                     reason = "(تغییر پیشرفت محسوب نمی‌شود)"
                 log_state_change_attempt(purchase_number, purchase.state, suggested_state, False, reason)
@@ -949,10 +964,13 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
             
             # Extract delivery information for this entry
             entry_buyer_name = entry.get('buyername')
-            entry_buyer_address = entry.get('buyeraddress') 
+            entry_buyer_address = entry.get('buyeraddress')
+            entry_receiver_name = entry.get('receivername')
+            entry_receiver_address = entry.get('receiveraddress')
             entry_receiver_phone = entry.get('receiverphone')
             entry_receiver_id = entry.get('receiverid')
             entry_delpostalcode = entry.get('delpostalcode')
+            entry_receiverpostalcode = entry.get('receiverzip')
             
             if takhsisid and takhsisid != '0':
                 # Check if the allocation ID already exists
@@ -962,9 +980,9 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
                     existing_takhsis.weight = takhsis_weight
                     existing_takhsis.code_melli_tahvil = entry_receiver_id
                     existing_takhsis.tahvil_phone_number = entry_receiver_phone
-                    existing_takhsis.delivery_receiver_name = entry_buyer_name
-                    existing_takhsis.delivery_address = entry_buyer_address
-                    existing_takhsis.delivery_postal_code = entry_delpostalcode
+                    existing_takhsis.delivery_receiver_name = entry_receiver_name or entry_buyer_name
+                    existing_takhsis.delivery_address = entry_receiver_address or entry_buyer_address
+                    existing_takhsis.delivery_postal_code = entry_receiverpostalcode or entry_delpostalcode
                     existing_takhsis.save()
                 else:
                     # Create a new allocation ID with delivery information
@@ -974,9 +992,9 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
                         weight=takhsis_weight,
                         code_melli_tahvil=entry_receiver_id,
                         tahvil_phone_number=entry_receiver_phone,
-                        delivery_receiver_name=entry_buyer_name,
-                        delivery_address=entry_buyer_address,
-                        delivery_postal_code=entry_delpostalcode
+                        delivery_receiver_name=entry_receiver_name or entry_buyer_name,
+                        delivery_address=entry_receiver_address or entry_buyer_address,
+                        delivery_postal_code=entry_receiverpostalcode or entry_delpostalcode
                     )
         
         return purchase, False, None
@@ -1014,8 +1032,10 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
                 create_state_change_record(purchase, previous_state, suggested_state)
             else:
                 reason = ""
-                if purchase.state in {'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'PAY_KASRI', 'RECIEIVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED', 'ARCHIVED'}:
-                    reason = "(وضعیت فعلی فقط توسط اپراتور قابل تغییر است)"
+                if purchase.state in {'CANCELED', 'ARCHIVED'}:
+                    reason = "(وضعیت فعلی قفل شده و قابل تغییر نیست)"
+                elif suggested_state in {'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'PAY_KASRI', 'RECIEIVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED', 'ARCHIVED'}:
+                    reason = "(وضعیت پیشنهادی فقط توسط اپراتور قابل تنظیم است)"
                 elif not is_state_progression(purchase.state, suggested_state):
                     reason = "(تغییر پیشرفت محسوب نمی‌شود)"
                 log_state_change_attempt(purchase_number, purchase.state, suggested_state, False, reason)
@@ -1030,10 +1050,13 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
             
             # Extract delivery information for this entry
             entry_buyer_name = entry.get('buyername')
-            entry_buyer_address = entry.get('buyeraddress') 
+            entry_buyer_address = entry.get('buyeraddress')
+            entry_receiver_name = entry.get('receivername')
+            entry_receiver_address = entry.get('receiveraddress')
             entry_receiver_phone = entry.get('receiverphone')
             entry_receiver_id = entry.get('receiverid')
             entry_delpostalcode = entry.get('delpostalcode')
+            entry_receiverpostalcode = entry.get('receiverzip')
             
             if takhsisid and takhsisid != '0':
                 # Check if the allocation ID already exists
@@ -1043,9 +1066,9 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
                     existing_takhsis.weight = takhsis_weight
                     existing_takhsis.code_melli_tahvil = entry_receiver_id
                     existing_takhsis.tahvil_phone_number = entry_receiver_phone
-                    existing_takhsis.delivery_receiver_name = entry_buyer_name
-                    existing_takhsis.delivery_address = entry_buyer_address
-                    existing_takhsis.delivery_postal_code = entry_delpostalcode
+                    existing_takhsis.delivery_receiver_name = entry_receiver_name or entry_buyer_name
+                    existing_takhsis.delivery_address = entry_receiver_address or entry_buyer_address
+                    existing_takhsis.delivery_postal_code = entry_receiverpostalcode or entry_delpostalcode
                     existing_takhsis.save()
                 else:
                     # Create a new allocation ID with delivery information
@@ -1055,9 +1078,9 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
                         weight=takhsis_weight,
                         code_melli_tahvil=entry_receiver_id,
                         tahvil_phone_number=entry_receiver_phone,
-                        delivery_receiver_name=entry_buyer_name,
-                        delivery_address=entry_buyer_address,
-                        delivery_postal_code=entry_delpostalcode
+                        delivery_receiver_name=entry_receiver_name or entry_buyer_name,
+                        delivery_address=entry_receiver_address or entry_buyer_address,
+                        delivery_postal_code=entry_receiverpostalcode or entry_delpostalcode
                     )
         
         return purchase, True, None
