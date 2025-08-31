@@ -55,6 +55,12 @@
             <i class="fas fa-history"></i>
             تاریخچه ارسال پیامک
         </a>
+        {% if user.is_superuser %}
+        <a href="{% url 'sms_api:export_phone_numbers_excel' %}" class="action-button cyan">
+            <i class="fas fa-download"></i>
+            خروجی اکسل شماره‌های متصل به پنل مشتریان
+        </a>
+        {% endif %}
     </div>
 
     <div class="recent-sms-section">
@@ -205,6 +211,10 @@
 
     .action-button.dark-teal {
         background-color: var(--teal-dark);
+    }
+
+    .action-button.cyan {
+        background-color: var(--cyan);
     }
 
     .action-button:hover {

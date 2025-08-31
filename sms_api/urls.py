@@ -26,6 +26,7 @@ urlpatterns = [
     # خروجی گزارش
     path('export/excel/', views.export_sms_log_excel, name='export_sms_log_excel'),
     path('export/pdf/', views.export_sms_log_pdf, name='export_sms_log_pdf'),
+    path('export/phone-numbers/', views.export_phone_numbers_excel, name='export_phone_numbers_excel'),
     
     # مدیریت قالب‌های پیامک
     path('templates/', views.template_list, name='template_list'),
