@@ -467,3 +467,5 @@ BKI_PASSWORD = os.environ.get('BKI_PASSWORD', '')
 SALES_AGENT_SMS_QOUTA = int(os.environ.get('SALES_AGENT_SMS_QOUTA', '0'))
 
 CRM_API_KEY = os.environ.get('CRM_API_KEY', '')
+
+PURCHASE_AWARE_NUMBERS = os.environ.get('PURCHASE_AWARE_NUMBERS', '').split(',')

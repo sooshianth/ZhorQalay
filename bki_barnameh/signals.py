@@ -27,13 +27,13 @@ def create_default_barnameh_template():
                 'name': 'قالب پیش‌فرض بارنامه جدید',
                 'template_type': 'purchase',
                 'content': '''{{customer_name}} عزیز؛
-بارنامه خرید {{purchase_number}} ،{{product_type}} به وزن {{order_weight}} :
-شماره بارنامه: {{barnameh_number}}
-تاریخ بارنامه: {{barnameh_date}}
-شماره راننده: {{driver_phone}}
-نام راننده: {{driver_name}}
-۰۲۱-۶۶۵۶۲۲۱۶ ☎️
-شرکت تامین نهاده سیمرغ''',
+                بارنامه خرید {{purchase_number}} ،{{product_type}} به وزن {{order_weight}} :
+                شماره بارنامه: {{barnameh_number}}
+                تاریخ بارنامه: {{barnameh_date}}
+                شماره راننده: {{driver_phone}}
+                نام راننده: {{driver_name}}
+                ۰۲۱-۶۶۵۶۲۲۱۶ ☎️
+                شرکت تامین نهاده سیمرغ''',
                 'description': 'قالب پیش‌فرض برای اطلاع‌رسانی بارنامه جدید (ایجاد شده توسط سیگنال)',
                 'is_active': True,
                 'is_default': True

@@ -4,7 +4,7 @@ from django.utils import timezone
 from datetime import timedelta
 from core._models import Purchase, Task, SalesAgent
 from django.db import models
-from sms_api.apis import queue_sms, send_purchase_status_notification
+from sms_api.apis import queue_sms, send_purchase_status_notification, send_purchase_aware_notification
 from sms_api.models import SmsTemplate
 import logging
 from core.PurchaseModel import PurchaseStateChange
@@ -218,3 +218,28 @@ def handle_direct_purchase_state_change(sender, instance, created, **kwargs):
             )
         else:
             logger.debug(f"✅ رکورد تغییر وضعیت برای خرید {instance.purchase_number} قبلاً موجود است")
+
+
+# سیگنال جدید برای ارسال پیامک اطلاع‌رسانی خرید جدید به مدیریت
+@receiver(post_save, sender=Purchase, dispatch_uid="send_purchase_aware_notification")
+def send_purchase_aware_notification_signal(sender, instance, created, **kwargs):
+    """
+    ارسال پیامک اطلاع‌رسانی خرید جدید به شماره‌های مدیریت
+    فقط برای خریدهای جدید و در محیط پروداکشن اجرا می‌شود
+    """
+    if not created:  # فقط برای خریدهای جدید
+        return
+        
+    logger.debug(f"New purchase created for aware notification: {instance.id}")
+    
+    try:
+        # ارسال پیامک اطلاع‌رسانی
+        result = send_purchase_aware_notification(instance)
+        
+        if result:
+            logger.info(f"✅ Purchase aware notification sent successfully for purchase {instance.purchase_number}")
+        else:
+            logger.debug(f"ℹ️ Purchase aware notification not sent for purchase {instance.purchase_number} (disabled or no numbers configured)")
+    
+    except Exception as e:
+        logger.warning(f"❌ Error sending purchase aware notification for purchase {instance.id}: {str(e)}")

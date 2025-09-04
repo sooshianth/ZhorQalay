@@ -29,6 +29,7 @@ class SmsQueue(models.Model):
         ('address_notification', 'اطلاع رسانی آدرس'),
         ('barnameh_notification', 'اطلاع رسانی بارنامه'),
         ('extelaf_notification', 'اطلاع رسانی اختلاف'),
+        ('purchase_aware', 'اطلاع رسانی خرید جدید (مدیریت)'),
         ('custom', 'پیام سفارشی'),
     ]
 
@@ -186,6 +187,13 @@ class SmsConfig(models.Model):
         verbose_name="فرض موفقیت در عدم وجود خطا؟",
         help_text="اگر فعال باشد، در صورتی که API خطا نده، پیامک موفق تلقی می‌شود (مناسب برای پروداکشن)"
     )
+    
+    # تنظیم جدید برای ارسال پیامک اطلاع‌رسانی خرید جدید
+    purchase_aware_enabled = models.BooleanField(
+        default=False,
+        verbose_name="ارسال پیامک اطلاع‌رسانی خرید جدید فعال باشد؟",
+        help_text="در صورت فعال بودن، هنگام ثبت خرید جدید، پیامک اطلاع‌رسانی به شماره‌های تعریف شده در PURCHASE_AWARE_NUMBERS ارسال می‌شود"
+    )
 
     class Meta:
         verbose_name = "تنظیمات پیامک"
@@ -220,3 +228,14 @@ class SmsConfig(models.Model):
         if config is not None:
             return config.assume_success_on_no_error
         return True  # پیش‌فرض: فرض موفقیت
+    
+    @staticmethod
+    def is_purchase_aware_enabled():
+        """
+        بررسی فعال بودن ارسال پیامک اطلاع‌رسانی خرید جدید.
+        اگر رکوردی وجود نداشت، پیش‌فرض غیرفعال است.
+        """
+        config = SmsConfig.objects.first()
+        if config is not None:
+            return config.purchase_aware_enabled
+        return False  # پیش‌فرض: غیرفعال

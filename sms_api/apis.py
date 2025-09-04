@@ -410,6 +410,107 @@ def send_instant_sms(number:str, message:str, sms_account=sms_account):
             print(f"SMS sending error: {e}")
             return None
 
+def send_purchase_aware_notification(purchase):
+    """
+    ارسال پیامک اطلاع‌رسانی خرید جدید به شماره‌های مشخص شده در تنظیمات
+    فقط در محیط پروداکشن و با فعال بودن تنظیمات اجرا می‌شود
+    
+    Args:
+        purchase: آبجکت خرید جدید
+        
+    Returns:
+        bool: True اگر حداقل یک پیامک ارسال شد، False در غیر این صورت
+    """
+    try:
+        # بررسی فعال بودن قابلیت
+        if not SmsConfig.is_purchase_aware_enabled():
+            logger.debug("Purchase aware notifications are disabled")
+            return False
+        
+        # بررسی محیط پروداکشن (DEBUG=False)
+        from django.conf import settings
+        if settings.DEBUG:
+            logger.debug("Purchase aware notifications are disabled in development mode")
+            return False
+        
+        # دریافت شماره‌های تعریف شده در .env
+        aware_numbers = getattr(settings, 'PURCHASE_AWARE_NUMBERS', '')
+        if not aware_numbers:
+            logger.warning("PURCHASE_AWARE_NUMBERS not configured in environment")
+            return False
+        
+        # پردازش شماره‌ها (جدا کردن با کاما)
+        phone_numbers = [num.strip() for num in aware_numbers.split(',') if num.strip()]
+        if not phone_numbers:
+            logger.warning("No valid phone numbers found in PURCHASE_AWARE_NUMBERS")
+            return False
+        
+        # نرمال‌سازی شماره‌ها
+        normalized_numbers = normalize_phone_numbers_list(phone_numbers)
+        if not normalized_numbers:
+            logger.warning("No valid phone numbers after normalization")
+            return False
+        
+        # تهیه اطلاعات پیامک
+        buyer_name = purchase.buyer_name or (purchase.customer.name if purchase.customer else 'نامشخص')
+        purchase_number = to_persian_digits(purchase.purchase_number) if purchase.purchase_number else 'نامشخص'
+        order_weight = to_persian_digits(purchase.order_weight) if purchase.order_weight else 'نامشخص'
+        
+        # اطلاعات محصول
+        product_name = 'نامشخص'
+        product_country = 'نامشخص'
+        vared_konandeh = 'نامشخص'
+        
+        if purchase.cargo:
+            product_name = purchase.cargo.get_product_type_display()
+            product_country = purchase.cargo.get_country_display()
+            if purchase.cargo.vared_konandeh:
+                vared_konandeh = purchase.cargo.vared_konandeh.name
+        
+        # تهیه متن پیامک
+        message = f"""خرید جدید:
+{buyer_name} {purchase_number}
+{order_weight}کیلوگرم {product_name} {product_country} {vared_konandeh}"""
+        
+        # ارسال پیامک به شماره‌ها
+        success_count = 0
+        for phone_number in normalized_numbers:
+            try:
+                # ارسال مستقیم بدون صف
+                response = sms_account.send_sms(phone_number, message)
+                
+                if response:
+                    # ثبت در لاگ
+                    SmsLog.objects.create(
+                        recipient_number=phone_number,
+                        message=message,
+                        notification_type='purchase_aware',
+                        status='sent',
+                        api_response=json.dumps(response) if response else None,
+                        purchase=purchase
+                    )
+                    success_count += 1
+                    logger.info(f"✅ Purchase aware SMS sent to {phone_number} for purchase {purchase.purchase_number}")
+                else:
+                    logger.warning(f"⚠️ Failed to send purchase aware SMS to {phone_number}")
+                    
+            except Exception as e:
+                logger.error(f"❌ Error sending purchase aware SMS to {phone_number}: {str(e)}")
+                continue
+        
+        if success_count > 0:
+            logger.info(f"🎯 Purchase aware notifications sent to {success_count}/{len(normalized_numbers)} numbers for purchase {purchase.purchase_number}")
+            return True
+        else:
+            logger.warning(f"⚠️ Failed to send purchase aware notifications for purchase {purchase.purchase_number}")
+            return False
+            
+    except Exception as e:
+        logger.error(f"❌ Error in send_purchase_aware_notification: {str(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return False
+
 def queue_sms(number:str, message:str, notification_type='custom', purchase=None, suspended=False, scheduled_for=None):
     """
     Add SMS to the queue for batch processing
