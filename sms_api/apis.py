@@ -439,8 +439,8 @@ def send_purchase_aware_notification(purchase):
             logger.warning("PURCHASE_AWARE_NUMBERS not configured in environment")
             return False
         
-        # پردازش شماره‌ها (جدا کردن با کاما)
-        phone_numbers = [num.strip() for num in aware_numbers.split(',') if num.strip()]
+        # پردازش شماره‌ها (از آنجایی که در settings قبلاً به لیست تبدیل شده)
+        phone_numbers = [num.strip() for num in aware_numbers if num.strip()]
         if not phone_numbers:
             logger.warning("No valid phone numbers found in PURCHASE_AWARE_NUMBERS")
             return False
