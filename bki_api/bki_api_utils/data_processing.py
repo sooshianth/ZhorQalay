@@ -675,7 +675,10 @@ def create_purchase(purchase_data):
         except Exception as e:
             logger.error(f"خطا در پیدا کردن کارشناس فروش مدیریت: {str(e)}")
 
-        # تنظیم پارامترهای پایه برای ایجاد خرید - بدون تنظیم وزن‌ها
+        # تنظیم پارامترهای پایه برای ایجاد خرید
+        # اگر تخصیص وجود دارد (qty > 0) از qty استفاده کن، وگرنه از totalweight
+        initial_order_weight = qty if qty > 0 else total_weight
+        
         purchase_params = {
             'purchase_number': purchase_number,
             'customer': customer,
@@ -684,7 +687,7 @@ def create_purchase(purchase_data):
             'buyer_name': buyer_name,
             'bazaargah_phone_number': buyer_phone,
             'address': buyer_address,
-            'order_weight': 0,  # Will be updated in process_grouped_purchase_data
+            'order_weight': initial_order_weight,  # از totalweight استفاده کن اگر تخصیص وجود ندارد
             'delivered_weight': 0,  # Will be updated in process_grouped_purchase_data
             'customer_price': fee,
             'payment_method': payment_type,
@@ -894,7 +897,15 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
             return None, False, error
         
         # Update with group-level calculated values
-        purchase.order_weight = total_order_weight
+        # اگر مجموع وزن تخصیص صفر است، وزن سفارش را از totalweight بگیر
+        if total_order_weight > 0:
+            purchase.order_weight = total_order_weight
+        else:
+            # اگر تخصیص وجود ندارد، از totalweight استفاده کن
+            totalweight = int(first_entry.get('totalweight', 0) or 0)
+            if totalweight >= 0:
+                purchase.order_weight = totalweight
+        
         purchase.delivered_weight = total_delivered_weight
         
         # Recalculate weight difference
@@ -1009,7 +1020,15 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
             return None, False, error
         
         # Update with group-level calculated values
-        purchase.order_weight = total_order_weight
+        # اگر مجموع وزن تخصیص صفر است، وزن سفارش را از totalweight بگیر
+        if total_order_weight > 0:
+            purchase.order_weight = total_order_weight
+        else:
+            # اگر تخصیص وجود ندارد، از totalweight استفاده کن
+            totalweight = int(first_entry.get('totalweight', 0) or 0)
+            if totalweight > 0:
+                purchase.order_weight = totalweight
+        
         purchase.delivered_weight = total_delivered_weight
 
         # Check if the purchase should be marked as closed based on the totalweight
