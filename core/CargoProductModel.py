@@ -81,7 +81,8 @@ class CargoProduct(models.Model):
         ('serbia', 'صربستان'),
         ('romania', 'رومانی'),
         ('iran', 'ایران'),
-        ('other', 'سایر')
+        ('other', 'سایر'),
+        ('unknown', 'نامشخص')
     ]
     PORTS = [
         ('امام خمینی', 'امام خمینی'),

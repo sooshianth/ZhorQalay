@@ -354,9 +354,9 @@ def create_or_get_product(product_name, goodtag, fee):
                     cottage=goodtag,
                     customer_price=fee,
                     company_price=fee,
-                    weight=1000000,  # Default value
+                    weight=100000000,  # Default value
                     type='bazaargah',
-                    country='australia'  # Default to Australia
+                    country='unknown'  # Default to Australia
                 )
                 created = True
                 logger.info(f"محصول جدید با کوتاژ {goodtag} و نوع {product_type} ایجاد شد")
@@ -377,9 +377,9 @@ def create_or_get_product(product_name, goodtag, fee):
                     product_type=product_type,
                     customer_price=fee,
                     company_price=fee,
-                    weight=1000000,  # Default value
+                    weight=100000000,  # Default value
                     type='bazaargah',
-                    country='australia'  # Default to Australia
+                    country='unknown'  # Default to Australia
                 )
                 created = True
         except Exception as e:
