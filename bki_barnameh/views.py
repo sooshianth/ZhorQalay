@@ -23,11 +23,25 @@ from datetime import datetime
 import logging
 import jdatetime
 import logging
+from datetime import timedelta
 
 logger = logging.getLogger("bki_barnameh_views")
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.lib.units import inch, mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
+import os
+import io
+import arabic_reshaper
+from bidi.algorithm import get_display
 
 # توابع اکسل به فولدر excel_management منتقل شده‌اند
 from .excel_management.views import upload_excel_view, download_excel_template, export_excel_view
@@ -2272,4 +2286,383 @@ def get_barnameh_logs(request, barnameh_id):
         return JsonResponse({
             'status': 'error',
             'message': f'خطا در دریافت لاگ‌ها: {str(e)}'
+        }, status=500)
+
+
+@role_required('logistics_manager', 'admin', 'financial_manager')
+@require_http_methods(["GET"])
+def fast_barnameh_report_pdf(request):
+    """
+    گزارش PDF از خریدهای 4 روز اخیر که بارنامه سریع (کمتر از 3 روز) دارند
+    به تفکیک کارشناس فروش - با پشتیبانی کامل از فارسی
+    """
+    try:
+        from core.PurchaseModel import Purchase
+        from core.SalesAgentModel import SalesAgent
+        from django.db.models import Prefetch
+        
+        # تابع کمکی برای پردازش متن فارسی
+        def process_persian_text(text):
+            """تبدیل متن فارسی به حالت صحیح برای نمایش در PDF"""
+            if text is None:
+                return "-"
+            
+            text = str(text).strip()
+            if not text:
+                return "-"
+            
+            try:
+                # بازسازی متن فارسی - فقط اگر حروف فارسی/عربی داشت
+                if any(ord(char) > 127 for char in text):  # اگر کاراکتر غیر ASCII داشت
+                    reshaped_text = arabic_reshaper.reshape(text)
+                    # تبدیل به BIDI
+                    bidi_text = get_display(reshaped_text)
+                    return bidi_text
+                else:
+                    # اگر فقط کاراکترهای انگلیسی/عددی بود، بدون تغییر برگردان
+                    return text
+            except Exception as e:
+                logger.warning(f"خطا در پردازش متن فارسی '{text}': {str(e)}")
+                return text
+        
+        # تابع کمکی برای تبدیل مقادیر به متن امن
+        def safe_text(value, default='-'):
+            """تبدیل مقادیر به متن امن"""
+            if value is None:
+                return default
+            return process_persian_text(str(value))
+        
+        # تابع کمکی برای فرمت کردن اعداد
+        def format_number(value, default='0'):
+            """تبدیل اعداد به متن فارسی با کاما"""
+            if value is None or value == 0:
+                return default
+            try:
+                return process_persian_text(f"{int(value):,}")
+            except (ValueError, TypeError):
+                return default
+        
+        # ثبت فونت فارسی
+        BIDI_ENABLED = True
+        try:
+            font_path = os.path.join(settings.BASE_DIR, 'ERP', 'static', 'fonts', 'Vazir.ttf')
+            if os.path.exists(font_path):
+                pdfmetrics.registerFont(TTFont('Vazir', font_path))
+            else:
+                # اگر فونت وزیر موجود نبود، از فونت پیش‌فرض استفاده کن
+                BIDI_ENABLED = False
+                logger.warning("فونت وزیر یافت نشد، از فونت پیش‌فرض استفاده می‌شود")
+        except Exception as e:
+            BIDI_ENABLED = False
+            logger.warning(f"خطا در بارگذاری فونت فارسی: {str(e)}")
+        
+        # محاسبه تاریخ‌های مورد نیاز
+        now = timezone.now()
+        four_days_ago = now - timedelta(days=4)
+        
+        logger.info(f"گزارش بارنامه‌های سریع از {four_days_ago} تا {now}")
+        
+        # یافتن خریدهای 4 روز اخیر که دارای بارنامه هستند
+        purchases_with_barnamehs = Purchase.objects.filter(
+            created_at__gte=four_days_ago
+        ).prefetch_related(
+            'barnamehs',
+            'unique_sales_agent',
+            'customer',
+            'cargo'
+        ).filter(
+            barnamehs__isnull=False
+        ).distinct()
+        
+        # فیلتر کردن همه بارنامه‌هایی که زودتر از 3 روز آمده‌اند
+        fast_purchases = []
+        for purchase in purchases_with_barnamehs:
+            for barnameh in purchase.barnamehs.all():
+                if barnameh.barnameh_created_at:
+                    # محاسبه تفاوت زمان بین ثبت خرید و صدور بارنامه
+                    time_diff = barnameh.barnameh_created_at - purchase.created_at
+                    if time_diff.days < 3:  # کمتر از 3 روز
+                        # محاسبه دقیق تفاوت روز
+                        purchase_date = purchase.created_at.date()
+                        barnameh_date = barnameh.barnameh_created_at.date()
+                        actual_days_diff = (barnameh_date - purchase_date).days
+                        
+                        fast_purchases.append({
+                            'purchase': purchase,
+                            'barnameh': barnameh,
+                            'days_diff': actual_days_diff,
+                            'hours_diff': time_diff.total_seconds() / 3600
+                        })
+                        # حذف break تا همه بارنامه‌های سریع آن خرید اضافه شوند
+        
+        # گروه‌بندی بر اساس کارشناس فروش
+        sales_agent_groups = {}
+        for item in fast_purchases:
+            purchase = item['purchase']
+            sales_agent = purchase.unique_sales_agent
+            
+            # اگر کارشناس فروش مشخص نباشد، در گروه "نامشخص" قرار بده
+            if not sales_agent:
+                agent_key = "نامشخص"
+                agent_name = "کارشناس فروش نامشخص"
+                agent_type = "نامشخص"
+            else:
+                agent_key = str(sales_agent.id)
+                agent_name = sales_agent.name or sales_agent.user.get_full_name() or sales_agent.user.username
+                
+                # تشخیص نوع کارشناس (سوپریوزر یا عادی)
+                if sales_agent.user and sales_agent.user.is_superuser:
+                    agent_type = "سوپریوزر"
+                    agent_name = f"{agent_name} (سوپریوزر)"
+                else:
+                    agent_type = "کارشناس فروش"
+            
+            if agent_key not in sales_agent_groups:
+                sales_agent_groups[agent_key] = {
+                    'name': agent_name,
+                    'type': agent_type,
+                    'purchases': []
+                }
+            
+            sales_agent_groups[agent_key]['purchases'].append(item)
+        
+        # ایجاد PDF
+        response = HttpResponse(content_type='application/pdf')
+        filename = f"fast_barnameh_report_{now.strftime('%Y%m%d_%H%M%S')}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buffer, 
+            pagesize=A4,
+            rightMargin=20*mm,
+            leftMargin=20*mm,
+            topMargin=20*mm,
+            bottomMargin=20*mm
+        )
+        story = []
+        
+        # تعریف استایل‌های فارسی
+        styles = getSampleStyleSheet()
+        
+        # استایل عنوان اصلی
+        title_style = ParagraphStyle(
+            'FarsiTitle',
+            fontName='Vazir' if BIDI_ENABLED else 'Helvetica-Bold',
+            fontSize=18,
+            spaceAfter=20,
+            alignment=TA_CENTER,
+            leading=22
+        )
+        
+        # استایل عنوان کارشناس فروش
+        agent_title_style = ParagraphStyle(
+            'FarsiAgentTitle',
+            fontName='Vazir' if BIDI_ENABLED else 'Helvetica-Bold',
+            fontSize=16,
+            spaceAfter=15,
+            alignment=TA_CENTER,
+            leading=20
+        )
+        
+        # استایل متن عادی
+        normal_style = ParagraphStyle(
+            'FarsiNormal',
+            fontName='Vazir' if BIDI_ENABLED else 'Helvetica',
+            fontSize=11,
+            spaceAfter=8,
+            alignment=TA_RIGHT,
+            leading=16
+        )
+        
+        # استایل زیرعنوان
+        subtitle_style = ParagraphStyle(
+            'FarsiSubtitle',
+            fontName='Vazir' if BIDI_ENABLED else 'Helvetica-Bold',
+            fontSize=13,
+            spaceAfter=10,
+            alignment=TA_RIGHT,
+            leading=18
+        )
+        
+        # اگر هیچ خریدی پیدا نشد
+        if not fast_purchases:
+            story.append(Paragraph(process_persian_text("گزارش بارنامه‌های سریع"), title_style))
+            story.append(Spacer(1, 20))
+            story.append(Paragraph(process_persian_text("هیچ خرید با بارنامه سریع در 4 روز اخیر یافت نشد."), normal_style))
+            
+            doc.build(story)
+            pdf = buffer.getvalue()
+            buffer.close()
+            response.write(pdf)
+            return response
+        
+        # تاریخ‌های شمسی
+        import jdatetime
+        jalali_start = jdatetime.datetime.fromgregorian(datetime=four_days_ago).strftime('%Y/%m/%d')
+        jalali_end = jdatetime.datetime.fromgregorian(datetime=now).strftime('%Y/%m/%d')
+        
+        # برای هر کارشناس فروش صفحه کاملاً جداگانه
+        first_page = True
+        for agent_key, agent_data in sales_agent_groups.items():
+            if not first_page:  # اگر اولین صفحه نیست، صفحه جدید بساز
+                story.append(PageBreak())
+            first_page = False
+            
+            # عنوان اصلی گزارش برای هر کارشناس
+            story.append(Paragraph(process_persian_text("گزارش خریدهای دارای بارنامه سریع"), title_style))
+            story.append(Spacer(1, 15))
+            
+            # اطلاعات کلی گزارش
+            summary_info = [
+                f"از تاریخ: {jalali_start} تا {jalali_end}",
+                f"{agent_data['type']}: {agent_data['name']}",
+                f"تعداد خریدهای سریع: {len(agent_data['purchases'])}"
+            ]
+            
+            for info in summary_info:
+                story.append(Paragraph(process_persian_text(info), normal_style))
+            
+            story.append(Spacer(1, 20))
+            
+            # جدول 1: خلاصه خریدها
+            story.append(Paragraph(process_persian_text("خلاصه خریدها:"), subtitle_style))
+            story.append(Spacer(1, 10))
+            
+            purchases_table_data = [
+                [
+                    process_persian_text('ردیف'),
+                    process_persian_text('شماره خرید'),
+                    process_persian_text('وزن خرید (کیلوگرم)'),
+                    process_persian_text('نام مشتری'),
+                    process_persian_text('محصول')
+                ]
+            ]
+            
+            # استخراج خریدهای یکتا
+            unique_purchases = []
+            seen_purchases = set()
+            for item in agent_data['purchases']:
+                purchase = item['purchase']
+                if purchase.id not in seen_purchases:
+                    unique_purchases.append(purchase)
+                    seen_purchases.add(purchase.id)
+            
+            for idx, purchase in enumerate(unique_purchases, 1):
+                purchase_number = safe_text(purchase.purchase_number)
+                order_weight = format_number(purchase.order_weight) if purchase.order_weight else "-"
+                customer_name = process_persian_text(purchase.customer.name) if purchase.customer and purchase.customer.name else "-"
+                product_name = process_persian_text(str(purchase.cargo)) if purchase.cargo else "-"
+                
+                purchases_table_data.append([
+                    process_persian_text(str(idx)),
+                    purchase_number,
+                    order_weight,
+                    customer_name,
+                    product_name
+                ])
+            
+            # ایجاد جدول خریدها
+            purchases_table = Table(purchases_table_data, colWidths=[20*mm, 35*mm, 30*mm, 40*mm, 50*mm])
+            
+            purchases_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                ('FONTNAME', (0, 0), (-1, -1), 'Vazir' if BIDI_ENABLED else 'Helvetica'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                ('LEFTPADDING', (0, 0), (-1, -1), 3),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+                ('TOPPADDING', (0, 0), (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ]))
+            
+            story.append(purchases_table)
+            story.append(Spacer(1, 20))
+            
+            # جدول 2: اطلاعات بارنامه‌ها
+            story.append(Paragraph(process_persian_text("اطلاعات بارنامه‌ها:"), subtitle_style))
+            story.append(Spacer(1, 10))
+            
+            barnameh_table_data = [
+                [
+                    process_persian_text('ردیف'),
+                    process_persian_text('شناسه تخصیص'),
+                    process_persian_text('شماره بارنامه'),
+                    process_persian_text('سریال'),
+                    process_persian_text('وزن (کیلوگرم)'),
+                    process_persian_text('نام راننده'),
+                    process_persian_text('شماره راننده'),
+                    process_persian_text('پلاک'),
+                    process_persian_text('تفاوت (روز)')
+                ]
+            ]
+            
+            for idx, item in enumerate(agent_data['purchases'], 1):
+                purchase = item['purchase']
+                barnameh = item['barnameh']
+                
+                # بررسی شناسه تخصیص از چندین منبع
+                shenase_takhsis_value = None
+                if purchase.shenase_takhsis:
+                    shenase_takhsis_value = purchase.shenase_takhsis
+                elif hasattr(purchase, 'shenase_takhsis_set') and purchase.shenase_takhsis_set.exists():
+                    shenase_takhsis_value = purchase.shenase_takhsis_set.first().code
+                elif barnameh.shenase_takhsis_code:
+                    shenase_takhsis_value = barnameh.shenase_takhsis_code
+                
+                shenase_takhsis = safe_text(shenase_takhsis_value)
+                barnameh_number = safe_text(barnameh.number)
+                serial_text = safe_text(barnameh.serial)
+                tonnage_text = format_number(barnameh.tonnage) if barnameh.tonnage else "-"
+                driver_name = process_persian_text(barnameh.driver_name) if barnameh.driver_name else "-"
+                driver_phone = safe_text(barnameh.driver_phone) if barnameh.driver_phone else "-"
+                plate_text = safe_text(barnameh.vehicle_plate) if barnameh.vehicle_plate else "-"
+                days_diff = f"{item['days_diff']}"
+                
+                barnameh_table_data.append([
+                    process_persian_text(str(idx)),
+                    shenase_takhsis,
+                    barnameh_number,
+                    serial_text,
+                    tonnage_text,
+                    driver_name,
+                    driver_phone,
+                    plate_text,
+                    days_diff
+                ])
+            
+            barnameh_table = Table(barnameh_table_data, colWidths=[15*mm, 25*mm, 25*mm, 20*mm, 20*mm, 25*mm, 25*mm, 20*mm, 15*mm])
+            barnameh_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                ('FONTNAME', (0, 0), (-1, -1), 'Vazir' if BIDI_ENABLED else 'Helvetica'),
+                ('FONTSIZE', (0, 0), (-1, 0), 9),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                ('LEFTPADDING', (0, 0), (-1, -1), 2),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+                ('TOPPADDING', (0, 0), (-1, -1), 2),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+            ]))
+            
+            story.append(barnameh_table)
+        
+        # ایجاد PDF
+        doc.build(story)
+        pdf = buffer.getvalue()
+        buffer.close()
+        response.write(pdf)
+        
+        logger.info(f"گزارش PDF با پشتیبانی فارسی ایجاد شد: {filename}")
+        return response
+        
+    except Exception as e:
+        logger.error(f"خطا در ایجاد گزارش PDF: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'خطا در ایجاد گزارش: {str(e)}'
         }, status=500)
