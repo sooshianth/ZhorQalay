@@ -3,7 +3,7 @@ import json
 from .models import SmsLog, SmsQueue, is_celery_active, SmsTemplate, SmsConfig
 from sms_ir import SmsIr
 from django.conf import settings
-from core.templatetags.custom_filters import to_persian_digits
+from core.templatetags.custom_filters import to_persian_digits, to_persian_digits_with_commas
 import re
 from django.db import connection
 import logging
@@ -454,7 +454,7 @@ def send_purchase_aware_notification(purchase):
         # تهیه اطلاعات پیامک
         buyer_name = purchase.buyer_name or (purchase.customer.name if purchase.customer else 'نامشخص')
         purchase_number = to_persian_digits(purchase.purchase_number) if purchase.purchase_number else 'نامشخص'
-        order_weight = to_persian_digits(purchase.order_weight) if purchase.order_weight else 'نامشخص'
+        order_weight = to_persian_digits_with_commas(purchase.order_weight) if purchase.order_weight else 'نامشخص'
         
         # اطلاعات محصول
         product_name = 'نامشخص'
@@ -470,7 +470,7 @@ def send_purchase_aware_notification(purchase):
         # تهیه متن پیامک
         message = f"""خرید جدید:
 {buyer_name} {purchase_number}
-{order_weight}کیلوگرم {product_name} {product_country} {vared_konandeh}"""
+{order_weight} کیلوگرم {product_name} {product_country} {vared_konandeh}"""
         
         # ارسال پیامک به شماره‌ها
         success_count = 0

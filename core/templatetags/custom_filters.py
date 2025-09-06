@@ -211,6 +211,21 @@ def to_persian_digits(value):
     return str(value).replace("0", "۰").replace("1", "۱").replace("2", "۲").replace("3", "۳").replace("4", "۴").replace("5", "۵").replace("6", "۶").replace("7", "۷").replace("8", "۸").replace("9", "۹")
 
 @register.filter
+def to_persian_digits_with_commas(value):
+    """
+    تبدیل عدد به اعداد فارسی با کاماهای سه‌تایی
+    مثال: 231028 -> ۲۳۱,۰۲۸
+    """
+    try:
+        num = int(value)
+        formatted = f"{num:,}"
+        # تبدیل اعداد به فارسی
+        formatted = formatted.replace("0", "۰").replace("1", "۱").replace("2", "۲").replace("3", "۳").replace("4", "۴").replace("5", "۵").replace("6", "۶").replace("7", "۷").replace("8", "۸").replace("9", "۹")
+        return formatted
+    except (ValueError, TypeError):
+        return str(value).replace("0", "۰").replace("1", "۱").replace("2", "۲").replace("3", "۳").replace("4", "۴").replace("5", "۵").replace("6", "۶").replace("7", "۷").replace("8", "۸").replace("9", "۹")
+
+@register.filter
 def sum_attribute(queryset, attribute):
     return sum(getattr(obj, attribute) for obj in queryset) if queryset else 0
 
