@@ -47,29 +47,37 @@ def create_default_barnameh_template():
         return None
 
 @receiver(post_save, sender=Barnameh)
-def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
+def send_sms_on_barnameh_bki_success(sender, instance, created, **kwargs):
     """
-    ارسال پیامک به مشتری هنگام ایجاد بارنامه جدید (از UI یا اکسل)
-    نکته: برای بارنامه‌های تکراری در اکسل پیامک ارسال نمی‌شود
+    ارسال پیامک به مشتری هنگام ارسال موفق بارنامه به بازارگاه
+    این سیگنال فقط زمانی اجرا می‌شود که بارنامه با موفقیت به بازارگاه ارسال شده باشد
     """
     # لاگ اولیه برای تایید اجرای سیگنال
-    logger.info(f"🚨 SIGNAL TRIGGERED: Barnameh {instance.id} post_save signal - created={created}, number={instance.number}, is_created_by_excel={getattr(instance, 'is_created_by_excel', False)}")
+    logger.info(f"🚨 SIGNAL TRIGGERED: Barnameh {instance.id} post_save signal - created={created}, is_sent_to_bki={instance.is_sent_to_bki}, number={instance.number}")
     
     # بررسی شرایط ارسال پیامک:
-    # 1. بارنامه جدید ایجاد شده باشد (created=True)
-    # 2. یا بارنامه جدید از طریق اکسل ایجاد شده باشد (is_created_by_excel=True)
-    # نکته: برای بارنامه‌های تکراری در اکسل، is_created_by_excel=False تنظیم می‌شود
-    should_send_sms = created or getattr(instance, 'is_created_by_excel', False)
-    
-    if not should_send_sms:
-        logger.info(f"⏭️ Skipping SMS for barnameh {instance.id} - not eligible (created={created}, is_created_by_excel={getattr(instance, 'is_created_by_excel', False)})")
+    # فقط زمانی پیامک ارسال شود که بارنامه به بازارگاه ارسال شده باشد
+    if not instance.is_sent_to_bki:
+        logger.info(f"⏭️ Skipping SMS for barnameh {instance.id} - not sent to BKI yet (is_sent_to_bki={instance.is_sent_to_bki})")
         return
     
-    logger.info(f"✅ Barnameh {instance.id} eligible for SMS - created={created}, is_created_by_excel={getattr(instance, 'is_created_by_excel', False)}, number={instance.number}")
+    # اگر این یک آپدیت است، بررسی کنیم که آیا is_sent_to_bki تازه تغییر کرده یا نه
+    if not created:
+        # بررسی تغییرات فیلد از دیتابیس
+        try:
+            old_instance = Barnameh.objects.get(pk=instance.pk)
+            # اگر قبلاً is_sent_to_bki برابر True بوده، پیامک ارسال نکن
+            if old_instance.is_sent_to_bki:
+                logger.info(f"⏭️ Skipping SMS for barnameh {instance.id} - already was sent to BKI before this update")
+                return
+        except Barnameh.DoesNotExist:
+            # اگر بارنامه در دیتابیس پیدا نشد، احتمالاً جدید است
+            pass
     
-    # بررسی تاریخ بارنامه برای همه حالت‌ها (اکسل و غیر اکسل)
+    logger.info(f"✅ Barnameh {instance.id} eligible for SMS - successfully sent to BKI, number={instance.number}, sent_at={instance.is_sent_to_bki_at}")
+    
+    # بررسی تاریخ بارنامه 
     # شرط: اگر تاریخ بارنامه 3 روز یا بیشتر قبل از امروز باشد (قدیمی)، پیامک ارسال نشود
-    is_excel_upload = getattr(instance, 'is_created_by_excel', False)
     if instance.barnameh_date:
         today = jdate.today()
         # فقط اختلاف گذشته؛ تاریخ‌های آینده شامل نمی‌شود
@@ -79,10 +87,6 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
                 f"Barnameh {instance.id} is older than or equal to 3 days (past_days={past_days}), skipping SMS"
             )
             return
-    
-    # نکته: برای بارنامه‌های آپلود شده از اکسل نیز همین محدودیت زمانی اعمال می‌شود
-    if is_excel_upload:
-        logger.info(f"📊 Excel upload detected for barnameh {instance.id} - date restriction still applies")
     
     # جمع‌آوری شماره‌های تلفن مشتری برای ارسال پیامک
     phone_numbers = []
@@ -211,18 +215,12 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
                 logger.error(f"❌ Error queuing SMS for {phone} (Barnameh ID: {instance.id}): {str(e)}")
         
         if success_count > 0:
-            logger.info(f"🎉 Successfully queued SMS for new barnameh {instance.id} to {success_count} numbers")
-            
-            # بعد از ارسال موفق پیامک، فیلد is_created_by_excel را False کن تا از ارسال تکراری جلوگیری شود
-            if getattr(instance, 'is_created_by_excel', False):
-                instance.is_created_by_excel = False
-                instance.save(update_fields=['is_created_by_excel'])
-                logger.info(f"🔄 Reset is_created_by_excel flag for barnameh {instance.id} after successful SMS")
+            logger.info(f"🎉 Successfully queued SMS for barnameh {instance.id} sent to BKI to {success_count} numbers")
         else:
             logger.warning(f"⚠️ Failed to queue SMS for any numbers for barnameh {instance.id}")
     
     except Exception as e:
-        logger.error(f"Error processing SMS for new barnameh {instance.id}: {str(e)}")
+        logger.error(f"Error processing SMS for barnameh {instance.id} sent to BKI: {str(e)}")
 
 def is_valid_value(value):
     """
