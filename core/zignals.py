@@ -234,8 +234,12 @@ def send_purchase_aware_notification_signal(sender, instance, created, **kwargs)
     
     try:
         # ارسال پیامک اطلاع‌رسانی
-        result = send_purchase_aware_notification(instance)
-        
+        if instance.purchase_number:
+            result = send_purchase_aware_notification(instance)
+        else:
+            result = False
+            logger.debug(f"ℹ️ Purchase aware notification not sent for purchase {instance.purchase_number} (no purchase number)")
+            
         if result:
             logger.info(f"✅ Purchase aware notification sent successfully for purchase {instance.purchase_number}")
         else:
