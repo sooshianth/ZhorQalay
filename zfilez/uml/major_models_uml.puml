@@ -2,22 +2,34 @@
 
 !theme plain
 skinparam classAttributeIconSize 0
-skinparam classFontSize 8
+skinparam classFontSize 7
 skinparam classFontStyle bold
-skinparam packageFontSize 10
+skinparam packageFontSize 9
 skinparam packageFontStyle bold
 skinparam backgroundColor #F5F7FA
 skinparam classBackgroundColor #FFFFFF
 skinparam classBorderColor #2C3E50
 skinparam packageBackgroundColor #ECF0F1
 skinparam packageBorderColor #34495E
-skinparam arrowColor #3498DB
+skinparam arrowColor #2C3E50
+skinparam arrowThickness 2
+skinparam linetype ortho
+skinparam roundcorner 10
+skinparam shadowing false
 skinparam noteBackgroundColor #FFF8DC
 skinparam noteBorderColor #DAA520
 skinparam classHeaderBackgroundColor #3498DB
 skinparam classHeaderFontColor #FFFFFF
 skinparam packageHeaderBackgroundColor #2C3E50
 skinparam packageHeaderFontColor #FFFFFF
+skinparam classPadding 5
+skinparam packagePadding 8
+skinparam classSpacing 5
+skinparam packageSpacing 8
+skinparam minClassWidth 120
+skinparam maxClassWidth 280
+skinparam classFontSize 16
+skinparam packageFontSize 10
 
 package "major" {
     abstract class Product {
@@ -331,24 +343,26 @@ package "auth" {
     }
 }
 
-' تنظیم موقعیت مدل‌ها برای نمایش بهتر
-' Core Models (مرکز)
-Customer -[#3498DB]- VaredKonandeh
-VaredKonandeh -[#3498DB]- CargoProduct
-CargoProduct -[#3498DB]- Purchase
-Purchase -[#3498DB]- SalesAgent
+' تنظیم موقعیت مدل‌ها برای نمایش بهتر و کاهش تداخل خطوط
 
-' Major Models (سمت راست)
+' Inheritance relationships (ارث‌بری) - خطوط مستقیم
 Product <|-- NonBazargahProduct : extends
 BasePurchase <|-- NonBazargahPurchase : extends
 BasePurchase <|-- Purchase : extends
 
+' Core business relationships - خطوط مستقیم
+Customer --> SalesAgent : sales_agent (ManyToMany)
+VaredKonandeh --> CargoProduct : vared_konandeh
+CargoProduct --> Purchase : cargo
+Purchase --> Barnameh : purchase
+
+' Major app relationships - خطوط مستقیم
 NonBazargahProduct --> VaredKonandeh : vared_konandeh
 NonBazargahPurchase --> Customer : customer
 NonBazargahPurchase --> NonBazargahProduct : product
 NonBazargahPurchase --> SalesAgent : unique_sales_agent
 
-' Hazinah و Invoice (سمت چپ)
+' Hazinah and Invoice relationships - خطوط مستقیم
 Hazinah --> User : approved_by
 Hazinah --> User : created_by
 Invoice --> Hazinah : hazinah
@@ -358,7 +372,7 @@ InvoiceItem --> Invoice : invoice
 InvoiceItem --> NonBazargahProduct : non_bazargah_product
 InvoiceItem --> CargoProduct : cargo_product
 
-' Fledger Models (پایین)
+' Fledger relationships - خطوط مستقیم
 Wallet --> VaredKonandeh : varedkonandeh
 Wallet --> Customer : customer
 Transaction --> Wallet : wallet
@@ -368,12 +382,6 @@ Transaction --> Hazinah : hazinah
 Transaction --> Barnameh : income
 LedgerEntry --> VaredKonandeh : varedkonandeh
 LedgerEntry --> Purchase : purchase
-
-' BKI Models (بالا)
-Barnameh --> Purchase : purchase
-
-' ManyToMany relationships
-Customer }-- SalesAgent : sales_agent
 
 ' Signals and relationships (سیگنال‌ها و روابط)
 note right of Hazinah : "Signals: post_save, post_delete\nfor Invoice and InvoiceItem"
@@ -402,7 +410,11 @@ note bottom
 - post_delete: when model is deleted
 
 **Color Scheme:**
-- Blue: Main relationships
+- Green: Inheritance relationships
+- Blue: Core business relationships
+- Orange: Major app relationships
+- Red: Hazinah and Invoice relationships
+- Purple: Fledger relationships
 - White: Model backgrounds
 - Gray: Package backgrounds
 
