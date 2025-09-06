@@ -1000,6 +1000,76 @@
         console.log(`ارسال گروهی ${selectedIds.length} بارنامه به بازارگاه درخواست شد`);
     }
     
+    function bulkDeleteBarnamehs() {
+        // دریافت بارنامه‌های انتخاب شده
+        const selectedCheckboxes = document.querySelectorAll('#barnamehTable .row-checkbox:checked');
+        
+        if (selectedCheckboxes.length === 0) {
+            alert('لطفاً حداقل یک بارنامه انتخاب کنید');
+            return;
+        }
+        
+        // بررسی اینکه آیا بارنامه‌های انتخاب شده قابل حذف هستند یا نه
+        const selectedRows = Array.from(selectedCheckboxes).map(cb => cb.closest('tr'));
+        const sentToBkiCount = selectedRows.filter(row => 
+            row.dataset.isSentToBki === 'true'
+        ).length;
+        
+        if (sentToBkiCount > 0) {
+            alert(`${sentToBkiCount} بارنامه از بارنامه‌های انتخاب شده قبلاً به بازارگاه ارسال شده‌اند و قابل حذف نیستند.\nفقط بارنامه‌هایی که هنوز ارسال نشده‌اند حذف خواهند شد.`);
+        }
+        
+        const deletableCount = selectedCheckboxes.length - sentToBkiCount;
+        
+        if (deletableCount === 0) {
+            alert('هیچ یک از بارنامه‌های انتخاب شده قابل حذف نیست. فقط بارنامه‌هایی که هنوز به بازارگاه ارسال نشده‌اند را می‌توان حذف کرد.');
+            return;
+        }
+        
+        // تأیید نهایی از کاربر
+        const confirmMessage = deletableCount === selectedCheckboxes.length 
+            ? `آیا مطمئن هستید که می‌خواهید ${deletableCount} بارنامه انتخاب شده را حذف کنید؟\n\n⚠️ این عمل غیرقابل بازگشت است!`
+            : `آیا مطمئن هستید که می‌خواهید ${deletableCount} بارنامه قابل حذف را حذف کنید؟\n(${sentToBkiCount} بارنامه به دلیل ارسال به بازارگاه حذف نخواهند شد)\n\n⚠️ این عمل غیرقابل بازگشت است!`;
+            
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+        
+        // جمع‌آوری آیدی‌های انتخاب شده
+        const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.id || cb.value);
+        
+        // ایجاد فرم برای ارسال POST
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{% url "bulk_delete" %}';
+        
+        // اضافه کردن CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = csrfToken.value;
+            form.appendChild(csrfInput);
+        }
+        
+        // اضافه کردن آیدی‌های بارنامه
+        selectedIds.forEach(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'barnameh_ids';
+            input.value = id;
+            form.appendChild(input);
+        });
+        
+        // ارسال فرم
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+        
+        console.log(`حذف گروهی ${selectedIds.length} بارنامه درخواست شد`);
+    }
+    
     function showLogsModal(barnamehId, barnamehNumber, barnamehSerial) {
         console.log('نمایش لاگ‌های بارنامه:', { barnamehId, barnamehNumber, barnamehSerial });
         
@@ -1186,6 +1256,9 @@
                             </button>
                     <button class="btn btn-success bulk-send-to-bki-btn" data-action="send_bki" onclick="bulkSendToBki()">
                         <i class="fas fa-paper-plane"></i> ارسال گروهی به بازارگاه
+                    </button>
+                    <button class="btn btn-danger bulk-delete-btn" data-action="delete" onclick="bulkDeleteBarnamehs()">
+                        <i class="fas fa-trash"></i> حذف گروهی
                     </button>
                     <button class="btn btn-warning history-btn" onclick="viewEditHistory()">
                         <i class="fas fa-history"></i> تاریخچه تغییرات
