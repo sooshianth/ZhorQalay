@@ -2525,131 +2525,126 @@ def fast_barnameh_report_pdf(request):
             
             story.append(Spacer(1, 20))
             
-            # جدول 1: خلاصه خریدها
-            story.append(Paragraph(process_persian_text("خلاصه خریدها:"), subtitle_style))
-            story.append(Spacer(1, 10))
-            
-            purchases_table_data = [
-                [
-                    process_persian_text('ردیف'),
-                    process_persian_text('شماره خرید'),
-                    process_persian_text('وزن خرید (کیلوگرم)'),
-                    process_persian_text('نام مشتری'),
-                    process_persian_text('محصول')
-                ]
-            ]
-            
-            # استخراج خریدهای یکتا
-            unique_purchases = []
-            seen_purchases = set()
+            # گروه‌بندی بارنامه‌ها بر اساس خرید
+            purchases_with_barnamehs = {}
             for item in agent_data['purchases']:
                 purchase = item['purchase']
-                if purchase.id not in seen_purchases:
-                    unique_purchases.append(purchase)
-                    seen_purchases.add(purchase.id)
+                if purchase.id not in purchases_with_barnamehs:
+                    purchases_with_barnamehs[purchase.id] = {
+                        'purchase': purchase,
+                        'barnamehs': []
+                    }
+                purchases_with_barnamehs[purchase.id]['barnamehs'].append(item)
             
-            for idx, purchase in enumerate(unique_purchases, 1):
-                purchase_number = safe_text(purchase.purchase_number)
-                order_weight = format_number(purchase.order_weight) if purchase.order_weight else "-"
-                customer_name = process_persian_text(purchase.customer.name) if purchase.customer and purchase.customer.name else "-"
-                product_name = process_persian_text(str(purchase.cargo)) if purchase.cargo else "-"
+            # نمایش هر خرید با بارنامه‌هایش
+            for purchase_id, purchase_data in purchases_with_barnamehs.items():
+                purchase = purchase_data['purchase']
+                barnamehs = purchase_data['barnamehs']
                 
-                purchases_table_data.append([
-                    process_persian_text(str(idx)),
-                    purchase_number,
-                    order_weight,
-                    customer_name,
-                    product_name
-                ])
-            
-            # ایجاد جدول خریدها
-            purchases_table = Table(purchases_table_data, colWidths=[20*mm, 35*mm, 30*mm, 40*mm, 50*mm])
-            
-            purchases_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                ('FONTNAME', (0, 0), (-1, -1), 'Vazir' if BIDI_ENABLED else 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('FONTSIZE', (0, 1), (-1, -1), 9),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-                ('LEFTPADDING', (0, 0), (-1, -1), 3),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 3),
-                ('TOPPADDING', (0, 0), (-1, -1), 3),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-            ]))
-            
-            story.append(purchases_table)
-            story.append(Spacer(1, 20))
-            
-            # جدول 2: اطلاعات بارنامه‌ها
-            story.append(Paragraph(process_persian_text("اطلاعات بارنامه‌ها:"), subtitle_style))
-            story.append(Spacer(1, 10))
-            
-            barnameh_table_data = [
-                [
-                    process_persian_text('ردیف'),
-                    process_persian_text('شناسه تخصیص'),
-                    process_persian_text('شماره بارنامه'),
-                    process_persian_text('سریال'),
-                    process_persian_text('وزن (کیلوگرم)'),
-                    process_persian_text('نام راننده'),
-                    process_persian_text('شماره راننده'),
-                    process_persian_text('پلاک'),
-                    process_persian_text('تفاوت (روز)')
+                # عنوان خرید
+                purchase_title = f"خرید شماره: {purchase.purchase_number or 'نامشخص'}"
+                story.append(Paragraph(process_persian_text(purchase_title), subtitle_style))
+                story.append(Spacer(1, 8))
+                
+                # اطلاعات کلی خرید
+                purchase_info_data = [
+                    [
+                        process_persian_text('وزن خرید (کیلوگرم)'),
+                        process_persian_text('نام مشتری'),
+                        process_persian_text('محصول'),
+                        process_persian_text('تعداد بارنامه‌های سریع')
+                    ],
+                    [
+                        format_number(purchase.order_weight) if purchase.order_weight else "-",
+                        process_persian_text(purchase.customer.name) if purchase.customer and purchase.customer.name else "-",
+                        process_persian_text(str(purchase.cargo)) if purchase.cargo else "-",
+                        process_persian_text(str(len(barnamehs)))
+                    ]
                 ]
-            ]
-            
-            for idx, item in enumerate(agent_data['purchases'], 1):
-                purchase = item['purchase']
-                barnameh = item['barnameh']
                 
-                # بررسی شناسه تخصیص از چندین منبع
-                shenase_takhsis_value = None
-                if purchase.shenase_takhsis:
-                    shenase_takhsis_value = purchase.shenase_takhsis
-                elif hasattr(purchase, 'shenase_takhsis_set') and purchase.shenase_takhsis_set.exists():
-                    shenase_takhsis_value = purchase.shenase_takhsis_set.first().code
-                elif barnameh.shenase_takhsis_code:
-                    shenase_takhsis_value = barnameh.shenase_takhsis_code
+                purchase_info_table = Table(purchase_info_data, colWidths=[40*mm, 50*mm, 50*mm, 35*mm])
+                purchase_info_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Vazir' if BIDI_ENABLED else 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    ('FONTSIZE', (0, 1), (-1, -1), 9),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                    ('TOPPADDING', (0, 0), (-1, -1), 4),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                ]))
                 
-                shenase_takhsis = safe_text(shenase_takhsis_value)
-                barnameh_number = safe_text(barnameh.number)
-                serial_text = safe_text(barnameh.serial)
-                tonnage_text = format_number(barnameh.tonnage) if barnameh.tonnage else "-"
-                driver_name = process_persian_text(barnameh.driver_name) if barnameh.driver_name else "-"
-                driver_phone = safe_text(barnameh.driver_phone) if barnameh.driver_phone else "-"
-                plate_text = safe_text(barnameh.vehicle_plate) if barnameh.vehicle_plate else "-"
-                days_diff = f"{item['days_diff']}"
+                story.append(purchase_info_table)
+                story.append(Spacer(1, 12))
                 
-                barnameh_table_data.append([
-                    process_persian_text(str(idx)),
-                    shenase_takhsis,
-                    barnameh_number,
-                    serial_text,
-                    tonnage_text,
-                    driver_name,
-                    driver_phone,
-                    plate_text,
-                    days_diff
-                ])
-            
-            barnameh_table = Table(barnameh_table_data, colWidths=[15*mm, 25*mm, 25*mm, 20*mm, 20*mm, 25*mm, 25*mm, 20*mm, 15*mm])
-            barnameh_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                ('FONTNAME', (0, 0), (-1, -1), 'Vazir' if BIDI_ENABLED else 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, 0), 9),
-                ('FONTSIZE', (0, 1), (-1, -1), 8),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-                ('LEFTPADDING', (0, 0), (-1, -1), 2),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 2),
-                ('TOPPADDING', (0, 0), (-1, -1), 2),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-            ]))
-            
-            story.append(barnameh_table)
+                # جدول بارنامه‌های این خرید
+                barnameh_table_data = [
+                    [
+                        process_persian_text('ردیف'),
+                        process_persian_text('شناسه تخصیص'),
+                        process_persian_text('شماره بارنامه'),
+                        process_persian_text('سریال'),
+                        process_persian_text('وزن (کیلوگرم)'),
+                        process_persian_text('نام راننده'),
+                        process_persian_text('شماره راننده'),
+                        process_persian_text('پلاک'),
+                        process_persian_text('تفاوت (روز)')
+                    ]
+                ]
+                
+                for idx, item in enumerate(barnamehs, 1):
+                    barnameh = item['barnameh']
+                    
+                    # بررسی شناسه تخصیص از چندین منبع
+                    shenase_takhsis_value = None
+                    if purchase.shenase_takhsis:
+                        shenase_takhsis_value = purchase.shenase_takhsis
+                    elif hasattr(purchase, 'shenase_takhsis_set') and purchase.shenase_takhsis_set.exists():
+                        shenase_takhsis_value = purchase.shenase_takhsis_set.first().code
+                    elif barnameh.shenase_takhsis_code:
+                        shenase_takhsis_value = barnameh.shenase_takhsis_code
+                    
+                    shenase_takhsis = safe_text(shenase_takhsis_value)
+                    barnameh_number = safe_text(barnameh.number)
+                    serial_text = safe_text(barnameh.serial)
+                    tonnage_text = format_number(barnameh.tonnage) if barnameh.tonnage else "-"
+                    driver_name = process_persian_text(barnameh.driver_name) if barnameh.driver_name else "-"
+                    driver_phone = safe_text(barnameh.driver_phone) if barnameh.driver_phone else "-"
+                    plate_text = safe_text(barnameh.vehicle_plate) if barnameh.vehicle_plate else "-"
+                    days_diff = f"{item['days_diff']}"
+                    
+                    barnameh_table_data.append([
+                        process_persian_text(str(idx)),
+                        shenase_takhsis,
+                        barnameh_number,
+                        serial_text,
+                        tonnage_text,
+                        driver_name,
+                        driver_phone,
+                        plate_text,
+                        days_diff
+                    ])
+                
+                barnameh_table = Table(barnameh_table_data, colWidths=[15*mm, 25*mm, 25*mm, 20*mm, 20*mm, 25*mm, 25*mm, 20*mm, 15*mm])
+                barnameh_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Vazir' if BIDI_ENABLED else 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 2),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+                    ('TOPPADDING', (0, 0), (-1, -1), 2),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                ]))
+                
+                story.append(barnameh_table)
+                story.append(Spacer(1, 15))
         
         # ایجاد PDF
         doc.build(story)
