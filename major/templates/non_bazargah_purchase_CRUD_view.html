@@ -463,6 +463,225 @@
     margin-bottom: 10px;
   }
 
+  /* استایل‌های تخصیص آدرس */
+  .allocation-status {
+    margin-bottom: 25px;
+  }
+  
+  .weight-info-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .weight-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 2px solid #dee2e6;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+  }
+  
+  .weight-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  }
+  
+  .weight-card h4 {
+    color: #495057;
+    margin-bottom: 10px;
+    font-size: 1rem;
+    font-weight: bold;
+  }
+  
+  .weight-card p {
+    color: #212529;
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin: 0;
+  }
+  
+  .add-allocation-form {
+    background: linear-gradient(135deg, #e8f4f8 0%, #d4edda 100%);
+    border: 2px dashed #28a745;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 25px;
+  }
+  
+  .allocation-form-title {
+    color: #155724;
+    margin-bottom: 20px;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+  }
+  
+  .allocation-form-title i {
+    margin-left: 10px;
+    color: #28a745;
+  }
+  
+  .allocation-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .allocation-form-actions {
+    display: flex;
+    justify-content: center;
+  }
+  
+  .allocation-add-btn {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .allocation-add-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+  }
+  
+  .allocation-add-btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  
+  .allocations-list {
+    margin-top: 25px;
+  }
+  
+  .allocations-title {
+    color: #495057;
+    margin-bottom: 20px;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    border-bottom: 2px solid #dee2e6;
+    padding-bottom: 10px;
+  }
+  
+  .allocations-title i {
+    margin-left: 10px;
+    color: #007bff;
+  }
+  
+  .allocation-item {
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  
+  .allocation-item:hover {
+    border-color: #007bff;
+    box-shadow: 0 5px 15px rgba(0,123,255,0.1);
+  }
+  
+  .allocation-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #dee2e6;
+  }
+  
+  .allocation-weight {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.9rem;
+  }
+  
+  .allocation-receiver {
+    color: #495057;
+    font-weight: bold;
+    flex: 1;
+    margin: 0 15px;
+  }
+  
+  .delete-allocation-form {
+    margin: 0;
+    padding: 0;
+  }
+  
+  .btn-delete-allocation {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-delete-allocation:hover {
+    background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+    transform: scale(1.05);
+  }
+  
+  .allocation-details {
+    padding: 20px;
+  }
+  
+  .allocation-detail {
+    margin-bottom: 10px;
+    padding: 8px 0;
+    border-bottom: 1px dotted #dee2e6;
+    color: #495057;
+  }
+  
+  .allocation-detail:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+  
+  .allocation-detail strong {
+    color: #212529;
+    margin-left: 8px;
+  }
+  
+  .no-allocations {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    border: 2px dashed #dee2e6;
+  }
+  
+  .no-allocations i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    color: #adb5bd;
+  }
+  
+  .no-allocations p {
+    margin: 10px 0;
+    font-size: 1.1rem;
+  }
+  
+  .no-allocations small {
+    color: #adb5bd;
+  }
+
   /* ریسپانسیو */
   @media (max-width: 768px) {
     .form-grid {
@@ -529,6 +748,25 @@
       flex-direction: column;
       align-items: flex-start;
       text-align: right;
+    }
+    
+    /* ریسپانسیو تخصیص آدرس */
+    .weight-info-cards {
+      grid-template-columns: 1fr;
+    }
+    
+    .allocation-form-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .allocation-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    
+    .allocation-receiver {
+      margin: 0;
     }
   }
 </style>
@@ -636,6 +874,7 @@
     
     <!-- Hidden inputs برای فیلدهای readonly -->
     <input type="hidden" name="customer" value="{{ purchase.customer.id|default:'' }}">
+    <input type="hidden" name="product" value="{{ purchase.product.id|default:'' }}">
     <input type="hidden" name="quantity" value="{{ purchase.quantity|default:'' }}">
     <input type="hidden" name="customer_price" value="{{ purchase.customer_price|default:'' }}">
     <input type="hidden" name="amount_paid" value="{{ purchase.amount_paid|default:'' }}">
@@ -767,37 +1006,114 @@
       </div>
     </div>
 
-    <!-- اطلاعات تحویل -->
+    <!-- تخصیص آدرس‌ها -->
     <div class="form-section">
       <h3 class="section-title">
-        <i class="fas fa-shipping-fast"></i> اطلاعات تحویل
+        <i class="fas fa-map-marked-alt"></i> تخصیص آدرس‌ها
       </h3>
-      <div class="form-grid">
-        {% for field in form %}
-          {% if field.name in 'delivery_address,delivery_postal_code,delivery_receiver_name,tahvil_phone_number,code_melli_tahvil'|split:',' %}
-          <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
-            <label>
-              {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}
-              <span class="readonly-indicator" title="این فیلد قابل ویرایش نیست"><i class="fas fa-lock"></i></span>
+      
+      <!-- نمایش وضعیت وزن -->
+      <div class="allocation-status">
+        <div class="weight-info-cards">
+          <div class="weight-card">
+            <h4>وزن درخواستی</h4>
+            <p>{{ requested_weight_kg|default:"0" }} کیلوگرم</p>
+          </div>
+          <div class="weight-card">
+            <h4>وزن تخصیص شده</h4>
+            <p>{{ total_allocated_weight|default:"0" }} کیلوگرم</p>
+          </div>
+          <div class="weight-card">
+            <h4>وزن باقی‌مانده</h4>
+            <p class="{% if remaining_weight == 0 %}text-success{% else %}text-warning{% endif %}">
+              {{ remaining_weight|default:"0" }} کیلوگرم
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- فرم اضافه کردن تخصیص جدید -->
+      {% if user_role == "logistics_manager" or user_role == "admin" %}
+        {% if purchase.can_assign_addresses %}
+          <div class="add-allocation-form">
+            <h4 class="allocation-form-title">
+              <i class="fas fa-plus-circle"></i> افزودن تخصیص جدید
+            </h4>
+            <form method="post" class="allocation-form-inline">
+              {% csrf_token %}
+              <div class="allocation-form-grid">
+                {% for field in allocation_form %}
+                <div class="form-group">
+                  <label>{{ field.label }}</label>
+                  {{ field }}
+                  {% if field.help_text %}
+                  <small class="form-helptext">{{ field.help_text }}</small>
+                  {% endif %}
+                </div>
+                {% endfor %}
+              </div>
+              <div class="allocation-form-actions">
+                <button type="submit" name="add_allocation" class="button allocation-add-btn" {% if remaining_weight == 0 %}disabled{% endif %}>
+                  <i class="fas fa-plus"></i> افزودن تخصیص
+                </button>
+              </div>
+            </form>
+          </div>
+        {% endif %}
+      {% endif %}
+
+      <!-- لیست تخصیص‌های موجود -->
+      {% if allocations %}
+      <div class="allocations-list">
+        <h4 class="allocations-title">
+          <i class="fas fa-list"></i> تخصیص‌های موجود ({{ allocations.count }} تخصیص)
+        </h4>
+        {% for allocation in allocations %}
+        <div class="allocation-item">
+          <div class="allocation-header">
+            <span class="allocation-weight">{{ allocation.allocated_weight }} کیلوگرم</span>
+            <span class="allocation-receiver">{{ allocation.delivery_receiver_name }}</span>
+            {% if user_role == "logistics_manager" or user_role == "admin" %}
+              {% if purchase.can_assign_addresses %}
+              <form method="post" class="delete-allocation-form">
+                {% csrf_token %}
+                <input type="hidden" name="allocation_id" value="{{ allocation.id }}">
+                <button type="submit" name="delete_allocation" class="btn-delete-allocation" 
+                        onclick="return confirm('آیا از حذف این تخصیص اطمینان دارید؟');">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
               {% endif %}
-              <i class="{% if 'آدرس' in field.label %}fas fa-map-marker-alt
-                {% elif 'کد پستی' in field.label %}fas fa-mail-bulk
-                {% elif 'نام' in field.label %}fas fa-user
-                {% elif 'تلفن' in field.label %}fas fa-phone
-                {% elif 'ملی' in field.label %}fas fa-id-card
-                {% else %}fas fa-edit
-                {% endif %}"></i> {{ field.label }}
-            </label>
-            <div class="input-container">
-              {{ field }}
-            </div>
-            {% if field.help_text %}
-            <small class="form-helptext">{{ field.help_text }}</small>
             {% endif %}
           </div>
-          {% endif %}
+          <div class="allocation-details">
+            <div class="allocation-detail">
+              <strong>آدرس:</strong> {{ allocation.delivery_address }}
+            </div>
+            <div class="allocation-detail">
+              <strong>کد پستی:</strong> {{ allocation.delivery_postal_code }}
+            </div>
+            <div class="allocation-detail">
+              <strong>شماره هماهنگی:</strong> {{ allocation.coordination_phone }}
+            </div>
+            {% if allocation.notes %}
+            <div class="allocation-detail">
+              <strong>توضیحات:</strong> {{ allocation.notes }}
+            </div>
+            {% endif %}
+          </div>
+        </div>
         {% endfor %}
       </div>
+      {% else %}
+      <div class="no-allocations">
+        <i class="fas fa-info-circle"></i>
+        <p>هنوز هیچ تخصیصی اضافه نشده است</p>
+        {% if purchase.can_assign_addresses and user_role in "logistics_manager,admin"|split:"," %}
+        <p><small>از فرم بالا برای افزودن تخصیص استفاده کنید</small></p>
+        {% endif %}
+      </div>
+      {% endif %}
     </div>
 
     <!-- اطلاعات لجستیک و حمل -->
@@ -910,31 +1226,48 @@
         {% endif %}
       {% endif %}
 
-      <!-- دکمه‌های مخصوص مدیر لجستیک -->
+      <!-- دکمه‌های مخصوص مدیر لجستیک - فرم جداگانه -->
       {% if user_role == "logistics_manager" or user_role == "admin" %}
         {% if purchase.state == 'payment_verified' %}
-          {% comment %}بررسی تکمیل اطلاعات خریدار{% endcomment %}
-          {% if purchase.buyer_name and purchase.address and purchase.delivery_address and purchase.delivery_receiver_name and purchase.tahvil_phone_number %}
-            <button type="submit" name="assign_address" class="button approve-btn logistics" formnovalidate>
-              <i class="fas fa-map-marker-alt"></i> 📍 تخصیص آدرس انبار
-            </button>
+          {% if purchase.can_approve_addresses %}
+            <!-- فرم جداگانه برای تایید تخصیص آدرس‌ها -->
+            <form method="post" style="display: inline-block;">
+              {% csrf_token %}
+              <button type="submit" name="approve_allocations" class="button approve-btn logistics">
+                <i class="fas fa-check-double"></i> ✅ تایید تخصیص آدرس‌ها
+              </button>
+            </form>
           {% else %}
-            <button type="button" class="button approve-btn logistics" disabled title="ابتدا باید اطلاعات خریدار تکمیل شود">
-              <i class="fas fa-lock"></i> 🔒 تخصیص آدرس (نیاز به تکمیل اطلاعات)
-            </button>
+            {% if remaining_weight > 0 %}
+              <button type="button" class="button approve-btn logistics" disabled title="ابتدا باید همه وزن تخصیص شود">
+                <i class="fas fa-lock"></i> 🔒 تایید تخصیص ({{ remaining_weight }} کیلوگرم باقی‌مانده)
+              </button>
+            {% elif not allocations %}
+              <button type="button" class="button approve-btn logistics" disabled title="ابتدا باید حداقل یک تخصیص اضافه کنید">
+                <i class="fas fa-lock"></i> 🔒 تایید تخصیص (نیاز به تخصیص)
+              </button>
+            {% endif %}
           {% endif %}
         {% endif %}
         
         {% if purchase.state == 'address_assigned' %}
-          <button type="submit" name="send_to_warehouse" class="button approve-btn logistics" formnovalidate>
-            <i class="fas fa-warehouse"></i> 🏭 ارسال به انبار
-          </button>
+          <!-- فرم جداگانه برای ارسال به انبار -->
+          <form method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" name="send_to_warehouse" class="button approve-btn logistics">
+              <i class="fas fa-warehouse"></i> 🏭 ارسال به انبار
+            </button>
+          </form>
         {% endif %}
         
         {% if purchase.state == 'sent_to_warehouse' %}
-          <button type="submit" name="notify_carrier" class="button approve-btn logistics" formnovalidate>
-            <i class="fas fa-truck"></i> 🚚 اعلام بار به باربری
-          </button>
+          <!-- فرم جداگانه برای اعلام بار به باربری -->
+          <form method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" name="notify_carrier" class="button approve-btn logistics">
+              <i class="fas fa-truck"></i> 🚚 اعلام بار به باربری
+            </button>
+          </form>
         {% endif %}
         
         {% if purchase.state == 'carrier_notified' %}

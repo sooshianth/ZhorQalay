@@ -5,5 +5,6 @@ from .Invoice import Invoice
 from .InvoiceItem import InvoiceItem
 from .BasePurchase import BasePurchase
 from .NonBazargahPurchase import NonBazargahPurchase
+from .NonBazargahAllocation import NonBazargahAllocation
 
-__all__ = ['Hazinah', 'NonBazargahProduct', 'Product', 'Invoice', 'InvoiceItem', 'BasePurchase', 'NonBazargahPurchase']
+__all__ = ['Hazinah', 'NonBazargahProduct', 'Product', 'Invoice', 'InvoiceItem', 'BasePurchase', 'NonBazargahPurchase', 'NonBazargahAllocation']

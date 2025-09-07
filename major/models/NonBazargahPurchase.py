@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 from .BasePurchase import BasePurchase
 from .NonBazargahProduct import NonBazargahProduct
 
@@ -41,11 +42,6 @@ class NonBazargahPurchase(BasePurchase):
     payment_verified_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="تایید شده توسط", related_name='verified_non_bazargah_purchases')
     payment_verified_at = models.DateTimeField("زمان تایید پرداخت", null=True, blank=True)
     payment_notes = models.TextField("توضیحات پرداخت", null=True, blank=True)
-    
-    # فیلدهای مربوط به تخصیص آدرس
-    assigned_warehouse_address = models.TextField("آدرس انبار تخصیص یافته", null=True, blank=True)
-    assigned_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="تخصیص داده شده توسط", related_name='assigned_non_bazargah_purchases')
-    assigned_at = models.DateTimeField("زمان تخصیص آدرس", null=True, blank=True)
     
     # فیلدهای مربوط به وزن‌گیری
     empty_weight = models.PositiveIntegerField("وزن خالی (کیلوگرم)", null=True, blank=True, help_text="وزن ماشین خالی")
@@ -103,6 +99,57 @@ class NonBazargahPurchase(BasePurchase):
             
             return quantity_in_kg * self.customer_price
         return None
+    
+    def get_total_allocated_weight(self):
+        """محاسبه مجموع وزن تخصیص‌های این خرید"""
+        return self.allocations.aggregate(
+            total=models.Sum('allocated_weight')
+        )['total'] or 0
+    
+    def get_remaining_weight_for_allocation(self):
+        """محاسبه وزن باقی‌مانده برای تخصیص"""
+        total_allocated = self.get_total_allocated_weight()
+        
+        # بررسی اینکه quantity موجود باشد
+        if not self.quantity:
+            return 0
+        
+        # تبدیل وزن درخواستی به کیلوگرم
+        requested_weight_kg = self.quantity
+        if self.unit == 'Ton':
+            requested_weight_kg = self.quantity * 1000
+        elif self.unit == 'Kiseh' and self.bag_weight:
+            requested_weight_kg = self.quantity * self.bag_weight
+        
+        # اطمینان از اینکه هر دو مقدار عدد هستند
+        if requested_weight_kg is None:
+            requested_weight_kg = 0
+        if total_allocated is None:
+            total_allocated = 0
+        
+        return max(0, requested_weight_kg - total_allocated)
+    
+    def can_assign_addresses(self):
+        """بررسی امکان تخصیص آدرس"""
+        return self.state == 'payment_verified'
+    
+    def can_approve_addresses(self):
+        """بررسی امکان تایید آدرس‌ها"""
+        if self.state != 'payment_verified':
+            return False
+        
+        # بررسی اینکه آیا همه وزن تخصیص شده است
+        remaining_weight = self.get_remaining_weight_for_allocation()
+        return remaining_weight == 0 and self.allocations.exists()
+    
+    def approve_all_allocations(self):
+        """تایید همه تخصیص‌ها و تغییر وضعیت خرید"""
+        if not self.can_approve_addresses():
+            raise ValidationError('امکان تایید آدرس‌ها وجود ندارد')
+        
+        # تغییر وضعیت خرید
+        self.state = 'address_assigned'
+        self.save()
 
     def save(self, *args, **kwargs):
         # محاسبه مبلغ پرداختی خودکار

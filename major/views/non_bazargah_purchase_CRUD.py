@@ -3,6 +3,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.db.models import Sum
 from django.core.exceptions import ValidationError
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
@@ -10,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from major.models.NonBazargahPurchase import NonBazargahPurchase
+from major.models.NonBazargahAllocation import NonBazargahAllocation
 from major.models.NonBazargahProduct import NonBazargahProduct
 from core.CustomerModel import Customer
 from core.decorators.decorators import role_required
@@ -21,6 +23,65 @@ from collections import OrderedDict
 import logging
 
 logger = logging.getLogger("major_non_bazargah_crud")
+
+
+class NonBazargahAllocationForm(forms.ModelForm):
+    """فرم تخصیص آدرس - جایگزین دسته‌بندی اطلاعات تحویل"""
+    
+    class Meta:
+        model = NonBazargahAllocation
+        fields = [
+            'delivery_address', 'delivery_postal_code', 'delivery_receiver_name',
+            'coordination_phone', 'allocated_weight', 'notes'
+        ]
+        widgets = {
+            'delivery_address': forms.Textarea(attrs={'rows': 3, 'placeholder': 'آدرس کامل محل تحویل کالا'}),
+            'delivery_postal_code': forms.TextInput(attrs={'placeholder': 'کد پستی 10 رقمی'}),
+            'delivery_receiver_name': forms.TextInput(attrs={'placeholder': 'نام شخص گیرنده کالا'}),
+            'coordination_phone': forms.TextInput(attrs={'placeholder': 'شماره تماس برای هماهنگی'}),
+            'allocated_weight': forms.NumberInput(attrs={'placeholder': 'وزن به کیلوگرم'}),
+            'notes': forms.Textarea(attrs={'rows': 2, 'placeholder': 'توضیحات اضافی (اختیاری)'}),
+        }
+        labels = {
+            'delivery_address': 'آدرس تحویل',
+            'delivery_postal_code': 'کد پستی',
+            'delivery_receiver_name': 'نام گیرنده',
+            'coordination_phone': 'شماره هماهنگی',
+            'allocated_weight': 'وزن تخصیص یافته (کیلوگرم)',
+            'notes': 'توضیحات',
+        }
+    
+    def __init__(self, *args, purchase=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.purchase = purchase
+        
+        if purchase:
+            # تنظیم حداکثر وزن قابل تخصیص
+            remaining_weight = purchase.get_remaining_weight_for_allocation()
+            if remaining_weight > 0:
+                self.fields['allocated_weight'].help_text = f'حداکثر وزن قابل تخصیص: {remaining_weight} کیلوگرم'
+                self.fields['allocated_weight'].widget.attrs['max'] = remaining_weight
+            else:
+                self.fields['allocated_weight'].help_text = 'همه وزن تخصیص شده است'
+                self.fields['allocated_weight'].widget.attrs['readonly'] = True
+                self.fields['allocated_weight'].widget.attrs['disabled'] = True
+    
+    def clean_allocated_weight(self):
+        allocated_weight = self.cleaned_data.get('allocated_weight')
+        
+        # استفاده از purchase که در __init__ تنظیم شده
+        if self.purchase and allocated_weight:
+            # محاسبه وزن باقی‌مانده
+            remaining_weight = self.purchase.get_remaining_weight_for_allocation()
+            
+            # اگر در حال ویرایش هستیم، وزن فعلی instance را به باقی‌مانده اضافه کنیم
+            if self.instance and self.instance.pk and hasattr(self.instance, 'allocated_weight'):
+                remaining_weight += (self.instance.allocated_weight or 0)
+            
+            if allocated_weight > remaining_weight:
+                raise ValidationError(f'وزن تخصیص یافته نمی‌تواند از {remaining_weight} کیلوگرم بیشتر باشد')
+        
+        return allocated_weight
 
 
 class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
@@ -49,23 +110,21 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
                 self.initial['company_price'] = self.instance.company_price or 0
         
         # فیلدهای همیشه قفل را اختیاری کن
-        readonly_fields = ['customer', 'quantity', 'customer_price', 'amount_paid', 'bag_weight', 'unit', 'company_price']
+        readonly_fields = ['customer', 'product', 'quantity', 'customer_price', 'amount_paid', 'bag_weight', 'unit', 'company_price']
         for field_name in readonly_fields:
             if field_name in self.fields:
                 self.fields[field_name].required = False
         
         # تنظیم فیلدها بر اساس نقش کاربر
         if user_role == 'sales_agent':
-            # کارشناس فروش فقط اطلاعات اولیه
+            # کارشناس فروش فقط اطلاعات اولیه و اطلاعات خریدار
             allowed_fields = [
                 'customer', 'product', 'unit', 'quantity', 'bag_weight',
                 'company_price', 'customer_price', 'description',
                 'buyer_name', 'buyer_postal_code', 'buyer_national_id',
-                'buyer_user_type', 'address', 'delivery_address',
-                'delivery_postal_code', 'delivery_receiver_name',
-                'tahvil_phone_number', 'code_melli_tahvil',
-                'barbary_confidential_number', 'barbary_customer_number',
-                'vehicle_type'
+                'buyer_user_type', 'address', 'tahvil_phone_number', 
+                'code_melli_tahvil', 'barbary_confidential_number', 
+                'barbary_customer_number', 'vehicle_type'
             ]
             
         elif user_role == 'financial_manager':
@@ -77,13 +136,14 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
             ]
             
         elif user_role == 'logistics_manager':
-            # مدیر لجستیک - مدیریت آدرس، وزن‌گیری
+            # مدیر لجستیک - مدیریت وزن‌گیری و لجستیک
             allowed_fields = [
                 'customer', 'product', 'unit', 'quantity', 'company_price',
                 'customer_price', 'logistics_notes', 'empty_weight', 'loaded_weight',
                 'delivered_weight', 'weight_difference', 'description',
                 'state', 'vehicle_type', 'barbary_confidential_number',
-                'barbary_customer_number'
+                'barbary_customer_number', 'warehouse_contact_person',
+                'warehouse_contact_phone'
             ]
             
         elif user_role == 'admin':
@@ -110,9 +170,8 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
             'customer', 'product', 'unit', 'quantity', 'bag_weight',
             'company_price', 'customer_price', 'amount_paid',
             'buyer_name', 'buyer_postal_code', 'buyer_national_id',
-            'buyer_user_type', 'address', 'delivery_address',
-            'delivery_postal_code', 'delivery_receiver_name',
-            'assigned_warehouse_address', 'warehouse_contact_person',
+            'buyer_user_type', 'address', 'tahvil_phone_number', 
+            'code_melli_tahvil', 'warehouse_contact_person', 
             'warehouse_contact_phone', 'empty_weight', 'loaded_weight',
             'delivered_weight', 'payment_document', 'state',
             'description', 'logistics_notes', 'payment_notes'
@@ -129,8 +188,8 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
         
         # فیلدهای همیشه قفل (غیرقابل ادیت)
         always_readonly_fields = [
-            'customer', 'quantity', 'customer_price', 'amount_paid', 
-            'bag_weight', 'unit', 'product', 'company_price', 'state'
+            'customer', 'product', 'quantity', 'customer_price', 'amount_paid', 
+            'bag_weight', 'unit', 'company_price', 'state'
         ]
         for field_name in always_readonly_fields:
             if field_name in self.fields:
@@ -165,9 +224,8 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
         if state in address_assigned_states:
             buyer_info_fields = [
                 'buyer_name', 'buyer_postal_code', 'buyer_national_id',
-                'buyer_user_type', 'address', 'delivery_address',
-                'delivery_postal_code', 'delivery_receiver_name',
-                'tahvil_phone_number', 'code_melli_tahvil'
+                'buyer_user_type', 'address', 'tahvil_phone_number', 
+                'code_melli_tahvil'
             ]
             for field_name in buyer_info_fields:
                 if field_name in self.fields:
@@ -192,7 +250,7 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
             # بازگردانی مقادیر فیلدهای readonly از instance اصلی
             if self.instance and self.instance.pk:
                 readonly_fields = [
-                    'customer', 'quantity', 'customer_price', 'amount_paid', 
+                    'customer', 'product', 'quantity', 'customer_price', 'amount_paid', 
                     'bag_weight', 'unit'
                 ]
                 for field_name in readonly_fields:
@@ -295,15 +353,30 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
         {'name': 'بستن خرید', 'status': purchase.state == 'purchase_closed'},
     ]
     
+    # دریافت تخصیص‌های موجود
+    allocations = purchase.allocations.all().order_by('-id')
+    
+    # محاسبه وزن‌های کلیدی
+    total_allocated_weight = purchase.get_total_allocated_weight() or 0
+    remaining_weight = purchase.get_remaining_weight_for_allocation() or 0
+    
+    # تبدیل وزن درخواستی به کیلوگرم برای نمایش
+    requested_weight_kg = purchase.quantity or 0
+    if purchase.unit == 'Ton' and purchase.quantity:
+        requested_weight_kg = purchase.quantity * 1000
+    elif purchase.unit == 'Kiseh' and purchase.quantity and purchase.bag_weight:
+        requested_weight_kg = purchase.quantity * purchase.bag_weight
+    
     if request.method == 'POST':
         post_data = request.POST.copy()
         
         # بررسی دکمه‌های اکشن
         action_buttons = [
-            'approve_payment', 'assign_address', 'send_to_warehouse',
+            'approve_payment', 'add_allocation', 'approve_allocations', 'send_to_warehouse',
             'notify_carrier', 'confirm_vehicle_arrival', 'record_empty_weight',
             'record_loaded_weight', 'issue_barnameh', 'confirm_delivery',
-            'close_purchase', 'cancel_purchase', 'archive_purchase', 'upload_document'
+            'close_purchase', 'cancel_purchase', 'archive_purchase', 'upload_document',
+            'delete_allocation'
         ]
         
         is_action_button_pressed = any(action in request.POST for action in action_buttons)
@@ -324,6 +397,43 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
             else:
                 messages.error(request, 'لطفاً یک فایل انتخاب کنید')
                 return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+        
+        # پردازش اضافه کردن تخصیص جدید
+        if 'add_allocation' in request.POST and user_role in ['logistics_manager', 'admin']:
+            if not purchase.can_assign_addresses():
+                messages.error(request, 'برای تخصیص آدرس ابتدا باید پرداخت تایید شود')
+                return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+            
+            # ایجاد فرم با داده‌های POST و تنظیم purchase
+            allocation_form_data = NonBazargahAllocationForm(request.POST, purchase=purchase)
+            if allocation_form_data.is_valid():
+                try:
+                    allocation = allocation_form_data.save(commit=False)
+                    allocation.purchase = purchase  # تنظیم صریح خرید
+                    allocation.save()
+                    messages.success(request, f'تخصیص جدید با وزن {allocation.allocated_weight} کیلوگرم اضافه شد')
+                    return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+                except Exception as e:
+                    messages.error(request, f'خطا در ذخیره تخصیص: {str(e)}')
+                    return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+            else:
+                for field, errors in allocation_form_data.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
+                return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+        
+        # پردازش حذف تخصیص
+        if 'delete_allocation' in request.POST and user_role in ['logistics_manager', 'admin']:
+            allocation_id = request.POST.get('allocation_id')
+            if allocation_id:
+                try:
+                    allocation = NonBazargahAllocation.objects.get(id=allocation_id, purchase=purchase)
+                    allocation.delete()
+                    messages.success(request, 'تخصیص حذف شد')
+                    return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+                except NonBazargahAllocation.DoesNotExist:
+                    messages.error(request, 'تخصیص مورد نظر یافت نشد')
+                    return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
         
         if is_action_button_pressed:
             post_data['bypass_validation'] = 'true'
@@ -351,25 +461,27 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                     
                     # اکشن‌های مدیر لجستیک
                     if user_role in ['logistics_manager', 'admin']:
-                        if purchase.state == 'payment_verified' and 'assign_address' in request.POST:
-                            # بررسی تکمیل اطلاعات خریدار
-                            required_buyer_fields = [
-                                'buyer_name', 'address', 'delivery_address',
-                                'delivery_receiver_name', 'tahvil_phone_number'
-                            ]
-                            missing_fields = []
-                            for field_name in required_buyer_fields:
-                                if not getattr(purchase, field_name, None):
-                                    missing_fields.append(field_name)
-                            
-                            if missing_fields:
-                                messages.error(request, f'برای تخصیص آدرس ابتدا باید فیلدهای زیر تکمیل شوند: {", ".join(missing_fields)}')
+                        if purchase.state == 'payment_verified' and 'approve_allocations' in request.POST:
+                            logger.info(f"تلاش برای تایید تخصیص‌ها - خرید {purchase.id}")
+                            # بررسی اینکه آیا همه وزن تخصیص شده است
+                            if remaining_weight > 0:
+                                logger.warning(f"وزن باقی‌مانده: {remaining_weight}")
+                                messages.error(request, f'هنوز {remaining_weight} کیلوگرم وزن برای تخصیص باقی مانده است')
+                            elif not allocations.exists():
+                                logger.warning("هیچ تخصیصی وجود ندارد")
+                                messages.error(request, 'ابتدا باید حداقل یک تخصیص اضافه کنید')
                             else:
-                                purchase.state = 'address_assigned'
-                                purchase.assigned_by = request.user
-                                purchase.assigned_at = timezone.now()
-                                action_taken = True
-                                messages.success(request, 'آدرس انبار تخصیص یافت')
+                                try:
+                                    # تغییر مستقیم وضعیت بدون استفاده از متد approve_all_allocations
+                                    logger.info(f"تغییر وضعیت خرید {purchase.id} به address_assigned")
+                                    purchase.state = 'address_assigned'
+                                    purchase.save()
+                                    action_taken = True
+                                    messages.success(request, 'همه تخصیص‌ها تایید شد و وضعیت خرید تغییر کرد')
+                                    logger.info(f"وضعیت خرید {purchase.id} با موفقیت تغییر کرد")
+                                except Exception as e:
+                                    logger.error(f"خطا در تایید تخصیص‌ها: {str(e)}")
+                                    messages.error(request, f'خطا در تایید تخصیص‌ها: {str(e)}')
                         
                         elif purchase.state == 'address_assigned' and 'send_to_warehouse' in request.POST:
                             purchase.state = 'sent_to_warehouse'
@@ -427,8 +539,8 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                     if not action_taken:
                         # فیلدهای قفل شده که نباید تغییر کنند
                         locked_fields = [
-                            'customer', 'quantity', 'customer_price', 'amount_paid', 
-                            'bag_weight', 'unit', 'product', 'company_price', 'state'
+                            'customer', 'product', 'quantity', 'customer_price', 'amount_paid', 
+                            'bag_weight', 'unit', 'company_price', 'state'
                         ]
                         
                         # ذخیره مقادیر اصلی فیلدهای قفل شده
@@ -469,12 +581,20 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
     else:
         form = RoleBasedNonBazargahPurchaseForm(instance=purchase, user_role=user_role)
     
+    # فرم تخصیص جدید
+    allocation_form = NonBazargahAllocationForm(purchase=purchase)
+    
     # دریافت نوتیفیکیشن‌ها
     notifications = NotificationService.get_unread_notifications(request.user)
     
     context = {
         'purchase': purchase,
         'form': form,
+        'allocation_form': allocation_form,
+        'allocations': allocations,
+        'total_allocated_weight': total_allocated_weight,
+        'remaining_weight': remaining_weight,
+        'requested_weight_kg': requested_weight_kg,
         'progress_steps': progress_steps,
         'user_role': user_role,
         'notifications': notifications,
