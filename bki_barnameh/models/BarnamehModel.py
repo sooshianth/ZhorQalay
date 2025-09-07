@@ -1,6 +1,8 @@
 from django.db import models
 from django_jalali.db import models as jmodels
 from django.utils import timezone
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from core.PurchaseModel import Purchase, ShenaseTakhsis
 
 import logging
@@ -168,6 +170,86 @@ class Barnameh(models.Model):
         except:
             logger.error('خطا در پر کردن شناسه خرید با اینکه شناسه تخصیص داریم')
 
+    def calculate_purchase_state_based_on_barnameh_weight(self, purchase):
+        """
+        محاسبه وضعیت جدید خرید بر اساس مجموع وزن بارنامه‌ها
+        """
+        if not purchase:
+            return None
+            
+        # محاسبه مجموع وزن بارنامه‌های این خرید (شامل بارنامه فعلی)
+        total_barnameh_weight = purchase.get_total_barnameh_weight()
+        
+        # اگر این بارنامه جدید است و هنوز در محاسبه قبلی لحاظ نشده، آن را اضافه کن
+        if self.tonnage and self.pk:  # اگر بارنامه وزن دارد و ذخیره شده
+            # بررسی اینکه آیا این بارنامه در محاسبه لحاظ شده یا نه
+            existing_barnameh = purchase.barnamehs.filter(pk=self.pk).exists()
+            if not existing_barnameh:
+                total_barnameh_weight += float(self.tonnage or 0)
+        elif self.tonnage and not self.pk:  # بارنامه جدید که هنوز ذخیره نشده
+            total_barnameh_weight += float(self.tonnage or 0)
+            
+        order_weight = purchase.order_weight or 0
+        
+        # محاسبه اختلاف
+        weight_difference = abs(order_weight - total_barnameh_weight)
+        
+        logger.info(f"🔍 محاسبه وضعیت خرید {purchase.id}: وزن سفارش={order_weight}, مجموع وزن بارنامه‌ها={total_barnameh_weight}, اختلاف={weight_difference}")
+        
+        # تعیین وضعیت جدید بر اساس اختلاف وزن
+        if weight_difference < 5000:  # کمتر از 5000 کیلوگرم = بارنامه کامل
+            new_state = 'BARNAMEH_ISSUED'
+        else:  # بیشتر یا مساوی 5000 کیلوگرم = بارنامه ناقص
+            new_state = 'BARNAMEH_INCOMPLETE'
+            
+        return new_state
+
+    def update_purchase_state_if_needed(self, purchase, is_new_barnameh=False):
+        """
+        بروزرسانی وضعیت خرید در صورت نیاز
+        """
+        if not purchase:
+            return False
+            
+        # بررسی اینکه آیا خرید در وضعیت قبل از بارنامه است یا نه
+        pre_barnameh_states = [
+            'INITIATED', 'SMS_SENT', 'PAYMENT_VERIFIED', 
+            'ALLOCATION_APPROVED', 'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH'
+        ]
+        
+        current_state = purchase.state
+        
+        # اگر خرید در وضعیت قبل از بارنامه است یا در حالت بارنامه ناقص/کامل
+        if current_state in pre_barnameh_states or current_state in ['BARNAMEH_INCOMPLETE', 'BARNAMEH_ISSUED']:
+            new_state = self.calculate_purchase_state_based_on_barnameh_weight(purchase)
+            
+            if new_state and new_state != current_state:
+                logger.info(f"✅ تغییر وضعیت خرید {purchase.id} از {current_state} به {new_state}")
+                
+                # بروزرسانی وضعیت خرید
+                old_state = purchase.state
+                purchase.state = new_state
+                purchase.save(update_fields=['state'])
+                
+                # ایجاد رکورد تغییر وضعیت
+                from core.PurchaseModel import PurchaseStateChange
+                PurchaseStateChange.objects.create(
+                    purchase=purchase,
+                    previous_state=old_state,
+                    new_state=new_state,
+                    changed_by=None,  # تغییر توسط سیستم
+                    notes=f"تغییر خودکار وضعیت بر اساس وزن بارنامه‌ها (اختلاف: {abs((purchase.order_weight or 0) - purchase.get_total_barnameh_weight())} کیلوگرم)"
+                )
+                
+                logger.info(f"📝 رکورد تغییر وضعیت برای خرید {purchase.id} ایجاد شد")
+                return True
+            else:
+                logger.info(f"⏭️ وضعیت خرید {purchase.id} تغییری نکرده ({current_state})")
+        else:
+            logger.info(f"⏭️ خرید {purchase.id} در وضعیت {current_state} است و نیاز به بروزرسانی ندارد")
+            
+        return False
+
     def save(self, *args, **kwargs):
         is_new = False if self.pk else True
         if not self.purchase or not self.shenase_takhsis:
@@ -205,6 +287,43 @@ class Barnameh(models.Model):
         # بروزرسانی وضعیت فاکتور خرید مرتبط
         if self.purchase:
             self.purchase.set_purchase_factor_status()
+            
+        # 🔄 بروزرسانی وضعیت خرید بر اساس وزن بارنامه‌ها
+        # این کار را بعد از ذخیره انجام می‌دهیم تا بارنامه در دیتابیس موجود باشد
+        # برای این کار از post_save signal استفاده می‌کنیم یا اینجا delay می‌کنیم
+        
+        # ابتدا اگر purchase مستقیماً موجود نیست، از طریق شناسه تخصیص پیدا کن
+        purchase_to_update = self.purchase
+        if not purchase_to_update and self.shenase_takhsis_code:
+            try:
+                from core.PurchaseModel import ShenaseTakhsis
+                shenase_takhsis = ShenaseTakhsis.objects.get(code=self.shenase_takhsis_code)
+                purchase_to_update = shenase_takhsis.purchase
+                logger.info(f"🔍 خرید {purchase_to_update.id if purchase_to_update else 'None'} از طریق شناسه تخصیص {self.shenase_takhsis_code} پیدا شد")
+            except Exception as e:
+                logger.warning(f"❌ خطا در پیدا کردن خرید از طریق شناسه تخصیص {self.shenase_takhsis_code}: {str(e)}")
+                
+        # 🔄 بروزرسانی وضعیت خرید بر اساس وزن بارنامه‌ها
+        # این کار را در انتهای save انجام می‌دهیم تا مطمئن باشیم بارنامه کامل ذخیره شده
+        purchase_to_update = self.purchase
+        if not purchase_to_update and self.shenase_takhsis_code:
+            try:
+                shenase_takhsis = ShenaseTakhsis.objects.get(code=self.shenase_takhsis_code)
+                purchase_to_update = shenase_takhsis.purchase
+                logger.info(f"🔍 خرید {purchase_to_update.id if purchase_to_update else 'None'} از طریق شناسه تخصیص {self.shenase_takhsis_code} پیدا شد")
+            except Exception as e:
+                logger.warning(f"❌ خطا در پیدا کردن خرید از طریق شناسه تخصیص {self.shenase_takhsis_code}: {str(e)}")
+        
+        # اگر هنوز خرید پیدا نشد و shenase_takhsis موجود است
+        if not purchase_to_update and self.shenase_takhsis:
+            purchase_to_update = self.shenase_takhsis.purchase
+            logger.info(f"🔍 خرید {purchase_to_update.id if purchase_to_update else 'None'} از طریق شناسه تخصیص object پیدا شد")
+                
+        # بروزرسانی وضعیت خرید
+        if purchase_to_update:
+            self.update_purchase_state_if_needed(purchase_to_update, is_new_barnameh=is_new)
+        else:
+            logger.warning(f"⚠️ خرید مرتبط با بارنامه {self.id} پیدا نشد")
 
 
 class BarnamehLog(models.Model):
@@ -218,4 +337,13 @@ class BarnamehLog(models.Model):
 
     def __str__(self):
         return f"{self.barnameh.number} - {self.log_date}"
+
+
+# @receiver(post_save, sender=Barnameh)
+# def update_purchase_state_after_barnameh_save(sender, instance, created, **kwargs):
+#     """
+#     بروزرسانی وضعیت خرید بعد از ذخیره بارنامه
+#     این signal غیرفعال شده و کار در متد save انجام می‌شود
+#     """
+#     pass
 

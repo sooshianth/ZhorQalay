@@ -91,8 +91,11 @@ def process_excel_file(excel_file_id):
                 purchase_number = clean_numeric_value(row.get('شناسه خرید', ''))
                 shenase_takhsis_code = clean_numeric_value(row.get('شناسه تخصیص', ''))
                 
-                # پیدا کردن Purchase قبل از ایجاد بارنامه
+                # پیدا کردن Purchase و ShenaseTakhsis قبل از ایجاد بارنامه
                 purchase_obj = None
+                shenase_takhsis_obj = None
+                
+                # ابتدا تلاش برای پیدا کردن Purchase
                 if purchase_number and purchase_number.strip():
                     try:
                         from core.PurchaseModel import Purchase
@@ -102,6 +105,21 @@ def process_excel_file(excel_file_id):
                         logger.warning(f"❌ Purchase with number {purchase_number} not found for barnameh {barnameh_number}")
                     except Exception as e:
                         logger.error(f"❌ Error finding purchase {purchase_number}: {str(e)}")
+                
+                # سپس تلاش برای پیدا کردن ShenaseTakhsis
+                if shenase_takhsis_code and shenase_takhsis_code.strip():
+                    try:
+                        from core.PurchaseModel import ShenaseTakhsis
+                        shenase_takhsis_obj = ShenaseTakhsis.objects.get(code=shenase_takhsis_code)
+                        logger.info(f"✅ Found shenase_takhsis {shenase_takhsis_obj.id} for barnameh {barnameh_number}")
+                        
+                        # اگر Purchase پیدا نشد، از طریق ShenaseTakhsis پیدا کن
+                        if not purchase_obj and shenase_takhsis_obj.purchase:
+                            purchase_obj = shenase_takhsis_obj.purchase
+                            logger.info(f"✅ Found purchase {purchase_obj.id} through shenase_takhsis for barnameh {barnameh_number}")
+                            
+                    except Exception as e:
+                        logger.warning(f"❌ Error finding shenase_takhsis {shenase_takhsis_code}: {str(e)}")
                 
                 # Convert date string to JDate
                 barnameh_date = None
@@ -147,7 +165,8 @@ def process_excel_file(excel_file_id):
                     'shenase_takhsis_code': shenase_takhsis_code,
                     'is_created_by_excel': True,
                     'status': 'BARNAMEH_COMPLETE' if all([barnameh_number, barnameh_serial, tonnage]) else 'BARNAMEH_INCOMPLETE',
-                    'purchase': purchase_obj  # اضافه کردن ارتباط با Purchase از ابتدا
+                    'purchase': purchase_obj,  # اضافه کردن ارتباط با Purchase از ابتدا
+                    'shenase_takhsis': shenase_takhsis_obj  # اضافه کردن ارتباط با ShenaseTakhsis از ابتدا
                 }
                 
                 if existing_barnameh:
@@ -175,9 +194,12 @@ def process_excel_file(excel_file_id):
                     logger.info(f"✅ Successfully created barnameh {barnameh.id} with number {barnameh.number} and is_created_by_excel=True")
                 
                 # اگر Purchase پیدا شد، ارتباط دوطرفه را برقرار کن
+                # نکته: مکانیزم بروزرسانی وضعیت خرید در متد save بارنامه انجام شده
                 if purchase_obj and barnameh:
+                    # فقط فیلدهای قدیمی را بروزرسانی کن (برای سازگاری با کد قدیم)
                     purchase_obj.barnameh = barnameh_number
-                    purchase_obj.barnameh_object = barnameh
+                    # حذف barnameh_object چون دیگر استفاده نمی‌شود
+                    # purchase_obj.barnameh_object = barnameh
                     purchase_obj.save()
                     logger.info(f"✅ Successfully linked barnameh {barnameh_number} to purchase {purchase_number}")
 
