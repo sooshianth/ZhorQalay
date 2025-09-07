@@ -1,0 +1,1084 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8/dist/sweetalert2.all.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<style>
+  /* استایل‌های مخصوص خرید خارج بازارگاه */
+  .non-bazargah-container {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .non-bazargah-header {
+    color: #2c3e50;
+    border-bottom: 3px solid #3498db;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    font-weight: bold;
+  }
+  
+  .non-bazargah-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    margin-right: 10px;
+  }
+
+  /* تایم‌لاین مخصوص خرید خارج بازارگاه */
+  .timeline-container {
+    width: 100%;
+    margin: 20px 0;
+    overflow: hidden;
+    position: relative;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(52, 152, 219, 0.15);
+    background: white;
+  }
+  
+  .timeline-scroll {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 15px 10px;
+    scrollbar-width: thin;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .timeline-scroll::-webkit-scrollbar {
+    height: 5px;
+  }
+  
+  .timeline-scroll::-webkit-scrollbar-track {
+    background: #ecf0f1;
+    border-radius: 10px;
+  }
+  
+  .timeline-scroll::-webkit-scrollbar-thumb {
+    background: #3498db;
+    border-radius: 10px;
+  }
+  
+  .timeline-item {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 120px;
+    position: relative;
+    text-align: center;
+    padding: 15px;
+    margin: 0 8px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+    border: 2px solid #e9ecef;
+  }
+  
+  .timeline-item.completed {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    border-color: #28a745;
+  }
+  
+  .timeline-item.pending {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    border-color: #ffc107;
+  }
+  
+  .timeline-icon {
+    width: 50px;
+    height: 50px;
+    margin: 0 auto 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: white;
+    font-size: 1.2rem;
+  }
+  
+  .timeline-item.completed .timeline-icon {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    box-shadow: 0 3px 10px rgba(40, 167, 69, 0.3);
+  }
+  
+  .timeline-item.pending .timeline-icon {
+    background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+    box-shadow: 0 3px 10px rgba(255, 193, 7, 0.3);
+  }
+  
+  .timeline-label {
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: block;
+    color: #495057;
+    line-height: 1.3;
+  }
+  
+  .timeline-status {
+    font-size: 18px;
+    font-weight: bold;
+  }
+  
+  .timeline-item.completed .timeline-status {
+    color: #28a745;
+  }
+  
+  .timeline-item.pending .timeline-status {
+    color: #ffc107;
+  }
+  
+  .timeline-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    cursor: pointer;
+  }
+
+  /* بخش‌های فرم */
+  .form-section {
+    margin-bottom: 30px;
+    background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    border: 1px solid #dee2e6;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  
+  .form-section:hover {
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    transform: translateY(-2px);
+  }
+  
+  .section-title {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #495057;
+    margin: 0;
+    padding: 20px 25px;
+    background: linear-gradient(135deg, #e9ecef 0%, #f8f9fa 100%);
+    border-bottom: 2px solid #dee2e6;
+    display: flex;
+    align-items: center;
+  }
+  
+  .section-title i {
+    margin-left: 12px;
+    color: #3498db;
+    font-size: 1.1rem;
+  }
+
+  /* فرم و دکمه‌های اکشن */
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 25px;
+  }
+  
+  .form-group {
+    position: relative;
+    margin-bottom: 15px;
+    transition: transform 0.2s;
+  }
+  
+  .form-group:hover {
+    transform: translateY(-2px);
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #495057;
+    font-weight: bold;
+    font-size: 0.95rem;
+  }
+  
+  .form-group input, 
+  .form-group select, 
+  .form-group textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    transition: all 0.3s;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .form-group input:focus, 
+  .form-group select:focus, 
+  .form-group textarea:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+  }
+  
+  /* فیلدهای فقط خواندنی */
+  .form-group.readonly input,
+  .form-group.readonly select,
+  .form-group.readonly textarea {
+    background-color: #f8f9fa;
+    border-color: #e9ecef;
+    color: #6c757d;
+    cursor: not-allowed;
+  }
+  
+  .readonly-indicator {
+    color: #dc3545;
+    margin-left: 8px;
+    font-size: 0.9rem;
+  }
+  
+  .readonly-indicator i {
+    animation: pulse 2s infinite;
+  }
+  
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+  }
+  
+  /* دکمه‌های اکشن */
+  .form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-top: 30px;
+    margin-bottom: 30px;
+    justify-content: center;
+  }
+  
+  .button {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    font-size: 0.95rem;
+  }
+  
+  .button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+  }
+  
+  .save-button {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: white;
+    min-width: 150px;
+  }
+  
+  .approve-btn {
+    min-width: 180px;
+  }
+  
+  .approve-btn.financial {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: white;
+  }
+  
+  .approve-btn.logistics {
+    background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+    color: white;
+  }
+  
+  .approve-btn.admin {
+    background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+    color: white;
+  }
+  
+  .approve-btn.danger {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: white;
+  }
+  
+  .approve-btn.warning {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    color: white;
+  }
+
+  /* اطلاعات خرید */
+  .purchase-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin: 25px 0;
+  }
+  
+  .info-card {
+    padding: 20px;
+    border-radius: 12px;
+    flex: 1 1 250px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 160px;
+    border: 1px solid #dee2e6;
+  }
+  
+  .info-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+  }
+  
+  .info-card h3 {
+    color: #495057;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+    border-bottom: 2px dashed #6c757d;
+    padding-bottom: 8px;
+    width: 100%;
+  }
+  
+  .info-card p {
+    margin-bottom: 8px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #212529;
+  }
+  
+  .info-card p:last-child {
+    font-size: 0.9rem;
+    color: #6c757d;
+    font-weight: normal;
+  }
+
+  /* بخش آپلود مدارک */
+  .document-management-section {
+    margin-top: 30px;
+    background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    border: 1px solid #dee2e6;
+    overflow: hidden;
+  }
+  
+  .document-management-section .section-title {
+    margin-bottom: 0;
+    padding: 20px 25px;
+    background: linear-gradient(135deg, #e9ecef 0%, #f8f9fa 100%);
+    border-bottom: 2px solid #dee2e6;
+  }
+  
+  .document-content {
+    padding: 25px;
+  }
+  
+  .existing-documents {
+    margin-bottom: 25px;
+  }
+  
+  .document-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    margin-bottom: 15px;
+  }
+  
+  .document-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .document-type {
+    font-weight: bold;
+    color: #495057;
+  }
+  
+  .document-date,
+  .document-uploader {
+    font-size: 0.9rem;
+    color: #6c757d;
+  }
+  
+  .upload-form-container {
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+  }
+
+  /* ریسپانسیو */
+  @media (max-width: 768px) {
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .form-section {
+      margin-bottom: 20px;
+    }
+    
+    .section-title {
+      font-size: 1.1rem;
+      padding: 15px 20px;
+    }
+    
+    .section-title i {
+      font-size: 1rem;
+      margin-left: 8px;
+    }
+    
+    .info-card {
+      flex: 1 1 100%;
+    }
+    
+    .form-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    
+    .button {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    
+    .timeline-item {
+      min-width: 100px;
+      padding: 10px;
+    }
+    
+    .timeline-icon {
+      width: 40px;
+      height: 40px;
+    }
+    
+    .timeline-label {
+      font-size: 11px;
+    }
+  }
+</style>
+
+<div class="container">
+  <!-- هدر خاص خرید خارج بازارگاه -->
+  <div class="non-bazargah-container">
+    <h1 class="non-bazargah-header">
+      <span class="non-bazargah-badge">خارج بازارگاه</span>
+      خرید {{ purchase.purchase_number|default:"بدون شماره" }}
+    </h1>
+    
+    <!-- اطلاعات اولیه -->
+    <div class="purchase-info">
+      <div class="info-card">
+        <h3>مشتری</h3>
+        <p>{{ purchase.customer.name|default:"نامشخص" }}</p>
+        <p>{{ purchase.customer.city|default:"نامشخص" }}</p>
+      </div>
+      
+      <div class="info-card">
+        <h3>محصول</h3>
+        <p>{{ purchase.product.name|default:"نامشخص" }}</p>
+        <p>{{ purchase.quantity|default:"0" }} {{ purchase.get_unit_display|default:"واحد" }}</p>
+      </div>
+      
+      <div class="info-card">
+        <h3>مبلغ</h3>
+        <p>{% if purchase.amount_paid %}{{ purchase.amount_paid|add_commas }} ریال{% else %}نامشخص{% endif %}</p>
+        <p>مبلغ کل پرداختی</p>
+      </div>
+      
+      <div class="info-card">
+        <h3>وضعیت</h3>
+        <p>
+          {% if purchase.state == 'initiated' %}
+          <span class="badge bg-info">شروع شده</span>
+          {% elif purchase.state == 'payment_verification_pending' %}
+          <span class="badge bg-warning">انتظار تایید پرداخت</span>
+          {% elif purchase.state == 'payment_verified' %}
+          <span class="badge bg-success">تایید پرداخت</span>
+          {% elif purchase.state == 'address_assigned' %}
+          <span class="badge bg-primary">تخصیص آدرس</span>
+          {% elif purchase.state == 'sent_to_warehouse' %}
+          <span class="badge bg-info">ارسال به انبار</span>
+          {% elif purchase.state == 'carrier_notified' %}
+          <span class="badge bg-warning">اعلام بار</span>
+          {% elif purchase.state == 'vehicle_arrived' %}
+          <span class="badge bg-secondary">ورود ماشین</span>
+          {% elif purchase.state == 'empty_weighed' %}
+          <span class="badge bg-info">وزن خالی</span>
+          {% elif purchase.state == 'loaded_weighed' %}
+          <span class="badge bg-primary">وزن پر</span>
+          {% elif purchase.state == 'barnameh_issued' %}
+          <span class="badge bg-success">صدور بارنامه</span>
+          {% elif purchase.state == 'delivered' %}
+          <span class="badge bg-success">تحویل شده</span>
+          {% elif purchase.state == 'purchase_closed' %}
+          <span class="badge bg-dark">بسته شده</span>
+          {% elif purchase.state == 'canceled' %}
+          <span class="badge bg-danger">لغو شده</span>
+          {% elif purchase.state == 'archived' %}
+          <span class="badge bg-secondary">آرشیو شده</span>
+          {% else %}
+          <span class="badge bg-secondary">{{ purchase.get_state_display }}</span>
+          {% endif %}
+        </p>
+        <p>آخرین بروزرسانی: {{ purchase.updated_at|date:"Y/m/d H:i" }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- تایم‌لاین پیشرفت -->
+  <div class="timeline-container">
+    <div class="timeline-scroll">
+      {% for step in progress_steps %}
+      <div class="timeline-item {% if step.status %}completed{% else %}pending{% endif %}" 
+      data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else %}- در انتظار {% endif %}">
+        <div class="timeline-icon">
+          <i class="{% if 'تایید پرداخت' in step.name %}fas fa-credit-card
+            {% elif 'تخصیص آدرس' in step.name %}fas fa-map-marker-alt
+            {% elif 'انبار' in step.name %}fas fa-warehouse
+            {% elif 'باربری' in step.name %}fas fa-truck
+            {% elif 'ماشین' in step.name %}fas fa-car
+            {% elif 'وزن خالی' in step.name %}fas fa-weight-hanging
+            {% elif 'وزن پر' in step.name %}fas fa-balance-scale
+            {% elif 'بارنامه' in step.name %}fas fa-file-invoice
+            {% elif 'تحویل' in step.name %}fas fa-handshake
+            {% elif 'بستن' in step.name %}fas fa-check-circle
+            {% else %}fas fa-arrow-right
+            {% endif %}"></i>
+        </div>
+        <div class="timeline-label">{{ step.name }}</div>
+        <div class="timeline-status">
+          {% if step.status %}✓{% else %}...{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- فرم ویرایش -->
+  <form method="post" enctype="multipart/form-data" class="purchase-form">
+    {% csrf_token %}
+    
+    <!-- اطلاعات اساسی خرید -->
+    <div class="form-section">
+      <h3 class="section-title">
+        <i class="fas fa-shopping-cart"></i> اطلاعات اساسی خرید
+      </h3>
+      <div class="form-grid">
+        {% for field in form %}
+          {% if field.name in 'customer,product,unit,quantity,bag_weight'|split:',' %}
+          <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
+            <label>
+              {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}
+              <span class="readonly-indicator" title="این فیلد قابل ویرایش نیست"><i class="fas fa-lock"></i></span>
+              {% endif %}
+              <i class="{% if 'مشتری' in field.label %}fas fa-user
+                {% elif 'محصول' in field.label %}fas fa-box
+                {% elif 'مقدار' in field.label or 'کیسه' in field.label %}fas fa-calculator
+                {% elif 'واحد' in field.label %}fas fa-weight
+                {% else %}fas fa-edit
+                {% endif %}"></i> {{ field.label }}
+            </label>
+            <div class="input-container">
+              {{ field }}
+            </div>
+            {% if field.help_text %}
+            <small class="form-helptext">{{ field.help_text }}</small>
+            {% endif %}
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- اطلاعات مالی -->
+    <div class="form-section">
+      <h3 class="section-title">
+        <i class="fas fa-money-bill-wave"></i> اطلاعات مالی
+      </h3>
+      <div class="form-grid">
+        {% for field in form %}
+          {% if field.name in 'company_price,customer_price,amount_paid,payment_document,payment_notes'|split:',' %}
+          <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
+            <label>
+              {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}
+              <span class="readonly-indicator" title="این فیلد قابل ویرایش نیست"><i class="fas fa-lock"></i></span>
+              {% endif %}
+              <i class="{% if 'قیمت' in field.label or 'مبلغ' in field.label %}fas fa-money-bill-wave
+                {% elif 'مدرک' in field.label %}fas fa-file-upload
+                {% elif 'توضیحات' in field.label %}fas fa-comment
+                {% else %}fas fa-edit
+                {% endif %}"></i> {{ field.label }}
+            </label>
+            <div class="input-container">
+              {{ field }}
+            </div>
+            {% if field.help_text %}
+            <small class="form-helptext">{{ field.help_text }}</small>
+            {% endif %}
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- اطلاعات خریدار -->
+    <div class="form-section">
+      <h3 class="section-title">
+        <i class="fas fa-user-tie"></i> اطلاعات خریدار
+      </h3>
+      <div class="form-grid">
+        {% for field in form %}
+          {% if field.name in 'buyer_name,buyer_postal_code,buyer_national_id,buyer_user_type,address'|split:',' %}
+          <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
+            <label>
+              {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}
+              <span class="readonly-indicator" title="این فیلد قابل ویرایش نیست"><i class="fas fa-lock"></i></span>
+              {% endif %}
+              <i class="{% if 'نام' in field.label %}fas fa-user
+                {% elif 'کد پستی' in field.label %}fas fa-mail-bulk
+                {% elif 'ملی' in field.label %}fas fa-id-card
+                {% elif 'نوع' in field.label %}fas fa-tag
+                {% elif 'آدرس' in field.label %}fas fa-map-marker-alt
+                {% else %}fas fa-edit
+                {% endif %}"></i> {{ field.label }}
+            </label>
+            <div class="input-container">
+              {{ field }}
+            </div>
+            {% if field.help_text %}
+            <small class="form-helptext">{{ field.help_text }}</small>
+            {% endif %}
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- اطلاعات تحویل -->
+    <div class="form-section">
+      <h3 class="section-title">
+        <i class="fas fa-shipping-fast"></i> اطلاعات تحویل
+      </h3>
+      <div class="form-grid">
+        {% for field in form %}
+          {% if field.name in 'delivery_address,delivery_postal_code,delivery_receiver_name,tahvil_phone_number,code_melli_tahvil'|split:',' %}
+          <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
+            <label>
+              {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}
+              <span class="readonly-indicator" title="این فیلد قابل ویرایش نیست"><i class="fas fa-lock"></i></span>
+              {% endif %}
+              <i class="{% if 'آدرس' in field.label %}fas fa-map-marker-alt
+                {% elif 'کد پستی' in field.label %}fas fa-mail-bulk
+                {% elif 'نام' in field.label %}fas fa-user
+                {% elif 'تلفن' in field.label %}fas fa-phone
+                {% elif 'ملی' in field.label %}fas fa-id-card
+                {% else %}fas fa-edit
+                {% endif %}"></i> {{ field.label }}
+            </label>
+            <div class="input-container">
+              {{ field }}
+            </div>
+            {% if field.help_text %}
+            <small class="form-helptext">{{ field.help_text }}</small>
+            {% endif %}
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- اطلاعات لجستیک و حمل -->
+    <div class="form-section">
+      <h3 class="section-title">
+        <i class="fas fa-truck"></i> اطلاعات لجستیک و حمل
+      </h3>
+      <div class="form-grid">
+        {% for field in form %}
+          {% if field.name in 'assigned_warehouse_address,warehouse_contact_person,warehouse_contact_phone,vehicle_type,barbary_confidential_number,barbary_customer_number,logistics_notes'|split:',' %}
+          <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
+            <label>
+              {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}
+              <span class="readonly-indicator" title="این فیلد قابل ویرایش نیست"><i class="fas fa-lock"></i></span>
+              {% endif %}
+              <i class="{% if 'انبار' in field.label %}fas fa-warehouse
+                {% elif 'تماس' in field.label or 'تلفن' in field.label %}fas fa-phone
+                {% elif 'خودرو' in field.label or 'ماشین' in field.label %}fas fa-car
+                {% elif 'باربری' in field.label %}fas fa-truck
+                {% elif 'توضیحات' in field.label or 'یادداشت' in field.label %}fas fa-comment
+                {% else %}fas fa-edit
+                {% endif %}"></i> {{ field.label }}
+            </label>
+            <div class="input-container">
+              {{ field }}
+            </div>
+            {% if field.help_text %}
+            <small class="form-helptext">{{ field.help_text }}</small>
+            {% endif %}
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- اطلاعات وزن‌گیری -->
+    <div class="form-section">
+      <h3 class="section-title">
+        <i class="fas fa-weight"></i> اطلاعات وزن‌گیری
+      </h3>
+      <div class="form-grid">
+        {% for field in form %}
+          {% if field.name in 'empty_weight,loaded_weight,delivered_weight,weight_difference'|split:',' %}
+          <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
+            <label>
+              {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}
+              <span class="readonly-indicator" title="این فیلد قابل ویرایش نیست"><i class="fas fa-lock"></i></span>
+              {% endif %}
+              <i class="fas fa-weight"></i> {{ field.label }}
+            </label>
+            <div class="input-container">
+              {{ field }}
+            </div>
+            {% if field.help_text %}
+            <small class="form-helptext">{{ field.help_text }}</small>
+            {% endif %}
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- اطلاعات اضافی -->
+    <div class="form-section">
+      <h3 class="section-title">
+        <i class="fas fa-info-circle"></i> اطلاعات اضافی
+      </h3>
+      <div class="form-grid">
+        {% for field in form %}
+          {% if field.name in 'state,description'|split:',' %}
+          <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
+            <label>
+              {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}
+              <span class="readonly-indicator" title="این فیلد قابل ویرایش نیست"><i class="fas fa-lock"></i></span>
+              {% endif %}
+              <i class="{% if 'وضعیت' in field.label %}fas fa-flag
+                {% elif 'توضیحات' in field.label %}fas fa-comment
+                {% else %}fas fa-edit
+                {% endif %}"></i> {{ field.label }}
+            </label>
+            <div class="input-container">
+              {{ field }}
+            </div>
+            {% if field.help_text %}
+            <small class="form-helptext">{{ field.help_text }}</small>
+            {% endif %}
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- دکمه‌های اکشن -->
+    <div class="form-actions">
+      <!-- دکمه ذخیره اصلی -->
+      <button type="submit" class="button save-button">
+        <i class="fas fa-save"></i> ذخیره تغییرات
+      </button>
+
+      <!-- دکمه‌های مخصوص مدیر مالی -->
+      {% if user_role == "financial_manager" or user_role == "admin" %}
+        {% if purchase.state in 'initiated,payment_verification_pending'|split:',' %}
+          <button type="submit" name="approve_payment" class="button approve-btn financial" formnovalidate>
+            <i class="fas fa-check-circle"></i> 💰 تایید پرداخت
+          </button>
+        {% endif %}
+      {% endif %}
+
+      <!-- دکمه‌های مخصوص مدیر لجستیک -->
+      {% if user_role == "logistics_manager" or user_role == "admin" %}
+        {% if purchase.state == 'payment_verified' %}
+          <button type="submit" name="assign_address" class="button approve-btn logistics" formnovalidate>
+            <i class="fas fa-map-marker-alt"></i> 📍 تخصیص آدرس انبار
+          </button>
+        {% endif %}
+        
+        {% if purchase.state == 'address_assigned' %}
+          <button type="submit" name="send_to_warehouse" class="button approve-btn logistics" formnovalidate>
+            <i class="fas fa-warehouse"></i> 🏭 ارسال به انبار
+          </button>
+        {% endif %}
+        
+        {% if purchase.state == 'sent_to_warehouse' %}
+          <button type="submit" name="notify_carrier" class="button approve-btn logistics" formnovalidate>
+            <i class="fas fa-truck"></i> 🚚 اعلام بار به باربری
+          </button>
+        {% endif %}
+        
+        {% if purchase.state == 'carrier_notified' %}
+          <button type="submit" name="confirm_vehicle_arrival" class="button approve-btn logistics" formnovalidate>
+            <i class="fas fa-car"></i> 🚗 تایید ورود ماشین
+          </button>
+        {% endif %}
+        
+        {% if purchase.state == 'vehicle_arrived' %}
+          <button type="submit" name="record_empty_weight" class="button approve-btn logistics" formnovalidate>
+            <i class="fas fa-weight-hanging"></i> ⚖️ ثبت وزن خالی
+          </button>
+        {% endif %}
+        
+        {% if purchase.state == 'empty_weighed' %}
+          <button type="submit" name="record_loaded_weight" class="button approve-btn logistics" formnovalidate>
+            <i class="fas fa-balance-scale"></i> ⚖️ ثبت وزن پر
+          </button>
+        {% endif %}
+        
+        {% if purchase.state == 'loaded_weighed' %}
+          <button type="submit" name="issue_barnameh" class="button approve-btn logistics" formnovalidate>
+            <i class="fas fa-file-invoice"></i> 📋 صدور بارنامه
+          </button>
+        {% endif %}
+        
+        {% if purchase.state == 'barnameh_issued' %}
+          <button type="submit" name="confirm_delivery" class="button approve-btn logistics" formnovalidate>
+            <i class="fas fa-handshake"></i> 🤝 تایید تحویل
+          </button>
+        {% endif %}
+        
+        {% if purchase.state == 'delivered' %}
+          <button type="submit" name="close_purchase" class="button approve-btn logistics" formnovalidate>
+            <i class="fas fa-check-circle"></i> ✅ بستن خرید
+          </button>
+        {% endif %}
+      {% endif %}
+
+      <!-- دکمه‌های مخصوص ادمین -->
+      {% if user_role == "admin" %}
+        <button type="submit" name="cancel_purchase" class="button approve-btn danger" formnovalidate
+                onclick="return confirm('آیا از لغو کردن این خرید اطمینان دارید؟');">
+          <i class="fas fa-times-circle"></i> ❌ لغو خرید
+        </button>
+        
+        <button type="submit" name="archive_purchase" class="button approve-btn warning" formnovalidate
+                onclick="return confirm('آیا از آرشیو کردن این خرید اطمینان دارید؟');">
+          <i class="fas fa-archive"></i> 📦 آرشیو خرید
+        </button>
+      {% endif %}
+    </div>
+  </form>
+
+  <!-- بخش مدیریت اسناد -->
+  {% if user_role in "financial_manager,logistics_manager,sales_agent,admin"|split:"," %}
+  <div class="document-management-section">
+    <h3 class="section-title">
+      <i class="fas fa-file-upload"></i> مدیریت اسناد
+    </h3>
+    
+    <div class="document-content">
+      <!-- نمایش مدرک پرداخت موجود -->
+      {% if purchase.payment_document %}
+      <div class="existing-documents">
+        <h4><i class="fas fa-file-alt"></i> مدارک موجود</h4>
+        <div class="document-card">
+          <div class="document-info">
+            <span class="document-type">
+              <i class="fas fa-file-invoice text-primary"></i> مدرک پرداخت
+            </span>
+            <span class="document-date">{{ purchase.payment_verified_at|date:"Y/m/d"|default:"نامشخص" }}</span>
+            <span class="document-uploader">{{ purchase.payment_verified_by.get_full_name|default:"نامشخص" }}</span>
+          </div>
+          <div class="document-actions">
+            <a href="{{ purchase.payment_document.url }}" class="btn btn-sm btn-primary" target="_blank">
+              <i class="fas fa-download"></i> دانلود
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      
+      <!-- فرم آپلود مدرک جدید -->
+      {% if user_role == "financial_manager" or user_role == "admin" %}
+      <div class="upload-form-container">
+        <h4><i class="fas fa-cloud-upload-alt"></i> بارگذاری مدرک پرداخت</h4>
+        <form method="post" action="{% url 'upload_non_bazargah_document' purchase.id %}" enctype="multipart/form-data" class="upload-form">
+          {% csrf_token %}
+          
+          <input type="hidden" name="document_type" value="payment_document">
+          
+          <div class="form-group">
+            <label for="document_file"><i class="fas fa-file"></i> انتخاب فایل:</label>
+            <input type="file" name="document_file" id="document_file" class="form-control-file" accept=".pdf,.jpg,.jpeg,.png" required>
+            <small class="form-text text-muted">فرمت‌های مجاز: PDF، JPG، PNG (حداکثر حجم: 5MB)</small>
+          </div>
+          
+          <button type="submit" class="btn btn-success">
+            <i class="fas fa-upload"></i> بارگذاری مدرک
+          </button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // تایم‌لاین هاور
+    const steps = document.querySelectorAll(".timeline-item");
+    const popup = document.getElementById("step-info-popup");
+    
+    if (popup) {
+        steps.forEach(step => {
+            step.addEventListener("mouseenter", function(event) {
+                const info = step.getAttribute("data-step-info");
+                // نمایش tooltip ساده
+                step.title = info;
+            });
+        });
+    }
+    
+    // افزودن انیمیشن به کارت‌های اطلاعات
+    const infoCards = document.querySelectorAll('.info-card');
+    infoCards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+        card.style.animation = 'fadeInUp 0.5s ease forwards';
+    });
+    
+    // انیمیشن برای بخش‌های فرم
+    const formSections = document.querySelectorAll('.form-section');
+    formSections.forEach((section, index) => {
+        section.style.animationDelay = `${(index + 1) * 0.1}s`;
+        section.style.animation = 'slideInFromLeft 0.6s ease forwards';
+    });
+    
+    // انیمیشن برای دکمه‌های اکشن
+    const actionButtons = document.querySelectorAll('.approve-btn');
+    actionButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            this.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                this.style.transform = '';
+            }, 150);
+        });
+    });
+    
+    // انیمیشن برای فیلدهای فقط خواندنی
+    const readonlyFields = document.querySelectorAll('.form-group.readonly');
+    readonlyFields.forEach(field => {
+        field.addEventListener('mouseenter', function() {
+            const indicator = this.querySelector('.readonly-indicator');
+            if (indicator) {
+                indicator.style.transform = 'scale(1.1)';
+            }
+        });
+        
+        field.addEventListener('mouseleave', function() {
+            const indicator = this.querySelector('.readonly-indicator');
+            if (indicator) {
+                indicator.style.transform = 'scale(1)';
+            }
+        });
+    });
+    
+    // محاسبه خودکار مبلغ پرداختی
+    function calculateTotalAmount() {
+        const quantityField = document.querySelector('input[name="quantity"]');
+        const customerPriceField = document.querySelector('input[name="customer_price"]');
+        const unitField = document.querySelector('select[name="unit"]');
+        const bagWeightField = document.querySelector('input[name="bag_weight"]');
+        const amountPaidField = document.querySelector('input[name="amount_paid"]');
+        
+        if (quantityField && customerPriceField && unitField && amountPaidField) {
+            const quantity = parseFloat(quantityField.value) || 0;
+            const customerPrice = parseFloat(customerPriceField.value) || 0;
+            const unit = unitField.value;
+            const bagWeight = parseFloat(bagWeightField?.value) || 0;
+            
+            let quantityInKg = quantity;
+            
+            // تبدیل واحد به کیلوگرم
+            if (unit === 'Ton') {
+                quantityInKg = quantity * 1000;
+            } else if (unit === 'Kiseh' && bagWeight > 0) {
+                quantityInKg = quantity * bagWeight;
+            }
+            
+            const totalAmount = quantityInKg * customerPrice;
+            
+            // نمایش مبلغ با کاما
+            if (totalAmount > 0) {
+                amountPaidField.value = Math.round(totalAmount);
+                // اضافه کردن کاما برای نمایش بهتر
+                const formattedAmount = Math.round(totalAmount).toLocaleString('fa-IR');
+                amountPaidField.setAttribute('data-formatted', formattedAmount);
+            } else {
+                amountPaidField.value = '';
+            }
+        }
+    }
+    
+    // اتصال رویدادها برای محاسبه خودکار
+    const fieldsForCalculation = ['quantity', 'customer_price', 'unit', 'bag_weight'];
+    fieldsForCalculation.forEach(fieldName => {
+        const field = document.querySelector(`[name="${fieldName}"]`);
+        if (field) {
+            field.addEventListener('input', calculateTotalAmount);
+            field.addEventListener('change', calculateTotalAmount);
+        }
+    });
+    
+    // محاسبه اولیه هنگام بارگذاری صفحه
+    calculateTotalAmount();
+});
+
+// افزودن keyframes برای انیمیشن
+const style = document.createElement('style');
+style.textContent = `
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.form-section {
+  opacity: 0;
+}
+
+.readonly-indicator {
+  transition: transform 0.3s ease;
+}
+`;
+document.head.appendChild(style);
+</script>
+
+{% endblock %}

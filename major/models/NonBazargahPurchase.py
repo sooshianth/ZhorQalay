@@ -91,7 +91,25 @@ class NonBazargahPurchase(BasePurchase):
         user_role = determine_user_role(user)
         return user_role in ['financial_manager', 'admin'] and self.state in ['initiated', 'payment_verification_pending']
     
+    def calculate_total_amount(self):
+        """محاسبه مبلغ کل بر اساس مقدار و فی فروش"""
+        if self.quantity and self.customer_price:
+            # تبدیل واحد به کیلوگرم برای محاسبه
+            quantity_in_kg = self.quantity
+            if self.unit == 'Ton':
+                quantity_in_kg = self.quantity * 1000
+            elif self.unit == 'Kiseh' and self.bag_weight:
+                quantity_in_kg = self.quantity * self.bag_weight
+            
+            return quantity_in_kg * self.customer_price
+        return None
+
     def save(self, *args, **kwargs):
+        # محاسبه مبلغ پرداختی خودکار
+        calculated_amount = self.calculate_total_amount()
+        if calculated_amount:
+            self.amount_paid = calculated_amount
+        
         # محاسبه اختلاف وزن هنگام ذخیره
         if self.delivered_weight and self.quantity:
             self.weight_difference = self.calculate_weight_difference()

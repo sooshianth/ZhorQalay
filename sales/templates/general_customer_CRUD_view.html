@@ -2099,6 +2099,7 @@
                                         <p>{{ purchase.description }}</p>
                                     </div>
                                 {% endif %}
+                                <p><a href="{% url 'non_bazargah_purchase_CRUD' purchase.id %}" class="view-details-button">مشاهده جزئیات</a></p>
                             </div>
                         </div>
                     {% empty %}
