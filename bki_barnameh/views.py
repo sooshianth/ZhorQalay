@@ -2358,7 +2358,7 @@ def fast_barnameh_report_pdf(request):
         
         # محاسبه تاریخ‌های مورد نیاز
         now = timezone.now()
-        four_days_ago = now - timedelta(days=4)
+        four_days_ago = now - timedelta(days=7)
         
         logger.info(f"گزارش بارنامه‌های سریع از {four_days_ago} تا {now}")
         
@@ -2381,7 +2381,7 @@ def fast_barnameh_report_pdf(request):
                 if barnameh.barnameh_created_at:
                     # محاسبه تفاوت زمان بین ثبت خرید و صدور بارنامه
                     time_diff = barnameh.barnameh_created_at - purchase.created_at
-                    if time_diff.days < 3:  # کمتر از 3 روز
+                    if time_diff.days <= 3:  # کمتر از 3 روز
                         # محاسبه دقیق تفاوت روز
                         purchase_date = purchase.created_at.date()
                         barnameh_date = barnameh.barnameh_created_at.date()
