@@ -63,6 +63,25 @@ class Barnameh(models.Model):
     rent = models.PositiveBigIntegerField(verbose_name='کرایه', null=True, blank=True)
     type = models.CharField(max_length=20, verbose_name='نوع بارنامه', choices=BARNAMEH_TYPE_CHOICES, null=True, blank=True)
     non_bazargah_purchase = models.ForeignKey(NonBazargahPurchase, on_delete=models.CASCADE, verbose_name='خرید غیر بازارگاهی', null=True, blank=True)
+    
+    # فیلدهای اضافی برای وزن‌گیری (خاص خریدهای خارج بازارگاه)
+    empty_vehicle_weight = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='وزن خالی ماشین', null=True, blank=True, help_text="وزن ماشین بدون بار (کیلوگرم)")
+    loaded_vehicle_weight = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='وزن پر ماشین', null=True, blank=True, help_text="وزن ماشین همراه با بار (کیلوگرم)")
+    final_delivered_weight = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='وزن نهایی تحویل', null=True, blank=True, help_text="وزن نهایی تحویل داده شده به مشتری (کیلوگرم)")
+    
+    # فیلدهای مربوط به باسکول
+    empty_scale_receipt = models.FileField(upload_to='scale_receipts/empty/', verbose_name='رسید باسکول خالی', null=True, blank=True)
+    loaded_scale_receipt = models.FileField(upload_to='scale_receipts/loaded/', verbose_name='رسید باسکول پر', null=True, blank=True)
+    delivery_scale_receipt = models.FileField(upload_to='scale_receipts/delivery/', verbose_name='رسید باسکول تحویل', null=True, blank=True)
+    
+    # فیلدهای زمانی برای مراحل مختلف
+    vehicle_arrival_time = jmodels.jDateTimeField(verbose_name='زمان ورود ماشین', null=True, blank=True)
+    empty_weigh_time = jmodels.jDateTimeField(verbose_name='زمان وزن خالی', null=True, blank=True)
+    loading_start_time = jmodels.jDateTimeField(verbose_name='شروع بارگیری', null=True, blank=True)
+    loading_end_time = jmodels.jDateTimeField(verbose_name='پایان بارگیری', null=True, blank=True)
+    loaded_weigh_time = jmodels.jDateTimeField(verbose_name='زمان وزن پر', null=True, blank=True)
+    departure_time = jmodels.jDateTimeField(verbose_name='زمان خروج از انبار', null=True, blank=True)
+    delivery_time = jmodels.jDateTimeField(verbose_name='زمان تحویل', null=True, blank=True)
 
     class Meta:
         verbose_name = 'بارنامه'
@@ -185,7 +204,48 @@ class Barnameh(models.Model):
         return self.is_sent_to_bki_at
     
     def get_non_product(self):
-        return self.non_bazargah_purchase.product
+        return self.non_bazargah_purchase.product if self.non_bazargah_purchase else None
+    
+    def get_net_cargo_weight(self):
+        """محاسبه وزن خالص بار (وزن پر - وزن خالی)"""
+        if self.loaded_vehicle_weight and self.empty_vehicle_weight:
+            return float(self.loaded_vehicle_weight) - float(self.empty_vehicle_weight)
+        return None
+    
+    def get_weight_difference_from_order(self):
+        """محاسبه اختلاف وزن تحویل نسبت به سفارش"""
+        if self.final_delivered_weight:
+            if self.non_bazargah_purchase and self.non_bazargah_purchase.quantity:
+                # تبدیل واحد بر اساس نوع واحد خرید خارج بازارگاه
+                ordered_weight_in_kg = self.non_bazargah_purchase.quantity
+                if self.non_bazargah_purchase.unit == 'Ton':
+                    ordered_weight_in_kg = self.non_bazargah_purchase.quantity * 1000
+                elif self.non_bazargah_purchase.unit == 'Kiseh' and self.non_bazargah_purchase.bag_weight:
+                    ordered_weight_in_kg = self.non_bazargah_purchase.quantity * self.non_bazargah_purchase.bag_weight
+                
+                return float(self.final_delivered_weight) - ordered_weight_in_kg
+            elif self.purchase and self.purchase.order_weight:
+                return float(self.final_delivered_weight) - self.purchase.order_weight
+        return None
+    
+    def get_loading_duration(self):
+        """محاسبه مدت زمان بارگیری"""
+        if self.loading_start_time and self.loading_end_time:
+            duration = self.loading_end_time - self.loading_start_time
+            return duration
+        return None
+    
+    def is_non_bazargah_barnameh(self):
+        """بررسی اینکه آیا این بارنامه مربوط به خرید خارج بازارگاه است یا نه"""
+        return self.non_bazargah_purchase is not None and self.purchase is None
+    
+    def get_related_purchase_state(self):
+        """دریافت وضعیت خرید مرتبط (بازارگاه یا خارج بازارگاه)"""
+        if self.non_bazargah_purchase:
+            return self.non_bazargah_purchase.state
+        elif self.purchase:
+            return self.purchase.state
+        return None
 
     def set_the_purchase_and_shenase_takhsis(self):
         try:
@@ -258,6 +318,12 @@ class Barnameh(models.Model):
 
         self.total_purchase_amount = self.get_total_purchase_amount()
         self.total_sales_amount = self.get_total_sales_amount()
+        
+        # برای بارنامه‌های خارج بازارگاه، اگر وزن خالص محاسبه شده باشد، tonnage را بروزرسانی کن
+        if self.is_non_bazargah_barnameh():
+            net_weight = self.get_net_cargo_weight()
+            if net_weight and net_weight > 0:
+                self.tonnage = net_weight
 
         super().save(*args, **kwargs)
         
