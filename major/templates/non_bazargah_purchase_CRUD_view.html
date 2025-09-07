@@ -310,6 +310,18 @@
     background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
     color: white;
   }
+  
+  .approve-btn:disabled {
+    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+    color: #bdc3c7;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  
+  .approve-btn:disabled:hover {
+    transform: none;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  }
 
   /* اطلاعات خرید */
   .purchase-info {
@@ -362,64 +374,93 @@
     font-weight: normal;
   }
 
-  /* بخش آپلود مدارک */
-  .document-management-section {
-    margin-top: 30px;
-    background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
-    border-radius: 12px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-    border: 1px solid #dee2e6;
-    overflow: hidden;
-  }
   
-  .document-management-section .section-title {
-    margin-bottom: 0;
-    padding: 20px 25px;
-    background: linear-gradient(135deg, #e9ecef 0%, #f8f9fa 100%);
-    border-bottom: 2px solid #dee2e6;
-  }
-  
-  .document-content {
-    padding: 25px;
-  }
-  
-  .existing-documents {
-    margin-bottom: 25px;
-  }
-  
-  .document-card {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  /* استایل آپلود مدرک پرداخت */
+  .payment-document-upload {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
     padding: 15px;
     background: #f8f9fa;
-    border-radius: 8px;
-    border: 1px solid #e9ecef;
-    margin-bottom: 15px;
+    transition: all 0.3s ease;
   }
   
-  .document-info {
+  .payment-document-upload:hover {
+    border-color: #3498db;
+    background: #f0f8ff;
+  }
+  
+  .current-document {
     display: flex;
-    flex-direction: column;
-    gap: 5px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #d4edda;
+    border-radius: 6px;
+    border: 1px solid #c3e6cb;
+    color: #155724;
   }
   
-  .document-type {
+  .document-link {
+    color: #007bff;
+    text-decoration: none;
     font-weight: bold;
-    color: #495057;
   }
   
-  .document-date,
-  .document-uploader {
-    font-size: 0.9rem;
-    color: #6c757d;
+  .document-link:hover {
+    color: #0056b3;
+    text-decoration: underline;
   }
   
-  .upload-form-container {
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border: 1px solid #e9ecef;
+  .upload-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  
+  .upload-container input[type="file"] {
+    flex: 1;
+    min-width: 200px;
+    padding: 8px 12px;
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    background: white;
+  }
+  
+  .btn-upload {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+  }
+  
+  .btn-upload:hover {
+    background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(19, 132, 150, 0.3);
+  }
+  
+  .btn-upload:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  
+  /* فرم آپلود inline */
+  .upload-form-inline {
+    margin: 0;
+    padding: 0;
+  }
+  
+  .upload-form-inline .upload-container {
+    margin-bottom: 10px;
   }
 
   /* ریسپانسیو */
@@ -468,6 +509,26 @@
     
     .timeline-label {
       font-size: 11px;
+    }
+    
+    .upload-container {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    
+    .upload-container input[type="file"] {
+      min-width: unset;
+      margin-bottom: 10px;
+    }
+    
+    .btn-upload {
+      width: 100%;
+    }
+    
+    .current-document {
+      flex-direction: column;
+      align-items: flex-start;
+      text-align: right;
     }
   }
 </style>
@@ -573,6 +634,15 @@
   <form method="post" enctype="multipart/form-data" class="purchase-form">
     {% csrf_token %}
     
+    <!-- Hidden inputs برای فیلدهای readonly -->
+    <input type="hidden" name="customer" value="{{ purchase.customer.id|default:'' }}">
+    <input type="hidden" name="quantity" value="{{ purchase.quantity|default:'' }}">
+    <input type="hidden" name="customer_price" value="{{ purchase.customer_price|default:'' }}">
+    <input type="hidden" name="amount_paid" value="{{ purchase.amount_paid|default:'' }}">
+    <input type="hidden" name="bag_weight" value="{{ purchase.bag_weight|default:'' }}">
+    <input type="hidden" name="unit" value="{{ purchase.unit|default:'' }}">
+    <input type="hidden" name="company_price" value="{{ purchase.company_price|default:'' }}">
+    
     <!-- اطلاعات اساسی خرید -->
     <div class="form-section">
       <h3 class="section-title">
@@ -612,14 +682,13 @@
       </h3>
       <div class="form-grid">
         {% for field in form %}
-          {% if field.name in 'company_price,customer_price,amount_paid,payment_document,payment_notes'|split:',' %}
+          {% if field.name in 'company_price,customer_price,amount_paid,payment_notes'|split:',' %}
           <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
             <label>
               {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}
               <span class="readonly-indicator" title="این فیلد قابل ویرایش نیست"><i class="fas fa-lock"></i></span>
               {% endif %}
               <i class="{% if 'قیمت' in field.label or 'مبلغ' in field.label %}fas fa-money-bill-wave
-                {% elif 'مدرک' in field.label %}fas fa-file-upload
                 {% elif 'توضیحات' in field.label %}fas fa-comment
                 {% else %}fas fa-edit
                 {% endif %}"></i> {{ field.label }}
@@ -633,6 +702,35 @@
           </div>
           {% endif %}
         {% endfor %}
+        
+        <!-- فیلد آپلود مدرک پرداخت -->
+        {% if user_role == "financial_manager" or user_role == "admin" %}
+        <div class="form-group">
+          <label>
+            <i class="fas fa-file-upload"></i> مدرک پرداخت
+          </label>
+          <div class="payment-document-upload">
+            {% if purchase.payment_document %}
+            <div class="current-document">
+              <i class="fas fa-file-check text-success"></i>
+              <span>مدرک موجود: </span>
+              <a href="{{ purchase.payment_document.url }}" target="_blank" class="document-link">
+                <i class="fas fa-download"></i> دانلود
+              </a>
+            </div>
+            {% endif %}
+            
+            <!-- فیلد آپلود درون همین فرم -->
+            <div class="upload-container">
+              <input type="file" name="payment_document_upload" class="form-control-file" accept=".pdf,.jpg,.jpeg,.png">
+              <button type="submit" name="upload_document" class="btn btn-upload" formnovalidate>
+                <i class="fas fa-upload"></i> آپلود مدرک
+              </button>
+            </div>
+            <small class="form-text text-muted">فرمت‌های مجاز: PDF، JPG، PNG (حداکثر حجم: 5MB)</small>
+          </div>
+        </div>
+        {% endif %}
       </div>
     </div>
 
@@ -709,15 +807,13 @@
       </h3>
       <div class="form-grid">
         {% for field in form %}
-          {% if field.name in 'assigned_warehouse_address,warehouse_contact_person,warehouse_contact_phone,vehicle_type,barbary_confidential_number,barbary_customer_number,logistics_notes'|split:',' %}
+          {% if field.name in 'vehicle_type,barbary_confidential_number,barbary_customer_number,logistics_notes'|split:',' %}
           <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
             <label>
               {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}
               <span class="readonly-indicator" title="این فیلد قابل ویرایش نیست"><i class="fas fa-lock"></i></span>
               {% endif %}
-              <i class="{% if 'انبار' in field.label %}fas fa-warehouse
-                {% elif 'تماس' in field.label or 'تلفن' in field.label %}fas fa-phone
-                {% elif 'خودرو' in field.label or 'ماشین' in field.label %}fas fa-car
+              <i class="{% if 'خودرو' in field.label or 'ماشین' in field.label %}fas fa-car
                 {% elif 'باربری' in field.label %}fas fa-truck
                 {% elif 'توضیحات' in field.label or 'یادداشت' in field.label %}fas fa-comment
                 {% else %}fas fa-edit
@@ -802,18 +898,31 @@
       <!-- دکمه‌های مخصوص مدیر مالی -->
       {% if user_role == "financial_manager" or user_role == "admin" %}
         {% if purchase.state in 'initiated,payment_verification_pending'|split:',' %}
-          <button type="submit" name="approve_payment" class="button approve-btn financial" formnovalidate>
-            <i class="fas fa-check-circle"></i> 💰 تایید پرداخت
-          </button>
+          {% if purchase.payment_document %}
+            <button type="submit" name="approve_payment" class="button approve-btn financial" formnovalidate>
+              <i class="fas fa-check-circle"></i> 💰 تایید پرداخت
+            </button>
+          {% else %}
+            <button type="button" class="button approve-btn financial" disabled title="ابتدا باید مدرک پرداخت آپلود شود">
+              <i class="fas fa-lock"></i> 🔒 تایید پرداخت (نیاز به مدرک)
+            </button>
+          {% endif %}
         {% endif %}
       {% endif %}
 
       <!-- دکمه‌های مخصوص مدیر لجستیک -->
       {% if user_role == "logistics_manager" or user_role == "admin" %}
         {% if purchase.state == 'payment_verified' %}
-          <button type="submit" name="assign_address" class="button approve-btn logistics" formnovalidate>
-            <i class="fas fa-map-marker-alt"></i> 📍 تخصیص آدرس انبار
-          </button>
+          {% comment %}بررسی تکمیل اطلاعات خریدار{% endcomment %}
+          {% if purchase.buyer_name and purchase.address and purchase.delivery_address and purchase.delivery_receiver_name and purchase.tahvil_phone_number %}
+            <button type="submit" name="assign_address" class="button approve-btn logistics" formnovalidate>
+              <i class="fas fa-map-marker-alt"></i> 📍 تخصیص آدرس انبار
+            </button>
+          {% else %}
+            <button type="button" class="button approve-btn logistics" disabled title="ابتدا باید اطلاعات خریدار تکمیل شود">
+              <i class="fas fa-lock"></i> 🔒 تخصیص آدرس (نیاز به تکمیل اطلاعات)
+            </button>
+          {% endif %}
         {% endif %}
         
         {% if purchase.state == 'address_assigned' %}
@@ -880,59 +989,6 @@
     </div>
   </form>
 
-  <!-- بخش مدیریت اسناد -->
-  {% if user_role in "financial_manager,logistics_manager,sales_agent,admin"|split:"," %}
-  <div class="document-management-section">
-    <h3 class="section-title">
-      <i class="fas fa-file-upload"></i> مدیریت اسناد
-    </h3>
-    
-    <div class="document-content">
-      <!-- نمایش مدرک پرداخت موجود -->
-      {% if purchase.payment_document %}
-      <div class="existing-documents">
-        <h4><i class="fas fa-file-alt"></i> مدارک موجود</h4>
-        <div class="document-card">
-          <div class="document-info">
-            <span class="document-type">
-              <i class="fas fa-file-invoice text-primary"></i> مدرک پرداخت
-            </span>
-            <span class="document-date">{{ purchase.payment_verified_at|date:"Y/m/d"|default:"نامشخص" }}</span>
-            <span class="document-uploader">{{ purchase.payment_verified_by.get_full_name|default:"نامشخص" }}</span>
-          </div>
-          <div class="document-actions">
-            <a href="{{ purchase.payment_document.url }}" class="btn btn-sm btn-primary" target="_blank">
-              <i class="fas fa-download"></i> دانلود
-            </a>
-          </div>
-        </div>
-      </div>
-      {% endif %}
-      
-      <!-- فرم آپلود مدرک جدید -->
-      {% if user_role == "financial_manager" or user_role == "admin" %}
-      <div class="upload-form-container">
-        <h4><i class="fas fa-cloud-upload-alt"></i> بارگذاری مدرک پرداخت</h4>
-        <form method="post" action="{% url 'upload_non_bazargah_document' purchase.id %}" enctype="multipart/form-data" class="upload-form">
-          {% csrf_token %}
-          
-          <input type="hidden" name="document_type" value="payment_document">
-          
-          <div class="form-group">
-            <label for="document_file"><i class="fas fa-file"></i> انتخاب فایل:</label>
-            <input type="file" name="document_file" id="document_file" class="form-control-file" accept=".pdf,.jpg,.jpeg,.png" required>
-            <small class="form-text text-muted">فرمت‌های مجاز: PDF، JPG، PNG (حداکثر حجم: 5MB)</small>
-          </div>
-          
-          <button type="submit" class="btn btn-success">
-            <i class="fas fa-upload"></i> بارگذاری مدرک
-          </button>
-        </form>
-      </div>
-      {% endif %}
-    </div>
-  </div>
-  {% endif %}
 </div>
 
 <script>

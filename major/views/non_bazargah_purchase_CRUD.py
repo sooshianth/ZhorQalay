@@ -40,6 +40,20 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
     def __init__(self, *args, user_role=None, **kwargs):
         super().__init__(*args, **kwargs)
         
+        # اطمینان از وجود مقادیر اولیه (جلوگیری از خطای required)
+        if self.instance and self.instance.pk:
+            # تنظیم مقادیر اولیه برای company_price
+            if self.instance.company_price == 0 and self.instance.customer_price:
+                self.initial['company_price'] = self.instance.customer_price
+            else:
+                self.initial['company_price'] = self.instance.company_price or 0
+        
+        # فیلدهای همیشه قفل را اختیاری کن
+        readonly_fields = ['customer', 'quantity', 'customer_price', 'amount_paid', 'bag_weight', 'unit', 'company_price']
+        for field_name in readonly_fields:
+            if field_name in self.fields:
+                self.fields[field_name].required = False
+        
         # تنظیم فیلدها بر اساس نقش کاربر
         if user_role == 'sales_agent':
             # کارشناس فروش فقط اطلاعات اولیه
@@ -63,12 +77,10 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
             ]
             
         elif user_role == 'logistics_manager':
-            # مدیر لجستیک - مدیریت آدرس، انبار، وزن‌گیری
+            # مدیر لجستیک - مدیریت آدرس، وزن‌گیری
             allowed_fields = [
                 'customer', 'product', 'unit', 'quantity', 'company_price',
-                'customer_price', 'assigned_warehouse_address',
-                'warehouse_contact_person', 'warehouse_contact_phone',
-                'logistics_notes', 'empty_weight', 'loaded_weight',
+                'customer_price', 'logistics_notes', 'empty_weight', 'loaded_weight',
                 'delivered_weight', 'weight_difference', 'description',
                 'state', 'vehicle_type', 'barbary_confidential_number',
                 'barbary_customer_number'
@@ -143,6 +155,26 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
                         'readonly': 'readonly', 'disabled': True
                     })
         
+        # فیلدهای اطلاعات خریدار بعد از تخصیص آدرس قفل می‌شوند
+        address_assigned_states = [
+            'address_assigned', 'sent_to_warehouse', 'carrier_notified',
+            'vehicle_arrived', 'empty_weighed', 'loaded_weighed',
+            'barnameh_issued', 'delivered', 'purchase_closed'
+        ]
+        
+        if state in address_assigned_states:
+            buyer_info_fields = [
+                'buyer_name', 'buyer_postal_code', 'buyer_national_id',
+                'buyer_user_type', 'address', 'delivery_address',
+                'delivery_postal_code', 'delivery_receiver_name',
+                'tahvil_phone_number', 'code_melli_tahvil'
+            ]
+            for field_name in buyer_info_fields:
+                if field_name in self.fields:
+                    self.fields[field_name].widget.attrs.update({
+                        'readonly': 'readonly', 'disabled': True
+                    })
+        
         # فیلدهای وزن‌گیری فقط در مراحل مناسب قابل ویرایش
         weight_fields = ['empty_weight', 'loaded_weight', 'delivered_weight']
         if state not in ['vehicle_arrived', 'empty_weighed', 'loaded_weighed', 'barnameh_issued']:
@@ -157,7 +189,38 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
         
         # بایپس اعتبارسنجی برای دکمه‌های اکشن
         if cleaned_data.get('bypass_validation'):
+            # بازگردانی مقادیر فیلدهای readonly از instance اصلی
+            if self.instance and self.instance.pk:
+                readonly_fields = [
+                    'customer', 'quantity', 'customer_price', 'amount_paid', 
+                    'bag_weight', 'unit'
+                ]
+                for field_name in readonly_fields:
+                    if hasattr(self.instance, field_name):
+                        cleaned_data[field_name] = getattr(self.instance, field_name)
+                
+                # اطمینان از وجود company_price
+                if not cleaned_data.get('company_price'):
+                    cleaned_data['company_price'] = self.instance.company_price or 0
+            
             return cleaned_data
+        
+        # اطمینان از وجود company_price
+        company_price = cleaned_data.get('company_price')
+        customer_price = cleaned_data.get('customer_price')
+        
+        # اگر فیلدهای readonly خالی هستند، از instance بگیر
+        if self.instance and self.instance.pk:
+            if not customer_price:
+                cleaned_data['customer_price'] = self.instance.customer_price
+            if not company_price:
+                cleaned_data['company_price'] = self.instance.company_price or self.instance.customer_price or 0
+        
+        if not company_price or company_price == 0:
+            if customer_price:
+                cleaned_data['company_price'] = customer_price
+            else:
+                cleaned_data['company_price'] = 0
         
         # اعتبارسنجی وزن‌ها
         empty_weight = cleaned_data.get('empty_weight')
@@ -240,10 +303,27 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
             'approve_payment', 'assign_address', 'send_to_warehouse',
             'notify_carrier', 'confirm_vehicle_arrival', 'record_empty_weight',
             'record_loaded_weight', 'issue_barnameh', 'confirm_delivery',
-            'close_purchase', 'cancel_purchase', 'archive_purchase'
+            'close_purchase', 'cancel_purchase', 'archive_purchase', 'upload_document'
         ]
         
         is_action_button_pressed = any(action in request.POST for action in action_buttons)
+        
+        # پردازش آپلود مدرک
+        if 'upload_document' in request.POST:
+            document_file = request.FILES.get('payment_document_upload')
+            if document_file:
+                purchase.payment_document = document_file
+                # اطمینان از تنظیم company_price
+                if purchase.company_price == 0 and purchase.customer_price:
+                    purchase.company_price = purchase.customer_price
+                elif purchase.company_price == 0:
+                    purchase.company_price = 0
+                purchase.save()
+                messages.success(request, 'مدرک پرداخت با موفقیت بارگذاری شد - حالا می‌توانید پرداخت را تایید کنید')
+                return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+            else:
+                messages.error(request, 'لطفاً یک فایل انتخاب کنید')
+                return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
         
         if is_action_button_pressed:
             post_data['bypass_validation'] = 'true'
@@ -259,20 +339,37 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                     # اکشن‌های مدیر مالی
                     if user_role in ['financial_manager', 'admin']:
                         if purchase.state in ['initiated', 'payment_verification_pending'] and 'approve_payment' in request.POST:
-                            purchase.state = 'payment_verified'
-                            purchase.payment_verified_by = request.user
-                            purchase.payment_verified_at = timezone.now()
-                            action_taken = True
-                            messages.success(request, 'پرداخت با موفقیت تایید شد')
+                            # بررسی وجود مدرک پرداخت
+                            if not purchase.payment_document:
+                                messages.error(request, 'برای تایید پرداخت ابتدا باید مدرک پرداخت آپلود شود')
+                            else:
+                                purchase.state = 'payment_verified'
+                                purchase.payment_verified_by = request.user
+                                purchase.payment_verified_at = timezone.now()
+                                action_taken = True
+                                messages.success(request, 'پرداخت با موفقیت تایید شد')
                     
                     # اکشن‌های مدیر لجستیک
                     if user_role in ['logistics_manager', 'admin']:
                         if purchase.state == 'payment_verified' and 'assign_address' in request.POST:
-                            purchase.state = 'address_assigned'
-                            purchase.assigned_by = request.user
-                            purchase.assigned_at = timezone.now()
-                            action_taken = True
-                            messages.success(request, 'آدرس انبار تخصیص یافت')
+                            # بررسی تکمیل اطلاعات خریدار
+                            required_buyer_fields = [
+                                'buyer_name', 'address', 'delivery_address',
+                                'delivery_receiver_name', 'tahvil_phone_number'
+                            ]
+                            missing_fields = []
+                            for field_name in required_buyer_fields:
+                                if not getattr(purchase, field_name, None):
+                                    missing_fields.append(field_name)
+                            
+                            if missing_fields:
+                                messages.error(request, f'برای تخصیص آدرس ابتدا باید فیلدهای زیر تکمیل شوند: {", ".join(missing_fields)}')
+                            else:
+                                purchase.state = 'address_assigned'
+                                purchase.assigned_by = request.user
+                                purchase.assigned_at = timezone.now()
+                                action_taken = True
+                                messages.success(request, 'آدرس انبار تخصیص یافت')
                         
                         elif purchase.state == 'address_assigned' and 'send_to_warehouse' in request.POST:
                             purchase.state = 'sent_to_warehouse'
@@ -326,11 +423,32 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                             action_taken = True
                             messages.success(request, 'خرید آرشیو شد')
                     
-                    # ذخیره فرم
-                    purchase_instance = form.save()
-                    
+                    # ذخیره فرم فقط اگر اکشن انجام نشده باشد
                     if not action_taken:
+                        # فیلدهای قفل شده که نباید تغییر کنند
+                        locked_fields = [
+                            'customer', 'quantity', 'customer_price', 'amount_paid', 
+                            'bag_weight', 'unit', 'product', 'company_price', 'state'
+                        ]
+                        
+                        # ذخیره مقادیر اصلی فیلدهای قفل شده
+                        original_values = {}
+                        for field_name in locked_fields:
+                            if hasattr(purchase, field_name):
+                                original_values[field_name] = getattr(purchase, field_name)
+                        
+                        # ذخیره فرم
+                        purchase_instance = form.save(commit=False)
+                        
+                        # بازگردانی مقادیر اصلی فیلدهای قفل شده
+                        for field_name, original_value in original_values.items():
+                            setattr(purchase_instance, field_name, original_value)
+                        
+                        purchase_instance.save()
                         messages.success(request, 'تغییرات با موفقیت اعمال شد')
+                    else:
+                        # اگر اکشن انجام شده، فقط ذخیره
+                        purchase_instance = form.save()
                     
                     return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
                     
@@ -395,25 +513,10 @@ def delete_non_bazargah_purchase_view(request, purchase_id):
     return render(request, 'confirm_delete_non_bazargah.html', context)
 
 
-@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent')
-@login_required
-@csrf_exempt
-def upload_non_bazargah_document(request, purchase_id):
-    """آپلود مدارک برای خرید خارج بازارگاه"""
-    logger.warning(f"آپلود مدرک برای خرید خارج بازارگاه {purchase_id} توسط {request.user.username} با IP {get_client_ip(request)}")
-    
-    purchase = get_object_or_404(NonBazargahPurchase, id=purchase_id)
-    user_role = determine_user_role(request.user)
-    
-    if request.method == 'POST':
-        document_type = request.POST.get('document_type')
-        document_file = request.FILES.get('document_file')
-        
-        if document_type == 'payment_document' and document_file:
-            purchase.payment_document = document_file
-            purchase.save()
-            messages.success(request, 'مدرک پرداخت با موفقیت بارگذاری شد')
-        else:
-            messages.error(request, 'خطا در بارگذاری مدرک')
-    
-    return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+# View قدیمی آپلود مدرک - حذف شده چون حالا درون فرم اصلی handle می‌شود
+# @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent')
+# @login_required  
+# @csrf_exempt
+# def upload_non_bazargah_document(request, purchase_id):
+#     """آپلود مدارک برای خرید خارج بازارگاه - منسوخ شده"""
+#     return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
