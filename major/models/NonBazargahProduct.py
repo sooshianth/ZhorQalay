@@ -13,3 +13,8 @@ class NonBazargahProduct(Product):
 
     def __str__(self):
         return f"{self.name}"
+    
+    @staticmethod
+    def get_active_products():
+        """دریافت محصولات فعال خارج از بازارگاه"""
+        return NonBazargahProduct.objects.filter(status=True)

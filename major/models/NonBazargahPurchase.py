@@ -20,6 +20,8 @@ class NonBazargahPurchase(BasePurchase):
     purchase_number = models.CharField("شماره خرید", max_length=7, blank=True, null=True, unique=True)
     product = models.ForeignKey(NonBazargahProduct, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="محصول", related_name="non_bazargah_purchases")
     unit = models.CharField(max_length=100, null=True, blank=True, verbose_name="واحد", choices=UNIT_CHOICES)
+    quantity = models.PositiveIntegerField("مقدار", null=True, blank=True, help_text="مقدار خرید بر اساس واحد انتخاب شده")
+    bag_weight = models.PositiveIntegerField("وزن کیسه (کیلوگرم)", null=True, blank=True, help_text="وزن هر کیسه در صورت انتخاب واحد کیسه")
     state = models.CharField(max_length=100, null=True, blank=True, verbose_name="وضعیت", default='initiated')
 
     class Meta:

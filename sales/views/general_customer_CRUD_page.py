@@ -28,6 +28,8 @@ from core.PurchaseModel import Purchase
 from core.CargoProductModel import CargoProduct
 from core.SalesAgentModel import SalesAgent, PhoneAssignment
 from core.decorators.decorators import role_required
+from major.models.NonBazargahProduct import NonBazargahProduct
+from major.models.NonBazargahPurchase import NonBazargahPurchase
 
 import json
 from django.template.loader import render_to_string
@@ -254,6 +256,54 @@ class CustomerForm(forms.ModelForm):
             instance.save()
         
         return instance
+
+class NonBazargahPurchaseForm(forms.ModelForm):
+    """فرم خرید خارج بازارگاه"""
+    
+    class Meta:
+        model = NonBazargahPurchase
+        fields = ['product', 'unit', 'quantity', 'bag_weight', 'customer_price', 'description']
+        widgets = {
+            'product': forms.Select(attrs={'class': 'form-control'}),
+            'unit': forms.Select(attrs={'class': 'form-control'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
+            'bag_weight': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'placeholder': 'وزن هر کیسه (کیلوگرم)'}),
+            'customer_price': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'placeholder': 'قیمت واحد (ریال)'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'توضیحات خرید'}),
+        }
+        labels = {
+            'product': 'محصول',
+            'unit': 'واحد',
+            'quantity': 'مقدار',
+            'bag_weight': 'وزن کیسه (کیلوگرم)',
+            'customer_price': 'قیمت واحد (ریال)',
+            'description': 'توضیحات',
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # فقط محصولات فعال را نمایش بده
+        self.fields['product'].queryset = NonBazargahProduct.get_active_products()
+        
+        # تنظیم فیلدهای اختیاری
+        self.fields['bag_weight'].required = False
+        self.fields['customer_price'].required = False
+        self.fields['description'].required = False
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        unit = cleaned_data.get('unit')
+        bag_weight = cleaned_data.get('bag_weight')
+        
+        # اگر واحد کیسه انتخاب شده، وزن کیسه الزامی است
+        if unit == 'Kiseh' and not bag_weight:
+            raise forms.ValidationError('در صورت انتخاب واحد کیسه، وزن کیسه الزامی است.')
+        
+        # اگر واحد کیسه نیست، وزن کیسه نباید وارد شود
+        if unit != 'Kiseh' and bag_weight:
+            cleaned_data['bag_weight'] = None
+        
+        return cleaned_data
 
 def check_customer_sales_agent(customer, sales_agent):
     if sales_agent not in customer.sales_agent.all():
@@ -563,6 +613,53 @@ def general_customer_CRUD_view(request):
                 messages.error(request, "لطفاً تمام فیلدهای ضروری را پر کنید")
             return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}&active_tab={active_tab}')
 
+        # ثبت خرید خارج بازارگاه
+        elif 'create_non_bazargah_purchase' in request.POST:
+            active_tab = request.POST.get('active_tab', 'non_bazargah_purchases')
+            
+            # ایجاد فرم خرید خارج بازارگاه
+            purchase_form = NonBazargahPurchaseForm(request.POST)
+            
+            if purchase_form.is_valid():
+                try:
+                    with transaction.atomic():
+                        # ایجاد خرید جدید
+                        new_purchase = purchase_form.save(commit=False)
+                        new_purchase.customer = customer
+                        new_purchase.type = 'non_bazaargah'
+                        new_purchase.state = 'initiated'
+                        
+                        # تنظیم کارشناس فروش یکتا
+                        if sales_agent:
+                            new_purchase.unique_sales_agent = sales_agent
+                            new_purchase.unique_sales_agent_code = sales_agent.factor_code
+                        
+                        # محاسبه وزن کل بر اساس واحد
+                        unit = new_purchase.unit
+                        quantity = new_purchase.quantity
+                        
+                        if unit == 'Kilo':
+                            new_purchase.total_weight = quantity
+                        elif unit == 'Ton':
+                            new_purchase.total_weight = quantity * 1000  # تبدیل تن به کیلوگرم
+                        elif unit == 'Kiseh' and new_purchase.bag_weight:
+                            new_purchase.total_weight = quantity * new_purchase.bag_weight
+                        
+                        new_purchase.full_clean()
+                        new_purchase.save()
+                        
+                        messages.success(request, f"خرید خارج بازارگاه '{new_purchase.product.name}' با موفقیت ثبت شد")
+                        
+                except Exception as e:
+                    messages.error(request, f"خطا در ثبت خرید خارج بازارگاه: {str(e)}")
+            else:
+                # نمایش خطاهای فرم
+                for field, errors in purchase_form.errors.items():
+                    for error in errors:
+                        messages.error(request, f"خطا در فیلد '{purchase_form.fields[field].label}': {error}")
+            
+            return redirect(reverse('general_customer_CRUD') + f'?customer_id={customer.id}&active_tab={active_tab}')
+
         # اضافه کردن شماره تلفن جدید
         elif 'add_phone' in request.POST:
             new_phone = request.POST.get('new_phone')
@@ -829,6 +926,7 @@ def general_customer_CRUD_view(request):
     calls = customer.get_calls_by_time() if customer else []
     tasks = customer.get_tasks_by_time() if customer else []
     purchases = customer.get_purchases_by_time() if customer else []
+    non_bazargah_purchases = customer.non_bazargah_purchases_made.all().order_by('-created_at') if customer else []
     all_phone_numbers = customer.get_all_phone_numbers() if customer else []
     purchase_phone_numbers = customer.get_purchase_phone_numbers() if customer else []
     
@@ -856,6 +954,10 @@ def general_customer_CRUD_view(request):
     
     # دریافت محصولات فعال برای نمایش در فرم خرید
     active_products = CargoProduct.get_active_products()
+    active_non_bazargah_products = NonBazargahProduct.get_active_products()
+    
+    # ایجاد فرم خرید خارج بازارگاه
+    non_bazargah_purchase_form = NonBazargahPurchaseForm()
     
     # بررسی آیا کاربر شماره معتبر وارد کرده و مشتری پیدا نشده
     search_valid_phone = False
@@ -880,11 +982,14 @@ def general_customer_CRUD_view(request):
         'calls': calls,
         'tasks': tasks,
         'purchases': purchases,
+        'non_bazargah_purchases': non_bazargah_purchases,
         'all_phone_numbers': all_phone_numbers,
         'purchase_phone_numbers': purchase_phone_numbers,
         'search_query': query,
         'assignment_id': assignment_id,
         'active_products': active_products,
+        'active_non_bazargah_products': active_non_bazargah_products,
+        'non_bazargah_purchase_form': non_bazargah_purchase_form,
         'is_new_customer': customer is None,
         'search_valid_phone': search_valid_phone,
         'sales_agent': sales_agent,
