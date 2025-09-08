@@ -18,6 +18,7 @@ from core.decorators.decorators import role_required
 from core.decorators.det_user_role import determine_user_role
 from ERP.views.managers_profile_view import get_client_ip
 from ERP.models.NotificationService import NotificationService
+from bki_barnameh.models.BarnamehModel import Barnameh
 
 from collections import OrderedDict
 import logging
@@ -31,10 +32,11 @@ class NonBazargahAllocationForm(forms.ModelForm):
     class Meta:
         model = NonBazargahAllocation
         fields = [
-            'delivery_address', 'delivery_postal_code', 'delivery_receiver_name',
+            'allocation_number', 'delivery_address', 'delivery_postal_code', 'delivery_receiver_name',
             'coordination_phone', 'allocated_weight', 'notes'
         ]
         widgets = {
+            'allocation_number': forms.TextInput(attrs={'placeholder': 'شماره تخصیص (اختیاری)'}),
             'delivery_address': forms.Textarea(attrs={'rows': 3, 'placeholder': 'آدرس کامل محل تحویل کالا'}),
             'delivery_postal_code': forms.TextInput(attrs={'placeholder': 'کد پستی 10 رقمی'}),
             'delivery_receiver_name': forms.TextInput(attrs={'placeholder': 'نام شخص گیرنده کالا'}),
@@ -43,6 +45,7 @@ class NonBazargahAllocationForm(forms.ModelForm):
             'notes': forms.Textarea(attrs={'rows': 2, 'placeholder': 'توضیحات اضافی (اختیاری)'}),
         }
         labels = {
+            'allocation_number': 'شماره تخصیص',
             'delivery_address': 'آدرس تحویل',
             'delivery_postal_code': 'کد پستی',
             'delivery_receiver_name': 'نام گیرنده',
@@ -82,6 +85,54 @@ class NonBazargahAllocationForm(forms.ModelForm):
                 raise ValidationError(f'وزن تخصیص یافته نمی‌تواند از {remaining_weight} کیلوگرم بیشتر باشد')
         
         return allocated_weight
+
+
+class BarnamehForm(forms.ModelForm):
+    """فرم مدیریت بارنامه‌ها"""
+    
+    class Meta:
+        model = Barnameh
+        fields = [
+            'driver_name', 'driver_phone', 'vehicle_plate', 
+            'empty_vehicle_weight', 'loaded_vehicle_weight',
+            'final_delivered_weight', 'tonnage'
+        ]
+        widgets = {
+            'driver_name': forms.TextInput(attrs={'placeholder': 'نام راننده'}),
+            'driver_phone': forms.TextInput(attrs={'placeholder': 'شماره تماس راننده'}),
+            'vehicle_plate': forms.TextInput(attrs={'placeholder': 'پلاک ماشین'}),
+            'empty_vehicle_weight': forms.NumberInput(attrs={'placeholder': 'وزن خالی (کیلوگرم)', 'step': '0.01'}),
+            'loaded_vehicle_weight': forms.NumberInput(attrs={'placeholder': 'وزن پر (کیلوگرم)', 'step': '0.01'}),
+            'final_delivered_weight': forms.NumberInput(attrs={'placeholder': 'وزن نهایی تحویل (کیلوگرم)', 'step': '0.01'}),
+            'tonnage': forms.NumberInput(attrs={'placeholder': 'وزن (تن)', 'step': '0.01'}),
+        }
+        labels = {
+            'driver_name': 'نام راننده',
+            'driver_phone': 'شماره راننده', 
+            'vehicle_plate': 'پلاک ماشین',
+            'empty_vehicle_weight': 'وزن خالی',
+            'loaded_vehicle_weight': 'وزن پر',
+            'final_delivered_weight': 'وزن تحویلی',
+            'tonnage': 'وزن (تن)',
+        }
+    
+    def clean_empty_vehicle_weight(self):
+        weight = self.cleaned_data.get('empty_vehicle_weight')
+        if weight and weight <= 0:
+            raise ValidationError('وزن خالی باید بزرگتر از صفر باشد')
+        return weight
+    
+    def clean_loaded_vehicle_weight(self):
+        loaded = self.cleaned_data.get('loaded_vehicle_weight')
+        empty = self.cleaned_data.get('empty_vehicle_weight')
+        
+        if loaded and loaded <= 0:
+            raise ValidationError('وزن پر باید بزرگتر از صفر باشد')
+        
+        if loaded and empty and loaded <= empty:
+            raise ValidationError('وزن پر باید از وزن خالی بیشتر باشد')
+        
+        return loaded
 
 
 class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
@@ -385,7 +436,7 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
             'notify_carrier', 'confirm_vehicle_arrival', 'record_empty_weight',
             'record_loaded_weight', 'issue_barnameh', 'confirm_delivery',
             'close_purchase', 'cancel_purchase', 'archive_purchase', 'upload_document',
-            'delete_allocation'
+            'delete_allocation', 'add_barnameh', 'update_barnameh', 'delete_barnameh'
         ]
         
         is_action_button_pressed = any(action in request.POST for action in action_buttons)
@@ -442,6 +493,57 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                     return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
                 except NonBazargahAllocation.DoesNotExist:
                     messages.error(request, 'تخصیص مورد نظر یافت نشد')
+                    return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+        
+        # پردازش اضافه کردن بارنامه جدید
+        if 'add_barnameh' in request.POST and user_role in ['logistics_manager', 'admin']:
+            allocation_id = request.POST.get('allocation_id')
+            if allocation_id:
+                try:
+                    allocation = NonBazargahAllocation.objects.get(id=allocation_id, purchase=purchase)
+                    barnameh = Barnameh.objects.create(
+                        non_bazargah_allocation=allocation,
+                        non_bazargah_purchase=purchase,
+                        type='Non_Bazargah'
+                    )
+                    messages.success(request, f'بارنامه جدید برای تخصیص {allocation.id} اضافه شد')
+                    return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+                except NonBazargahAllocation.DoesNotExist:
+                    messages.error(request, 'تخصیص مورد نظر یافت نشد')
+                    return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+        
+        # پردازش بروزرسانی بارنامه
+        if 'update_barnameh' in request.POST and user_role in ['logistics_manager', 'admin']:
+            barnameh_id = request.POST.get('barnameh_id')
+            if barnameh_id:
+                try:
+                    barnameh = Barnameh.objects.get(id=barnameh_id)
+                    if barnameh.non_bazargah_allocation and barnameh.non_bazargah_allocation.purchase == purchase:
+                        barnameh_form = BarnamehForm(request.POST, instance=barnameh)
+                        if barnameh_form.is_valid():
+                            barnameh_form.save()
+                            messages.success(request, 'اطلاعات بارنامه بروزرسانی شد')
+                        else:
+                            for field, errors in barnameh_form.errors.items():
+                                for error in errors:
+                                    messages.error(request, f'{field}: {error}')
+                        return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+                except Barnameh.DoesNotExist:
+                    messages.error(request, 'بارنامه مورد نظر یافت نشد')
+                    return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+        
+        # پردازش حذف بارنامه
+        if 'delete_barnameh' in request.POST and user_role in ['logistics_manager', 'admin']:
+            barnameh_id = request.POST.get('barnameh_id')
+            if barnameh_id:
+                try:
+                    barnameh = Barnameh.objects.get(id=barnameh_id)
+                    if barnameh.non_bazargah_allocation and barnameh.non_bazargah_allocation.purchase == purchase:
+                        barnameh.delete()
+                        messages.success(request, 'بارنامه حذف شد')
+                        return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+                except Barnameh.DoesNotExist:
+                    messages.error(request, 'بارنامه مورد نظر یافت نشد')
                     return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
         
         if is_action_button_pressed:
@@ -518,24 +620,40 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                             messages.success(request, 'بار به باربری اعلام شد')
                         
                         elif purchase.state == 'carrier_notified' and 'confirm_vehicle_arrival' in request.POST:
-                            purchase.state = 'vehicle_arrived'
-                            action_taken = True
-                            messages.success(request, 'ورود ماشین تایید شد')
+                            # بررسی اینکه برای همه تخصیص‌ها حداقل یک بارنامه وجود دارد
+                            if not purchase.can_confirm_vehicle_arrival():
+                                messages.error(request, 'برای تایید ورود ماشین، ابتدا باید برای همه تخصیص‌ها حداقل یک بارنامه اضافه کنید')
+                            else:
+                                purchase.state = 'vehicle_arrived'
+                                action_taken = True
+                                messages.success(request, 'ورود ماشین تایید شد')
                         
                         elif purchase.state == 'vehicle_arrived' and 'record_empty_weight' in request.POST:
-                            purchase.state = 'empty_weighed'
-                            action_taken = True
-                            messages.success(request, 'وزن خالی ثبت شد')
+                            # بررسی اینکه همه بارنامه‌ها اطلاعات ماشین کامل دارند
+                            if not purchase.can_record_empty_weight():
+                                messages.error(request, 'برای ثبت وزن خالی، ابتدا باید اطلاعات ماشین (نام راننده، شماره تلفن، پلاک) برای همه بارنامه‌ها کامل باشد')
+                            else:
+                                purchase.state = 'empty_weighed'
+                                action_taken = True
+                                messages.success(request, 'وزن خالی ثبت شد')
                         
                         elif purchase.state == 'empty_weighed' and 'record_loaded_weight' in request.POST:
-                            purchase.state = 'loaded_weighed'
-                            action_taken = True
-                            messages.success(request, 'وزن پر ثبت شد')
+                            # بررسی اینکه همه بارنامه‌ها وزن خالی دارند
+                            if not purchase.can_record_loaded_weight():
+                                messages.error(request, 'برای ثبت وزن پر، ابتدا باید وزن خالی برای همه بارنامه‌ها کامل باشد')
+                            else:
+                                purchase.state = 'loaded_weighed'
+                                action_taken = True
+                                messages.success(request, 'وزن پر ثبت شد')
                         
                         elif purchase.state == 'loaded_weighed' and 'issue_barnameh' in request.POST:
-                            purchase.state = 'barnameh_issued'
-                            action_taken = True
-                            messages.success(request, 'بارنامه صادر شد')
+                            # بررسی اینکه همه بارنامه‌ها وزن پر دارند
+                            if not purchase.can_issue_barnameh():
+                                messages.error(request, 'برای صدور بارنامه، ابتدا باید وزن پر برای همه بارنامه‌ها کامل باشد')
+                            else:
+                                purchase.state = 'barnameh_issued'
+                                action_taken = True
+                                messages.success(request, 'بارنامه صادر شد')
                         
                         elif purchase.state == 'barnameh_issued' and 'confirm_delivery' in request.POST:
                             purchase.state = 'delivered'
@@ -642,17 +760,33 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
     # دریافت نوتیفیکیشن‌ها
     notifications = NotificationService.get_unread_notifications(request.user)
     
+    # دریافت تمام بارنامه‌های مرتبط
+    all_barnamehs = purchase.get_all_barnamehs()
+    
+    # سازماندهی بارنامه‌ها بر اساس تخصیص
+    allocations_with_barnamehs = []
+    for allocation in allocations:
+        allocation_barnamehs = allocation.barnamehs.all()
+        allocations_with_barnamehs.append({
+            'allocation': allocation,
+            'barnamehs': allocation_barnamehs,
+            'barnameh_forms': {barnameh.id: BarnamehForm(instance=barnameh) for barnameh in allocation_barnamehs}
+        })
+    
     context = {
         'purchase': purchase,
         'form': form,
         'allocation_form': allocation_form,
         'allocations': allocations,
+        'allocations_with_barnamehs': allocations_with_barnamehs,
         'total_allocated_weight': total_allocated_weight,
         'remaining_weight': remaining_weight,
         'requested_weight_kg': requested_weight_kg,
         'progress_steps': progress_steps,
         'user_role': user_role,
         'notifications': notifications,
+        'barnameh_form': BarnamehForm(),
+        'all_barnamehs': all_barnamehs,
     }
     
     return render(request, 'non_bazargah_purchase_CRUD_view.html', context)

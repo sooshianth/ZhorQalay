@@ -63,6 +63,7 @@ class Barnameh(models.Model):
     rent = models.PositiveBigIntegerField(verbose_name='کرایه', null=True, blank=True)
     type = models.CharField(max_length=20, verbose_name='نوع بارنامه', choices=BARNAMEH_TYPE_CHOICES, null=True, blank=True)
     non_bazargah_purchase = models.ForeignKey(NonBazargahPurchase, on_delete=models.CASCADE, verbose_name='خرید غیر بازارگاهی', null=True, blank=True)
+    non_bazargah_allocation = models.ForeignKey('major.NonBazargahAllocation', on_delete=models.CASCADE, verbose_name='تخصیص غیر بازارگاهی', related_name='barnamehs', null=True, blank=True)
     
     # فیلدهای اضافی برای وزن‌گیری (خاص خریدهای خارج بازارگاه)
     empty_vehicle_weight = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='وزن خالی ماشین', null=True, blank=True, help_text="وزن ماشین بدون بار (کیلوگرم)")
@@ -99,6 +100,8 @@ class Barnameh(models.Model):
         try:
             if self.purchase:
                 return self.purchase.customer
+            elif self.non_bazargah_allocation:
+                return self.non_bazargah_allocation.purchase.customer
             elif self.non_bazargah_purchase and not self.purchase:
                 return self.non_bazargah_purchase.customer
         except Exception as e:
@@ -110,6 +113,8 @@ class Barnameh(models.Model):
         try:
             if self.purchase:
                 return self.purchase.company_price
+            elif self.non_bazargah_allocation:
+                return self.non_bazargah_allocation.purchase.company_price
             elif self.non_bazargah_purchase and not self.purchase:
                 return self.non_bazargah_purchase.company_price
             else:
@@ -124,6 +129,8 @@ class Barnameh(models.Model):
         try:
             if self.purchase:
                 return self.purchase.customer_price
+            elif self.non_bazargah_allocation:
+                return self.non_bazargah_allocation.purchase.customer_price
             elif self.non_bazargah_purchase and not self.purchase:
                 return self.non_bazargah_purchase.customer_price
             else:
@@ -138,7 +145,9 @@ class Barnameh(models.Model):
         # اگر مقدار ذخیره شده نباشد، محاسبه کن
         if self.purchase and self.purchase.customer_price and self.tonnage:
             return int(self.purchase.customer_price) * float(self.tonnage)
-        elif self.non_bazargah_purchase and not self.purchase:
+        elif self.non_bazargah_allocation and self.non_bazargah_allocation.purchase.customer_price and self.tonnage:
+            return int(self.non_bazargah_allocation.purchase.customer_price) * float(self.tonnage)
+        elif self.non_bazargah_purchase and not self.purchase and self.non_bazargah_purchase.customer_price and self.tonnage:
             return int(self.non_bazargah_purchase.customer_price) * float(self.tonnage)
         return None
 
@@ -147,7 +156,9 @@ class Barnameh(models.Model):
         # اگر مقدار ذخیره شده نباشد، محاسبه کن
         if self.purchase and self.purchase.company_price and self.tonnage:
             return int(self.purchase.company_price) * float(self.tonnage)
-        elif self.non_bazargah_purchase and not self.purchase:
+        elif self.non_bazargah_allocation and self.non_bazargah_allocation.purchase.company_price and self.tonnage:
+            return int(self.non_bazargah_allocation.purchase.company_price) * float(self.tonnage)
+        elif self.non_bazargah_purchase and not self.purchase and self.non_bazargah_purchase.company_price and self.tonnage:
             return int(self.non_bazargah_purchase.company_price) * float(self.tonnage)
         return None
     
@@ -155,6 +166,8 @@ class Barnameh(models.Model):
         """دریافت شماره ملی خریدار از خرید مرتبط (buyer_national_id)"""
         if self.purchase:
             return self.purchase.buyer_national_id
+        elif self.non_bazargah_allocation:
+            return self.non_bazargah_allocation.purchase.buyer_national_id
         elif self.non_bazargah_purchase and not self.purchase:
             return self.non_bazargah_purchase.buyer_national_id
         return None
@@ -163,6 +176,8 @@ class Barnameh(models.Model):
         """دریافت نام خریدار از خرید مرتبط (buyer_name)"""
         if self.purchase:
             return self.purchase.buyer_name
+        elif self.non_bazargah_allocation:
+            return self.non_bazargah_allocation.purchase.buyer_name
         elif self.non_bazargah_purchase and not self.purchase:
             return self.non_bazargah_purchase.buyer_name
         return None
@@ -171,6 +186,8 @@ class Barnameh(models.Model):
         """دریافت کدپستی خریدار از خرید مرتبط (delivery_postal_code)"""
         if self.purchase:
             return self.purchase.buyer_postal_code
+        elif self.non_bazargah_allocation:
+            return self.non_bazargah_allocation.delivery_postal_code
         elif self.non_bazargah_purchase and not self.purchase:
             return self.non_bazargah_purchase.buyer_postal_code
         return None
@@ -179,6 +196,8 @@ class Barnameh(models.Model):
         """دریافت آدرس خریدار از خرید مرتبط"""
         if self.purchase:
             return self.purchase.address
+        elif self.non_bazargah_allocation:
+            return self.non_bazargah_allocation.delivery_address
         elif self.non_bazargah_purchase and not self.purchase:
             return self.non_bazargah_purchase.address
         return None
@@ -237,11 +256,14 @@ class Barnameh(models.Model):
     
     def is_non_bazargah_barnameh(self):
         """بررسی اینکه آیا این بارنامه مربوط به خرید خارج بازارگاه است یا نه"""
-        return self.non_bazargah_purchase is not None and self.purchase is None
+        return (self.non_bazargah_allocation is not None or 
+                (self.non_bazargah_purchase is not None and self.purchase is None))
     
     def get_related_purchase_state(self):
         """دریافت وضعیت خرید مرتبط (بازارگاه یا خارج بازارگاه)"""
-        if self.non_bazargah_purchase:
+        if self.non_bazargah_allocation:
+            return self.non_bazargah_allocation.purchase.state
+        elif self.non_bazargah_purchase:
             return self.non_bazargah_purchase.state
         elif self.purchase:
             return self.purchase.state
@@ -300,10 +322,12 @@ class Barnameh(models.Model):
         if self.factor_sodoor_season is not None:
             self.is_factored=True
             
-        if self.purchase and self.purchase.cargo and self.purchase.cargo.customer_price and self.tonnage:
-            self.total_sales_amount = float(self.purchase.cargo.customer_price) * float(self.tonnage)
-        if self.purchase and self.purchase.cargo and self.purchase.cargo.company_price and self.tonnage:
-            self.total_purchase_amount = float(self.purchase.cargo.company_price) * float(self.tonnage)
+        # محاسبه مبالغ فقط اگر tonnage موجود باشد
+        if self.tonnage:
+            if self.purchase and self.purchase.cargo and self.purchase.cargo.customer_price:
+                self.total_sales_amount = float(self.purchase.cargo.customer_price) * float(self.tonnage)
+            if self.purchase and self.purchase.cargo and self.purchase.cargo.company_price:
+                self.total_purchase_amount = float(self.purchase.cargo.company_price) * float(self.tonnage)
     
         # بروزرسانی وضعیت بر اساس ارسال به بازارگاه
         if self.is_sent_to_bki:
@@ -311,13 +335,15 @@ class Barnameh(models.Model):
         else:
             self.status = 'NOT_SENT_TO_BKI'
 
-        if self.purchase and not self.non_bazargah_purchase:
+        if self.purchase and not self.non_bazargah_purchase and not self.non_bazargah_allocation:
             self.type = 'Bazargah'
         else:
             self.type = 'Non_Bazargah'
 
-        self.total_purchase_amount = self.get_total_purchase_amount()
-        self.total_sales_amount = self.get_total_sales_amount()
+        # محاسبه مبالغ کل فقط اگر tonnage موجود باشد
+        if self.tonnage:
+            self.total_purchase_amount = self.get_total_purchase_amount()
+            self.total_sales_amount = self.get_total_sales_amount()
         
         # برای بارنامه‌های خارج بازارگاه، اگر وزن خالص محاسبه شده باشد، tonnage را بروزرسانی کن
         if self.is_non_bazargah_barnameh():

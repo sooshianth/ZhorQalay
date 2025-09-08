@@ -167,12 +167,220 @@
     border-bottom: 2px solid #dee2e6;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+  
+  .section-title:hover {
+    background: linear-gradient(135deg, #dee2e6 0%, #e9ecef 100%);
+    color: #2c3e50;
   }
   
   .section-title i {
     margin-left: 12px;
     color: #3498db;
     font-size: 1.1rem;
+  }
+  
+  .section-toggle {
+    color: #6c757d;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+    margin-left: 15px;
+  }
+  
+  .section-title:hover .section-toggle {
+    color: #3498db;
+    transform: scale(1.1);
+  }
+  
+  .section-content {
+    padding: 25px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+  }
+  
+  .section-content.collapsed {
+    padding: 0;
+    max-height: 0;
+    opacity: 0;
+  }
+  
+  .section-content.expanded {
+    padding: 25px;
+    max-height: none;
+    opacity: 1;
+  }
+  
+  /* انیمیشن برای آیکون toggle */
+  .section-toggle.rotated {
+    transform: rotate(180deg);
+  }
+  
+  /* بهبود استایل‌های کلی */
+  .form-section {
+    border-left: 4px solid #3498db;
+  }
+  
+  .form-section:nth-child(odd) {
+    border-left-color: #e74c3c;
+  }
+  
+  .form-section:nth-child(even) {
+    border-left-color: #27ae60;
+  }
+  
+  .form-section:nth-child(3n) {
+    border-left-color: #f39c12;
+  }
+  
+  .form-section:nth-child(4n) {
+    border-left-color: #9b59b6;
+  }
+  
+  .form-section:nth-child(5n) {
+    border-left-color: #1abc9c;
+  }
+  
+  /* بهبود استایل فیلدها */
+  .form-group {
+    position: relative;
+    margin-bottom: 20px;
+  }
+  
+  .form-group::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -10px;
+    width: 3px;
+    height: 100%;
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    border-radius: 2px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .form-group:hover::before {
+    opacity: 1;
+  }
+  
+  .form-group.readonly::before {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  }
+  
+  /* بهبود استایل دکمه‌ها */
+  .button {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+  }
+  
+  .button:hover::before {
+    left: 100%;
+  }
+  
+  /* بهبود استایل کارت‌های اطلاعات */
+  .info-card {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .info-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+    transform: rotate(45deg);
+    transition: all 0.5s;
+    opacity: 0;
+  }
+  
+  .info-card:hover::before {
+    opacity: 1;
+    animation: shimmer 1.5s ease-in-out;
+  }
+  
+  @keyframes shimmer {
+    0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+    100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+  }
+  
+  /* استایل باکس مرحله بعد */
+  .next-step-container {
+    margin: 15px 0;
+  }
+  
+  .next-step-box {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    border-left: 3px solid #17a2b8;
+    padding: 12px 16px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  
+  .next-step-box:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+    border-left-color: #138496;
+  }
+  
+  .step-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .step-info i {
+    color: #17a2b8;
+    font-size: 1.1rem;
+    width: 20px;
+    text-align: center;
+  }
+  
+  .step-text {
+    color: #495057;
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
+  
+  .step-text strong {
+    color: #2c3e50;
+    font-weight: bold;
+  }
+  
+  .step-info.completed {
+    border-left-color: #28a745;
+  }
+  
+  .step-info.completed i {
+    color: #28a745;
+  }
+  
+  .step-info.completed .step-text {
+    color: #28a745;
+  }
+  
+  .step-info.completed .step-text strong {
+    color: #28a745;
   }
 
   /* فرم و دکمه‌های اکشن */
@@ -682,6 +890,227 @@
     color: #adb5bd;
   }
 
+  /* استایل‌های بارنامه‌ها */
+  .allocation-barnameh-container {
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    background: white;
+    overflow: hidden;
+  }
+  
+  .allocation-barnameh-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 15px 20px;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .allocation-barnameh-header h4 {
+    margin: 0;
+    color: #495057;
+    flex: 1;
+    min-width: 200px;
+  }
+  
+  .btn-add-barnameh {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: bold;
+  }
+  
+  .btn-add-barnameh:hover {
+    background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+  }
+  
+  .barnameh-item {
+    border-bottom: 1px solid #e9ecef;
+    padding: 20px;
+  }
+  
+  .barnameh-item:last-child {
+    border-bottom: none;
+  }
+  
+  .barnameh-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px dashed #dee2e6;
+  }
+  
+  .barnameh-header h5 {
+    margin: 0;
+    color: #495057;
+    font-weight: bold;
+  }
+  
+  .btn-delete-barnameh {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-delete-barnameh:hover {
+    background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+    transform: scale(1.05);
+  }
+  
+  .barnameh-form {
+    margin: 0;
+  }
+  
+  .barnameh-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 15px;
+  }
+  
+  .barnameh-section {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+  }
+  
+  .barnameh-section h6 {
+    margin: 0 0 15px 0;
+    color: #495057;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 8px;
+  }
+  
+  .barnameh-section h6 i {
+    color: #007bff;
+  }
+  
+  .barnameh-fields {
+    display: grid;
+    gap: 12px;
+  }
+  
+  .barnameh-fields .form-group {
+    margin: 0;
+  }
+  
+  .barnameh-fields label {
+    display: block;
+    margin-bottom: 5px;
+    color: #495057;
+    font-weight: bold;
+    font-size: 0.9rem;
+  }
+  
+  .barnameh-fields input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    background: white;
+  }
+  
+  .barnameh-fields input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+  }
+  
+  .barnameh-fields input[readonly] {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+  }
+  
+  .calculated-weight {
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid #b8daff;
+    color: #0c5460;
+    font-weight: bold;
+    text-align: center;
+  }
+  
+  .barnameh-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #dee2e6;
+  }
+  
+  .btn-update-barnameh {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .btn-update-barnameh:hover {
+    background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  }
+  
+  .no-barnamehs {
+    text-align: center;
+    padding: 30px 20px;
+    color: #6c757d;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+    border: 2px dashed #dee2e6;
+    margin: 15px;
+  }
+  
+  .no-barnamehs i {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    color: #adb5bd;
+  }
+  
+  .no-barnamehs p {
+    margin: 8px 0;
+    font-size: 1rem;
+  }
+  
+  .no-barnamehs small {
+    color: #adb5bd;
+    font-style: italic;
+  }
+
   /* ریسپانسیو */
   @media (max-width: 768px) {
     .form-grid {
@@ -767,6 +1196,39 @@
     
     .allocation-receiver {
       margin: 0;
+    }
+    
+    /* ریسپانسیو برای بارنامه‌ها */
+    .allocation-barnameh-header {
+      flex-direction: column;
+      align-items: stretch;
+      text-align: center;
+    }
+    
+    .allocation-barnameh-header h4 {
+      min-width: unset;
+      margin-bottom: 10px;
+    }
+    
+    .barnameh-info-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .barnameh-header {
+      flex-direction: column;
+      align-items: stretch;
+      text-align: center;
+      gap: 10px;
+    }
+    
+    .barnameh-actions {
+      margin-top: 10px;
+    }
+    
+    .btn-add-barnameh,
+    .btn-update-barnameh {
+      width: 100%;
+      justify-content: center;
     }
   }
 </style>
@@ -868,6 +1330,78 @@
     </div>
   </div>
 
+  <!-- باکس مرحله بعد -->
+  <div class="next-step-container">
+    <div class="next-step-box">
+      {% if purchase.state == 'initiated' %}
+        <div class="step-info">
+          <i class="fas fa-credit-card"></i>
+          <span class="step-text">مرحله بعد: <strong>تایید پرداخت</strong> - مدیر مالی</span>
+        </div>
+      {% elif purchase.state == 'payment_verification_pending' %}
+        <div class="step-info">
+          <i class="fas fa-check-circle"></i>
+          <span class="step-text">مرحله بعد: <strong>تایید پرداخت</strong> - مدیر مالی</span>
+        </div>
+      {% elif purchase.state == 'payment_verified' %}
+        <div class="step-info">
+          <i class="fas fa-map-marker-alt"></i>
+          <span class="step-text">مرحله بعد: <strong>تخصیص آدرس</strong> - مدیر لجستیک</span>
+        </div>
+      {% elif purchase.state == 'address_assigned' %}
+        <div class="step-info">
+          <i class="fas fa-warehouse"></i>
+          <span class="step-text">مرحله بعد: <strong>ارسال به انبار</strong> - مدیر لجستیک</span>
+        </div>
+      {% elif purchase.state == 'sent_to_warehouse' %}
+        <div class="step-info">
+          <i class="fas fa-truck"></i>
+          <span class="step-text">مرحله بعد: <strong>اعلام بار به باربری</strong> - مدیر لجستیک</span>
+        </div>
+      {% elif purchase.state == 'carrier_notified' %}
+        <div class="step-info">
+          <i class="fas fa-car"></i>
+          <span class="step-text">مرحله بعد: <strong>اضافه کردن بارنامه‌ها و تایید ورود ماشین</strong> - برای هر تخصیص حداقل یک بارنامه</span>
+        </div>
+      {% elif purchase.state == 'vehicle_arrived' %}
+        <div class="step-info">
+          <i class="fas fa-weight-hanging"></i>
+          <span class="step-text">مرحله بعد: <strong>تکمیل اطلاعات ماشین‌ها و ثبت وزن خالی</strong> - برای همه بارنامه‌ها</span>
+        </div>
+      {% elif purchase.state == 'empty_weighed' %}
+        <div class="step-info">
+          <i class="fas fa-balance-scale"></i>
+          <span class="step-text">مرحله بعد: <strong>ثبت وزن پر برای همه بارنامه‌ها</strong> - مدیر لجستیک</span>
+        </div>
+      {% elif purchase.state == 'loaded_weighed' %}
+        <div class="step-info">
+          <i class="fas fa-file-invoice"></i>
+          <span class="step-text">مرحله بعد: <strong>صدور بارنامه</strong> - وزن پر همه بارنامه‌ها تکمیل شده</span>
+        </div>
+      {% elif purchase.state == 'barnameh_issued' %}
+        <div class="step-info">
+          <i class="fas fa-handshake"></i>
+          <span class="step-text">مرحله بعد: <strong>تایید تحویل</strong> - مدیر لجستیک</span>
+        </div>
+      {% elif purchase.state == 'delivered' %}
+        <div class="step-info">
+          <i class="fas fa-check-circle"></i>
+          <span class="step-text">مرحله بعد: <strong>بستن خرید</strong> - مدیر لجستیک</span>
+        </div>
+      {% elif purchase.state == 'purchase_closed' %}
+        <div class="step-info completed">
+          <i class="fas fa-trophy"></i>
+          <span class="step-text">خرید با موفقیت تکمیل شده است</span>
+        </div>
+      {% else %}
+        <div class="step-info">
+          <i class="fas fa-question-circle"></i>
+          <span class="step-text">وضعیت فعلی نامشخص است</span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
   <!-- فرم ویرایش -->
   <form method="post" enctype="multipart/form-data" class="purchase-form">
     {% csrf_token %}
@@ -884,10 +1418,14 @@
     
     <!-- اطلاعات اساسی خرید -->
     <div class="form-section">
-      <h3 class="section-title">
-        <i class="fas fa-shopping-cart"></i> اطلاعات اساسی خرید
+      <h3 class="section-title" onclick="toggleSection(this)">
+        <span>
+          <i class="fas fa-shopping-cart"></i> اطلاعات اساسی خرید
+        </span>
+        <i class="fas fa-chevron-down section-toggle"></i>
       </h3>
-      <div class="form-grid">
+      <div class="section-content expanded">
+        <div class="form-grid">
         {% for field in form %}
           {% if field.name in 'customer,product,unit,quantity,bag_weight'|split:',' %}
           <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
@@ -911,15 +1449,20 @@
           </div>
           {% endif %}
         {% endfor %}
+        </div>
       </div>
     </div>
 
     <!-- اطلاعات مالی -->
     <div class="form-section">
-      <h3 class="section-title">
-        <i class="fas fa-money-bill-wave"></i> اطلاعات مالی
+      <h3 class="section-title" onclick="toggleSection(this)">
+        <span>
+          <i class="fas fa-money-bill-wave"></i> اطلاعات مالی
+        </span>
+        <i class="fas fa-chevron-down section-toggle"></i>
       </h3>
-      <div class="form-grid">
+      <div class="section-content collapsed">
+        <div class="form-grid">
         {% for field in form %}
           {% if field.name in 'company_price,customer_price,amount_paid,payment_notes'|split:',' %}
           <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
@@ -970,15 +1513,20 @@
           </div>
         </div>
         {% endif %}
+        </div>
       </div>
     </div>
 
     <!-- اطلاعات خریدار -->
     <div class="form-section">
-      <h3 class="section-title">
-        <i class="fas fa-user-tie"></i> اطلاعات خریدار
+      <h3 class="section-title" onclick="toggleSection(this)">
+        <span>
+          <i class="fas fa-user-tie"></i> اطلاعات خریدار
+        </span>
+        <i class="fas fa-chevron-down section-toggle"></i>
       </h3>
-      <div class="form-grid">
+      <div class="section-content collapsed">
+        <div class="form-grid">
         {% for field in form %}
           {% if field.name in 'buyer_name,buyer_postal_code,buyer_national_id,buyer_user_type,address'|split:',' %}
           <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
@@ -1003,14 +1551,19 @@
           </div>
           {% endif %}
         {% endfor %}
+        </div>
       </div>
     </div>
 
     <!-- تخصیص آدرس‌ها -->
     <div class="form-section">
-      <h3 class="section-title">
-        <i class="fas fa-map-marked-alt"></i> تخصیص آدرس‌ها
+      <h3 class="section-title" onclick="toggleSection(this)">
+        <span>
+          <i class="fas fa-map-marked-alt"></i> تخصیص آدرس‌ها
+        </span>
+        <i class="fas fa-chevron-down section-toggle"></i>
       </h3>
+      <div class="section-content collapsed">
       
       <!-- نمایش وضعیت وزن -->
       <div class="allocation-status">
@@ -1072,7 +1625,13 @@
         <div class="allocation-item">
           <div class="allocation-header">
             <span class="allocation-weight">{{ allocation.allocated_weight }} کیلوگرم</span>
-            <span class="allocation-receiver">{{ allocation.delivery_receiver_name }}</span>
+            <span class="allocation-receiver">
+              {% if allocation.allocation_number %}
+                #{{ allocation.allocation_number }} - {{ allocation.delivery_receiver_name }}
+              {% else %}
+                {{ allocation.delivery_receiver_name }}
+              {% endif %}
+            </span>
             {% if user_role == "logistics_manager" or user_role == "admin" %}
               {% if purchase.can_assign_addresses %}
               <form method="post" class="delete-allocation-form">
@@ -1087,6 +1646,11 @@
             {% endif %}
           </div>
           <div class="allocation-details">
+            {% if allocation.allocation_number %}
+            <div class="allocation-detail">
+              <strong>شماره تخصیص:</strong> #{{ allocation.allocation_number }}
+            </div>
+            {% endif %}
             <div class="allocation-detail">
               <strong>آدرس:</strong> {{ allocation.delivery_address }}
             </div>
@@ -1114,14 +1678,162 @@
         {% endif %}
       </div>
       {% endif %}
+      </div>
     </div>
+
+    <!-- مدیریت بارنامه‌ها -->
+    {% if purchase.state in 'carrier_notified,vehicle_arrived,empty_weighed,loaded_weighed,barnameh_issued,delivered,purchase_closed'|split:',' %}
+    <div class="form-section">
+      <h3 class="section-title" onclick="toggleSection(this)">
+        <span>
+          <i class="fas fa-file-invoice"></i> مدیریت بارنامه‌ها
+        </span>
+        <i class="fas fa-chevron-down section-toggle"></i>
+      </h3>
+      <div class="section-content expanded">
+        
+        {% for item in allocations_with_barnamehs %}
+        <div class="allocation-barnameh-container">
+          <div class="allocation-barnameh-header">
+            <h4>تخصیص: {{ item.allocation.delivery_receiver_name }} - {{ item.allocation.allocated_weight }} کیلوگرم</h4>
+            {% if user_role in 'logistics_manager,admin'|split:',' and purchase.state == 'carrier_notified' %}
+              <form method="post" style="display: inline;">
+                {% csrf_token %}
+                <input type="hidden" name="allocation_id" value="{{ item.allocation.id }}">
+                <button type="submit" name="add_barnameh" class="btn btn-add-barnameh">
+                  <i class="fas fa-plus"></i> اضافه کردن بارنامه
+                </button>
+              </form>
+            {% endif %}
+          </div>
+          
+          {% if item.barnamehs %}
+            {% for barnameh in item.barnamehs %}
+            <div class="barnameh-item">
+              <div class="barnameh-header">
+                <h5>بارنامه #{{ barnameh.id }} 
+                  {% if barnameh.vehicle_plate %}- پلاک: {{ barnameh.vehicle_plate }}{% endif %}
+                </h5>
+                {% if user_role in 'logistics_manager,admin'|split:',' and purchase.state == 'carrier_notified' %}
+                  <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="barnameh_id" value="{{ barnameh.id }}">
+                    <button type="submit" name="delete_barnameh" class="btn-delete-barnameh"
+                            onclick="return confirm('آیا از حذف این بارنامه اطمینان دارید؟');">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+              
+              <form method="post" class="barnameh-form">
+                {% csrf_token %}
+                <input type="hidden" name="barnameh_id" value="{{ barnameh.id }}">
+                
+                <div class="barnameh-info-grid">
+                  <!-- اطلاعات ماشین -->
+                  <div class="barnameh-section">
+                    <h6><i class="fas fa-truck"></i> اطلاعات ماشین</h6>
+                    <div class="barnameh-fields">
+                      <div class="form-group">
+                        <label>نام راننده:</label>
+                        <input type="text" name="driver_name" value="{{ barnameh.driver_name|default:'' }}" 
+                               class="form-control" placeholder="نام راننده"
+                               {% if purchase.state not in 'carrier_notified,vehicle_arrived'|split:',' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                      <div class="form-group">
+                        <label>شماره راننده:</label>
+                        <input type="text" name="driver_phone" value="{{ barnameh.driver_phone|default:'' }}" 
+                               class="form-control" placeholder="شماره تماس راننده"
+                               {% if purchase.state not in 'carrier_notified,vehicle_arrived'|split:',' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                      <div class="form-group">
+                        <label>پلاک ماشین:</label>
+                        <input type="text" name="vehicle_plate" value="{{ barnameh.vehicle_plate|default:'' }}" 
+                               class="form-control" placeholder="پلاک ماشین"
+                               {% if purchase.state not in 'carrier_notified,vehicle_arrived'|split:',' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- اطلاعات وزن -->
+                  <div class="barnameh-section">
+                    <h6><i class="fas fa-weight"></i> اطلاعات وزن</h6>
+                    <div class="barnameh-fields">
+                      <div class="form-group">
+                        <label>وزن خالی (کیلوگرم):</label>
+                        <input type="number" name="empty_vehicle_weight" value="{{ barnameh.empty_vehicle_weight|default:'' }}" 
+                               class="form-control" step="0.01" placeholder="وزن خالی"
+                               {% if purchase.state not in 'vehicle_arrived,empty_weighed'|split:',' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                      <div class="form-group">
+                        <label>وزن پر (کیلوگرم):</label>
+                        <input type="number" name="loaded_vehicle_weight" value="{{ barnameh.loaded_vehicle_weight|default:'' }}" 
+                               class="form-control" step="0.01" placeholder="وزن پر"
+                               {% if purchase.state not in 'empty_weighed,loaded_weighed'|split:',' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                      <div class="form-group">
+                        <label>وزن تحویلی (کیلوگرم):</label>
+                        <input type="number" name="final_delivered_weight" value="{{ barnameh.final_delivered_weight|default:'' }}" 
+                               class="form-control" step="0.01" placeholder="وزن تحویلی"
+                               {% if purchase.state not in 'loaded_weighed,barnameh_issued,delivered'|split:',' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                      {% if barnameh.empty_vehicle_weight and barnameh.loaded_vehicle_weight %}
+                      <div class="form-group">
+                        <label>وزن خالص:</label>
+                        <div class="calculated-weight" id="net-weight-{{ barnameh.id }}">
+                          محاسبه خودکار پس از ذخیره
+                        </div>
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                
+                {% if user_role in 'logistics_manager,admin'|split:',' %}
+                  {% if purchase.state in 'carrier_notified,vehicle_arrived,empty_weighed,loaded_weighed'|split:',' %}
+                    <div class="barnameh-actions">
+                      <button type="submit" name="update_barnameh" class="btn-update-barnameh">
+                        <i class="fas fa-save"></i> بروزرسانی بارنامه
+                      </button>
+                    </div>
+                  {% endif %}
+                {% endif %}
+              </form>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="no-barnamehs">
+              <i class="fas fa-info-circle"></i>
+              <p>هنوز بارنامه‌ای برای این تخصیص اضافه نشده است</p>
+              {% if purchase.state == 'carrier_notified' %}
+                <p><small>برای تایید ورود ماشین، ابتدا باید برای همه تخصیص‌ها حداقل یک بارنامه اضافه کنید</small></p>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+        
+        {% if not allocations_with_barnamehs %}
+          <div class="no-allocations">
+            <i class="fas fa-info-circle"></i>
+            <p>ابتدا باید تخصیص آدرس انجام شود</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
 
     <!-- اطلاعات لجستیک و حمل -->
     <div class="form-section">
-      <h3 class="section-title">
-        <i class="fas fa-truck"></i> اطلاعات لجستیک و حمل
+      <h3 class="section-title" onclick="toggleSection(this)">
+        <span>
+          <i class="fas fa-truck"></i> اطلاعات لجستیک و حمل
+        </span>
+        <i class="fas fa-chevron-down section-toggle"></i>
       </h3>
-      <div class="form-grid">
+      <div class="section-content collapsed">
+        <div class="form-grid">
         {% for field in form %}
           {% if field.name in 'vehicle_type,barbary_confidential_number,barbary_customer_number,logistics_notes'|split:',' %}
           <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
@@ -1144,15 +1856,20 @@
           </div>
           {% endif %}
         {% endfor %}
+        </div>
       </div>
     </div>
 
     <!-- اطلاعات وزن‌گیری -->
     <div class="form-section">
-      <h3 class="section-title">
-        <i class="fas fa-weight"></i> اطلاعات وزن‌گیری
+      <h3 class="section-title" onclick="toggleSection(this)">
+        <span>
+          <i class="fas fa-weight"></i> اطلاعات وزن‌گیری
+        </span>
+        <i class="fas fa-chevron-down section-toggle"></i>
       </h3>
-      <div class="form-grid">
+      <div class="section-content collapsed">
+        <div class="form-grid">
         {% for field in form %}
           {% if field.name in 'empty_weight,loaded_weight,delivered_weight,weight_difference'|split:',' %}
           <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
@@ -1171,15 +1888,20 @@
           </div>
           {% endif %}
         {% endfor %}
+        </div>
       </div>
     </div>
 
     <!-- اطلاعات اضافی -->
     <div class="form-section">
-      <h3 class="section-title">
-        <i class="fas fa-info-circle"></i> اطلاعات اضافی
+      <h3 class="section-title" onclick="toggleSection(this)">
+        <span>
+          <i class="fas fa-info-circle"></i> اطلاعات اضافی
+        </span>
+        <i class="fas fa-chevron-down section-toggle"></i>
       </h3>
-      <div class="form-grid">
+      <div class="section-content collapsed">
+        <div class="form-grid">
         {% for field in form %}
           {% if field.name in 'state,description'|split:',' %}
           <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
@@ -1201,6 +1923,7 @@
           </div>
           {% endif %}
         {% endfor %}
+        </div>
       </div>
     </div>
 
@@ -1325,6 +2048,23 @@
 </div>
 
 <script>
+// تابع toggle برای بخش‌ها
+function toggleSection(titleElement) {
+    const section = titleElement.closest('.form-section');
+    const content = section.querySelector('.section-content');
+    const toggle = titleElement.querySelector('.section-toggle');
+    
+    if (content.classList.contains('expanded')) {
+        content.classList.remove('expanded');
+        content.classList.add('collapsed');
+        toggle.classList.add('rotated');
+    } else {
+        content.classList.remove('collapsed');
+        content.classList.add('expanded');
+        toggle.classList.remove('rotated');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // تایم‌لاین هاور
     const steps = document.querySelectorAll(".timeline-item");

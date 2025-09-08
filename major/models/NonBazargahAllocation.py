@@ -12,6 +12,15 @@ class NonBazargahAllocation(models.Model):
         related_name='allocations'
     )
     
+    # شناسه/شماره تخصیص
+    allocation_number = models.CharField(
+        "شماره تخصیص", 
+        max_length=20, 
+        blank=True, 
+        null=True,
+        help_text="شماره شناسایی تخصیص (اختیاری)"
+    )
+    
     # اطلاعات آدرس و تحویل
     delivery_address = models.TextField("آدرس تحویل", help_text="آدرس کامل محل تحویل")
     delivery_postal_code = models.CharField("کد پستی", max_length=10, help_text="کد پستی محل تحویل")
@@ -30,6 +39,8 @@ class NonBazargahAllocation(models.Model):
         ordering = ['-id']
     
     def __str__(self):
+        if self.allocation_number:
+            return f"تخصیص #{self.allocation_number} - {self.allocated_weight} کیلوگرم - {self.delivery_receiver_name}"
         return f"تخصیص {self.allocated_weight} کیلوگرم - {self.delivery_receiver_name}"
     
     def clean(self):
