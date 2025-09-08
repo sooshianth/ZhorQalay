@@ -1111,6 +1111,83 @@
     font-style: italic;
   }
 
+  /* استایل‌های فرم اضافه کردن بارنامه */
+  .add-barnameh-form {
+    background: linear-gradient(135deg, #e8f4f8 0%, #d4edda 100%);
+    border: 2px dashed #28a745;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 15px;
+    animation: slideDown 0.3s ease-out;
+  }
+  
+  .add-barnameh-form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #28a745;
+  }
+  
+  .add-barnameh-form-header h5 {
+    margin: 0;
+    color: #155724;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .add-barnameh-form-header h5 i {
+    color: #28a745;
+  }
+  
+  .btn-close-form {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-close-form:hover {
+    background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+    transform: scale(1.05);
+  }
+  
+  .btn-cancel-barnameh {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 10px;
+  }
+  
+  .btn-cancel-barnameh:hover {
+    background: linear-gradient(135deg, #5a6268 0%, #495057 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+  }
+  
+  .barnameh-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #dee2e6;
+    gap: 10px;
+  }
+
   /* ریسپانسیو */
   @media (max-width: 768px) {
     .form-grid {
@@ -1690,20 +1767,16 @@
         </span>
         <i class="fas fa-chevron-down section-toggle"></i>
       </h3>
-      <div class="section-content expanded">
+      <div class="section-content collapsed">
         
         {% for item in allocations_with_barnamehs %}
         <div class="allocation-barnameh-container">
           <div class="allocation-barnameh-header">
             <h4>تخصیص: {{ item.allocation.delivery_receiver_name }} - {{ item.allocation.allocated_weight }} کیلوگرم</h4>
             {% if user_role in 'logistics_manager,admin'|split:',' and purchase.state == 'carrier_notified' %}
-              <form method="post" style="display: inline;">
-                {% csrf_token %}
-                <input type="hidden" name="allocation_id" value="{{ item.allocation.id }}">
-                <button type="submit" name="add_barnameh" class="btn btn-add-barnameh">
-                  <i class="fas fa-plus"></i> اضافه کردن بارنامه
-                </button>
-              </form>
+              <button type="button" class="btn btn-add-barnameh" onclick="showAddBarnamehForm({{ item.allocation.id }})">
+                <i class="fas fa-plus"></i> اضافه کردن بارنامه
+              </button>
             {% endif %}
           </div>
           
@@ -1711,7 +1784,7 @@
             {% for barnameh in item.barnamehs %}
             <div class="barnameh-item">
               <div class="barnameh-header">
-                <h5>بارنامه #{{ barnameh.id }} 
+                <h5>بارنامه #{{ barnameh.number|default:barnameh.id }} 
                   {% if barnameh.vehicle_plate %}- پلاک: {{ barnameh.vehicle_plate }}{% endif %}
                 </h5>
                 {% if user_role in 'logistics_manager,admin'|split:',' and purchase.state == 'carrier_notified' %}
@@ -1764,13 +1837,13 @@
                         <label>وزن خالی (کیلوگرم):</label>
                         <input type="number" name="empty_vehicle_weight" value="{{ barnameh.empty_vehicle_weight|default:'' }}" 
                                class="form-control" step="0.01" placeholder="وزن خالی"
-                               {% if purchase.state not in 'vehicle_arrived,empty_weighed'|split:',' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                               {% if purchase.state != 'vehicle_arrived' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
                       </div>
                       <div class="form-group">
                         <label>وزن پر (کیلوگرم):</label>
                         <input type="number" name="loaded_vehicle_weight" value="{{ barnameh.loaded_vehicle_weight|default:'' }}" 
                                class="form-control" step="0.01" placeholder="وزن پر"
-                               {% if purchase.state not in 'empty_weighed,loaded_weighed'|split:',' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                               {% if purchase.state != 'empty_weighed' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
                       </div>
                       <div class="form-group">
                         <label>وزن تحویلی (کیلوگرم):</label>
@@ -1811,6 +1884,73 @@
               {% endif %}
             </div>
           {% endif %}
+          
+          <!-- فرم اضافه کردن بارنامه جدید (مخفی) -->
+          <div class="add-barnameh-form" id="add-barnameh-form-{{ item.allocation.id }}" style="display: none;">
+            <div class="add-barnameh-form-header">
+              <h5><i class="fas fa-plus-circle"></i> افزودن بارنامه جدید</h5>
+              <button type="button" class="btn-close-form" onclick="hideAddBarnamehForm({{ item.allocation.id }})">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            
+            <form method="post" class="barnameh-form">
+              {% csrf_token %}
+              <input type="hidden" name="allocation_id" value="{{ item.allocation.id }}">
+              
+              <div class="barnameh-info-grid">
+                <!-- اطلاعات ماشین -->
+                <div class="barnameh-section">
+                  <h6><i class="fas fa-truck"></i> اطلاعات ماشین</h6>
+                  <div class="barnameh-fields">
+                    <div class="form-group">
+                      <label>نام راننده: *</label>
+                      <input type="text" name="driver_name" class="form-control" placeholder="نام راننده" required>
+                    </div>
+                    <div class="form-group">
+                      <label>شماره راننده: *</label>
+                      <input type="text" name="driver_phone" class="form-control" placeholder="شماره تماس راننده" required>
+                    </div>
+                    <div class="form-group">
+                      <label>پلاک ماشین: *</label>
+                      <input type="text" name="vehicle_plate" class="form-control" placeholder="پلاک ماشین" required>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- اطلاعات وزن -->
+                <div class="barnameh-section">
+                  <h6><i class="fas fa-weight"></i> اطلاعات وزن</h6>
+                  <div class="barnameh-fields">
+                    <div class="form-group">
+                      <label>وزن خالی (کیلوگرم):</label>
+                      <input type="number" name="empty_vehicle_weight" class="form-control" step="0.01" placeholder="وزن خالی" readonly>
+                      <small class="form-text text-muted">این فیلد در مرحله بعد قابل ویرایش خواهد بود</small>
+                    </div>
+                    <div class="form-group">
+                      <label>وزن پر (کیلوگرم):</label>
+                      <input type="number" name="loaded_vehicle_weight" class="form-control" step="0.01" placeholder="وزن پر" readonly>
+                      <small class="form-text text-muted">این فیلد در مراحل بعدی قابل ویرایش خواهد بود</small>
+                    </div>
+                    <div class="form-group">
+                      <label>وزن تحویلی (کیلوگرم):</label>
+                      <input type="number" name="final_delivered_weight" class="form-control" step="0.01" placeholder="وزن تحویلی" readonly>
+                      <small class="form-text text-muted">این فیلد در مراحل بعدی قابل ویرایش خواهد بود</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="barnameh-actions">
+                <button type="submit" name="add_barnameh" class="btn-update-barnameh">
+                  <i class="fas fa-save"></i> ایجاد بارنامه
+                </button>
+                <button type="button" class="btn-cancel-barnameh" onclick="hideAddBarnamehForm({{ item.allocation.id }})">
+                  <i class="fas fa-times"></i> انصراف
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
         {% endfor %}
         
@@ -1994,53 +2134,85 @@
         {% endif %}
         
         {% if purchase.state == 'carrier_notified' %}
-          <button type="submit" name="confirm_vehicle_arrival" class="button approve-btn logistics" formnovalidate>
-            <i class="fas fa-car"></i> 🚗 تایید ورود ماشین
-          </button>
+          <!-- فرم جداگانه برای تایید ورود ماشین -->
+          <form method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" name="confirm_vehicle_arrival" class="button approve-btn logistics">
+              <i class="fas fa-car"></i> 🚗 تایید ورود ماشین
+            </button>
+          </form>
         {% endif %}
         
         {% if purchase.state == 'vehicle_arrived' %}
-          <button type="submit" name="record_empty_weight" class="button approve-btn logistics" formnovalidate>
-            <i class="fas fa-weight-hanging"></i> ⚖️ ثبت وزن خالی
-          </button>
+          <!-- فرم جداگانه برای ثبت وزن خالی -->
+          <form method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" name="record_empty_weight" class="button approve-btn logistics">
+              <i class="fas fa-weight-hanging"></i> ⚖️ ثبت وزن خالی
+            </button>
+          </form>
         {% endif %}
         
         {% if purchase.state == 'empty_weighed' %}
-          <button type="submit" name="record_loaded_weight" class="button approve-btn logistics" formnovalidate>
-            <i class="fas fa-balance-scale"></i> ⚖️ ثبت وزن پر
-          </button>
+          <!-- فرم جداگانه برای ثبت وزن پر -->
+          <form method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" name="record_loaded_weight" class="button approve-btn logistics">
+              <i class="fas fa-balance-scale"></i> ⚖️ ثبت وزن پر
+            </button>
+          </form>
         {% endif %}
         
         {% if purchase.state == 'loaded_weighed' %}
-          <button type="submit" name="issue_barnameh" class="button approve-btn logistics" formnovalidate>
-            <i class="fas fa-file-invoice"></i> 📋 صدور بارنامه
-          </button>
+          <!-- فرم جداگانه برای صدور بارنامه -->
+          <form method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" name="issue_barnameh" class="button approve-btn logistics">
+              <i class="fas fa-file-invoice"></i> 📋 صدور بارنامه
+            </button>
+          </form>
         {% endif %}
         
         {% if purchase.state == 'barnameh_issued' %}
-          <button type="submit" name="confirm_delivery" class="button approve-btn logistics" formnovalidate>
-            <i class="fas fa-handshake"></i> 🤝 تایید تحویل
-          </button>
+          <!-- فرم جداگانه برای تایید تحویل -->
+          <form method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" name="confirm_delivery" class="button approve-btn logistics">
+              <i class="fas fa-handshake"></i> 🤝 تایید تحویل
+            </button>
+          </form>
         {% endif %}
         
         {% if purchase.state == 'delivered' %}
-          <button type="submit" name="close_purchase" class="button approve-btn logistics" formnovalidate>
-            <i class="fas fa-check-circle"></i> ✅ بستن خرید
-          </button>
+          <!-- فرم جداگانه برای بستن خرید -->
+          <form method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" name="close_purchase" class="button approve-btn logistics">
+              <i class="fas fa-check-circle"></i> ✅ بستن خرید
+            </button>
+          </form>
         {% endif %}
       {% endif %}
 
       <!-- دکمه‌های مخصوص ادمین -->
       {% if user_role == "admin" %}
-        <button type="submit" name="cancel_purchase" class="button approve-btn danger" formnovalidate
-                onclick="return confirm('آیا از لغو کردن این خرید اطمینان دارید؟');">
-          <i class="fas fa-times-circle"></i> ❌ لغو خرید
-        </button>
+        <!-- فرم جداگانه برای لغو خرید -->
+        <form method="post" style="display: inline-block;">
+          {% csrf_token %}
+          <button type="submit" name="cancel_purchase" class="button approve-btn danger"
+                  onclick="return confirm('آیا از لغو کردن این خرید اطمینان دارید؟');">
+            <i class="fas fa-times-circle"></i> ❌ لغو خرید
+          </button>
+        </form>
         
-        <button type="submit" name="archive_purchase" class="button approve-btn warning" formnovalidate
-                onclick="return confirm('آیا از آرشیو کردن این خرید اطمینان دارید؟');">
-          <i class="fas fa-archive"></i> 📦 آرشیو خرید
-        </button>
+        <!-- فرم جداگانه برای آرشیو خرید -->
+        <form method="post" style="display: inline-block;">
+          {% csrf_token %}
+          <button type="submit" name="archive_purchase" class="button approve-btn warning"
+                  onclick="return confirm('آیا از آرشیو کردن این خرید اطمینان دارید؟');">
+            <i class="fas fa-archive"></i> 📦 آرشیو خرید
+          </button>
+        </form>
       {% endif %}
     </div>
   </form>
@@ -2174,6 +2346,27 @@ document.addEventListener('DOMContentLoaded', function() {
     calculateTotalAmount();
 });
 
+// توابع مدیریت فرم اضافه کردن بارنامه
+function showAddBarnamehForm(allocationId) {
+    const form = document.getElementById(`add-barnameh-form-${allocationId}`);
+    if (form) {
+        form.style.display = 'block';
+        form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+function hideAddBarnamehForm(allocationId) {
+    const form = document.getElementById(`add-barnameh-form-${allocationId}`);
+    if (form) {
+        form.style.display = 'none';
+        // پاک کردن فرم
+        const inputs = form.querySelectorAll('input[type="text"], input[type="number"]');
+        inputs.forEach(input => {
+            input.value = '';
+        });
+    }
+}
+
 // افزودن keyframes برای انیمیشن
 const style = document.createElement('style');
 style.textContent = `
@@ -2196,6 +2389,19 @@ style.textContent = `
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 1000px;
   }
 }
 

@@ -501,13 +501,27 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
             if allocation_id:
                 try:
                     allocation = NonBazargahAllocation.objects.get(id=allocation_id, purchase=purchase)
-                    barnameh = Barnameh.objects.create(
-                        non_bazargah_allocation=allocation,
-                        non_bazargah_purchase=purchase,
-                        type='Non_Bazargah'
-                    )
-                    messages.success(request, f'بارنامه جدید برای تخصیص {allocation.id} اضافه شد')
-                    return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+                    # ایجاد بارنامه با اطلاعات اولیه
+                    barnameh_form = BarnamehForm(request.POST)
+                    if barnameh_form.is_valid():
+                        barnameh = barnameh_form.save(commit=False)
+                        barnameh.non_bazargah_allocation = allocation
+                        barnameh.non_bazargah_purchase = purchase
+                        barnameh.type = 'Non_Bazargah'
+                        
+                        # تولید شماره بارنامه ترکیبی
+                        barnameh_count = allocation.barnamehs.count() + 1
+                        allocation_number = allocation.allocation_number or allocation.id
+                        barnameh.number = f"{allocation_number}-{barnameh_count}"
+                        
+                        barnameh.save()
+                        messages.success(request, f'بارنامه جدید #{barnameh.number} برای تخصیص {allocation.id} اضافه شد')
+                        return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+                    else:
+                        for field, errors in barnameh_form.errors.items():
+                            for error in errors:
+                                messages.error(request, f'{field}: {error}')
+                        return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
                 except NonBazargahAllocation.DoesNotExist:
                     messages.error(request, 'تخصیص مورد نظر یافت نشد')
                     return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
@@ -640,7 +654,7 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                         elif purchase.state == 'empty_weighed' and 'record_loaded_weight' in request.POST:
                             # بررسی اینکه همه بارنامه‌ها وزن خالی دارند
                             if not purchase.can_record_loaded_weight():
-                                messages.error(request, 'برای ثبت وزن پر، ابتدا باید وزن خالی برای همه بارنامه‌ها کامل باشد')
+                                messages.error(request, 'برای ثبت وزن پر، ابتدا باید وزن خالی برای همه بارنامه‌ها ثبت شده باشد')
                             else:
                                 purchase.state = 'loaded_weighed'
                                 action_taken = True
@@ -649,7 +663,7 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                         elif purchase.state == 'loaded_weighed' and 'issue_barnameh' in request.POST:
                             # بررسی اینکه همه بارنامه‌ها وزن پر دارند
                             if not purchase.can_issue_barnameh():
-                                messages.error(request, 'برای صدور بارنامه، ابتدا باید وزن پر برای همه بارنامه‌ها کامل باشد')
+                                messages.error(request, 'برای صدور بارنامه، ابتدا باید وزن پر برای همه بارنامه‌ها ثبت شده باشد')
                             else:
                                 purchase.state = 'barnameh_issued'
                                 action_taken = True
