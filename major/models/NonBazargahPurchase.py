@@ -151,7 +151,17 @@ class NonBazargahPurchase(BasePurchase):
         self.state = 'address_assigned'
         self.save()
 
+    def get_product_purchase_price(self):
+        """دریافت فی خرید از محصول"""
+        if self.product:
+            return self.product.get_purchase_price()
+        return 0
+    
     def save(self, *args, **kwargs):
+        # تنظیم فی خرید از محصول
+        if self.product and not self.company_price:
+            self.company_price = self.get_product_purchase_price()
+        
         # محاسبه مبلغ پرداختی خودکار
         calculated_amount = self.calculate_total_amount()
         if calculated_amount:

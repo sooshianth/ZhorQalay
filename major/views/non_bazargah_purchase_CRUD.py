@@ -103,24 +103,33 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
         
         # اطمینان از وجود مقادیر اولیه (جلوگیری از خطای required)
         if self.instance and self.instance.pk:
-            # تنظیم مقادیر اولیه برای company_price
-            if self.instance.company_price == 0 and self.instance.customer_price:
-                self.initial['company_price'] = self.instance.customer_price
-            else:
-                self.initial['company_price'] = self.instance.company_price or 0
+            # تنظیم فی خرید از محصول در instance
+            if self.instance.product and not self.instance.company_price:
+                product_price = self.instance.get_product_purchase_price()
+                if product_price:
+                    self.instance.company_price = product_price
+        
+        # حذف فیلدهای قیمت از فرم (اطلاعات محرمانه)
+        price_fields = ['company_price']
+        for field_name in price_fields:
+            if field_name in self.fields:
+                del self.fields[field_name]
         
         # فیلدهای همیشه قفل را اختیاری کن
-        readonly_fields = ['customer', 'product', 'quantity', 'customer_price', 'amount_paid', 'bag_weight', 'unit', 'company_price']
+        readonly_fields = ['customer', 'product', 'quantity', 'customer_price', 'amount_paid', 'bag_weight', 'unit']
         for field_name in readonly_fields:
             if field_name in self.fields:
                 self.fields[field_name].required = False
+                # تنظیم مقدار اولیه برای فیلدهای readonly
+                if self.instance and self.instance.pk and hasattr(self.instance, field_name):
+                    self.initial[field_name] = getattr(self.instance, field_name)
         
         # تنظیم فیلدها بر اساس نقش کاربر
         if user_role == 'sales_agent':
             # کارشناس فروش فقط اطلاعات اولیه و اطلاعات خریدار
             allowed_fields = [
                 'customer', 'product', 'unit', 'quantity', 'bag_weight',
-                'company_price', 'customer_price', 'description',
+                'customer_price', 'description',
                 'buyer_name', 'buyer_postal_code', 'buyer_national_id',
                 'buyer_user_type', 'address', 'tahvil_phone_number', 
                 'code_melli_tahvil', 'barbary_confidential_number', 
@@ -130,7 +139,7 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
         elif user_role == 'financial_manager':
             # مدیر مالی - تایید پرداخت و فیلدهای مالی
             allowed_fields = [
-                'customer', 'product', 'unit', 'quantity', 'company_price',
+                'customer', 'product', 'unit', 'quantity',
                 'customer_price', 'amount_paid', 'payment_document',
                 'payment_notes', 'description', 'state'
             ]
@@ -138,7 +147,7 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
         elif user_role == 'logistics_manager':
             # مدیر لجستیک - مدیریت وزن‌گیری و لجستیک
             allowed_fields = [
-                'customer', 'product', 'unit', 'quantity', 'company_price',
+                'customer', 'product', 'unit', 'quantity',
                 'customer_price', 'logistics_notes', 'empty_weight', 'loaded_weight',
                 'delivered_weight', 'weight_difference', 'description',
                 'state', 'vehicle_type', 'barbary_confidential_number',
@@ -168,7 +177,7 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
         # مرتب کردن فیلدها
         custom_order_fields = [
             'customer', 'product', 'unit', 'quantity', 'bag_weight',
-            'company_price', 'customer_price', 'amount_paid',
+            'customer_price', 'amount_paid',
             'buyer_name', 'buyer_postal_code', 'buyer_national_id',
             'buyer_user_type', 'address', 'tahvil_phone_number', 
             'code_melli_tahvil', 'warehouse_contact_person', 
@@ -189,7 +198,7 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
         # فیلدهای همیشه قفل (غیرقابل ادیت)
         always_readonly_fields = [
             'customer', 'product', 'quantity', 'customer_price', 'amount_paid', 
-            'bag_weight', 'unit', 'company_price', 'state'
+            'bag_weight', 'unit', 'state'
         ]
         for field_name in always_readonly_fields:
             if field_name in self.fields:
@@ -206,7 +215,7 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
         
         if state in payment_verified_states:
             readonly_fields = [
-                'product', 'company_price'
+                'product'
             ]
             for field_name in readonly_fields:
                 if field_name in self.fields:
@@ -251,34 +260,34 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
             if self.instance and self.instance.pk:
                 readonly_fields = [
                     'customer', 'product', 'quantity', 'customer_price', 'amount_paid', 
-                    'bag_weight', 'unit'
+                    'bag_weight', 'unit', 'state'
                 ]
                 for field_name in readonly_fields:
                     if hasattr(self.instance, field_name):
                         cleaned_data[field_name] = getattr(self.instance, field_name)
-                
-                # اطمینان از وجود company_price
-                if not cleaned_data.get('company_price'):
-                    cleaned_data['company_price'] = self.instance.company_price or 0
             
             return cleaned_data
         
-        # اطمینان از وجود company_price
-        company_price = cleaned_data.get('company_price')
+        # تنظیم فی خرید از محصول (فقط برای instance، نه برای فرم)
+        if self.instance and self.instance.pk and self.instance.product:
+            product_price = self.instance.get_product_purchase_price()
+            if product_price:
+                # تنظیم مستقیم در instance، نه در cleaned_data
+                self.instance.company_price = product_price
+        
+        # اطمینان از وجود customer_price
         customer_price = cleaned_data.get('customer_price')
         
         # اگر فیلدهای readonly خالی هستند، از instance بگیر
         if self.instance and self.instance.pk:
             if not customer_price:
                 cleaned_data['customer_price'] = self.instance.customer_price
-            if not company_price:
-                cleaned_data['company_price'] = self.instance.company_price or self.instance.customer_price or 0
-        
-        if not company_price or company_price == 0:
-            if customer_price:
-                cleaned_data['company_price'] = customer_price
-            else:
-                cleaned_data['company_price'] = 0
+            
+            # اطمینان از وجود سایر فیلدهای ضروری
+            essential_fields = ['customer', 'product', 'quantity', 'unit', 'bag_weight', 'amount_paid']
+            for field_name in essential_fields:
+                if not cleaned_data.get(field_name) and hasattr(self.instance, field_name):
+                    cleaned_data[field_name] = getattr(self.instance, field_name)
         
         # اعتبارسنجی وزن‌ها
         empty_weight = cleaned_data.get('empty_weight')
@@ -386,11 +395,11 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
             document_file = request.FILES.get('payment_document_upload')
             if document_file:
                 purchase.payment_document = document_file
-                # اطمینان از تنظیم company_price
-                if purchase.company_price == 0 and purchase.customer_price:
-                    purchase.company_price = purchase.customer_price
-                elif purchase.company_price == 0:
-                    purchase.company_price = 0
+                # تنظیم company_price از محصول
+                if purchase.product:
+                    product_price = purchase.get_product_purchase_price()
+                    if product_price:
+                        purchase.company_price = product_price
                 purchase.save()
                 messages.success(request, 'مدرک پرداخت با موفقیت بارگذاری شد - حالا می‌توانید پرداخت را تایید کنید')
                 return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
@@ -437,6 +446,21 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
         
         if is_action_button_pressed:
             post_data['bypass_validation'] = 'true'
+            # برای دکمه‌های اکشن، اطمینان از وجود فیلدهای ضروری
+            if not post_data.get('customer_price'):
+                post_data['customer_price'] = purchase.customer_price
+            if not post_data.get('quantity'):
+                post_data['quantity'] = purchase.quantity
+            if not post_data.get('unit'):
+                post_data['unit'] = purchase.unit
+            if not post_data.get('bag_weight'):
+                post_data['bag_weight'] = purchase.bag_weight
+            if not post_data.get('amount_paid'):
+                post_data['amount_paid'] = purchase.amount_paid
+            
+            # تنظیم قیمت‌ها از محصول (فقط customer_price در فرم)
+            if purchase.customer_price:
+                post_data['customer_price'] = purchase.customer_price
         
         form = RoleBasedNonBazargahPurchaseForm(post_data, request.FILES, instance=purchase, user_role=user_role)
         
@@ -540,7 +564,7 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                         # فیلدهای قفل شده که نباید تغییر کنند
                         locked_fields = [
                             'customer', 'product', 'quantity', 'customer_price', 'amount_paid', 
-                            'bag_weight', 'unit', 'company_price', 'state'
+                            'bag_weight', 'unit', 'state'
                         ]
                         
                         # ذخیره مقادیر اصلی فیلدهای قفل شده
@@ -556,11 +580,42 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                         for field_name, original_value in original_values.items():
                             setattr(purchase_instance, field_name, original_value)
                         
+                        # تنظیم فی خرید از محصول
+                        if purchase_instance.product:
+                            product_price = purchase_instance.get_product_purchase_price()
+                            if product_price:
+                                purchase_instance.company_price = product_price
+                        
                         purchase_instance.save()
                         messages.success(request, 'تغییرات با موفقیت اعمال شد')
                     else:
-                        # اگر اکشن انجام شده، فقط ذخیره
-                        purchase_instance = form.save()
+                        # اگر اکشن انجام شده، فقط ذخیره فرم بدون تغییر فیلدهای قفل شده
+                        # فیلدهای قفل شده که نباید تغییر کنند
+                        locked_fields = [
+                            'customer', 'product', 'quantity', 'customer_price', 'amount_paid', 
+                            'bag_weight', 'unit'
+                        ]
+                        
+                        # ذخیره مقادیر اصلی فیلدهای قفل شده
+                        original_values = {}
+                        for field_name in locked_fields:
+                            if hasattr(purchase, field_name):
+                                original_values[field_name] = getattr(purchase, field_name)
+                        
+                        # ذخیره فرم
+                        purchase_instance = form.save(commit=False)
+                        
+                        # بازگردانی مقادیر اصلی فیلدهای قفل شده
+                        for field_name, original_value in original_values.items():
+                            setattr(purchase_instance, field_name, original_value)
+                        
+                        # تنظیم فی خرید از محصول
+                        if purchase_instance.product:
+                            product_price = purchase_instance.get_product_purchase_price()
+                            if product_price:
+                                purchase_instance.company_price = product_price
+                        
+                        purchase_instance.save()
                     
                     return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
                     
