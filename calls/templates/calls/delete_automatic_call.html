@@ -1,0 +1,258 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}حذف تماس اتوماتیک{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #065F46;
+        --danger-color: #DC2626;
+        --warning-color: #F59E0B;
+        --light-color: #F8FAFC;
+        --border-radius: 12px;
+        --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .delete-container {
+        padding: 2rem;
+        background-color: var(--light-color);
+        min-height: calc(100vh - 120px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .delete-card {
+        max-width: 500px;
+        width: 100%;
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        overflow: hidden;
+    }
+
+    .delete-header {
+        background: linear-gradient(135deg, var(--danger-color) 0%, #B91C1C 100%);
+        color: white;
+        padding: 2rem;
+        text-align: center;
+    }
+
+    .delete-header h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+    }
+
+    .delete-body {
+        padding: 2rem;
+    }
+
+    .call-info {
+        background: #F3F4F6;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .call-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1F2937;
+        margin-bottom: 0.5rem;
+    }
+
+    .call-details {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .detail-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .detail-label {
+        font-size: 0.875rem;
+        color: #6B7280;
+        font-weight: 500;
+    }
+
+    .detail-value {
+        font-weight: 600;
+        color: #1F2937;
+    }
+
+    .warning-message {
+        background: #FEF3C7;
+        border: 1px solid #F59E0B;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .warning-message i {
+        color: var(--warning-color);
+        font-size: 1.25rem;
+    }
+
+    .warning-text {
+        color: #92400E;
+        font-weight: 500;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    .btn {
+        padding: 0.75rem 2rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 1rem;
+    }
+
+    .btn-danger {
+        background-color: var(--danger-color);
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background-color: #B91C1C;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+    }
+
+    .btn-secondary {
+        background-color: #6B7280;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background-color: #4B5563;
+        transform: translateY(-1px);
+    }
+
+    .queue-info {
+        background: #DBEAFE;
+        border: 1px solid #3B82F6;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .queue-info i {
+        color: #3B82F6;
+        font-size: 1.25rem;
+    }
+
+    .queue-text {
+        color: #1E40AF;
+        font-weight: 500;
+    }
+
+    @media (max-width: 768px) {
+        .call-details {
+            grid-template-columns: 1fr;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="delete-container">
+    <div class="delete-card">
+        <div class="delete-header">
+            <h1>
+                <i class="fas fa-trash-alt"></i>
+                حذف تماس اتوماتیک
+            </h1>
+        </div>
+        
+        <div class="delete-body">
+            <div class="call-info">
+                <div class="call-title">{{ call.title }}</div>
+                
+                <div class="call-details">
+                    <div class="detail-item">
+                        <span class="detail-label">نوع تماس</span>
+                        <span class="detail-value">{{ call.get_call_type_display }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">وضعیت</span>
+                        <span class="detail-value">{{ call.get_status_display }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">زمان برنامه‌ریزی</span>
+                        <span class="detail-value">{{ call.scheduled_time|date:"Y/m/d H:i" }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">ایجاد شده توسط</span>
+                        <span class="detail-value">{{ call.created_by.get_full_name|default:call.created_by.username }}</span>
+                    </div>
+                </div>
+
+                {% if call.queue_session_id %}
+                <div class="queue-info">
+                    <i class="fas fa-list-ol"></i>
+                    <span class="queue-text">
+                        این تماس دارای صف شماره‌های تلفن است. حذف این تماس باعث حذف صف نیز خواهد شد.
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="warning-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <div class="warning-text">هشدار: این عمل غیرقابل بازگشت است!</div>
+                    <div style="font-size: 0.875rem; color: #92400E; margin-top: 0.25rem;">
+                        تمام اطلاعات مربوط به این تماس اتوماتیک حذف خواهد شد.
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" style="display: inline;">
+                {% csrf_token %}
+                <div class="action-buttons">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i>
+                        بله، حذف کن
+                    </button>
+                    <a href="{% url 'calls:automatic_call_detail' call.id %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i>
+                        انصراف
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

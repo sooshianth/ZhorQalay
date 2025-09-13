@@ -1,0 +1,999 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ایجاد تماس اتوماتیک{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #065F46;
+        --primary-light: #ECFDF5;
+        --secondary-color: #22C55E;
+        --danger-color: #DC2626;
+        --warning-color: #F59E0B;
+        --dark-color: #0F172A;
+        --light-color: #F8FAFC;
+        --border-radius: 12px;
+        --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .create-call-container {
+        padding: 2rem;
+        background-color: var(--light-color);
+        min-height: calc(100vh - 120px);
+    }
+
+    .main-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        gap: 2rem;
+    }
+
+    .form-container, .queue-container {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        overflow: hidden;
+    }
+
+    .form-header, .queue-header {
+        background: linear-gradient(135deg, var(--primary-color) 0%, #047857 100%);
+        color: white;
+        padding: 1.5rem;
+    }
+
+    .form-header h1, .queue-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+
+    .form-body, .queue-body {
+        padding: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: var(--dark-color);
+    }
+
+    .form-input, .form-select, .form-textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #D1D5DB;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.2s;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.1);
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #047857;
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background-color: #6B7280;
+        color: white;
+    }
+
+    .btn-danger {
+        background-color: var(--danger-color);
+        color: white;
+    }
+
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+
+    /* Queue Styles */
+    .queue-stats {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background: var(--primary-light);
+        border-radius: 8px;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-number {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--primary-color);
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6B7280;
+    }
+
+    .queue-actions {
+        margin-bottom: 1.5rem;
+    }
+
+    .action-tabs {
+        display: flex;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid #E5E7EB;
+    }
+
+    .tab-button {
+        padding: 0.75rem 1rem;
+        border: none;
+        background: none;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        color: #6B7280;
+        font-weight: 500;
+    }
+
+    .tab-button.active {
+        color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    .queue-list {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+    }
+
+    .queue-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        border-bottom: 1px solid #F3F4F6;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .queue-item:last-child {
+        border-bottom: none;
+    }
+
+    .queue-item:hover {
+        background-color: #F9FAFB;
+    }
+
+    .queue-item.selected {
+        background-color: var(--primary-light);
+        border-left: 4px solid var(--primary-color);
+    }
+
+    .queue-phone {
+        font-weight: 600;
+        color: var(--dark-color);
+    }
+
+    .queue-source {
+        font-size: 0.75rem;
+        color: #6B7280;
+        background: #F3F4F6;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+    }
+
+    .customer-search {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+
+    .customer-search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #D1D5DB;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 10;
+        display: none;
+    }
+
+    .customer-result {
+        padding: 0.75rem;
+        cursor: pointer;
+        border-bottom: 1px solid #F3F4F6;
+    }
+
+    .customer-result:hover {
+        background: var(--primary-light);
+    }
+
+    .file-input-wrapper {
+        position: relative;
+        display: inline-block;
+        cursor: pointer;
+        width: 100%;
+    }
+
+    .file-input {
+        position: absolute;
+        left: -9999px;
+    }
+
+    .file-input-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px dashed #D1D5DB;
+        border-radius: 8px;
+        background: #F9FAFB;
+        color: #6B7280;
+        transition: all 0.2s;
+    }
+
+    .file-input-button:hover {
+        border-color: var(--primary-color);
+        background: var(--primary-light);
+        color: var(--primary-color);
+    }
+
+    .empty-queue {
+        text-align: center;
+        padding: 2rem;
+        color: #6B7280;
+    }
+
+    @media (max-width: 1024px) {
+        .main-container {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="create-call-container">
+    <div class="main-container">
+        <!-- Form Section -->
+        <div class="form-container">
+            <div class="form-header">
+                <h1>
+                    <i class="fas fa-phone-alt"></i>
+                    ایجاد تماس اتوماتیک جدید
+                </h1>
+            </div>
+            
+            <div class="form-body">
+                <form method="post" id="createCallForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="create_call">
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="title">
+                            <i class="fas fa-tag"></i>
+                            عنوان تماس *
+                        </label>
+                        <input type="text" id="title" name="title" class="form-input" required 
+                               placeholder="مثال: تماس بازاریابی محصولات جدید">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="description">
+                            <i class="fas fa-align-left"></i>
+                            توضیحات
+                        </label>
+                        <textarea id="description" name="description" class="form-textarea" rows="3"
+                                  placeholder="توضیحات تکمیلی در مورد هدف و محتوای تماس"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="call_type">
+                            <i class="fas fa-list"></i>
+                            نوع تماس *
+                        </label>
+                        <select id="call_type" name="call_type" class="form-select" required>
+                            <option value="">انتخاب کنید</option>
+                            {% for value, label in call_type_choices %}
+                                <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="scheduled_time">
+                            <i class="fas fa-calendar-alt"></i>
+                            زمان برنامه‌ریزی شده *
+                        </label>
+                        <input type="datetime-local" id="scheduled_time" name="scheduled_time" class="form-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="priority">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            اولویت
+                        </label>
+                        <select id="priority" name="priority" class="form-select">
+                            <option value="1">عادی</option>
+                            <option value="2">متوسط</option>
+                            <option value="3">بالا</option>
+                            <option value="4">فوری</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="message_template">
+                            <i class="fas fa-comment"></i>
+                            قالب پیام
+                        </label>
+                        <textarea id="message_template" name="message_template" class="form-textarea" rows="3"
+                                  placeholder="متن پیامی که در تماس استفاده خواهد شد"></textarea>
+                    </div>
+
+                    <!-- Asterisk Settings -->
+                    <div class="form-group">
+                        <label class="form-label" for="asterisk_api_url">
+                            <i class="fas fa-server"></i>
+                            آدرس API Asterisk
+                        </label>
+                        <input type="url" id="asterisk_api_url" name="asterisk_api_url" class="form-input" 
+                               value="http://192.168.100.128:5000/api/start-dialer">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="asterisk_api_key">
+                            <i class="fas fa-key"></i>
+                            کلید API Asterisk
+                        </label>
+                        <input type="text" id="asterisk_api_key" name="asterisk_api_key" class="form-input" 
+                               placeholder="کلید احراز هویت API (اختیاری)">
+                    </div>
+
+                    <div class="form-group" style="margin-top: 2rem;">
+                        <button type="submit" class="btn btn-primary" id="createCallBtn" disabled>
+                            <i class="fas fa-save"></i>
+                            ایجاد تماس اتوماتیک
+                        </button>
+                        <a href="{% url 'calls:automatic_calls_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i>
+                            انصراف
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Queue Section -->
+        <div class="queue-container">
+            <div class="queue-header">
+                <h2>
+                    <i class="fas fa-list-ol"></i>
+                    صف تماس‌ها
+                </h2>
+            </div>
+            
+            <div class="queue-body">
+                <!-- Queue Stats -->
+                <div class="queue-stats">
+                    <div class="stat-item">
+                        <div class="stat-number" id="queueCount">{{ queue_count }}</div>
+                        <div class="stat-label">تعداد شماره‌ها</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="customerCount">0</div>
+                        <div class="stat-label">مشتریان</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="manualCount">0</div>
+                        <div class="stat-label">دستی</div>
+                    </div>
+                </div>
+
+                <!-- Queue Actions -->
+                <div class="queue-actions">
+                    <div class="action-tabs">
+                        <button class="tab-button active" data-tab="customers">مشتریان</button>
+                        <button class="tab-button" data-tab="manual">دستی</button>
+                        <button class="tab-button" data-tab="excel">اکسل</button>
+                        <button class="tab-button" data-tab="suggest">پیشنهادی</button>
+                    </div>
+
+                    <!-- Customer Tab -->
+                    <div class="tab-content active" id="customers-tab">
+                        <div class="customer-search">
+                            <input type="text" id="customerSearchInput" class="form-input" 
+                                   placeholder="جستجوی مشتری (نام یا شماره تلفن)">
+                            <div class="customer-search-results" id="customerSearchResults"></div>
+                        </div>
+                    </div>
+
+                    <!-- Manual Tab -->
+                    <div class="tab-content" id="manual-tab">
+                        <form id="manualNumbersForm">
+                            <textarea id="manualNumbers" class="form-textarea" rows="5" 
+                                      placeholder="شماره‌های تلفن را وارد کنید (هر شماره در یک خط)&#10;مثال:&#10;09123456789&#10;09876543210"></textarea>
+                            <button type="submit" class="btn btn-primary btn-sm" style="margin-top: 0.5rem;">
+                                <i class="fas fa-plus"></i>
+                                افزودن شماره‌ها
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Excel Tab -->
+                    <div class="tab-content" id="excel-tab">
+                        <form id="excelUploadForm" enctype="multipart/form-data">
+                            <div class="file-input-wrapper">
+                                <input type="file" id="excelFile" name="excel_file" class="file-input" accept=".xlsx,.xls">
+                                <div class="file-input-button">
+                                    <i class="fas fa-file-excel"></i>
+                                    انتخاب فایل اکسل
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm" style="margin-top: 0.5rem;">
+                                <i class="fas fa-upload"></i>
+                                آپلود و افزودن
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Suggest Tab -->
+                    <div class="tab-content" id="suggest-tab">
+                        <p style="margin-bottom: 1rem; color: #6B7280;">
+                            افزودن شماره‌های پیشنهادی بر اساس مشتریان فعال
+                        </p>
+                        <button type="button" class="btn btn-secondary btn-sm" id="addSuggestionsBtn">
+                            <i class="fas fa-magic"></i>
+                            افزودن پیشنهادات
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Queue List -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="button" class="btn btn-secondary btn-sm" id="selectAllBtn">
+                            <i class="fas fa-check-square"></i>
+                            انتخاب همه
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm" id="deleteSelectedBtn" style="display: none;">
+                            <i class="fas fa-trash"></i>
+                            حذف انتخاب‌شده‌ها
+                        </button>
+                    </div>
+                    <div id="selectedCount" style="color: #6B7280; font-size: 0.875rem;"></div>
+                </div>
+                
+                <div class="queue-list" id="queueList">
+                    {% if queue_numbers %}
+                        {% for item in queue_numbers %}
+                        <div class="queue-item" data-phone="{{ item.phone_number }}">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <input type="checkbox" class="queue-checkbox" value="{{ item.phone_number }}">
+                                <div>
+                                    <div class="queue-phone">{{ item.phone_number }}</div>
+                                    {% if item.customer %}
+                                        <div style="font-size: 0.875rem; color: #6B7280;">{{ item.customer.name }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span class="queue-source">{{ item.get_source_display }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-queue" id="emptyQueue">
+                            <i class="fas fa-inbox" style="font-size: 2rem; color: #D1D5DB; margin-bottom: 1rem;"></i>
+                            <p>هنوز شماره‌ای اضافه نشده است</p>
+                            <p style="font-size: 0.875rem; color: #6B7280;">از تب‌های بالا برای افزودن شماره استفاده کنید</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Tab switching
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const tabName = button.dataset.tab;
+            
+            // Remove active class from all buttons and contents
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Add active class to clicked button and corresponding content
+            button.classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
+        });
+    });
+
+    // Customer search
+    const customerSearchInput = document.getElementById('customerSearchInput');
+    const customerSearchResults = document.getElementById('customerSearchResults');
+    let searchTimeout;
+
+    customerSearchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+        
+        if (query.length < 2) {
+            customerSearchResults.style.display = 'none';
+            return;
+        }
+
+        searchTimeout = setTimeout(() => {
+            fetch(`{% url 'calls:search_customers_api' %}?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    customerSearchResults.innerHTML = '';
+                    
+                    if (data.results.length > 0) {
+                        data.results.forEach(customer => {
+                            const div = document.createElement('div');
+                            div.className = 'customer-result';
+                            div.innerHTML = `
+                                <div style="font-weight: 600;">${customer.name}</div>
+                                <div style="font-size: 0.875rem; color: #6B7280;">${customer.phone}</div>
+                            `;
+                            div.addEventListener('click', () => addCustomerToQueue(customer));
+                            customerSearchResults.appendChild(div);
+                        });
+                        customerSearchResults.style.display = 'block';
+                    } else {
+                        customerSearchResults.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error searching customers:', error);
+                });
+        }, 300);
+    });
+
+    // Hide search results when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!customerSearchInput.contains(e.target) && !customerSearchResults.contains(e.target)) {
+            customerSearchResults.style.display = 'none';
+        }
+    });
+
+    // Add customer to queue
+    function addCustomerToQueue(customer) {
+        const formData = new FormData();
+        formData.append('customer_id', customer.id);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch('{% url "calls:add_customer_to_queue" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                addQueueItem(data.phone_number, data.customer_name, 'مشتری');
+                customerSearchInput.value = '';
+                customerSearchResults.style.display = 'none';
+                showMessage(data.message, 'success');
+            } else {
+                showMessage(data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error adding customer:', error);
+            showMessage('خطا در افزودن مشتری', 'error');
+        });
+    }
+
+    // Manual numbers form
+    document.getElementById('manualNumbersForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const numbers = document.getElementById('manualNumbers').value;
+        if (!numbers.trim()) {
+            showMessage('لطفا شماره‌هایی را وارد کنید', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('numbers', numbers);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch('{% url "calls:add_manual_numbers_to_queue" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('manualNumbers').value = '';
+                showMessage(data.message, 'success');
+                location.reload(); // Refresh to show new numbers
+            } else {
+                showMessage(data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error adding manual numbers:', error);
+            showMessage('خطا در افزودن شماره‌ها', 'error');
+        });
+    });
+
+    // Excel upload form
+    document.getElementById('excelUploadForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const fileInput = document.getElementById('excelFile');
+        if (!fileInput.files[0]) {
+            showMessage('لطفا فایل اکسل را انتخاب کنید', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('excel_file', fileInput.files[0]);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch('{% url "calls:upload_excel_to_queue" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                fileInput.value = '';
+                showMessage(data.message, 'success');
+                location.reload(); // Refresh to show new numbers
+            } else {
+                showMessage(data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error uploading excel:', error);
+            showMessage('خطا در آپلود فایل', 'error');
+        });
+    });
+
+    // Add suggestions button
+    document.getElementById('addSuggestionsBtn').addEventListener('click', function() {
+        fetch('{% url "calls:add_suggested_numbers_to_queue" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage(data.message, 'success');
+                location.reload(); // Refresh to show new numbers
+            } else {
+                showMessage(data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error adding suggestions:', error);
+            showMessage('خطا در افزودن پیشنهادات', 'error');
+        });
+    });
+
+    // Remove queue item
+    document.addEventListener('click', function(e) {
+        // Handle checkbox selection
+        if (e.target.classList.contains('queue-checkbox')) {
+            updateSelectionUI();
+            return;
+        }
+        
+        // Handle queue item click (but not checkbox)
+        if (e.target.closest('.queue-item') && !e.target.closest('.queue-checkbox')) {
+            const queueItem = e.target.closest('.queue-item');
+            const checkbox = queueItem.querySelector('.queue-checkbox');
+            checkbox.checked = !checkbox.checked;
+            updateSelectionUI();
+        }
+    });
+
+    // Select All button
+    document.getElementById('selectAllBtn').addEventListener('click', function() {
+        const checkboxes = document.querySelectorAll('.queue-checkbox');
+        const allSelected = Array.from(checkboxes).every(cb => cb.checked);
+        
+        checkboxes.forEach(cb => {
+            cb.checked = !allSelected;
+        });
+        
+        updateSelectionUI();
+    });
+
+    // Delete Selected button
+    document.getElementById('deleteSelectedBtn').addEventListener('click', function() {
+        const selectedPhones = Array.from(document.querySelectorAll('.queue-checkbox:checked'))
+                                   .map(cb => cb.value);
+        
+        if (selectedPhones.length === 0) return;
+        
+        if (!confirm(`آیا مطمئن هستید که می‌خواهید ${selectedPhones.length} شماره را حذف کنید؟`)) {
+            return;
+        }
+        
+        // Remove selected items one by one
+        let deletedCount = 0;
+        const totalCount = selectedPhones.length;
+        
+        selectedPhones.forEach(phone => {
+            removeFromQueue(phone, () => {
+                deletedCount++;
+                if (deletedCount === totalCount) {
+                    showNotification(`${totalCount} شماره با موفقیت حذف شد`, 'success');
+                    updateSelectionUI();
+                    updateQueueStats();
+                    checkQueueEmpty();
+                }
+            });
+        });
+    });
+
+    // Remove single item from queue
+    function removeFromQueue(phoneNumber, callback) {
+        const formData = new FormData();
+        formData.append('phone_number', phoneNumber);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch('{% url "calls:remove_from_queue" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const queueItem = document.querySelector(`[data-phone="${phoneNumber}"]`);
+                if (queueItem) {
+                    queueItem.remove();
+                }
+                if (callback) callback();
+            } else {
+                showNotification(data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error removing from queue:', error);
+            showNotification('خطا در حذف از صف', 'error');
+        });
+    }
+
+    // Update selection UI
+    function updateSelectionUI() {
+        const checkboxes = document.querySelectorAll('.queue-checkbox');
+        const selectedCheckboxes = document.querySelectorAll('.queue-checkbox:checked');
+        const selectAllBtn = document.getElementById('selectAllBtn');
+        const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+        const selectedCount = document.getElementById('selectedCount');
+        
+        // Update select all button text
+        const allSelected = checkboxes.length > 0 && selectedCheckboxes.length === checkboxes.length;
+        selectAllBtn.innerHTML = allSelected ? 
+            '<i class="fas fa-square"></i> لغو انتخاب همه' : 
+            '<i class="fas fa-check-square"></i> انتخاب همه';
+        
+        // Show/hide delete button
+        if (selectedCheckboxes.length > 0) {
+            deleteSelectedBtn.style.display = 'inline-flex';
+            selectedCount.textContent = `${selectedCheckboxes.length} مورد انتخاب شده`;
+        } else {
+            deleteSelectedBtn.style.display = 'none';
+            selectedCount.textContent = '';
+        }
+        
+        // Update queue item appearance
+        document.querySelectorAll('.queue-item').forEach(item => {
+            const checkbox = item.querySelector('.queue-checkbox');
+            if (checkbox && checkbox.checked) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+        });
+    }
+
+    // Update create button state
+    function updateCreateButtonState() {
+        const queueCount = document.querySelectorAll('.queue-item').length;
+        const createBtn = document.getElementById('createCallBtn');
+        createBtn.disabled = queueCount === 0;
+    }
+
+    // Check if queue is empty
+    function checkQueueEmpty() {
+        const queueList = document.getElementById('queueList');
+        const emptyQueue = document.getElementById('emptyQueue');
+        const queueItems = document.querySelectorAll('.queue-item');
+        
+        if (queueItems.length === 0) {
+            if (!emptyQueue) {
+                queueList.innerHTML = `
+                    <div class="empty-queue" id="emptyQueue">
+                        <i class="fas fa-inbox" style="font-size: 2rem; color: #D1D5DB; margin-bottom: 1rem;"></i>
+                        <p>هنوز شماره‌ای اضافه نشده است</p>
+                        <p style="font-size: 0.875rem; color: #6B7280;">از تب‌های بالا برای افزودن شماره استفاده کنید</p>
+                    </div>
+                `;
+            }
+        } else {
+            if (emptyQueue) {
+                emptyQueue.remove();
+            }
+        }
+    }
+
+    // Update queue stats
+    function updateQueueStats() {
+        const queueItems = document.querySelectorAll('.queue-item');
+        const customerItems = document.querySelectorAll('.queue-item .queue-source:contains("مشتری")');
+        const manualItems = document.querySelectorAll('.queue-item .queue-source:contains("دستی")');
+        
+        document.getElementById('queueCount').textContent = queueItems.length;
+        updateCreateButtonState();
+    }
+
+    // Add queue item to UI
+    function addQueueItem(phoneNumber, customerName, source) {
+        const emptyQueue = document.getElementById('emptyQueue');
+        if (emptyQueue) {
+            emptyQueue.remove();
+        }
+
+        const queueList = document.getElementById('queueList');
+        const queueItem = document.createElement('div');
+        queueItem.className = 'queue-item';
+        queueItem.dataset.phone = phoneNumber;
+        
+        queueItem.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <input type="checkbox" class="queue-checkbox" value="${phoneNumber}">
+                <div>
+                    <div class="queue-phone">${phoneNumber}</div>
+                    ${customerName ? `<div style="font-size: 0.875rem; color: #6B7280;">${customerName}</div>` : ''}
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span class="queue-source">${source}</span>
+            </div>
+        `;
+        
+        queueList.appendChild(queueItem);
+        updateQueueStats();
+        updateSelectionUI();
+    }
+
+    // Show notification
+    function showNotification(message, type = 'info') {
+        // Create notification container if it doesn't exist
+        let container = document.getElementById('notification-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'notification-container';
+            container.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 9999;
+                max-width: 400px;
+            `;
+            document.body.appendChild(container);
+        }
+        
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateX(400px);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        `;
+        
+        // Set colors based on type
+        if (type === 'success') {
+            notification.style.backgroundColor = '#059669';
+            notification.innerHTML = '<i class="fas fa-check-circle"></i>' + message;
+        } else if (type === 'error') {
+            notification.style.backgroundColor = '#DC2626';
+            notification.innerHTML = '<i class="fas fa-exclamation-circle"></i>' + message;
+        } else {
+            notification.style.backgroundColor = '#2563EB';
+            notification.innerHTML = '<i class="fas fa-info-circle"></i>' + message;
+        }
+        
+        container.appendChild(notification);
+        
+        // Animate in
+        setTimeout(() => {
+            notification.style.transform = 'translateX(0)';
+        }, 10);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            notification.style.transform = 'translateX(400px)';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 3000);
+    }
+
+    // Replace all showMessage calls with showNotification
+    function showMessage(message, type) {
+        showNotification(message, type);
+    }
+
+    // File input display
+    document.getElementById('excelFile').addEventListener('change', function() {
+        const button = document.querySelector('.file-input-button');
+        if (this.files[0]) {
+            button.innerHTML = `<i class="fas fa-file-excel"></i> ${this.files[0].name}`;
+        } else {
+            button.innerHTML = `<i class="fas fa-file-excel"></i> انتخاب فایل اکسل`;
+        }
+    });
+
+    // Initialize
+    updateCreateButtonState();
+    updateSelectionUI();
+});
+</script>
+{% endblock %}

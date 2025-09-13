@@ -1,0 +1,474 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}داشبورد تماس‌های اتوماتیک{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #065F46;
+        --primary-light: #ECFDF5;
+        --secondary-color: #22C55E;
+        --danger-color: #DC2626;
+        --warning-color: #F59E0B;
+        --info-color: #0EA5E9;
+        --dark-color: #0F172A;
+        --light-color: #F8FAFC;
+        --border-radius: 12px;
+        --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .calls-dashboard {
+        padding: 2rem;
+        background-color: var(--light-color);
+        min-height: calc(100vh - 120px);
+    }
+
+    .dashboard-header {
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .dashboard-title {
+        color: var(--dark-color);
+        font-size: 2rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .dashboard-title i {
+        color: var(--primary-color);
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        padding: 1.5rem;
+        border-left: 4px solid var(--primary-color);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-card.pending {
+        border-left-color: var(--warning-color);
+    }
+
+    .stat-card.in-progress {
+        border-left-color: var(--info-color);
+    }
+
+    .stat-card.completed {
+        border-left-color: var(--secondary-color);
+    }
+
+    .stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .stat-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #6B7280;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.25rem;
+    }
+
+    .stat-icon.total {
+        background-color: var(--primary-color);
+    }
+
+    .stat-icon.pending {
+        background-color: var(--warning-color);
+    }
+
+    .stat-icon.in-progress {
+        background-color: var(--info-color);
+    }
+
+    .stat-icon.completed {
+        background-color: var(--secondary-color);
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--dark-color);
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 1rem;
+        color: #6B7280;
+        font-weight: 500;
+    }
+
+    .recent-calls-section {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        overflow: hidden;
+    }
+
+    .section-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid #E5E7EB;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--dark-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-title i {
+        color: var(--primary-color);
+    }
+
+    .calls-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .calls-table th,
+    .calls-table td {
+        padding: 1rem 1.5rem;
+        text-align: right;
+        border-bottom: 1px solid #F3F4F6;
+    }
+
+    .calls-table th {
+        background-color: #F9FAFB;
+        font-weight: 600;
+        color: var(--dark-color);
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .calls-table tbody tr:hover {
+        background-color: #F9FAFB;
+    }
+
+    .call-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .call-status.pending {
+        background-color: #FEF3C7;
+        color: #92400E;
+    }
+
+    .call-status.in-progress {
+        background-color: #DBEAFE;
+        color: #1E40AF;
+    }
+
+    .call-status.completed {
+        background-color: #D1FAE5;
+        color: #065F46;
+    }
+
+    .call-type {
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        background-color: #F3F4F6;
+        color: #374151;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+        font-size: 0.875rem;
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #047857;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(6, 95, 70, 0.3);
+    }
+
+    .btn-outline {
+        background-color: white;
+        color: var(--primary-color);
+        border: 1px solid var(--primary-color);
+    }
+
+    .btn-outline:hover {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #6B7280;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: #D1D5DB;
+    }
+
+    @media (max-width: 768px) {
+        .calls-dashboard {
+            padding: 1rem;
+        }
+
+        .dashboard-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .calls-table {
+            font-size: 0.875rem;
+        }
+
+        .calls-table th,
+        .calls-table td {
+            padding: 0.75rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="calls-dashboard">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">
+            <i class="fas fa-phone-alt"></i>
+            داشبورد تماس‌های اتوماتیک
+        </h1>
+        <div class="header-actions">
+            <a href="{% url 'calls:create_automatic_call' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                ایجاد تماس جدید
+            </a>
+            <a href="{% url 'calls:automatic_calls_list' %}" class="btn btn-outline">
+                <i class="fas fa-list"></i>
+                مشاهده همه
+            </a>
+        </div>
+    </div>
+
+    <!-- آمار کلی -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-title">کل تماس‌ها</span>
+                <div class="stat-icon total">
+                    <i class="fas fa-phone"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ total_calls }}</div>
+            <div class="stat-label">تعداد کل تماس‌های ثبت شده</div>
+        </div>
+
+        <div class="stat-card pending">
+            <div class="stat-header">
+                <span class="stat-title">در انتظار</span>
+                <div class="stat-icon pending">
+                    <i class="fas fa-clock"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ pending_calls }}</div>
+            <div class="stat-label">تماس‌های در انتظار شروع</div>
+        </div>
+
+        <div class="stat-card in-progress">
+            <div class="stat-header">
+                <span class="stat-title">در حال انجام</span>
+                <div class="stat-icon in-progress">
+                    <i class="fas fa-play-circle"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ in_progress_calls }}</div>
+            <div class="stat-label">تماس‌های در حال انجام</div>
+        </div>
+
+        <div class="stat-card completed">
+            <div class="stat-header">
+                <span class="stat-title">تکمیل شده</span>
+                <div class="stat-icon completed">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ completed_calls }}</div>
+            <div class="stat-label">تماس‌های تکمیل شده</div>
+        </div>
+    </div>
+
+    <!-- تماس‌های اخیر -->
+    <div class="recent-calls-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-history"></i>
+                تماس‌های اخیر
+            </h2>
+            <a href="{% url 'calls:automatic_calls_list' %}" class="btn btn-outline">
+                مشاهده همه
+            </a>
+        </div>
+
+        {% if recent_calls %}
+            <table class="calls-table">
+                <thead>
+                    <tr>
+                        <th>عنوان</th>
+                        <th>نوع</th>
+                        <th>وضعیت</th>
+                        <th>زمان برنامه‌ریزی</th>
+                        <th>ایجاد شده توسط</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for call in recent_calls %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'calls:automatic_call_detail' call.id %}" 
+                                   style="color: var(--primary-color); text-decoration: none; font-weight: 500;">
+                                    {{ call.title }}
+                                </a>
+                            </td>
+                            <td>
+                                <span class="call-type">{{ call.get_call_type_display }}</span>
+                            </td>
+                            <td>
+                                <span class="call-status {{ call.status }}">
+                                    {% if call.status == 'pending' %}
+                                        <i class="fas fa-clock"></i>
+                                    {% elif call.status == 'in_progress' %}
+                                        <i class="fas fa-play-circle"></i>
+                                    {% elif call.status == 'completed' %}
+                                        <i class="fas fa-check-circle"></i>
+                                    {% endif %}
+                                    {{ call.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ call.scheduled_time|date:"Y/m/d H:i" }}</td>
+                            <td>{{ call.created_by.get_full_name|default:call.created_by.username }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-phone-slash"></i>
+                <h3>هیچ تماس اتوماتیکی ثبت نشده است</h3>
+                <p>برای شروع، اولین تماس اتوماتیک خود را ایجاد کنید</p>
+                <a href="{% url 'calls:create_automatic_call' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
+                    ایجاد تماس جدید
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // بروزرسانی آمار به صورت خودکار هر 30 ثانیه
+    function updateStats() {
+        fetch('{% url "calls:get_call_stats_api" %}')
+            .then(response => response.json())
+            .then(data => {
+                // به‌روزرسانی اعداد آمار
+                document.querySelector('.stat-card .stat-number').textContent = data.total;
+                document.querySelector('.stat-card.pending .stat-number').textContent = data.pending;
+                document.querySelector('.stat-card.in-progress .stat-number').textContent = data.in_progress;
+                document.querySelector('.stat-card.completed .stat-number').textContent = data.completed;
+            })
+            .catch(error => console.error('خطا در دریافت آمار:', error));
+    }
+
+    // تنظیم تایمر بروزرسانی
+    setInterval(updateStats, 30000);
+
+    // انیمیشن ورود کارت‌ها
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.stat-card');
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                card.style.transition = 'all 0.5s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    });
+</script>
+{% endblock %}

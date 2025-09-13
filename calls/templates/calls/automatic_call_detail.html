@@ -1,0 +1,380 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}جزئیات {{ call.title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'calls/css/calls.css' %}">
+<style>
+    .call-detail-container {
+        padding: 2rem;
+        background-color: var(--calls-light);
+        min-height: calc(100vh - 120px);
+    }
+
+    .detail-header {
+        background: white;
+        border-radius: var(--calls-radius);
+        box-shadow: var(--calls-shadow);
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .call-info-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .info-section {
+        background: white;
+        border-radius: var(--calls-radius);
+        box-shadow: var(--calls-shadow);
+        padding: 1.5rem;
+    }
+
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--calls-dark);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--calls-primary-light);
+    }
+
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #F3F4F6;
+    }
+
+    .info-item:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        font-weight: 500;
+        color: #6B7280;
+    }
+
+    .info-value {
+        font-weight: 600;
+        color: var(--calls-dark);
+    }
+
+    .logs-section {
+        background: white;
+        border-radius: var(--calls-radius);
+        box-shadow: var(--calls-shadow);
+        overflow: hidden;
+    }
+
+    .log-item {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #F3F4F6;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .log-item:last-child {
+        border-bottom: none;
+    }
+
+    .log-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.875rem;
+    }
+
+    .log-icon.created {
+        background-color: var(--calls-secondary);
+    }
+
+    .log-icon.started {
+        background-color: var(--calls-info);
+    }
+
+    .log-icon.stopped {
+        background-color: var(--calls-warning);
+    }
+
+    .log-content {
+        flex: 1;
+    }
+
+    .log-message {
+        font-weight: 500;
+        color: var(--calls-dark);
+        margin-bottom: 0.25rem;
+    }
+
+    .log-time {
+        font-size: 0.75rem;
+        color: #6B7280;
+    }
+
+    @media (max-width: 768px) {
+        .call-detail-container {
+            padding: 1rem;
+        }
+
+        .call-info-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="call-detail-container">
+    <!-- هدر صفحه -->
+    <div class="detail-header">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <h1 style="margin: 0; color: var(--calls-dark); font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">
+                    <i class="fas fa-phone-alt" style="color: var(--calls-primary);"></i>
+                    {{ call.title }}
+                </h1>
+                <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                    <span class="call-status-badge {{ call.status }}">
+                        {% if call.status == 'pending' %}
+                            <i class="fas fa-clock"></i>
+                        {% elif call.status == 'in_progress' %}
+                            <i class="fas fa-play-circle"></i>
+                        {% elif call.status == 'completed' %}
+                            <i class="fas fa-check-circle"></i>
+                        {% elif call.status == 'failed' %}
+                            <i class="fas fa-times-circle"></i>
+                        {% endif %}
+                        {{ call.get_status_display }}
+                    </span>
+                    <span class="call-type-badge {{ call.call_type }}">{{ call.get_call_type_display }}</span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                {% if call.status == 'pending' %}
+                    {% if call.queue_session_id %}
+                    <form method="post" action="{% url 'calls:start_asterisk_call' call.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary" 
+                                onclick="return confirm('آیا از شروع تماس از طریق Asterisk اطمینان دارید؟')">
+                            <i class="fas fa-phone"></i>
+                            شروع تماس اتوماتیک
+                        </button>
+                    </form>
+                    {% else %}
+                    <span class="btn btn-secondary" style="cursor: not-allowed;" title="هیچ صفی برای این تماس تعریف نشده است">
+                        <i class="fas fa-phone"></i>
+                        شروع تماس اتوماتیک
+                    </span>
+                    {% endif %}
+                {% elif call.status == 'in_progress' %}
+                    <a href="{% url 'calls:stop_automatic_call' call.id %}" class="btn btn-secondary">
+                        <i class="fas fa-stop"></i>
+                        متوقف کردن
+                    </a>
+                {% endif %}
+                
+                <a href="{% url 'calls:automatic_calls_list' %}" class="btn btn-outline">
+                    <i class="fas fa-arrow-right"></i>
+                    بازگشت به لیست
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- اطلاعات تماس -->
+    <div class="call-info-grid">
+        <div class="info-section">
+            <h2 class="section-title">
+                <i class="fas fa-info-circle" style="color: var(--calls-primary);"></i>
+                اطلاعات تماس
+            </h2>
+            
+            <div class="info-item">
+                <span class="info-label">توضیحات:</span>
+                <span class="info-value">{{ call.description|default:"بدون توضیحات" }}</span>
+            </div>
+            
+            <div class="info-item">
+                <span class="info-label">زمان برنامه‌ریزی شده:</span>
+                <span class="info-value">{{ call.scheduled_time|date:"Y/m/d H:i" }}</span>
+            </div>
+            
+            {% if call.start_time %}
+            <div class="info-item">
+                <span class="info-label">زمان شروع:</span>
+                <span class="info-value">{{ call.start_time|date:"Y/m/d H:i" }}</span>
+            </div>
+            {% endif %}
+            
+            {% if call.end_time %}
+            <div class="info-item">
+                <span class="info-label">زمان پایان:</span>
+                <span class="info-value">{{ call.end_time|date:"Y/m/d H:i" }}</span>
+            </div>
+            {% endif %}
+            
+            <div class="info-item">
+                <span class="info-label">اولویت:</span>
+                <span class="info-value">
+                    {% if call.priority == 1 %}کم
+                    {% elif call.priority == 2 %}متوسط
+                    {% elif call.priority == 3 %}زیاد
+                    {% endif %}
+                </span>
+            </div>
+            
+            <div class="info-item">
+                <span class="info-label">ایجاد شده توسط:</span>
+                <span class="info-value">{{ call.created_by.get_full_name|default:call.created_by.username }}</span>
+            </div>
+            
+            {% if call.assigned_to %}
+            <div class="info-item">
+                <span class="info-label">اختصاص داده شده به:</span>
+                <span class="info-value">{{ call.assigned_to.get_full_name|default:call.assigned_to.username }}</span>
+            </div>
+            {% endif %}
+            
+            {% if call.phone_numbers %}
+            <div class="info-item">
+                <span class="info-label">شماره‌های تلفن:</span>
+                <span class="info-value">{{ call.phone_numbers }}</span>
+            </div>
+            {% endif %}
+            
+            {% if call.message_template %}
+            <div style="margin-top: 1rem;">
+                <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--calls-dark);">
+                    قالب پیام:
+                </h3>
+                <div style="background-color: #F9FAFB; padding: 1rem; border-radius: 0.5rem; border-left: 4px solid var(--calls-primary);">
+                    {{ call.message_template }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- آمار تماس -->
+        <div class="info-section">
+            <h2 class="section-title">
+                <i class="fas fa-chart-bar" style="color: var(--calls-primary);"></i>
+                آمار تماس
+            </h2>
+            
+            <div class="info-item">
+                <span class="info-label">تعداد کل تماس‌ها:</span>
+                <span class="info-value" style="color: var(--calls-primary);">{{ call.total_calls }}</span>
+            </div>
+            
+            <div class="info-item">
+                <span class="info-label">تماس‌های موفق:</span>
+                <span class="info-value" style="color: var(--calls-secondary);">{{ call.successful_calls }}</span>
+            </div>
+            
+            <div class="info-item">
+                <span class="info-label">تماس‌های ناموفق:</span>
+                <span class="info-value" style="color: var(--calls-danger);">{{ call.failed_calls }}</span>
+            </div>
+            
+            {% if call.total_calls > 0 %}
+            <div class="info-item">
+                <span class="info-label">نرخ موفقیت:</span>
+                <span class="info-value" style="color: var(--calls-secondary);">
+                    {{ call.successful_calls|floatformat:0 }}/{{ call.total_calls }} 
+                    ({% widthratio call.successful_calls call.total_calls 100 %}%)
+                </span>
+            </div>
+            {% endif %}
+            
+            <div class="info-item">
+                <span class="info-label">تاریخ ایجاد:</span>
+                <span class="info-value">{{ call.created_at|date:"Y/m/d H:i" }}</span>
+            </div>
+            
+            <div class="info-item">
+                <span class="info-label">آخرین به‌روزرسانی:</span>
+                <span class="info-value">{{ call.updated_at|date:"Y/m/d H:i" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- لاگ‌های تماس -->
+    <div class="logs-section">
+        <div style="padding: 1.5rem; border-bottom: 1px solid #E5E7EB;">
+            <h2 class="section-title" style="margin: 0;">
+                <i class="fas fa-history" style="color: var(--calls-primary);"></i>
+                تاریخچه فعالیت‌ها
+            </h2>
+        </div>
+        
+        {% if logs %}
+            {% for log in logs %}
+            <div class="log-item">
+                <div class="log-icon {{ log.event_type }}">
+                    {% if log.event_type == 'created' %}
+                        <i class="fas fa-plus"></i>
+                    {% elif log.event_type == 'started' %}
+                        <i class="fas fa-play"></i>
+                    {% elif log.event_type == 'stopped' %}
+                        <i class="fas fa-stop"></i>
+                    {% else %}
+                        <i class="fas fa-info"></i>
+                    {% endif %}
+                </div>
+                <div class="log-content">
+                    <div class="log-message">{{ log.message }}</div>
+                    <div class="log-time">{{ log.timestamp|date:"Y/m/d H:i:s" }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="padding: 2rem; text-align: center; color: #6B7280;">
+                <i class="fas fa-history" style="font-size: 2rem; margin-bottom: 1rem; color: #D1D5DB;"></i>
+                <p>هنوز هیچ فعالیتی ثبت نشده است.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // بروزرسانی خودکار آمار
+    function updateCallStats() {
+        // این تابع می‌تواند آمار تماس را به صورت زنده به‌روزرسانی کند
+        console.log('Updating call stats...');
+    }
+
+    // تنظیم تایمر بروزرسانی هر 30 ثانیه
+    setInterval(updateCallStats, 30000);
+
+    // انیمیشن ورود عناصر
+    document.addEventListener('DOMContentLoaded', function() {
+        const sections = document.querySelectorAll('.info-section, .logs-section');
+        sections.forEach((section, index) => {
+            section.style.opacity = '0';
+            section.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                section.style.transition = 'all 0.5s ease';
+                section.style.opacity = '1';
+                section.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    });
+</script>
+{% endblock %}

@@ -24,6 +24,7 @@ urlpatterns = [
     path('bi/', include('bi.urls')),
     path('fledger/', include(('fledger.urls', 'fledger'), namespace='fledger')),
     path('crm-api/', include('crm_api.urls')),
+    path('calls/', include('calls.urls')),
     path('', include('authentication.urls')),
     # هدایت مسیرهای قدیمی به صفحه ورود جدید
     path('sales_agent_login/', RedirectView.as_view(pattern_name='unified_login', permanent=True)),

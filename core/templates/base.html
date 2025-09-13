@@ -193,7 +193,24 @@
                 </div>
                 {% endif %}
                 
-                <!-- دسته هفتم: منابع انسانی -->
+                <!-- دسته هفتم: تماس ها -->
+                {% if request.user.is_superuser or request.user.is_staff or request.user.support_agent %}
+                <div class="menu-category">
+                    <div class="category-title" data-toggle="collapse" data-target="calls-management">
+                        <i class="fas fa-phone-alt category-icon"></i>
+                        <span>تماس ها</span>
+                        <i class="fas fa-chevron-down category-arrow"></i>
+                    </div>
+                    
+                    <div class="submenu-container collapsed" id="calls-management">
+                        <li><a href="{% url 'calls:automatic_calls_dashboard' %}"><i class="fas fa-tachometer-alt"></i> داشبورد تماس‌ها</a></li>
+                        <li><a href="{% url 'calls:automatic_calls_list' %}"><i class="fas fa-robot"></i> تماس اتوماتیک</a></li>
+                        <li><a href="{% url 'calls:create_automatic_call' %}"><i class="fas fa-plus-circle"></i> ایجاد تماس جدید</a></li>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- دسته هشتم: منابع انسانی -->
                 <div class="menu-category">
                     <div class="category-title" data-toggle="collapse" data-target="reports-management">
                         <i class="fas fa-user-tie category-icon"></i>

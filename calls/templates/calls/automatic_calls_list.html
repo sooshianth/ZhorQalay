@@ -1,0 +1,605 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}لیست تماس‌های اتوماتیک{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #065F46;
+        --primary-light: #ECFDF5;
+        --secondary-color: #22C55E;
+        --danger-color: #DC2626;
+        --warning-color: #F59E0B;
+        --info-color: #0EA5E9;
+        --dark-color: #0F172A;
+        --light-color: #F8FAFC;
+        --border-radius: 12px;
+        --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .calls-list-container {
+        padding: 2rem;
+        background-color: var(--light-color);
+        min-height: calc(100vh - 120px);
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        color: var(--dark-color);
+        font-size: 2rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .page-title i {
+        color: var(--primary-color);
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .filters-section {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        align-items: end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .filter-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--dark-color);
+    }
+
+    .filter-input,
+    .filter-select {
+        padding: 0.625rem;
+        border: 1px solid #D1D5DB;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+    }
+
+    .filter-input:focus,
+    .filter-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.1);
+    }
+
+    .calls-table-container {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        overflow: hidden;
+    }
+
+    .table-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid #E5E7EB;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .table-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--dark-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-title i {
+        color: var(--primary-color);
+    }
+
+    .calls-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .calls-table th,
+    .calls-table td {
+        padding: 1rem 1.5rem;
+        text-align: right;
+        border-bottom: 1px solid #F3F4F6;
+    }
+
+    .calls-table th {
+        background-color: #F9FAFB;
+        font-weight: 600;
+        color: var(--dark-color);
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .calls-table tbody tr:hover {
+        background-color: #F9FAFB;
+    }
+
+    .call-title {
+        font-weight: 500;
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .call-title:hover {
+        text-decoration: underline;
+    }
+
+    .call-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .call-status.pending {
+        background-color: #FEF3C7;
+        color: #92400E;
+    }
+
+    .call-status.in-progress {
+        background-color: #DBEAFE;
+        color: #1E40AF;
+    }
+
+    .call-status.completed {
+        background-color: #D1FAE5;
+        color: #065F46;
+    }
+
+    .call-status.failed {
+        background-color: #FEE2E2;
+        color: #DC2626;
+    }
+
+    .call-type {
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        background-color: #F3F4F6;
+        color: #374151;
+    }
+
+    .call-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 0.375rem;
+        color: white;
+        text-decoration: none;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        margin: 0 2px;
+    }
+
+    .action-btn.view {
+        background-color: var(--info-color);
+    }
+
+    .action-btn.start {
+        background-color: var(--secondary-color);
+    }
+
+    .action-btn.stop {
+        background-color: var(--warning-color);
+    }
+
+    .action-btn.delete {
+        background-color: var(--danger-color);
+    }
+
+    .action-btn.disabled {
+        background-color: #9CA3AF;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .action-btn.disabled:hover {
+        transform: none;
+        box-shadow: none;
+    }
+
+    .action-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Style buttons inside forms to look like action buttons */
+    .action-btn button {
+        width: 100%;
+        height: 100%;
+        border: none;
+        background: none;
+        color: inherit;
+        cursor: inherit;
+        font-size: inherit;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .pagination-container {
+        padding: 1.5rem;
+        border-top: 1px solid #E5E7EB;
+        display: flex;
+        justify-content: center;
+    }
+
+    .pagination {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .page-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 40px;
+        height: 40px;
+        padding: 0 0.75rem;
+        border: 1px solid #D1D5DB;
+        border-radius: 0.375rem;
+        color: var(--dark-color);
+        text-decoration: none;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+    }
+
+    .page-link:hover,
+    .page-link.active {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+        font-size: 0.875rem;
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #047857;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(6, 95, 70, 0.3);
+    }
+
+    .btn-outline {
+        background-color: white;
+        color: var(--primary-color);
+        border: 1px solid var(--primary-color);
+    }
+
+    .btn-outline:hover {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #6B7280;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        color: #D1D5DB;
+    }
+
+    @media (max-width: 768px) {
+        .calls-list-container {
+            padding: 1rem;
+        }
+
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filters-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .calls-table {
+            font-size: 0.875rem;
+        }
+
+        .calls-table th,
+        .calls-table td {
+            padding: 0.75rem 0.5rem;
+        }
+
+        .call-actions {
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="calls-list-container">
+    <div class="page-header">
+        <h1 class="page-title">
+            <i class="fas fa-robot"></i>
+            لیست تماس‌های اتوماتیک
+        </h1>
+        <div class="header-actions">
+            <a href="{% url 'calls:create_automatic_call' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                ایجاد تماس جدید
+            </a>
+            <a href="{% url 'calls:automatic_calls_dashboard' %}" class="btn btn-outline">
+                <i class="fas fa-tachometer-alt"></i>
+                داشبورد
+            </a>
+        </div>
+    </div>
+
+    <!-- فیلترها -->
+    <div class="filters-section">
+        <form method="get" class="filters-form">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label class="filter-label">جستجو</label>
+                    <input type="text" name="search" class="filter-input" 
+                           placeholder="جستجو در عنوان یا توضیحات..." 
+                           value="{{ current_search }}">
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">وضعیت</label>
+                    <select name="status" class="filter-select">
+                        <option value="">همه وضعیت‌ها</option>
+                        {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">نوع تماس</label>
+                    <select name="call_type" class="filter-select">
+                        <option value="">همه انواع</option>
+                        {% for value, label in call_type_choices %}
+                            <option value="{{ value }}" {% if current_call_type == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                        اعمال فیلتر
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- جدول تماس‌ها -->
+    <div class="calls-table-container">
+        <div class="table-header">
+            <div class="table-title">
+                <i class="fas fa-list"></i>
+                نتایج ({{ page_obj.paginator.count }} مورد)
+            </div>
+        </div>
+
+        {% if page_obj.object_list %}
+            <table class="calls-table">
+                <thead>
+                    <tr>
+                        <th>عنوان</th>
+                        <th>نوع</th>
+                        <th>وضعیت</th>
+                        <th>زمان برنامه‌ریزی</th>
+                        <th>ایجاد شده توسط</th>
+                        <th>آمار</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for call in page_obj.object_list %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'calls:automatic_call_detail' call.id %}" class="call-title">
+                                    {{ call.title }}
+                                </a>
+                                {% if call.description %}
+                                    <div style="font-size: 0.75rem; color: #6B7280; margin-top: 0.25rem;">
+                                        {{ call.description|truncatechars:50 }}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="call-type">{{ call.get_call_type_display }}</span>
+                            </td>
+                            <td>
+                                <span class="call-status {{ call.status }}">
+                                    {% if call.status == 'pending' %}
+                                        <i class="fas fa-clock"></i>
+                                    {% elif call.status == 'in_progress' %}
+                                        <i class="fas fa-play-circle"></i>
+                                    {% elif call.status == 'completed' %}
+                                        <i class="fas fa-check-circle"></i>
+                                    {% elif call.status == 'failed' %}
+                                        <i class="fas fa-times-circle"></i>
+                                    {% endif %}
+                                    {{ call.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ call.scheduled_time|date:"Y/m/d H:i" }}</td>
+                            <td>{{ call.created_by.get_full_name|default:call.created_by.username }}</td>
+                            <td>
+                                <div style="font-size: 0.75rem;">
+                                    <div>کل: {{ call.total_calls }}</div>
+                                    <div style="color: var(--secondary-color);">موفق: {{ call.successful_calls }}</div>
+                                    {% if call.failed_calls > 0 %}
+                                        <div style="color: var(--danger-color);">ناموفق: {{ call.failed_calls }}</div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="call-actions">
+                                    <a href="{% url 'calls:automatic_call_detail' call.id %}" 
+                                       class="action-btn view" title="مشاهده جزئیات">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    
+                                    {% if call.status == 'pending' %}
+                                        {% if call.queue_session_id %}
+                                            <form method="post" action="{% url 'calls:start_asterisk_call' call.id %}" style="display: inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="action-btn start" title="شروع تماس اتوماتیک"
+                                                        onclick="return confirm('آیا از شروع تماس از طریق Asterisk اطمینان دارید؟')">
+                                                    <i class="fas fa-phone"></i>
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <span class="action-btn start disabled" title="هیچ صفی برای این تماس تعریف نشده است">
+                                                <i class="fas fa-phone"></i>
+                                            </span>
+                                        {% endif %}
+                                    {% elif call.status == 'in_progress' %}
+                                        <a href="{% url 'calls:stop_automatic_call' call.id %}" 
+                                           class="action-btn stop" title="متوقف کردن">
+                                            <i class="fas fa-stop"></i>
+                                        </a>
+                                    {% endif %}
+                                    
+                                    <a href="{% url 'calls:delete_automatic_call' call.id %}" 
+                                       class="action-btn delete" title="حذف"
+                                       onclick="return confirm('آیا مطمئن هستید؟')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- صفحه‌بندی -->
+            {% if page_obj.has_other_pages %}
+                <div class="pagination-container">
+                    <nav class="pagination">
+                        {% if page_obj.has_previous %}
+                            <a href="?page=1" class="page-link">
+                                <i class="fas fa-angle-double-right"></i>
+                            </a>
+                            <a href="?page={{ page_obj.previous_page_number }}" class="page-link">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        {% endif %}
+
+                        {% for page_num in page_obj.paginator.page_range %}
+                            {% if page_num == page_obj.number %}
+                                <span class="page-link active">{{ page_num }}</span>
+                            {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
+                                <a href="?page={{ page_num }}" class="page-link">{{ page_num }}</a>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="page-link">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                            <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">
+                                <i class="fas fa-angle-double-left"></i>
+                            </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-robot"></i>
+                <h3>هیچ تماس اتوماتیکی یافت نشد</h3>
+                <p>
+                    {% if current_search or current_status or current_call_type %}
+                        با فیلترهای انتخاب شده، هیچ نتیجه‌ای یافت نشد. 
+                        <a href="{% url 'calls:automatic_calls_list' %}">حذف فیلترها</a>
+                    {% else %}
+                        برای شروع، اولین تماس اتوماتیک خود را ایجاد کنید.
+                    {% endif %}
+                </p>
+                <a href="{% url 'calls:create_automatic_call' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
+                    ایجاد تماس جدید
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'bi.apps.BIConfig',
     'fledger.apps.FledgerConfig',
     'crm_api.apps.CrmApiConfig',
+    'calls.apps.CallsConfig',
 ]
 
 MIDDLEWARE = [

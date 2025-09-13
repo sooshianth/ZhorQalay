@@ -1,0 +1,350 @@
+/* استایل‌های مشترک برای سیستم تماس‌ها */
+
+:root {
+    --calls-primary: #065F46;
+    --calls-primary-light: #ECFDF5;
+    --calls-secondary: #22C55E;
+    --calls-danger: #DC2626;
+    --calls-warning: #F59E0B;
+    --calls-info: #0EA5E9;
+    --calls-dark: #0F172A;
+    --calls-light: #F8FAFC;
+    --calls-radius: 12px;
+    --calls-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* انیمیشن‌های مشترک */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* کلاس‌های کمکی */
+.calls-fade-in {
+    animation: slideInUp 0.5s ease-out;
+}
+
+.calls-pulse {
+    animation: pulse 2s infinite;
+}
+
+/* استایل‌های وضعیت تماس */
+.call-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.call-status-badge.pending {
+    background-color: #FEF3C7;
+    color: #92400E;
+}
+
+.call-status-badge.in-progress {
+    background-color: #DBEAFE;
+    color: #1E40AF;
+}
+
+.call-status-badge.completed {
+    background-color: #D1FAE5;
+    color: #065F46;
+}
+
+.call-status-badge.failed {
+    background-color: #FEE2E2;
+    color: #DC2626;
+}
+
+.call-status-badge.cancelled {
+    background-color: #F3F4F6;
+    color: #6B7280;
+}
+
+/* استایل‌های نوع تماس */
+.call-type-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background-color: #F3F4F6;
+    color: #374151;
+}
+
+.call-type-badge.marketing {
+    background-color: #FEF3C7;
+    color: #92400E;
+}
+
+.call-type-badge.follow-up {
+    background-color: #DBEAFE;
+    color: #1E40AF;
+}
+
+.call-type-badge.reminder {
+    background-color: #FEE2E2;
+    color: #DC2626;
+}
+
+.call-type-badge.survey {
+    background-color: #E0E7FF;
+    color: #5B21B6;
+}
+
+.call-type-badge.notification {
+    background-color: #ECFDF5;
+    color: #065F46;
+}
+
+/* دکمه‌های عملیات */
+.calls-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 0.5rem;
+    color: white;
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.calls-action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.calls-action-btn.view {
+    background-color: var(--calls-info);
+}
+
+.calls-action-btn.edit {
+    background-color: var(--calls-warning);
+}
+
+.calls-action-btn.start {
+    background-color: var(--calls-secondary);
+}
+
+.calls-action-btn.stop {
+    background-color: var(--calls-warning);
+}
+
+.calls-action-btn.delete {
+    background-color: var(--calls-danger);
+}
+
+/* کارت‌های آمار */
+.calls-stat-card {
+    background: white;
+    border-radius: var(--calls-radius);
+    box-shadow: var(--calls-shadow);
+    padding: 1.5rem;
+    border-left: 4px solid var(--calls-primary);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.calls-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.calls-stat-card.pending {
+    border-left-color: var(--calls-warning);
+}
+
+.calls-stat-card.in-progress {
+    border-left-color: var(--calls-info);
+}
+
+.calls-stat-card.completed {
+    border-left-color: var(--calls-secondary);
+}
+
+.calls-stat-card.failed {
+    border-left-color: var(--calls-danger);
+}
+
+/* جدول‌های تماس */
+.calls-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.calls-table th {
+    background-color: #F9FAFB;
+    font-weight: 600;
+    color: var(--calls-dark);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1rem 1.5rem;
+    text-align: right;
+    border-bottom: 1px solid #E5E7EB;
+}
+
+.calls-table td {
+    padding: 1rem 1.5rem;
+    text-align: right;
+    border-bottom: 1px solid #F3F4F6;
+}
+
+.calls-table tbody tr:hover {
+    background-color: #F9FAFB;
+}
+
+/* فرم‌های تماس */
+.calls-form-group {
+    margin-bottom: 1.5rem;
+}
+
+.calls-form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--calls-dark);
+    margin-bottom: 0.5rem;
+}
+
+.calls-form-input,
+.calls-form-select,
+.calls-form-textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    background-color: white;
+}
+
+.calls-form-input:focus,
+.calls-form-select:focus,
+.calls-form-textarea:focus {
+    outline: none;
+    border-color: var(--calls-primary);
+    box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.1);
+}
+
+/* حالت خالی */
+.calls-empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #6B7280;
+}
+
+.calls-empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    color: #D1D5DB;
+}
+
+.calls-empty-state h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--calls-dark);
+}
+
+/* نوتیفیکیشن‌ها */
+.calls-notification {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    padding: 1rem 1.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    z-index: 9999;
+    max-width: 400px;
+    animation: slideInUp 0.3s ease-out;
+}
+
+.calls-notification.success {
+    background-color: var(--calls-secondary);
+    color: white;
+}
+
+.calls-notification.error {
+    background-color: var(--calls-danger);
+    color: white;
+}
+
+.calls-notification.warning {
+    background-color: var(--calls-warning);
+    color: white;
+}
+
+.calls-notification.info {
+    background-color: var(--calls-info);
+    color: white;
+}
+
+/* لودینگ */
+.calls-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.calls-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #F3F4F6;
+    border-top: 3px solid var(--calls-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ریسپانسیو */
+@media (max-width: 768px) {
+    .calls-stat-card {
+        padding: 1rem;
+    }
+    
+    .calls-table th,
+    .calls-table td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .calls-action-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 0.75rem;
+    }
+    
+    .calls-form-input,
+    .calls-form-select,
+    .calls-form-textarea {
+        padding: 0.625rem;
+    }
+}
