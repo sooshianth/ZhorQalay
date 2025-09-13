@@ -175,6 +175,14 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
                 if self.instance and self.instance.pk and hasattr(self.instance, field_name):
                     self.initial[field_name] = getattr(self.instance, field_name)
         
+        # فیلدهای وزن‌گیری را نیز اختیاری کن و مقدار اولیه تنظیم کن
+        weight_fields = ['empty_weight', 'loaded_weight', 'delivered_weight', 'weight_difference']
+        for field_name in weight_fields:
+            if field_name in self.fields:
+                self.fields[field_name].required = False
+                if self.instance and self.instance.pk and hasattr(self.instance, field_name):
+                    self.initial[field_name] = getattr(self.instance, field_name)
+        
         # تنظیم فیلدها بر اساس نقش کاربر
         if user_role == 'sales_agent':
             # کارشناس فروش فقط اطلاعات اولیه و اطلاعات خریدار
@@ -301,6 +309,17 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
                     self.fields[field_name].widget.attrs.update({
                         'readonly': 'readonly', 'disabled': True
                     })
+        
+        # بعد از صدور بارنامه، فیلدهای وزن‌گیری قفل می‌شوند اما مقادیرشان حفظ می‌شود
+        if state in ['barnameh_issued', 'delivered', 'purchase_closed']:
+            for field_name in weight_fields:
+                if field_name in self.fields:
+                    self.fields[field_name].widget.attrs.update({
+                        'readonly': 'readonly', 'disabled': True
+                    })
+                    # اطمینان از اینکه مقدار اولیه تنظیم شده است
+                    if self.instance and self.instance.pk and hasattr(self.instance, field_name):
+                        self.initial[field_name] = getattr(self.instance, field_name)
     
     def clean(self):
         cleaned_data = super().clean()
@@ -314,6 +333,12 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
                     'bag_weight', 'unit', 'state'
                 ]
                 for field_name in readonly_fields:
+                    if hasattr(self.instance, field_name):
+                        cleaned_data[field_name] = getattr(self.instance, field_name)
+                
+                # بازگردانی فیلدهای وزن‌گیری نیز
+                weight_fields = ['empty_weight', 'loaded_weight', 'delivered_weight', 'weight_difference']
+                for field_name in weight_fields:
                     if hasattr(self.instance, field_name):
                         cleaned_data[field_name] = getattr(self.instance, field_name)
             
@@ -338,6 +363,12 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
             essential_fields = ['customer', 'product', 'quantity', 'unit', 'bag_weight', 'amount_paid']
             for field_name in essential_fields:
                 if not cleaned_data.get(field_name) and hasattr(self.instance, field_name):
+                    cleaned_data[field_name] = getattr(self.instance, field_name)
+            
+            # اطمینان از وجود فیلدهای وزن‌گیری
+            weight_fields = ['empty_weight', 'loaded_weight', 'delivered_weight', 'weight_difference']
+            for field_name in weight_fields:
+                if field_name in self.fields and not cleaned_data.get(field_name) and hasattr(self.instance, field_name):
                     cleaned_data[field_name] = getattr(self.instance, field_name)
         
         # اعتبارسنجی وزن‌ها
@@ -671,9 +702,17 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                             if not purchase.can_issue_barnameh():
                                 messages.error(request, 'برای صدور بارنامه، ابتدا باید وزن پر برای همه بارنامه‌ها ثبت شده باشد (مقدار بیشتر از صفر)')
                             else:
+                                # محاسبه و بروزرسانی وزن‌ها از بارنامه‌ها
+                                try:
+                                    purchase.update_weights_from_barnamehs()
+                                    logger.info(f"وزن‌های خرید {purchase.id} از بارنامه‌ها بروزرسانی شد")
+                                except Exception as e:
+                                    logger.error(f"خطا در بروزرسانی وزن‌ها از بارنامه‌ها: {str(e)}")
+                                    messages.warning(request, f'بارنامه صادر شد اما خطا در بروزرسانی وزن‌ها: {str(e)}')
+                                
                                 purchase.state = 'barnameh_issued'
                                 action_taken = True
-                                messages.success(request, 'بارنامه صادر شد')
+                                messages.success(request, 'بارنامه صادر شد و وزن‌ها به صورت خودکار محاسبه شد')
                         
                         elif purchase.state == 'barnameh_issued' and 'confirm_delivery' in request.POST:
                             purchase.state = 'delivered'

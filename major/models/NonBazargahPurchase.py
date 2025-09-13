@@ -275,6 +275,48 @@ class NonBazargahPurchase(BasePurchase):
                 return False
         
         return True
+    
+    def calculate_total_weights_from_barnamehs(self):
+        """محاسبه مجموع وزن‌ها از بارنامه‌ها"""
+        barnamehs = self.get_all_barnamehs()
+        if not barnamehs:
+            return {
+                'total_empty_weight': 0,
+                'total_loaded_weight': 0,
+                'total_delivered_weight': 0
+            }
+        
+        total_empty_weight = 0
+        total_loaded_weight = 0
+        total_delivered_weight = 0
+        
+        for barnameh in barnamehs:
+            if barnameh.empty_vehicle_weight:
+                total_empty_weight += float(barnameh.empty_vehicle_weight)
+            if barnameh.loaded_vehicle_weight:
+                total_loaded_weight += float(barnameh.loaded_vehicle_weight)
+            if barnameh.final_delivered_weight:
+                total_delivered_weight += float(barnameh.final_delivered_weight)
+        
+        return {
+            'total_empty_weight': int(total_empty_weight),
+            'total_loaded_weight': int(total_loaded_weight),
+            'total_delivered_weight': int(total_delivered_weight)
+        }
+    
+    def update_weights_from_barnamehs(self):
+        """بروزرسانی وزن‌های خرید از مجموع وزن‌های بارنامه‌ها"""
+        weights = self.calculate_total_weights_from_barnamehs()
+        
+        self.empty_weight = weights['total_empty_weight']
+        self.loaded_weight = weights['total_loaded_weight']
+        self.delivered_weight = weights['total_delivered_weight']
+        
+        # محاسبه اختلاف وزن
+        if self.delivered_weight and self.quantity:
+            self.weight_difference = self.calculate_weight_difference()
+        
+        self.save()
 
     def save(self, *args, **kwargs):
         # تنظیم فی خرید از محصول
