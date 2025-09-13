@@ -48,6 +48,7 @@ class NonBazargahPurchase(BasePurchase):
     loaded_weight = models.PositiveIntegerField("وزن پر (کیلوگرم)", null=True, blank=True, help_text="وزن ماشین پر")
     delivered_weight = models.PositiveIntegerField("وزن تحویلی (کیلوگرم)", null=True, blank=True, help_text="وزن نهایی تحویل داده شده به مشتری")
     weight_difference = models.IntegerField("اختلاف وزن (کیلوگرم)", null=True, blank=True, help_text="اختلاف بین وزن درخواستی و تحویلی")
+    weight_difference_amount = models.IntegerField("مبلغ اختلاف وزن (ریال)", null=True, blank=True, help_text="مبلغ اختلاف وزن بر اساس فی خرید")
     
     # فیلدهای مربوط به انبار و لجستیک
     warehouse_contact_person = models.CharField("نام رابط انبار", max_length=255, null=True, blank=True)
@@ -68,8 +69,8 @@ class NonBazargahPurchase(BasePurchase):
         return None
     
     def calculate_weight_difference(self):
-        """محاسبه اختلاف وزن بین درخواستی و تحویلی"""
-        if self.delivered_weight and self.quantity:
+        """محاسبه اختلاف وزن بین درخواستی و وزن خالص تحویلی"""
+        if self.delivered_weight and self.empty_weight and self.quantity:
             # تبدیل واحد بر اساس نوع واحد
             requested_weight_in_kg = self.quantity
             if self.unit == 'Ton':
@@ -77,7 +78,35 @@ class NonBazargahPurchase(BasePurchase):
             elif self.unit == 'Kiseh' and self.bag_weight:
                 requested_weight_in_kg = self.quantity * self.bag_weight
             
-            return self.delivered_weight - requested_weight_in_kg
+            # وزن خالص تحویلی = وزن تحویلی - وزن خالی
+            net_delivered_weight = self.delivered_weight - self.empty_weight
+            
+            # اختلاف وزن = وزن خالص تحویلی - وزن سفارش
+            return net_delivered_weight - requested_weight_in_kg
+        return None
+    
+    def calculate_net_weight_difference(self):
+        """محاسبه اختلاف وزن خالص (وزن تحویلی - وزن خالی - وزن سفارش)"""
+        if self.delivered_weight and self.empty_weight and self.quantity:
+            # تبدیل واحد بر اساس نوع واحد
+            requested_weight_in_kg = self.quantity
+            if self.unit == 'Ton':
+                requested_weight_in_kg = self.quantity * 1000
+            elif self.unit == 'Kiseh' and self.bag_weight:
+                requested_weight_in_kg = self.quantity * self.bag_weight
+            
+            # وزن خالص تحویلی = وزن تحویلی - وزن خالی
+            net_delivered_weight = self.delivered_weight - self.empty_weight
+            
+            # اختلاف وزن خالص = وزن خالص تحویلی - وزن سفارش
+            return net_delivered_weight - requested_weight_in_kg
+        return None
+    
+    def calculate_weight_difference_amount(self):
+        """محاسبه مبلغ اختلاف وزن بر اساس فی خرید"""
+        weight_difference = self.calculate_net_weight_difference()
+        if weight_difference is not None and self.company_price:
+            return int(weight_difference * self.company_price)
         return None
     
     def can_verify_payment(self, user):
@@ -304,7 +333,7 @@ class NonBazargahPurchase(BasePurchase):
             'total_delivered_weight': int(total_delivered_weight)
         }
     
-    def update_weights_from_barnamehs(self):
+    def update_weights_from_barnamehs(self, save=True):
         """بروزرسانی وزن‌های خرید از مجموع وزن‌های بارنامه‌ها"""
         weights = self.calculate_total_weights_from_barnamehs()
         
@@ -312,11 +341,12 @@ class NonBazargahPurchase(BasePurchase):
         self.loaded_weight = weights['total_loaded_weight']
         self.delivered_weight = weights['total_delivered_weight']
         
-        # محاسبه اختلاف وزن
-        if self.delivered_weight and self.quantity:
+        # محاسبه اختلاف وزن (وزن خالص تحویلی - وزن سفارش)
+        if self.delivered_weight and self.empty_weight and self.quantity:
             self.weight_difference = self.calculate_weight_difference()
         
-        self.save()
+        if save:
+            self.save()
 
     def save(self, *args, **kwargs):
         # تنظیم فی خرید از محصول
@@ -328,8 +358,8 @@ class NonBazargahPurchase(BasePurchase):
         if calculated_amount:
             self.amount_paid = calculated_amount
         
-        # محاسبه اختلاف وزن هنگام ذخیره
-        if self.delivered_weight and self.quantity:
+        # محاسبه اختلاف وزن هنگام ذخیره (وزن خالص تحویلی - وزن سفارش)
+        if self.delivered_weight and self.empty_weight and self.quantity:
             self.weight_difference = self.calculate_weight_difference()
         
         super().save(*args, **kwargs)

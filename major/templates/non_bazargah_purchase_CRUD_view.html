@@ -2027,7 +2027,7 @@
       <div class="section-content collapsed">
         <div class="form-grid">
         {% for field in form %}
-          {% if field.name in 'empty_weight,loaded_weight,delivered_weight,weight_difference'|split:',' %}
+          {% if field.name in 'empty_weight,loaded_weight,delivered_weight,weight_difference,weight_difference_amount'|split:',' %}
           <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
             <label>
               {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}

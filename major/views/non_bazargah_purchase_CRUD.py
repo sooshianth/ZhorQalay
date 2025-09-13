@@ -176,7 +176,7 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
                     self.initial[field_name] = getattr(self.instance, field_name)
         
         # فیلدهای وزن‌گیری را نیز اختیاری کن و مقدار اولیه تنظیم کن
-        weight_fields = ['empty_weight', 'loaded_weight', 'delivered_weight', 'weight_difference']
+        weight_fields = ['empty_weight', 'loaded_weight', 'delivered_weight', 'weight_difference', 'weight_difference_amount']
         for field_name in weight_fields:
             if field_name in self.fields:
                 self.fields[field_name].required = False
@@ -208,7 +208,7 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
             allowed_fields = [
                 'customer', 'product', 'unit', 'quantity',
                 'customer_price', 'logistics_notes', 'empty_weight', 'loaded_weight',
-                'delivered_weight', 'weight_difference', 'description',
+                'delivered_weight', 'weight_difference', 'weight_difference_amount', 'description',
                 'state', 'vehicle_type', 'barbary_confidential_number',
                 'barbary_customer_number', 'warehouse_contact_person',
                 'warehouse_contact_phone'
@@ -241,7 +241,8 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
             'buyer_user_type', 'address', 'tahvil_phone_number', 
             'code_melli_tahvil', 'warehouse_contact_person', 
             'warehouse_contact_phone', 'empty_weight', 'loaded_weight',
-            'delivered_weight', 'payment_document', 'state',
+            'delivered_weight', 'weight_difference', 'weight_difference_amount', 
+            'payment_document', 'state',
             'description', 'logistics_notes', 'payment_notes'
         ]
         ordered_field_names = [f for f in custom_order_fields if f in self.fields]
@@ -320,6 +321,17 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
                     # اطمینان از اینکه مقدار اولیه تنظیم شده است
                     if self.instance and self.instance.pk and hasattr(self.instance, field_name):
                         self.initial[field_name] = getattr(self.instance, field_name)
+        
+        # بعد از بستن خرید، فیلدهای محاسبات نهایی نیز قفل می‌شوند
+        if state == 'purchase_closed':
+            calculation_fields = ['weight_difference', 'weight_difference_amount']
+            for field_name in calculation_fields:
+                if field_name in self.fields:
+                    self.fields[field_name].widget.attrs.update({
+                        'readonly': 'readonly', 'disabled': True
+                    })
+                    if self.instance and self.instance.pk and hasattr(self.instance, field_name):
+                        self.initial[field_name] = getattr(self.instance, field_name)
     
     def clean(self):
         cleaned_data = super().clean()
@@ -337,7 +349,7 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
                         cleaned_data[field_name] = getattr(self.instance, field_name)
                 
                 # بازگردانی فیلدهای وزن‌گیری نیز
-                weight_fields = ['empty_weight', 'loaded_weight', 'delivered_weight', 'weight_difference']
+                weight_fields = ['empty_weight', 'loaded_weight', 'delivered_weight', 'weight_difference', 'weight_difference_amount']
                 for field_name in weight_fields:
                     if hasattr(self.instance, field_name):
                         cleaned_data[field_name] = getattr(self.instance, field_name)
@@ -366,7 +378,7 @@ class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
                     cleaned_data[field_name] = getattr(self.instance, field_name)
             
             # اطمینان از وجود فیلدهای وزن‌گیری
-            weight_fields = ['empty_weight', 'loaded_weight', 'delivered_weight', 'weight_difference']
+            weight_fields = ['empty_weight', 'loaded_weight', 'delivered_weight', 'weight_difference', 'weight_difference_amount']
             for field_name in weight_fields:
                 if field_name in self.fields and not cleaned_data.get(field_name) and hasattr(self.instance, field_name):
                     cleaned_data[field_name] = getattr(self.instance, field_name)
@@ -720,9 +732,43 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                             messages.success(request, 'تحویل به مشتری تایید شد')
                         
                         elif purchase.state == 'delivered' and 'close_purchase' in request.POST:
-                            purchase.state = 'purchase_closed'
+                            # محاسبه نهایی اختلاف وزن و مبلغ آن
+                            try:
+                                # اطمینان از اینکه وزن‌ها از بارنامه‌ها بروزرسانی شده‌اند
+                                purchase.update_weights_from_barnamehs(save=False)
+                                
+                                # محاسبه اختلاف وزن خالص و مبلغ آن
+                                weight_difference = purchase.calculate_net_weight_difference()
+                                weight_difference_amount = purchase.calculate_weight_difference_amount()
+                                
+                                # ذخیره مقادیر محاسبه شده
+                                if weight_difference is not None:
+                                    purchase.weight_difference = weight_difference
+                                if weight_difference_amount is not None:
+                                    purchase.weight_difference_amount = weight_difference_amount
+                                
+                                purchase.state = 'purchase_closed'
+                                
+                                logger.info(f"محاسبات نهایی خرید {purchase.id} انجام شد - اختلاف وزن: {weight_difference} کیلوگرم، مبلغ اختلاف: {weight_difference_amount} ریال")
+                                
+                                # نمایش اطلاعات محاسبه شده
+                                if weight_difference and weight_difference != 0:
+                                    if weight_difference > 0:
+                                        messages.success(request, f'خرید بسته شد. اختلاف وزن: +{weight_difference} کیلوگرم (اضافه تحویل) - مبلغ اضافی: {weight_difference_amount:,} ریال')
+                                    else:
+                                        messages.success(request, f'خرید بسته شد. اختلاف وزن: {weight_difference} کیلوگرم (کمبود تحویل) - مبلغ کسر: {abs(weight_difference_amount):,} ریال')
+                                else:
+                                    messages.success(request, 'خرید بسته شد. وزن تحویل دقیقاً مطابق سفارش است.')
+                                    
+                            except Exception as e:
+                                logger.error(f"خطا در محاسبات نهایی خرید {purchase.id}: {str(e)}")
+                                # حتی در صورت خطا، خرید را ببند
+                                purchase.state = 'purchase_closed'
+                                purchase.weight_difference = None
+                                purchase.weight_difference_amount = None
+                                messages.warning(request, f'خرید بسته شد اما خطا در محاسبات مالی: {str(e)}')
+                            
                             action_taken = True
-                            messages.success(request, 'خرید بسته شد')
                     
                     # اکشن‌های ادمین
                     if user_role == 'admin':
@@ -735,6 +781,9 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                             purchase.state = 'archived'
                             action_taken = True
                             messages.success(request, 'خرید آرشیو شد')
+                    
+                    # ذخیره تغییرات purchase در انتهای transaction
+                    purchase.save()
                     
                     # ذخیره فرم فقط اگر اکشن انجام نشده باشد
                     if not action_taken:
