@@ -1207,7 +1207,11 @@
                                 </button>
                                 <button type="button" class="btn btn-warning" id="exportToExcelBtn">
                                     <i class="fas fa-file-excel me-2"></i>
-                                    خروجی اکسل
+                                    خروجی اکسل انتخاب شده
+                                </button>
+                                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#fullExportModal">
+                                    <i class="fas fa-file-excel me-2"></i>
+                                    خروجی اکسل کامل
                                 </button>
                                 <a href="{% url 'download_excel_template' %}" class="btn btn-success">
                                     <i class="fas fa-download me-2"></i>
@@ -1735,6 +1739,114 @@
         </div>
     </div>
 
+    <!-- مدال خروجی اکسل کامل -->
+    <div class="modal fade" id="fullExportModal" tabindex="-1" aria-labelledby="fullExportModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-gradient" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;">
+                    <h5 class="modal-title text-white fw-bold" id="fullExportModalLabel">
+                        <i class="fas fa-file-excel me-2"></i>خروجی اکسل کامل از همه بارنامه‌ها
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%) !important;">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-info-circle text-info me-3" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <h6 class="mb-1 text-info fw-bold">خروجی اکسل کامل</h6>
+                                <small class="text-muted">این گزینه خروجی اکسل از همه بارنامه‌ها با تمام ستون‌های موجود تهیه می‌کند.</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form id="fullExportForm">
+                        {% csrf_token %}
+                        
+                        <!-- انتخاب بازه تاریخ -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="mb-3 text-dark fw-bold border-bottom pb-2">
+                                    <i class="fas fa-calendar-alt me-2 text-primary"></i>بازه تاریخ بارنامه‌ها
+                                </h6>
+                            </div>
+                            
+                            <!-- گزینه همه بارنامه‌ها -->
+                            <div class="col-12 mb-3">
+                                <div class="form-check p-3 border rounded shadow-sm" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                                    <input class="form-check-input" type="radio" name="dateRange" id="allBarnamehs" value="all" checked style="transform: scale(1.2);">
+                                    <label class="form-check-label fw-bold text-success ms-2" for="allBarnamehs">
+                                        <i class="fas fa-globe me-2"></i>همه بارنامه‌ها (بدون محدودیت تاریخی)
+                                    </label>
+                                    <small class="text-muted d-block mt-2 ms-4">تمام بارنامه‌های موجود در سیستم</small>
+                                </div>
+                            </div>
+                            
+                            <!-- گزینه بازه تاریخی -->
+                            <div class="col-12 mb-3">
+                                <div class="form-check p-3 border rounded shadow-sm" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                                    <input class="form-check-input" type="radio" name="dateRange" id="dateRangeOption" value="range" style="transform: scale(1.2);">
+                                    <label class="form-check-label fw-bold ms-2" for="dateRangeOption">
+                                        <i class="fas fa-calendar-week me-2 text-primary"></i>بازه تاریخی خاص
+                                    </label>
+                                    <small class="text-muted d-block mt-2 ms-4">انتخاب بازه زمانی مشخص</small>
+                                </div>
+                            </div>
+                            
+                            <!-- فیلدهای تاریخ -->
+                            <div class="col-12" id="dateRangeFields" style="display: none;">
+                                <div class="card border-primary shadow-sm">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="fromDate" class="form-label fw-bold text-primary">
+                                                    <i class="fas fa-calendar-day me-1"></i>از تاریخ:
+                                                </label>
+                                                <input type="text" class="form-control form-control-lg border-primary persian-datepicker" id="fromDate" name="from_date" placeholder="مثال: 1403/01/01">
+                                                <small class="text-muted">تاریخ شروع شمسی (اختیاری)</small>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="toDate" class="form-label fw-bold text-primary">
+                                                    <i class="fas fa-calendar-day me-1"></i>تا تاریخ:
+                                                </label>
+                                                <input type="text" class="form-control form-control-lg border-primary persian-datepicker" id="toDate" name="to_date" placeholder="مثال: 1403/12/29">
+                                                <small class="text-muted">تاریخ پایان شمسی (اختیاری)</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- اطلاعات اضافی -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="alert alert-warning border-0 shadow-sm" style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%) !important;">
+                                    <h6 class="alert-heading text-warning">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>نکات مهم
+                                    </h6>
+                                    <ul class="mb-0 text-dark">
+                                        <li class="mb-1">این عملیات ممکن است چند دقیقه طول بکشد</li>
+                                        <li class="mb-1">تمام ستون‌های موجود در خروجی گنجانده می‌شوند</li>
+                                        <li>فایل اکسل به صورت خودکار دانلود خواهد شد</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-light border-top-0 p-3">
+                    <button type="button" class="btn btn-outline-secondary btn-lg" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>انصراف
+                    </button>
+                    <button type="button" class="btn btn-success btn-lg shadow-sm" id="startFullExportBtn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;">
+                        <i class="fas fa-download me-2"></i>شروع خروجی اکسل
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- مدال مدیریت ستون‌ها - Overlay Style -->
 <div class="modal fade" id="columnsModal" tabindex="-1" aria-labelledby="columnsModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -1803,6 +1915,7 @@
         </div>
     </div>
 </div>
+
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -2241,6 +2354,287 @@ function resetColumns() {
             resetBtn.innerHTML = originalText;
         });
     }
+}
+
+// مدیریت مدال خروجی اکسل کامل
+document.addEventListener('DOMContentLoaded', function() {
+    // مدیریت radio button های انتخاب بازه تاریخ
+    const allBarnamehsRadio = document.getElementById('allBarnamehs');
+    const dateRangeRadio = document.getElementById('dateRangeOption');
+    const dateRangeFields = document.getElementById('dateRangeFields');
+    
+    if (allBarnamehsRadio && dateRangeRadio && dateRangeFields) {
+        allBarnamehsRadio.addEventListener('change', function() {
+            if (this.checked) {
+                dateRangeFields.style.display = 'none';
+            }
+        });
+        
+        dateRangeRadio.addEventListener('change', function() {
+            if (this.checked) {
+                dateRangeFields.style.display = 'block';
+                // راه‌اندازی تقویم فارسی بعد از نمایش فیلدها
+                setTimeout(() => {
+                    initializePersianDatepickers();
+                }, 100);
+            }
+        });
+    }
+    
+    // مدیریت دکمه شروع خروجی
+    const startFullExportBtn = document.getElementById('startFullExportBtn');
+    if (startFullExportBtn) {
+        startFullExportBtn.addEventListener('click', function() {
+            startFullExport();
+        });
+    }
+    
+    // راه‌اندازی تقویم فارسی
+    function initializePersianDatepickers() {
+        console.log('شروع راه‌اندازی تقویم فارسی...');
+        
+        // بررسی وجود jQuery و کتابخانه تقویم فارسی
+        if (typeof $ === 'undefined') {
+            console.error('jQuery یافت نشد');
+            return;
+        }
+        
+        if (typeof $.fn.persianDatepicker === 'undefined') {
+            console.error('کتابخانه تقویم فارسی یافت نشد');
+            return;
+        }
+        
+        // تنظیمات تقویم فارسی
+        const persianDatepickerConfig = {
+            format: 'YYYY/MM/DD',
+            calendar: 'persian',
+            locale: 'fa',
+            timePicker: {
+                enabled: false
+            },
+            initialValue: false,
+            autoClose: true,
+            observer: true,
+            altField: false,
+            checkDate: function(unix) {
+                return true; // همه تاریخ‌ها معتبر هستند
+            },
+            onSelect: function(unix, formatted) {
+                console.log('تاریخ انتخاب شد:', formatted);
+            }
+        };
+        
+        // راه‌اندازی تقویم برای فیلد از تاریخ
+        const fromDateInput = document.getElementById('fromDate');
+        if (fromDateInput && !fromDateInput.classList.contains('datepicker-initialized')) {
+            try {
+                $(fromDateInput).persianDatepicker(persianDatepickerConfig);
+                fromDateInput.classList.add('datepicker-initialized');
+                console.log('تقویم برای فیلد "از تاریخ" راه‌اندازی شد');
+            } catch (error) {
+                console.error('خطا در راه‌اندازی تقویم برای فیلد "از تاریخ":', error);
+            }
+        }
+        
+        // راه‌اندازی تقویم برای فیلد تا تاریخ
+        const toDateInput = document.getElementById('toDate');
+        if (toDateInput && !toDateInput.classList.contains('datepicker-initialized')) {
+            try {
+                $(toDateInput).persianDatepicker(persianDatepickerConfig);
+                toDateInput.classList.add('datepicker-initialized');
+                console.log('تقویم برای فیلد "تا تاریخ" راه‌اندازی شد');
+            } catch (error) {
+                console.error('خطا در راه‌اندازی تقویم برای فیلد "تا تاریخ":', error);
+            }
+        }
+        
+        // اضافه کردن قابلیت تایپ دستی
+        if (fromDateInput) {
+            fromDateInput.addEventListener('keydown', function(e) {
+                // اجازه تایپ اعداد، اسلش و کلیدهای کنترلی
+                if ((e.key >= '0' && e.key <= '9') || e.key === '/' || e.key === 'Backspace' || e.key === 'Delete' || e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Tab') {
+                    return true;
+                }
+                e.preventDefault();
+            });
+            
+            // اضافه کردن placeholder بهتر
+            fromDateInput.addEventListener('focus', function() {
+                if (!this.value) {
+                    this.placeholder = 'مثال: 1403/01/01';
+                }
+            });
+        }
+        
+        if (toDateInput) {
+            toDateInput.addEventListener('keydown', function(e) {
+                // اجازه تایپ اعداد، اسلش و کلیدهای کنترلی
+                if ((e.key >= '0' && e.key <= '9') || e.key === '/' || e.key === 'Backspace' || e.key === 'Delete' || e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Tab') {
+                    return true;
+                }
+                e.preventDefault();
+            });
+            
+            // اضافه کردن placeholder بهتر
+            toDateInput.addEventListener('focus', function() {
+                if (!this.value) {
+                    this.placeholder = 'مثال: 1403/12/29';
+                }
+            });
+        }
+        
+        // اضافه کردن دکمه تقویم دستی اگر تقویم فارسی کار نکرد
+        setTimeout(() => {
+            if (fromDateInput && !fromDateInput.classList.contains('datepicker-initialized')) {
+                console.log('تقویم فارسی برای فیلد "از تاریخ" کار نکرد، اضافه کردن دکمه تقویم دستی');
+                addManualCalendarButton(fromDateInput, 'از تاریخ');
+            }
+            
+            if (toDateInput && !toDateInput.classList.contains('datepicker-initialized')) {
+                console.log('تقویم فارسی برای فیلد "تا تاریخ" کار نکرد، اضافه کردن دکمه تقویم دستی');
+                addManualCalendarButton(toDateInput, 'تا تاریخ');
+            }
+        }, 1000);
+    }
+    
+    // تابع اضافه کردن دکمه تقویم دستی
+    function addManualCalendarButton(inputElement, label) {
+        // ایجاد دکمه تقویم
+        const calendarBtn = document.createElement('button');
+        calendarBtn.type = 'button';
+        calendarBtn.className = 'btn btn-outline-primary btn-sm ms-2';
+        calendarBtn.innerHTML = '<i class="fas fa-calendar-alt"></i>';
+        calendarBtn.title = `تقویم ${label}`;
+        
+        // اضافه کردن دکمه کنار فیلد
+        const inputGroup = inputElement.parentElement;
+        if (inputGroup) {
+            inputGroup.style.display = 'flex';
+            inputGroup.style.alignItems = 'center';
+            inputGroup.appendChild(calendarBtn);
+        }
+        
+        // اضافه کردن رویداد کلیک
+        calendarBtn.addEventListener('click', function() {
+            const today = new Date();
+            const persianDate = new PersianDate(today);
+            const formattedDate = persianDate.format('YYYY/MM/DD');
+            
+            if (confirm(`آیا می‌خواهید تاریخ امروز (${formattedDate}) را در فیلد ${label} قرار دهید؟`)) {
+                inputElement.value = formattedDate;
+                inputElement.dispatchEvent(new Event('change'));
+            }
+        });
+        
+        console.log(`دکمه تقویم دستی برای فیلد "${label}" اضافه شد`);
+    }
+});
+
+function startFullExport() {
+    console.log('شروع خروجی اکسل کامل...');
+    
+    const form = document.getElementById('fullExportForm');
+    const startBtn = document.getElementById('startFullExportBtn');
+    
+    if (!form || !startBtn) {
+        console.error('عناصر فرم یا دکمه یافت نشد');
+        return;
+    }
+    
+    // تغییر وضعیت دکمه به loading
+    const originalBtnText = startBtn.innerHTML;
+    startBtn.disabled = true;
+    startBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>در حال پردازش...';
+    
+    // جمع‌آوری داده‌های فرم
+    const formData = new FormData();
+    
+    // اضافه کردن CSRF token
+    const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfToken) {
+        formData.append('csrfmiddlewaretoken', csrfToken.value);
+    }
+    
+    // بررسی نوع انتخاب (همه یا بازه تاریخی)
+    const dateRangeType = form.querySelector('input[name="dateRange"]:checked');
+    if (dateRangeType && dateRangeType.value === 'range') {
+        const fromDate = form.querySelector('#fromDate').value;
+        const toDate = form.querySelector('#toDate').value;
+        
+        // ارسال تاریخ‌های شمسی بدون تبدیل
+        if (fromDate && fromDate.trim()) {
+            formData.append('from_date', fromDate.trim());
+            console.log('از تاریخ شمسی:', fromDate.trim());
+        }
+        if (toDate && toDate.trim()) {
+            formData.append('to_date', toDate.trim());
+            console.log('تا تاریخ شمسی:', toDate.trim());
+        }
+    }
+    
+    // اضافه کردن پارامتر برای نشان دادن که این خروجی کامل است
+    formData.append('full_export', 'true');
+    
+    // ارسال درخواست
+    fetch('{% url "export_full_barnameh_excel" %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        // بررسی اینکه آیا پاسخ فایل اکسل است
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
+            // دانلود فایل
+            return response.blob().then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                // تعیین نام فایل
+                const contentDisposition = response.headers.get('content-disposition');
+                let filename = 'barnameh_full_export.xlsx';
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    if (filenameMatch) {
+                        filename = filenameMatch[1].replace(/['"]/g, '');
+                    }
+                }
+                
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                // نمایش پیام موفقیت
+                showSuccessMessage('فایل اکسل با موفقیت دانلود شد');
+                
+                // بستن مدال
+                const modal = bootstrap.Modal.getInstance(document.getElementById('fullExportModal'));
+                if (modal) {
+                    modal.hide();
+                }
+            });
+        } else {
+            // پاسخ JSON (احتمالاً خطا)
+            return response.json().then(data => {
+                throw new Error(data.message || 'خطا در تولید فایل اکسل');
+            });
+        }
+    })
+    .catch(error => {
+        console.error('خطا در خروجی اکسل کامل:', error);
+        alert('خطا در تولید فایل اکسل: ' + error.message);
+    })
+    .finally(() => {
+        // بازگرداندن دکمه به حالت عادی
+        startBtn.disabled = false;
+        startBtn.innerHTML = originalBtnText;
+    });
 }
     </script>
 

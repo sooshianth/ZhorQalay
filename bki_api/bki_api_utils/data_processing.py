@@ -425,7 +425,7 @@ def update_purchase(purchase, purchase_data):
         tereili = int(purchase_data.get('tereili', 0) or 0)
         delpostalcode = purchase_data.get('delpostalcode')
         receiverpostalcode = purchase_data.get('receiverzip')  # کد پستی تحویل‌گیرنده
-        buyerpostalcode = purchase_data.get('buyerpostalcode')
+        buyerpostalcode = purchase_data.get('buyerzip')  # کد پستی خریدار
         buyerpartidcode = purchase_data.get('buyerpartidcode')
         buyer_account = purchase_data.get('buyeracc')  # حساب خریدار از BKI API
         
@@ -582,7 +582,7 @@ def create_purchase(purchase_data):
         tereili = int(purchase_data.get('tereili', 0) or 0)
         delpostalcode = purchase_data.get('delpostalcode')
         receiverpostalcode = purchase_data.get('receiverzip')  # کد پستی تحویل‌گیرنده
-        buyerpostalcode = purchase_data.get('buyerpostalcode')
+        buyerpostalcode = purchase_data.get('buyerzip')  # کد پستی خریدار
         buyerpartidcode = purchase_data.get('buyerpartidcode')
         buyer_account = purchase_data.get('buyeracc')  # حساب خریدار از BKI API
         

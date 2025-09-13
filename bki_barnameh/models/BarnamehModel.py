@@ -104,8 +104,14 @@ class Barnameh(models.Model):
         return self.purchase.buyer_name if self.purchase else None
 
     def get_buyer_postal_code(self):
-        """دریافت کدپستی خریدار از خرید مرتبط (delivery_postal_code)"""
-        return self.purchase.buyer_postal_code if self.purchase else None
+        """دریافت کدپستی تحویل گیرنده از خرید مرتبط (delivery_postal_code)"""
+        if self.purchase and self.purchase.delivery_postal_code:
+            return self.purchase.delivery_postal_code
+        elif self.purchase and self.purchase.buyer_postal_code:
+            return self.purchase.buyer_postal_code
+        elif self.buyer_postal_code:
+            return self.buyer_postal_code
+        return None
     
     def get_buyer_name(self):
         """دریافت نام خریدار از خرید مرتبط"""
@@ -135,6 +141,30 @@ class Barnameh(models.Model):
         """دریافت تاریخ ارسال موفق به بازارگاه"""
         return self.is_sent_to_bki_at
     
+    def get_delivery_receiver_name(self):
+        """دریافت نام تحویل گیرنده از شناسه تخصیص یا خرید مرتبط"""
+        if self.shenase_takhsis and hasattr(self.shenase_takhsis, 'delivery_receiver_name') and self.shenase_takhsis.delivery_receiver_name:
+            return self.shenase_takhsis.delivery_receiver_name
+        elif self.purchase and self.purchase.delivery_receiver_name:
+            return self.purchase.delivery_receiver_name
+        elif self.purchase and self.purchase.buyer_name:
+            return self.purchase.buyer_name
+        elif self.receiver_name:
+            return self.receiver_name
+        return None
+    
+    def get_delivery_address(self):
+        """دریافت آدرس تحویل از شناسه تخصیص یا خرید مرتبط"""
+        if self.shenase_takhsis and hasattr(self.shenase_takhsis, 'delivery_address') and self.shenase_takhsis.delivery_address:
+            return self.shenase_takhsis.delivery_address
+        elif self.purchase and self.purchase.delivery_address:
+            return self.purchase.delivery_address
+        elif self.purchase and self.purchase.address:
+            return self.purchase.address
+        elif self.destination:
+            return self.destination
+        return None
+    
     def set_the_purchase_and_shenase_takhsis(self):
         try:
             if self.shenase_takhsis_code:
@@ -158,17 +188,8 @@ class Barnameh(models.Model):
     def log_barnameh_edit(self, request):
         BarnamehLog.objects.create(barnameh=self, log_message=f"بارنامه توسط {request.user.username} ویرایش شد", log_date=timezone.now())
     
-    def fill_the_purchase_number_if_we_got_shenase_takhsis(self):
-        try:
-            if self.shenase_takhsis and not self.shenase_takhsis_code:
-                self.shenase_takhsis_code=self.shenase_takhsis.code
-            if self.shenase_takhsis_code and (not self.purchase_number or not self.purchase):
-                self.shenase_takhsis_code=str(round(int(self.shenase_takhsis_code)))
-                purchase=ShenaseTakhsis.objects.get(code=self.shenase_takhsis_code).purchase
-                self.purchase_number=purchase.purchase_number
-                self.purchase=purchase
-        except:
-            logger.error('خطا در پر کردن شناسه خرید با اینکه شناسه تخصیص داریم')
+    # متد fill_the_purchase_number_if_we_got_shenase_takhsis حذف شد
+    # کاربر باید خودش شناسه تخصیص صحیح را وارد کند
 
     def calculate_purchase_state_based_on_barnameh_weight(self, purchase):
         """
@@ -256,14 +277,25 @@ class Barnameh(models.Model):
             self.set_the_purchase_and_shenase_takhsis()
         if not self.purchase_number or not self.shenase_takhsis_code:
             self.set_the_purchase_number_and_shenase_takhsis_code()
-        if (not self.purchase_number) and self.shenase_takhsis:
-            self.fill_the_purchase_number_if_we_got_shenase_takhsis()
-        if is_new:
-            self.fill_the_purchase_number_if_we_got_shenase_takhsis()
+        # حذف مکانیزم اتوماتیک تنظیم تخصیص - کاربر باید خودش تخصیص را وارد کند
 
         # همسان‌سازی کدپستی خریدار با خرید مرتبط
         if self.purchase and self.purchase.delivery_postal_code:
             self.buyer_postal_code = self.purchase.delivery_postal_code
+        
+        # تنظیم نام تحویل گیرنده و آدرس تحویل از شناسه تخصیص
+        if self.shenase_takhsis:
+            # تنظیم نام تحویل گیرنده از شناسه تخصیص
+            if hasattr(self.shenase_takhsis, 'delivery_receiver_name') and self.shenase_takhsis.delivery_receiver_name:
+                self.receiver_name = self.shenase_takhsis.delivery_receiver_name
+            elif hasattr(self.shenase_takhsis, 'purchase') and self.shenase_takhsis.purchase and self.shenase_takhsis.purchase.buyer_name:
+                self.receiver_name = self.shenase_takhsis.purchase.buyer_name
+                
+            # تنظیم آدرس تحویل از شناسه تخصیص
+            if hasattr(self.shenase_takhsis, 'delivery_address') and self.shenase_takhsis.delivery_address:
+                self.destination = self.shenase_takhsis.delivery_address
+            elif hasattr(self.shenase_takhsis, 'purchase') and self.shenase_takhsis.purchase and self.shenase_takhsis.purchase.address:
+                self.destination = self.shenase_takhsis.purchase.address
 
         if self.factor_sodoor_season is not None:
             self.is_factored=True
