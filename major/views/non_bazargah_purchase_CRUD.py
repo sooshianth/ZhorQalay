@@ -716,15 +716,35 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                             else:
                                 # محاسبه و بروزرسانی وزن‌ها از بارنامه‌ها
                                 try:
-                                    purchase.update_weights_from_barnamehs()
-                                    logger.info(f"وزن‌های خرید {purchase.id} از بارنامه‌ها بروزرسانی شد")
+                                    purchase.update_weights_from_barnamehs(save=False)
+                                    
+                                    # محاسبه اختلاف وزن و مبلغ آن در همین مرحله
+                                    weight_difference = purchase.calculate_net_weight_difference()
+                                    weight_difference_amount = purchase.calculate_weight_difference_amount()
+                                    
+                                    # ذخیره مقادیر محاسبه شده
+                                    if weight_difference is not None:
+                                        purchase.weight_difference = weight_difference
+                                    if weight_difference_amount is not None:
+                                        purchase.weight_difference_amount = weight_difference_amount
+                                    
+                                    logger.info(f"وزن‌های خرید {purchase.id} از بارنامه‌ها بروزرسانی شد - اختلاف وزن: {weight_difference} کیلوگرم، مبلغ اختلاف: {weight_difference_amount} ریال")
+                                    
+                                    # نمایش اطلاعات محاسبه شده
+                                    if weight_difference and weight_difference != 0:
+                                        if weight_difference > 0:
+                                            messages.success(request, f'بارنامه صادر شد. اختلاف وزن: +{weight_difference} کیلوگرم (اضافه تحویل) - مبلغ اضافی: {weight_difference_amount:,} ریال')
+                                        else:
+                                            messages.success(request, f'بارنامه صادر شد. اختلاف وزن: {weight_difference} کیلوگرم (کمبود تحویل) - مبلغ کسر: {abs(weight_difference_amount):,} ریال')
+                                    else:
+                                        messages.success(request, 'بارنامه صادر شد. وزن تحویل دقیقاً مطابق سفارش است.')
+                                        
                                 except Exception as e:
                                     logger.error(f"خطا در بروزرسانی وزن‌ها از بارنامه‌ها: {str(e)}")
-                                    messages.warning(request, f'بارنامه صادر شد اما خطا در بروزرسانی وزن‌ها: {str(e)}')
+                                    messages.warning(request, f'بارنامه صادر شد اما خطا در محاسبه وزن‌ها: {str(e)}')
                                 
                                 purchase.state = 'barnameh_issued'
                                 action_taken = True
-                                messages.success(request, 'بارنامه صادر شد و وزن‌ها به صورت خودکار محاسبه شد')
                         
                         elif purchase.state == 'barnameh_issued' and 'confirm_delivery' in request.POST:
                             purchase.state = 'delivered'
@@ -732,41 +752,31 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                             messages.success(request, 'تحویل به مشتری تایید شد')
                         
                         elif purchase.state == 'delivered' and 'close_purchase' in request.POST:
-                            # محاسبه نهایی اختلاف وزن و مبلغ آن
+                            # اضافه کردن مبلغ اختلاف وزن به کیف پول مشتری (اگر قبلاً محاسبه نشده باشد)
                             try:
-                                # اطمینان از اینکه وزن‌ها از بارنامه‌ها بروزرسانی شده‌اند
-                                purchase.update_weights_from_barnamehs(save=False)
-                                
-                                # محاسبه اختلاف وزن خالص و مبلغ آن
-                                weight_difference = purchase.calculate_net_weight_difference()
-                                weight_difference_amount = purchase.calculate_weight_difference_amount()
-                                
-                                # ذخیره مقادیر محاسبه شده
-                                if weight_difference is not None:
-                                    purchase.weight_difference = weight_difference
-                                if weight_difference_amount is not None:
-                                    purchase.weight_difference_amount = weight_difference_amount
+                                wallet_transaction = None
+                                if purchase.weight_difference_amount and purchase.weight_difference_amount != 0:
+                                    wallet_transaction = purchase.add_weight_difference_to_customer_wallet()
+                                    if wallet_transaction:
+                                        logger.info(f"تراکنش کیف پول برای خرید {purchase.id} ایجاد شد: {wallet_transaction.id}")
                                 
                                 purchase.state = 'purchase_closed'
                                 
-                                logger.info(f"محاسبات نهایی خرید {purchase.id} انجام شد - اختلاف وزن: {weight_difference} کیلوگرم، مبلغ اختلاف: {weight_difference_amount} ریال")
-                                
-                                # نمایش اطلاعات محاسبه شده
-                                if weight_difference and weight_difference != 0:
-                                    if weight_difference > 0:
-                                        messages.success(request, f'خرید بسته شد. اختلاف وزن: +{weight_difference} کیلوگرم (اضافه تحویل) - مبلغ اضافی: {weight_difference_amount:,} ریال')
+                                # نمایش اطلاعات نهایی
+                                if purchase.weight_difference and purchase.weight_difference != 0:
+                                    if purchase.weight_difference > 0:
+                                        wallet_msg = " و به کیف پول مشتری اضافه شد" if wallet_transaction else ""
+                                        messages.success(request, f'خرید بسته شد. اختلاف وزن: +{purchase.weight_difference} کیلوگرم (اضافه تحویل) - مبلغ اضافی: {purchase.weight_difference_amount:,} ریال{wallet_msg}')
                                     else:
-                                        messages.success(request, f'خرید بسته شد. اختلاف وزن: {weight_difference} کیلوگرم (کمبود تحویل) - مبلغ کسر: {abs(weight_difference_amount):,} ریال')
+                                        wallet_msg = " و به کیف پول مشتری اضافه شد" if wallet_transaction else ""
+                                        messages.success(request, f'خرید بسته شد. اختلاف وزن: {purchase.weight_difference} کیلوگرم (کمبود تحویل) - مبلغ کسر: {abs(purchase.weight_difference_amount):,} ریال{wallet_msg}')
                                 else:
                                     messages.success(request, 'خرید بسته شد. وزن تحویل دقیقاً مطابق سفارش است.')
                                     
                             except Exception as e:
-                                logger.error(f"خطا در محاسبات نهایی خرید {purchase.id}: {str(e)}")
-                                # حتی در صورت خطا، خرید را ببند
+                                logger.error(f"خطا در بستن خرید {purchase.id}: {str(e)}")
                                 purchase.state = 'purchase_closed'
-                                purchase.weight_difference = None
-                                purchase.weight_difference_amount = None
-                                messages.warning(request, f'خرید بسته شد اما خطا در محاسبات مالی: {str(e)}')
+                                messages.warning(request, f'خرید بسته شد اما خطا در اضافه کردن به کیف پول: {str(e)}')
                             
                             action_taken = True
                     

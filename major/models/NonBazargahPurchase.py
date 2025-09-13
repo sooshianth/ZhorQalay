@@ -109,6 +109,59 @@ class NonBazargahPurchase(BasePurchase):
             return int(weight_difference * self.company_price)
         return None
     
+    def add_weight_difference_to_customer_wallet(self):
+        """اضافه کردن مبلغ اختلاف وزن به کیف پول مشتری"""
+        if not self.customer:
+            return None
+            
+        weight_difference_amount = self.calculate_weight_difference_amount()
+        if weight_difference_amount is None or weight_difference_amount == 0:
+            return None
+        
+        try:
+            from fledger.models import Wallet, Transaction
+            
+            # دریافت یا ایجاد کیف پول مشتری
+            wallet, created = Wallet.objects.get_or_create(
+                customer=self.customer,
+                defaults={
+                    'description': f'کیف پول {self.customer.name}',
+                    'balance': 0
+                }
+            )
+            
+            # تعیین نوع تراکنش بر اساس مثبت یا منفی بودن مبلغ
+            if weight_difference_amount > 0:
+                # اضافه تحویل - مشتری باید مبلغ اضافی بپردازد (بدهی)
+                transaction_type = 'Hazinah'
+                description = f'اضافه تحویل خرید {self.purchase_number} - اختلاف وزن: +{self.weight_difference} کیلوگرم'
+            else:
+                # کمبود تحویل - مشتری باید مبلغ کسر دریافت کند (درآمد)
+                transaction_type = 'Income'
+                description = f'کمبود تحویل خرید {self.purchase_number} - اختلاف وزن: {self.weight_difference} کیلوگرم'
+            
+            # ایجاد تراکنش
+            transaction = Transaction.objects.create(
+                wallet=wallet,
+                transaction_type=transaction_type,
+                amount=abs(weight_difference_amount),  # مقدار مثبت
+                description=description,
+                status='approved',  # تایید خودکار
+                created_by=None,  # سیستم
+                approved_by=None,  # سیستم
+            )
+            
+            # بروزرسانی موجودی کیف پول
+            wallet.calculate_balance()
+            
+            return transaction
+            
+        except Exception as e:
+            import logging
+            logger = logging.getLogger('major_non_bazargah_crud')
+            logger.error(f"خطا در اضافه کردن مبلغ اختلاف وزن به کیف پول مشتری {self.customer.id}: {str(e)}")
+            return None
+    
     def can_verify_payment(self, user):
         """بررسی امکان تایید پرداخت"""
         # فقط مدیر مالی یا ادمین می‌توانند پرداخت را تایید کنند
