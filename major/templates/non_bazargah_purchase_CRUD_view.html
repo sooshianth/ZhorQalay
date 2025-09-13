@@ -531,6 +531,22 @@
     box-shadow: 0 3px 10px rgba(0,0,0,0.1);
   }
 
+  /* استایل دکمه PDF */
+  .pdf-btn {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: white;
+    text-decoration: none;
+    min-width: 200px;
+  }
+
+  .pdf-btn:hover {
+    background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+    color: white;
+    text-decoration: none;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+  }
+
   /* اطلاعات خرید */
   .purchase-info {
     display: flex;
@@ -2171,6 +2187,13 @@
               <i class="fas fa-file-invoice"></i> 📋 صدور بارنامه
             </button>
           </form>
+        {% endif %}
+
+        {% if purchase.state in 'barnameh_issued,delivered,purchase_closed' %}
+          <!-- دکمه تولید PDF بارنامه‌ها -->
+          <a href="{% url 'generate_barnameh_pdf' purchase.id %}" class="button pdf-btn" target="_blank">
+            <i class="fas fa-file-pdf"></i> 📄 تولید PDF بارنامه‌ها
+          </a>
         {% endif %}
         
         {% if purchase.state == 'barnameh_issued' %}

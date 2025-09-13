@@ -646,6 +646,9 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                             # بررسی اینکه همه بارنامه‌ها اطلاعات ماشین کامل دارند
                             if not purchase.can_record_empty_weight():
                                 messages.error(request, 'برای ثبت وزن خالی، ابتدا باید اطلاعات ماشین (نام راننده، شماره تلفن، پلاک) برای همه بارنامه‌ها کامل باشد')
+                            # بررسی اینکه همه بارنامه‌ها وزن خالی دارند
+                            elif not purchase.can_record_empty_weight_values():
+                                messages.error(request, 'برای ثبت وزن خالی، ابتدا باید وزن خالی برای همه بارنامه‌ها ثبت شده باشد (مقدار بیشتر از صفر)')
                             else:
                                 purchase.state = 'empty_weighed'
                                 action_taken = True
@@ -655,6 +658,9 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                             # بررسی اینکه همه بارنامه‌ها وزن خالی دارند
                             if not purchase.can_record_loaded_weight():
                                 messages.error(request, 'برای ثبت وزن پر، ابتدا باید وزن خالی برای همه بارنامه‌ها ثبت شده باشد')
+                            # بررسی اینکه همه بارنامه‌ها وزن پر دارند
+                            elif not purchase.can_record_loaded_weight_values():
+                                messages.error(request, 'برای ثبت وزن پر، ابتدا باید وزن پر برای همه بارنامه‌ها ثبت شده باشد (مقدار بیشتر از صفر)')
                             else:
                                 purchase.state = 'loaded_weighed'
                                 action_taken = True
@@ -663,7 +669,7 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                         elif purchase.state == 'loaded_weighed' and 'issue_barnameh' in request.POST:
                             # بررسی اینکه همه بارنامه‌ها وزن پر دارند
                             if not purchase.can_issue_barnameh():
-                                messages.error(request, 'برای صدور بارنامه، ابتدا باید وزن پر برای همه بارنامه‌ها ثبت شده باشد')
+                                messages.error(request, 'برای صدور بارنامه، ابتدا باید وزن پر برای همه بارنامه‌ها ثبت شده باشد (مقدار بیشتر از صفر)')
                             else:
                                 purchase.state = 'barnameh_issued'
                                 action_taken = True

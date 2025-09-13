@@ -162,13 +162,21 @@ class NonBazargahPurchase(BasePurchase):
         from bki_barnameh.models.BarnamehModel import Barnameh
         
         barnamehs = []
+        barnameh_ids = set()  # برای جلوگیری از تکرار
         
         # بارنامه‌های مرتبط از طریق تخصیص‌ها
         for allocation in self.allocations.all():
-            barnamehs.extend(allocation.barnamehs.all())
+            for barnameh in allocation.barnamehs.all():
+                if barnameh.id not in barnameh_ids:
+                    barnamehs.append(barnameh)
+                    barnameh_ids.add(barnameh.id)
         
-        # بارنامه‌های مستقیم (legacy)
-        barnamehs.extend(Barnameh.objects.filter(non_bazargah_purchase=self))
+        # بارنامه‌های مستقیم (legacy) - فقط اگر قبلاً اضافه نشده باشند
+        direct_barnamehs = Barnameh.objects.filter(non_bazargah_purchase=self)
+        for barnameh in direct_barnamehs:
+            if barnameh.id not in barnameh_ids:
+                barnamehs.append(barnameh)
+                barnameh_ids.add(barnameh.id)
         
         return barnamehs
     
@@ -204,6 +212,22 @@ class NonBazargahPurchase(BasePurchase):
         
         return True
     
+    def can_record_empty_weight_values(self):
+        """بررسی امکان ثبت وزن خالی - همه بارنامه‌ها باید وزن خالی داشته باشند"""
+        if self.state != 'vehicle_arrived':
+            return False
+        
+        barnamehs = self.get_all_barnamehs()
+        if not barnamehs:
+            return False
+        
+        # همه بارنامه‌ها باید وزن خالی داشته باشند (مقدار بیشتر از صفر)
+        for barnameh in barnamehs:
+            if not barnameh.empty_vehicle_weight or barnameh.empty_vehicle_weight <= 0:
+                return False
+        
+        return True
+    
     def can_record_loaded_weight(self):
         """بررسی امکان ثبت وزن پر - همه بارنامه‌ها باید وزن خالی داشته باشند"""
         if self.state != 'empty_weighed':
@@ -220,6 +244,22 @@ class NonBazargahPurchase(BasePurchase):
         
         return True
     
+    def can_record_loaded_weight_values(self):
+        """بررسی امکان ثبت وزن پر - همه بارنامه‌ها باید وزن پر داشته باشند"""
+        if self.state != 'empty_weighed':
+            return False
+        
+        barnamehs = self.get_all_barnamehs()
+        if not barnamehs:
+            return False
+        
+        # همه بارنامه‌ها باید وزن پر داشته باشند (مقدار بیشتر از صفر)
+        for barnameh in barnamehs:
+            if not barnameh.loaded_vehicle_weight or barnameh.loaded_vehicle_weight <= 0:
+                return False
+        
+        return True
+    
     def can_issue_barnameh(self):
         """بررسی امکان صدور بارنامه - همه بارنامه‌ها باید وزن پر داشته باشند"""
         if self.state != 'loaded_weighed':
@@ -229,9 +269,9 @@ class NonBazargahPurchase(BasePurchase):
         if not barnamehs:
             return False
         
-        # همه بارنامه‌ها باید وزن پر داشته باشند
+        # همه بارنامه‌ها باید وزن پر داشته باشند (مقدار بیشتر از صفر)
         for barnameh in barnamehs:
-            if not barnameh.loaded_vehicle_weight:
+            if not barnameh.loaded_vehicle_weight or barnameh.loaded_vehicle_weight <= 0:
                 return False
         
         return True
