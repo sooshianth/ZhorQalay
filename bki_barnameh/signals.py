@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 from sms_api.apis import queue_sms
@@ -16,6 +16,23 @@ except ImportError:
 
 logger = logging.getLogger('bki_barnameh_signals')
 
+# دیکشنری برای ذخیره مقادیر قبلی is_sent_to_bki
+_old_is_sent_to_bki_values = {}
+
+@receiver(pre_save, sender=Barnameh)
+def store_old_is_sent_to_bki(sender, instance, **kwargs):
+    """
+    ذخیره مقدار قبلی is_sent_to_bki قبل از ذخیره
+    """
+    if instance.pk:
+        try:
+            old_instance = Barnameh.objects.get(pk=instance.pk)
+            _old_is_sent_to_bki_values[instance.pk] = old_instance.is_sent_to_bki
+            logger.debug(f"Stored old is_sent_to_bki value for barnameh {instance.pk}: {old_instance.is_sent_to_bki}")
+        except Barnameh.DoesNotExist:
+            _old_is_sent_to_bki_values[instance.pk] = False
+            logger.debug(f"Barnameh {instance.pk} not found, assuming old is_sent_to_bki = False")
+
 def create_default_barnameh_template():
     """
     ایجاد قالب پیش‌فرض برای بارنامه در صورت عدم وجود
@@ -27,13 +44,13 @@ def create_default_barnameh_template():
                 'name': 'قالب پیش‌فرض بارنامه جدید',
                 'template_type': 'purchase',
                 'content': '''{{customer_name}} عزیز؛
-بارنامه خرید {{purchase_number}} ،{{product_type}} به وزن {{order_weight}} :
-شماره بارنامه: {{barnameh_number}}
-تاریخ بارنامه: {{barnameh_date}}
-شماره راننده: {{driver_phone}}
-نام راننده: {{driver_name}}
-۰۲۱-۶۶۵۶۲۲۱۶ ☎️
-شرکت تامین نهاده سیمرغ''',
+                بارنامه خرید {{purchase_number}} ،{{product_type}} به وزن {{order_weight}} :
+                شماره بارنامه: {{barnameh_number}}
+                تاریخ بارنامه: {{barnameh_date}}
+                شماره راننده: {{driver_phone}}
+                نام راننده: {{driver_name}}
+                ۰۲۱-۶۶۵۶۲۲۱۶ ☎️
+                شرکت تامین نهاده سیمرغ''',
                 'description': 'قالب پیش‌فرض برای اطلاع‌رسانی بارنامه جدید (ایجاد شده توسط سیگنال)',
                 'is_active': True,
                 'is_default': True
@@ -47,40 +64,50 @@ def create_default_barnameh_template():
         return None
 
 @receiver(post_save, sender=Barnameh)
-def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
+def send_sms_on_barnameh_bki_success(sender, instance, created, **kwargs):
     """
-    ارسال پیامک به مشتری هنگام ایجاد یا بروزرسانی بارنامه از اکسل
+    ارسال پیامک به مشتری هنگام ارسال موفق بارنامه به بازارگاه
+    این سیگنال فقط زمانی اجرا می‌شود که بارنامه با موفقیت به بازارگاه ارسال شده باشد
     """
     # لاگ اولیه برای تایید اجرای سیگنال
-    logger.info(f"🚨 SIGNAL TRIGGERED: Barnameh {instance.id} post_save signal - created={created}, number={instance.number}, is_created_by_excel={getattr(instance, 'is_created_by_excel', False)}")
+    logger.info(f"🚨 SIGNAL TRIGGERED: Barnameh {instance.id} post_save signal - created={created}, is_sent_to_bki={instance.is_sent_to_bki}, number={instance.number}")
     
     # بررسی شرایط ارسال پیامک:
-    # 1. بارنامه جدید ایجاد شده باشد (created=True)
-    # 2. یا بارنامه از طریق اکسل ایجاد/بروزرسانی شده باشد (is_created_by_excel=True)
-    should_send_sms = created or getattr(instance, 'is_created_by_excel', False)
-    
-    if not should_send_sms:
-        logger.info(f"⏭️ Skipping SMS for barnameh {instance.id} - not eligible (created={created}, is_created_by_excel={getattr(instance, 'is_created_by_excel', False)})")
+    # فقط زمانی پیامک ارسال شود که بارنامه به بازارگاه ارسال شده باشد
+    if not instance.is_sent_to_bki:
+        logger.info(f"⏭️ Skipping SMS for barnameh {instance.id} - not sent to BKI yet (is_sent_to_bki={instance.is_sent_to_bki})")
         return
     
-    logger.info(f"✅ Barnameh {instance.id} eligible for SMS - created={created}, is_created_by_excel={getattr(instance, 'is_created_by_excel', False)}, number={instance.number}")
+    # اگر این یک آپدیت است، بررسی کنیم که آیا is_sent_to_bki تازه تغییر کرده یا نه
+    if not created:
+        # بررسی تغییرات فیلد با استفاده از مقدار ذخیره شده در pre_save
+        old_is_sent_to_bki = _old_is_sent_to_bki_values.get(instance.pk, False)
+        
+        # اگر قبلاً is_sent_to_bki برابر True بوده، پیامک ارسال نکن
+        if old_is_sent_to_bki:
+            logger.info(f"⏭️ Skipping SMS for barnameh {instance.id} - already was sent to BKI before this update (old_value={old_is_sent_to_bki}, new_value={instance.is_sent_to_bki})")
+            # پاک کردن مقدار ذخیره شده
+            _old_is_sent_to_bki_values.pop(instance.pk, None)
+            return
+        
+        logger.info(f"🔄 Barnameh {instance.id} is_sent_to_bki changed from {old_is_sent_to_bki} to {instance.is_sent_to_bki}")
+        
+        # پاک کردن مقدار ذخیره شده
+        _old_is_sent_to_bki_values.pop(instance.pk, None)
     
-    # بررسی تاریخ بارنامه برای همه حالت‌ها (اکسل و غیر اکسل)
-    # شرط: اگر تاریخ بارنامه 3 روز یا بیشتر قبل از امروز باشد (قدیمی)، پیامک ارسال نشود
-    is_excel_upload = getattr(instance, 'is_created_by_excel', False)
+    logger.info(f"✅ Barnameh {instance.id} eligible for SMS - successfully sent to BKI, number={instance.number}, sent_at={instance.is_sent_to_bki_at}")
+    
+    # بررسی تاریخ بارنامه 
+    # شرط: اگر تاریخ بارنامه 5 روز یا بیشتر قبل از امروز باشد (قدیمی)، پیامک ارسال نشود
     if instance.barnameh_date:
         today = jdate.today()
         # فقط اختلاف گذشته؛ تاریخ‌های آینده شامل نمی‌شود
         past_days = (today - instance.barnameh_date).days
-        if past_days >= 3:
+        if past_days >= 5:
             logger.info(
-                f"Barnameh {instance.id} is older than or equal to 3 days (past_days={past_days}), skipping SMS"
+                f"Barnameh {instance.id} is older than or equal to 5 days (past_days={past_days}), skipping SMS"
             )
             return
-    
-    # نکته: برای بارنامه‌های آپلود شده از اکسل نیز همین محدودیت زمانی اعمال می‌شود
-    if is_excel_upload:
-        logger.info(f"📊 Excel upload detected for barnameh {instance.id} - date restriction still applies")
     
     # جمع‌آوری شماره‌های تلفن مشتری برای ارسال پیامک
     phone_numbers = []
@@ -99,6 +126,14 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
             customer_phones = customer.get_all_phone_numbers(instance.purchase, True)
             logger.info(f"📞 Found {len(customer_phones)} unique phone numbers for customer: {customer_phones}")
             phone_numbers.extend(customer_phones)
+            
+            # 🎯 اضافه کردن شماره تحویل از تخصیص (اگر موجود باشد)
+            if instance.shenase_takhsis and instance.shenase_takhsis.tahvil_phone_number:
+                allocation_phone = instance.shenase_takhsis.tahvil_phone_number.strip()
+                if allocation_phone and allocation_phone not in phone_numbers:
+                    phone_numbers.append(allocation_phone)
+                    logger.info(f"📱 Added allocation delivery phone: {allocation_phone} for barnameh {instance.id}")
+            
         else:
             logger.warning(f"❌ Customer SMS not sent for barnameh {instance.id}: SMS preference is disabled")
     else:
@@ -117,6 +152,14 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
                 customer_phones = purchase.customer.get_all_phone_numbers(purchase, True)
                 logger.info(f"📞 Found {len(customer_phones)} unique phone numbers from purchase_number lookup")
                 phone_numbers.extend(customer_phones)
+                
+                # 🎯 اضافه کردن شماره تحویل از تخصیص (اگر موجود باشد)
+                if instance.shenase_takhsis and instance.shenase_takhsis.tahvil_phone_number:
+                    allocation_phone = instance.shenase_takhsis.tahvil_phone_number.strip()
+                    if allocation_phone and allocation_phone not in phone_numbers:
+                        phone_numbers.append(allocation_phone)
+                        logger.info(f"📱 Added allocation delivery phone from purchase lookup: {allocation_phone} for barnameh {instance.id}")
+                
                 # بروزرسانی ارتباط بارنامه با خرید
                 if not instance.purchase:
                     instance.purchase = purchase
@@ -126,6 +169,13 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
             logger.warning(f"❌ Purchase with number {instance.purchase_number} not found")
         except Exception as e:
             logger.error(f"❌ Error finding purchase by number: {str(e)}")
+    
+    # 🎯 اگر هنوز شماره‌ای پیدا نشد اما تخصیص موجود است، از شماره تحویل تخصیص استفاده کن
+    if not phone_numbers and instance.shenase_takhsis and instance.shenase_takhsis.tahvil_phone_number:
+        allocation_phone = instance.shenase_takhsis.tahvil_phone_number.strip()
+        if allocation_phone:
+            phone_numbers.append(allocation_phone)
+            logger.info(f"📱 Using only allocation delivery phone: {allocation_phone} for barnameh {instance.id} (no customer phones found)")
     
     if not phone_numbers:
         logger.warning(f"❌ No phone numbers found for barnameh {instance.id}, will not send SMS")
@@ -163,7 +213,8 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
             message += f"شماره راننده: {convert_to_persian_numbers(driver_phone)}\n"
         
         # اضافه کردن نام شرکت
-        message += "تأمین نهاده سیمرغ"
+        message += "تأمین نهاده سیمرغ\n"
+        message += "☎ 021-66562216"
         
         logger.info(f"📝 Hardcoded SMS message created for barnameh {instance.id}")
         logger.debug(f"📄 SMS content: {message}")
@@ -185,18 +236,12 @@ def send_sms_on_barnameh_create(sender, instance, created, **kwargs):
                 logger.error(f"❌ Error queuing SMS for {phone} (Barnameh ID: {instance.id}): {str(e)}")
         
         if success_count > 0:
-            logger.info(f"🎉 Successfully queued SMS for new barnameh {instance.id} to {success_count} numbers")
-            
-            # بعد از ارسال موفق پیامک، فیلد is_created_by_excel را False کن تا از ارسال تکراری جلوگیری شود
-            if getattr(instance, 'is_created_by_excel', False):
-                instance.is_created_by_excel = False
-                instance.save(update_fields=['is_created_by_excel'])
-                logger.info(f"🔄 Reset is_created_by_excel flag for barnameh {instance.id} after successful SMS")
+            logger.info(f"🎉 Successfully queued SMS for barnameh {instance.id} sent to BKI to {success_count} numbers")
         else:
             logger.warning(f"⚠️ Failed to queue SMS for any numbers for barnameh {instance.id}")
     
     except Exception as e:
-        logger.error(f"Error processing SMS for new barnameh {instance.id}: {str(e)}")
+        logger.error(f"Error processing SMS for barnameh {instance.id} sent to BKI: {str(e)}")
 
 def is_valid_value(value):
     """

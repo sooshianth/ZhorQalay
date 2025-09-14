@@ -22,6 +22,8 @@ from core._models import CargoProduct
 import re
 from django.db import connection
 from core.decorators.det_user_role import determine_user_role
+from core.CustomerModel import CrmAccessNumbers
+from core.PurchaseModel import ShenaseTakhsis
 
 logger = logging.getLogger("sms_api_views")
 
@@ -100,7 +102,7 @@ def process_template_for_customer(message, customer, purchase=None):
             '{{amount_paid}}': str(selected_purchase.amount_paid or '-'),
             '{{status_display}}': str(selected_purchase.get_state_display() if hasattr(selected_purchase, 'get_state_display') else '-'),
             '{{created_at}}': str(selected_purchase.created_at.strftime('%Y/%m/%d %H:%M') if selected_purchase.created_at else '-'),
-            '{{shenase_takhsis}}': shenase_takhsis_display,
+            '{{shenase_takhsis}}': str(shenase_takhsis_display) if shenase_takhsis_display else '-',
         })
         
         # داده‌های محصول
@@ -1817,3 +1819,184 @@ def sms_detail(request, sms_id):
         'logs': logs
     }
     return render(request, 'sms_api/sms_detail.html', context)
+
+
+def clean_phone_number(phone):
+    """
+    پاکسازی و استاندارد کردن شماره تلفن
+    همه شماره‌ها باید با 09 شروع شوند و 11 رقم باشند
+    """
+    if not phone:
+        return None
+        
+    # تبدیل به رشته و حذف فاصله‌ها
+    phone_str = str(phone).strip()
+    
+    # حذف کاراکترهای غیرعددی
+    phone_digits = ''.join(c for c in phone_str if c.isdigit())
+    
+    if not phone_digits:
+        return None
+    
+    # حذف پیش‌شماره کشور ایران
+    if phone_digits.startswith('0098'):
+        phone_digits = phone_digits[4:]
+    elif phone_digits.startswith('98') and len(phone_digits) >= 12:
+        phone_digits = phone_digits[2:]
+    
+    # اضافه کردن 0 در صورت نیاز
+    if phone_digits.startswith('9') and len(phone_digits) == 10:
+        phone_digits = '0' + phone_digits
+    
+    # بررسی اینکه شماره موبایل باشد (با 09 شروع شود و 11 رقم باشد)
+    if phone_digits.startswith('09') and len(phone_digits) == 11:
+        return phone_digits
+    
+    return None
+
+
+@role_required('admin')
+@login_required
+def export_phone_numbers_excel(request):
+    """
+    خروجی اکسل شماره‌های تلفن از سه منبع:
+    1. CrmAccessNumbers
+    2. Purchase.bazaargah_phone_number
+    3. ShenaseTakhsis.tahvil_phone_number
+    """
+    try:
+        # ایجاد فایل اکسل در حافظه
+        output = io.BytesIO()
+        workbook = xlsxwriter.Workbook(output)
+        worksheet = workbook.add_worksheet('شماره تماس‌ها')
+        
+        # تنظیم فرمت‌ها
+        header_format = workbook.add_format()
+        header_format.set_bold(True)
+        header_format.set_bg_color('#4CAF50')
+        header_format.set_font_color('white')
+        header_format.set_align('center')
+        header_format.set_valign('vcenter')
+        header_format.set_border(1)
+        
+        cell_format = workbook.add_format()
+        cell_format.set_align('center')
+        cell_format.set_valign('vcenter')
+        cell_format.set_border(1)
+        
+        # تنظیم عرض ستون‌ها
+        worksheet.set_column('A:A', 15)  # شماره تماس
+        worksheet.set_column('B:B', 25)  # نام
+        worksheet.set_column('C:C', 15)  # منبع
+        
+        # نوشتن هدرها
+        worksheet.write('A1', 'شماره تماس', header_format)
+        worksheet.write('B1', 'نام', header_format)
+        worksheet.write('C1', 'منبع', header_format)
+        
+        # مجموعه‌ای برای ذخیره شماره‌های منحصر به فرد
+        unique_phones = set()
+        phone_data = []
+        
+        logger.info("شروع جمع‌آوری شماره‌های تلفن...")
+        
+        # 1. دریافت شماره‌ها از Purchase.bazaargah_phone_number (اولویت اول)
+        logger.info("جمع‌آوری از Purchase.bazaargah_phone_number...")
+        purchases = Purchase.objects.filter(
+            bazaargah_phone_number__isnull=False
+        ).exclude(bazaargah_phone_number='').only(
+            'bazaargah_phone_number', 'buyer_name'
+        )
+        
+        for purchase in purchases:
+            clean_phone = clean_phone_number(purchase.bazaargah_phone_number)
+            if clean_phone and clean_phone not in unique_phones:
+                unique_phones.add(clean_phone)
+                buyer_name = purchase.buyer_name if purchase.buyer_name else 'نامشخص'
+                phone_data.append((clean_phone, buyer_name, 'بازارگاه'))
+                
+        logger.info(f"از Purchase.bazaargah_phone_number: {len([p for p in phone_data if p[2] == 'بازارگاه'])} شماره")
+        
+        # 2. دریافت شماره‌ها از ShenaseTakhsis.tahvil_phone_number (اولویت دوم)
+        logger.info("جمع‌آوری از ShenaseTakhsis.tahvil_phone_number...")
+        shenase_list = ShenaseTakhsis.objects.filter(
+            tahvil_phone_number__isnull=False
+        ).exclude(tahvil_phone_number='').only(
+            'tahvil_phone_number', 'delivery_receiver_name'
+        )
+        
+        for shenase in shenase_list:
+            clean_phone = clean_phone_number(shenase.tahvil_phone_number)
+            if clean_phone and clean_phone not in unique_phones:
+                unique_phones.add(clean_phone)
+                receiver_name = shenase.delivery_receiver_name if shenase.delivery_receiver_name else 'نامشخص'
+                phone_data.append((clean_phone, receiver_name, 'تحویل'))
+                
+        logger.info(f"از ShenaseTakhsis.tahvil_phone_number: {len([p for p in phone_data if p[2] == 'تحویل'])} شماره")
+        
+        # 3. دریافت شماره‌ها از CrmAccessNumbers (اولویت آخر - فقط شماره‌های دستی اضافه شده)
+        logger.info("جمع‌آوری از CrmAccessNumbers...")
+        crm_numbers = CrmAccessNumbers.objects.select_related('customer').all()
+        for crm in crm_numbers:
+            clean_phone = clean_phone_number(crm.phone_number)
+            if clean_phone and clean_phone not in unique_phones:
+                unique_phones.add(clean_phone)
+                customer_name = crm.customer.name if crm.customer and crm.customer.name else 'نامشخص'
+                phone_data.append((clean_phone, customer_name, 'CRM دستی'))
+                
+        logger.info(f"از CrmAccessNumbers (دستی): {len([p for p in phone_data if p[2] == 'CRM دستی'])} شماره")
+        
+        # مرتب‌سازی بر اساس شماره تلفن
+        phone_data.sort(key=lambda x: x[0])
+        
+        # نوشتن داده‌ها در اکسل
+        row = 2  # شروع از ردیف دوم (بعد از هدر)
+        for phone, name, source in phone_data:
+            worksheet.write(f'A{row}', phone, cell_format)
+            worksheet.write(f'B{row}', name, cell_format)
+            worksheet.write(f'C{row}', source, cell_format)
+            row += 1
+        
+        # اضافه کردن آمار در انتهای فایل
+        row += 2
+        summary_format = workbook.add_format()
+        summary_format.set_bold(True)
+        summary_format.set_bg_color('#E3F2FD')
+        summary_format.set_border(1)
+        
+        worksheet.write(f'A{row}', 'آمار کلی:', summary_format)
+        worksheet.write(f'A{row+1}', f'تعداد کل شماره‌ها:', summary_format)
+        worksheet.write(f'B{row+1}', len(phone_data), summary_format)
+        
+        worksheet.write(f'A{row+2}', f'بازارگاه:', summary_format)
+        worksheet.write(f'B{row+2}', len([p for p in phone_data if p[2] == 'بازارگاه']), summary_format)
+        
+        worksheet.write(f'A{row+3}', f'تحویل:', summary_format)
+        worksheet.write(f'B{row+3}', len([p for p in phone_data if p[2] == 'تحویل']), summary_format)
+        
+        worksheet.write(f'A{row+4}', f'CRM دستی:', summary_format)
+        worksheet.write(f'B{row+4}', len([p for p in phone_data if p[2] == 'CRM دستی']), summary_format)
+        
+        workbook.close()
+        
+        # تنظیم response برای دانلود فایل
+        output.seek(0)
+        response = HttpResponse(
+            output.read(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        
+        # تنظیم نام فایل با تاریخ
+        from django.utils import timezone
+        now = timezone.now()
+        filename = f'phone_numbers_{now.strftime("%Y%m%d_%H%M%S")}.xlsx'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        logger.info(f"خروجی اکسل با موفقیت تولید شد: {len(phone_data)} شماره تلفن")
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"خطا در تولید خروجی اکسل: {str(e)}")
+        messages.error(request, f'خطا در تولید فایل اکسل: {str(e)}')
+        return redirect('sms_api:sms_dashboard')

@@ -306,8 +306,49 @@ class NonBazargahPurchaseForm(forms.ModelForm):
         return cleaned_data
 
 def check_customer_sales_agent(customer, sales_agent):
-    if sales_agent not in customer.sales_agent.all():
-        raise PermissionDenied("You do not have permission to access this customer.")
+    """
+    بررسی دسترسی کارشناس فروش به مشتری
+    اگر دسترسی نداشته باشد ولی مشتری فقط کارشناس سوپریوزر داشته باشد، کارشناس رو اضافه می‌کنه
+    """
+    if not can_sales_agent_access_customer(customer, sales_agent):
+        # بررسی استثناء و اضافه کردن در صورت لزوم
+        customer_sales_agents = customer.sales_agent.all()
+        all_superusers = all(agent.user.is_superuser for agent in customer_sales_agents if agent.user)
+        
+        if customer_sales_agents.exists() and all_superusers:
+            # اضافه کردن کارشناس فروش به مشتری
+            customer.sales_agent.add(sales_agent)
+        else:
+            raise PermissionDenied("You do not have permission to access this customer.")
+
+def can_sales_agent_access_customer(customer, sales_agent):
+    """
+    بررسی دسترسی کارشناس فروش به مشتری با در نظر گیری استثناء مشتریان API
+    
+    منطق:
+    1. اگر کارشناس فروش در لیست کارشناسان مشتری باشد -> دسترسی دارد
+    2. اگر مشتری فقط کارشناس سوپریوزر (ادمین) داشته باشد -> کارشناس عادی هم دسترسی دارد
+    3. در غیر این صورت -> دسترسی ندارد
+    """
+    # اگر کارشناس فروش در لیست کارشناسان مشتری باشد
+    if sales_agent in customer.sales_agent.all():
+        return True
+    
+    # بررسی استثناء: آیا مشتری فقط کارشناس سوپریوزر دارد؟
+    customer_sales_agents = customer.sales_agent.all()
+    
+    # اگر مشتری هیچ کارشناسی ندارد
+    if not customer_sales_agents.exists():
+        return False
+    
+    # اگر همه کارشناسان مشتری سوپریوزر هستند
+    all_superusers = all(agent.user.is_superuser for agent in customer_sales_agents if agent.user)
+    
+    if all_superusers:
+        # استثناء: اجازه دسترسی به کارشناس عادی
+        return True
+    
+    return False
 
 @role_required('sales_agent', 'admin')
 @login_required
@@ -352,14 +393,24 @@ def customer_search(request):
             else:
                 clean_query = query
             
-            # جستجوی مشتریانی که این کارشناس فروش را دارند
-            # جستجو در هر دو فیلد: phone_number و PhoneNumber
-            customers = Customer.objects.filter(
+            # جستجوی مشتریانی که این کارشناس فروش دسترسی به آن‌ها دارد
+            # شامل مشتریان عادی و مشتریان API که فقط کارشناس سوپریوزر دارند
+            all_customers = Customer.objects.filter(
                 (Q(phone_number__icontains=clean_query) | 
                 Q(name__icontains=query) |
-                Q(phone_numbers__number__icontains=clean_query)),
-                sales_agent=sales_agent
-            ).distinct()[:10]
+                Q(phone_numbers__number__icontains=clean_query))
+            ).distinct()[:20]  # بیشتر بگیریم تا بعد فیلتر کنیم
+            
+            # فیلتر کردن مشتریانی که کارشناس دسترسی به آن‌ها دارد
+            customers = []
+            for customer in all_customers:
+                if can_sales_agent_access_customer(customer, sales_agent):
+                    customers.append(customer)
+                    # اگر کارشناس در لیست نیست ولی دسترسی داره (استثناء API)، اضافه‌اش کن
+                    if sales_agent not in customer.sales_agent.all():
+                        customer.sales_agent.add(sales_agent)
+                if len(customers) >= 10:  # محدود کردن به 10 نتیجه
+                    break
             
             results = []
             for c in customers:
@@ -415,11 +466,19 @@ def general_customer_CRUD_view(request):
     if customer_id:
         try:
             customer = Customer.objects.get(id=customer_id)
-            # بررسی دسترسی کارشناس فروش
-            if sales_agent and customer not in sales_agent.get_all_customers():
+            # بررسی دسترسی کارشناس فروش با در نظر گیری استثناء API
+            if sales_agent and not can_sales_agent_access_customer(customer, sales_agent):
+                # اگر کارشناس دسترسی نداره ولی مشتری فقط کارشناس سوپریوزر داره، اجازه بده و اضافه‌اش کن
+                customer_sales_agents = customer.sales_agent.all()
+                all_superusers = all(agent.user.is_superuser for agent in customer_sales_agents if agent.user)
                 
-                messages.error(request, "شما دسترسی به این مشتری ندارید.")
-                customer = None
+                if customer_sales_agents.exists() and all_superusers:
+                    # اضافه کردن کارشناس فروش به مشتری
+                    customer.sales_agent.add(sales_agent)
+                    messages.success(request, f"شما با موفقیت به عنوان کارشناس فروش مشتری '{customer.name}' اضافه شدید.")
+                else:
+                    messages.error(request, "شما دسترسی به این مشتری ندارید.")
+                    customer = None
         except Customer.DoesNotExist:
             messages.error(request, "مشتری یافت نشد.")
             customer = None
@@ -432,9 +491,18 @@ def general_customer_CRUD_view(request):
             customer = Customer.get_customer_by_phone(clean_phone)
             if customer:
                 if sales_agent:
-                    if sales_agent not in customer.get_sales_agents():
-                        messages.error(request, "شما دسترسی به این مشتری ندارید.")
-                        customer = None
+                    if not can_sales_agent_access_customer(customer, sales_agent):
+                        # بررسی استثناء و اضافه کردن کارشناس در صورت لزوم
+                        customer_sales_agents = customer.sales_agent.all()
+                        all_superusers = all(agent.user.is_superuser for agent in customer_sales_agents if agent.user)
+                        
+                        if customer_sales_agents.exists() and all_superusers:
+                            # اضافه کردن کارشناس فروش به مشتری
+                            customer.sales_agent.add(sales_agent)
+                            messages.success(request, f"شما با موفقیت به عنوان کارشناس فروش مشتری '{customer.name}' اضافه شدید.")
+                        else:
+                            messages.error(request, "شما دسترسی به این مشتری ندارید.")
+                            customer = None
             
             if not customer:
                 # اگر شماره معتبر است ولی مشتری پیدا نشد، پیام مناسب نمایش بده
@@ -445,8 +513,14 @@ def general_customer_CRUD_view(request):
     
             customer = None
             for candidate in matching_customers:
-                if sales_agent in candidate.get_sales_agents():
+                if can_sales_agent_access_customer(candidate, sales_agent):
                     customer = candidate
+                    
+                    # اگر دسترسی به دلیل استثناء API بود، کارشناس رو اضافه کن
+                    if sales_agent not in candidate.sales_agent.all():
+                        candidate.sales_agent.add(sales_agent)
+                        messages.success(request, f"شما با موفقیت به عنوان کارشناس فروش مشتری '{candidate.name}' اضافه شدید.")
+                    
                     break  # اولین مشتری مناسب را پیدا کردیم، کافیست
             
             if not sales_agent:

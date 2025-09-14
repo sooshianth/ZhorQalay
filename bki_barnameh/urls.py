@@ -33,5 +33,11 @@ urlpatterns = [
     
     # API endpoint for barnameh logs
     path('api/logs/<int:barnameh_id>/', views.get_barnameh_logs, name='get_barnameh_logs'),
+    
+    # گزارش PDF بارنامه‌های سریع
+    path('fast-barnameh-report-pdf/', views.fast_barnameh_report_pdf, name='fast_barnameh_report_pdf'),
+    
+    # خروجی اکسل کامل
+    path('export-full-barnameh-excel/', views.export_full_barnameh_excel, name='export_full_barnameh_excel'),
 ]
 

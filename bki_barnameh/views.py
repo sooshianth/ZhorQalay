@@ -23,16 +23,87 @@ from datetime import datetime
 import logging
 import jdatetime
 import logging
+from datetime import timedelta
+from persiantools.jdatetime import JalaliDateTime
 
 logger = logging.getLogger("bki_barnameh_views")
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.lib.units import inch, mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
+import os
+import io
+import arabic_reshaper
+from bidi.algorithm import get_display
 
 # توابع اکسل به فولدر excel_management منتقل شده‌اند
 from .excel_management.views import upload_excel_view, download_excel_template, export_excel_view
 
 logger = logging.getLogger('bki_barnameh_views')
+
+def persian_digits_to_english(persian_text):
+    """تبدیل اعداد فارسی به انگلیسی"""
+    persian_digits = '۰۱۲۳۴۵۶۷۸۹'
+    english_digits = '0123456789'
+    
+    if not persian_text:
+        return persian_text
+    
+    for persian, english in zip(persian_digits, english_digits):
+        persian_text = persian_text.replace(persian, english)
+    
+    return persian_text
+
+def jalali_to_gregorian_date(jalali_date_str):
+    """
+    تبدیل رشته تاریخ جلالی به تاریخ میلادی
+    پشتیبانی از فرمت‌های مختلف: 1403/01/01، 1403-01-01، 1403.01.01
+    """
+    if not jalali_date_str or not isinstance(jalali_date_str, str):
+        return None
+    
+    try:
+        # تبدیل اعداد فارسی به انگلیسی
+        jalali_date_str_en = persian_digits_to_english(jalali_date_str)
+        
+        # حذف فاصله‌ها و تبدیل جداکننده‌های مختلف به /
+        jalali_date_str_en = jalali_date_str_en.strip().replace('-', '/').replace('.', '/')
+        
+        # تقسیم تاریخ به بخش‌های مختلف
+        parts = jalali_date_str_en.split('/')
+        if len(parts) != 3:
+            raise ValueError("فرمت تاریخ باید به صورت YYYY/MM/DD باشد")
+        
+        year, month, day = int(parts[0]), int(parts[1]), int(parts[2])
+        
+        # بررسی معتبر بودن تاریخ
+        if year < 1300 or year > 1500:
+            raise ValueError("سال باید بین 1300 تا 1500 باشد")
+        if month < 1 or month > 12:
+            raise ValueError("ماه باید بین 1 تا 12 باشد")
+        if day < 1 or day > 31:
+            raise ValueError("روز باید بین 1 تا 31 باشد")
+        
+        # تبدیل تاریخ جلالی به میلادی
+        jalali_date = jdatetime.date(year, month, day)
+        gregorian_date = jalali_date.togregorian()
+        
+        return gregorian_date
+        
+    except ValueError as e:
+        logger.error(f"خطا در تبدیل تاریخ جلالی {jalali_date_str}: {str(e)}")
+        raise ValueError(f"فرمت تاریخ نامعتبر: {jalali_date_str}. {str(e)}")
+    except Exception as e:
+        logger.error(f"خطا در تبدیل تاریخ جلالی {jalali_date_str}: {str(e)}")
+        raise ValueError(f"خطا در تبدیل تاریخ: {str(e)}")
 
 def parse_jalali_date(date_string):
     """
@@ -69,21 +140,20 @@ def parse_jalali_date(date_string):
     except Exception as e:
         raise ValueError(f"خطا در تبدیل تاریخ: {str(e)}")
 
-# تعریف تمام ستون‌های قابل نمایش در جدول بارنامه
+# تعریف تمام ستون‌های قابل نمایش در جدول بارنامه - ترتیب اولویت
 BARNAMEH_COLUMNS = [
     {'id': 'number', 'name': 'شماره بارنامه'},
     {'id': 'serial', 'name': 'سریال بارنامه'},
-    {'id': 'tonnage', 'name': 'وزن'},
-    {'id': 'status', 'name': 'وضعیت'},
-    {'id': 'driver_name', 'name': 'نام راننده'},
-    {'id': 'driver_phone', 'name': 'شماره راننده'},
-    {'id': 'vehicle_plate', 'name': 'پلاک خودرو'},
-    {'id': 'receiver_name', 'name': 'نام گیرنده'},
-    {'id': 'destination', 'name': 'مقصد'},
     {'id': 'barnameh_date', 'name': 'تاریخ بارنامه'},
-    {'id': 'transport_date', 'name': 'تاریخ حمل'},
-    {'id': 'purchase_number', 'name': 'شماره خرید'},
+    {'id': 'driver_name', 'name': 'نام راننده'},
+    {'id': 'driver_phone', 'name': 'تلفن راننده'},
+    {'id': 'vehicle_plate', 'name': 'پلاک'},
+    {'id': 'tonnage', 'name': 'وزن'},
     {'id': 'shenase_takhsis_code', 'name': 'شناسه تخصیص'},
+    {'id': 'status', 'name': 'وضعیت'},
+    {'id': 'receiver_name', 'name': 'نام تحویل گیرنده'},
+    {'id': 'destination', 'name': 'آدرس تحویل'},
+    {'id': 'purchase_number', 'name': 'شماره خرید'},
     {'id': 'cargo', 'name': 'کوتاژ'},
     {'id': 'company_price', 'name': 'فی خرید'},
     {'id': 'customer_price', 'name': 'فی فروش'},
@@ -109,11 +179,10 @@ BARNAMEH_COLUMNS = [
     {'id': 'actions', 'name': 'عملیات'},
 ]
 
-# ستون‌های پیش‌فرض
+# ستون‌های پیش‌فرض - ترتیب اولویت
 DEFAULT_BARNAMEH_COLUMNS = [
-    'number', 'serial', 'tonnage', 'status', 'driver_name',
-    'barnameh_date', 'purchase_number', 'shenase_takhsis_code', 
-    'total_purchase_amount', 'total_sales_amount', 'actions'
+    'number', 'serial', 'barnameh_date', 'driver_name', 'driver_phone',
+    'vehicle_plate', 'tonnage', 'shenase_takhsis_code', 'status', 'actions'
 ]
 
 def get_barnameh_columns_from_cookie(request):
@@ -498,27 +567,6 @@ def apply_barnameh_filter(request):
                             else:
                                 filter_conditions &= ~Q(purchase__cargo__country__in=country_codes)
                 
-                elif column_id == 'transport_date':
-                    # فیلتر تاریخی
-                    try:
-                        date_conditions = Q()
-                        for date_str in values:
-                            if date_str and date_str.strip():
-                                if '/' in date_str:
-                                    parts = date_str.split('/')
-                                    if len(parts) == 3:
-                                        year, month, day = parts
-                                        date_obj = datetime(int(year), int(month), int(day)).date()
-                                        date_conditions |= Q(transport_date=date_obj)
-                        
-                        if date_conditions:
-                            if filter_type == 'include':
-                                filter_conditions &= date_conditions
-                            else:
-                                filter_conditions &= ~date_conditions
-                                
-                    except (ValueError, TypeError):
-                        continue
             
             # اعمال فیلترها
             if filter_conditions:
@@ -565,7 +613,6 @@ def apply_barnameh_filter(request):
                 'receiver_name': 'receiver_name',
                 'destination': 'destination',
                 'barnameh_date': 'barnameh_date',
-                'transport_date': 'transport_date',
                 'purchase_number': 'purchase_number',
                 'shenase_takhsis_code': 'shenase_takhsis_code',
                 'is_sent_to_bki': 'is_sent_to_bki',
@@ -643,10 +690,9 @@ def apply_barnameh_filter(request):
                 'driver_name': barnameh.driver_name or "",
                 'driver_phone': barnameh.driver_phone or "",
                 'vehicle_plate': barnameh.vehicle_plate or "",
-                'receiver_name': barnameh.receiver_name or "",
-                'destination': barnameh.destination or "",
+                'receiver_name': barnameh.get_delivery_receiver_name() or "",
+                'destination': barnameh.get_delivery_address() or "",
                 'barnameh_date': barnameh.barnameh_date.strftime("%Y/%m/%d") if barnameh.barnameh_date else "",
-                'transport_date': barnameh.transport_date.strftime("%Y/%m/%d") if barnameh.transport_date else "",
                 'purchase_number': barnameh.purchase_number or "",
                 'shenase_takhsis_code': barnameh.shenase_takhsis_code or "",
                 'is_sent_to_bki': barnameh.is_sent_to_bki,
@@ -1008,27 +1054,6 @@ def get_barnameh_column_values(request):
                         else:
                             filter_conditions &= ~Q(**{f'{filter_column_id}__in': values})
                 
-                elif filter_column_id == 'transport_date':
-                    # فیلتر تاریخی
-                    try:
-                        date_conditions = Q()
-                        for date_str in values:
-                            if date_str and date_str.strip():
-                                if '/' in date_str:
-                                    parts = date_str.split('/')
-                                    if len(parts) == 3:
-                                        year, month, day = parts
-                                        date_obj = datetime(int(year), int(month), int(day)).date()
-                                        date_conditions |= Q(transport_date=date_obj)
-                        
-                        if date_conditions:
-                            if filter_type == 'include':
-                                filter_conditions &= date_conditions
-                            else:
-                                filter_conditions &= ~date_conditions
-                                
-                    except (ValueError, TypeError):
-                        continue
             
             # اعمال فیلترها
             if filter_conditions:
@@ -1177,10 +1202,6 @@ def get_barnameh_column_values(request):
                 .values_list('buyer_postal_code', flat=True).distinct()
             values = set(values_queryset)
             
-        elif column_id == 'transport_date':
-            values_queryset = base_queryset.exclude(transport_date__isnull=True)\
-                .values_list('transport_date', flat=True).distinct()
-            values = set([date.strftime("%Y/%m/%d") for date in values_queryset if date])
 
         elif column_id == 'product_country':
             values_queryset = base_queryset.exclude(purchase__cargo__country__isnull=True)\
@@ -1444,7 +1465,7 @@ def barnameh_list(request):
     selected_fields = [
         'id', 'number', 'serial', 'tonnage', 'status', 'driver_name', 
         'driver_phone', 'vehicle_plate', 'receiver_name', 'destination', 
-        'barnameh_date', 'transport_date', 'purchase_number', 'shenase_takhsis_code',
+        'barnameh_date', 'purchase_number', 'shenase_takhsis_code',
         'is_sent_to_bki', 'barnameh_created_at', 'factor_sodoor_season', 
         'is_factored', 'is_created_by_excel', 'buyer_postal_code',
         'is_sent_to_bki_at', 'is_created_by_excel_at', 'barnameh_updated_at',
@@ -2126,36 +2147,25 @@ def _export_barnameh_excel(barnameh_ids, selected_columns):
     # تنظیم گردش متن از راست به چپ برای کل صفحه
     ws.sheet_view.rightToLeft = True
     
-    # تعریف استایل‌ها
-    header_font = Font(name='B Nazanin', size=12, bold=True, color='FFFFFF')
-    header_fill = PatternFill(start_color='38A169', end_color='38A169', fill_type='solid')  # سبز مطابق طرح
+    # استایل‌های ساده برای scalability
+    header_font = Font(bold=True)
+    header_fill = PatternFill(start_color='D3D3D3', end_color='D3D3D3', fill_type='solid')  # خاکستری ساده
+    alignment = Alignment(horizontal='right', vertical='center')
     
-    # تنظیم راست چین و وسط چین
-    alignment = Alignment(horizontal='right', vertical='center', wrap_text=True)
-    
-    # تعریف خطوط جدول
-    thin_border = Border(
-        left=Side(style='thin'),
-        right=Side(style='thin'),
-        top=Side(style='thin'),
-        bottom=Side(style='thin')
-    )
-    
-    # مپینگ کامل ستون‌ها به فیلدهای مدل بارنامه
+    # مپینگ کامل ستون‌ها به فیلدهای مدل بارنامه - ترتیب اولویت
     column_mapping = {
         'number': ('شماره بارنامه', lambda b: b.number or "تعیین نشده"),
         'serial': ('سریال', lambda b: b.serial or "تعیین نشده"),
-        'tonnage': ('وزن (کیلوگرم)', lambda b: f"{b.tonnage}" if b.tonnage else "0"),
-        'status': ('وضعیت', lambda b: b.get_status_display() if b.status else "-"),
-        'driver_name': ('نام راننده', lambda b: b.driver_name or "-"),
-        'driver_phone': ('شماره راننده', lambda b: b.driver_phone or "-"),
-        'vehicle_plate': ('پلاک خودرو', lambda b: b.vehicle_plate or "-"),
-        'receiver_name': ('نام گیرنده', lambda b: b.receiver_name or "-"),
-        'destination': ('مقصد', lambda b: b.destination or "-"),
         'barnameh_date': ('تاریخ بارنامه', lambda b: b.barnameh_date.strftime("%Y/%m/%d") if b.barnameh_date else "-"),
-        'transport_date': ('تاریخ حمل', lambda b: b.transport_date.strftime("%Y/%m/%d") if b.transport_date else "-"),
-        'purchase_number': ('شماره خرید', lambda b: b.purchase_number or "-"),
+        'driver_name': ('نام راننده', lambda b: b.driver_name or "-"),
+        'driver_phone': ('تلفن راننده', lambda b: b.driver_phone or "-"),
+        'vehicle_plate': ('پلاک', lambda b: b.vehicle_plate or "-"),
+        'tonnage': ('وزن', lambda b: f"{int(b.tonnage)}" if b.tonnage else "0"),
         'shenase_takhsis_code': ('شناسه تخصیص', lambda b: b.shenase_takhsis_code or "-"),
+        'status': ('وضعیت', lambda b: b.get_status_display() if b.status else "-"),
+        'receiver_name': ('نام تحویل گیرنده', lambda b: b.get_delivery_receiver_name() or "-"),
+        'destination': ('آدرس تحویل', lambda b: b.get_delivery_address() or "-"),
+        'purchase_number': ('شماره خرید', lambda b: b.purchase_number or "-"),
         'cargo': ('کوتاژ', lambda b: str(b.get_cargo()) if b.get_cargo() else "-"),
         'company_price': ('فی خرید', lambda b: f"{b.get_company_price():,}" if b.get_company_price() and b.get_company_price() > 0 else "0"),
         'customer_price': ('فی فروش', lambda b: f"{b.get_customer_price():,}" if b.get_customer_price() and b.get_customer_price() > 0 else "0"),
@@ -2189,7 +2199,6 @@ def _export_barnameh_excel(barnameh_ids, selected_columns):
         cell.font = header_font
         cell.fill = header_fill
         cell.alignment = alignment
-        cell.border = thin_border
     
     # داده‌ها
     row_idx = 2
@@ -2213,13 +2222,12 @@ def _export_barnameh_excel(barnameh_ids, selected_columns):
         # تنظیم استایل برای سطرهای داده
         for j, cell in enumerate(ws[row_idx], 1):
             cell.alignment = alignment
-            cell.border = thin_border
         
         row_idx += 1
     
-    # تنظیم عرض ستون‌ها
-    for i, column in enumerate(ws.columns, 1):
-        ws.column_dimensions[ws.cell(row=1, column=i).column_letter].width = 15
+    # تنظیم عرض ستون‌ها - ساده
+    for i in range(1, len(headers) + 1):
+        ws.column_dimensions[ws.cell(row=1, column=i).column_letter].width = 12
     
     # اضافه کردن فریز به سطر هدر
     ws.freeze_panes = "A2"
@@ -2273,3 +2281,639 @@ def get_barnameh_logs(request, barnameh_id):
             'status': 'error',
             'message': f'خطا در دریافت لاگ‌ها: {str(e)}'
         }, status=500)
+
+
+@role_required('logistics_manager', 'admin', 'financial_manager')
+@require_http_methods(["GET"])
+def fast_barnameh_report_pdf(request):
+    """
+    گزارش PDF از خریدهای 4 روز اخیر که بارنامه سریع (کمتر از 3 روز) دارند
+    به تفکیک کارشناس فروش - با پشتیبانی کامل از فارسی
+    """
+    try:
+        from core.PurchaseModel import Purchase
+        from core.SalesAgentModel import SalesAgent
+        from django.db.models import Prefetch
+        
+        # تابع کمکی برای پردازش متن فارسی
+        def process_persian_text(text):
+            """تبدیل متن فارسی به حالت صحیح برای نمایش در PDF"""
+            if text is None:
+                return "-"
+            
+            text = str(text).strip()
+            if not text:
+                return "-"
+            
+            try:
+                # بازسازی متن فارسی - فقط اگر حروف فارسی/عربی داشت
+                if any(ord(char) > 127 for char in text):  # اگر کاراکتر غیر ASCII داشت
+                    reshaped_text = arabic_reshaper.reshape(text)
+                    # تبدیل به BIDI
+                    bidi_text = get_display(reshaped_text)
+                    return bidi_text
+                else:
+                    # اگر فقط کاراکترهای انگلیسی/عددی بود، بدون تغییر برگردان
+                    return text
+            except Exception as e:
+                logger.warning(f"خطا در پردازش متن فارسی '{text}': {str(e)}")
+                return text
+        
+        # تابع کمکی برای تبدیل مقادیر به متن امن
+        def safe_text(value, default='-'):
+            """تبدیل مقادیر به متن امن"""
+            if value is None:
+                return default
+            return process_persian_text(str(value))
+        
+        # تابع کمکی برای فرمت کردن اعداد
+        def format_number(value, default='0'):
+            """تبدیل اعداد به متن فارسی با کاما"""
+            if value is None or value == 0:
+                return default
+            try:
+                return process_persian_text(f"{int(value):,}")
+            except (ValueError, TypeError):
+                return default
+        
+        # ثبت فونت فارسی
+        BIDI_ENABLED = True
+        try:
+            font_path = os.path.join(settings.BASE_DIR, 'ERP', 'static', 'fonts', 'Vazir.ttf')
+            if os.path.exists(font_path):
+                pdfmetrics.registerFont(TTFont('Vazir', font_path))
+            else:
+                # اگر فونت وزیر موجود نبود، از فونت پیش‌فرض استفاده کن
+                BIDI_ENABLED = False
+                logger.warning("فونت وزیر یافت نشد، از فونت پیش‌فرض استفاده می‌شود")
+        except Exception as e:
+            BIDI_ENABLED = False
+            logger.warning(f"خطا در بارگذاری فونت فارسی: {str(e)}")
+        
+        # محاسبه تاریخ‌های مورد نیاز
+        now = timezone.now()
+        four_days_ago = now - timedelta(days=7)
+        
+        logger.info(f"گزارش بارنامه‌های سریع از {four_days_ago} تا {now}")
+        
+        # یافتن خریدهای 4 روز اخیر که دارای بارنامه هستند
+        purchases_with_barnamehs = Purchase.objects.filter(
+            created_at__gte=four_days_ago
+        ).prefetch_related(
+            'barnamehs',
+            'unique_sales_agent',
+            'customer',
+            'cargo'
+        ).filter(
+            barnamehs__isnull=False
+        ).distinct()
+        
+        # فیلتر کردن همه بارنامه‌هایی که زودتر از 3 روز آمده‌اند
+        fast_purchases = []
+        for purchase in purchases_with_barnamehs:
+            for barnameh in purchase.barnamehs.all():
+                if barnameh.barnameh_created_at:
+                    # محاسبه تفاوت زمان بین ثبت خرید و صدور بارنامه
+                    time_diff = barnameh.barnameh_created_at - purchase.created_at
+                    if time_diff.days <= 3:  # کمتر از 3 روز
+                        # محاسبه دقیق تفاوت روز
+                        purchase_date = purchase.created_at.date()
+                        barnameh_date = barnameh.barnameh_created_at.date()
+                        actual_days_diff = (barnameh_date - purchase_date).days
+                        
+                        fast_purchases.append({
+                            'purchase': purchase,
+                            'barnameh': barnameh,
+                            'days_diff': actual_days_diff,
+                            'hours_diff': time_diff.total_seconds() / 3600
+                        })
+                        # حذف break تا همه بارنامه‌های سریع آن خرید اضافه شوند
+        
+        # گروه‌بندی بر اساس کارشناس فروش
+        sales_agent_groups = {}
+        for item in fast_purchases:
+            purchase = item['purchase']
+            sales_agent = purchase.unique_sales_agent
+            
+            # اگر کارشناس فروش مشخص نباشد، در گروه "نامشخص" قرار بده
+            if not sales_agent:
+                agent_key = "نامشخص"
+                agent_name = "کارشناس فروش نامشخص"
+                agent_type = "نامشخص"
+            else:
+                agent_key = str(sales_agent.id)
+                agent_name = sales_agent.name or sales_agent.user.get_full_name() or sales_agent.user.username
+                
+                # تشخیص نوع کارشناس (سوپریوزر یا عادی)
+                if sales_agent.user and sales_agent.user.is_superuser:
+                    agent_type = "سوپریوزر"
+                    agent_name = f"{agent_name} (سوپریوزر)"
+                else:
+                    agent_type = "کارشناس فروش"
+            
+            if agent_key not in sales_agent_groups:
+                sales_agent_groups[agent_key] = {
+                    'name': agent_name,
+                    'type': agent_type,
+                    'purchases': []
+                }
+            
+            sales_agent_groups[agent_key]['purchases'].append(item)
+        
+        # ایجاد PDF
+        response = HttpResponse(content_type='application/pdf')
+        filename = f"fast_barnameh_report_{now.strftime('%Y%m%d_%H%M%S')}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buffer, 
+            pagesize=A4,
+            rightMargin=20*mm,
+            leftMargin=20*mm,
+            topMargin=20*mm,
+            bottomMargin=20*mm
+        )
+        story = []
+        
+        # تعریف استایل‌های فارسی
+        styles = getSampleStyleSheet()
+        
+        # استایل عنوان اصلی
+        title_style = ParagraphStyle(
+            'FarsiTitle',
+            fontName='Vazir' if BIDI_ENABLED else 'Helvetica-Bold',
+            fontSize=18,
+            spaceAfter=20,
+            alignment=TA_CENTER,
+            leading=22
+        )
+        
+        # استایل عنوان کارشناس فروش
+        agent_title_style = ParagraphStyle(
+            'FarsiAgentTitle',
+            fontName='Vazir' if BIDI_ENABLED else 'Helvetica-Bold',
+            fontSize=16,
+            spaceAfter=15,
+            alignment=TA_CENTER,
+            leading=20
+        )
+        
+        # استایل متن عادی
+        normal_style = ParagraphStyle(
+            'FarsiNormal',
+            fontName='Vazir' if BIDI_ENABLED else 'Helvetica',
+            fontSize=11,
+            spaceAfter=8,
+            alignment=TA_RIGHT,
+            leading=16
+        )
+        
+        # استایل زیرعنوان
+        subtitle_style = ParagraphStyle(
+            'FarsiSubtitle',
+            fontName='Vazir' if BIDI_ENABLED else 'Helvetica-Bold',
+            fontSize=13,
+            spaceAfter=10,
+            alignment=TA_RIGHT,
+            leading=18
+        )
+        
+        # اگر هیچ خریدی پیدا نشد
+        if not fast_purchases:
+            story.append(Paragraph(process_persian_text("گزارش بارنامه‌های سریع"), title_style))
+            story.append(Spacer(1, 20))
+            story.append(Paragraph(process_persian_text("هیچ خرید با بارنامه سریع در 4 روز اخیر یافت نشد."), normal_style))
+            
+            doc.build(story)
+            pdf = buffer.getvalue()
+            buffer.close()
+            response.write(pdf)
+            return response
+        
+        # تاریخ‌های شمسی
+        import jdatetime
+        jalali_start = jdatetime.datetime.fromgregorian(datetime=four_days_ago).strftime('%Y/%m/%d')
+        jalali_end = jdatetime.datetime.fromgregorian(datetime=now).strftime('%Y/%m/%d')
+        
+        # برای هر کارشناس فروش صفحه کاملاً جداگانه
+        first_page = True
+        for agent_key, agent_data in sales_agent_groups.items():
+            if not first_page:  # اگر اولین صفحه نیست، صفحه جدید بساز
+                story.append(PageBreak())
+            first_page = False
+            
+            # عنوان اصلی گزارش برای هر کارشناس
+            story.append(Paragraph(process_persian_text("گزارش خریدهای دارای بارنامه سریع"), title_style))
+            story.append(Spacer(1, 15))
+            
+            # اطلاعات کلی گزارش
+            summary_info = [
+                f"از تاریخ: {jalali_start} تا {jalali_end}",
+                f"{agent_data['type']}: {agent_data['name']}",
+                f"تعداد خریدهای سریع: {len(agent_data['purchases'])}"
+            ]
+            
+            for info in summary_info:
+                story.append(Paragraph(process_persian_text(info), normal_style))
+            
+            story.append(Spacer(1, 20))
+            
+            # گروه‌بندی بارنامه‌ها بر اساس خرید
+            purchases_with_barnamehs = {}
+            for item in agent_data['purchases']:
+                purchase = item['purchase']
+                if purchase.id not in purchases_with_barnamehs:
+                    purchases_with_barnamehs[purchase.id] = {
+                        'purchase': purchase,
+                        'barnamehs': []
+                    }
+                purchases_with_barnamehs[purchase.id]['barnamehs'].append(item)
+            
+            # نمایش هر خرید با بارنامه‌هایش
+            for purchase_id, purchase_data in purchases_with_barnamehs.items():
+                purchase = purchase_data['purchase']
+                barnamehs = purchase_data['barnamehs']
+                
+                # عنوان خرید
+                purchase_title = f"خرید شماره: {purchase.purchase_number or 'نامشخص'}"
+                story.append(Paragraph(process_persian_text(purchase_title), subtitle_style))
+                story.append(Spacer(1, 8))
+                
+                # اطلاعات کلی خرید
+                purchase_info_data = [
+                    [
+                        process_persian_text('وزن خرید (کیلوگرم)'),
+                        process_persian_text('نام مشتری'),
+                        process_persian_text('محصول'),
+                        process_persian_text('تعداد بارنامه‌های سریع')
+                    ],
+                    [
+                        format_number(purchase.order_weight) if purchase.order_weight else "-",
+                        process_persian_text(purchase.customer.name) if purchase.customer and purchase.customer.name else "-",
+                        process_persian_text(str(purchase.cargo)) if purchase.cargo else "-",
+                        process_persian_text(str(len(barnamehs)))
+                    ]
+                ]
+                
+                purchase_info_table = Table(purchase_info_data, colWidths=[40*mm, 50*mm, 50*mm, 35*mm])
+                purchase_info_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Vazir' if BIDI_ENABLED else 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    ('FONTSIZE', (0, 1), (-1, -1), 9),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                    ('TOPPADDING', (0, 0), (-1, -1), 4),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                ]))
+                
+                story.append(purchase_info_table)
+                story.append(Spacer(1, 12))
+                
+                # جدول بارنامه‌های این خرید
+                barnameh_table_data = [
+                    [
+                        process_persian_text('ردیف'),
+                        process_persian_text('شناسه تخصیص'),
+                        process_persian_text('شماره بارنامه'),
+                        process_persian_text('سریال'),
+                        process_persian_text('وزن (کیلوگرم)'),
+                        process_persian_text('نام راننده'),
+                        process_persian_text('شماره راننده'),
+                        process_persian_text('پلاک'),
+                        process_persian_text('تفاوت (روز)')
+                    ]
+                ]
+                
+                for idx, item in enumerate(barnamehs, 1):
+                    barnameh = item['barnameh']
+                    
+                    # بررسی شناسه تخصیص از چندین منبع
+                    shenase_takhsis_value = None
+                    if purchase.shenase_takhsis:
+                        shenase_takhsis_value = purchase.shenase_takhsis
+                    elif hasattr(purchase, 'shenase_takhsis_set') and purchase.shenase_takhsis_set.exists():
+                        shenase_takhsis_value = purchase.shenase_takhsis_set.first().code
+                    elif barnameh.shenase_takhsis_code:
+                        shenase_takhsis_value = barnameh.shenase_takhsis_code
+                    
+                    shenase_takhsis = safe_text(shenase_takhsis_value)
+                    barnameh_number = safe_text(barnameh.number)
+                    serial_text = safe_text(barnameh.serial)
+                    tonnage_text = format_number(barnameh.tonnage) if barnameh.tonnage else "-"
+                    driver_name = process_persian_text(barnameh.driver_name) if barnameh.driver_name else "-"
+                    driver_phone = safe_text(barnameh.driver_phone) if barnameh.driver_phone else "-"
+                    plate_text = safe_text(barnameh.vehicle_plate) if barnameh.vehicle_plate else "-"
+                    days_diff = f"{item['days_diff']}"
+                    
+                    barnameh_table_data.append([
+                        process_persian_text(str(idx)),
+                        shenase_takhsis,
+                        barnameh_number,
+                        serial_text,
+                        tonnage_text,
+                        driver_name,
+                        driver_phone,
+                        plate_text,
+                        days_diff
+                    ])
+                
+                barnameh_table = Table(barnameh_table_data, colWidths=[15*mm, 25*mm, 25*mm, 20*mm, 20*mm, 25*mm, 25*mm, 20*mm, 15*mm])
+                barnameh_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Vazir' if BIDI_ENABLED else 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 2),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+                    ('TOPPADDING', (0, 0), (-1, -1), 2),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                ]))
+                
+                story.append(barnameh_table)
+                story.append(Spacer(1, 15))
+        
+        # ایجاد PDF
+        doc.build(story)
+        pdf = buffer.getvalue()
+        buffer.close()
+        response.write(pdf)
+        
+        logger.info(f"گزارش PDF با پشتیبانی فارسی ایجاد شد: {filename}")
+        return response
+        
+    except Exception as e:
+        logger.error(f"خطا در ایجاد گزارش PDF: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'خطا در ایجاد گزارش: {str(e)}'
+        }, status=500)
+
+@csrf_exempt
+@role_required('logistics_manager', 'admin', 'financial_manager')
+def export_full_barnameh_excel(request):
+    """
+    خروجی اکسل کامل از همه بارنامه‌ها با تمام ستون‌ها و امکان انتخاب بازه تاریخ
+    """
+    logger.warning(f"خروجی اکسل کامل توسط {request.user.username} با آی‌پی {get_client_ip(request)} آغاز شد")
+    
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'فقط درخواست POST پذیرفته می‌شود'}, status=405)
+    
+    try:
+        # دریافت پارامترهای تاریخ
+        from_date = request.POST.get('from_date')
+        to_date = request.POST.get('to_date')
+        
+        logger.warning(f"بازه تاریخی درخواستی: از {from_date} تا {to_date}")
+        
+        # تست تبدیل تاریخ برای دیباگ
+        if from_date:
+            try:
+                test_from = jalali_to_gregorian_date(from_date)
+                logger.warning(f"تست تبدیل از تاریخ: {from_date} -> {test_from}")
+            except Exception as e:
+                logger.error(f"خطا در تست تبدیل از تاریخ: {e}")
+        
+        if to_date:
+            try:
+                test_to = jalali_to_gregorian_date(to_date)
+                logger.warning(f"تست تبدیل تا تاریخ: {to_date} -> {test_to}")
+            except Exception as e:
+                logger.error(f"خطا در تست تبدیل تا تاریخ: {e}")
+        
+        # ایجاد QuerySet پایه با select_related برای بهینه‌سازی
+        base_queryset = Barnameh.objects.select_related(
+            'purchase', 
+            'shenase_takhsis',
+            'purchase__cargo',
+            'purchase__cargo__vared_konandeh'
+        ).order_by('-barnameh_created_at')
+        
+        # اعمال فیلتر تاریخ اگر مشخص شده باشد
+        if from_date or to_date:
+            
+            if from_date:
+                try:
+                    # تبدیل تاریخ شمسی به میلادی
+                    from_date_obj = jalali_to_gregorian_date(from_date)
+                    if from_date_obj:
+                        # فیلتر روی barnameh_date (تاریخ بارنامه) نه barnameh_created_at
+                        base_queryset = base_queryset.filter(barnameh_date__gte=from_date_obj)
+                        logger.info(f"فیلتر از تاریخ شمسی {from_date} (میلادی: {from_date_obj}) اعمال شد")
+                except ValueError as e:
+                    logger.error(f"فرمت تاریخ شروع نامعتبر: {from_date} - {str(e)}")
+                    return JsonResponse({
+                        'status': 'error', 
+                        'message': f'فرمت تاریخ شروع نامعتبر: {from_date}'
+                    }, status=400)
+            
+            if to_date:
+                try:
+                    # تبدیل تاریخ شمسی به میلادی
+                    to_date_obj = jalali_to_gregorian_date(to_date)
+                    if to_date_obj:
+                        # فیلتر روی barnameh_date (تاریخ بارنامه) نه barnameh_created_at
+                        base_queryset = base_queryset.filter(barnameh_date__lte=to_date_obj)
+                        logger.info(f"فیلتر تا تاریخ شمسی {to_date} (میلادی: {to_date_obj}) اعمال شد")
+                except ValueError as e:
+                    logger.error(f"فرمت تاریخ پایان نامعتبر: {to_date} - {str(e)}")
+                    return JsonResponse({
+                        'status': 'error', 
+                        'message': f'فرمت تاریخ پایان نامعتبر: {to_date}'
+                    }, status=400)
+        
+        # شمارش کل بارنامه‌ها
+        total_count = base_queryset.count()
+        logger.warning(f"تعداد کل بارنامه‌های قابل خروجی: {total_count}")
+        
+        if total_count == 0:
+            return JsonResponse({
+                'status': 'error', 
+                'message': 'هیچ بارنامه‌ای در بازه تاریخی انتخاب شده یافت نشد'
+            }, status=400)
+        
+        # محدودیت تعداد برای جلوگیری از مشکلات عملکردی
+        max_export_limit = 50000  # حداکثر 50,000 بارنامه
+        if total_count > max_export_limit:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'تعداد بارنامه‌ها ({total_count:,}) بیش از حد مجاز ({max_export_limit:,}) است. لطفاً بازه تاریخی کوچک‌تری انتخاب کنید.'
+            }, status=400)
+        
+        # دریافت تمام ستون‌های موجود (بجز actions)
+        all_columns_data = get_all_barnameh_columns()
+        all_column_ids = [col['id'] for col in all_columns_data if col['id'] != 'actions']
+        
+        logger.warning(f"تمام ستون‌های قابل خروجی: {len(all_column_ids)} ستون")
+        
+        # تولید فایل اکسل
+        return _export_barnameh_excel_full(base_queryset, all_column_ids, from_date, to_date)
+        
+    except Exception as e:
+        import traceback
+        logger.error(f"خطا در خروجی اکسل کامل: {str(e)}, {traceback.format_exc()}")
+        return JsonResponse({
+            'status': 'error', 
+            'message': f'خطا در تولید فایل اکسل: {str(e)}'
+        }, status=500)
+
+def _export_barnameh_excel_full(queryset, selected_columns, from_date=None, to_date=None):
+    """پردازش و ایجاد فایل اکسل کامل برای همه بارنامه‌ها"""
+    
+    logger.warning(f"شروع تولید فایل اکسل کامل برای {queryset.count()} بارنامه با {len(selected_columns)} ستون")
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "لیست کامل بارنامه‌ها"
+    
+    # تنظیم گردش متن از راست به چپ
+    ws.sheet_view.rightToLeft = True
+    
+    # استایل‌های ساده برای scalability
+    header_font = Font(bold=True)
+    header_fill = PatternFill(start_color='D3D3D3', end_color='D3D3D3', fill_type='solid')  # خاکستری ساده
+    alignment = Alignment(horizontal='right', vertical='center')
+    
+    # مپینگ کامل ستون‌ها - ترتیب اولویت
+    column_mapping = {
+        'number': ('شماره بارنامه', lambda b: b.number or "تعیین نشده"),
+        'serial': ('سریال', lambda b: b.serial or "تعیین نشده"),
+        'barnameh_date': ('تاریخ بارنامه', lambda b: b.barnameh_date.strftime("%Y/%m/%d") if b.barnameh_date else "-"),
+        'driver_name': ('نام راننده', lambda b: b.driver_name or "-"),
+        'driver_phone': ('تلفن راننده', lambda b: b.driver_phone or "-"),
+        'vehicle_plate': ('پلاک', lambda b: b.vehicle_plate or "-"),
+        'tonnage': ('وزن', lambda b: f"{int(b.tonnage)}" if b.tonnage else "0"),
+        'shenase_takhsis_code': ('شناسه تخصیص', lambda b: b.shenase_takhsis_code or "-"),
+        'status': ('وضعیت', lambda b: b.get_status_display() if b.status else "-"),
+        'receiver_name': ('نام تحویل گیرنده', lambda b: b.get_delivery_receiver_name() or "-"),
+        'destination': ('آدرس تحویل', lambda b: b.get_delivery_address() or "-"),
+        'purchase_number': ('شماره خرید', lambda b: b.purchase_number or "-"),
+        'cargo': ('کوتاژ', lambda b: str(b.get_cargo()) if b.get_cargo() else "-"),
+        'company_price': ('فی خرید', lambda b: f"{b.get_company_price():,}" if b.get_company_price() and b.get_company_price() > 0 else "0"),
+        'customer_price': ('فی فروش', lambda b: f"{b.get_customer_price():,}" if b.get_customer_price() and b.get_customer_price() > 0 else "0"),
+        'total_sales_amount': ('مبلغ کل فروش', lambda b: f"{b.get_total_sales_amount():,.0f}" if b.get_total_sales_amount() else "-"),
+        'total_purchase_amount': ('مبلغ کل خرید', lambda b: f"{b.get_total_purchase_amount():,.0f}" if b.get_total_purchase_amount() and b.get_total_purchase_amount() > 0 else "0"),
+        'buyer_name': ('نام خریدار', lambda b: b.get_buyer_name() or "-"),
+        'buyer_national_code': ('شماره ملی خریدار', lambda b: b.get_buyer_national_code() or "-"),
+        'buyer_postal_code': ('کدپستی خریدار', lambda b: b.get_buyer_postal_code() or "-"),
+        'buyer_address': ('آدرس خریدار', lambda b: b.get_buyer_address() or "-"),
+        'demand_amount': ('میزان تقاضا', lambda b: f"{b.get_demand_amount()}" if b.get_demand_amount() else "-"),
+        'importer': ('واردکننده', lambda b: str(b.get_importer()) if b.get_importer() else "-"),
+        'product_type': ('محصول', lambda b: b.get_product_type() or "-"),
+        'product_country': ('کشور محصول', lambda b: b.get_product_country() or "-"),
+        'successful_send_date': ('تاریخ ارسال موفق به بازارگاه', lambda b: b.get_successful_send_date().strftime("%Y/%m/%d") if b.get_successful_send_date() else "-"),
+        'is_sent_to_bki': ('ارسال به بازارگاه', lambda b: "بله" if b.is_sent_to_bki else "خیر"),
+        'created_at': ('تاریخ ایجاد', lambda b: b.barnameh_created_at.strftime("%Y/%m/%d") if b.barnameh_created_at else "-"),
+        'factor_sodoor_season': ('زمان صدور فاکتور فصل', lambda b: b.factor_sodoor_season or "-"),
+        'is_factored': ('فاکتور صادر شده', lambda b: "بله" if b.is_factored else "خیر"),
+        'is_created_by_excel': ('ایجاد توسط اکسل', lambda b: "بله" if b.is_created_by_excel else "خیر"),
+        'is_sent_to_bki_at': ('تاریخ ارسال به بازارگاه', lambda b: b.is_sent_to_bki_at.strftime("%Y/%m/%d %H:%M") if b.is_sent_to_bki_at else "-"),
+        'is_created_by_excel_at': ('تاریخ ایجاد توسط اکسل', lambda b: b.is_created_by_excel_at.strftime("%Y/%m/%d %H:%M") if hasattr(b, 'is_created_by_excel_at') and b.is_created_by_excel_at else "-"),
+        'barnameh_updated_at': ('تاریخ بروزرسانی', lambda b: b.barnameh_updated_at.strftime("%Y/%m/%d %H:%M") if b.barnameh_updated_at else "-"),
+    }
+    
+    # فقط ستون‌های انتخاب شده را اضافه می‌کنیم
+    headers = []
+    for col in selected_columns:
+        if col in column_mapping:
+            headers.append(column_mapping[col][0])
+    
+    # اضافه کردن ردیف اطلاعات گزارش
+    info_row = [
+        f"گزارش کامل بارنامه‌ها - تولید شده در {timezone.now().strftime('%Y/%m/%d %H:%M')}",
+        "",  # سلول خالی
+        f"تعداد کل: {queryset.count():,}",
+        "",  # سلول خالی
+    ]
+    
+    if from_date or to_date:
+        date_range = f"از {from_date or 'ابتدا'} تا {to_date or 'انتها'}"
+        info_row.extend(["", date_range])
+    
+    # اضافه کردن ردیف اطلاعات
+    ws.append(info_row)
+    
+    # استایل ساده برای ردیف اطلاعات
+    for i, cell in enumerate(ws[1], 1):
+        cell.font = Font(bold=True)
+        cell.alignment = alignment
+    
+    # اضافه کردن ردیف خالی
+    ws.append([])
+    
+    # افزودن هدرها
+    ws.append(headers)
+    
+    # تنظیم استایل برای سطر هدر
+    header_row = ws.max_row
+    for i, cell in enumerate(ws[header_row], 1):
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = alignment
+    
+    # پردازش داده‌ها در batch برای بهینه‌سازی حافظه
+    batch_size = 1000
+    processed_count = 0
+    
+    # دریافت تمام داده‌ها به صورت iterator
+    for barnameh in queryset.iterator(chunk_size=batch_size):
+        row = []
+        for col in selected_columns:
+            if col in column_mapping:
+                try:
+                    value = column_mapping[col][1](barnameh)
+                    row.append(value)
+                except Exception as e:
+                    logger.warning(f"خطا در استخراج مقدار {col} برای بارنامه {barnameh.id}: {str(e)}")
+                    # برای فیلدهای عددی، مقدار پیش‌فرض 0 قرار می‌دهیم
+                    if col in ['company_price', 'customer_price', 'total_sales_amount', 'total_purchase_amount', 'tonnage']:
+                        row.append("0")
+                    else:
+                        row.append("-")
+        
+        ws.append(row)
+        processed_count += 1
+        
+        # نمایش پیشرفت هر 1000 رکورد
+        if processed_count % batch_size == 0:
+            logger.info(f"پردازش شد: {processed_count:,} از {queryset.count():,} بارنامه")
+        
+        # تنظیم استایل برای سطرهای داده
+        current_row = ws.max_row
+        for j, cell in enumerate(ws[current_row], 1):
+            cell.alignment = alignment
+    
+    logger.warning(f"تمام {processed_count:,} بارنامه پردازش شد")
+    
+    # تنظیم عرض ستون‌ها - ساده
+    for i in range(1, len(headers) + 1):
+        column_letter = ws.cell(row=header_row, column=i).column_letter
+        ws.column_dimensions[column_letter].width = 12
+    
+    # اضافه کردن فریز به سطر هدر
+    ws.freeze_panes = f"A{header_row + 1}"
+    
+    # تولید نام فایل
+    current_time = timezone.now().strftime('%Y%m%d_%H%M%S')
+    date_suffix = ""
+    if from_date or to_date:
+        date_suffix = f"_{from_date or 'start'}_to_{to_date or 'end'}"
+    
+    filename = f"barnameh_full_export{date_suffix}_{current_time}.xlsx"
+    
+    # تولید پاسخ HTTP
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    wb.save(response)
+    
+    logger.warning(f"فایل اکسل کامل با موفقیت تولید شد: {filename}")
+    return response

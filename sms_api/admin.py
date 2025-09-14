@@ -89,9 +89,20 @@ class SmsTemplateAdmin(admin.ModelAdmin):
 
 @admin.register(SmsConfig)
 class SmsConfigAdmin(admin.ModelAdmin):
-    list_display = ('sms_enabled',)
-    list_filter = ('sms_enabled',)
-    search_fields = ('sms_enabled',)
+    list_display = ('sms_enabled', 'purchase_aware_enabled', 'assume_success_on_no_error')
+    list_filter = ('sms_enabled', 'purchase_aware_enabled', 'assume_success_on_no_error')
+    fieldsets = (
+        ('تنظیمات اصلی', {
+            'fields': ('sms_enabled',)
+        }),
+        ('تنظیمات پیشرفته', {
+            'fields': ('assume_success_on_no_error',)
+        }),
+        ('اطلاع‌رسانی خرید جدید', {
+            'fields': ('purchase_aware_enabled',),
+            'description': 'این بخش مربوط به ارسال پیامک اطلاع‌رسانی خرید جدید به شماره‌های مدیریت است. شماره‌ها در فایل .env تحت عنوان PURCHASE_AWARE_NUMBERS تعریف می‌شوند.'
+        }),
+    )
     def has_add_permission(self, request):
         if SmsConfig.objects.exists():
             return False

@@ -113,6 +113,7 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
         'OPTIONS': {
             'timeout': 10,  # Wait up to 10 seconds before 'database is locked'
+            'init_command': 'PRAGMA journal_mode=WAL; PRAGMA busy_timeout=10000;'
         }
     }
 }
@@ -429,6 +430,11 @@ LOGGING = {
             'handlers': ['console', 'file'],
             'level': 'DEBUG',
             'propagate': False,
+        },
+        'crm_api_api': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
         }
     },
 }
@@ -460,3 +466,7 @@ BKI_PASSWORD = os.environ.get('BKI_PASSWORD', '')
 
 # Sales Agent SMS Qouta
 SALES_AGENT_SMS_QOUTA = int(os.environ.get('SALES_AGENT_SMS_QOUTA', '0'))
+
+CRM_API_KEY = os.environ.get('CRM_API_KEY', '')
+
+PURCHASE_AWARE_NUMBERS = os.environ.get('PURCHASE_AWARE_NUMBERS', '').split(',')

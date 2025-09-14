@@ -56,7 +56,6 @@ class Purchase(BasePurchase):
     purchase_number = models.CharField("شماره خرید بازارگاه", max_length=7, blank=True, null=True, unique=True)
     tracking_number = models.CharField("شماره پیگیری", max_length=6, blank=True, null=True)
     shenase_takhsis = models.CharField("شناسه تخصیص", max_length=255, blank=True, null=True, unique=False)
-    code_melli_tahvil = models.CharField("کد ملی تحویل", max_length=255, blank=True, null=True)
     bazaargah_phone_number = models.CharField("شماره تلفن بازارگاه", max_length=15, blank=True, null=True)
     tahvil_phone_number = models.CharField("شماره تلفن تحویل", max_length=15, blank=True, null=True)
     bazaargah_customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, verbose_name="مشتری بازارگاه", null=True, blank=True, related_name='bazaargah_purchases')
@@ -736,36 +735,32 @@ class Purchase(BasePurchase):
                     has_non_admin = True
                     break
 
-        # Send SMS notification for new purchase only on creation
-        if is_new and self.customer.sms_preference and has_non_admin:
-            if self.send_cottage_sms:
-                from sms_api.apis import send_purchase_status_notification
-                logger.debug(f"Sending cottage SMS for purchase: {self.id}")
-                send_purchase_status_notification(self)
-                logger.debug(f"SMS sent successfully for purchase: {self.id}")
-                # تنظیم وضعیت SMS ارسال شده
-            if not PurchaseStateChange.objects.filter(purchase=self, new_state='SMS_SENT').exists():
-                PurchaseStateChange.objects.create(
-                    purchase=self,
-                    previous_state='INITIATED',
-                    new_state='SMS_SENT',
-                    notes='پیامک خودکار ارسال شد'
-                )
-                self.state = 'SMS_SENT'
-                super().save(update_fields=['state'])
+        # SMS notification is now handled by the signal in core/zignals.py
+        # This section is removed to prevent duplicate SMS sending
 
         if self.extelaf_weight:
             self.extelaf_amount = self.extelaf_weight * self.customer_price
             super().save(update_fields=['extelaf_amount'])
 
         if self.state == 'PURCHASE_CLOSED':
+            new_state = None
             if self.extelaf_type == 'کسری':
-                self.state = 'PAY_KASRI'
+                new_state = 'PAY_KASRI'
             elif self.extelaf_type == 'سرک':
-                self.state = 'RECIEIVE_SARAK'
-            if self.extelaf_weight == 0:
-                self.state = 'FULLY_SETTLED'
-            super().save(update_fields=['state'])
+                new_state = 'RECIEIVE_SARAK'
+            elif self.extelaf_weight == 0:
+                new_state = 'FULLY_SETTLED'
+            
+            if new_state and new_state != self.state:
+                # ایجاد رکورد تغییر وضعیت برای تریگر کردن سیگنال پیامک
+                PurchaseStateChange.objects.create(
+                    purchase=self,
+                    previous_state=self.state,
+                    new_state=new_state,
+                    notes='تغییر خودکار وضعیت بر اساس نوع اختلاف'
+                )
+                self.state = new_state
+                super().save(update_fields=['state'])
 
         # محاسبه خودکار amount_paid فقط در صورتی که مقدار تنظیم نشده باشد
         # یا در حالت‌های خاص که نیاز به بازمحاسبه داریم
@@ -968,6 +963,12 @@ class ShenaseTakhsis(models.Model):
     purchase_number = models.CharField("شماره خرید", max_length=255, null=True, blank=True)
     code = models.CharField("شناسه تخصیص", max_length=255, unique=True)
     weight = models.PositiveIntegerField(verbose_name="وزن تخصیص", null=True, blank=True)
+    code_melli_tahvil = models.CharField("کد ملی تحویل", max_length=255, blank=True, null=True)
+    tahvil_phone_number = models.CharField("شماره تلفن تحویل", max_length=15, blank=True, null=True)
+    delivery_receiver_name = models.CharField("نام تحویل گیرنده", max_length=255, blank=True, null=True)
+    delivery_address = models.TextField("آدرس تحویل", blank=True, null=True)
+    delivery_postal_code = models.CharField("کد پستی تحویل", max_length=10, blank=True, null=True)
+    
     created_at = jmodels.jDateTimeField("تاریخ ثبت", auto_now_add=True)
 
     def save(self, *args, **kwargs):

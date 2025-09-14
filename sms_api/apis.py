@@ -3,7 +3,7 @@ import json
 from .models import SmsLog, SmsQueue, is_celery_active, SmsTemplate, SmsConfig
 from sms_ir import SmsIr
 from django.conf import settings
-from core.templatetags.custom_filters import to_persian_digits
+from core.templatetags.custom_filters import to_persian_digits, to_persian_digits_with_commas
 import re
 from django.db import connection
 import logging
@@ -171,7 +171,7 @@ def render_template(template_type, context_data):
         return None
 
 
-def send_purchase_status_notification(purchase):
+def send_purchase_status_notification(purchase, status=None):
     """
     Send SMS notification based on purchase status
     
@@ -180,6 +180,7 @@ def send_purchase_status_notification(purchase):
     
     Args:
         purchase: Purchase object with updated status
+        status: Optional status to use instead of purchase.state
         
     Returns:
         bool: True if notification was sent successfully, False otherwise
@@ -196,9 +197,12 @@ def send_purchase_status_notification(purchase):
         'INVOICE_ISSUED',      # صدور فاکتور
     ]
     
+    # Use provided status or purchase state
+    current_status = status or purchase.state
+    
     # Check if the current state should receive notifications
-    if purchase.state not in NOTIFY_STATES:
-        logger.info(f"Skipping SMS notification for state {purchase.state} - not in notification list")
+    if current_status not in NOTIFY_STATES:
+        logger.info(f"Skipping SMS notification for state {current_status} - not in notification list")
         return False
     
     if not purchase.customer or not purchase.customer.sms_preference:
@@ -228,7 +232,7 @@ def send_purchase_status_notification(purchase):
             return False
         
         # Get purchase status
-        status = purchase.state
+        status = current_status
         
         # Prepare context data for template
         context = {
@@ -347,7 +351,6 @@ def send_purchase_status_notification(purchase):
         for phone in phone_numbers:
             try:
                 logger.debug(f"Queuing SMS for {phone} for purchase {purchase.invoice_id}, status: {status}")
-                continue
                 result = queue_sms(phone, message, notification_type=status, purchase=purchase)
                 results.append(result)
                 logger.info(f"SMS queued for {phone} for purchase {purchase.invoice_id}, status: {status}")
@@ -407,6 +410,107 @@ def send_instant_sms(number:str, message:str, sms_account=sms_account):
             print(f"SMS sending error: {e}")
             return None
 
+def send_purchase_aware_notification(purchase):
+    """
+    ارسال پیامک اطلاع‌رسانی خرید جدید به شماره‌های مشخص شده در تنظیمات
+    فقط در محیط پروداکشن و با فعال بودن تنظیمات اجرا می‌شود
+    
+    Args:
+        purchase: آبجکت خرید جدید
+        
+    Returns:
+        bool: True اگر حداقل یک پیامک ارسال شد، False در غیر این صورت
+    """
+    try:
+        # بررسی فعال بودن قابلیت
+        if not SmsConfig.is_purchase_aware_enabled():
+            logger.debug("Purchase aware notifications are disabled")
+            return False
+        
+        # بررسی محیط پروداکشن (DEBUG=False)
+        from django.conf import settings
+        if settings.DEBUG:
+            logger.debug("Purchase aware notifications are disabled in development mode")
+            return False
+        
+        # دریافت شماره‌های تعریف شده در .env
+        aware_numbers = getattr(settings, 'PURCHASE_AWARE_NUMBERS', '')
+        if not aware_numbers:
+            logger.warning("PURCHASE_AWARE_NUMBERS not configured in environment")
+            return False
+        
+        # پردازش شماره‌ها (از آنجایی که در settings قبلاً به لیست تبدیل شده)
+        phone_numbers = [num.strip() for num in aware_numbers if num.strip()]
+        if not phone_numbers:
+            logger.warning("No valid phone numbers found in PURCHASE_AWARE_NUMBERS")
+            return False
+        
+        # نرمال‌سازی شماره‌ها
+        normalized_numbers = normalize_phone_numbers_list(phone_numbers)
+        if not normalized_numbers:
+            logger.warning("No valid phone numbers after normalization")
+            return False
+        
+        # تهیه اطلاعات پیامک
+        buyer_name = purchase.buyer_name or (purchase.customer.name if purchase.customer else 'نامشخص')
+        purchase_number = to_persian_digits(purchase.purchase_number) if purchase.purchase_number else 'نامشخص'
+        order_weight = to_persian_digits_with_commas(purchase.order_weight) if purchase.order_weight else 'نامشخص'
+        
+        # اطلاعات محصول
+        product_name = 'نامشخص'
+        product_country = 'نامشخص'
+        vared_konandeh = 'نامشخص'
+        
+        if purchase.cargo:
+            product_name = purchase.cargo.get_product_type_display()
+            product_country = purchase.cargo.get_country_display()
+            if purchase.cargo.vared_konandeh:
+                vared_konandeh = purchase.cargo.vared_konandeh.name
+        
+        # تهیه متن پیامک
+        message = f"""خرید جدید:
+{buyer_name} {purchase_number}
+{order_weight} کیلوگرم {product_name} {product_country} {vared_konandeh}"""
+        
+        # ارسال پیامک به شماره‌ها
+        success_count = 0
+        for phone_number in normalized_numbers:
+            try:
+                # ارسال مستقیم بدون صف
+                response = sms_account.send_sms(phone_number, message)
+                
+                if response:
+                    # ثبت در لاگ
+                    SmsLog.objects.create(
+                        recipient_number=phone_number,
+                        message=message,
+                        notification_type='purchase_aware',
+                        status='sent',
+                        api_response=json.dumps(response) if response else None,
+                        purchase=purchase
+                    )
+                    success_count += 1
+                    logger.info(f"✅ Purchase aware SMS sent to {phone_number} for purchase {purchase.purchase_number}")
+                else:
+                    logger.warning(f"⚠️ Failed to send purchase aware SMS to {phone_number}")
+                    
+            except Exception as e:
+                logger.error(f"❌ Error sending purchase aware SMS to {phone_number}: {str(e)}")
+                continue
+        
+        if success_count > 0:
+            logger.info(f"🎯 Purchase aware notifications sent to {success_count}/{len(normalized_numbers)} numbers for purchase {purchase.purchase_number}")
+            return True
+        else:
+            logger.warning(f"⚠️ Failed to send purchase aware notifications for purchase {purchase.purchase_number}")
+            return False
+            
+    except Exception as e:
+        logger.error(f"❌ Error in send_purchase_aware_notification: {str(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return False
+
 def queue_sms(number:str, message:str, notification_type='custom', purchase=None, suspended=False, scheduled_for=None):
     """
     Add SMS to the queue for batch processing
@@ -454,6 +558,7 @@ def queue_sms(number:str, message:str, notification_type='custom', purchase=None
         raise  # Re-raise the exception to be handled by the caller
 
 def process_sms_queue(batch_size=20, sms_account=sms_account):
+    from sms_api.models import SmsConfig
     if not SmsConfig.is_sms_enabled():
         logger.info("SMS processing is disabled")
         return []
@@ -492,21 +597,44 @@ def process_sms_queue(batch_size=20, sms_account=sms_account):
                 response = {"error": str(api_error)}
             
             # بررسی پاسخ API و به‌روزرسانی وضعیت
-            if response is not None:  # اگر پاسخی دریافت شد، حتی اگر خطا بود
-                # پیام با موفقیت ارسال شده است (فرض می‌کنیم هر پاسخی نشان دهنده ارسال موفق است)
-                # می‌توانید اینجا بررسی‌های دقیق‌تری انجام دهید
+            # در محیط پروداکشن، اگر API کال شده و exception نداده، پیامک ارسال شده است
+            sms_sent_successfully = False
+            
+            if response is not None:
+                # بررسی اینکه آیا پاسخ حاوی خطا است یا نه
+                if isinstance(response, dict) and 'error' in response:
+                    # پاسخ حاوی خطا است
+                    sms_sent_successfully = False
+                    error_message = response.get('error', 'Unknown error')
+                    logger.warning(f"SMS API returned error for {recipient}: {error_message}")
+                else:
+                    # پاسخ عادی دریافت شده - در محیط پروداکشن این معنی موفقیت است
+                    sms_sent_successfully = True
+                    logger.debug(f"SMS API returned response for {recipient}: {response}")
+            else:
+                # هیچ پاسخی دریافت نشده - این نادر است اما ممکن است در تست‌ها اتفاق بیفتد
+                # بررسی تنظیمات برای تعیین رفتار
+                assume_success = SmsConfig.should_assume_success_on_no_error()
+                sms_sent_successfully = assume_success
+                if assume_success:
+                    logger.info(f"SMS API returned no response for {recipient} - assuming success based on config")
+                else:
+                    logger.warning(f"SMS API returned no response for {recipient} - marking as failed based on config")
+            
+            if sms_sent_successfully:
+                # پیام با موفقیت ارسال شده
                 sms.status = 'sent'
                 sms.sent_at = timezone.now()
                 sms.save()
                 
-                # ثبت در لاگ
-                # Ensure response is JSON serializable
+                # ثبت در لاگ موفقیت
                 try:
                     serializable_response = response
-                    # If response is not serializable, convert to string
-                    json.dumps(response)
+                    if response is not None:
+                        json.dumps(response)
                 except TypeError:
-                    serializable_response = str(response)
+                    serializable_response = str(response) if response is not None else "No response"
+                
                 SmsLog.objects.create(
                     recipient_number=recipient,
                     message=sms.message,
@@ -519,23 +647,24 @@ def process_sms_queue(batch_size=20, sms_account=sms_account):
                 logger.info(f"SMS sent successfully to {recipient} (Queue ID: {sms.id})")
                 results.append({"id": sms.id, "status": "sent", "result": response})
             else:
-                # پیام با موفقیت ارسال نشده است
+                # پیام ارسال نشده - فقط در مواردی که واقعاً خطا داشته‌ایم
                 sms.status = 'failed'
                 sms.retry_count += 1
                 sms.save()
                 
                 # ثبت در لاگ خطا
+                error_response = response if response is not None else {"error": "No response from API"}
                 SmsLog.objects.create(
                     recipient_number=recipient,
                     message=sms.message,
                     notification_type=sms.notification_type,
                     status='failed',
-                    api_response=json.dumps({"error": "No response from API"}) if response is None else json.dumps(response),
+                    api_response=json.dumps(error_response),
                     purchase=sms.purchase
                 )
                 
-                logger.error(f"Failed to send SMS to {recipient} (Queue ID: {sms.id}): No response from API")
-                results.append({"id": sms.id, "status": "failed", "error": "No response from API"})
+                logger.error(f"Failed to send SMS to {recipient} (Queue ID: {sms.id}): {error_response}")
+                results.append({"id": sms.id, "status": "failed", "error": str(error_response)})
         except Exception as e:
             logger.exception(f"Unexpected error processing SMS queue item {sms.id}: {str(e)}")
             

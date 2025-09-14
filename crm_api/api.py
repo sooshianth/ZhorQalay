@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.conf import settings
 from core.PurchaseModel import Purchase, ShenaseTakhsis, PurchaseStateChange
 from core.CargoProductModel import CargoProduct
 from bki_barnameh.models.BarnamehModel import Barnameh
@@ -15,7 +16,33 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
-logger = logging.getLogger(__name__)
+def check_api_key(request):
+    """
+    Check API key from request headers. If DEBUG is True, always accept.
+    Log unauthorized requests with IP, path, and method.
+    Handle exceptions gracefully.
+    """
+    try:
+        if getattr(settings, 'DEBUG', False):
+            return True
+        api_key = request.headers.get('X-API-KEY')
+        expected_key = getattr(settings, 'CRM_API_KEY', None)
+        if api_key and expected_key and api_key == expected_key:
+            return True
+        # Log unauthorized attempt
+        ip = request.META.get('REMOTE_ADDR', 'unknown')
+        path = request.path
+        method = request.method
+        logger.warning(f"Unauthorized API access: IP={ip}, Path={path}, Method={method}, ProvidedKey={api_key}")
+        return False
+    except Exception as e:
+        ip = request.META.get('REMOTE_ADDR', 'unknown')
+        path = getattr(request, 'path', 'unknown')
+        method = getattr(request, 'method', 'unknown')
+        logger.error(f"API key check exception: {str(e)} | IP={ip}, Path={path}, Method={method}")
+        return False
+
+logger = logging.getLogger("crm_api_api")
 
 def clean_phone_number(phone: str) -> str:
     """تمیز کردن شماره تلفن"""
@@ -114,6 +141,8 @@ class PurchaseInfoAPI(View):
     """API برای دریافت اطلاعات خرید"""
     
     def post(self, request):
+        if not check_api_key(request):
+            return JsonResponse({'success': False, 'error': 'API key missing or invalid'}, status=401)
         try:
             # پارس کردن JSON data
             data = json.loads(request.body)
@@ -187,6 +216,11 @@ class PurchaseInfoAPI(View):
                 'vehicle_type': purchase.vehicle_type,
                 'vehicle_type_display': purchase.get_vehicle_type_display() if purchase.vehicle_type else None,
                 'is_address_sent': purchase.is_address_sent,
+                
+                # اطلاعات محصول کوتاه
+                'cargo_product_type': purchase.cargo.get_product_type_display() if purchase.cargo else 'نامشخص',
+                'cargo_country': purchase.cargo.get_country_display() if purchase.cargo else 'نامشخص',
+                'cargo_cottage': purchase.cargo.cottage if purchase.cargo else 'نامشخص',
                 
                 # اطلاعات اختلاف
                 'extelaf_type': purchase.extelaf_type,
@@ -332,10 +366,11 @@ class PurchaseInfoAPI(View):
                     'code': allocation.code,
                     'weight': allocation.weight,
                     'barnameh_weight': getattr(allocation, 'barnameh_weight', None),
-                    'receiver_name': getattr(allocation, 'receiver_name', None),
-                    'delivery_phone': purchase.tahvil_phone_number,
-                    'delivery_national_id': purchase.code_melli_tahvil,
-                    'delivery_address': purchase.address,
+                    'delivery_receiver_name': allocation.delivery_receiver_name or purchase.delivery_receiver_name or purchase.buyer_name,
+                    'delivery_phone': allocation.tahvil_phone_number or purchase.tahvil_phone_number,
+                    'delivery_national_id': allocation.code_melli_tahvil or purchase.code_melli_tahvil or purchase.buyer_national_id,
+                    'delivery_address': allocation.delivery_address or purchase.delivery_address or purchase.address,
+                    'delivery_postal_code': allocation.delivery_postal_code or purchase.delivery_postal_code,
                     'created_at': allocation.created_at.isoformat() if allocation.created_at else None,
                 })
             
@@ -402,11 +437,83 @@ class PurchaseInfoAPI(View):
                 'error': 'خطای داخلی سرور'
             }, status=500)
 
+
+class CargoProductsAPI(View):
+    """API برای دریافت لیست محصولات فعال CargoProduct با جزئیات کامل"""
+
+    def get(self, request):
+        if not check_api_key(request):
+            return JsonResponse({'success': False, 'error': 'API key missing or invalid'}, status=401)
+        try:
+            product_type = request.GET.get('type')  # اختیاری: فیلتر بر اساس نوع خرید
+
+            queryset = CargoProduct.objects.filter(status=True)
+            if product_type:
+                queryset = queryset.filter(type=product_type)
+
+            # برای بهینه‌سازی، روابط را پیش‌بارگذاری می‌کنیم
+            queryset = queryset.select_related('vared_konandeh', 'barbary')
+
+            products = []
+            for cargo in queryset:
+                products.append({
+                    # فیلدهای اصلی
+                    'id': cargo.id,
+                    'type': cargo.type,
+                    'cottage': cargo.cottage,
+                    'product_type': cargo.product_type,
+                    'product_type_display': cargo.get_product_type_display(),
+                    'country': cargo.country,
+                    'country_display': cargo.get_country_display(),
+                    'port': cargo.port,
+                    'loading_time': cargo.loading_time,
+                    'description': cargo.description,
+                    'status': cargo.status,
+                    'weight': cargo.weight,
+                    'customer_price': cargo.customer_price,
+                    'company_price': cargo.company_price,
+                    'created_at': cargo.created_at.isoformat() if cargo.created_at else None,
+                    'last_modified': cargo.last_modified.isoformat() if cargo.last_modified else None,
+
+                    # اطلاعات باربری
+                    'barbary': {
+                        'id': cargo.barbary.id if cargo.barbary else None,
+                        'name': cargo.barbary.name if cargo.barbary else None,
+                        'phone_number': cargo.barbary.phone_number if cargo.barbary else None,
+                        'email': cargo.barbary.email if cargo.barbary else None,
+                        'description': cargo.barbary.description if cargo.barbary else None,
+                    } if cargo.barbary else None,
+
+                    # اطلاعات واردکننده
+                    'vared_konandeh': {
+                        'id': cargo.vared_konandeh.id if cargo.vared_konandeh else None,
+                        'name': cargo.vared_konandeh.name if cargo.vared_konandeh else None,
+                        'phone_number': cargo.vared_konandeh.phone_number if cargo.vared_konandeh else None,
+                        'email': cargo.vared_konandeh.email if cargo.vared_konandeh else None,
+                        'website': cargo.vared_konandeh.website if cargo.vared_konandeh else None,
+                    } if cargo.vared_konandeh else None,
+                })
+
+            return JsonResponse({
+                'success': True,
+                'count': len(products),
+                'products': products
+            })
+
+        except Exception as e:
+            logger.error(f"خطا در API لیست محصولات: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'error': 'خطای داخلی سرور'
+            }, status=500)
+
 @method_decorator(csrf_exempt, name='dispatch')
 class CustomerPurchasesAPI(View):
     """API برای دریافت لیست خریدهای یک مشتری بر اساس شماره تلفن"""
     
     def post(self, request):
+        if not check_api_key(request):
+            return JsonResponse({'success': False, 'error': 'API key missing or invalid'}, status=401)
         try:
             data = json.loads(request.body)
             phone_number = data.get('phone_number')
@@ -649,6 +756,8 @@ class PhoneValidationAPI(View):
     """API برای احراز هویت شماره تلفن و بررسی اجازه دسترسی به CRM"""
     
     def post(self, request):
+        if not check_api_key(request):
+            return JsonResponse({'success': False, 'error': 'API key missing or invalid'}, status=401)
         try:
             data = json.loads(request.body)
             phone_number = data.get('phone_number')
@@ -811,6 +920,8 @@ class HealthCheckAPI(View):
     """API برای بررسی وضعیت سلامت سرویس"""
     
     def get(self, request):
+        if not check_api_key(request):
+            return JsonResponse({'success': False, 'error': 'API key missing or invalid'}, status=401)
         try:
             # بررسی اتصال به دیتابیس
             customers_count = Customer.objects.count()
@@ -842,5 +953,7 @@ class HealthCheckAPI(View):
             }, status=500)
     
     def post(self, request):
+        if not check_api_key(request):
+            return JsonResponse({'success': False, 'error': 'API key missing or invalid'}, status=401)
         # همان response برای POST requests
         return self.get(request)

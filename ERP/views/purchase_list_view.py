@@ -37,7 +37,7 @@ def get_allowed_columns(user_role):
     elif user_role == 'financial_manager':
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
          'delivered_weight', 'total_barnameh_weight', 'first_barnameh_date', 'last_barnameh_date', 'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'status', 'description', 'is_fully_tasvied',
-         'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',          'cargo', 'product_type', 'country', 'importer', 'buyer_name', 'code_melli_tahvil', 'address', 'unique_buyer_id']
+         'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice',          'cargo', 'product_type', 'country', 'importer', 'buyer_name', 'code_melli_tahvil', 'address', 'unique_buyer_id', 'buyer_account']
     
     elif user_role == 'admin' or user_role == 'logistics_manager':
         allowed_columns = ['purchase_number', 'shenase_takhsis', 'date', 'sales_agent', 'company_price', 'customer_price', 'weight',
@@ -45,7 +45,7 @@ def get_allowed_columns(user_role):
          'ready_for_invoice', 'is_factored', 'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
           'cargo', 'product_type', 'country', 'importer', 'barbary', 'barbary_phone', 'customer', 'customer_phones', 'buyer_name', 'bazaargah_phone_number', 'tahvil_phone_number', 'code_melli_tahvil', 'address',
             'unique_buyer_id', 'barbary_confidential_number', 'barbary_customer_number', 'delivery_receiver_name', 'buyer_national_id',
-            'buyer_user_type', 'unique_delivery_id', 'delivery_address', 'delivery_postal_code', 'vehicle_type', 'factor_status']
+            'buyer_user_type', 'unique_delivery_id', 'delivery_address', 'delivery_postal_code', 'vehicle_type', 'factor_status', 'buyer_account']
 
     allowed_columns.append('actions')
     return allowed_columns
@@ -157,6 +157,9 @@ def get_allowed_search_filters(global_search, request):
                 Q(unique_buyer_id__icontains=global_search) |
                 Q(shenase_takhsis_set__code__icontains=global_search) |
                 
+                # اطلاعات حساب خریدار
+                Q(buyer_account__icontains=global_search) |
+                
                 # توضیحات و اطلاعات اضافی
                 Q(description__icontains=global_search) |
                 Q(priority_reason__icontains=global_search) |
@@ -187,6 +190,9 @@ def get_allowed_search_filters(global_search, request):
                 # اطلاعات ردیابی
                 Q(unique_buyer_id__icontains=global_search) |
                 Q(shenase_takhsis_set__code__icontains=global_search) |
+                
+                # اطلاعات حساب خریدار
+                Q(buyer_account__icontains=global_search) |
                 
                 # توضیحات و اطلاعات اضافی
                 Q(description__icontains=global_search) |
@@ -260,7 +266,8 @@ def purchase_list(request):
         'purchase_mabna_invoice', 'sales_mabna_invoice', 'mabna_profit',
         'extelaf_type', 'extelaf_weight', 'extelaf_amount', 'description',
         'is_fully_tasvied', 'buyer_name', 'bazaargah_phone_number', 
-        'tahvil_phone_number', 'code_melli_tahvil', 'address', 'cargo__country'
+        'tahvil_phone_number', 'code_melli_tahvil', 'address', 'cargo__country',
+        'buyer_account'
     ]
     
     # فیلدهای customer و cargo
@@ -391,6 +398,10 @@ def purchase_list(request):
             # نماینده فروش
             Q(unique_sales_agent__name__icontains=global_search)
         )
+        
+        # اضافه کردن جستجوی حساب خریدار فقط برای کاربران مجاز
+        if user_role in ['financial_manager', 'admin']:
+            search_filters |= Q(buyer_account__icontains=global_search)
         filters &= search_filters
     
     # اعمال همه فیلترها یکجا
@@ -558,6 +569,7 @@ def purchase_list(request):
             {'id': 'code_melli_tahvil', 'name': 'کد ملی تحویل', 'field': 'code_melli_tahvil'},
             {'id': 'address', 'name': 'آدرس خریدار', 'field': 'address'},
             {'id': 'unique_buyer_id', 'name': 'شناسه یکتا خریدار', 'field': 'unique_buyer_id'},
+            {'id': 'buyer_account', 'name': 'حساب خریدار', 'field': 'buyer_account'},
             {'id': 'factor_status', 'name': 'وضعیت فاکتور', 'field': 'factor_status'},
         ]
 
@@ -640,6 +652,7 @@ def purchase_list(request):
             {'id': 'delivery_address', 'name':'آدرس تحویل', 'field': 'delivery_address'},
             {'id': 'delivery_postal_code', 'name':'کد پستی تحویل', 'field': 'delivery_postal_code'},
             {'id': 'vehicle_type', 'name':'نوع خودرو حمل', 'field': 'vehicle_type'},
+            {'id': 'buyer_account', 'name': 'حساب خریدار', 'field': 'buyer_account'},
             {'id': 'factor_status', 'name': 'وضعیت فاکتور', 'field': 'factor_status'},
         ]
 
@@ -1022,6 +1035,7 @@ def _export_regular_excel(purchase_ids, selected_columns):
         'delivery_address': ('آدرس تحویل', lambda p: p.delivery_address or "-"),
         'delivery_postal_code': ('کد پستی تحویل', lambda p: p.delivery_postal_code or "-"),
         'vehicle_type': ('نوع خودرو حمل', lambda p: p.vehicle_type or "-"),
+        'buyer_account': ('حساب خریدار', lambda p: p.buyer_account or "-"),
         'country': ('کشور محصول', lambda p: p.cargo.get_country_display() or "-"),
     }
     

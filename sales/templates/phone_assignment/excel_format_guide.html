@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}راهنمای فرمت فایل اکسل{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/phone_assignment.css' %}">
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h4 class="page-heading">راهنمای فرمت فایل اکسل برای تخصیص شماره تلفن</h4>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        <i class="bi bi-file-earmark-excel me-2"></i>فرمت فایل اکسل
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle me-2"></i>نکات مهم:</h6>
+                        <ul class="mb-0">
+                            <li>ستون <strong>شماره تلفن</strong> اجباری است و باید در ستون اول قرار گیرد.</li>
+                            <li>سایر ستون‌ها اختیاری هستند و می‌توانید آن‌ها را حذف کنید.</li>
+                            <li>عنوان ستون‌ها می‌تواند به فارسی یا انگلیسی باشد.</li>
+                            <li>سیستم به صورت خودکار ستون‌ها را شناسایی می‌کند.</li>
+                        </ul>
+                    </div>
+                    
+                    <h6>ستون‌های پیشنهادی:</h6>
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>شماره ستون</th>
+                                    <th>عنوان ستون (فارسی)</th>
+                                    <th>عنوان ستون (انگلیسی)</th>
+                                    <th>توضیحات</th>
+                                    <th>اجباری</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1</td>
+                                    <td>شماره تلفن</td>
+                                    <td>Phone Number</td>
+                                    <td>شماره تلفن 11 رقمی (09123456789)</td>
+                                    <td><span class="badge bg-success">بله</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2</td>
+                                    <td>نام مشتری احتمالی</td>
+                                    <td>Customer Name</td>
+                                    <td>نام احتمالی مشتری</td>
+                                    <td><span class="badge bg-secondary">خیر</span></td>
+                                </tr>
+                                <tr>
+                                    <td>3</td>
+                                    <td>زیر مجموعه</td>
+                                    <td>Sub Branch</td>
+                                    <td>نام زیر مجموعه یا شعبه</td>
+                                    <td><span class="badge bg-secondary">خیر</span></td>
+                                </tr>
+                                <tr>
+                                    <td>4</td>
+                                    <td>شماره زیر مجموعه</td>
+                                    <td>Sub Branch Phone</td>
+                                    <td>شماره تماس زیر مجموعه</td>
+                                    <td><span class="badge bg-secondary">خیر</span></td>
+                                </tr>
+                                <tr>
+                                    <td>5</td>
+                                    <td>شهر</td>
+                                    <td>City</td>
+                                    <td>شهر محل سکونت</td>
+                                    <td><span class="badge bg-secondary">خیر</span></td>
+                                </tr>
+                                <tr>
+                                    <td>6</td>
+                                    <td>نوع کاربری</td>
+                                    <td>User Type</td>
+                                    <td>نوع کاربر (شخصی، شرکتی، سازمانی)</td>
+                                    <td><span class="badge bg-secondary">خیر</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <h6 class="mt-4">نمونه فایل اکسل:</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>شماره تلفن</th>
+                                    <th>نام مشتری احتمالی</th>
+                                    <th>زیر مجموعه</th>
+                                    <th>شماره زیر مجموعه</th>
+                                    <th>شهر</th>
+                                    <th>نوع کاربری</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>09123456789</td>
+                                    <td>علی احمدی</td>
+                                    <td>شعبه مرکزی</td>
+                                    <td>02112345678</td>
+                                    <td>تهران</td>
+                                    <td>شخصی</td>
+                                </tr>
+                                <tr>
+                                    <td>09387654321</td>
+                                    <td>شرکت فناوری پیشرو</td>
+                                    <td>شعبه شمال</td>
+                                    <td>02187654321</td>
+                                    <td>تهران</td>
+                                    <td>شرکتی</td>
+                                </tr>
+                                <tr>
+                                    <td>09111111111</td>
+                                    <td>فاطمه محمدی</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td>اصفهان</td>
+                                    <td>شخصی</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="alert alert-warning mt-3">
+                        <h6><i class="bi bi-exclamation-triangle me-2"></i>نکات مهم:</h6>
+                        <ul class="mb-0">
+                            <li>شماره‌های تلفن می‌توانند با فرمت‌های مختلف وارد شوند (09123456789، 9123456789، 09123456789-)</li>
+                            <li>سیستم به صورت خودکار شماره‌ها را تمیز و استاندارد می‌کند</li>
+                            <li>شماره‌های تکراری یا شماره‌هایی که قبلاً به مشتری تبدیل شده‌اند، اضافه نخواهند شد</li>
+                            <li>ستون‌های خالی مشکلی ایجاد نمی‌کنند</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'admin_import_phone_numbers' %}" class="btn btn-primary">
+                        <i class="bi bi-arrow-left me-2"></i>بازگشت به صفحه تخصیص
+                    </a>
+                    <a href="{% url 'admin_phone_assignment_list' %}" class="btn btn-secondary ms-2">
+                        <i class="bi bi-list me-2"></i>مشاهده لیست
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -91,8 +91,8 @@ def can_api_update_state(current_state, new_state):
     Returns:
         bool: True if API can make this change, False otherwise
     """
-    # States that are only managed by operators (not API)
-    operator_only_states = {
+    # States that API cannot set (target states that are operator-only)
+    api_cannot_set_states = {
         'ADDRESS_SENT',
         'WAITING_FOR_BARNAMEH',
         'PAY_KASRI',
@@ -103,15 +103,22 @@ def can_api_update_state(current_state, new_state):
         'ARCHIVED'
     }
     
-    # If current state is operator-only, API cannot change it
-    if current_state in operator_only_states:
+    # States that API absolutely cannot change FROM (completely locked)
+    completely_locked_states = {
+        'CANCELED',
+        'ARCHIVED'
+    }
+    
+    # If current state is completely locked, API cannot change it at all
+    if current_state in completely_locked_states:
         return False
     
-    # If new state is operator-only, API cannot set it
-    if new_state in operator_only_states:
+    # If new state is something API cannot set, block it
+    if new_state in api_cannot_set_states:
         return False
     
-    # API can only make progressive changes
+    # API can make progressive changes from any other state
+    # This allows API to progress from operator states like ADDRESS_SENT to API states like PURCHASE_CLOSED
     return is_state_progression(current_state, new_state)
 
 
@@ -176,27 +183,39 @@ def create_state_change_record(purchase, previous_state, new_state, notes="تغ�
         notes (str): Additional notes for the state change
     """
     try:
-        # Check if a state change record already exists for this transition
+        # اگر وضعیت قبلی و جدید یکسان هستند، رکورد ایجاد نکن
+        if previous_state == new_state:
+            logger.debug(f"🔄 وضعیت خرید {purchase.purchase_number} تغییری نداشته: {new_state}")
+            return
+        
+        # Check if a state change record already exists for this exact transition in the last hour
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        one_hour_ago = timezone.now() - timedelta(hours=1)
         existing_record = PurchaseStateChange.objects.filter(
             purchase=purchase,
+            previous_state=previous_state,
             new_state=new_state,
-            sms_sent=True
+            changed_at__gte=one_hour_ago
         ).exists()
         
         if not existing_record:
-            PurchaseStateChange.objects.create(
+            state_change = PurchaseStateChange.objects.create(
                 purchase=purchase,
                 previous_state=previous_state,
                 new_state=new_state,
                 sms_sent=False,  # سیگنال خودش این رو True می‌کنه
                 notes=notes
             )
-            logger.info(f"✅ رکورد تغییر وضعیت برای خرید {purchase.purchase_number} ایجاد شد: {previous_state} → {new_state}")
+            logger.info(f"✅ رکورد تغییر وضعیت برای خرید {purchase.purchase_number} ایجاد شد: {previous_state} → {new_state} (ID: {state_change.id})")
         else:
-            logger.info(f"ℹ️ رکورد تغییر وضعیت برای خرید {purchase.purchase_number} قبلاً موجود است: {new_state}")
+            logger.info(f"ℹ️ رکورد تغییر وضعیت مشابه برای خرید {purchase.purchase_number} در ساعت گذشته موجود است: {previous_state} → {new_state}")
             
     except Exception as e:
         logger.error(f"❌ خطا در ایجاد رکورد تغییر وضعیت برای خرید {purchase.purchase_number}: {str(e)}")
+        import traceback
+        logger.error(f"جزئیات خطا: {traceback.format_exc()}")
 
 
 def create_or_get_customer(buyer_name, buyer_phone, buyer_address, province_code):
@@ -335,9 +354,9 @@ def create_or_get_product(product_name, goodtag, fee):
                     cottage=goodtag,
                     customer_price=fee,
                     company_price=fee,
-                    weight=1000000,  # Default value
+                    weight=100000000,  # Default value
                     type='bazaargah',
-                    country='australia'  # Default to Australia
+                    country='unknown'  # Default to Australia
                 )
                 created = True
                 logger.info(f"محصول جدید با کوتاژ {goodtag} و نوع {product_type} ایجاد شد")
@@ -358,9 +377,9 @@ def create_or_get_product(product_name, goodtag, fee):
                     product_type=product_type,
                     customer_price=fee,
                     company_price=fee,
-                    weight=1000000,  # Default value
+                    weight=100000000,  # Default value
                     type='bazaargah',
-                    country='australia'  # Default to Australia
+                    country='unknown'  # Default to Australia
                 )
                 created = True
         except Exception as e:
@@ -394,6 +413,8 @@ def update_purchase(purchase, purchase_data):
         fee = int(purchase_data.get('fee', 0) or 0)
         total_value = int(purchase_data.get('totalvalue', 0) or 0)  # مبلغ کل پرداختی
         receiver_phone = purchase_data.get('receiverphone')  # شماره تلفن تحویل
+        receiver_name = purchase_data.get('receivername')  # نام تحویل‌گیرنده
+        receiver_address = purchase_data.get('receiveraddress')  # آدرس تحویل‌گیرنده
         trace_code = purchase_data.get('tracecode')  # شماره پیگیری
         receiver_id = purchase_data.get('receiverid')  # کد ملی تحویل
         buyer_national_id = purchase_data.get('buyerid')  # شناسه ملی خریدار
@@ -403,8 +424,10 @@ def update_purchase(purchase, purchase_data):
         joft = int(purchase_data.get('joft', 0) or 0)
         tereili = int(purchase_data.get('tereili', 0) or 0)
         delpostalcode = purchase_data.get('delpostalcode')
-        buyerpostalcode = purchase_data.get('buyerpostalcode')
+        receiverpostalcode = purchase_data.get('receiverzip')  # کد پستی تحویل‌گیرنده
+        buyerpostalcode = purchase_data.get('buyerzip')  # کد پستی خریدار
         buyerpartidcode = purchase_data.get('buyerpartidcode')
+        buyer_account = purchase_data.get('buyeracc')  # حساب خریدار از BKI API
         
         # Update purchase fields - بدون به‌روزرسانی وزن‌ها
         purchase.buyer_name = buyer_name
@@ -420,6 +443,7 @@ def update_purchase(purchase, purchase_data):
         purchase.delivery_postal_code = delpostalcode
         purchase.buyer_postal_code = buyerpostalcode
         purchase.unique_delivery_id = buyerpartidcode
+        purchase.buyer_account = buyer_account
         
         if tak == 1 and joft == 0 and tereili == 0:
             purchase.vehicle_type = 'single'
@@ -483,12 +507,27 @@ def update_purchase(purchase, purchase_data):
         # Process allocation ID
         if takhsisid and takhsisid != '0':
             # Check if the allocation ID already exists
-            if not ShenaseTakhsis.objects.filter(purchase=purchase, code=takhsisid).exists():
-                # Create a new allocation ID with the correct weight
+            existing_takhsis = ShenaseTakhsis.objects.filter(purchase=purchase, code=takhsisid).first()
+            if existing_takhsis:
+                # Update existing allocation with delivery information
+                existing_takhsis.weight = qty
+                existing_takhsis.code_melli_tahvil = receiver_id
+                existing_takhsis.tahvil_phone_number = receiver_phone
+                existing_takhsis.delivery_receiver_name = receiver_name or buyer_name  # استفاده از نام تحویل‌گیرنده یا نام خریدار
+                existing_takhsis.delivery_address = receiver_address or buyer_address  # استفاده از آدرس تحویل‌گیرنده یا آدرس خریدار
+                existing_takhsis.delivery_postal_code = receiverpostalcode or delpostalcode
+                existing_takhsis.save()
+            else:
+                # Create a new allocation ID with the correct weight and delivery information
                 ShenaseTakhsis.objects.create(
                     purchase=purchase,
                     code=takhsisid,
-                    weight=qty  # Use the allocation weight (takhsisweight)
+                    weight=qty,  # Use the allocation weight (takhsisweight)
+                    code_melli_tahvil=receiver_id,
+                    tahvil_phone_number=receiver_phone,
+                    delivery_receiver_name=receiver_name or buyer_name,  # استفاده از نام تحویل‌گیرنده یا نام خریدار
+                    delivery_address=receiver_address or buyer_address,  # استفاده از آدرس تحویل‌گیرنده یا آدرس خریدار
+                    delivery_postal_code=receiverpostalcode or delpostalcode
                 )
         
         return purchase, None
@@ -531,6 +570,8 @@ def create_purchase(purchase_data):
         fee = int(purchase_data.get('fee', 0) or 0)
         total_value = int(purchase_data.get('totalvalue', 0) or 0)  # مبلغ کل پرداختی
         receiver_phone = purchase_data.get('receiverphone')  # شماره تلفن تحویل
+        receiver_name = purchase_data.get('receivername')  # نام تحویل‌گیرنده
+        receiver_address = purchase_data.get('receiveraddress')  # آدرس تحویل‌گیرنده
         trace_code = purchase_data.get('tracecode')  # شماره پیگیری
         receiver_id = purchase_data.get('receiverid')  # کد ملی تحویل
         buyer_national_id = purchase_data.get('buyerid')  # شناسه ملی خریدار
@@ -540,8 +581,10 @@ def create_purchase(purchase_data):
         joft = int(purchase_data.get('joft', 0) or 0)
         tereili = int(purchase_data.get('tereili', 0) or 0)
         delpostalcode = purchase_data.get('delpostalcode')
-        buyerpostalcode = purchase_data.get('buyerpostalcode')
+        receiverpostalcode = purchase_data.get('receiverzip')  # کد پستی تحویل‌گیرنده
+        buyerpostalcode = purchase_data.get('buyerzip')  # کد پستی خریدار
         buyerpartidcode = purchase_data.get('buyerpartidcode')
+        buyer_account = purchase_data.get('buyeracc')  # حساب خریدار از BKI API
         
         # Calculate weight difference
         weight_diff = 0
@@ -632,7 +675,10 @@ def create_purchase(purchase_data):
         except Exception as e:
             logger.error(f"خطا در پیدا کردن کارشناس فروش مدیریت: {str(e)}")
 
-        # تنظیم پارامترهای پایه برای ایجاد خرید - بدون تنظیم وزن‌ها
+        # تنظیم پارامترهای پایه برای ایجاد خرید
+        # اگر تخصیص وجود دارد (qty > 0) از qty استفاده کن، وگرنه از totalweight
+        initial_order_weight = qty if qty > 0 else total_weight
+        
         purchase_params = {
             'purchase_number': purchase_number,
             'customer': customer,
@@ -641,7 +687,7 @@ def create_purchase(purchase_data):
             'buyer_name': buyer_name,
             'bazaargah_phone_number': buyer_phone,
             'address': buyer_address,
-            'order_weight': 0,  # Will be updated in process_grouped_purchase_data
+            'order_weight': initial_order_weight,  # از totalweight استفاده کن اگر تخصیص وجود ندارد
             'delivered_weight': 0,  # Will be updated in process_grouped_purchase_data
             'customer_price': fee,
             'payment_method': payment_type,
@@ -662,6 +708,7 @@ def create_purchase(purchase_data):
             'delivery_postal_code': delpostalcode,
             'buyer_postal_code': buyerpostalcode,
             'unique_delivery_id': buyerpartidcode,
+            'buyer_account': buyer_account,
         }
         
         # تبدیل تاریخ جلالی به فرمت مناسب
@@ -693,7 +740,12 @@ def create_purchase(purchase_data):
             ShenaseTakhsis.objects.create(
                 purchase=purchase,
                 code=takhsisid,
-                weight=qty  # Use the allocation weight (takhsisweight)
+                weight=qty,  # Use the allocation weight (takhsisweight)
+                code_melli_tahvil=receiver_id,
+                tahvil_phone_number=receiver_phone,
+                delivery_receiver_name=buyer_name,  # استفاده از نام خریدار به عنوان نام تحویل‌گیرنده
+                delivery_address=buyer_address,  # استفاده از آدرس خریدار به عنوان آدرس تحویل
+                delivery_postal_code=delpostalcode
             )
         
         return purchase, None
@@ -845,7 +897,15 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
             return None, False, error
         
         # Update with group-level calculated values
-        purchase.order_weight = total_order_weight
+        # اگر مجموع وزن تخصیص صفر است، وزن سفارش را از totalweight بگیر
+        if total_order_weight > 0:
+            purchase.order_weight = total_order_weight
+        else:
+            # اگر تخصیص وجود ندارد، از totalweight استفاده کن
+            totalweight = int(first_entry.get('totalweight', 0) or 0)
+            if totalweight >= 0:
+                purchase.order_weight = totalweight
+        
         purchase.delivered_weight = total_delivered_weight
         
         # Recalculate weight difference
@@ -895,8 +955,10 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
                 create_state_change_record(purchase, previous_state, suggested_state)
             else:
                 reason = ""
-                if purchase.state in {'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'PAY_KASRI', 'RECIEIVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED', 'ARCHIVED'}:
-                    reason = "(وضعیت فعلی فقط توسط اپراتور قابل تغییر است)"
+                if purchase.state in {'CANCELED', 'ARCHIVED'}:
+                    reason = "(وضعیت فعلی قفل شده و قابل تغییر نیست)"
+                elif suggested_state in {'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'PAY_KASRI', 'RECIEIVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED', 'ARCHIVED'}:
+                    reason = "(وضعیت پیشنهادی فقط توسط اپراتور قابل تنظیم است)"
                 elif not is_state_progression(purchase.state, suggested_state):
                     reason = "(تغییر پیشرفت محسوب نمی‌شود)"
                 log_state_change_attempt(purchase_number, purchase.state, suggested_state, False, reason)
@@ -911,14 +973,39 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
             takhsisid = entry.get('allocationid')
             takhsis_weight = int(entry.get('qty', 0) or 0)
             
+            # Extract delivery information for this entry
+            entry_buyer_name = entry.get('buyername')
+            entry_buyer_address = entry.get('buyeraddress')
+            entry_receiver_name = entry.get('receivername')
+            entry_receiver_address = entry.get('receiveraddress')
+            entry_receiver_phone = entry.get('receiverphone')
+            entry_receiver_id = entry.get('receiverid')
+            entry_delpostalcode = entry.get('delpostalcode')
+            entry_receiverpostalcode = entry.get('receiverzip')
+            
             if takhsisid and takhsisid != '0':
                 # Check if the allocation ID already exists
-                if not ShenaseTakhsis.objects.filter(purchase=purchase, code=takhsisid).exists():
-                    # Create a new allocation ID
+                existing_takhsis = ShenaseTakhsis.objects.filter(purchase=purchase, code=takhsisid).first()
+                if existing_takhsis:
+                    # Update existing allocation with delivery information
+                    existing_takhsis.weight = takhsis_weight
+                    existing_takhsis.code_melli_tahvil = entry_receiver_id
+                    existing_takhsis.tahvil_phone_number = entry_receiver_phone
+                    existing_takhsis.delivery_receiver_name = entry_receiver_name or entry_buyer_name
+                    existing_takhsis.delivery_address = entry_receiver_address or entry_buyer_address
+                    existing_takhsis.delivery_postal_code = entry_receiverpostalcode or entry_delpostalcode
+                    existing_takhsis.save()
+                else:
+                    # Create a new allocation ID with delivery information
                     ShenaseTakhsis.objects.create(
                         purchase=purchase,
                         code=takhsisid,
-                        weight=takhsis_weight
+                        weight=takhsis_weight,
+                        code_melli_tahvil=entry_receiver_id,
+                        tahvil_phone_number=entry_receiver_phone,
+                        delivery_receiver_name=entry_receiver_name or entry_buyer_name,
+                        delivery_address=entry_receiver_address or entry_buyer_address,
+                        delivery_postal_code=entry_receiverpostalcode or entry_delpostalcode
                     )
         
         return purchase, False, None
@@ -933,7 +1020,15 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
             return None, False, error
         
         # Update with group-level calculated values
-        purchase.order_weight = total_order_weight
+        # اگر مجموع وزن تخصیص صفر است، وزن سفارش را از totalweight بگیر
+        if total_order_weight > 0:
+            purchase.order_weight = total_order_weight
+        else:
+            # اگر تخصیص وجود ندارد، از totalweight استفاده کن
+            totalweight = int(first_entry.get('totalweight', 0) or 0)
+            if totalweight > 0:
+                purchase.order_weight = totalweight
+        
         purchase.delivered_weight = total_delivered_weight
 
         # Check if the purchase should be marked as closed based on the totalweight
@@ -956,8 +1051,10 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
                 create_state_change_record(purchase, previous_state, suggested_state)
             else:
                 reason = ""
-                if purchase.state in {'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'PAY_KASRI', 'RECIEIVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED', 'ARCHIVED'}:
-                    reason = "(وضعیت فعلی فقط توسط اپراتور قابل تغییر است)"
+                if purchase.state in {'CANCELED', 'ARCHIVED'}:
+                    reason = "(وضعیت فعلی قفل شده و قابل تغییر نیست)"
+                elif suggested_state in {'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH', 'PAY_KASRI', 'RECIEIVE_SARAK', 'FULLY_SETTLED', 'INVOICE_ISSUED', 'CANCELED', 'ARCHIVED'}:
+                    reason = "(وضعیت پیشنهادی فقط توسط اپراتور قابل تنظیم است)"
                 elif not is_state_progression(purchase.state, suggested_state):
                     reason = "(تغییر پیشرفت محسوب نمی‌شود)"
                 log_state_change_attempt(purchase_number, purchase.state, suggested_state, False, reason)
@@ -970,14 +1067,39 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
             takhsisid = entry.get('allocationid')
             takhsis_weight = int(entry.get('qty', 0) or 0)
             
+            # Extract delivery information for this entry
+            entry_buyer_name = entry.get('buyername')
+            entry_buyer_address = entry.get('buyeraddress')
+            entry_receiver_name = entry.get('receivername')
+            entry_receiver_address = entry.get('receiveraddress')
+            entry_receiver_phone = entry.get('receiverphone')
+            entry_receiver_id = entry.get('receiverid')
+            entry_delpostalcode = entry.get('delpostalcode')
+            entry_receiverpostalcode = entry.get('receiverzip')
+            
             if takhsisid and takhsisid != '0':
                 # Check if the allocation ID already exists
-                if not ShenaseTakhsis.objects.filter(purchase=purchase, code=takhsisid).exists():
-                    # Create a new allocation ID
+                existing_takhsis = ShenaseTakhsis.objects.filter(purchase=purchase, code=takhsisid).first()
+                if existing_takhsis:
+                    # Update existing allocation with delivery information
+                    existing_takhsis.weight = takhsis_weight
+                    existing_takhsis.code_melli_tahvil = entry_receiver_id
+                    existing_takhsis.tahvil_phone_number = entry_receiver_phone
+                    existing_takhsis.delivery_receiver_name = entry_receiver_name or entry_buyer_name
+                    existing_takhsis.delivery_address = entry_receiver_address or entry_buyer_address
+                    existing_takhsis.delivery_postal_code = entry_receiverpostalcode or entry_delpostalcode
+                    existing_takhsis.save()
+                else:
+                    # Create a new allocation ID with delivery information
                     ShenaseTakhsis.objects.create(
                         purchase=purchase,
                         code=takhsisid,
-                        weight=takhsis_weight
+                        weight=takhsis_weight,
+                        code_melli_tahvil=entry_receiver_id,
+                        tahvil_phone_number=entry_receiver_phone,
+                        delivery_receiver_name=entry_receiver_name or entry_buyer_name,
+                        delivery_address=entry_receiver_address or entry_buyer_address,
+                        delivery_postal_code=entry_receiverpostalcode or entry_delpostalcode
                     )
         
         return purchase, True, None

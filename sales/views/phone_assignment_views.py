@@ -39,7 +39,7 @@ def admin_import_phone_numbers(request):
                     sales_agent = get_object_or_404(SalesAgent, id=sales_agent_id)
                     
                     # استخراج شماره‌ها از متن
-                    phone_numbers = []
+                    phone_data = []
                     for line in phone_numbers_text.strip().split('\n'):
                         number = ''.join(c for c in line.strip() if c.isdigit())
                         if number:
@@ -48,38 +48,50 @@ def admin_import_phone_numbers(request):
                                 number = number[1:]
                             # اطمینان از اینکه شماره با 9 شروع می‌شود و 10 رقم است
                             if number.startswith('9') and len(number) == 10:
-                                phone_numbers.append(number)
+                                phone_data.append({
+                                    'phone_number': number,
+                                    'customer_name': '',
+                                    'sub_branch': '',
+                                    'sub_branch_phone': '',
+                                    'city': '',
+                                    'user_type': ''
+                                })
                     
-                    if not phone_numbers:
+                    if not phone_data:
                         return JsonResponse({'success': False, 'error': 'هیچ شماره معتبری یافت نشد'})
                     
                     # بررسی تکراری نبودن شماره‌ها
                     existing_numbers = set(PhoneAssignment.objects.filter(
-                        phone_number__in=phone_numbers,
+                        phone_number__in=[item['phone_number'] for item in phone_data],
                         status='pending'
                     ).values_list('phone_number', flat=True))
                     
                     # بررسی مشتری بودن شماره‌ها
                     customer_numbers = set()
-                    for number in phone_numbers:
-                        if Customer.get_customer_by_phone(number):
-                            customer_numbers.add(number)
+                    for item in phone_data:
+                        if Customer.get_customer_by_phone(item['phone_number']):
+                            customer_numbers.add(item['phone_number'])
                     
                     # تخصیص شماره‌های غیرتکراری و غیرمشتری
                     new_count = 0
-                    for number in phone_numbers:
-                        if number not in existing_numbers and number not in customer_numbers:
+                    for item in phone_data:
+                        if item['phone_number'] not in existing_numbers and item['phone_number'] not in customer_numbers:
                             PhoneAssignment.objects.create(
-                                phone_number=number,
+                                phone_number=item['phone_number'],
                                 sales_agent=sales_agent,
-                                status='pending'
+                                status='pending',
+                                customer_name=item['customer_name'],
+                                sub_branch=item['sub_branch'],
+                                sub_branch_phone=item['sub_branch_phone'],
+                                city=item['city'],
+                                user_type=item['user_type']
                             )
                             new_count += 1
                     
                     return JsonResponse({
                         'success': True, 
                         'message': f"{new_count} شماره جدید به {sales_agent.name} تخصیص داده شد.",
-                        'total': len(phone_numbers),
+                        'total': len(phone_data),
                         'new': new_count,
                         'existing': len(existing_numbers),
                         'customers': len(customer_numbers)
@@ -95,32 +107,44 @@ def admin_import_phone_numbers(request):
                 try:
                     with transaction.atomic():
                         sales_agent = form.cleaned_data['sales_agent']
-                        phone_numbers = form.extract_phone_numbers()
+                        phone_data = form.extract_phone_numbers()
                         
-                        if not phone_numbers:
+                        if not phone_data:
                             messages.error(request, "هیچ شماره معتبری در فایل یا متن ورودی یافت نشد.")
+                            return redirect('admin_import_phone_numbers')
+
+                        # تمیز کردن داده‌ها
+                        cleaned_phone_data = form.clean_phone_data(phone_data)
+                        
+                        if not cleaned_phone_data:
+                            messages.error(request, "هیچ شماره معتبری پس از تمیز کردن یافت نشد.")
                             return redirect('admin_import_phone_numbers')
 
                         # بررسی تکراری نبودن شماره‌ها
                         existing_numbers = set(PhoneAssignment.objects.filter(
-                            phone_number__in=phone_numbers,
+                            phone_number__in=[item['phone_number'] for item in cleaned_phone_data],
                             status='pending'
                         ).values_list('phone_number', flat=True))
                         
                         # بررسی مشتری بودن شماره‌ها
                         customer_numbers = set()
-                        for number in phone_numbers:
-                            if Customer.get_customer_by_phone(number):
-                                customer_numbers.add(number)
+                        for item in cleaned_phone_data:
+                            if Customer.get_customer_by_phone(item['phone_number']):
+                                customer_numbers.add(item['phone_number'])
                         
                         # تخصیص شماره‌های غیرتکراری و غیرمشتری
                         new_count = 0
-                        for number in phone_numbers:
-                            if number not in existing_numbers and number not in customer_numbers:
+                        for item in cleaned_phone_data:
+                            if item['phone_number'] not in existing_numbers and item['phone_number'] not in customer_numbers:
                                 PhoneAssignment.objects.create(
-                                    phone_number=number,
+                                    phone_number=item['phone_number'],
                                     sales_agent=sales_agent,
-                                    status='pending'
+                                    status='pending',
+                                    customer_name=item['customer_name'],
+                                    sub_branch=item['sub_branch'],
+                                    sub_branch_phone=item['sub_branch_phone'],
+                                    city=item['city'],
+                                    user_type=item['user_type']
                                 )
                                 new_count += 1
                         
@@ -242,10 +266,13 @@ def archive_phone_assignment(request, pk):
     
     # اگر درخواست AJAX بود، JSON برگردان
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return JsonResponse({
+        response = JsonResponse({
             'success': True, 
             'message': f'شماره {phone_assignment.phone_number} بایگانی شد.'
         })
+        # اضافه کردن هدر برای حفظ موقعیت اسکرول
+        response['X-Scroll-Position'] = 'preserved'
+        return response
     
     # برای درخواست‌های عادی
     messages.success(request, f"شماره {phone_assignment.phone_number} بایگانی شد.")
@@ -318,4 +345,113 @@ def update_phone_notes(request, pk):
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({'success': False, 'error': 'درخواست نامعتبر.'})
     messages.error(request, "درخواست نامعتبر.")
-    return redirect('home') 
+    return redirect('home')
+
+@role_required('admin')
+@login_required
+@user_passes_test(is_admin)
+def delete_phone_assignment(request, pk):
+    """حذف کامل شماره تلفن تخصیص داده شده (فقط ادمین)"""
+    phone_assignment = get_object_or_404(PhoneAssignment, id=pk)
+    
+    if request.method == 'POST':
+        try:
+            phone_number = phone_assignment.phone_number
+            phone_assignment.delete()
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True, 
+                    'message': f'شماره {phone_number} با موفقیت حذف شد.'
+                })
+            
+            messages.success(request, f"شماره {phone_number} با موفقیت حذف شد.")
+            return redirect('admin_phone_assignment_list')
+            
+        except Exception as e:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False, 
+                    'error': f'خطا در حذف شماره: {str(e)}'
+                })
+            
+            messages.error(request, f"خطا در حذف شماره: {str(e)}")
+            return redirect('admin_phone_assignment_list')
+    
+    # اگر درخواست GET بود، صفحه تأیید نمایش داده می‌شود
+    context = {
+        'phone_assignment': phone_assignment,
+    }
+    return render(request, 'phone_assignment/delete_confirm.html', context) 
+
+@role_required('admin')
+@login_required
+@user_passes_test(is_admin)
+def bulk_delete_phone_assignments(request):
+    """حذف چندتایی شماره‌های تلفن تخصیص داده شده (فقط ادمین)"""
+    if request.method == 'POST':
+        try:
+            assignment_ids = request.POST.getlist('selected_assignments')
+            
+            if not assignment_ids:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'success': False, 
+                        'error': 'هیچ شماره‌ای انتخاب نشده است.'
+                    })
+                messages.error(request, "هیچ شماره‌ای انتخاب نشده است.")
+                return redirect('admin_phone_assignment_list')
+            
+            # تبدیل به عدد
+            assignment_ids = [int(id) for id in assignment_ids if id.isdigit()]
+            
+            if not assignment_ids:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'success': False, 
+                        'error': 'شناسه‌های نامعتبر.'
+                    })
+                messages.error(request, "شناسه‌های نامعتبر.")
+                return redirect('admin_phone_assignment_list')
+            
+            # حذف شماره‌ها
+            deleted_count = 0
+            phone_numbers = []
+            
+            with transaction.atomic():
+                assignments = PhoneAssignment.objects.filter(id__in=assignment_ids)
+                for assignment in assignments:
+                    phone_numbers.append(assignment.phone_number)
+                    assignment.delete()
+                    deleted_count += 1
+            
+            success_message = f"{deleted_count} شماره تلفن با موفقیت حذف شد."
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True, 
+                    'message': success_message,
+                    'deleted_count': deleted_count
+                })
+            
+            messages.success(request, success_message)
+            return redirect('admin_phone_assignment_list')
+            
+        except Exception as e:
+            error_message = f"خطا در حذف شماره‌ها: {str(e)}"
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False, 
+                    'error': error_message
+                })
+            
+            messages.error(request, error_message)
+            return redirect('admin_phone_assignment_list')
+    
+    # درخواست‌های GET پذیرفته نمی‌شوند
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'success': False, 'error': 'درخواست نامعتبر.'})
+    
+    messages.error(request, "درخواست نامعتبر.")
+    return redirect('admin_phone_assignment_list') 

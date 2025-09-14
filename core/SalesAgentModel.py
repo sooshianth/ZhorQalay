@@ -390,14 +390,23 @@ class PhoneAssignment(models.Model):
     ]
     
     phone_number = models.CharField(_("شماره تلفن"), max_length=20)
-    sales_agent = models.ForeignKey(SalesAgent, on_delete=models.CASCADE, 
-                                   related_name='assigned_phones',
-                                   verbose_name=_("کارشناس فروش"))
+    sales_agent = models.ForeignKey(
+        SalesAgent, 
+        on_delete=models.CASCADE, 
+        related_name='assigned_phones',
+        verbose_name=_("کارشناس فروش")
+    )
     status = models.CharField(_("وضعیت"), max_length=20, choices=STATUS_CHOICES, default='pending')
     notes = models.TextField(_("یادداشت"), blank=True, null=True)
     created_at = jmodels.jDateTimeField(_("تاریخ ایجاد"), auto_now_add=True)
     updated_at = jmodels.jDateTimeField(_("تاریخ بروزرسانی"), auto_now=True)
-    
+
+    # فیلدهای جدید طبق درخواست
+    customer_name = models.CharField(_("نام مشتری"), max_length=100, blank=True, null=True)
+    sub_branch = models.CharField(_("زیر مجموعه"), max_length=100, blank=True, null=True)
+    sub_branch_phone = models.CharField(_("شماره زیر مجموعه"), max_length=20, blank=True, null=True)
+    city = models.CharField(_("شهر"), max_length=50, blank=True, null=True)
+    user_type = models.CharField(_("نوع کاربری"), max_length=50, blank=True, null=True)
     class Meta:
         verbose_name = _("تخصیص شماره")
         verbose_name_plural = _("تخصیص شماره‌ها")
