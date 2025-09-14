@@ -1,3 +1,14 @@
+/**
+ * استایل‌های لیست خریدهای خارج از بازارگاه
+ * شامل responsive table و modal مدیریت ستون‌ها
+ */
+
+/* تنظیمات کلی صفحه */
+.container-fluid {
+    padding: 20px;
+    background-color: #f8f9fa;
+}
+
 .page-header {
     background: #064E3B;
     color: white;
@@ -21,45 +32,59 @@
     font-size: 1rem;
 }
 
-.stats-row {
-    background: white;
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 30px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+/* دکمه‌های مدیریت */
+.d-flex.gap-3 {
+    gap: 15px !important;
+}
+
+.btn-info {
+    background: #4299e1;
     border: none;
-}
-
-.stats-item {
-    text-align: center;
-    padding: 15px;
-    display: inline-block;
-    margin: 0 20px;
-}
-
-.stats-item .number {
-    font-size: 2.5rem;
-    font-weight: bold;
-    color: #064E3B;
-    margin-bottom: 10px;
-}
-
-.stats-item .label {
-    color: #6c757d;
-    font-size: 1.1rem;
+    color: white;
+    border-radius: 8px;
+    padding: 10px 16px;
     font-weight: 500;
+    transition: all 0.3s ease;
 }
 
+.btn-info:hover {
+    background: #3182ce;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+}
+
+.btn-info i {
+    margin-right: 6px;
+}
+
+/* جدول */
 .table-container {
     background: white;
     border-radius: 15px;
     padding: 25px;
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
     border: none;
+    overflow-x: auto;
+}
+
+.table-container h5 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.table-responsive {
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #dee2e6;
 }
 
 .table {
     margin-bottom: 0;
+    min-width: 1200px;
+    width: 100%;
 }
 
 .table thead th {
@@ -69,79 +94,176 @@
     font-weight: 600;
     padding: 15px 12px;
     font-size: 0.95rem;
+    text-align: center;
+    white-space: nowrap;
 }
 
 .table tbody tr {
     transition: all 0.3s ease;
+    border-bottom: 1px solid #e2e8f0;
 }
 
 .table tbody tr:hover {
-    background-color: #f8f9fa;
+    background-color: #f7fafc;
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.table tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.table tbody tr:nth-child(odd) {
+    background-color: white;
 }
 
 .table tbody td {
     padding: 15px 12px;
     vertical-align: middle;
-    border-top: 1px solid #dee2e6;
+    text-align: center;
+    border: none;
     font-size: 0.9rem;
-    height: 60px;
-}
-
-.status-cell {
-    text-align: center;
-    vertical-align: middle;
-}
-
-.badge {
-    font-size: 0.75rem;
-    padding: 6px 10px;
-    border-radius: 15px;
-    font-weight: 600;
-    line-height: 1.2;
-    display: inline-flex;
-    align-items: center;
+    color: #2d3748;
     white-space: nowrap;
-    min-height: 28px;
 }
 
-.badge i {
-    margin-left: 4px;
-    font-size: 0.7rem;
-}
-
-.status-cell .badge {
-    margin: 0 auto;
-    justify-content: center;
-    text-align: center;
+/* وضعیت‌ها */
+.badge {
+    font-size: 0.8rem;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-weight: 600;
 }
 
 .badge.bg-primary {
-    background: #064E3B !important;
+    background: #2d5016 !important;
 }
 
 .badge.bg-success {
-    background: #064E3B !important;
+    background: #38a169 !important;
 }
 
 .badge.bg-warning {
-    background: #f39c12 !important;
+    background: #ed8936 !important;
     color: white !important;
 }
 
-.badge.bg-danger {
-    background: #e74c3c !important;
+.badge.bg-info {
+    background: #4299e1 !important;
 }
 
-.badge.bg-info {
-    background: #3498db !important;
+.badge.bg-danger {
+    background: #f56565 !important;
 }
 
 .badge.bg-secondary {
     background: #6c757d !important;
 }
 
+/* دکمه جزییات */
+.btn-outline-primary {
+    border: 1px solid #064E3B;
+    color: #064E3B;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+    background: #064E3B;
+    border-color: #064E3B;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(6, 78, 59, 0.3);
+}
+
+/* Modal مدیریت ستون‌ها */
+.modal-content {
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.modal-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    padding: 15px 20px;
+}
+
+.modal-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    border: 1px solid #bee5eb;
+    border-radius: 6px;
+    color: #0c5460;
+}
+
+.section-header {
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.section-header h6 {
+    color: #495057;
+    font-weight: 600;
+}
+
+.column-checkbox {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 12px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.column-checkbox:hover {
+    background-color: #e9ecef;
+    border-color: #064E3B;
+}
+
+.column-checkbox input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+}
+
+.column-checkbox label {
+    margin: 0;
+    font-weight: 500;
+    color: #495057;
+    cursor: pointer;
+    flex: 1;
+}
+
+.modal-footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    padding: 15px 20px;
+}
+
+/* دکمه‌های modal */
+.btn-outline-primary,
+.btn-outline-secondary {
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: 500;
+}
+
+/* Pagination */
 .pagination {
     margin-top: 25px;
     justify-content: center;
@@ -172,6 +294,7 @@
     box-shadow: 0 4px 15px rgba(6, 78, 59, 0.4);
 }
 
+/* Empty state */
 .empty-state {
     text-align: center;
     padding: 60px 20px;
@@ -195,6 +318,13 @@
     opacity: 0.7;
 }
 
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .table {
+        min-width: 1000px;
+    }
+}
+
 @media (max-width: 768px) {
     .page-header h1 {
         font-size: 1.5rem;
@@ -204,17 +334,31 @@
         font-size: 0.9rem;
     }
     
-    .stats-item .number {
-        font-size: 2rem;
-    }
-    
     .table-container {
         padding: 15px;
+    }
+    
+    .table {
+        min-width: 800px;
     }
     
     .table thead th,
     .table tbody td {
         padding: 10px 8px;
         font-size: 0.85rem;
+    }
+    
+    .modal-body {
+        padding: 15px;
+    }
+    
+    .column-checkbox {
+        padding: 10px;
+    }
+}
+
+@media (max-width: 576px) {
+    .table {
+        min-width: 600px;
     }
 }

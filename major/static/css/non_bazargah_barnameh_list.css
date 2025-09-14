@@ -1,3 +1,14 @@
+/**
+ * استایل‌های لیست بارنامه‌های خارج از بازارگاه
+ * شامل responsive table و modal مدیریت ستون‌ها
+ */
+
+/* تنظیمات کلی صفحه */
+.container-fluid {
+    padding: 20px;
+    background-color: #f8f9fa;
+}
+
 .page-header {
     background: #064E3B;
     color: white;
@@ -21,36 +32,32 @@
     font-size: 1rem;
 }
 
-.stats-row {
-    background: white;
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 30px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+/* دکمه‌های مدیریت */
+.d-flex.gap-3 {
+    gap: 15px !important;
+}
+
+.btn-info {
+    background: #4299e1;
     border: none;
-    text-align: center;
-}
-
-.stats-item {
-    text-align: center;
-    padding: 15px;
-    display: inline-block;
-    margin: 0 20px;
-}
-
-.stats-item .number {
-    font-size: 2.5rem;
-    font-weight: bold;
-    color: #2d5016;
-    margin-bottom: 10px;
-}
-
-.stats-item .label {
-    color: #6c757d;
-    font-size: 1.1rem;
+    color: white;
+    border-radius: 8px;
+    padding: 10px 16px;
     font-weight: 500;
+    transition: all 0.3s ease;
 }
 
+.btn-info:hover {
+    background: #3182ce;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+}
+
+.btn-info i {
+    margin-right: 6px;
+}
+
+/* جدول */
 .table-container {
     background: white;
     border-radius: 15px;
@@ -58,6 +65,20 @@
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
     border: none;
     overflow-x: auto;
+}
+
+.table-container h5 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.table-responsive {
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #dee2e6;
 }
 
 .table {
@@ -106,26 +127,143 @@
     white-space: nowrap;
 }
 
-.badge {
-    font-size: 0.8rem;
-    padding: 8px 12px;
-    border-radius: 20px;
+/* دکمه‌های عملیات */
+.btn-group {
+    display: flex !important;
+    gap: 5px;
+    flex-wrap: nowrap;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.875rem;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.btn-info.btn-sm {
+    background: #17a2b8;
+    border-color: #17a2b8;
+}
+
+.btn-info.btn-sm:hover {
+    background: #138496;
+    border-color: #138496;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+}
+
+.btn-warning.btn-sm {
+    background: #ffc107;
+    border-color: #ffc107;
+    color: #212529;
+}
+
+.btn-warning.btn-sm:hover {
+    background: #e0a800;
+    border-color: #e0a800;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+}
+
+.btn-danger.btn-sm {
+    background: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-danger.btn-sm:hover {
+    background: #c82333;
+    border-color: #c82333;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+/* Modal مدیریت ستون‌ها */
+.modal-content {
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.modal-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    padding: 15px 20px;
+}
+
+.modal-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    border: 1px solid #bee5eb;
+    border-radius: 6px;
+    color: #0c5460;
+}
+
+.section-header {
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.section-header h6 {
+    color: #495057;
     font-weight: 600;
 }
 
-.badge.bg-primary {
-    background: #2d5016 !important;
+.column-checkbox {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 12px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.badge.bg-success {
-    background: #38a169 !important;
+.column-checkbox:hover {
+    background-color: #e9ecef;
+    border-color: #064E3B;
 }
 
-.badge.bg-warning {
-    background: #ed8936 !important;
-    color: white !important;
+.column-checkbox input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
 }
 
+.column-checkbox label {
+    margin: 0;
+    font-weight: 500;
+    color: #495057;
+    cursor: pointer;
+    flex: 1;
+}
+
+.modal-footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    padding: 15px 20px;
+}
+
+/* دکمه‌های modal */
+.btn-outline-primary,
+.btn-outline-secondary {
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: 500;
+}
+
+/* Pagination */
 .pagination {
     margin-top: 25px;
     justify-content: center;
@@ -156,6 +294,7 @@
     box-shadow: 0 4px 15px rgba(6, 78, 59, 0.4);
 }
 
+/* Empty state */
 .empty-state {
     text-align: center;
     padding: 60px 20px;
@@ -179,52 +318,6 @@
     opacity: 0.7;
 }
 
-.btn-group {
-    gap: 5px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: nowrap;
-    flex-direction: row;
-}
-
-.btn-sm {
-    padding: 6px 12px;
-    font-size: 0.875rem;
-    border-radius: 8px;
-    margin: 2px;
-}
-
-.btn-info {
-    background: #4299e1;
-    border: none;
-    color: white;
-}
-
-.btn-warning {
-    background: #ed8936;
-    border: none;
-    color: white;
-}
-
-.btn-danger {
-    background: #f56565;
-    border: none;
-    color: white;
-}
-
-.btn-primary {
-    background: #064E3B;
-    border: none;
-    color: white;
-}
-
-.btn-success {
-    background: #38a169;
-    border: none;
-    color: white;
-}
-
 /* Responsive Design */
 @media (max-width: 1200px) {
     .table {
@@ -241,10 +334,6 @@
         font-size: 0.9rem;
     }
     
-    .stats-item .number {
-        font-size: 2rem;
-    }
-    
     .table-container {
         padding: 15px;
     }
@@ -259,25 +348,16 @@
         font-size: 0.85rem;
     }
     
-    .btn-group {
-        flex-direction: row;
-        gap: 3px;
-        flex-wrap: nowrap;
+    .modal-body {
+        padding: 15px;
     }
     
-    .btn-sm {
-        flex: 1;
-        min-width: 35px;
-        margin: 1px;
+    .column-checkbox {
+        padding: 10px;
     }
 }
 
 @media (max-width: 576px) {
-    .stats-item {
-        display: block;
-        margin: 10px 0;
-    }
-    
     .table {
         min-width: 600px;
     }

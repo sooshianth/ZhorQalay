@@ -5,6 +5,8 @@
 {% block title %}لیست خریدهای خارج از بازارگاه{% endblock %}
 
 {% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 <link href="{% static 'css/non_bazargah_purchase_list.css' %}" rel="stylesheet">
 {% endblock %}
 
@@ -16,6 +18,15 @@
         <p>مدیریت و پیگیری خریدهای خارج از سیستم بازارگاه</p>
     </div>
 
+    <!-- دکمه‌های مدیریت -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex gap-3 flex-wrap">
+            <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#columnsModal">
+                <i class="fas fa-columns me-2"></i>مدیریت ستون‌ها
+            </button>
+        </div>
+    </div>
+
     <!-- جدول خریدها -->
     <div class="table-container">
         <h5 class="mb-4">
@@ -23,33 +34,45 @@
         </h5>
         
         {% if purchases %}
-            <div class="table-responsive">
-                <table class="table table-hover">
+            <div class="table-responsive" style="overflow-x: auto;">
+                <table class="table table-hover" id="purchasesTable">
                     <thead>
                         <tr>
-                            <th>شماره خرید</th>
-                            <th>تاریخ</th>
-                            <th>نماینده فروش</th>
-                            <th>وزن (کیلوگرم)</th>
-                            <th>وضعیت</th>
-                            <th>محصول</th>
-                            <th>واحد</th>
-                            <th>مشتری</th>
-                            <th>نام خریدار</th>
-                            <th>فی فروش (ریال)</th>
-                            <th>جزییات</th>
+                            <th data-column-id="purchase_number" data-column-type="text" style="min-width: 120px;">شماره خرید</th>
+                            <th data-column-id="created_at" data-column-type="text" style="min-width: 100px;">تاریخ</th>
+                            <th data-column-id="unique_sales_agent" data-column-type="text" style="min-width: 150px;">نماینده فروش</th>
+                            <th data-column-id="total_weight" data-column-type="number" style="min-width: 120px;">وزن (کیلوگرم)</th>
+                            <th data-column-id="state" data-column-type="text" style="min-width: 150px;">وضعیت</th>
+                            <th data-column-id="product" data-column-type="text" style="min-width: 150px;">محصول</th>
+                            <th data-column-id="unit" data-column-type="text" style="min-width: 100px;">واحد</th>
+                            <th data-column-id="customer" data-column-type="text" style="min-width: 150px;">مشتری</th>
+                            <th data-column-id="buyer_name" data-column-type="text" style="min-width: 120px;">نام خریدار</th>
+                            <th data-column-id="customer_price" data-column-type="number" style="min-width: 120px;">فی فروش (ریال)</th>
+                            <th data-column-id="quantity" data-column-type="number" style="min-width: 100px; display: none;">مقدار</th>
+                            <th data-column-id="bag_weight" data-column-type="number" style="min-width: 120px; display: none;">وزن کیسه</th>
+                            <th data-column-id="empty_weight" data-column-type="number" style="min-width: 120px; display: none;">وزن خالی</th>
+                            <th data-column-id="loaded_weight" data-column-type="number" style="min-width: 120px; display: none;">وزن پر</th>
+                            <th data-column-id="delivered_weight" data-column-type="number" style="min-width: 120px; display: none;">وزن تحویلی</th>
+                            <th data-column-id="weight_difference" data-column-type="number" style="min-width: 120px; display: none;">اختلاف وزن</th>
+                            <th data-column-id="amount_paid" data-column-type="number" style="min-width: 120px; display: none;">مبلغ پرداختی</th>
+                            <th data-column-id="payment_verified_by" data-column-type="text" style="min-width: 150px; display: none;">تایید شده توسط</th>
+                            <th data-column-id="payment_verified_at" data-column-type="text" style="min-width: 120px; display: none;">زمان تایید</th>
+                            <th data-column-id="warehouse_contact_person" data-column-type="text" style="min-width: 150px; display: none;">رابط انبار</th>
+                            <th data-column-id="warehouse_contact_phone" data-column-type="text" style="min-width: 120px; display: none;">تماس انبار</th>
+                            <th data-column-id="logistics_notes" data-column-type="text" style="min-width: 200px; display: none;">یادداشت لجستیک</th>
+                            <th data-column-id="actions" data-column-type="actions" style="min-width: 100px;">جزییات</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for purchase in purchases %}
                             <tr>
-                                <td>
+                                <td data-column="purchase_number">
                                     <strong>{{ purchase.purchase_number|default:"تعیین نشده" }}</strong>
                                 </td>
-                                <td>{{ purchase.created_at|date:"Y/m/d" }}</td>
-                                <td>{{ purchase.unique_sales_agent.name|default:"تعیین نشده" }}</td>
-                                <td>{{ purchase.total_weight|intcomma|default:"0" }}</td>
-                                <td class="status-cell">
+                                <td data-column="created_at">{{ purchase.created_at|date:"Y/m/d" }}</td>
+                                <td data-column="unique_sales_agent">{{ purchase.unique_sales_agent.name|default:"تعیین نشده" }}</td>
+                                <td data-column="total_weight">{{ purchase.total_weight|intcomma|default:"0" }}</td>
+                                <td data-column="state" class="status-cell">
                                     {% if purchase.state == 'initiated' %}
                                         <span class="badge bg-primary">
                                             <i class="fas fa-play-circle"></i> {{ purchase.get_state_display|default:purchase.state }}
@@ -112,12 +135,24 @@
                                         </span>
                                     {% endif %}
                                 </td>
-                                <td>{{ purchase.product.name|default:"تعیین نشده" }}</td>
-                                <td>{{ purchase.get_unit_display|default:purchase.unit }}</td>
-                                <td>{{ purchase.customer.name|default:"نامشخص" }}</td>
-                                <td>{{ purchase.buyer_name|default:"-" }}</td>
-                                <td>{{ purchase.customer_price|intcomma|default:"0" }}</td>
-                                <td>
+                                <td data-column="product">{{ purchase.product.name|default:"تعیین نشده" }}</td>
+                                <td data-column="unit">{{ purchase.get_unit_display|default:purchase.unit }}</td>
+                                <td data-column="customer">{{ purchase.customer.name|default:"نامشخص" }}</td>
+                                <td data-column="buyer_name">{{ purchase.buyer_name|default:"-" }}</td>
+                                <td data-column="customer_price">{{ purchase.customer_price|intcomma|default:"0" }}</td>
+                                <td data-column="quantity" style="display: none;">{{ purchase.quantity|default:"-" }}</td>
+                                <td data-column="bag_weight" style="display: none;">{{ purchase.bag_weight|default:"-" }}</td>
+                                <td data-column="empty_weight" style="display: none;">{{ purchase.empty_weight|default:"-" }}</td>
+                                <td data-column="loaded_weight" style="display: none;">{{ purchase.loaded_weight|default:"-" }}</td>
+                                <td data-column="delivered_weight" style="display: none;">{{ purchase.delivered_weight|default:"-" }}</td>
+                                <td data-column="weight_difference" style="display: none;">{{ purchase.weight_difference|default:"-" }}</td>
+                                <td data-column="amount_paid" style="display: none;">{{ purchase.amount_paid|intcomma|default:"0" }}</td>
+                                <td data-column="payment_verified_by" style="display: none;">{{ purchase.payment_verified_by.username|default:"-" }}</td>
+                                <td data-column="payment_verified_at" style="display: none;">{{ purchase.payment_verified_at|date:"Y/m/d H:i"|default:"-" }}</td>
+                                <td data-column="warehouse_contact_person" style="display: none;">{{ purchase.warehouse_contact_person|default:"-" }}</td>
+                                <td data-column="warehouse_contact_phone" style="display: none;">{{ purchase.warehouse_contact_phone|default:"-" }}</td>
+                                <td data-column="logistics_notes" style="display: none;">{{ purchase.logistics_notes|default:"-" }}</td>
+                                <td data-column="actions">
                                     <a href="{% url 'non_bazargah_purchase_CRUD' purchase.id %}" 
                                        class="btn btn-sm btn-outline-primary" 
                                        title="مشاهده و ویرایش جزییات خرید">
@@ -185,5 +220,334 @@
     </div>
 </div>
 
+    <!-- مدال مدیریت ستون‌ها -->
+    <div class="modal fade" id="columnsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content shadow">
+                <div class="modal-header bg-white border-bottom">
+                    <h5 class="modal-title fw-bold text-primary">
+                        <i class="fas fa-columns me-2"></i>مدیریت ستون‌های جدول خریدهای خارج از بازارگاه
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <div class="alert alert-info bg-info bg-opacity-10 border-0 mb-4 p-3">
+                        <p class="mb-0 py-1">
+                            <i class="fas fa-info-circle me-2"></i>
+                            ستون‌های مورد نظر خود را برای نمایش در جدول انتخاب کنید.
+                        </p>
+                    </div>
+                    
+                    <form id="columnsForm" class="px-3">
+                        {% csrf_token %}
+                        <div class="section-container pb-4">
+                            <div class="section-header d-flex justify-content-between align-items-center mb-4">
+                                <h6 class="mb-0 fw-bold text-primary fs-5">
+                                    <i class="fas fa-table me-2"></i>ستون‌های قابل انتخاب
+                                </h6>
+                                <div class="d-flex gap-3">
+                                    <button type="button" class="btn btn-sm btn-outline-primary px-3 py-2" id="selectAllColumns">
+                                        <i class="fas fa-check-square me-2"></i>انتخاب همه
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-2" id="deselectAllColumns">
+                                        <i class="fas fa-square me-2"></i>هیچکدام
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="section-body pt-2">
+                                <div class="row g-4">
+                                    <!-- ستون شماره خرید -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-purchase_number" name="columns[]" 
+                                                value="purchase_number" checked>
+                                            <label class="form-check-label" for="col-purchase_number">
+                                                شماره خرید
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون تاریخ -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-created_at" name="columns[]" 
+                                                value="created_at" checked>
+                                            <label class="form-check-label" for="col-created_at">
+                                                تاریخ
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون نماینده فروش -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-unique_sales_agent" name="columns[]" 
+                                                value="unique_sales_agent" checked>
+                                            <label class="form-check-label" for="col-unique_sales_agent">
+                                                نماینده فروش
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون وزن -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-total_weight" name="columns[]" 
+                                                value="total_weight" checked>
+                                            <label class="form-check-label" for="col-total_weight">
+                                                وزن (کیلوگرم)
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون وضعیت -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-state" name="columns[]" 
+                                                value="state" checked>
+                                            <label class="form-check-label" for="col-state">
+                                                وضعیت
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون محصول -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-product" name="columns[]" 
+                                                value="product" checked>
+                                            <label class="form-check-label" for="col-product">
+                                                محصول
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون واحد -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-unit" name="columns[]" 
+                                                value="unit" checked>
+                                            <label class="form-check-label" for="col-unit">
+                                                واحد
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون مشتری -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-customer" name="columns[]" 
+                                                value="customer" checked>
+                                            <label class="form-check-label" for="col-customer">
+                                                مشتری
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون نام خریدار -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-buyer_name" name="columns[]" 
+                                                value="buyer_name" checked>
+                                            <label class="form-check-label" for="col-buyer_name">
+                                                نام خریدار
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون فی فروش -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-customer_price" name="columns[]" 
+                                                value="customer_price" checked>
+                                            <label class="form-check-label" for="col-customer_price">
+                                                فی فروش (ریال)
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون مقدار -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-quantity" name="columns[]" 
+                                                value="quantity">
+                                            <label class="form-check-label" for="col-quantity">
+                                                مقدار
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون وزن کیسه -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-bag_weight" name="columns[]" 
+                                                value="bag_weight">
+                                            <label class="form-check-label" for="col-bag_weight">
+                                                وزن کیسه
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون وزن خالی -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-empty_weight" name="columns[]" 
+                                                value="empty_weight">
+                                            <label class="form-check-label" for="col-empty_weight">
+                                                وزن خالی
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون وزن پر -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-loaded_weight" name="columns[]" 
+                                                value="loaded_weight">
+                                            <label class="form-check-label" for="col-loaded_weight">
+                                                وزن پر
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون وزن تحویلی -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-delivered_weight" name="columns[]" 
+                                                value="delivered_weight">
+                                            <label class="form-check-label" for="col-delivered_weight">
+                                                وزن تحویلی
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون اختلاف وزن -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-weight_difference" name="columns[]" 
+                                                value="weight_difference">
+                                            <label class="form-check-label" for="col-weight_difference">
+                                                اختلاف وزن
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون مبلغ پرداختی -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-amount_paid" name="columns[]" 
+                                                value="amount_paid">
+                                            <label class="form-check-label" for="col-amount_paid">
+                                                مبلغ پرداختی
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون تایید شده توسط -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-payment_verified_by" name="columns[]" 
+                                                value="payment_verified_by">
+                                            <label class="form-check-label" for="col-payment_verified_by">
+                                                تایید شده توسط
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون زمان تایید -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-payment_verified_at" name="columns[]" 
+                                                value="payment_verified_at">
+                                            <label class="form-check-label" for="col-payment_verified_at">
+                                                زمان تایید
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون رابط انبار -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-warehouse_contact_person" name="columns[]" 
+                                                value="warehouse_contact_person">
+                                            <label class="form-check-label" for="col-warehouse_contact_person">
+                                                رابط انبار
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون تماس انبار -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-warehouse_contact_phone" name="columns[]" 
+                                                value="warehouse_contact_phone">
+                                            <label class="form-check-label" for="col-warehouse_contact_phone">
+                                                تماس انبار
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون یادداشت لجستیک -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-logistics_notes" name="columns[]" 
+                                                value="logistics_notes">
+                                            <label class="form-check-label" for="col-logistics_notes">
+                                                یادداشت لجستیک
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون جزییات -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-actions" name="columns[]" 
+                                                value="actions" checked>
+                                            <label class="form-check-label" for="col-actions">
+                                                جزییات
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-light py-3">
+                    <button type="button" class="btn btn-outline-secondary px-4 py-2" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>انصراف
+                    </button>
+                    <button type="button" class="btn btn-primary px-4 py-2" id="saveColumnsBtn">
+                        <i class="fas fa-save me-2"></i>ذخیره تغییرات
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{% static 'js/non_bazargah_purchase_list.js' %}"></script>
 {% endblock %}
