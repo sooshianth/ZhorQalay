@@ -106,9 +106,10 @@ def create_automatic_call(request):
             message_template = request.POST.get('message_template', '')
             asterisk_api_url = request.POST.get('asterisk_api_url', 'http://192.168.100.128:5000/api/start-dialer')
             asterisk_api_key = request.POST.get('asterisk_api_key', '')
+            calls_per_minute = request.POST.get('calls_per_minute', 10)
             
             # اعتبارسنجی
-            if not all([title, call_type, scheduled_time]):
+            if not all([title, call_type, scheduled_time, calls_per_minute]):
                 messages.error(request, 'لطفا تمام فیلدهای ضروری را پر کنید.')
                 return redirect('calls:create_automatic_call')
             
@@ -129,7 +130,8 @@ def create_automatic_call(request):
                     asterisk_api_url=asterisk_api_url,
                     asterisk_api_key=asterisk_api_key,
                     queue_session_id=session_id,
-                    created_by=request.user
+                    created_by=request.user,
+                    calls_per_minute=int(calls_per_minute)
                 )
                 
                 # ثبت لاگ
@@ -184,8 +186,111 @@ def automatic_call_detail(request, call_id):
     return render(request, 'calls/automatic_call_detail.html', context)
 
 
-# This function has been replaced by start_asterisk_call
-# The old start_automatic_call function was redundant
+@login_required
+def edit_automatic_call(request, call_id):
+    """
+    ویرایش تماس اتوماتیک - فقط برای تماس‌های در انتظار
+    """
+    call = get_object_or_404(AutomaticCall, id=call_id)
+    
+    # بررسی اینکه تماس در وضعیت pending باشد
+    if call.status != 'pending':
+        messages.error(request, 'فقط تماس‌های در انتظار قابل ویرایش هستند.')
+        return redirect('calls:automatic_call_detail', call_id=call.id)
+    
+    # دریافت session_id موجود یا ایجاد جدید
+    session_id = call.queue_session_id
+    if not session_id:
+        session_id = str(uuid.uuid4())
+        call.queue_session_id = session_id
+        call.save()
+    
+    # تنظیم session برای کار با queue
+    request.session['call_queue_session_id'] = session_id
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'update_call':
+            # به‌روزرسانی تماس
+            title = request.POST.get('title')
+            description = request.POST.get('description', '')
+            call_type = request.POST.get('call_type')
+            scheduled_time = request.POST.get('scheduled_time')
+            priority = request.POST.get('priority', 1)
+            message_template = request.POST.get('message_template', '')
+            asterisk_api_url = request.POST.get('asterisk_api_url', 'http://192.168.100.128:5000/api/start-dialer')
+            asterisk_api_key = request.POST.get('asterisk_api_key', '')
+            calls_per_minute = request.POST.get('calls_per_minute', 10)
+            
+            # اعتبارسنجی
+            if not all([title, call_type, scheduled_time, calls_per_minute]):
+                messages.error(request, 'لطفا تمام فیلدهای ضروری را پر کنید.')
+                return redirect('calls:edit_automatic_call', call_id=call.id)
+            
+            # بررسی وجود شماره در صف
+            queue_count = CallQueue.objects.filter(session_id=session_id).count()
+            if queue_count == 0:
+                messages.error(request, 'لطفا حداقل یک شماره تلفن به صف اضافه کنید.')
+                return redirect('calls:edit_automatic_call', call_id=call.id)
+            
+            try:
+                # به‌روزرسانی فیلدها
+                call.title = title
+                call.description = description
+                call.call_type = call_type
+                call.scheduled_time = scheduled_time
+                call.priority = int(priority)
+                call.message_template = message_template
+                call.asterisk_api_url = asterisk_api_url
+                call.asterisk_api_key = asterisk_api_key
+                call.calls_per_minute = int(calls_per_minute)
+                call.save()
+                
+                # ثبت لاگ
+                CallLog.objects.create(
+                    call=call,
+                    event_type='updated',
+                    message=f'تماس اتوماتیک "{title}" با {queue_count} شماره به‌روزرسانی شد.'
+                )
+                
+                # پاک کردن session
+                if 'call_queue_session_id' in request.session:
+                    del request.session['call_queue_session_id']
+                
+                messages.success(request, f'تماس اتوماتیک با {queue_count} شماره با موفقیت به‌روزرسانی شد.')
+                return redirect('calls:automatic_call_detail', call_id=call.id)
+                
+            except Exception as e:
+                messages.error(request, f'خطا در به‌روزرسانی تماس: {str(e)}')
+                return redirect('calls:edit_automatic_call', call_id=call.id)
+        
+        elif action in ['add_customer', 'add_manual', 'upload_excel', 'add_suggestions', 'remove_number']:
+            # این actions توسط AJAX API های جداگانه handle می‌شوند
+            pass
+    
+    # دریافت شماره‌های موجود در صف
+    queue_numbers = CallQueue.objects.filter(session_id=session_id).order_by('-created_at')
+    queue_stats = {
+        'total': queue_numbers.count(),
+        'from_customers': queue_numbers.filter(source='customer').count(),
+        'manual': queue_numbers.filter(source='manual').count(),
+        'suggestions': queue_numbers.filter(source='suggestion').count(),
+        'excel': queue_numbers.filter(source='excel').count(),
+    }
+    
+    # لیست مشتریان برای پیشنهاد
+    all_customers = Customer.objects.all()[:100]  # محدود کردن برای بهبود عملکرد
+    
+    context = {
+        'call': call,
+        'queue_numbers': queue_numbers[:50],  # فقط 50 تای اول برای نمایش
+        'queue_stats': queue_stats,
+        'all_customers': all_customers,
+        'session_id': session_id,
+        'is_edit_mode': True,
+    }
+    return render(request, 'calls/edit_automatic_call.html', context)
 
 
 @login_required
@@ -268,7 +373,21 @@ def add_customer_to_queue(request):
     """
     اضافه کردن مشتری به صف تماس
     """
+    # تشخیص session_id از session یا call_id
     session_id = request.session.get('call_queue_session_id')
+    call_id = request.POST.get('call_id')
+    
+    if call_id:
+        # استفاده از call_id برای پیدا کردن session_id
+        try:
+            call = AutomaticCall.objects.get(id=call_id)
+            if not call.queue_session_id:
+                call.queue_session_id = str(uuid.uuid4())
+                call.save()
+            session_id = call.queue_session_id
+        except AutomaticCall.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'تماس پیدا نشد'})
+    
     if not session_id:
         return JsonResponse({'success': False, 'error': 'Session not found'})
     
@@ -319,7 +438,21 @@ def add_manual_numbers_to_queue(request):
     """
     اضافه کردن شماره‌های دستی به صف
     """
+    # تشخیص session_id از session یا call_id
     session_id = request.session.get('call_queue_session_id')
+    call_id = request.POST.get('call_id')
+    
+    if call_id:
+        # استفاده از call_id برای پیدا کردن session_id
+        try:
+            call = AutomaticCall.objects.get(id=call_id)
+            if not call.queue_session_id:
+                call.queue_session_id = str(uuid.uuid4())
+                call.save()
+            session_id = call.queue_session_id
+        except AutomaticCall.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'تماس پیدا نشد'})
+    
     if not session_id:
         return JsonResponse({'success': False, 'error': 'Session not found'})
     
@@ -378,32 +511,52 @@ def add_manual_numbers_to_queue(request):
 @require_http_methods(["POST"])
 def upload_excel_to_queue(request):
     """
-    آپلود فایل اکسل و اضافه کردن شماره‌ها به صف
+    آپلود فایل اکسل یا CSV و اضافه کردن شماره‌ها به صف
     """
+    # تشخیص session_id از session یا call_id
     session_id = request.session.get('call_queue_session_id')
+    call_id = request.POST.get('call_id')
+    
+    if call_id:
+        # استفاده از call_id برای پیدا کردن session_id
+        try:
+            call = AutomaticCall.objects.get(id=call_id)
+            if not call.queue_session_id:
+                call.queue_session_id = str(uuid.uuid4())
+                call.save()
+            session_id = call.queue_session_id
+        except AutomaticCall.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'تماس پیدا نشد'})
+    
     if not session_id:
         return JsonResponse({'success': False, 'error': 'Session not found'})
-    
+
     if 'excel_file' not in request.FILES:
-        return JsonResponse({'success': False, 'error': 'فایل اکسل آپلود نشده'})
-    
+        return JsonResponse({'success': False, 'error': 'فایل آپلود نشده'})
+
     excel_file = request.FILES['excel_file']
-    
+
     try:
-        # خواندن فایل اکسل
-        df = pd.read_excel(excel_file)
-        
+        # Check file extension to determine the format
+        file_extension = excel_file.name.split('.')[-1].lower()
+        if file_extension in ['xls', 'xlsx']:
+            df = pd.read_excel(excel_file)
+        elif file_extension == 'csv':
+            df = pd.read_csv(excel_file)
+        else:
+            return JsonResponse({'success': False, 'error': 'فرمت فایل پشتیبانی نمی‌شود. فقط اکسل و CSV مجاز هستند.'})
+
         # جستجو برای ستون‌های احتمالی شماره تلفن
         phone_columns = []
         for col in df.columns:
             col_lower = str(col).lower()
             if any(keyword in col_lower for keyword in ['phone', 'mobile', 'تلفن', 'موبایل', 'شماره']):
                 phone_columns.append(col)
-        
+
         if not phone_columns:
             # اگر ستون مشخصی پیدا نشد، از اولین ستون استفاده کن
             phone_columns = [df.columns[0]]
-        
+
         numbers = []
         for col in phone_columns:
             for value in df[col].dropna():
@@ -419,13 +572,13 @@ def upload_excel_to_queue(request):
                             clean_number = clean_number[2:]
                         if len(clean_number) >= 9:
                             numbers.append(clean_number)
-        
+
         if not numbers:
             return JsonResponse({'success': False, 'error': 'هیچ شماره معتبری در فایل یافت نشد'})
-        
+
         added_count = 0
         duplicate_count = 0
-        
+
         for number in set(numbers):  # حذف تکراری‌ها
             try:
                 queue_item, created = CallQueue.objects.get_or_create(
@@ -442,14 +595,14 @@ def upload_excel_to_queue(request):
                     duplicate_count += 1
             except Exception:
                 continue
-        
+
         return JsonResponse({
             'success': True,
-            'message': f'{added_count} شماره از فایل اکسل اضافه شد. {duplicate_count} شماره تکراری.',
+            'message': f'{added_count} شماره از فایل اضافه شد. {duplicate_count} شماره تکراری.',
             'added': added_count,
             'duplicates': duplicate_count
         })
-        
+
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'خطا در پردازش فایل: {str(e)}'})
 
@@ -460,7 +613,21 @@ def add_suggested_numbers_to_queue(request):
     """
     اضافه کردن شماره‌های پیشنهادی به صف
     """
+    # تشخیص session_id از session یا call_id
     session_id = request.session.get('call_queue_session_id')
+    call_id = request.POST.get('call_id')
+    
+    if call_id:
+        # استفاده از call_id برای پیدا کردن session_id
+        try:
+            call = AutomaticCall.objects.get(id=call_id)
+            if not call.queue_session_id:
+                call.queue_session_id = str(uuid.uuid4())
+                call.save()
+            session_id = call.queue_session_id
+        except AutomaticCall.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'تماس پیدا نشد'})
+    
     if not session_id:
         return JsonResponse({'success': False, 'error': 'Session not found'})
     
@@ -504,12 +671,42 @@ def add_suggested_numbers_to_queue(request):
 @require_http_methods(["POST"])
 def remove_from_queue(request):
     """
-    حذف شماره از صف
+    حذف شماره یا شماره‌ها از صف
     """
+    # تشخیص session_id از session یا call_id
     session_id = request.session.get('call_queue_session_id')
+    call_id = request.POST.get('call_id')
+    
+    if call_id:
+        # استفاده از call_id برای پیدا کردن session_id
+        try:
+            call = AutomaticCall.objects.get(id=call_id)
+            session_id = call.queue_session_id
+        except AutomaticCall.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'تماس پیدا نشد'})
+    
     if not session_id:
         return JsonResponse({'success': False, 'error': 'Session not found'})
     
+    # برای حذف چندتایی
+    phone_numbers_json = request.POST.get('phone_numbers')
+    if phone_numbers_json:
+        try:
+            import json
+            phone_numbers = json.loads(phone_numbers_json)
+            deleted_count = 0
+            for phone_number in phone_numbers:
+                try:
+                    queue_item = CallQueue.objects.get(session_id=session_id, phone_number=phone_number)
+                    queue_item.delete()
+                    deleted_count += 1
+                except CallQueue.DoesNotExist:
+                    pass
+            return JsonResponse({'success': True, 'message': f'{deleted_count} شماره از صف حذف شد'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    # برای حذف تکی
     phone_number = request.POST.get('phone_number')
     if not phone_number:
         return JsonResponse({'success': False, 'error': 'شماره تلفن مشخص نشده'})
@@ -577,3 +774,46 @@ def start_asterisk_call(request, call_id):
         messages.error(request, result['error'])
     
     return redirect('calls:automatic_call_detail', call_id=call.id)
+
+
+@login_required
+def get_queue_numbers(request):
+    """
+    API برای دریافت شماره‌های صف یک تماس خاص
+    """
+    call_id = request.GET.get('call_id')
+    if not call_id:
+        return JsonResponse({'success': False, 'error': 'call_id مورد نیاز است'})
+    
+    try:
+        call = AutomaticCall.objects.get(id=call_id)
+        
+        # دریافت شماره‌های صف مربوط به این تماس
+        if call.queue_session_id:
+            queue_numbers = CallQueue.objects.filter(
+                session_id=call.queue_session_id
+            ).order_by('-created_at')
+            
+            numbers_data = []
+            for item in queue_numbers:
+                numbers_data.append({
+                    'phone_number': item.phone_number,
+                    'customer_name': item.customer.name if item.customer else None,
+                    'source': item.source,
+                    'source_display': item.get_source_display(),
+                })
+            
+            return JsonResponse({
+                'success': True,
+                'numbers': numbers_data
+            })
+        else:
+            return JsonResponse({
+                'success': True,
+                'numbers': []
+            })
+    
+    except AutomaticCall.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'تماس پیدا نشد'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})

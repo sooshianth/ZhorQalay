@@ -765,9 +765,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update queue stats
     function updateQueueStats() {
         const queueItems = document.querySelectorAll('.queue-item');
-        const customerItems = document.querySelectorAll('.queue-item .queue-source:contains("مشتری")');
-        const manualItems = document.querySelectorAll('.queue-item .queue-source:contains("دستی")');
-        
+        const customerItems = Array.from(queueItems).filter(item => item.querySelector('.queue-source')?.textContent.includes("مشتری"));
+        const manualItems = Array.from(queueItems).filter(item => item.querySelector('.queue-source')?.textContent.includes("دستی"));
+
         document.getElementById('queueCount').textContent = queueItems.length;
         updateCreateButtonState();
     }

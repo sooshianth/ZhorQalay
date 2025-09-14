@@ -90,6 +90,9 @@ class AutomaticCall(models.Model):
     successful_calls = models.IntegerField(default=0, verbose_name='تماس‌های موفق')
     failed_calls = models.IntegerField(default=0, verbose_name='تماس‌های ناموفق')
     
+    # تعداد تماس در دقیقه
+    calls_per_minute = models.IntegerField(default=10, verbose_name='تعداد تماس در دقیقه')
+    
     # زمان‌های سیستمی
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ به‌روزرسانی')
@@ -108,25 +111,32 @@ class AutomaticCall(models.Model):
         """
         if not self.queue_session_id:
             return {'success': False, 'error': 'هیچ صفی تعریف نشده است'}
-            
+
         # دریافت شماره‌های صف
         queue_numbers = CallQueue.objects.filter(session_id=self.queue_session_id).values_list('phone_number', flat=True)
-        
+
         if not queue_numbers:
             return {'success': False, 'error': 'هیچ شماره‌ای در صف وجود ندارد'}
-            
+
         # آماده‌سازی درخواست
         headers = {
             'Content-Type': 'application/json'
         }
-        
+
         if self.asterisk_api_key:
             headers['X-API-KEY'] = self.asterisk_api_key
-            
+
         data = {
-            'numbers': list(queue_numbers)
+            'numbers': list(queue_numbers),
+            'title': self.title,
+            'description': self.description,
+            'call_type': self.call_type,
+            'scheduled_time': self.scheduled_time.isoformat(),
+            'priority': self.priority,
+            'message_template': self.message_template,
+            'calls_per_minute': self.calls_per_minute
         }
-        
+
         try:
             response = requests.post(
                 self.asterisk_api_url,
@@ -134,13 +144,13 @@ class AutomaticCall(models.Model):
                 data=json.dumps(data),
                 timeout=30
             )
-            
+
             if response.status_code == 200:
                 self.status = 'in_progress'
                 self.start_time = timezone.now()
                 self.total_calls = len(queue_numbers)
                 self.save()
-                
+
                 # ثبت لاگ
                 CallLog.objects.create(
                     call=self,
@@ -148,7 +158,7 @@ class AutomaticCall(models.Model):
                     message=f'تماس شروع شد با {len(queue_numbers)} شماره',
                     details={'response': response.json() if response.content else {}}
                 )
-                
+
                 return {'success': True, 'message': 'تماس با موفقیت شروع شد'}
             else:
                 CallLog.objects.create(
@@ -158,7 +168,7 @@ class AutomaticCall(models.Model):
                     details={'response': response.text}
                 )
                 return {'success': False, 'error': f'خطا در API: {response.status_code} - {response.text[:100]}'}
-                
+
         except requests.ConnectionError as e:
             error_msg = 'امکان اتصال به سرور Asterisk وجود ندارد. لطفا بررسی کنید که سرور روشن باشد.'
             CallLog.objects.create(

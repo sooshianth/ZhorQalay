@@ -392,6 +392,11 @@
                                placeholder="کلید احراز هویت API (اختیاری)">
                     </div>
 
+                    <div class="form-group">
+                        <label for="calls_per_minute">تعداد تماس در دقیقه</label>
+                        <input type="number" id="calls_per_minute" name="calls_per_minute" class="form-control" value="10" min="1">
+                    </div>
+
                     <div class="form-group" style="margin-top: 2rem;">
                         <button type="submit" class="btn btn-primary" id="createCallBtn" disabled>
                             <i class="fas fa-save"></i>
@@ -466,8 +471,8 @@
                     <div class="tab-content" id="excel-tab">
                         <form id="excelUploadForm" enctype="multipart/form-data">
                             <div class="file-input-wrapper">
-                                <input type="file" id="excelFile" name="excel_file" class="file-input" accept=".xlsx,.xls">
-                                <div class="file-input-button">
+                                <input type="file" id="excelFile" name="excel_file" class="file-input" accept=".xlsx,.xls" style="display: none;">
+                                <div class="file-input-button" onclick="document.getElementById('excelFile').click();">
                                     <i class="fas fa-file-excel"></i>
                                     انتخاب فایل اکسل
                                 </div>
@@ -876,9 +881,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update queue stats
     function updateQueueStats() {
         const queueItems = document.querySelectorAll('.queue-item');
-        const customerItems = document.querySelectorAll('.queue-item .queue-source:contains("مشتری")');
-        const manualItems = document.querySelectorAll('.queue-item .queue-source:contains("دستی")');
-        
+        const customerItems = Array.from(queueItems).filter(item => item.querySelector('.queue-source')?.textContent.includes("مشتری"));
+        const manualItems = Array.from(queueItems).filter(item => item.querySelector('.queue-source')?.textContent.includes("دستی"));
+
         document.getElementById('queueCount').textContent = queueItems.length;
         updateCreateButtonState();
     }

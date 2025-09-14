@@ -12,6 +12,7 @@ urlpatterns = [
     path('automatic/', views.automatic_calls_list, name='automatic_calls_list'),
     path('automatic/create/', views.create_automatic_call, name='create_automatic_call'),
     path('automatic/<int:call_id>/', views.automatic_call_detail, name='automatic_call_detail'),
+    path('automatic/<int:call_id>/edit/', views.edit_automatic_call, name='edit_automatic_call'),
     path('automatic/<int:call_id>/stop/', views.stop_automatic_call, name='stop_automatic_call'),
     path('automatic/<int:call_id>/delete/', views.delete_automatic_call, name='delete_automatic_call'),
     path('automatic/<int:call_id>/start-asterisk/', views.start_asterisk_call, name='start_asterisk_call'),
@@ -22,6 +23,7 @@ urlpatterns = [
     path('api/queue/upload-excel/', views.upload_excel_to_queue, name='upload_excel_to_queue'),
     path('api/queue/add-suggestions/', views.add_suggested_numbers_to_queue, name='add_suggested_numbers_to_queue'),
     path('api/queue/remove/', views.remove_from_queue, name='remove_from_queue'),
+    path('api/queue/get-numbers/', views.get_queue_numbers, name='get_queue_numbers'),
     path('api/customers/search/', views.search_customers_api, name='search_customers_api'),
     
     # API endpoints
