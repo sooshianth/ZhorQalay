@@ -86,31 +86,31 @@
                                             <i class="fas fa-check-circle"></i> {{ purchase.get_state_display|default:purchase.state }}
                                         </span>
                                     {% elif purchase.state == 'address_assigned' %}
-                                        <span class="badge bg-success">
+                                        <span class="badge bg-purple">
                                             <i class="fas fa-map-marker-alt"></i> {{ purchase.get_state_display|default:purchase.state }}
                                         </span>
                                     {% elif purchase.state == 'sent_to_warehouse' %}
-                                        <span class="badge bg-success">
+                                        <span class="badge bg-orange">
                                             <i class="fas fa-warehouse"></i> {{ purchase.get_state_display|default:purchase.state }}
                                         </span>
                                     {% elif purchase.state == 'carrier_notified' %}
-                                        <span class="badge bg-success">
+                                        <span class="badge bg-cyan">
                                             <i class="fas fa-truck"></i> {{ purchase.get_state_display|default:purchase.state }}
                                         </span>
                                     {% elif purchase.state == 'vehicle_arrived' %}
-                                        <span class="badge bg-success">
+                                        <span class="badge bg-teal">
                                             <i class="fas fa-truck-loading"></i> {{ purchase.get_state_display|default:purchase.state }}
                                         </span>
                                     {% elif purchase.state == 'empty_weighed' %}
-                                        <span class="badge bg-success">
+                                        <span class="badge bg-indigo">
                                             <i class="fas fa-weight"></i> {{ purchase.get_state_display|default:purchase.state }}
                                         </span>
                                     {% elif purchase.state == 'loaded_weighed' %}
-                                        <span class="badge bg-success">
+                                        <span class="badge bg-deep-purple">
                                             <i class="fas fa-weight-hanging"></i> {{ purchase.get_state_display|default:purchase.state }}
                                         </span>
                                     {% elif purchase.state == 'barnameh_issued' %}
-                                        <span class="badge bg-success">
+                                        <span class="badge bg-green">
                                             <i class="fas fa-file-invoice"></i> {{ purchase.get_state_display|default:purchase.state }}
                                         </span>
                                     {% elif purchase.state == 'delivered' %}
@@ -118,7 +118,7 @@
                                             <i class="fas fa-check-double"></i> {{ purchase.get_state_display|default:purchase.state }}
                                         </span>
                                     {% elif purchase.state == 'purchase_closed' %}
-                                        <span class="badge bg-success">
+                                        <span class="badge bg-dark-green">
                                             <i class="fas fa-archive"></i> {{ purchase.get_state_display|default:purchase.state }}
                                         </span>
                                     {% elif purchase.state == 'canceled' %}

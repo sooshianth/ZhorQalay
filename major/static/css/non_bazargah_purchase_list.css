@@ -160,6 +160,47 @@
     background: #6c757d !important;
 }
 
+/* رنگ‌های جدید برای وضعیت‌های مختلف */
+.badge.bg-purple {
+    background: #9c27b0 !important;
+    color: white !important;
+}
+
+.badge.bg-orange {
+    background: #ff9800 !important;
+    color: white !important;
+}
+
+.badge.bg-cyan {
+    background: #00bcd4 !important;
+    color: white !important;
+}
+
+.badge.bg-teal {
+    background: #009688 !important;
+    color: white !important;
+}
+
+.badge.bg-indigo {
+    background: #3f51b5 !important;
+    color: white !important;
+}
+
+.badge.bg-deep-purple {
+    background: #673ab7 !important;
+    color: white !important;
+}
+
+.badge.bg-green {
+    background: #4caf50 !important;
+    color: white !important;
+}
+
+.badge.bg-dark-green {
+    background: #2e7d32 !important;
+    color: white !important;
+}
+
 /* دکمه جزییات */
 .btn-outline-primary {
     border: 1px solid #064E3B;

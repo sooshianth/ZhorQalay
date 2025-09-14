@@ -134,6 +134,63 @@
     flex-wrap: nowrap;
 }
 
+/* استایل انتخاب ردیف‌ها */
+.table tbody tr.selected {
+    background-color: #e3f2fd !important;
+    border-left: 4px solid #2196f3;
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
+    transform: translateY(-1px);
+}
+
+.table tbody tr.selected:hover {
+    background-color: #bbdefb !important;
+    box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+}
+
+.table tbody tr.selected td {
+    color: #1976d2;
+    font-weight: 500;
+}
+
+/* استایل checkbox ها */
+.row-checkbox {
+    transform: scale(1.1);
+    cursor: pointer;
+    accent-color: #2196f3;
+}
+
+.row-checkbox:checked {
+    background-color: #2196f3;
+}
+
+#selectAllCheckbox {
+    transform: scale(1.1);
+    cursor: pointer;
+    accent-color: #2196f3;
+}
+
+/* انیمیشن انتخاب ردیف */
+.table tbody tr {
+    transition: all 0.3s ease;
+}
+
+.table tbody tr.selecting {
+    animation: selectPulse 0.5s ease-in-out;
+}
+
+@keyframes selectPulse {
+    0% {
+        background-color: transparent;
+    }
+    50% {
+        background-color: #fff3e0;
+        transform: scale(1.01);
+    }
+    100% {
+        background-color: #e3f2fd;
+    }
+}
+
 .btn-sm {
     padding: 6px 12px;
     font-size: 0.875rem;

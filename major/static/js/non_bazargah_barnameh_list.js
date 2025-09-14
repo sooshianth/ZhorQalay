@@ -12,11 +12,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const deselectAllBtn = document.getElementById('deselectAllColumns');
     const saveColumnsBtn = document.getElementById('saveColumnsBtn');
     
+    // متغیرهای مربوط به انتخاب ردیف‌ها و خروجی اکسل
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+    const selectAllRowsBtn = document.getElementById('selectAllRowsBtn');
+    const deselectAllRowsBtn = document.getElementById('deselectAllRowsBtn');
+    const exportExcelBtn = document.getElementById('exportExcelBtn');
+    
     // کلید ذخیره تنظیمات در localStorage
     const STORAGE_KEY = 'non_bazargah_barnameh_columns';
     
     // تنظیمات پیش‌فرض ستون‌ها
     const DEFAULT_COLUMNS = [
+        'select',
         'number',
         'serial',
         'tonnage',
@@ -92,6 +100,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // بروزرسانی checkbox ها در modal
         updateModalCheckboxes(visibleColumns);
+        
+        // حفظ استایل‌های انتخاب ردیف‌ها
+        rows.forEach(row => {
+            const checkbox = row.querySelector('.row-checkbox');
+            if (checkbox && checkbox.checked) {
+                row.classList.add('selected');
+            }
+        });
     }
     
     /**
@@ -206,6 +222,124 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     /**
+     * انتخاب همه ردیف‌ها
+     */
+    function selectAllRows() {
+        const checkboxes = document.querySelectorAll('.row-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = true;
+            updateRowSelection(checkbox);
+        });
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = true;
+        }
+        updateExportButtonState();
+    }
+    
+    /**
+     * لغو انتخاب همه ردیف‌ها
+     */
+    function deselectAllRows() {
+        const checkboxes = document.querySelectorAll('.row-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+            updateRowSelection(checkbox);
+        });
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = false;
+        }
+        updateExportButtonState();
+    }
+    
+    /**
+     * بروزرسانی استایل ردیف بر اساس وضعیت انتخاب
+     */
+    function updateRowSelection(checkbox) {
+        const row = checkbox.closest('tr');
+        if (!row) return;
+        
+        if (checkbox.checked) {
+            // اضافه کردن کلاس انتخاب با انیمیشن
+            row.classList.add('selecting');
+            setTimeout(() => {
+                row.classList.remove('selecting');
+                row.classList.add('selected');
+            }, 500);
+        } else {
+            // حذف کلاس انتخاب
+            row.classList.remove('selected');
+        }
+    }
+    
+    /**
+     * دریافت شناسه‌های بارنامه‌های انتخاب شده
+     */
+    function getSelectedBarnamehIds() {
+        const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+        return Array.from(checkboxes).map(checkbox => checkbox.value);
+    }
+    
+    /**
+     * بروزرسانی وضعیت دکمه خروجی اکسل
+     */
+    function updateExportButtonState() {
+        const selectedIds = getSelectedBarnamehIds();
+        if (exportExcelBtn) {
+            exportExcelBtn.disabled = selectedIds.length === 0;
+            if (selectedIds.length > 0) {
+                exportExcelBtn.innerHTML = `<i class="fas fa-file-excel me-2"></i>خروجی اکسل (${selectedIds.length})`;
+            } else {
+                exportExcelBtn.innerHTML = `<i class="fas fa-file-excel me-2"></i>خروجی اکسل`;
+            }
+        }
+    }
+    
+    /**
+     * خروجی اکسل
+     */
+    function exportToExcel() {
+        const selectedIds = getSelectedBarnamehIds();
+        if (selectedIds.length === 0) {
+            alert('لطفاً حداقل یک بارنامه را انتخاب کنید.');
+            return;
+        }
+        
+        const visibleColumns = loadColumnSettings();
+        
+        // ایجاد فرم برای ارسال درخواست POST
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/major/non-bazargah-barnamehs/export-excel/';
+        form.style.display = 'none';
+        
+        // اضافه کردن CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+        
+        // اضافه کردن شناسه‌های انتخاب شده
+        const idsInput = document.createElement('input');
+        idsInput.type = 'hidden';
+        idsInput.name = 'ids';
+        idsInput.value = selectedIds.join(',');
+        form.appendChild(idsInput);
+        
+        // اضافه کردن ستون‌های انتخاب شده
+        const columnsInput = document.createElement('input');
+        columnsInput.type = 'hidden';
+        columnsInput.name = 'columns';
+        columnsInput.value = visibleColumns.join(',');
+        form.appendChild(columnsInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    }
+    
+    /**
      * تنظیم event listeners
      */
     function setupEventListeners() {
@@ -230,6 +364,48 @@ document.addEventListener('DOMContentLoaded', function() {
                 const visibleColumns = loadColumnSettings();
                 updateModalCheckboxes(visibleColumns);
             });
+        }
+        
+        // Event listeners برای انتخاب ردیف‌ها
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                const checkboxes = document.querySelectorAll('.row-checkbox');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                    updateRowSelection(checkbox);
+                });
+                updateExportButtonState();
+            });
+        }
+        
+        // Event listeners برای checkbox های ردیف‌ها
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('row-checkbox')) {
+                updateRowSelection(e.target);
+                updateExportButtonState();
+                
+                // بروزرسانی checkbox انتخاب همه
+                const allCheckboxes = document.querySelectorAll('.row-checkbox');
+                const checkedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+                if (selectAllCheckbox) {
+                    selectAllCheckbox.checked = allCheckboxes.length === checkedCheckboxes.length;
+                    selectAllCheckbox.indeterminate = checkedCheckboxes.length > 0 && checkedCheckboxes.length < allCheckboxes.length;
+                }
+            }
+        });
+        
+        // دکمه‌های انتخاب همه/لغو انتخاب همه ردیف‌ها
+        if (selectAllRowsBtn) {
+            selectAllRowsBtn.addEventListener('click', selectAllRows);
+        }
+        
+        if (deselectAllRowsBtn) {
+            deselectAllRowsBtn.addEventListener('click', deselectAllRows);
+        }
+        
+        // دکمه خروجی اکسل
+        if (exportExcelBtn) {
+            exportExcelBtn.addEventListener('click', exportToExcel);
         }
     }
     
