@@ -98,14 +98,14 @@ def send_sms_on_barnameh_bki_success(sender, instance, created, **kwargs):
     logger.info(f"✅ Barnameh {instance.id} eligible for SMS - successfully sent to BKI, number={instance.number}, sent_at={instance.is_sent_to_bki_at}")
     
     # بررسی تاریخ بارنامه 
-    # شرط: اگر تاریخ بارنامه 3 روز یا بیشتر قبل از امروز باشد (قدیمی)، پیامک ارسال نشود
+    # شرط: اگر تاریخ بارنامه 5 روز یا بیشتر قبل از امروز باشد (قدیمی)، پیامک ارسال نشود
     if instance.barnameh_date:
         today = jdate.today()
         # فقط اختلاف گذشته؛ تاریخ‌های آینده شامل نمی‌شود
         past_days = (today - instance.barnameh_date).days
-        if past_days >= 3:
+        if past_days >= 5:
             logger.info(
-                f"Barnameh {instance.id} is older than or equal to 3 days (past_days={past_days}), skipping SMS"
+                f"Barnameh {instance.id} is older than or equal to 5 days (past_days={past_days}), skipping SMS"
             )
             return
     
