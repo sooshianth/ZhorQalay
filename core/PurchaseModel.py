@@ -89,6 +89,7 @@ class Purchase(BasePurchase):
     purchase_mabna_invoice = models.PositiveBigIntegerField("فاکتور خرید مبنا", blank=True, null=True)
     sales_mabna_invoice = models.PositiveBigIntegerField("فاکتور فروش مبنا", blank=True, null=True)
     mabna_profit = models.PositiveBigIntegerField("سود مبنا", blank=True, null=True)
+    buyer_account = models.CharField("حساب خریدار", max_length=100, blank=True, null=True, help_text="حساب خریدار دریافت شده از BKI API")
 
     wallet_index = models.CharField("شاخص محاسبه کیف پول", max_length=1, default='0', choices=[('0', 'وزن سفارش'), ('1', 'وزن تحویلی')])
     is_address_sent = models.CharField('آیا آدرس به واردکننده ارسال شده اس؟', max_length=1, default='0', choices=[('0', "ارسال نشده"),('1', "ارسال شده")])

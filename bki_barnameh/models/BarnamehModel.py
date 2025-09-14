@@ -228,6 +228,30 @@ class Barnameh(models.Model):
         """دریافت تاریخ ارسال موفق به بازارگاه"""
         return self.is_sent_to_bki_at
     
+    def get_delivery_receiver_name(self):
+        """دریافت نام تحویل گیرنده از شناسه تخصیص یا خرید مرتبط"""
+        if self.shenase_takhsis and hasattr(self.shenase_takhsis, 'delivery_receiver_name') and self.shenase_takhsis.delivery_receiver_name:
+            return self.shenase_takhsis.delivery_receiver_name
+        elif self.purchase and self.purchase.delivery_receiver_name:
+            return self.purchase.delivery_receiver_name
+        elif self.purchase and self.purchase.buyer_name:
+            return self.purchase.buyer_name
+        elif self.receiver_name:
+            return self.receiver_name
+        return None
+
+    def get_delivery_address(self):
+        """دریافت آدرس تحویل از شناسه تخصیص یا خرید مرتبط"""
+        if self.shenase_takhsis and hasattr(self.shenase_takhsis, 'delivery_address') and self.shenase_takhsis.delivery_address:
+            return self.shenase_takhsis.delivery_address
+        elif self.purchase and self.purchase.delivery_address:
+            return self.purchase.delivery_address
+        elif self.purchase and self.purchase.address:
+            return self.purchase.address
+        elif self.destination:
+            return self.destination
+        return None
+
     def get_non_product(self):
         return self.non_bazargah_purchase.product if self.non_bazargah_purchase else None
     
