@@ -1,0 +1,1320 @@
+/* استایل‌های مینیمال و حرفه‌ای */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+  color: #333;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* هدر اصلی */
+.non-bazargah-container {
+  background: linear-gradient(135deg, #1e7e34 0%, #155724 100%);
+  padding: 40px;
+  border-radius: 16px;
+  margin-bottom: 30px;
+  box-shadow: 0 8px 25px rgba(30, 126, 52, 0.2);
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.non-bazargah-container::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { transform: translateX(-100%) translateY(-100%) rotate(0deg); }
+  50% { transform: translateX(100%) translateY(100%) rotate(180deg); }
+}
+
+.non-bazargah-header {
+  color: white;
+  border-bottom: 2px solid rgba(255,255,255,0.3);
+  padding-bottom: 20px;
+  margin-bottom: 30px;
+  font-weight: 700;
+  font-size: 2.2rem;
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.non-bazargah-badge {
+  background: rgba(255,255,255,0.2);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-weight: 600;
+  margin-left: 20px;
+  font-size: 1rem;
+  border: 2px solid rgba(255,255,255,0.3);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  transition: all 0.3s ease;
+}
+
+.non-bazargah-badge:hover {
+  background: rgba(255,255,255,0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+.purchase-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.purchase-title i {
+  font-size: 1.5rem;
+  opacity: 0.9;
+}
+
+.non-bazargah-badge i {
+  margin-left: 8px;
+  font-size: 0.9rem;
+}
+
+/* تایم‌لاین مینیمال */
+.timeline-container {
+  background: white;
+  border-radius: 12px;
+  margin: 30px 0;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  border: 1px solid #e9ecef;
+  overflow: hidden;
+}
+
+.timeline-scroll {
+  display: flex;
+  overflow-x: auto;
+  padding: 20px;
+  gap: 15px;
+  scrollbar-width: thin;
+}
+
+.timeline-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.timeline-scroll::-webkit-scrollbar-track {
+  background: #f1f3f4;
+}
+
+.timeline-scroll::-webkit-scrollbar-thumb {
+  background: #1e7e34;
+  border-radius: 2px;
+}
+
+.timeline-item {
+  flex: 0 0 auto;
+  min-width: 140px;
+  text-align: center;
+  padding: 20px 15px;
+  border-radius: 8px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+}
+
+.timeline-item.completed {
+  background: #d4edda;
+  border-color: #1e7e34;
+}
+
+.timeline-item.pending {
+  background: #fff3cd;
+  border-color: #ffc107;
+}
+
+.timeline-icon {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: white;
+  font-size: 1rem;
+}
+
+.timeline-item.completed .timeline-icon {
+  background: #1e7e34;
+}
+
+.timeline-item.pending .timeline-icon {
+  background: #ffc107;
+}
+
+.timeline-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #495057;
+  line-height: 1.3;
+}
+
+.timeline-status {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.timeline-item.completed .timeline-status {
+  color: #1e7e34;
+}
+
+.timeline-item.pending .timeline-status {
+  color: #856404;
+}
+
+.timeline-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* بخش‌های فرم مینیمال */
+.form-section {
+  margin-bottom: 25px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  border: 1px solid #e9ecef;
+  overflow: hidden;
+}
+
+.section-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+  padding: 20px 25px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.section-title:hover {
+  background: #e9ecef;
+}
+
+.section-title i {
+  margin-left: 10px;
+  color: #1e7e34;
+  font-size: 1rem;
+}
+
+.section-toggle {
+  color: #6c757d;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  margin-left: 15px;
+}
+
+.section-title:hover .section-toggle {
+  color: #1e7e34;
+}
+
+.section-content {
+  padding: 25px;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.section-content.collapsed {
+  padding: 0;
+  max-height: 0;
+  opacity: 0;
+}
+
+.section-content.expanded {
+  padding: 25px;
+  max-height: none;
+  opacity: 1;
+}
+
+.section-toggle.rotated {
+  transform: rotate(180deg);
+}
+
+.form-section {
+  border-left: 3px solid #1e7e34;
+}
+
+/* استایل فیلدها */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #495057;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.form-group input, 
+.form-group select, 
+.form-group textarea {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  background-color: white;
+  font-size: 0.9rem;
+}
+
+.form-group input:focus, 
+.form-group select:focus, 
+.form-group textarea:focus {
+  outline: none;
+  border-color: #1e7e34;
+  box-shadow: 0 0 0 2px rgba(30, 126, 52, 0.1);
+}
+
+.form-group.readonly input,
+.form-group.readonly select,
+.form-group.readonly textarea {
+  background-color: #f8f9fa;
+  border-color: #e9ecef;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+.readonly-indicator {
+  color: #dc3545;
+  margin-left: 8px;
+  font-size: 0.8rem;
+}
+
+/* استایل دکمه‌ها */
+.button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.save-button {
+  background: #1e7e34;
+  color: white;
+}
+
+.save-button:hover {
+  background: #155724;
+}
+
+/* باکس مرحله بعد */
+.next-step-container {
+  margin: 25px 0;
+}
+
+.next-step-box {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  border-left: 3px solid #1e7e34;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.step-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.step-info i {
+  color: #1e7e34;
+  font-size: 1.1rem;
+  width: 20px;
+  text-align: center;
+}
+
+.step-text {
+  color: #495057;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.step-text strong {
+  color: #1e7e34;
+  font-weight: 600;
+}
+
+.step-info.completed {
+  border-left-color: #28a745;
+}
+
+.step-info.completed i {
+  color: #28a745;
+}
+
+.step-info.completed .step-text {
+  color: #28a745;
+}
+
+.step-info.completed .step-text strong {
+  color: #28a745;
+}
+
+/* گرید فرم */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+/* دکمه‌های اکشن */
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 30px;
+  margin-bottom: 30px;
+  justify-content: center;
+}
+
+.approve-btn {
+  min-width: 160px;
+}
+
+.approve-btn.financial {
+  background: #dc3545;
+  color: white;
+}
+
+.approve-btn.financial:hover {
+  background: #c82333;
+}
+
+.approve-btn.logistics {
+  background: #1e7e34;
+  color: white;
+}
+
+.approve-btn.logistics:hover {
+  background: #155724;
+}
+
+.approve-btn.admin {
+  background: #6f42c1;
+  color: white;
+}
+
+.approve-btn.admin:hover {
+  background: #5a32a3;
+}
+
+.approve-btn.danger {
+  background: #dc3545;
+  color: white;
+}
+
+.approve-btn.danger:hover {
+  background: #c82333;
+}
+
+.approve-btn.warning {
+  background: #fd7e14;
+  color: white;
+}
+
+.approve-btn.warning:hover {
+  background: #e8590c;
+}
+
+.approve-btn:disabled {
+  background: #6c757d;
+  color: #adb5bd;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.approve-btn:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* دکمه PDF */
+.pdf-btn {
+  background: #dc3545;
+  color: white;
+  text-decoration: none;
+  min-width: 180px;
+}
+
+.pdf-btn:hover {
+  background: #c82333;
+  color: white;
+  text-decoration: none;
+}
+
+/* کارت‌های اطلاعات */
+.purchase-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin: 25px 0;
+  position: relative;
+  z-index: 1;
+}
+
+.info-card {
+  padding: 25px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.95);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  text-align: center;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.info-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #1e7e34, #28a745, #1e7e34);
+  background-size: 200% 100%;
+  animation: gradientShift 2s ease-in-out infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.info-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+  background: rgba(255,255,255,1);
+}
+
+.info-card h3 {
+  color: #1e7e34;
+  margin-bottom: 15px;
+  font-size: 1rem;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(30, 126, 52, 0.2);
+  padding-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-card p {
+  margin-bottom: 8px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.info-card p:last-child {
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* آپلود مدرک پرداخت */
+.payment-document-upload {
+  border: 1px dashed #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  background: #f8f9fa;
+  transition: all 0.2s ease;
+}
+
+.payment-document-upload:hover {
+  border-color: #1e7e34;
+  background: #f0f8ff;
+}
+
+.current-document {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding: 12px;
+  background: #d4edda;
+  border-radius: 6px;
+  border: 1px solid #c3e6cb;
+  color: #155724;
+}
+
+.document-link {
+  color: #1e7e34;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.document-link:hover {
+  color: #155724;
+  text-decoration: underline;
+}
+
+.upload-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.upload-container input[type="file"] {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 12px;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  background: white;
+}
+
+.btn-upload {
+  padding: 8px 16px;
+  background: #1e7e34;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-upload:hover {
+  background: #155724;
+}
+
+.btn-upload:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.upload-form-inline {
+  margin: 0;
+  padding: 0;
+}
+
+.upload-form-inline .upload-container {
+  margin-bottom: 10px;
+}
+
+/* تخصیص آدرس */
+.allocation-status {
+  margin-bottom: 25px;
+}
+
+.weight-info-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.weight-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.weight-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.weight-card h4 {
+  color: #495057;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.weight-card p {
+  color: #2c3e50;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.add-allocation-form {
+  background: #f8f9fa;
+  border: 1px dashed #1e7e34;
+  border-radius: 8px;
+  padding: 25px;
+  margin-bottom: 25px;
+}
+
+.allocation-form-title {
+  color: #1e7e34;
+  margin-bottom: 20px;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+}
+
+.allocation-form-title i {
+  margin-left: 10px;
+  color: #1e7e34;
+}
+
+.allocation-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.allocation-form-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.allocation-add-btn {
+  background: #1e7e34;
+  color: white;
+  padding: 12px 25px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.allocation-add-btn:hover:not(:disabled) {
+  background: #155724;
+}
+
+.allocation-add-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.allocations-list {
+  margin-top: 25px;
+}
+
+.allocations-title {
+  color: #495057;
+  margin-bottom: 20px;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 10px;
+  font-weight: 600;
+}
+
+.allocations-title i {
+  margin-left: 10px;
+  color: #1e7e34;
+}
+
+.allocation-item {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.allocation-item:hover {
+  border-color: #1e7e34;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.allocation-header {
+  background: #f8f9fa;
+  padding: 15px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.allocation-weight {
+  background: #1e7e34;
+  color: white;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.allocation-receiver {
+  color: #495057;
+  font-weight: 600;
+  flex: 1;
+  margin: 0 15px;
+}
+
+.delete-allocation-form {
+  margin: 0;
+  padding: 0;
+}
+
+.btn-delete-allocation {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-delete-allocation:hover {
+  background: #c82333;
+}
+
+.allocation-details {
+  padding: 20px;
+}
+
+.allocation-detail {
+  margin-bottom: 8px;
+  padding: 6px 0;
+  border-bottom: 1px dotted #e9ecef;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.allocation-detail:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.allocation-detail strong {
+  color: #2c3e50;
+  margin-left: 8px;
+}
+
+.no-allocations {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6c757d;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px dashed #e9ecef;
+}
+
+.no-allocations i {
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+  color: #adb5bd;
+}
+
+.no-allocations p {
+  margin: 10px 0;
+  font-size: 1rem;
+}
+
+.no-allocations small {
+  color: #adb5bd;
+}
+
+/* بارنامه‌ها */
+.allocation-barnameh-container {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  background: white;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.allocation-barnameh-header {
+  background: #f8f9fa;
+  padding: 15px 20px;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.allocation-barnameh-header h4 {
+  margin: 0;
+  color: #495057;
+  flex: 1;
+  min-width: 200px;
+  font-weight: 600;
+}
+
+.btn-add-barnameh {
+  background: #1e7e34;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.btn-add-barnameh:hover {
+  background: #155724;
+}
+
+.barnameh-item {
+  border-bottom: 1px solid #e9ecef;
+  padding: 20px;
+}
+
+.barnameh-item:last-child {
+  border-bottom: none;
+}
+
+.barnameh-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.barnameh-header h5 {
+  margin: 0;
+  color: #495057;
+  font-weight: 600;
+}
+
+.btn-delete-barnameh {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-delete-barnameh:hover {
+  background: #c82333;
+}
+
+.barnameh-form {
+  margin: 0;
+}
+
+.barnameh-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.barnameh-section {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 15px;
+}
+
+.barnameh-section h6 {
+  margin: 0 0 15px 0;
+  color: #495057;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.barnameh-section h6 i {
+  color: #1e7e34;
+}
+
+.barnameh-fields {
+  display: grid;
+  gap: 12px;
+}
+
+.barnameh-fields .form-group {
+  margin: 0;
+}
+
+.barnameh-fields label {
+  display: block;
+  margin-bottom: 5px;
+  color: #495057;
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.barnameh-fields input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  background: white;
+  font-size: 0.9rem;
+}
+
+.barnameh-fields input:focus {
+  outline: none;
+  border-color: #1e7e34;
+  box-shadow: 0 0 0 2px rgba(30, 126, 52, 0.1);
+}
+
+.barnameh-fields input[readonly] {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+.calculated-weight {
+  background: #d1ecf1;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #b8daff;
+  color: #0c5460;
+  font-weight: 600;
+  text-align: center;
+}
+
+.barnameh-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #e9ecef;
+}
+
+.btn-update-barnameh {
+  background: #1e7e34;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-update-barnameh:hover {
+  background: #155724;
+}
+
+.no-barnamehs {
+  text-align: center;
+  padding: 30px 20px;
+  color: #6c757d;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px dashed #e9ecef;
+  margin: 15px;
+}
+
+.no-barnamehs i {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  color: #adb5bd;
+}
+
+.no-barnamehs p {
+  margin: 8px 0;
+  font-size: 0.95rem;
+}
+
+.no-barnamehs small {
+  color: #adb5bd;
+  font-style: italic;
+}
+
+/* فرم اضافه کردن بارنامه */
+.add-barnameh-form {
+  background: #f8f9fa;
+  border: 1px dashed #1e7e34;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 15px;
+  animation: slideDown 0.3s ease-out;
+}
+
+.add-barnameh-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #1e7e34;
+}
+
+.add-barnameh-form-header h5 {
+  margin: 0;
+  color: #1e7e34;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.add-barnameh-form-header h5 i {
+  color: #1e7e34;
+}
+
+.btn-close-form {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-close-form:hover {
+  background: #c82333;
+}
+
+.btn-cancel-barnameh {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 10px;
+}
+
+.btn-cancel-barnameh:hover {
+  background: #5a6268;
+}
+
+.barnameh-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #e9ecef;
+  gap: 10px;
+}
+
+/* ریسپانسیو */
+@media (max-width: 768px) {
+  .container {
+    padding: 15px;
+  }
+  
+  .non-bazargah-container {
+    padding: 25px;
+  }
+  
+  .non-bazargah-header {
+    font-size: 1.8rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .non-bazargah-badge {
+    margin-left: 0;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+  }
+  
+  .purchase-title {
+    font-size: 1.5rem;
+  }
+  
+  .purchase-title i {
+    font-size: 1.2rem;
+  }
+  
+  .purchase-info {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-section {
+    margin-bottom: 20px;
+  }
+  
+  .section-title {
+    font-size: 1.1rem;
+    padding: 15px 20px;
+  }
+  
+  .section-title i {
+    font-size: 0.9rem;
+    margin-left: 8px;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .button {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  .timeline-item {
+    min-width: 120px;
+    padding: 15px 10px;
+  }
+  
+  .timeline-icon {
+    width: 35px;
+    height: 35px;
+  }
+  
+  .timeline-label {
+    font-size: 0.8rem;
+  }
+  
+  .upload-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .upload-container input[type="file"] {
+    min-width: unset;
+    margin-bottom: 10px;
+  }
+  
+  .btn-upload {
+    width: 100%;
+  }
+  
+  .current-document {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: right;
+  }
+  
+  .weight-info-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .allocation-form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .allocation-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .allocation-receiver {
+    margin: 0;
+  }
+  
+  .allocation-barnameh-header {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  
+  .allocation-barnameh-header h4 {
+    min-width: unset;
+    margin-bottom: 10px;
+  }
+  
+  .barnameh-info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .barnameh-header {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    gap: 10px;
+  }
+  
+  .barnameh-actions {
+    margin-top: 10px;
+  }
+  
+  .btn-add-barnameh,
+  .btn-update-barnameh {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* انیمیشن slideDown */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 1000px;
+  }
+}

@@ -1,0 +1,284 @@
+.page-header {
+    background: #064E3B;
+    color: white;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    text-align: center;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.page-header h1 {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.page-header p {
+    margin: 10px 0 0 0;
+    opacity: 0.9;
+    font-size: 1rem;
+}
+
+.stats-row {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    border: none;
+    text-align: center;
+}
+
+.stats-item {
+    text-align: center;
+    padding: 15px;
+    display: inline-block;
+    margin: 0 20px;
+}
+
+.stats-item .number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #2d5016;
+    margin-bottom: 10px;
+}
+
+.stats-item .label {
+    color: #6c757d;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.table-container {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    border: none;
+    overflow-x: auto;
+}
+
+.table {
+    margin-bottom: 0;
+    min-width: 1200px;
+    width: 100%;
+}
+
+.table thead th {
+    background: #064E3B;
+    color: white;
+    border: none;
+    font-weight: 600;
+    padding: 15px 12px;
+    font-size: 0.95rem;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.table tbody tr {
+    transition: all 0.3s ease;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.table tbody tr:hover {
+    background-color: #f7fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.table tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.table tbody tr:nth-child(odd) {
+    background-color: white;
+}
+
+.table tbody td {
+    padding: 15px 12px;
+    vertical-align: middle;
+    text-align: center;
+    border: none;
+    font-size: 0.9rem;
+    color: #2d3748;
+    white-space: nowrap;
+}
+
+.badge {
+    font-size: 0.8rem;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.badge.bg-primary {
+    background: #2d5016 !important;
+}
+
+.badge.bg-success {
+    background: #38a169 !important;
+}
+
+.badge.bg-warning {
+    background: #ed8936 !important;
+    color: white !important;
+}
+
+.pagination {
+    margin-top: 25px;
+    justify-content: center;
+}
+
+.page-link {
+    border: 1px solid #064E3B;
+    color: #064E3B;
+    padding: 12px 18px;
+    margin: 0 3px;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.page-link:hover {
+    background-color: #064E3B;
+    color: white;
+    border-color: #064E3B;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(6, 78, 59, 0.4);
+}
+
+.page-item.active .page-link {
+    background: #064E3B;
+    border-color: #064E3B;
+    color: white;
+    box-shadow: 0 4px 15px rgba(6, 78, 59, 0.4);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-state h5 {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    color: #495057;
+}
+
+.empty-state p {
+    font-size: 1.1rem;
+    opacity: 0.7;
+}
+
+.btn-group {
+    gap: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+    flex-direction: row;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    margin: 2px;
+}
+
+.btn-info {
+    background: #4299e1;
+    border: none;
+    color: white;
+}
+
+.btn-warning {
+    background: #ed8936;
+    border: none;
+    color: white;
+}
+
+.btn-danger {
+    background: #f56565;
+    border: none;
+    color: white;
+}
+
+.btn-primary {
+    background: #064E3B;
+    border: none;
+    color: white;
+}
+
+.btn-success {
+    background: #38a169;
+    border: none;
+    color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .table {
+        min-width: 1000px;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .page-header p {
+        font-size: 0.9rem;
+    }
+    
+    .stats-item .number {
+        font-size: 2rem;
+    }
+    
+    .table-container {
+        padding: 15px;
+    }
+    
+    .table {
+        min-width: 800px;
+    }
+    
+    .table thead th,
+    .table tbody td {
+        padding: 10px 8px;
+        font-size: 0.85rem;
+    }
+    
+    .btn-group {
+        flex-direction: row;
+        gap: 3px;
+        flex-wrap: nowrap;
+    }
+    
+    .btn-sm {
+        flex: 1;
+        min-width: 35px;
+        margin: 1px;
+    }
+}
+
+@media (max-width: 576px) {
+    .stats-item {
+        display: block;
+        margin: 10px 0;
+    }
+    
+    .table {
+        min-width: 600px;
+    }
+}
