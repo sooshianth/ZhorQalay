@@ -7,26 +7,26 @@
 {% block extra_css %}
 <style>
     .page-header {
-        background: #134e16;
+        background: #064E3B;
         color: white;
-        padding: 30px;
+        padding: 20px;
         border-radius: 15px;
-        margin-bottom: 30px;
+        margin-bottom: 20px;
         text-align: center;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     }
     
     .page-header h1 {
         margin: 0;
-        font-size: 2.5rem;
+        font-size: 1.8rem;
         font-weight: bold;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
     }
     
     .page-header p {
-        margin: 15px 0 0 0;
+        margin: 10px 0 0 0;
         opacity: 0.9;
-        font-size: 1.2rem;
+        font-size: 1rem;
     }
     
     .stats-row {
@@ -48,7 +48,7 @@
     .stats-item .number {
         font-size: 2.5rem;
         font-weight: bold;
-        color: #134e16;
+        color: #064E3B;
         margin-bottom: 10px;
     }
     
@@ -71,7 +71,7 @@
     }
     
     .table thead th {
-        background: #134e16;
+        background: #064E3B;
         color: white;
         border: none;
         font-weight: 600;
@@ -94,17 +94,60 @@
         vertical-align: middle;
         border-top: 1px solid #dee2e6;
         font-size: 0.9rem;
+        height: 60px;
+    }
+    
+    .status-cell {
+        text-align: center;
+        vertical-align: middle;
     }
     
     .badge {
-        font-size: 0.8rem;
-        padding: 8px 12px;
-        border-radius: 20px;
+        font-size: 0.75rem;
+        padding: 6px 10px;
+        border-radius: 15px;
         font-weight: 600;
+        line-height: 1.2;
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+        min-height: 28px;
+    }
+    
+    .badge i {
+        margin-left: 4px;
+        font-size: 0.7rem;
+    }
+    
+    .status-cell .badge {
+        margin: 0 auto;
+        justify-content: center;
+        text-align: center;
     }
     
     .badge.bg-primary {
-        background: #134e16 !important;
+        background: #064E3B !important;
+    }
+    
+    .badge.bg-success {
+        background: #064E3B !important;
+    }
+    
+    .badge.bg-warning {
+        background: #f39c12 !important;
+        color: white !important;
+    }
+    
+    .badge.bg-danger {
+        background: #e74c3c !important;
+    }
+    
+    .badge.bg-info {
+        background: #3498db !important;
+    }
+    
+    .badge.bg-secondary {
+        background: #6c757d !important;
     }
     
     .pagination {
@@ -113,8 +156,8 @@
     }
     
     .page-link {
-        border: 1px solid #134e16;
-        color: #134e16;
+        border: 1px solid #064E3B;
+        color: #064E3B;
         padding: 12px 18px;
         margin: 0 3px;
         border-radius: 10px;
@@ -123,18 +166,18 @@
     }
     
     .page-link:hover {
-        background-color: #134e16;
+        background-color: #064E3B;
         color: white;
-        border-color: #134e16;
+        border-color: #064E3B;
         transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(27, 94, 32, 0.4);
+        box-shadow: 0 4px 15px rgba(6, 78, 59, 0.4);
     }
     
     .page-item.active .page-link {
-        background: #134e16;
-        border-color: #134e16;
+        background: #064E3B;
+        border-color: #064E3B;
         color: white;
-        box-shadow: 0 4px 15px rgba(27, 94, 32, 0.4);
+        box-shadow: 0 4px 15px rgba(6, 78, 59, 0.4);
     }
     
     .empty-state {
@@ -162,11 +205,11 @@
     
     @media (max-width: 768px) {
         .page-header h1 {
-            font-size: 2rem;
+            font-size: 1.5rem;
         }
         
         .page-header p {
-            font-size: 1rem;
+            font-size: 0.9rem;
         }
         
         .stats-item .number {
@@ -194,22 +237,6 @@
         <p>مدیریت و پیگیری خریدهای خارج از سیستم بازارگاه</p>
     </div>
 
-    <!-- آمار کلی -->
-    <div class="stats-row">
-        <div class="stats-item">
-            <div class="number">{{ total_purchases|default:0 }}</div>
-            <div class="label">کل خریدها</div>
-        </div>
-        <div class="stats-item">
-            <div class="number">{{ page_obj.paginator.count|default:0 }}</div>
-            <div class="label">نمایش داده شده</div>
-        </div>
-        <div class="stats-item">
-            <div class="number">{{ page_obj.paginator.num_pages|default:1 }}</div>
-            <div class="label">تعداد صفحات</div>
-        </div>
-    </div>
-
     <!-- جدول خریدها -->
     <div class="table-container">
         <h5 class="mb-4">
@@ -230,10 +257,8 @@
                             <th>واحد</th>
                             <th>مشتری</th>
                             <th>نام خریدار</th>
-                            {% if user_role not in 'sales_agent,support_agent' %}
-                                <th>فی خرید (ریال)</th>
-                                <th>فی فروش (ریال)</th>
-                            {% endif %}
+                            <th>فی فروش (ریال)</th>
+                            <th>جزییات</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -245,19 +270,81 @@
                                 <td>{{ purchase.created_at|date:"Y/m/d" }}</td>
                                 <td>{{ purchase.unique_sales_agent.name|default:"تعیین نشده" }}</td>
                                 <td>{{ purchase.total_weight|intcomma|default:"0" }}</td>
-                                <td>
-                                    <span class="badge bg-{% if purchase.state == 'initiated' %}primary{% else %}secondary{% endif %}">
-                                        {{ purchase.get_state_display|default:purchase.state }}
-                                    </span>
+                                <td class="status-cell">
+                                    {% if purchase.state == 'initiated' %}
+                                        <span class="badge bg-primary">
+                                            <i class="fas fa-play-circle"></i> {{ purchase.get_state_display|default:purchase.state }}
+                                        </span>
+                                    {% elif purchase.state == 'payment_verification_pending' %}
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-clock"></i> {{ purchase.get_state_display|default:purchase.state }}
+                                        </span>
+                                    {% elif purchase.state == 'payment_verified' %}
+                                        <span class="badge bg-info">
+                                            <i class="fas fa-check-circle"></i> {{ purchase.get_state_display|default:purchase.state }}
+                                        </span>
+                                    {% elif purchase.state == 'address_assigned' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-map-marker-alt"></i> {{ purchase.get_state_display|default:purchase.state }}
+                                        </span>
+                                    {% elif purchase.state == 'sent_to_warehouse' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-warehouse"></i> {{ purchase.get_state_display|default:purchase.state }}
+                                        </span>
+                                    {% elif purchase.state == 'carrier_notified' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-truck"></i> {{ purchase.get_state_display|default:purchase.state }}
+                                        </span>
+                                    {% elif purchase.state == 'vehicle_arrived' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-truck-loading"></i> {{ purchase.get_state_display|default:purchase.state }}
+                                        </span>
+                                    {% elif purchase.state == 'empty_weighed' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-weight"></i> {{ purchase.get_state_display|default:purchase.state }}
+                                        </span>
+                                    {% elif purchase.state == 'loaded_weighed' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-weight-hanging"></i> {{ purchase.get_state_display|default:purchase.state }}
+                                        </span>
+                                    {% elif purchase.state == 'barnameh_issued' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-file-invoice"></i> {{ purchase.get_state_display|default:purchase.state }}
+                                        </span>
+                                    {% elif purchase.state == 'delivered' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-double"></i> {{ purchase.get_state_display|default:purchase.state }}
+                                        </span>
+                                    {% elif purchase.state == 'purchase_closed' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-archive"></i> {{ purchase.get_state_display|default:purchase.state }}
+                                        </span>
+                                    {% elif purchase.state == 'canceled' %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times-circle"></i> {{ purchase.get_state_display|default:purchase.state }}
+                                        </span>
+                                    {% elif purchase.state == 'archived' %}
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-archive"></i> {{ purchase.get_state_display|default:purchase.state }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">
+                                            {{ purchase.get_state_display|default:purchase.state }}
+                                        </span>
+                                    {% endif %}
                                 </td>
                                 <td>{{ purchase.product.name|default:"تعیین نشده" }}</td>
                                 <td>{{ purchase.get_unit_display|default:purchase.unit }}</td>
                                 <td>{{ purchase.customer.name|default:"نامشخص" }}</td>
                                 <td>{{ purchase.buyer_name|default:"-" }}</td>
-                                {% if user_role not in 'sales_agent,support_agent' %}
-                                    <td>{{ purchase.company_price|intcomma|default:"0" }}</td>
-                                    <td>{{ purchase.customer_price|intcomma|default:"0" }}</td>
-                                {% endif %}
+                                <td>{{ purchase.customer_price|intcomma|default:"0" }}</td>
+                                <td>
+                                    <a href="{% url 'non_bazargah_purchase_CRUD' purchase.id %}" 
+                                       class="btn btn-sm btn-outline-primary" 
+                                       title="مشاهده و ویرایش جزییات خرید">
+                                        <i class="fas fa-eye"></i> جزییات
+                                    </a>
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>

@@ -7,26 +7,26 @@
 {% block extra_css %}
 <style>
     .page-header {
-        background: linear-gradient(135deg, #2d5016 0%, #1a3d0f 100%);
+        background: #064E3B;
         color: white;
-        padding: 30px;
+        padding: 20px;
         border-radius: 15px;
-        margin-bottom: 30px;
+        margin-bottom: 20px;
         text-align: center;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     }
     
     .page-header h1 {
         margin: 0;
-        font-size: 2.5rem;
+        font-size: 1.8rem;
         font-weight: bold;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
     }
     
     .page-header p {
-        margin: 15px 0 0 0;
+        margin: 10px 0 0 0;
         opacity: 0.9;
-        font-size: 1.2rem;
+        font-size: 1rem;
     }
     
     .stats-row {
@@ -75,7 +75,7 @@
     }
     
     .table thead th {
-        background: linear-gradient(135deg, #2d5016 0%, #1a3d0f 100%);
+        background: #064E3B;
         color: white;
         border: none;
         font-weight: 600;
@@ -140,8 +140,8 @@
     }
     
     .page-link {
-        border: 1px solid #2d5016;
-        color: #2d5016;
+        border: 1px solid #064E3B;
+        color: #064E3B;
         padding: 12px 18px;
         margin: 0 3px;
         border-radius: 10px;
@@ -150,18 +150,18 @@
     }
     
     .page-link:hover {
-        background-color: #2d5016;
+        background-color: #064E3B;
         color: white;
-        border-color: #2d5016;
+        border-color: #064E3B;
         transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(45, 80, 22, 0.4);
+        box-shadow: 0 4px 15px rgba(6, 78, 59, 0.4);
     }
     
     .page-item.active .page-link {
-        background: #2d5016;
-        border-color: #2d5016;
+        background: #064E3B;
+        border-color: #064E3B;
         color: white;
-        box-shadow: 0 4px 15px rgba(45, 80, 22, 0.4);
+        box-shadow: 0 4px 15px rgba(6, 78, 59, 0.4);
     }
     
     .empty-state {
@@ -192,7 +192,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        flex-direction: row;
     }
     
     .btn-sm {
@@ -221,7 +222,7 @@
     }
     
     .btn-primary {
-        background: #2d5016;
+        background: #064E3B;
         border: none;
         color: white;
     }
@@ -241,11 +242,11 @@
     
     @media (max-width: 768px) {
         .page-header h1 {
-            font-size: 2rem;
+            font-size: 1.5rem;
         }
         
         .page-header p {
-            font-size: 1rem;
+            font-size: 0.9rem;
         }
         
         .stats-item .number {
@@ -267,13 +268,15 @@
         }
         
         .btn-group {
-            flex-direction: column;
+            flex-direction: row;
             gap: 3px;
+            flex-wrap: nowrap;
         }
         
         .btn-sm {
-            width: 100%;
-            margin: 1px 0;
+            flex: 1;
+            min-width: 35px;
+            margin: 1px;
         }
     }
     
@@ -298,22 +301,6 @@
         <p>مدیریت و پیگیری بارنامه‌های خارج از سیستم بازارگاه</p>
     </div>
 
-    <!-- آمار کلی -->
-    <div class="stats-row">
-        <div class="stats-item">
-            <div class="number">{{ total_barnamehs|default:0 }}</div>
-            <div class="label">کل بارنامه‌ها</div>
-        </div>
-        <div class="stats-item">
-            <div class="number">{{ page_obj.paginator.count|default:0 }}</div>
-            <div class="label">نمایش داده شده</div>
-        </div>
-        <div class="stats-item">
-            <div class="number">{{ page_obj.paginator.num_pages|default:1 }}</div>
-            <div class="label">تعداد صفحات</div>
-        </div>
-    </div>
-
     <!-- جدول بارنامه‌ها -->
     <div class="table-container">
         <h5 class="mb-4">
@@ -328,14 +315,15 @@
                             <th>شماره بارنامه</th>
                             <th>سریال</th>
                             <th>وزن (کیلوگرم)</th>
-                            <th>وضعیت</th>
                             <th>نام راننده</th>
                             <th>شماره راننده</th>
                             <th>پلاک خودرو</th>
                             <th>نام گیرنده</th>
                             <th>مقصد</th>
                             <th>تاریخ بارنامه</th>
-                            <th>شناسه خرید</th>
+                            <th>شماره خرید</th>
+                            <th>مشتری</th>
+                            <th>محصول</th>
                             <th>نام خریدار</th>
                             {% if user_role not in 'sales_agent,support_agent' %}
                                 <th>فی خرید (ریال)</th>
@@ -354,22 +342,33 @@
                                 </td>
                                 <td>{{ barnameh.serial|default:"-" }}</td>
                                 <td>{{ barnameh.tonnage|default:"0" }}</td>
-                                <td>
-                                    {% if barnameh.status == 'NOT_SENT_TO_BKI' %}
-                                        <span class="badge bg-warning">ارسال نشده به بازارگاه</span>
-                                    {% elif barnameh.status == 'SENT_TO_BKI' %}
-                                        <span class="badge bg-success">ارسال شده به بازارگاه</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">{{ barnameh.status }}</span>
-                                    {% endif %}
-                                </td>
                                 <td>{{ barnameh.driver_name|default:"-" }}</td>
                                 <td>{{ barnameh.driver_phone|default:"-" }}</td>
                                 <td>{{ barnameh.vehicle_plate|default:"-" }}</td>
                                 <td>{{ barnameh.receiver_name|default:"-" }}</td>
                                 <td>{{ barnameh.destination|default:"-" }}</td>
                                 <td>{{ barnameh.barnameh_date|default:"-" }}</td>
-                                <td>{{ barnameh.purchase_number|default:"-" }}</td>
+                                <td>
+                                    {% if barnameh.non_bazargah_purchase %}
+                                        <strong>{{ barnameh.non_bazargah_purchase.purchase_number|default:"تعیین نشده" }}</strong>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if barnameh.non_bazargah_purchase and barnameh.non_bazargah_purchase.customer %}
+                                        {{ barnameh.non_bazargah_purchase.customer.name }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if barnameh.non_bazargah_purchase and barnameh.non_bazargah_purchase.product %}
+                                        {{ barnameh.non_bazargah_purchase.product.name }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
                                 <td>{{ barnameh.get_buyer_name|default:"-" }}</td>
                                 {% if user_role not in 'sales_agent,support_agent' %}
                                     <td>{{ barnameh.get_company_price|intcomma|default:"0" }}</td>
@@ -390,41 +389,26 @@
                                     </td>
                                 {% endif %}
                                 <td>
-                                    <div class="btn-group">
+                                    <div class="btn-group" style="display: flex; gap: 5px; flex-wrap: nowrap;">
                                         <a href="{% url 'barnameh_detail' barnameh.id %}" 
                                            class="btn btn-info btn-sm" 
                                            title="مشاهده جزئیات">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        {% if not barnameh.is_sent_to_bki %}
-                                            <a href="{% url 'barnameh_edit' barnameh.id %}" 
-                                               class="btn btn-warning btn-sm" 
-                                               title="ویرایش">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <form action="{% url 'barnameh_delete' barnameh.id %}" method="post" 
-                                                  class="d-inline" 
-                                                  onsubmit="return confirm('آیا از حذف این بارنامه اطمینان دارید؟');">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-danger btn-sm" 
-                                                        title="حذف">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                            <form action="{% url 'send_to_bki' barnameh.id %}" method="post" class="d-inline">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-primary btn-sm" 
-                                                        title="ارسال به بازارگاه">
-                                                    <i class="fas fa-paper-plane"></i>
-                                                </button>
-                                            </form>
-                                        {% else %}
-                                            <a href="{% url 'edit_barnameh_in_bki' barnameh.id %}" 
-                                               class="btn btn-warning btn-sm" 
-                                               title="ویرایش در بازارگاه">
-                                                <i class="fas fa-pencil-alt"></i>
-                                            </a>
-                                        {% endif %}
+                                        <a href="{% url 'barnameh_edit' barnameh.id %}" 
+                                           class="btn btn-warning btn-sm" 
+                                           title="ویرایش">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form action="{% url 'barnameh_delete' barnameh.id %}" method="post" 
+                                              class="d-inline" 
+                                              onsubmit="return confirm('آیا از حذف این بارنامه اطمینان دارید؟');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger btn-sm" 
+                                                    title="حذف">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>

@@ -23,6 +23,8 @@ def non_bazargah_barnameh_list(request):
     ).select_related(
         'non_bazargah_purchase', 'non_bazargah_purchase__customer', 
         'non_bazargah_purchase__unique_sales_agent', 'non_bazargah_purchase__product'
+    ).prefetch_related(
+        'non_bazargah_purchase__allocations'
     ).order_by('-barnameh_created_at')
     
     # اگر کاربر کارشناس فروش است، فقط بارنامه‌های مربوطه را ببیند
