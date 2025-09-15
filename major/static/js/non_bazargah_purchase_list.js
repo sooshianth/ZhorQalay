@@ -244,6 +244,28 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     /**
+     * بروزرسانی ظاهر سطرهای انتخاب شده
+     */
+    function updateRowAppearance() {
+        const checkboxes = getRowCheckboxes();
+        
+        checkboxes.forEach(checkbox => {
+            const row = checkbox.closest('tr');
+            if (row) {
+                if (checkbox.checked) {
+                    row.classList.add('table-active', 'selected-row');
+                    row.style.backgroundColor = '#e3f2fd';
+                    row.style.borderLeft = '4px solid #2196f3';
+                } else {
+                    row.classList.remove('table-active', 'selected-row');
+                    row.style.backgroundColor = '';
+                    row.style.borderLeft = '';
+                }
+            }
+        });
+    }
+    
+    /**
      * انتخاب همه سطرها
      */
     function selectAllRows() {
@@ -256,6 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
             selectAllCheckbox.checked = true;
         }
         
+        updateRowAppearance();
         updateExportButtonState();
     }
     
@@ -272,6 +295,7 @@ document.addEventListener('DOMContentLoaded', function() {
             selectAllCheckbox.checked = false;
         }
         
+        updateRowAppearance();
         updateExportButtonState();
     }
     
@@ -288,6 +312,7 @@ document.addEventListener('DOMContentLoaded', function() {
             selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < totalCount;
         }
         
+        updateRowAppearance();
         updateExportButtonState();
     }
     
@@ -443,6 +468,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // تنظیم وضعیت اولیه دکمه خروجی اکسل
         updateExportButtonState();
+        
+        // تنظیم ظاهر اولیه سطرها
+        updateRowAppearance();
         
         console.log('مدیریت ستون‌های جدول خریدهای خارج از بازارگاه راه‌اندازی شد.');
     }
