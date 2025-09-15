@@ -85,6 +85,7 @@
                                     <option value="receiver_name">نام گیرنده</option>
                                     <option value="destination">مقصد</option>
                                     <option value="barnameh_date">تاریخ بارنامه</option>
+                                    <option value="factor_date">تاریخ ثبت فاکتور در سامانه مؤدیان</option>
                                 </select>
                                 <div class="invalid-feedback">لطفاً فیلد مورد نظر را انتخاب کنید.</div>
                             </div>
@@ -164,6 +165,12 @@
                     // Add date format validation
                     $('#new_value').attr('pattern', '\\d{4}/\\d{2}/\\d{2}');
                     break;
+                case 'factor_date':
+                    hint = 'تاریخ ثبت فاکتور در سامانه مؤدیان را به فرمت 1404/02/04 وارد کنید.';
+                    $('#new_value').attr('type', 'text').removeAttr('step').removeAttr('min');
+                    // Add date format validation
+                    $('#new_value').attr('pattern', '\\d{4}/\\d{2}/\\d{2}');
+                    break;
                 case 'driver_phone':
                     hint = 'شماره تلفن را بدون خط تیره وارد کنید.';
                     $('#new_value').attr('type', 'tel').removeAttr('step').removeAttr('min');
@@ -209,6 +216,26 @@
                 if (month < 1 || month > 12 || day < 1 || day > 31) {
                     event.preventDefault();
                     alert('لطفاً یک تاریخ معتبر وارد کنید.');
+                    return false;
+                }
+            } else if (field === 'factor_date') {
+                // Check date format (YYYY/MM/DD) for factor_date
+                var datePattern = /^\d{4}\/\d{2}\/\d{2}$/;
+                if (!datePattern.test(value)) {
+                    event.preventDefault();
+                    alert('لطفاً تاریخ ثبت فاکتور را به فرمت صحیح وارد کنید (مثال: 1404/02/04)');
+                    return false;
+                }
+                
+                // Additional validation for date parts
+                var parts = value.split('/');
+                var year = parseInt(parts[0]);
+                var month = parseInt(parts[1]);
+                var day = parseInt(parts[2]);
+                
+                if (month < 1 || month > 12 || day < 1 || day > 31) {
+                    event.preventDefault();
+                    alert('لطفاً یک تاریخ معتبر برای تاریخ ثبت فاکتور وارد کنید.');
                     return false;
                 }
             }
