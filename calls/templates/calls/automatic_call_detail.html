@@ -542,13 +542,6 @@
                 <span class="info-value">{{ call.created_by.get_full_name|default:call.created_by.username }}</span>
             </div>
             
-            {% if call.assigned_to %}
-            <div class="info-item">
-                <span class="info-label">اختصاص داده شده به:</span>
-                <span class="info-value">{{ call.assigned_to.get_full_name|default:call.assigned_to.username }}</span>
-            </div>
-            {% endif %}
-            
             {% if call.phone_numbers %}
             <div class="info-item">
                 <span class="info-label">شماره‌های تلفن:</span>

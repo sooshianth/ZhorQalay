@@ -28,4 +28,9 @@ urlpatterns = [
     
     # API endpoints
     path('api/stats/', views.get_call_stats_api, name='get_call_stats_api'),
+
+    # Asterisk Webhook API endpoints
+    path('api/asterisk/call-start/', views.asterisk_webhook_call_start, name='asterisk_webhook_call_start'),
+    path('api/asterisk/call-end/', views.asterisk_webhook_call_end, name='asterisk_webhook_call_end'),
+    path('api/call/<int:call_id>/queue-status/', views.get_call_queue_status, name='get_call_queue_status'),
 ]

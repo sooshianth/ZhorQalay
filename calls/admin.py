@@ -1,13 +1,13 @@
 from django.contrib import admin
-from .models import AutomaticCall, CallCustomer, CallLog, CallQueue
+from .models import AutomaticCall, CallLog, CallQueue
 
 
 @admin.register(CallQueue)
 class CallQueueAdmin(admin.ModelAdmin):
-    list_display = ['phone_number', 'source', 'customer', 'session_id', 'added_by', 'created_at']
-    list_filter = ['source', 'created_at']
+    list_display = ['phone_number', 'source', 'status', 'customer', 'assigned_agent', 'session_id', 'added_by', 'created_at']
+    list_filter = ['source', 'status', 'created_at']
     search_fields = ['phone_number', 'session_id', 'customer__name']
-    readonly_fields = ['created_at']
+    readonly_fields = ['created_at', 'call_started_at', 'call_ended_at']
 
 
 @admin.register(AutomaticCall)
@@ -24,8 +24,8 @@ class AutomaticCallAdmin(admin.ModelAdmin):
         ('زمان‌بندی', {
             'fields': ('scheduled_time', 'start_time', 'end_time')
         }),
-        ('وضعیت و اختصاص', {
-            'fields': ('status', 'created_by', 'assigned_to')
+        ('وضعیت و ایجاد', {
+            'fields': ('status', 'created_by')
         }),
         ('تنظیمات صف', {
             'fields': ('queue_session_id',)
@@ -46,13 +46,6 @@ class AutomaticCallAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-
-
-@admin.register(CallCustomer)
-class CallCustomerAdmin(admin.ModelAdmin):
-    list_display = ['call', 'customer', 'phone_number', 'call_time', 'duration', 'result']
-    list_filter = ['call__status', 'call_time', 'result']
-    search_fields = ['customer__name', 'phone_number', 'notes']
 
 
 @admin.register(CallLog)

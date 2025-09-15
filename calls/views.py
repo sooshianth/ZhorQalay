@@ -1,16 +1,18 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 import json
 import uuid
 import pandas as pd
-from .models import AutomaticCall, CallCustomer, CallLog, CallQueue
+from .models import AutomaticCall, CallLog, CallQueue
 from core.CustomerModel import Customer
 
 
@@ -175,13 +177,9 @@ def automatic_call_detail(request, call_id):
     # لاگ‌های تماس
     logs = call.logs.order_by('-timestamp')[:20]
     
-    # تماس‌های مشتریان
-    customer_calls = CallCustomer.objects.filter(call=call).select_related('customer')
-    
     context = {
         'call': call,
         'logs': logs,
-        'customer_calls': customer_calls,
     }
     return render(request, 'calls/automatic_call_detail.html', context)
 
@@ -484,10 +482,14 @@ def add_manual_numbers_to_queue(request):
     
     for number in numbers:
         try:
+            # Try to find existing customer with this phone number
+            customer = Customer.get_customer_by_phone(number)
+            
             queue_item, created = CallQueue.objects.get_or_create(
                 session_id=session_id,
                 phone_number=number,
                 defaults={
+                    'customer': customer,
                     'source': 'manual',
                     'added_by': request.user
                 }
@@ -581,10 +583,14 @@ def upload_excel_to_queue(request):
 
         for number in set(numbers):  # حذف تکراری‌ها
             try:
+                # Try to find existing customer with this phone number
+                customer = Customer.get_customer_by_phone(number)
+                
                 queue_item, created = CallQueue.objects.get_or_create(
                     session_id=session_id,
                     phone_number=number,
                     defaults={
+                        'customer': customer,
                         'source': 'excel',
                         'added_by': request.user
                     }
@@ -801,6 +807,15 @@ def get_queue_numbers(request):
                     'customer_name': item.customer.name if item.customer else None,
                     'source': item.source,
                     'source_display': item.get_source_display(),
+                    'status': item.status,
+                    'status_display': item.get_status_display(),
+                    'call_duration': item.call_duration,
+                    'assigned_agent': {
+                        'id': item.assigned_agent.id,
+                        'name': item.assigned_agent.get_full_name() or item.assigned_agent.username
+                    } if item.assigned_agent else None,
+                    'call_started_at': item.call_started_at.isoformat() if item.call_started_at else None,
+                    'call_ended_at': item.call_ended_at.isoformat() if item.call_ended_at else None,
                 })
             
             return JsonResponse({
@@ -817,3 +832,227 @@ def get_queue_numbers(request):
         return JsonResponse({'success': False, 'error': 'تماس پیدا نشد'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+
+
+# API endpoints for Asterisk integration
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.http import HttpResponse
+import json
+from django.utils.dateparse import parse_datetime
+
+@csrf_exempt
+@require_POST
+def asterisk_webhook_call_start(request):
+    """
+    Webhook for Asterisk to notify when a call starts
+    Expected data:
+    {
+        "session_id": "uuid",
+        "phone_number": "09123456789",
+        "agent_id": 123,
+        "timestamp": "2025-09-15T10:30:00Z"
+    }
+    """
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+        phone_number = data.get('phone_number')
+        agent_id = data.get('agent_id')
+        timestamp = data.get('timestamp')
+        
+        if not all([session_id, phone_number]):
+            return JsonResponse({'success': False, 'error': 'Missing required fields'}, status=400)
+        
+        # Find the queue item
+        try:
+            queue_item = CallQueue.objects.get(session_id=session_id, phone_number=phone_number)
+        except CallQueue.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Queue item not found'}, status=404)
+        
+        # Update queue item status
+        queue_item.status = 'calling'
+        if timestamp:
+            queue_item.call_started_at = parse_datetime(timestamp)
+        else:
+            queue_item.call_started_at = timezone.now()
+        
+        # Assign agent if provided
+        if agent_id:
+            try:
+                agent = User.objects.get(id=agent_id)
+                queue_item.assigned_agent = agent
+            except User.DoesNotExist:
+                pass
+        
+        queue_item.save()
+        
+        # Log the event
+        try:
+            call = AutomaticCall.objects.get(queue_session_id=session_id)
+            CallLog.objects.create(
+                call=call,
+                event_type='call_start',
+                message=f'تماس با {phone_number} شروع شد',
+                details=data
+            )
+        except AutomaticCall.DoesNotExist:
+            pass
+        
+        return JsonResponse({'success': True, 'message': 'Call start recorded'})
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def asterisk_webhook_call_end(request):
+    """
+    Webhook for Asterisk to notify when a call ends
+    Expected data:
+    {
+        "session_id": "uuid",
+        "phone_number": "09123456789",
+        "status": "answered_ivr|answered_no_ivr|not_answered|busy",
+        "duration": 45,
+        "timestamp": "2025-09-15T10:32:30Z"
+    }
+    Note: 
+    - answered_ivr: Call was answered and customer went through IVR (call ended)
+    - answered_no_ivr: Call was answered but customer did not go through IVR (call ended)
+    - not_answered: Call was not answered
+    - busy: Line was busy
+    """
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+        phone_number = data.get('phone_number')
+        status = data.get('status')
+        duration = data.get('duration')
+        timestamp = data.get('timestamp')
+        
+        if not all([session_id, phone_number, status]):
+            return JsonResponse({'success': False, 'error': 'Missing required fields'}, status=400)
+        
+        # Validate status
+        valid_statuses = ['answered_ivr', 'answered_no_ivr', 'not_answered', 'busy']
+        if status not in valid_statuses:
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        
+        # Find the queue item
+        try:
+            queue_item = CallQueue.objects.get(session_id=session_id, phone_number=phone_number)
+        except CallQueue.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Queue item not found'}, status=404)
+        
+        # Update queue item
+        queue_item.status = status
+        if duration is not None:
+            queue_item.call_duration = duration
+        if timestamp:
+            queue_item.call_ended_at = parse_datetime(timestamp)
+        else:
+            queue_item.call_ended_at = timezone.now()
+        
+        queue_item.save()
+        
+        # Update AutomaticCall statistics
+        try:
+            call = AutomaticCall.objects.get(queue_session_id=session_id)
+            
+            # Update counters based on status
+            if status in ['answered_ivr', 'answered_no_ivr']:
+                call.successful_calls += 1
+            elif status in ['not_answered', 'busy']:
+                call.failed_calls += 1
+            
+            # Check if all calls are completed
+            total_queue_items = CallQueue.objects.filter(session_id=session_id).count()
+            completed_items = CallQueue.objects.filter(
+                session_id=session_id, 
+                status__in=['answered_ivr', 'answered_no_ivr', 'not_answered', 'busy']
+            ).count()
+            
+            if completed_items >= total_queue_items:
+                call.status = 'completed'
+                call.end_time = timezone.now()
+            
+            call.save()
+            
+            # Log the event
+            CallLog.objects.create(
+                call=call,
+                event_type='call_end',
+                message=f'تماس با {phone_number} به پایان رسید. وضعیت: {status}',
+                details=data
+            )
+            
+        except AutomaticCall.DoesNotExist:
+            pass
+        
+        return JsonResponse({'success': True, 'message': 'Call end recorded'})
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+def get_call_queue_status(request, call_id):
+    """
+    API to get real-time status of all numbers in a call queue
+    """
+    try:
+        call = AutomaticCall.objects.get(id=call_id)
+        
+        if not call.queue_session_id:
+            return JsonResponse({'success': False, 'error': 'No queue session found'})
+        
+        queue_items = CallQueue.objects.filter(session_id=call.queue_session_id).select_related('assigned_agent', 'customer')
+        
+        queue_data = []
+        for item in queue_items:
+            queue_data.append({
+                'phone_number': item.phone_number,
+                'customer_name': item.customer.name if item.customer else None,
+                'status': item.status,
+                'status_display': item.get_status_display(),
+                'call_duration': item.call_duration,
+                'assigned_agent': {
+                    'id': item.assigned_agent.id,
+                    'name': item.assigned_agent.get_full_name() or item.assigned_agent.username
+                } if item.assigned_agent else None,
+                'call_started_at': item.call_started_at.isoformat() if item.call_started_at else None,
+                'call_ended_at': item.call_ended_at.isoformat() if item.call_ended_at else None,
+                'source': item.source,
+                'source_display': item.get_source_display(),
+            })
+        
+        # Calculate statistics
+        total_count = len(queue_data)
+        status_counts = {}
+        for item in queue_items:
+            status_counts[item.status] = status_counts.get(item.status, 0) + 1
+        
+        return JsonResponse({
+            'success': True,
+            'queue_data': queue_data,
+            'statistics': {
+                'total': total_count,
+                'waiting': status_counts.get('waiting', 0),
+                'calling': status_counts.get('calling', 0),
+                'answered_ivr': status_counts.get('answered_ivr', 0),
+                'answered_no_ivr': status_counts.get('answered_no_ivr', 0),
+                'not_answered': status_counts.get('not_answered', 0),
+                'busy': status_counts.get('busy', 0),
+            }
+        })
+        
+    except AutomaticCall.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Call not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

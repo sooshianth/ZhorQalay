@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
-from .models import AutomaticCall, CallCustomer, CallLog
+from .models import AutomaticCall, CallLog, CallQueue
 from core.CustomerModel import Customer
 
 

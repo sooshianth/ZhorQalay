@@ -18,12 +18,30 @@ class CallQueue(models.Model):
         ('excel', 'اکسل'),
     ]
     
+    STATUS_CHOICES = [
+        ('waiting', 'در انتظار'),
+        ('calling', 'در حال تماس'),
+        ('not_answered', 'پاسخ داده نشد'),
+        ('answered_no_ivr', 'پاسخ داد اما وارد IVR نشد'),
+        ('answered_ivr', 'پاسخ داد و وارد IVR شد'),
+        ('busy', 'مشغول'),
+    ]
+    
     session_id = models.CharField(max_length=100, verbose_name='شناسه جلسه', help_text='برای گروه‌بندی شماره‌ها در یک جلسه کاری')
     phone_number = models.CharField(max_length=20, verbose_name='شماره تلفن')
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, null=True, blank=True, verbose_name='مشتری')
     source = models.CharField(max_length=20, choices=SOURCE_CHOICES, verbose_name='منبع')
     added_by = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='اضافه شده توسط')
+    
+    # Call status tracking
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='waiting', verbose_name='وضعیت تماس')
+    call_duration = models.IntegerField(null=True, blank=True, verbose_name='مدت تماس (ثانیه)')
+    assigned_agent = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_queue_calls', verbose_name='نماینده فروش اختصاص یافته')
+    
+    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
+    call_started_at = models.DateTimeField(null=True, blank=True, verbose_name='زمان شروع تماس')
+    call_ended_at = models.DateTimeField(null=True, blank=True, verbose_name='زمان پایان تماس')
     
     class Meta:
         verbose_name = 'صف تماس'
@@ -69,10 +87,6 @@ class AutomaticCall(models.Model):
     
     # ارتباط با کاربران
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_calls', verbose_name='ایجاد شده توسط')
-    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_calls', verbose_name='اختصاص داده شده به')
-    
-    # مشتریان هدف
-    target_customers = models.ManyToManyField(Customer, through='CallCustomer', verbose_name='مشتریان هدف')
     
     # تنظیمات پیامک/تماس
     phone_numbers = models.TextField(help_text='شماره‌های تلفن جدا شده با کاما', verbose_name='شماره‌های تلفن')
@@ -195,27 +209,6 @@ class AutomaticCall(models.Model):
                 details={'error': str(e)}
             )
             return {'success': False, 'error': f'خطا در ارتباط با Asterisk: {str(e)}'}
-
-
-class CallCustomer(models.Model):
-    """
-    مدل میانی برای ارتباط تماس‌ها با مشتریان
-    """
-    call = models.ForeignKey(AutomaticCall, on_delete=models.CASCADE, verbose_name='تماس')
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, verbose_name='مشتری')
-    phone_number = models.CharField(max_length=15, verbose_name='شماره تلفن')
-    call_time = models.DateTimeField(null=True, blank=True, verbose_name='زمان تماس')
-    duration = models.IntegerField(null=True, blank=True, verbose_name='مدت تماس (ثانیه)')
-    result = models.CharField(max_length=50, blank=True, verbose_name='نتیجه تماس')
-    notes = models.TextField(blank=True, verbose_name='یادداشت‌ها')
-    
-    class Meta:
-        verbose_name = 'تماس با مشتری'
-        verbose_name_plural = 'تماس‌ها با مشتریان'
-        unique_together = ['call', 'customer']
-
-    def __str__(self):
-        return f"{self.call.title} - {self.customer.name}"
 
 
 class CallLog(models.Model):
