@@ -1,5 +1,5 @@
 from django.urls import path
-from .views.non_bazargah_purchase_list_view import non_bazargah_purchase_list
+from .views.non_bazargah_purchase_list_view import non_bazargah_purchase_list, export_non_bazargah_purchases_excel
 from .views.non_bazargah_barnameh_list_view import non_bazargah_barnameh_list, export_non_bazargah_barnamehs_excel
 from .views.non_bazargah_purchase_CRUD import (
     non_bazargah_purchase_CRUD_view,
@@ -10,6 +10,7 @@ from .views.pdf_views import generate_barnameh_pdf
 
 urlpatterns = [
     path('non-bazargah-purchases/', non_bazargah_purchase_list, name='non_bazargah_purchase_list'),
+    path('non-bazargah-purchases/export-excel/', export_non_bazargah_purchases_excel, name='export_non_bazargah_purchases_excel'),
     path('non-bazargah-barnamehs/', non_bazargah_barnameh_list, name='non_bazargah_barnameh_list'),
     path('non-bazargah-barnamehs/export-excel/', export_non_bazargah_barnamehs_excel, name='export_non_bazargah_barnamehs_excel'),
     path('non-bazargah-purchase/<int:purchase_id>/', non_bazargah_purchase_CRUD_view, name='non_bazargah_purchase_CRUD'),

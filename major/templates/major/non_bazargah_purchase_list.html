@@ -24,6 +24,17 @@
             <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#columnsModal">
                 <i class="fas fa-columns me-2"></i>مدیریت ستون‌ها
             </button>
+            <button type="button" class="btn btn-success" id="exportExcelBtn" disabled>
+                <i class="fas fa-file-excel me-2"></i>خروجی اکسل
+            </button>
+        </div>
+        <div class="d-flex gap-3 flex-wrap">
+            <button type="button" class="btn btn-outline-primary btn-sm" id="selectAllRowsBtn">
+                <i class="fas fa-check-square me-2"></i>انتخاب همه
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="deselectAllRowsBtn">
+                <i class="fas fa-square me-2"></i>لغو انتخاب همه
+            </button>
         </div>
     </div>
 
@@ -38,6 +49,9 @@
                 <table class="table table-hover" id="purchasesTable">
                     <thead>
                         <tr>
+                            <th data-column-id="select" data-column-type="select" style="min-width: 50px;">
+                                <input type="checkbox" id="selectAllCheckbox" title="انتخاب همه">
+                            </th>
                             <th data-column-id="purchase_number" data-column-type="text" style="min-width: 120px;">شماره خرید</th>
                             <th data-column-id="created_at" data-column-type="text" style="min-width: 100px;">تاریخ</th>
                             <th data-column-id="unique_sales_agent" data-column-type="text" style="min-width: 150px;">نماینده فروش</th>
@@ -66,6 +80,9 @@
                     <tbody>
                         {% for purchase in purchases %}
                             <tr>
+                                <td data-column="select">
+                                    <input type="checkbox" class="row-checkbox" value="{{ purchase.id }}" title="انتخاب این خرید">
+                                </td>
                                 <td data-column="purchase_number">
                                     <strong>{{ purchase.purchase_number|default:"تعیین نشده" }}</strong>
                                 </td>
@@ -256,6 +273,18 @@
                             </div>
                             <div class="section-body pt-2">
                                 <div class="row g-4">
+                                    <!-- ستون انتخاب -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-select" name="columns[]" 
+                                                value="select" checked>
+                                            <label class="form-check-label" for="col-select">
+                                                انتخاب
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
                                     <!-- ستون شماره خرید -->
                                     <div class="col-lg-4 col-md-6">
                                         <div class="column-checkbox">

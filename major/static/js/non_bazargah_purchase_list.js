@@ -12,11 +12,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const deselectAllBtn = document.getElementById('deselectAllColumns');
     const saveColumnsBtn = document.getElementById('saveColumnsBtn');
     
+    // متغیرهای مربوط به انتخاب سطرها و خروجی اکسل
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const selectAllRowsBtn = document.getElementById('selectAllRowsBtn');
+    const deselectAllRowsBtn = document.getElementById('deselectAllRowsBtn');
+    const exportExcelBtn = document.getElementById('exportExcelBtn');
+    
     // کلید ذخیره تنظیمات در localStorage
     const STORAGE_KEY = 'non_bazargah_purchase_columns';
     
     // تنظیمات پیش‌فرض ستون‌ها
     const DEFAULT_COLUMNS = [
+        'select',
         'purchase_number',
         'created_at', 
         'unique_sales_agent',
@@ -199,6 +206,145 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     /**
+     * دریافت تمام checkbox های سطرها
+     */
+    function getRowCheckboxes() {
+        return table ? table.querySelectorAll('tbody .row-checkbox') : [];
+    }
+    
+    /**
+     * دریافت شناسه‌های خریدهای انتخاب شده
+     */
+    function getSelectedPurchaseIds() {
+        const checkboxes = getRowCheckboxes();
+        const selectedIds = [];
+        
+        checkboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                selectedIds.push(checkbox.value);
+            }
+        });
+        
+        return selectedIds;
+    }
+    
+    /**
+     * بروزرسانی وضعیت دکمه خروجی اکسل
+     */
+    function updateExportButtonState() {
+        const selectedIds = getSelectedPurchaseIds();
+        const hasSelection = selectedIds.length > 0;
+        
+        if (exportExcelBtn) {
+            exportExcelBtn.disabled = !hasSelection;
+            exportExcelBtn.title = hasSelection 
+                ? `خروجی اکسل از ${selectedIds.length} خرید انتخاب شده`
+                : 'ابتدا خریدهای مورد نظر را انتخاب کنید';
+        }
+    }
+    
+    /**
+     * انتخاب همه سطرها
+     */
+    function selectAllRows() {
+        const checkboxes = getRowCheckboxes();
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+        
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = true;
+        }
+        
+        updateExportButtonState();
+    }
+    
+    /**
+     * لغو انتخاب همه سطرها
+     */
+    function deselectAllRows() {
+        const checkboxes = getRowCheckboxes();
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = false;
+        }
+        
+        updateExportButtonState();
+    }
+    
+    /**
+     * بررسی وضعیت انتخاب همه
+     */
+    function updateSelectAllCheckbox() {
+        const checkboxes = getRowCheckboxes();
+        const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+        const totalCount = checkboxes.length;
+        
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = checkedCount === totalCount && totalCount > 0;
+            selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < totalCount;
+        }
+        
+        updateExportButtonState();
+    }
+    
+    /**
+     * خروجی اکسل از خریدهای انتخاب شده
+     */
+    function exportSelectedPurchasesToExcel() {
+        const selectedIds = getSelectedPurchaseIds();
+        
+        if (selectedIds.length === 0) {
+            alert('لطفاً ابتدا خریدهای مورد نظر را انتخاب کنید.');
+            return;
+        }
+        
+        // دریافت ستون‌های قابل مشاهده
+        const visibleColumns = loadColumnSettings();
+        
+        // ایجاد فرم برای ارسال داده‌ها
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/major/non-bazargah-purchases/export-excel/';
+        form.style.display = 'none';
+        
+        // اضافه کردن CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = csrfToken.value;
+            form.appendChild(csrfInput);
+        }
+        
+        // اضافه کردن شناسه‌های انتخاب شده
+        const idsInput = document.createElement('input');
+        idsInput.type = 'hidden';
+        idsInput.name = 'ids';
+        idsInput.value = selectedIds.join(',');
+        form.appendChild(idsInput);
+        
+        // اضافه کردن ستون‌های قابل مشاهده
+        const columnsInput = document.createElement('input');
+        columnsInput.type = 'hidden';
+        columnsInput.name = 'columns';
+        columnsInput.value = visibleColumns.join(',');
+        form.appendChild(columnsInput);
+        
+        // ارسال فرم
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+        
+        // نمایش پیام موفقیت
+        showSuccessMessage(`خروجی اکسل از ${selectedIds.length} خرید انتخاب شده در حال آماده‌سازی است...`);
+    }
+    
+    /**
      * تنظیم event listeners
      */
     function setupEventListeners() {
@@ -222,6 +368,38 @@ document.addEventListener('DOMContentLoaded', function() {
             columnsModal.addEventListener('show.bs.modal', function() {
                 const visibleColumns = loadColumnSettings();
                 updateModalCheckboxes(visibleColumns);
+            });
+        }
+        
+        // Event listeners مربوط به انتخاب سطرها
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    selectAllRows();
+                } else {
+                    deselectAllRows();
+                }
+            });
+        }
+        
+        if (selectAllRowsBtn) {
+            selectAllRowsBtn.addEventListener('click', selectAllRows);
+        }
+        
+        if (deselectAllRowsBtn) {
+            deselectAllRowsBtn.addEventListener('click', deselectAllRows);
+        }
+        
+        if (exportExcelBtn) {
+            exportExcelBtn.addEventListener('click', exportSelectedPurchasesToExcel);
+        }
+        
+        // Event listener برای تغییر checkbox های سطرها
+        if (table) {
+            table.addEventListener('change', function(e) {
+                if (e.target.classList.contains('row-checkbox')) {
+                    updateSelectAllCheckbox();
+                }
             });
         }
     }
@@ -262,6 +440,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // تنظیم event listeners
         setupEventListeners();
+        
+        // تنظیم وضعیت اولیه دکمه خروجی اکسل
+        updateExportButtonState();
         
         console.log('مدیریت ستون‌های جدول خریدهای خارج از بازارگاه راه‌اندازی شد.');
     }
