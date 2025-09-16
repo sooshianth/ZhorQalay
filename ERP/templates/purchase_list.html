@@ -261,6 +261,11 @@ document.addEventListener('DOMContentLoaded', function() {
     <button id="exportBtn" class="btn btn-success shadow-sm" disabled>
         <i class="fas fa-file-excel me-2"></i> خروجی اکسل
     </button>
+    
+    <!-- دکمه خروجی اکسل کامل -->
+    <button id="fullExportBtn" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#fullExportModal">
+        <i class="fas fa-download me-2"></i> خروجی اکسل کامل
+    </button>
     {% endif %}
 </div>
 
@@ -2516,4 +2521,198 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 1000);
     });
 </script>
+
+<!-- مدال خروجی اکسل کامل -->
+<div class="modal fade" id="fullExportModal" tabindex="-1" aria-labelledby="fullExportModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-gradient" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;">
+                <h5 class="modal-title text-white fw-bold" id="fullExportModalLabel">
+                    <i class="fas fa-file-excel me-2"></i>خروجی اکسل کامل از همه خریدها
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-info border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%) !important;">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-info-circle text-info me-3" style="font-size: 1.5rem;"></i>
+                        <div>
+                            <h6 class="mb-1 text-info fw-bold">خروجی اکسل کامل</h6>
+                            <small class="text-muted">این گزینه خروجی اکسل از همه خریدها با تمام ستون‌های موجود تهیه می‌کند.</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <form id="fullExportForm">
+                    {% csrf_token %}
+                    
+                    <!-- انتخاب بازه تاریخ -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="mb-3 text-dark fw-bold border-bottom pb-2">
+                                <i class="fas fa-calendar-alt me-2 text-primary"></i>بازه تاریخ خریدها
+                            </h6>
+                        </div>
+                        
+                        <!-- گزینه همه خریدها -->
+                        <div class="col-12 mb-3">
+                            <div class="form-check p-3 border rounded shadow-sm" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                                <input class="form-check-input" type="radio" name="dateRange" id="allPurchases" value="all" checked style="transform: scale(1.2);">
+                                <label class="form-check-label fw-bold text-success ms-2" for="allPurchases">
+                                    <i class="fas fa-globe me-2"></i>همه خریدها (بدون محدودیت تاریخی)
+                                </label>
+                                <small class="text-muted d-block mt-2 ms-4">تمام خریدهای موجود در سیستم</small>
+                            </div>
+                        </div>
+                        
+                        <!-- گزینه بازه تاریخی -->
+                        <div class="col-12 mb-3">
+                            <div class="form-check p-3 border rounded shadow-sm" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                                <input class="form-check-input" type="radio" name="dateRange" id="dateRangeOption" value="range" style="transform: scale(1.2);">
+                                <label class="form-check-label fw-bold ms-2" for="dateRangeOption">
+                                    <i class="fas fa-calendar-week me-2 text-primary"></i>بازه تاریخی خاص
+                                </label>
+                                <small class="text-muted d-block mt-2 ms-4">انتخاب بازه زمانی مشخص</small>
+                            </div>
+                        </div>
+                        
+                        <!-- فیلدهای تاریخ -->
+                        <div class="col-12" id="dateRangeFields" style="display: none;">
+                            <div class="card border-primary shadow-sm">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="fromDate" class="form-label fw-bold text-primary">
+                                                <i class="fas fa-calendar-day me-1"></i>از تاریخ:
+                                            </label>
+                                            <input type="text" class="form-control form-control-lg border-primary persian-datepicker" id="fromDate" name="from_date" placeholder="مثال: 1403/01/01">
+                                            <small class="text-muted">تاریخ شروع شمسی (اختیاری)</small>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="toDate" class="form-label fw-bold text-primary">
+                                                <i class="fas fa-calendar-day me-1"></i>تا تاریخ:
+                                            </label>
+                                            <input type="text" class="form-control form-control-lg border-primary persian-datepicker" id="toDate" name="to_date" placeholder="مثال: 1403/12/29">
+                                            <small class="text-muted">تاریخ پایان شمسی (اختیاری)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- اطلاعات اضافی -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="alert alert-warning border-0 shadow-sm" style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%) !important;">
+                                <h6 class="alert-heading text-warning">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>نکات مهم
+                                </h6>
+                                <ul class="mb-0 text-dark">
+                                    <li class="mb-1">این عملیات ممکن است چند دقیقه طول بکشد</li>
+                                    <li class="mb-1">تمام ستون‌های موجود در خروجی گنجانده می‌شوند</li>
+                                    <li>فایل اکسل به صورت خودکار دانلود خواهد شد</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-light border-top-0 p-3">
+                <button type="button" class="btn btn-outline-secondary btn-lg" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>انصراف
+                </button>
+                <button type="button" class="btn btn-primary btn-lg shadow-sm" id="startFullExportBtn" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;">
+                    <i class="fas fa-download me-2"></i>شروع خروجی اکسل
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// مدیریت مدال خروجی اکسل کامل
+document.addEventListener('DOMContentLoaded', function() {
+    const dateRangeRadios = document.querySelectorAll('input[name="dateRange"]');
+    const dateRangeFields = document.getElementById('dateRangeFields');
+    const startFullExportBtn = document.getElementById('startFullExportBtn');
+    
+    // مدیریت نمایش فیلدهای تاریخ
+    dateRangeRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'range') {
+                dateRangeFields.style.display = 'block';
+            } else {
+                dateRangeFields.style.display = 'none';
+            }
+        });
+    });
+    
+    // مدیریت کلیک دکمه شروع خروجی
+    startFullExportBtn.addEventListener('click', function() {
+        const form = document.getElementById('fullExportForm');
+        const formData = new FormData(form);
+        
+        // اضافه کردن اطلاعات بازه تاریخ
+        const selectedRange = document.querySelector('input[name="dateRange"]:checked').value;
+        if (selectedRange === 'range') {
+            const fromDate = document.getElementById('fromDate').value;
+            const toDate = document.getElementById('toDate').value;
+            if (fromDate) formData.append('from_date', fromDate);
+            if (toDate) formData.append('to_date', toDate);
+        }
+        
+        // نمایش پیام بارگیری
+        const originalText = startFullExportBtn.innerHTML;
+        startFullExportBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>در حال ایجاد فایل...';
+        startFullExportBtn.disabled = true;
+        
+        // ارسال درخواست
+        fetch('/erp/purchases/export-full/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.blob();
+            } else {
+                return response.json().then(data => {
+                    throw new Error(data.message || 'خطا در ایجاد فایل اکسل');
+                });
+            }
+        })
+        .then(blob => {
+            // ایجاد لینک دانلود
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `purchase_full_export_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            // بستن مدال
+            const modal = bootstrap.Modal.getInstance(document.getElementById('fullExportModal'));
+            modal.hide();
+            
+            // نمایش پیام موفقیت
+            alert('فایل اکسل با موفقیت دانلود شد!');
+        })
+        .catch(error => {
+            console.error('خطا:', error);
+            alert('خطا در ایجاد فایل اکسل: ' + error.message);
+        })
+        .finally(() => {
+            // بازگردانی دکمه
+            startFullExportBtn.innerHTML = originalText;
+            startFullExportBtn.disabled = false;
+        });
+    });
+});
+</script>
+
 {% endblock content %}
