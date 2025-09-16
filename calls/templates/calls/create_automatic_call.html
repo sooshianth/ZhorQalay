@@ -428,11 +428,11 @@
                         <div class="stat-label">تعداد شماره‌ها</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-number" id="customerCount">0</div>
+                        <div class="stat-number" id="customerCount">{{ customer_count }}</div>
                         <div class="stat-label">مشتریان</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-number" id="manualCount">0</div>
+                        <div class="stat-number" id="manualCount">{{ manual_count }}</div>
                         <div class="stat-label">دستی</div>
                     </div>
                 </div>
@@ -661,7 +661,20 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success) {
                 document.getElementById('manualNumbers').value = '';
                 showMessage(data.message, 'success');
-                location.reload(); // Refresh to show new numbers
+                
+                // Update counters dynamically
+                if (data.customer_count || data.manual_count) {
+                    const currentTotal = parseInt(document.getElementById('queueCount').textContent) || 0;
+                    const currentCustomers = parseInt(document.getElementById('customerCount').textContent) || 0;
+                    const currentManual = parseInt(document.getElementById('manualCount').textContent) || 0;
+                    
+                    document.getElementById('queueCount').textContent = currentTotal + data.added;
+                    document.getElementById('customerCount').textContent = currentCustomers + (data.customer_count || 0);
+                    document.getElementById('manualCount').textContent = currentManual + (data.manual_count || 0);
+                }
+                
+                // Reload to show the actual items in the list
+                setTimeout(() => location.reload(), 1000);
             } else {
                 showMessage(data.error, 'error');
             }
@@ -695,7 +708,20 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success) {
                 fileInput.value = '';
                 showMessage(data.message, 'success');
-                location.reload(); // Refresh to show new numbers
+                
+                // Update counters dynamically
+                if (data.customer_count || data.manual_count) {
+                    const currentTotal = parseInt(document.getElementById('queueCount').textContent) || 0;
+                    const currentCustomers = parseInt(document.getElementById('customerCount').textContent) || 0;
+                    const currentManual = parseInt(document.getElementById('manualCount').textContent) || 0;
+                    
+                    document.getElementById('queueCount').textContent = currentTotal + data.added;
+                    document.getElementById('customerCount').textContent = currentCustomers + (data.customer_count || 0);
+                    document.getElementById('manualCount').textContent = currentManual + (data.manual_count || 0);
+                }
+                
+                // Reload to show the actual items in the list
+                setTimeout(() => location.reload(), 1000);
             } else {
                 showMessage(data.error, 'error');
             }
@@ -718,7 +744,18 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.success) {
                 showMessage(data.message, 'success');
-                location.reload(); // Refresh to show new numbers
+                
+                // Update counters dynamically for suggestions (all are customers)
+                if (data.customer_count) {
+                    const currentTotal = parseInt(document.getElementById('queueCount').textContent) || 0;
+                    const currentCustomers = parseInt(document.getElementById('customerCount').textContent) || 0;
+                    
+                    document.getElementById('queueCount').textContent = currentTotal + data.added;
+                    document.getElementById('customerCount').textContent = currentCustomers + data.customer_count;
+                }
+                
+                // Reload to show the actual items in the list
+                setTimeout(() => location.reload(), 1000);
             } else {
                 showMessage(data.error, 'error');
             }
@@ -885,6 +922,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const manualItems = Array.from(queueItems).filter(item => item.querySelector('.queue-source')?.textContent.includes("دستی"));
 
         document.getElementById('queueCount').textContent = queueItems.length;
+        document.getElementById('customerCount').textContent = customerItems.length;
+        document.getElementById('manualCount').textContent = manualItems.length;
         updateCreateButtonState();
     }
 

@@ -66,9 +66,10 @@ class AutomaticCall(models.Model):
 
     CALL_TYPE_CHOICES = [
         ('marketing', 'بازاریابی'),
-        ('follow_up', 'پیگیری'),
-        ('reminder', 'یادآوری'),
+        ('ad', 'تبلیغات'),
+        ('status', 'وضعیت'),
         ('survey', 'نظرسنجی'),
+        ('reminder', 'یادآوری'),
         ('notification', 'اطلاع‌رسانی'),
     ]
 

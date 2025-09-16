@@ -155,13 +155,20 @@ def create_automatic_call(request):
     # دریافت شماره‌های فعلی در صف
     queue_numbers = CallQueue.objects.filter(session_id=session_id).order_by('-created_at')
     
+    # محاسبه آمار صف
+    queue_count = queue_numbers.count()
+    customer_count = queue_numbers.filter(source='customer').count()
+    manual_count = queue_numbers.filter(source='manual').count()
+    
     # انتخاب‌ها برای فرم
     call_type_choices = AutomaticCall.CALL_TYPE_CHOICES
     
     context = {
         'call_type_choices': call_type_choices,
         'queue_numbers': queue_numbers,
-        'queue_count': queue_numbers.count(),
+        'queue_count': queue_count,
+        'customer_count': customer_count,
+        'manual_count': manual_count,
         'session_id': session_id,
     }
     return render(request, 'calls/create_automatic_call.html', context)
@@ -462,40 +469,40 @@ def add_manual_numbers_to_queue(request):
     numbers = []
     for line in numbers_text.split('\n'):
         line = line.strip()
-        if line:
-            # حذف کاراکترهای غیرعددی و تنظیم فرمت
-            clean_number = ''.join(c for c in line if c.isdigit())
-            if clean_number:
-                # حذف صفر ابتدایی و کد کشور
-                if clean_number.startswith('0'):
-                    clean_number = clean_number[1:]
-                if clean_number.startswith('98'):
-                    clean_number = clean_number[2:]
-                if len(clean_number) >= 9:  # حداقل طول معقول
-                    numbers.append(clean_number)
-    
+        if line.isdigit():
+            numbers.append(line)
+
     if not numbers:
-        return JsonResponse({'success': False, 'error': 'هیچ شماره معتبری یافت نشد'})
+        return JsonResponse({'success': False, 'error': 'هیچ شماره‌ای وارد نشده'})
     
     added_count = 0
     duplicate_count = 0
+    customer_count = 0
+    manual_count = 0
     
     for number in numbers:
         try:
             # Try to find existing customer with this phone number
             customer = Customer.get_customer_by_phone(number)
             
+            # Determine source based on whether customer exists
+            source = 'customer' if customer else 'manual'
+            
             queue_item, created = CallQueue.objects.get_or_create(
                 session_id=session_id,
                 phone_number=number,
                 defaults={
                     'customer': customer,
-                    'source': 'manual',
+                    'source': source,
                     'added_by': request.user
                 }
             )
             if created:
                 added_count += 1
+                if customer:
+                    customer_count += 1
+                else:
+                    manual_count += 1
             else:
                 duplicate_count += 1
         except Exception:
@@ -505,7 +512,9 @@ def add_manual_numbers_to_queue(request):
         'success': True,
         'message': f'{added_count} شماره جدید اضافه شد. {duplicate_count} شماره تکراری.',
         'added': added_count,
-        'duplicates': duplicate_count
+        'duplicates': duplicate_count,
+        'customer_count': customer_count,
+        'manual_count': manual_count
     })
 
 
@@ -580,23 +589,32 @@ def upload_excel_to_queue(request):
 
         added_count = 0
         duplicate_count = 0
+        customer_count = 0
+        manual_count = 0
 
         for number in set(numbers):  # حذف تکراری‌ها
             try:
                 # Try to find existing customer with this phone number
                 customer = Customer.get_customer_by_phone(number)
                 
+                # Determine source based on whether customer exists
+                source = 'customer' if customer else 'manual'
+                
                 queue_item, created = CallQueue.objects.get_or_create(
                     session_id=session_id,
                     phone_number=number,
                     defaults={
                         'customer': customer,
-                        'source': 'excel',
+                        'source': source,
                         'added_by': request.user
                     }
                 )
                 if created:
                     added_count += 1
+                    if customer:
+                        customer_count += 1
+                    else:
+                        manual_count += 1
                 else:
                     duplicate_count += 1
             except Exception:
@@ -606,7 +624,9 @@ def upload_excel_to_queue(request):
             'success': True,
             'message': f'{added_count} شماره از فایل اضافه شد. {duplicate_count} شماره تکراری.',
             'added': added_count,
-            'duplicates': duplicate_count
+            'duplicates': duplicate_count,
+            'customer_count': customer_count,
+            'manual_count': manual_count
         })
 
     except Exception as e:
@@ -648,6 +668,7 @@ def add_suggested_numbers_to_queue(request):
     ).values_list('phone_numbers__number', flat=True)[:50]
     
     added_count = 0
+    customer_count = 0
     for phone in suggested_phones:
         if phone:
             try:
@@ -657,19 +678,22 @@ def add_suggested_numbers_to_queue(request):
                     phone_number=phone,
                     defaults={
                         'customer': customer,
-                        'source': 'suggestion',
+                        'source': 'customer',  # Since these are all existing customers
                         'added_by': request.user
                     }
                 )
                 if created:
                     added_count += 1
+                    customer_count += 1
             except Exception:
                 continue
     
     return JsonResponse({
         'success': True,
         'message': f'{added_count} شماره پیشنهادی اضافه شد',
-        'added': added_count
+        'added': added_count,
+        'customer_count': customer_count,
+        'manual_count': 0
     })
 
 
@@ -698,7 +722,6 @@ def remove_from_queue(request):
     phone_numbers_json = request.POST.get('phone_numbers')
     if phone_numbers_json:
         try:
-            import json
             phone_numbers = json.loads(phone_numbers_json)
             deleted_count = 0
             for phone_number in phone_numbers:
