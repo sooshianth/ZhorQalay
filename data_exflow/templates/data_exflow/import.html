@@ -504,12 +504,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 `;
                 
-                // دکمه دانلود فایل نمونه
+                // دکمه‌های دانلود فایل نمونه
                 html += `
                     <div class="mt-3 mb-3 text-center">
-                        <a href="/data-exflow/import/sample-file/?content_type_id=${contentTypeId}&format=csv" class="btn btn-outline-info">
-                            <i class="fas fa-download me-1"></i> دانلود فایل نمونه با مقادیر مجاز
-                        </a>
+                        <div class="btn-group" role="group">
+                            <a href="/data-exflow/import/sample-file/?content_type_id=${contentTypeId}&format=csv" class="btn btn-outline-info">
+                                <i class="fas fa-file-csv me-1"></i> دانلود نمونه CSV
+                            </a>
+                            <a href="/data-exflow/import/sample-file/?content_type_id=${contentTypeId}&format=xlsx" class="btn btn-outline-success">
+                                <i class="fas fa-file-excel me-1"></i> دانلود نمونه Excel
+                            </a>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                فایل نمونه شامل مقادیر مجاز و فرمت صحیح برای هر فیلد است
+                            </small>
+                        </div>
                     </div>
                 `;
                 

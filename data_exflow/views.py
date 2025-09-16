@@ -1349,18 +1349,49 @@ def download_sample_file(request):
         if file_format == 'xlsx':
             # For Excel, create a workbook and set RTL for the sheet
             from openpyxl import Workbook
+            from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
             from openpyxl.utils.dataframe import dataframe_to_rows
             
             wb = Workbook()
             ws = wb.active
+            ws.title = f"نمونه {model_class._meta.verbose_name}"
             ws.sheet_properties.rightToLeft = True  # Enable RTL for Excel sheet
+            
+            # Define styles
+            header_font = Font(bold=True, color="FFFFFF")
+            header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+            header_alignment = Alignment(horizontal="center", vertical="center")
+            
+            data_font = Font()
+            data_alignment = Alignment(horizontal="right", vertical="center")
+            
+            border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
             
             # Add headers first
             headers = list(sample_data.keys())
             ws.append(headers)
             
+            # Style header row
+            for cell in ws[1]:
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = header_alignment
+                cell.border = border
+            
             # Add data row
-            ws.append(list(sample_data.values()))
+            data_row = list(sample_data.values())
+            ws.append(data_row)
+            
+            # Style data row
+            for cell in ws[2]:
+                cell.font = data_font
+                cell.alignment = data_alignment
+                cell.border = border
             
             # Adjust column widths
             for i, column in enumerate(ws.columns, 1):
@@ -1372,14 +1403,119 @@ def download_sample_file(request):
                         cell_length = len(str(cell.value))
                         max_length = max(max_length, cell_length)
                 
-                adjusted_width = max_length + 4  # Add padding
+                adjusted_width = max(max_length + 4, 15)  # Add padding and minimum width
                 ws.column_dimensions[column_letter].width = adjusted_width
+            
+            # Add a note sheet with field information
+            note_sheet = wb.create_sheet("راهنمای فیلدها")
+            note_sheet.sheet_properties.rightToLeft = True
+            
+            # Add field information
+            note_sheet.append(["نام فیلد", "نوع فیلد", "توضیحات", "مقادیر مجاز"])
+            
+            # Style note headers
+            for cell in note_sheet[1]:
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = header_alignment
+                cell.border = border
+            
+            # Add field details
+            for field in fields:
+                field_name = field['name']
+                field_type = field.get('type', 'نامشخص')
+                field_verbose = field.get('verbose_name', field_name)
+                
+                # Skip technical fields
+                if field_name in ['id', '_state', 'pk'] or field_name.startswith('_'):
+                    continue
+                if field.get('type') in ['ManyToManyField', 'OneToOneRel', 'ManyToOneRel']:
+                    continue
+                
+                # Get choices or sample values
+                choices_text = ""
+                if field.get('has_choices', False) and field.get('choices'):
+                    choices_list = [f"{choice['key']} ({choice['display']})" for choice in field['choices']]
+                    choices_text = "، ".join(choices_list[:5])  # Limit to first 5 choices
+                    if len(field['choices']) > 5:
+                        choices_text += "..."
+                elif field.get('type') == 'ForeignKey' and field.get('related_model'):
+                    if field.get('related_model', {}).get('sample_values', []):
+                        sample_values = [str(val['id']) for val in field['related_model']['sample_values'][:3]]
+                        choices_text = f"ID های موجود: {', '.join(sample_values)}"
+                    else:
+                        choices_text = f"ID از {field['related_model']['verbose_name']}"
+                
+                note_sheet.append([field_name, field_type, field_verbose, choices_text])
+            
+            # Style note data rows
+            for row in note_sheet.iter_rows(min_row=2):
+                for cell in row:
+                    cell.font = data_font
+                    cell.alignment = data_alignment
+                    cell.border = border
+            
+            # Adjust note sheet column widths
+            for i, column in enumerate(note_sheet.columns, 1):
+                column_letter = get_column_letter(i)
+                max_length = 0
+                for cell in column:
+                    if cell.value:
+                        cell_length = len(str(cell.value))
+                        max_length = max(max_length, cell_length)
+                adjusted_width = max(max_length + 4, 20)
+                note_sheet.column_dimensions[column_letter].width = adjusted_width
             
             # Save to temporary file
             wb.save(temp_path)
         else:  # Default to CSV
+            # Create a more comprehensive CSV with field information
+            csv_lines = []
+            
+            # Add header with field information
+            csv_lines.append("# فایل نمونه برای مدل: " + model_class._meta.verbose_name)
+            csv_lines.append("# این فایل شامل مقادیر نمونه و راهنمای فیلدها است")
+            csv_lines.append("#")
+            
+            # Add field information as comments
+            csv_lines.append("# اطلاعات فیلدها:")
+            for field in fields:
+                field_name = field['name']
+                field_type = field.get('type', 'نامشخص')
+                field_verbose = field.get('verbose_name', field_name)
+                
+                # Skip technical fields
+                if field_name in ['id', '_state', 'pk'] or field_name.startswith('_'):
+                    continue
+                if field.get('type') in ['ManyToManyField', 'OneToOneRel', 'ManyToOneRel']:
+                    continue
+                
+                # Get choices or sample values
+                choices_text = ""
+                if field.get('has_choices', False) and field.get('choices'):
+                    choices_list = [f"{choice['key']} ({choice['display']})" for choice in field['choices']]
+                    choices_text = "، ".join(choices_list[:5])
+                    if len(field['choices']) > 5:
+                        choices_text += "..."
+                elif field.get('type') == 'ForeignKey' and field.get('related_model'):
+                    if field.get('related_model', {}).get('sample_values', []):
+                        sample_values = [str(val['id']) for val in field['related_model']['sample_values'][:3]]
+                        choices_text = f"ID های موجود: {', '.join(sample_values)}"
+                    else:
+                        choices_text = f"ID از {field['related_model']['verbose_name']}"
+                
+                csv_lines.append(f"# {field_name} ({field_type}): {field_verbose} - {choices_text}")
+            
+            csv_lines.append("#")
+            csv_lines.append("# داده نمونه:")
+            
             # Add UTF-8 BOM for better Excel CSV support of Unicode
             with open(temp_path, 'w', encoding='utf-8-sig', newline='') as f:
+                # Write comments first
+                for line in csv_lines:
+                    f.write(line + '\n')
+                
+                # Then write the actual CSV data
                 df.to_csv(f, index=False)
             
         # Create response

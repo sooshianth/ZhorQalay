@@ -96,6 +96,8 @@ def bulk_edit_page(request):
             table_type = 'cargo_product'
         elif model_name == 'Barnameh':
             table_type = 'barnameh'
+        elif model_name == 'NonBazargahPurchase':
+            table_type = 'non_bazargah_purchase'
     
     print(f"DEBUG - Final parameters: model_name={model_name}, app_name={app_name}, table_type={table_type}, section={section}")
     
@@ -148,6 +150,7 @@ def get_editable_fields(model, table_type, selected_ids=None):
         'CargoProduct': ['cottage', 'invoice_id'],
         'Barbary': ['name'],
         'VaredKonandeh': ['name'],
+        'NonBazargahPurchase': ['purchase_number'],
     }
     
     model_name = model.__name__
@@ -342,6 +345,33 @@ def get_editable_fields(model, table_type, selected_ids=None):
                 'factor_date': 'تاریخ ثبت فاکتور در سامانه مؤدیان',
             }
             field_label = field_labels.get(field.name, getattr(field, 'verbose_name', field.name.replace('_', ' ').title()))
+        elif model_name == 'NonBazargahPurchase':
+            field_labels = {
+                'purchase_number': 'شماره خرید',
+                'product': 'محصول',
+                'unit': 'واحد',
+                'quantity': 'مقدار',
+                'bag_weight': 'وزن کیسه (کیلوگرم)',
+                'state': 'وضعیت',
+                'customer': 'مشتری',
+                'buyer_name': 'نام خریدار',
+                'customer_price': 'فی فروش (ریال)',
+                'amount_paid': 'مبلغ پرداختی (ریال)',
+                'payment_verified_by': 'تایید شده توسط',
+                'payment_verified_at': 'زمان تایید پرداخت',
+                'payment_notes': 'توضیحات پرداخت',
+                'empty_weight': 'وزن خالی (کیلوگرم)',
+                'loaded_weight': 'وزن پر (کیلوگرم)',
+                'delivered_weight': 'وزن تحویلی (کیلوگرم)',
+                'weight_difference': 'اختلاف وزن (کیلوگرم)',
+                'weight_difference_amount': 'مبلغ اختلاف وزن (ریال)',
+                'warehouse_contact_person': 'نام رابط انبار',
+                'warehouse_contact_phone': 'شماره تماس رابط انبار',
+                'logistics_notes': 'یادداشت‌های لجستیک',
+                'unique_sales_agent': 'نماینده فروش',
+                'total_weight': 'وزن کل (کیلوگرم)',
+            }
+            field_label = field_labels.get(field.name, getattr(field, 'verbose_name', field.name.replace('_', ' ').title()))
         else:
             field_label = getattr(field, 'verbose_name', None)
             if not field_label:
@@ -453,6 +483,8 @@ def bulk_edit_excel_page(request):
             table_type = 'customer'
         elif model_name == 'CargoProduct':
             table_type = 'cargo_product'
+        elif model_name == 'NonBazargahPurchase':
+            table_type = 'non_bazargah_purchase'
     
     # دریافت مدل
     from django.apps import apps
