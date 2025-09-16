@@ -9,6 +9,9 @@ from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.http import HttpResponse
+import io
+import xlsxwriter
 
 from major.models.NonBazargahPurchase import NonBazargahPurchase
 from major.models.NonBazargahAllocation import NonBazargahAllocation
@@ -22,8 +25,231 @@ from bki_barnameh.models.BarnamehModel import Barnameh
 
 from collections import OrderedDict
 import logging
+import pandas as pd
+import os
+from django.conf import settings
 
 logger = logging.getLogger("major_non_bazargah_crud")
+
+
+class ExcelAllocationUploadForm(forms.Form):
+    """فرم آپلود فایل اکسل برای تخصیص‌های دسته‌ای"""
+    
+    excel_file = forms.FileField(
+        label='فایل اکسل',
+        help_text='فایل اکسل حاوی اطلاعات تخصیص‌ها (فرمت‌های مجاز: .xls, .xlsx)',
+        widget=forms.FileInput(attrs={
+            'accept': '.xls,.xlsx',
+            'class': 'form-control'
+        })
+    )
+    
+    def clean_excel_file(self):
+        file = self.cleaned_data.get('excel_file')
+        if file:
+            # بررسی فرمت فایل
+            if not file.name.endswith(('.xls', '.xlsx')):
+                raise ValidationError('فایل باید با فرمت اکسل (.xls یا .xlsx) باشد.')
+            
+            # بررسی حجم فایل (حداکثر 5MB)
+            if file.size > 5 * 1024 * 1024:
+                raise ValidationError('حجم فایل نباید از 5 مگابایت بیشتر باشد.')
+        
+        return file
+
+
+def clean_numeric_value(value):
+    """پاکسازی مقادیر عددی از فایل اکسل"""
+    if pd.isna(value) or value is None:
+        return None
+    
+    try:
+        # تبدیل به رشته و حذف کاراکترهای غیر عددی
+        if isinstance(value, str):
+            cleaned = ''.join(c for c in value if c.isdigit() or c in '.-')
+            if cleaned:
+                return float(cleaned)
+        else:
+            return float(value)
+    except (ValueError, TypeError):
+        return None
+    
+    return None
+
+
+def clean_postal_code(postal_code):
+    """پاکسازی کد پستی"""
+    if pd.isna(postal_code) or postal_code is None:
+        return ''
+    
+    # تبدیل به رشته و حذف همه کاراکترهای غیر عددی
+    cleaned = ''.join(c for c in str(postal_code) if c.isdigit())
+    return cleaned
+
+
+def process_allocation_excel(file, purchase):
+    """پردازش فایل اکسل و ایجاد تخصیص‌ها"""
+    try:
+        # خواندن فایل اکسل با تنظیمات مناسب
+        df = pd.read_excel(file, dtype=str)  # همه ستون‌ها را به صورت رشته بخوان
+        
+        # بررسی وجود ستون‌های ضروری
+        required_columns = ['آدرس تحویل', 'کد پستی', 'نام گیرنده', 'شماره هماهنگی', 'وزن تخصیص یافته']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        
+        if missing_columns:
+            return {
+                'success': False,
+                'message': f'ستون‌های زیر در فایل اکسل یافت نشد: {", ".join(missing_columns)}. ستون‌های موجود: {", ".join(df.columns.tolist())}'
+            }
+        
+        # مرحله اول: اعتبارسنجی همه داده‌ها بدون ایجاد تخصیص
+        validation_errors = []
+        valid_rows = []
+        total_weight_to_add = 0
+        
+        logger.info(f"شروع پردازش فایل اکسل با {len(df)} ردیف")
+        
+        for index, row in df.iterrows():
+            try:
+                # استخراج داده‌ها از ردیف اکسل
+                delivery_address = str(row.get('آدرس تحویل', '')).strip()
+                
+                # پردازش کد پستی - ممکنه به صورت عدد ذخیره شده باشه
+                postal_code_raw = row.get('کد پستی', '')
+                delivery_postal_code = clean_postal_code(postal_code_raw)
+                
+                # لاگ برای دیباگ
+                if index < 3:  # فقط برای 3 ردیف اول لاگ کن
+                    logger.info(f"ردیف {index + 2}: کد پستی خام: '{postal_code_raw}', پاک شده: '{delivery_postal_code}', طول: {len(delivery_postal_code)}")
+                
+                delivery_receiver_name = str(row.get('نام گیرنده', '')).strip()
+                
+                # پردازش شماره تلفن - ممکنه به صورت عدد ذخیره شده باشه
+                phone_raw = row.get('شماره هماهنگی', '')
+                if pd.isna(phone_raw):
+                    coordination_phone = ''
+                else:
+                    coordination_phone = str(phone_raw).strip()
+                
+                allocated_weight = clean_numeric_value(row.get('وزن تخصیص یافته', 0))
+                allocation_number = str(row.get('شماره تخصیص', '')).strip() or None
+                notes = str(row.get('توضیحات', '')).strip() or None
+                
+                # اعتبارسنجی داده‌ها
+                if not delivery_address:
+                    validation_errors.append(f'ردیف {index + 2}: آدرس تحویل نمی‌تواند خالی باشد')
+                    continue
+                
+                if not delivery_postal_code:
+                    validation_errors.append(f'ردیف {index + 2}: کد پستی نمی‌تواند خالی باشد')
+                    continue
+                
+                if not delivery_receiver_name:
+                    validation_errors.append(f'ردیف {index + 2}: نام گیرنده نمی‌تواند خالی باشد')
+                    continue
+                
+                if not coordination_phone:
+                    validation_errors.append(f'ردیف {index + 2}: شماره هماهنگی نمی‌تواند خالی باشد')
+                    continue
+                
+                if not allocated_weight or allocated_weight <= 0:
+                    validation_errors.append(f'ردیف {index + 2}: وزن تخصیص یافته باید بزرگتر از صفر باشد')
+                    continue
+                
+                # بررسی کد پستی (10 رقم)
+                if len(delivery_postal_code) != 10:
+                    validation_errors.append(f'ردیف {index + 2}: کد پستی باید 10 رقم باشد (ورودی: "{delivery_postal_code}" -> طول: {len(delivery_postal_code)})')
+                    continue
+                
+                # بررسی شماره تلفن (حداقل 10 رقم)
+                phone_digits = ''.join(c for c in coordination_phone if c.isdigit())
+                if len(phone_digits) < 10:
+                    validation_errors.append(f'ردیف {index + 2}: شماره هماهنگی باید حداقل 10 رقم باشد')
+                    continue
+                
+                # ذخیره ردیف معتبر
+                valid_rows.append({
+                    'delivery_address': delivery_address,
+                    'delivery_postal_code': delivery_postal_code,  # استفاده از کد پستی پاک شده
+                    'delivery_receiver_name': delivery_receiver_name,
+                    'coordination_phone': coordination_phone,
+                    'allocated_weight': int(allocated_weight),
+                    'allocation_number': allocation_number,
+                    'notes': notes,
+                    'row_number': index + 2
+                })
+                
+                total_weight_to_add += int(allocated_weight)
+                
+            except Exception as e:
+                validation_errors.append(f'ردیف {index + 2}: خطا در پردازش - {str(e)}')
+                continue
+        
+        # بررسی وزن کل قبل از ایجاد تخصیص‌ها
+        current_remaining_weight = purchase.get_remaining_weight_for_allocation()
+        if total_weight_to_add > current_remaining_weight:
+            return {
+                'success': False,
+                'message': f'وزن کل تخصیص‌های اکسل ({total_weight_to_add} کیلوگرم) از وزن باقی‌مانده ({current_remaining_weight} کیلوگرم) بیشتر است. لطفاً وزن‌ها را کاهش دهید.'
+            }
+        
+        # اگر خطای اعتبارسنجی وجود دارد، فقط آن‌ها را برگردان
+        if validation_errors:
+            return {
+                'success': False,
+                'message': f'{len(validation_errors)} خطا در اعتبارسنجی داده‌ها',
+                'errors': validation_errors[:10]  # فقط 10 خطای اول
+            }
+        
+        # مرحله دوم: ایجاد تخصیص‌ها (همه ردیف‌ها معتبر هستند)
+        created_allocations = 0
+        creation_errors = []
+        
+        for row_data in valid_rows:
+            try:
+                allocation = NonBazargahAllocation.objects.create(
+                    purchase=purchase,
+                    allocation_number=row_data['allocation_number'],
+                    delivery_address=row_data['delivery_address'],
+                    delivery_postal_code=row_data['delivery_postal_code'],
+                    delivery_receiver_name=row_data['delivery_receiver_name'],
+                    coordination_phone=row_data['coordination_phone'],
+                    allocated_weight=row_data['allocated_weight'],
+                    notes=row_data['notes']
+                )
+                created_allocations += 1
+                
+            except Exception as e:
+                creation_errors.append(f'ردیف {row_data["row_number"]}: خطا در ایجاد تخصیص - {str(e)}')
+                continue
+        
+        # نتیجه نهایی
+        if created_allocations > 0:
+            message = f'{created_allocations} تخصیص با موفقیت ایجاد شد (مجموع وزن: {total_weight_to_add} کیلوگرم)'
+            if creation_errors:
+                message += f' - {len(creation_errors)} خطا در ایجاد تخصیص‌ها'
+            
+            return {
+                'success': True,
+                'message': message,
+                'created_count': created_allocations,
+                'total_weight': total_weight_to_add,
+                'errors': creation_errors[:5] if creation_errors else []  # فقط 5 خطای اول
+            }
+        else:
+            return {
+                'success': False,
+                'message': 'هیچ تخصیصی ایجاد نشد',
+                'errors': creation_errors
+            }
+            
+    except Exception as e:
+        logger.error(f"خطا در پردازش فایل اکسل: {str(e)}")
+        return {
+            'success': False,
+            'message': f'خطا در پردازش فایل اکسل: {str(e)}'
+        }
 
 
 class NonBazargahAllocationForm(forms.ModelForm):
@@ -501,6 +727,39 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                 messages.error(request, 'لطفاً یک فایل انتخاب کنید')
                 return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
         
+        # پردازش آپلود فایل اکسل تخصیص‌ها
+        if 'upload_allocation_excel' in request.POST and user_role in ['logistics_manager', 'admin']:
+            if not purchase.can_assign_addresses():
+                messages.error(request, 'برای تخصیص آدرس ابتدا باید پرداخت تایید شود')
+                return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+            
+            excel_file = request.FILES.get('excel_file')
+            if not excel_file:
+                messages.error(request, 'لطفاً یک فایل اکسل انتخاب کنید')
+                return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+            
+            try:
+                with transaction.atomic():
+                    result = process_allocation_excel(excel_file, purchase)
+                    
+                    if result['success']:
+                        messages.success(request, result['message'])
+                        if result.get('errors'):
+                            for error in result['errors']:
+                                messages.warning(request, error)
+                    else:
+                        messages.error(request, result['message'])
+                        if result.get('errors'):
+                            for error in result['errors'][:3]:  # فقط 3 خطای اول
+                                messages.error(request, error)
+                
+                return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+                
+            except Exception as e:
+                logger.error(f"خطا در آپلود فایل اکسل تخصیص‌ها: {str(e)}")
+                messages.error(request, f'خطا در پردازش فایل اکسل: {str(e)}')
+                return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+        
         # پردازش اضافه کردن تخصیص جدید
         if 'add_allocation' in request.POST and user_role in ['logistics_manager', 'admin']:
             if not purchase.can_assign_addresses():
@@ -875,6 +1134,9 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
     # فرم تخصیص جدید
     allocation_form = NonBazargahAllocationForm(purchase=purchase)
     
+    # فرم آپلود اکسل تخصیص‌ها
+    excel_upload_form = ExcelAllocationUploadForm()
+    
     # دریافت نوتیفیکیشن‌ها
     notifications = NotificationService.get_unread_notifications(request.user)
     
@@ -895,6 +1157,7 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
         'purchase': purchase,
         'form': form,
         'allocation_form': allocation_form,
+        'excel_upload_form': excel_upload_form,
         'allocations': allocations,
         'allocations_with_barnamehs': allocations_with_barnamehs,
         'total_allocated_weight': total_allocated_weight,
@@ -938,6 +1201,100 @@ def delete_non_bazargah_purchase_view(request, purchase_id):
         'purchase': purchase,
     }
     return render(request, 'confirm_delete_non_bazargah.html', context)
+
+
+@role_required('admin', 'logistics_manager')
+@login_required
+def download_allocation_excel_template(request):
+    """دانلود قالب اکسل برای تخصیص‌ها"""
+    logger.warning(f"دانلود قالب اکسل تخصیص‌ها توسط {request.user.username}, IP: {get_client_ip(request)}")
+    
+    # ایجاد فایل اکسل در حافظه
+    output = io.BytesIO()
+    workbook = xlsxwriter.Workbook(output)
+    worksheet = workbook.add_worksheet('تخصیص آدرس‌ها')
+    
+    # تنظیم استایل‌ها
+    header_format = workbook.add_format({
+        'bold': True,
+        'bg_color': '#007bff',
+        'font_color': 'white',
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter'
+    })
+    
+    data_format = workbook.add_format({
+        'border': 1,
+        'align': 'right',
+        'valign': 'vcenter'
+    })
+    
+    # تنظیم عرض ستون‌ها
+    worksheet.set_column('A:A', 40)  # آدرس تحویل
+    worksheet.set_column('B:B', 15)  # کد پستی
+    worksheet.set_column('C:C', 25)  # نام گیرنده
+    worksheet.set_column('D:D', 20)  # شماره هماهنگی
+    worksheet.set_column('E:E', 18)  # وزن تخصیص یافته
+    worksheet.set_column('F:F', 15)  # شماره تخصیص
+    worksheet.set_column('G:G', 30)  # توضیحات
+    
+    # نوشتن هدرها
+    headers = [
+        'آدرس تحویل', 'کد پستی', 'نام گیرنده', 
+        'شماره هماهنگی', 'وزن تخصیص یافته', 'شماره تخصیص', 'توضیحات'
+    ]
+    
+    for col, header in enumerate(headers):
+        worksheet.write(0, col, header, header_format)
+    
+    # نوشتن نمونه داده‌ها
+    sample_data = [
+        [
+            'تهران، خیابان ولیعصر، پلاک 123، طبقه 2',
+            '1234567890',
+            'علی احمدی',
+            '09123456789',
+            500,
+            'A001',
+            'تحویل در منزل - تماس قبل از تحویل'
+        ],
+        [
+            'کرج، بلوار فردوس، کوچه 45، پلاک 12',
+            '0987654321',
+            'فاطمه محمدی',
+            '09987654321',
+            300,
+            'A002',
+            'تحویل در محل کار - ساعت کاری'
+        ],
+        [
+            'اصفهان، خیابان چهارباغ، پلاک 67',
+            '1111111111',
+            'حسن رضایی',
+            '09111111111',
+            750,
+            'A003',
+            'تحویل در منزل - عصر'
+        ]
+    ]
+    
+    for row, data in enumerate(sample_data, start=1):
+        for col, value in enumerate(data):
+            worksheet.write(row, col, value, data_format)
+    
+    # بستن workbook
+    workbook.close()
+    output.seek(0)
+    
+    # ایجاد پاسخ HTTP
+    response = HttpResponse(
+        output.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="template_allocations.xlsx"'
+    
+    return response
 
 
 # View قدیمی آپلود مدرک - حذف شده چون حالا درون فرم اصلی handle می‌شود

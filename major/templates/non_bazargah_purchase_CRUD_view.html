@@ -329,12 +329,66 @@
         </div>
       </div>
 
+      <!-- فرم آپلود اکسل تخصیص‌ها -->
+      {% if user_role == "logistics_manager" or user_role == "admin" %}
+        {% if purchase.can_assign_addresses %}
+          <div class="excel-upload-form">
+            <h4 class="allocation-form-title">
+              <i class="fas fa-file-excel"></i> آپلود فایل اکسل تخصیص‌ها
+            </h4>
+            <div class="excel-upload-info">
+              <div class="excel-info-card">
+                <h5><i class="fas fa-info-circle"></i> راهنمای استفاده</h5>
+                <ul>
+                  <li>فایل اکسل باید شامل ستون‌های زیر باشد:</li>
+                  <li><strong>آدرس تحویل</strong> - آدرس کامل محل تحویل</li>
+                  <li><strong>کد پستی</strong> - کد پستی 10 رقمی</li>
+                  <li><strong>نام گیرنده</strong> - نام شخص گیرنده کالا</li>
+                  <li><strong>شماره هماهنگی</strong> - شماره تماس برای هماهنگی</li>
+                  <li><strong>وزن تخصیص یافته</strong> - وزن به کیلوگرم</li>
+                  <li><strong>شماره تخصیص</strong> - (اختیاری) شماره شناسایی تخصیص</li>
+                  <li><strong>توضیحات</strong> - (اختیاری) توضیحات اضافی</li>
+                </ul>
+                <p class="excel-note">
+                  <i class="fas fa-exclamation-triangle"></i>
+                  <strong>توجه:</strong> وزن کل تخصیص‌ها نباید از وزن باقی‌مانده ({{ remaining_weight }} کیلوگرم) بیشتر باشد.
+                </p>
+              </div>
+              
+              <form method="post" enctype="multipart/form-data" class="excel-upload-form-inline">
+                {% csrf_token %}
+                <div class="excel-upload-container">
+                  <div class="form-group">
+                    <label for="{{ excel_upload_form.excel_file.id_for_label }}">
+                      <i class="fas fa-file-excel"></i> {{ excel_upload_form.excel_file.label }}
+                    </label>
+                    {{ excel_upload_form.excel_file }}
+                    {% if excel_upload_form.excel_file.help_text %}
+                    <small class="form-helptext">{{ excel_upload_form.excel_file.help_text }}</small>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="excel-upload-actions">
+                    <button type="submit" name="upload_allocation_excel" class="button excel-upload-btn" {% if remaining_weight == 0 %}disabled title="همه وزن تخصیص شده است"{% endif %}>
+                      <i class="fas fa-upload"></i> آپلود و پردازش اکسل
+                    </button>
+                    <a href="{% url 'download_allocation_excel_template' %}" class="button download-template-btn" target="_blank">
+                      <i class="fas fa-download"></i> دانلود قالب اکسل
+                    </a>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        {% endif %}
+      {% endif %}
+
       <!-- فرم اضافه کردن تخصیص جدید -->
       {% if user_role == "logistics_manager" or user_role == "admin" %}
         {% if purchase.can_assign_addresses %}
           <div class="add-allocation-form">
             <h4 class="allocation-form-title">
-              <i class="fas fa-plus-circle"></i> افزودن تخصیص جدید
+              <i class="fas fa-plus-circle"></i> افزودن تخصیص دستی
             </h4>
             <form method="post" class="allocation-form-inline">
               {% csrf_token %}
@@ -894,5 +948,42 @@
 </div>
 
 <script src="{% static 'js/non_bazargah_purchase_crud.js' %}"></script>
+
+<script>
+// بهبود رابط کاربری آپلود فایل
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.querySelector('input[name="excel_file"]');
+    const uploadBtn = document.querySelector('button[name="upload_allocation_excel"]');
+    
+    if (fileInput && uploadBtn) {
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const fileName = this.files[0].name;
+                const fileSize = (this.files[0].size / 1024 / 1024).toFixed(2);
+                
+                // نمایش اطلاعات فایل
+                const fileInfo = document.createElement('div');
+                fileInfo.className = 'file-info';
+                fileInfo.innerHTML = `
+                    <i class="fas fa-file-excel text-success"></i>
+                    <span>فایل انتخاب شده: ${fileName} (${fileSize} MB)</span>
+                `;
+                
+                // حذف اطلاعات قبلی
+                const existingInfo = document.querySelector('.file-info');
+                if (existingInfo) {
+                    existingInfo.remove();
+                }
+                
+                // اضافه کردن اطلاعات جدید
+                fileInput.parentNode.appendChild(fileInfo);
+                
+                // فعال کردن دکمه آپلود
+                uploadBtn.disabled = false;
+            }
+        });
+    }
+});
+</script>
 
 {% endblock %}
