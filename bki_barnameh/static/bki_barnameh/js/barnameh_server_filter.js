@@ -922,6 +922,8 @@ class BarnamehServerFilter {
                 rowHtml += `<td class="column-is_created_by_excel">
                     ${isCreatedByExcel ? '<span class="badge bg-success">بله</span>' : '<span class="badge bg-secondary">خیر</span>'}
                 </td>`;
+            } else if (columnId === 'factor_date') {
+                rowHtml += `<td class="column-factor_date">${barnameh.factor_date || "-"}</td>`;
             } else if (columnId === 'created_at') {
                 rowHtml += `<td class="column-created_at">${barnameh.created_at || "-"}</td>`;
             } else if (columnId === 'transport_date') {
@@ -1523,6 +1525,7 @@ class BarnamehServerFilter {
             'factor_sodoor_season': 'زمان صدور فاکتور فصل',
             'is_factored': 'فاکتور صادر شده',
             'is_created_by_excel': 'ایجاد توسط اکسل',
+            'factor_date': 'تاریخ ثبت فاکتور در سامانه مؤدیان',
             'created_at': 'تاریخ ایجاد'
         };
         

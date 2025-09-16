@@ -339,6 +339,7 @@ def get_editable_fields(model, table_type, selected_ids=None):
                 'barnameh_date': 'تاریخ برنامه',
                 'barnameh_updated_at': 'تاریخ بروزرسانی',
                 'barnameh_created_at': 'تاریخ ایجاد',
+                'factor_date': 'تاریخ ثبت فاکتور در سامانه مؤدیان',
             }
             field_label = field_labels.get(field.name, getattr(field, 'verbose_name', field.name.replace('_', ' ').title()))
         else:

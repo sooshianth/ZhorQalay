@@ -1378,6 +1378,7 @@
             <th>وزن (تن)</th>
             <th>تاریخ صدور</th>
             <th>راننده</th>
+            <th>شماره تلفن راننده</th>
             <th>پلاک</th>
             <th>گیرنده</th>
             <th>مقصد</th>
@@ -1394,6 +1395,7 @@
             <td class="barnameh-weight">{% if barnameh.weight %}{{ barnameh.weight|add_commas }}{% elif barnameh.tonnage %}{{ barnameh.tonnage|add_commas }}{% else %}-{% endif %} کیلوگرم</td>
             <td dir="ltr">{{ barnameh.issue_date|default:barnameh.barnameh_date|date:"Y/m/d"|default:"-" }}</td>
             <td>{{ barnameh.driver_name|default:"-" }}</td>
+            <td dir="ltr">{{ barnameh.driver_phone|default:"-" }}</td>
             <td dir="ltr">{{ barnameh.vehicle_plate_number|default:barnameh.vehicle_plate|default:"-" }}</td>
             <td>{{ barnameh.receiver|default:barnameh.receiver_name|default:"-" }}</td>
             <td>{{ barnameh.destination|default:"-" }}</td>

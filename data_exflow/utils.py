@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import json
 import time
+from datetime import datetime, date
 from django.apps import apps
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction, models, connections
@@ -343,22 +344,37 @@ def get_lookup_strategies(model_class, identifier_field, identifier_value):
     except FieldDoesNotExist:
         return strategies
     
+    # حل مشکل pandas: اگر مقدار float هست و فیلد CharField هست، آن را به string تبدیل کن
+    cleaned_identifier_value = identifier_value
+    if isinstance(field, (models.CharField, models.TextField)) and isinstance(identifier_value, float):
+        if identifier_value.is_integer():
+            cleaned_identifier_value = str(int(identifier_value))
+        else:
+            cleaned_identifier_value = str(identifier_value)
+    
     # Strategy 1: Exact match (always include this)
     strategies.append({
-        'lookup': {identifier_field: identifier_value},
+        'lookup': {identifier_field: cleaned_identifier_value},
         'description': 'Exact match'
     })
+    
+    # Strategy 2: Original value match (in case the original value is still needed)
+    if cleaned_identifier_value != identifier_value:
+        strategies.append({
+            'lookup': {identifier_field: identifier_value},
+            'description': 'Original value match'
+        })
     
     # For string fields, add case-insensitive lookup
     if isinstance(field, (models.CharField, models.TextField)):
         strategies.append({
-            'lookup': {f"{identifier_field}__iexact": identifier_value},
+            'lookup': {f"{identifier_field}__iexact": cleaned_identifier_value},
             'description': 'Case-insensitive match'
         })
         
         # For numbers stored as strings, try to convert and match
-        if isinstance(identifier_value, str) and identifier_value.strip().isdigit():
-            cleaned_value = identifier_value.strip()
+        if isinstance(cleaned_identifier_value, str) and cleaned_identifier_value.strip().isdigit():
+            cleaned_value = cleaned_identifier_value.strip()
             strategies.append({
                 'lookup': {identifier_field: cleaned_value},
                 'description': 'Cleaned numeric string'
@@ -373,7 +389,7 @@ def get_lookup_strategies(model_class, identifier_field, identifier_value):
         
         # Try partial matching
         strategies.append({
-            'lookup': {f"{identifier_field}__contains": identifier_value},
+            'lookup': {f"{identifier_field}__contains": cleaned_identifier_value},
             'description': 'Contains match'
         })
     
@@ -849,25 +865,26 @@ def process_import(session):
             if getattr(field, 'unique', False) and not getattr(field, 'primary_key', False):
                 unique_fields.append(field.name)
         
-        with transaction.atomic():
-            for index, row in df.iterrows():
-                try:
-                    row_number = index + 2  # +2 because pandas is 0-indexed and we have a header row
-                    
-                    # Get the unique identifier value
-                    identifier_value = row.get(unique_identifier_field)
-                    
-                    # Skip rows without an identifier
-                    if pd.isna(identifier_value):
-                        ImportExportLog.objects.create(
-                            session=session,
-                            log_level='warning',
-                            message=f"ردیف {row_number} بدون مقدار شناسه رد شد",
-                            row_number=row_number
-                        )
-                        skipped_count += 1
-                        continue
-                    
+        for index, row in df.iterrows():
+            try:
+                row_number = index + 2  # +2 because pandas is 0-indexed and we have a header row
+                
+                # Get the unique identifier value
+                identifier_value = row.get(unique_identifier_field)
+                
+                # Skip rows without an identifier
+                if pd.isna(identifier_value):
+                    ImportExportLog.objects.create(
+                        session=session,
+                        log_level='warning',
+                        message=f"ردیف {row_number} بدون مقدار شناسه رد شد",
+                        row_number=row_number
+                    )
+                    skipped_count += 1
+                    continue
+                
+                # هر ردیف در یک atomic block جداگانه پردازش می‌شود
+                with transaction.atomic():
                     # Try to find an existing instance
                     instance, strategy = find_existing_instance(model_class, model_field, identifier_value)
                     
@@ -960,16 +977,6 @@ def process_import(session):
                                 row_number=row_number
                             )
                             
-                            # Create import record for reversion
-                            ImportRecord.objects.create(
-                                session=session,
-                                content_type=session.content_type,
-                                object_id=instance.pk,
-                                row_number=row_number,
-                                action='update',
-                                previous_state=previous_state,
-                                current_state=field_values
-                            )
                             
                             update_count += 1
                             
@@ -1016,16 +1023,6 @@ def process_import(session):
                                 row_number=row_number
                             )
                             
-                            # Create import record for reversion
-                            ImportRecord.objects.create(
-                                session=session,
-                                content_type=session.content_type,
-                                object_id=instance.pk,
-                                row_number=row_number,
-                                action='create',
-                                previous_state=None,
-                                current_state=field_values
-                            )
                             
                             create_count += 1
                             
@@ -1055,18 +1052,53 @@ def process_import(session):
                     # Update processed count
                     session.processed_count += 1
                     
-                except Exception as e:
-                    # Log general error
-                    ImportExportLog.objects.create(
-                        session=session,
-                        log_level='error',
-                        message=f"خطا در پردازش ردیف {row_number}: {str(e)}",
-                        row_number=row_number if 'row_number' in locals() else None
-                    )
-                    logger.warning(f"خطا در پردازش ردیف {row_number}: {str(e)}")
-                    error_count += 1
-                    raise  # Re-raise to rollback the transaction
-        
+            except Exception as e:
+                # Log general error
+                ImportExportLog.objects.create(
+                    session=session,
+                    log_level='error',
+                    message=f"خطا در پردازش ردیف {row_number}: {str(e)}",
+                    row_number=row_number if 'row_number' in locals() else None
+                )
+                logger.warning(f"خطا در پردازش ردیف {row_number}: {str(e)}")
+                error_count += 1
+                raise  # Re-raise to rollback the transaction
+                
+            # ایجاد ImportRecord خارج از atomic block
+            try:
+                if 'instance' in locals() and instance:
+                    if 'previous_state' in locals():
+                        # Update case
+                        ImportRecord.objects.create(
+                            session=session,
+                            content_type=session.content_type,
+                            object_id=instance.pk,
+                            row_number=row_number,
+                            action='update',
+                            previous_state=previous_state,
+                            current_state=field_values
+                        )
+                    else:
+                        # Create case
+                        ImportRecord.objects.create(
+                            session=session,
+                            content_type=session.content_type,
+                            object_id=instance.pk,
+                            row_number=row_number,
+                            action='create',
+                            previous_state=None,
+                            current_state=field_values
+                        )
+            except Exception as import_record_error:
+                # اگر ایجاد ImportRecord خطا داشت، فقط لاگ کن و ادامه بده
+                logger.warning(f"ردیف {row_number}: خطا در ایجاد ImportRecord: {str(import_record_error)}")
+                ImportExportLog.objects.create(
+                    session=session,
+                    log_level='warning',
+                    message=f"ردیف {row_number}: خطا در ایجاد رکورد بازگشت: {str(import_record_error)}",
+                    row_number=row_number
+                )
+    
         # Update session status
         session.status = 'completed'
         session.processed_count = create_count + update_count
@@ -1411,6 +1443,14 @@ def sanitize_value(value, field_obj):
         # For text fields, ensure we don't exceed max_length
         if isinstance(value, str) and hasattr(field_obj, 'max_length') and field_obj.max_length:
             value = value[:field_obj.max_length]
+        
+        # حل مشکل pandas: اگر مقدار float هست و فیلد CharField هست، آن را به string تبدیل کن
+        if isinstance(value, float):
+            # اگر مقدار float هست و قسمت اعشاری صفر است، آن را به int و سپس string تبدیل کن
+            if value.is_integer():
+                value = str(int(value))
+            else:
+                value = str(value)
             
         # Handle choices fields
         if hasattr(field_obj, 'choices') and field_obj.choices:
@@ -1444,6 +1484,22 @@ def sanitize_value(value, field_obj):
             else:
                 # Invalid boolean representation
                 return None
+    
+    # Handle jDateField (Jalali Date Field) - اضافه شده برای پشتیبانی از تاریخ‌های جلالی
+    elif hasattr(field_obj, '__class__') and 'jDateField' in str(field_obj.__class__):
+        if isinstance(value, str):
+            # پشتیبانی از فرمت‌های مختلف تاریخ جلالی
+            value = parse_jalali_date(value)
+    
+    # Handle regular DateField
+    elif isinstance(field_obj, models.DateField):
+        if isinstance(value, str):
+            value = parse_date_string(value)
+    
+    # Handle DateTimeField
+    elif isinstance(field_obj, models.DateTimeField):
+        if isinstance(value, str):
+            value = parse_datetime_string(value)
     
     return value 
 
@@ -1511,4 +1567,154 @@ def get_column_letter(column_number):
     while column_number > 0:
         column_number, remainder = divmod(column_number - 1, 26)
         result = chr(65 + remainder) + result
-    return result 
+    return result
+
+
+def parse_jalali_date(date_string):
+    """
+    پردازش تاریخ جلالی از فرمت‌های مختلف
+    پشتیبانی از فرمت‌های: YYYY-MM-DD, YYYY/MM/DD, YYYY.MM.DD
+    """
+    if not date_string or not isinstance(date_string, str):
+        return None
+    
+    # حذف فضاهای اضافی
+    date_string = date_string.strip()
+    
+    # فرمت‌های مختلف جداکننده
+    separators = ['-', '/', '.']
+    
+    for separator in separators:
+        if separator in date_string:
+            try:
+                parts = date_string.split(separator)
+                if len(parts) == 3:
+                    year, month, day = parts
+                    
+                    # تبدیل به عدد
+                    year = int(year.strip())
+                    month = int(month.strip())
+                    day = int(day.strip())
+                    
+                    # بررسی اعتبار تاریخ جلالی
+                    if validate_jalali_date(year, month, day):
+                        # ایجاد تاریخ جلالی
+                        from django_jalali.db import models as jmodels
+                        return jmodels.jdatetime.datetime(year, month, day).date()
+                    else:
+                        logger.warning(f"تاریخ جلالی نامعتبر: {date_string}")
+                        return None
+                        
+            except (ValueError, TypeError) as e:
+                logger.warning(f"خطا در پردازش تاریخ جلالی {date_string}: {str(e)}")
+                continue
+    
+    # اگر هیچ فرمت معتبری پیدا نشد
+    logger.warning(f"فرمت تاریخ جلالی نامعتبر: {date_string}")
+    return None
+
+
+def validate_jalali_date(year, month, day):
+    """
+    بررسی اعتبار تاریخ جلالی
+    """
+    # بررسی محدوده سال
+    if year < 1300 or year > 1500:  # محدوده منطقی برای سال جلالی
+        return False
+    
+    # بررسی محدوده ماه
+    if month < 1 or month > 12:
+        return False
+    
+    # بررسی محدوده روز
+    if day < 1 or day > 31:
+        return False
+    
+    # بررسی روزهای ماه‌های مختلف
+    if month <= 6 and day > 31:
+        return False
+    elif month <= 11 and day > 30:
+        return False
+    elif month == 12 and day > 29:  # اسفند
+        return False
+    
+    return True
+
+
+def parse_date_string(date_string):
+    """
+    پردازش تاریخ میلادی از فرمت‌های مختلف
+    پشتیبانی از فرمت‌های: YYYY-MM-DD, YYYY/MM/DD, YYYY.MM.DD
+    """
+    if not date_string or not isinstance(date_string, str):
+        return None
+    
+    # حذف فضاهای اضافی
+    date_string = date_string.strip()
+    
+    # فرمت‌های مختلف جداکننده
+    separators = ['-', '/', '.']
+    
+    for separator in separators:
+        if separator in date_string:
+            try:
+                parts = date_string.split(separator)
+                if len(parts) == 3:
+                    year, month, day = parts
+                    
+                    # تبدیل به عدد
+                    year = int(year.strip())
+                    month = int(month.strip())
+                    day = int(day.strip())
+                    
+                    # ایجاد تاریخ میلادی
+                    return date(year, month, day)
+                        
+            except (ValueError, TypeError) as e:
+                logger.warning(f"خطا در پردازش تاریخ میلادی {date_string}: {str(e)}")
+                continue
+    
+    # اگر هیچ فرمت معتبری پیدا نشد
+    logger.warning(f"فرمت تاریخ میلادی نامعتبر: {date_string}")
+    return None
+
+
+def parse_datetime_string(datetime_string):
+    """
+    پردازش تاریخ و زمان از فرمت‌های مختلف
+    پشتیبانی از فرمت‌های: YYYY-MM-DD HH:MM:SS, YYYY/MM/DD HH:MM:SS
+    """
+    if not datetime_string or not isinstance(datetime_string, str):
+        return None
+    
+    # حذف فضاهای اضافی
+    datetime_string = datetime_string.strip()
+    
+    # جدا کردن تاریخ و زمان
+    if ' ' in datetime_string:
+        date_part, time_part = datetime_string.split(' ', 1)
+        
+        # پردازش تاریخ
+        parsed_date = parse_date_string(date_part)
+        if not parsed_date:
+            return None
+        
+        # پردازش زمان
+        try:
+            time_parts = time_part.split(':')
+            if len(time_parts) >= 2:
+                hour = int(time_parts[0])
+                minute = int(time_parts[1])
+                second = int(time_parts[2]) if len(time_parts) > 2 else 0
+                
+                return datetime.combine(parsed_date, datetime.min.time().replace(hour=hour, minute=minute, second=second))
+        except (ValueError, TypeError) as e:
+            logger.warning(f"خطا در پردازش زمان {time_part}: {str(e)}")
+            return None
+    else:
+        # فقط تاریخ بدون زمان
+        parsed_date = parse_date_string(datetime_string)
+        if parsed_date:
+            return datetime.combine(parsed_date, datetime.min.time())
+    
+    return None 

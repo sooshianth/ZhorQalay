@@ -173,6 +173,7 @@ BARNAMEH_COLUMNS = [
     {'id': 'factor_sodoor_season', 'name': 'زمان صدور فاکتور فصل'},
     {'id': 'is_factored', 'name': 'فاکتور صادر شده'},
     {'id': 'is_created_by_excel', 'name': 'ایجاد توسط اکسل'},
+    {'id': 'factor_date', 'name': 'تاریخ ثبت فاکتور در سامانه مؤدیان'},
     {'id': 'is_sent_to_bki_at', 'name': 'تاریخ ارسال به بازارگاه'},
     {'id': 'is_created_by_excel_at', 'name': 'تاریخ ایجاد توسط اکسل'},
     {'id': 'barnameh_updated_at', 'name': 'تاریخ بروزرسانی'},
@@ -546,6 +547,23 @@ def apply_barnameh_filter(request):
                             filter_conditions &= Q(**{f'{column_id}__in': values})
                         else:
                             filter_conditions &= ~Q(**{f'{column_id}__in': values})
+                
+                elif column_id == 'factor_date':
+                    date_values = []
+                    for v in values:
+                        try:
+                            # پارس تاریخ شمسی
+                            if '/' in v:
+                                date_obj = datetime.strptime(v, "%Y/%m/%d").date()
+                                date_values.append(date_obj)
+                        except (ValueError, TypeError):
+                            continue
+                    
+                    if date_values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(factor_date__in=date_values)
+                        else:
+                            filter_conditions &= ~Q(factor_date__in=date_values)
 
                 elif column_id == 'product_country':
                     values = [v for v in values if v and v.strip()]
@@ -700,6 +718,7 @@ def apply_barnameh_filter(request):
                 'is_created_by_excel': barnameh.is_created_by_excel,
                 'created_at': barnameh.barnameh_created_at.strftime("%Y/%m/%d") if hasattr(barnameh, 'barnameh_created_at') and barnameh.barnameh_created_at else "",
                 'factor_sodoor_season': barnameh.factor_sodoor_season or "",
+                'factor_date': barnameh.factor_date.strftime("%Y/%m/%d") if barnameh.factor_date else "",
                 'buyer_postal_code': barnameh.get_buyer_postal_code() or "",
                 # Related data from purchase
                 'cargo': get_related_data(barnameh, 'purchase.cargo.cottage'),
@@ -1054,6 +1073,28 @@ def get_barnameh_column_values(request):
                         else:
                             filter_conditions &= ~Q(**{f'{filter_column_id}__in': values})
                 
+                elif filter_column_id == 'factor_date':
+                    # فیلتر تاریخی برای تاریخ ثبت فاکتور
+                    try:
+                        date_conditions = Q()
+                        for date_str in values:
+                            if date_str and date_str.strip():
+                                if '/' in date_str:
+                                    parts = date_str.split('/')
+                                    if len(parts) == 3:
+                                        year, month, day = parts
+                                        date_obj = datetime(int(year), int(month), int(day)).date()
+                                        date_conditions |= Q(factor_date=date_obj)
+                        
+                        if date_conditions:
+                            if filter_type == 'include':
+                                filter_conditions &= date_conditions
+                            else:
+                                filter_conditions &= ~date_conditions
+                                
+                    except (ValueError, TypeError):
+                        continue
+                
             
             # اعمال فیلترها
             if filter_conditions:
@@ -1202,6 +1243,10 @@ def get_barnameh_column_values(request):
                 .values_list('buyer_postal_code', flat=True).distinct()
             values = set(values_queryset)
             
+        elif column_id == 'factor_date':
+            values_queryset = base_queryset.exclude(factor_date__isnull=True)\
+                .values_list('factor_date', flat=True).distinct()
+            values = set([date.strftime("%Y/%m/%d") for date in values_queryset if date])
 
         elif column_id == 'product_country':
             values_queryset = base_queryset.exclude(purchase__cargo__country__isnull=True)\
@@ -1364,6 +1409,21 @@ def update_barnameh(barnameh_id, data):
         if 'shenase_takhsis_code' in data:
             barnameh.shenase_takhsis_code = data['shenase_takhsis_code']
         
+        if 'factor_date' in data:
+            try:
+                if isinstance(data['factor_date'], str) and data['factor_date'].strip():
+                    barnameh.factor_date = parse_jalali_date(data['factor_date'])
+                elif data['factor_date'] is None:
+                    barnameh.factor_date = None
+                else:
+                    barnameh.factor_date = data['factor_date']
+            except Exception as e:
+                logger.error(f"خطا در تبدیل تاریخ ثبت فاکتور: {str(e)}")
+                return {
+                    'success': False,
+                    'message': f'خطا در تبدیل تاریخ ثبت فاکتور: {str(e)}'
+                }
+        
         # Check if barnameh is complete
         if all([barnameh.number, barnameh.serial, barnameh.tonnage]):
             barnameh.status = 'SENT_TO_BKI'
@@ -1467,7 +1527,7 @@ def barnameh_list(request):
         'driver_phone', 'vehicle_plate', 'receiver_name', 'destination', 
         'barnameh_date', 'purchase_number', 'shenase_takhsis_code',
         'is_sent_to_bki', 'barnameh_created_at', 'factor_sodoor_season', 
-        'is_factored', 'is_created_by_excel', 'buyer_postal_code',
+        'is_factored', 'is_created_by_excel', 'factor_date', 'buyer_postal_code',
         'is_sent_to_bki_at', 'is_created_by_excel_at', 'barnameh_updated_at',
         'product_country',
     ]
@@ -1871,7 +1931,7 @@ def bulk_edit(request):
             
             # بررسی معتبر بودن فیلد
             valid_fields = ['tonnage', 'driver_name', 'driver_phone', 'vehicle_plate', 
-                           'receiver_name', 'destination', 'barnameh_date']
+                           'receiver_name', 'destination', 'barnameh_date', 'factor_date']
             
             if field_to_update not in valid_fields:
                 messages.error(request, 'فیلد انتخاب شده معتبر نیست.')
@@ -1937,6 +1997,38 @@ def bulk_edit(request):
                                     'error': error_message
                                 })
                                 logger.error(f"خطا در تبدیل تاریخ: {str(e)}")
+                                continue
+                        
+                        elif field_to_update == 'factor_date':
+                            try:
+                                # تبدیل تاریخ شمسی به فرمت مناسب برای factor_date
+                                parts = new_value.split('/')
+                                if len(parts) == 3:
+                                    year, month, day = int(parts[0]), int(parts[1]), int(parts[2])
+                                    processed_value = jdatetime.date(year, month, day)
+                                else:
+                                    error_count += 1
+                                    error_message = f'فرمت تاریخ ثبت فاکتور معتبر نیست: {new_value}. از فرمت 1404/02/04 استفاده کنید.'
+                                    error_messages.append(error_message)
+                                    error_details.append({
+                                        'id': barnameh.id,
+                                        'number': barnameh.number,
+                                        'serial': barnameh.serial,
+                                        'error': error_message
+                                    })
+                                    logger.error(f"فرمت تاریخ ثبت فاکتور معتبر نیست: {new_value}. از فرمت 1404/02/04 استفاده کنید.")
+                                    continue
+                            except Exception as e:
+                                error_count += 1
+                                error_message = f'خطا در تبدیل تاریخ ثبت فاکتور: {str(e)}'
+                                error_messages.append(error_message)
+                                error_details.append({
+                                    'id': barnameh.id,
+                                    'number': barnameh.number,
+                                    'serial': barnameh.serial,
+                                    'error': error_message
+                                })
+                                logger.error(f"خطا در تبدیل تاریخ ثبت فاکتور: {str(e)}")
                                 continue
                         
                         # بروزرسانی فیلد مورد نظر
@@ -2183,6 +2275,7 @@ def _export_barnameh_excel(barnameh_ids, selected_columns):
         'is_sent_to_bki': ('ارسال به بازارگاه', lambda b: "بله" if b.is_sent_to_bki else "خیر"),
         'created_at': ('تاریخ ایجاد', lambda b: b.barnameh_created_at.strftime("%Y/%m/%d") if b.barnameh_created_at else "-"),
         'factor_sodoor_season': ('زمان صدور فاکتور فصل', lambda b: b.factor_sodoor_season or "-"),
+        'factor_date': ('تاریخ ثبت فاکتور در سامانه مؤدیان', lambda b: b.factor_date.strftime("%Y/%m/%d") if b.factor_date else "-"),
     }
     
     # فقط ستون‌های انتخاب شده را اضافه می‌کنیم
@@ -2815,6 +2908,7 @@ def _export_barnameh_excel_full(queryset, selected_columns, from_date=None, to_d
         'factor_sodoor_season': ('زمان صدور فاکتور فصل', lambda b: b.factor_sodoor_season or "-"),
         'is_factored': ('فاکتور صادر شده', lambda b: "بله" if b.is_factored else "خیر"),
         'is_created_by_excel': ('ایجاد توسط اکسل', lambda b: "بله" if b.is_created_by_excel else "خیر"),
+        'factor_date': ('تاریخ ثبت فاکتور در سامانه مؤدیان', lambda b: b.factor_date.strftime("%Y/%m/%d") if b.factor_date else "-"),
         'is_sent_to_bki_at': ('تاریخ ارسال به بازارگاه', lambda b: b.is_sent_to_bki_at.strftime("%Y/%m/%d %H:%M") if b.is_sent_to_bki_at else "-"),
         'is_created_by_excel_at': ('تاریخ ایجاد توسط اکسل', lambda b: b.is_created_by_excel_at.strftime("%Y/%m/%d %H:%M") if hasattr(b, 'is_created_by_excel_at') and b.is_created_by_excel_at else "-"),
         'barnameh_updated_at': ('تاریخ بروزرسانی', lambda b: b.barnameh_updated_at.strftime("%Y/%m/%d %H:%M") if b.barnameh_updated_at else "-"),

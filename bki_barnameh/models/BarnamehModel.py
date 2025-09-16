@@ -86,6 +86,9 @@ class Barnameh(models.Model):
     departure_time = jmodels.jDateTimeField(verbose_name='زمان خروج از انبار', null=True, blank=True)
     delivery_time = jmodels.jDateTimeField(verbose_name='زمان تحویل', null=True, blank=True)
 
+    factor_date = jmodels.jDateField(verbose_name='تاریخ ثبت فاکتور در سامانه مؤدیان', null=True, blank=True)
+
+
     class Meta:
         verbose_name = 'بارنامه'
         verbose_name_plural = 'بارنامه ها'
@@ -431,8 +434,27 @@ class Barnameh(models.Model):
             elif hasattr(self.shenase_takhsis, 'purchase') and self.shenase_takhsis.purchase and self.shenase_takhsis.purchase.address:
                 self.destination = self.shenase_takhsis.purchase.address
 
-        if self.factor_sodoor_season is not None:
-            self.is_factored=True
+        # محاسبه فصل فاکتور بر اساس تاریخ ثبت فاکتور در سامانه مؤدیان
+        if self.factor_date:
+            # تبدیل تاریخ جلالی به فصل
+            year = self.factor_date.year
+            month = self.factor_date.month
+            
+            # تعیین فصل بر اساس ماه جلالی
+            if month in [1, 2, 3]:  # فروردین، اردیبهشت، خرداد
+                season = 1  # بهار
+            elif month in [4, 5, 6]:  # تیر، مرداد، شهریور
+                season = 2  # تابستان
+            elif month in [7, 8, 9]:  # مهر، آبان، آذر
+                season = 3  # پاییز
+            else:  # دی، بهمن، اسفند
+                season = 4  # زمستان
+            
+            # تولید کد فصل فاکتور (سال + فصل)
+            self.factor_sodoor_season = f"{year}{season}"
+            self.is_factored = True
+        elif self.factor_sodoor_season is not None:
+            self.is_factored = True
             
         # محاسبه مبالغ فقط اگر tonnage موجود باشد
         if self.tonnage:
