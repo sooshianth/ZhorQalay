@@ -116,27 +116,36 @@ class BarnamehServerFilter {
     }
     
     setupGlobalSearchHandler() {
-        // استفاده از input جستجوی سریع موجود در HTML
         const globalSearchInput = document.getElementById('globalBarnamehSearch');
         
         if (globalSearchInput) {
-            // جستجوی client-side ساده برای تست
             let searchTimeout;
-            globalSearchInput.addEventListener('input', (e) => {
-                clearTimeout(searchTimeout);
-                const searchValue = e.target.value.trim().toLowerCase();
-                
-                searchTimeout = setTimeout(() => {
-                    this.performClientSideSearch(searchValue);
-                }, 300);
-            });
             
+            const triggerServerSearch = () => {
+                const searchValue = globalSearchInput.value.trim();
+                
+                // اگر مقدار جستجو با مقدار قبلی تفاوتی نداشت، کاری نکن
+                if (searchValue === this.globalSearch) {
+                    return;
+                }
+                
+                this.globalSearch = searchValue; // مقدار جستجو را در پراپرتی کلاس ذخیره کن
+                this.currentPage = 1; // همیشه به صفحه اول برگرد
+                this.applyFilters(); // <<< تابع اصلی برای ارسال درخواست به سرور
+            };
+    
+            globalSearchInput.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                // با یک تأخیر کوتاه درخواست را ارسال می‌کنیم تا برای هر حرف تایپ شده، درخواست ارسال نشود
+                searchTimeout = setTimeout(triggerServerSearch, 400); 
+            });
+    
             // دکمه پاک کردن جستجو
             const clearButton = document.getElementById('clearBarnamehSearch');
             if (clearButton) {
                 clearButton.addEventListener('click', () => {
                     globalSearchInput.value = '';
-                    this.performClientSideSearch('');
+                    triggerServerSearch(); // جستجوی خالی را به سرور بفرست تا همه نتایج برگردد
                 });
             }
             
@@ -144,17 +153,17 @@ class BarnamehServerFilter {
             globalSearchInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    const searchValue = e.target.value.trim().toLowerCase();
-                    this.performClientSideSearch(searchValue);
+                    clearTimeout(searchTimeout); // تایمر را متوقف کن چون کاربر Enter زده
+                    triggerServerSearch();
                 }
             });
             
-            console.log('Global search handler setup completed with client-side search');
+            console.log('Global search handler setup completed with SERVER-SIDE search');
         } else {
             console.warn('Global search input not found');
         }
     }
-    
+        
     performClientSideSearch(searchTerm) {
         console.log('Performing client-side search for:', searchTerm);
         

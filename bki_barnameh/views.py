@@ -160,7 +160,7 @@ BARNAMEH_COLUMNS = [
     {'id': 'total_sales_amount', 'name': 'مبلغ کل فروش'},
     {'id': 'total_purchase_amount', 'name': 'مبلغ کل خرید'},
     {'id': 'buyer_name', 'name': 'نام خریدار'},
-    {'id': 'buyer_national_code', 'name': 'شماره ملی خریدار'},
+    {'id': 'buyer_national_id', 'name': 'شماره ملی خریدار'},
     {'id': 'buyer_postal_code', 'name': 'کدپستی خریدار'},
     {'id': 'buyer_address', 'name': 'آدرس خریدار'},
     {'id': 'demand_amount', 'name': 'میزان تقاضا'},
@@ -475,11 +475,11 @@ def apply_barnameh_filter(request):
                     except (ValueError, TypeError):
                         continue
                 
-                elif column_id in ['buyer_national_code', 'buyer_address', 'buyer_name']:
+                elif column_id in ['buyer_national_id', 'buyer_address', 'buyer_name']:
                     values = [v for v in values if v and v.strip()]
                     if values:
                         field_mapping = {
-                            'buyer_national_code': 'purchase__buyer_national_code',
+                            'buyer_national_id': 'purchase__buyer_national_id',
                             'buyer_address': 'purchase__address',
                             'buyer_name': 'purchase__buyer_name'
                         }
@@ -606,10 +606,10 @@ def apply_barnameh_filter(request):
                 Q(purchase__cargo__vared_konandeh__name__icontains=global_search) |
                 Q(purchase__cargo__product_type__icontains=global_search) |
                 Q(purchase__buyer_name__icontains=global_search) |
-                Q(purchase__buyer_national_code__icontains=global_search) |
+                Q(purchase__buyer_national_id__icontains=global_search) | # این از قبل درست بود
                 Q(purchase__address__icontains=global_search) |
                 Q(factor_sodoor_season__icontains=global_search) |
-                Q(buyer_postal_code__icontains=global_search) |
+                Q(purchase__buyer_postal_code__icontains=global_search) | # <<< اصلاح شد
                 Q(purchase__cargo__country__icontains=global_search)
             )
             base_queryset = base_queryset.filter(search_conditions)
@@ -644,7 +644,7 @@ def apply_barnameh_filter(request):
                 'total_sales_amount': 'total_sales_amount',
                 'total_purchase_amount': 'total_purchase_amount',
                 'buyer_name': 'purchase__buyer_name',
-                'buyer_national_code': 'purchase__buyer_national_code',
+                'buyer_national_id': 'purchase__buyer_national_id',
                 'buyer_address': 'purchase__address',
                 'demand_amount': 'purchase__total_weight',
                 'importer': 'purchase__cargo__vared_konandeh__name',
@@ -727,7 +727,7 @@ def apply_barnameh_filter(request):
                 'total_sales_amount': get_related_data(barnameh, 'total_sales_amount'),
                 'total_purchase_amount': get_related_data(barnameh, 'total_purchase_amount'),
                 'buyer_name': barnameh.get_buyer_name() or "-",
-                'buyer_national_code': barnameh.get_buyer_national_code() or "-",
+                'buyer_national_id': barnameh.get_buyer_national_code() or "-",
                 'buyer_address': get_related_data(barnameh, 'purchase.address'),
                 'demand_amount': get_related_data(barnameh, 'purchase.total_weight'),
                 'importer': get_related_data(barnameh, 'purchase.cargo.vared_konandeh.name'),
@@ -980,11 +980,11 @@ def get_barnameh_column_values(request):
                     except (ValueError, TypeError):
                         continue
                 
-                elif filter_column_id in ['buyer_national_code', 'buyer_address', 'buyer_name']:
+                elif filter_column_id in ['buyer_national_id', 'buyer_address', 'buyer_name']:
                     values = [v for v in values if v and v.strip()]
                     if values:
                         field_mapping = {
-                            'buyer_national_code': 'purchase__buyer_national_code',
+                            'buyer_national_id': 'purchase__buyer_national_id',
                             'buyer_address': 'purchase__address',
                             'buyer_name': 'purchase__buyer_name'
                         }
@@ -1188,10 +1188,10 @@ def get_barnameh_column_values(request):
                 .values_list('total_purchase_amount', flat=True).distinct()
             values = set([f"{int(value):,}" for value in values_queryset if value is not None and value > 0])
             
-        elif column_id == 'buyer_national_code':
-            values_queryset = base_queryset.exclude(purchase__buyer_national_code__isnull=True)\
-                .exclude(purchase__buyer_national_code='')\
-                .values_list('purchase__buyer_national_code', flat=True).distinct()
+        elif column_id == 'buyer_national_id':
+            values_queryset = base_queryset.exclude(purchase__buyer_national_id__isnull=True)\
+                .exclude(purchase__buyer_national_id='')\
+                .values_list('purchase__buyer_national_id', flat=True).distinct()
             values = set(values_queryset)
             
         elif column_id == 'buyer_address':
@@ -2264,7 +2264,7 @@ def _export_barnameh_excel(barnameh_ids, selected_columns):
         'total_sales_amount': ('مبلغ کل فروش', lambda b: f"{b.get_total_sales_amount():,.0f}" if b.get_total_sales_amount() else "-"),
         'total_purchase_amount': ('مبلغ کل خرید', lambda b: f"{b.get_total_purchase_amount():,.0f}" if b.get_total_purchase_amount() and b.get_total_purchase_amount() > 0 else "0"),
         'buyer_name': ('نام خریدار', lambda b: b.get_buyer_name() or "-"),
-        'buyer_national_code': ('شماره ملی خریدار', lambda b: b.get_buyer_national_code() or "-"),
+        'buyer_national_id': ('شماره ملی خریدار', lambda b: b.get_buyer_national_code() or "-"),
         'buyer_postal_code': ('کدپستی خریدار', lambda b: b.get_buyer_postal_code() or "-"),
         'buyer_address': ('آدرس خریدار', lambda b: b.get_buyer_address() or "-"),
         'demand_amount': ('میزان تقاضا', lambda b: f"{b.get_demand_amount()}" if b.get_demand_amount() else "-"),
@@ -2895,7 +2895,7 @@ def _export_barnameh_excel_full(queryset, selected_columns, from_date=None, to_d
         'total_sales_amount': ('مبلغ کل فروش', lambda b: f"{b.get_total_sales_amount():,.0f}" if b.get_total_sales_amount() else "-"),
         'total_purchase_amount': ('مبلغ کل خرید', lambda b: f"{b.get_total_purchase_amount():,.0f}" if b.get_total_purchase_amount() and b.get_total_purchase_amount() > 0 else "0"),
         'buyer_name': ('نام خریدار', lambda b: b.get_buyer_name() or "-"),
-        'buyer_national_code': ('شماره ملی خریدار', lambda b: b.get_buyer_national_code() or "-"),
+        'buyer_national_id': ('شماره ملی خریدار', lambda b: b.get_buyer_national_code() or "-"),
         'buyer_postal_code': ('کدپستی خریدار', lambda b: b.get_buyer_postal_code() or "-"),
         'buyer_address': ('آدرس خریدار', lambda b: b.get_buyer_address() or "-"),
         'demand_amount': ('میزان تقاضا', lambda b: f"{b.get_demand_amount()}" if b.get_demand_amount() else "-"),
