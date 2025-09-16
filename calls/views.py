@@ -13,6 +13,7 @@ import json
 import uuid
 import pandas as pd
 import requests
+from datetime import datetime
 from .models import AutomaticCall, CallLog, CallQueue
 from core.CustomerModel import Customer
 from core.CargoProductModel import CargoProduct
@@ -165,11 +166,24 @@ def create_automatic_call(request):
                 return redirect('calls:create_automatic_call')
             
             try:
+                # پارس کردن scheduled_time اگر string باشد
+                if isinstance(scheduled_time, str):
+                    scheduled_time_obj = parse_datetime(scheduled_time)
+                    if not scheduled_time_obj:
+                        # اگر parse نشد، سعی کن با فرمت‌های مختلف
+                        try:
+                            scheduled_time_obj = datetime.fromisoformat(scheduled_time.replace('Z', '+00:00'))
+                        except ValueError:
+                            # اگر باز هم نشد، از زمان فعلی استفاده کن
+                            scheduled_time_obj = timezone.now()
+                else:
+                    scheduled_time_obj = scheduled_time
+                
                 call = AutomaticCall.objects.create(
                     title=title,
                     description=description,
                     call_type=call_type,
-                    scheduled_time=scheduled_time,
+                    scheduled_time=scheduled_time_obj,
                     priority=int(priority),
                     message_template=message_template,
                     asterisk_api_url=asterisk_api_url,
@@ -337,11 +351,24 @@ def edit_automatic_call(request, call_id):
                 # ذخیره وضعیت قبلی برای mid-call editing
                 original_status = request.session.get('original_call_status', call.status)
                 
+                # پارس کردن scheduled_time اگر string باشد
+                if isinstance(scheduled_time, str):
+                    scheduled_time_obj = parse_datetime(scheduled_time)
+                    if not scheduled_time_obj:
+                        # اگر parse نشد، سعی کن با فرمت‌های مختلف
+                        try:
+                            scheduled_time_obj = datetime.fromisoformat(scheduled_time.replace('Z', '+00:00'))
+                        except ValueError:
+                            # اگر باز هم نشد، از زمان فعلی استفاده کن
+                            scheduled_time_obj = timezone.now()
+                else:
+                    scheduled_time_obj = scheduled_time
+                
                 # به‌روزرسانی فیلدها
                 call.title = title
                 call.description = description
                 call.call_type = call_type
-                call.scheduled_time = scheduled_time
+                call.scheduled_time = scheduled_time_obj
                 call.priority = int(priority)
                 call.message_template = message_template
                 call.asterisk_api_url = asterisk_api_url
@@ -360,20 +387,26 @@ def edit_automatic_call(request, call_id):
                         if call.asterisk_api_key:
                             headers['X-API-KEY'] = call.asterisk_api_key
                         
+                        # دریافت شماره‌های صف برای ارسال به API
+                        queue_numbers = CallQueue.objects.filter(session_id=session_id).values_list('phone_number', flat=True)
+                        numbers_list = list(queue_numbers)
+                        
                         # آماده‌سازی داده‌ها برای Asterisk API
                         api_data = {
+                            'numbers': numbers_list,  # Required field for edit-call API
+                            'session_id': call.queue_session_id,
                             'call_id': call.id,
                             'title': call.title,
                             'description': call.description,
                             'call_type': call.call_type,
-                            'scheduled_time': call.scheduled_time.isoformat(),
+                            'scheduled_time': call.scheduled_time.strftime('%Y-%m-%dT%H:%M:%S'),
                             'priority': call.priority,
                             'message_template': call.message_template,
-                            'calls_per_minute': call.calls_per_minute
+                            'cpm': call.calls_per_minute  # Use 'cpm' to match Flask API
                         }
                         
                         # اضافه کردن محصولات برای تماس‌های بازاریابی
-                        if call.call_type == 'marketing':
+                        if call.call_type == 'marketing' and selected_products:
                             api_products = []
                             for product_data in selected_products:
                                 try:
