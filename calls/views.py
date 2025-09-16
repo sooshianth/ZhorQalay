@@ -264,12 +264,14 @@ def automatic_call_detail(request, call_id):
 @login_required
 def edit_automatic_call(request, call_id):
     """
-    ویرایش تماس اتوماتیک - فقط برای تماس‌های در انتظار
+    ویرایش تماس اتوماتیک - برای تماس‌های در انتظار یا mid-call editing
     """
     call = get_object_or_404(AutomaticCall, id=call_id)
     
-    # بررسی اینکه تماس در وضعیت pending باشد
-    if call.status != 'pending':
+    # بررسی مجوز ویرایش
+    is_mid_call_edit = request.session.get('edit_mid_call', False)
+    
+    if not is_mid_call_edit and call.status != 'pending':
         messages.error(request, 'فقط تماس‌های در انتظار قابل ویرایش هستند.')
         return redirect('calls:automatic_call_detail', call_id=call.id)
     
@@ -332,6 +334,9 @@ def edit_automatic_call(request, call_id):
                 return redirect('calls:edit_automatic_call', call_id=call.id)
             
             try:
+                # ذخیره وضعیت قبلی برای mid-call editing
+                original_status = request.session.get('original_call_status', call.status)
+                
                 # به‌روزرسانی فیلدها
                 call.title = title
                 call.description = description
@@ -343,20 +348,88 @@ def edit_automatic_call(request, call_id):
                 call.asterisk_api_key = asterisk_api_key
                 call.calls_per_minute = int(calls_per_minute)
                 call.selected_products = selected_products
+                
+                # برای mid-call editing، وضعیت را تغییر نده و از API Asterisk استفاده کن
+                if is_mid_call_edit:
+                    # حفظ وضعیت اصلی
+                    call.status = original_status
+                    
+                    # ارسال به‌روزرسانی به API Asterisk
+                    try:
+                        headers = {'Content-Type': 'application/json'}
+                        if call.asterisk_api_key:
+                            headers['X-API-KEY'] = call.asterisk_api_key
+                        
+                        # آماده‌سازی داده‌ها برای Asterisk API
+                        api_data = {
+                            'call_id': call.id,
+                            'title': call.title,
+                            'description': call.description,
+                            'call_type': call.call_type,
+                            'scheduled_time': call.scheduled_time.isoformat(),
+                            'priority': call.priority,
+                            'message_template': call.message_template,
+                            'calls_per_minute': call.calls_per_minute
+                        }
+                        
+                        # اضافه کردن محصولات برای تماس‌های بازاریابی
+                        if call.call_type == 'marketing':
+                            api_products = []
+                            for product_data in selected_products:
+                                try:
+                                    product = CargoProduct.objects.get(id=product_data['id'])
+                                    api_product = {
+                                        'name': product.product_type,
+                                        'price': product_data.get('price', product.customer_price),
+                                        'cottage': product_data.get('cottage', product.cottage),
+                                        'country': product.country
+                                    }
+                                    api_products.append(api_product)
+                                except CargoProduct.DoesNotExist:
+                                    continue
+                            api_data['products'] = api_products
+                        
+                        # ارسال به‌روزرسانی به Asterisk
+                        edit_api_url = call.asterisk_api_url.replace('/api/start-dialer', '/api/edit-call')
+                        response = requests.post(
+                            edit_api_url,
+                            headers=headers,
+                            json=api_data,
+                            timeout=30
+                        )
+                        
+                        if response.status_code != 200:
+                            messages.warning(request, f'تماس به‌روزرسانی شد اما خطا در ارسال به Asterisk: {response.status_code}')
+                            
+                    except requests.RequestException as e:
+                        messages.warning(request, f'تماس به‌روزرسانی شد اما خطا در ارتباط با Asterisk: {str(e)}')
+                
                 call.save()
                 
                 # ثبت لاگ
+                log_message = f'تماس اتوماتیک "{title}" با {queue_count} شماره به‌روزرسانی شد.'
+                if is_mid_call_edit:
+                    log_message += ' (ویرایش در حین تماس)'
+                
                 CallLog.objects.create(
                     call=call,
-                    event_type='updated',
-                    message=f'تماس اتوماتیک "{title}" با {queue_count} شماره به‌روزرسانی شد.'
+                    event_type='updated' if not is_mid_call_edit else 'updated_mid_call',
+                    message=log_message
                 )
                 
-                # پاک کردن session
+                # پاک کردن session های مربوط به mid-call editing
                 if 'call_queue_session_id' in request.session:
                     del request.session['call_queue_session_id']
+                if 'edit_mid_call' in request.session:
+                    del request.session['edit_mid_call']
+                if 'original_call_status' in request.session:
+                    del request.session['original_call_status']
                 
-                messages.success(request, f'تماس اتوماتیک با {queue_count} شماره با موفقیت به‌روزرسانی شد.')
+                success_message = f'تماس اتوماتیک با {queue_count} شماره با موفقیت به‌روزرسانی شد.'
+                if is_mid_call_edit:
+                    success_message += ' اکنون می‌توانید تماس را ادامه دهید.'
+                
+                messages.success(request, success_message)
                 return redirect('calls:automatic_call_detail', call_id=call.id)
                 
             except Exception as e:
@@ -383,6 +456,9 @@ def edit_automatic_call(request, call_id):
     # دریافت محصولات فعال برای نوع تماس بازاریابی
     cargo_products = CargoProduct.get_active_products()
     
+    # آماده‌سازی داده‌های محصولات انتخاب شده برای JavaScript
+    selected_products_json = json.dumps(call.selected_products) if call.selected_products else '[]'
+    
     context = {
         'call': call,
         'queue_numbers': queue_numbers[:50],  # فقط 50 تای اول برای نمایش
@@ -391,6 +467,8 @@ def edit_automatic_call(request, call_id):
         'cargo_products': cargo_products,
         'session_id': session_id,
         'is_edit_mode': True,
+        'is_mid_call_edit': is_mid_call_edit,
+        'selected_products_json': selected_products_json,
     }
     return render(request, 'calls/edit_automatic_call.html', context)
 
@@ -1400,3 +1478,63 @@ def cleanup_orphaned_queue_sessions():
         print(f"Cleaned up {deleted_count} orphaned queue items")
     
     return deleted_count
+
+@login_required
+@require_POST
+def edit_mid_call(request, call_id):
+    """
+    ویرایش تماس در حین انجام - ابتدا تماس را متوقف می‌کند، سپس به صفحه ویرایش می‌رود
+    """
+    call = get_object_or_404(AutomaticCall, id=call_id)
+    
+    # بررسی وضعیت تماس
+    if call.status not in ['in_progress', 'paused']:
+        messages.error(request, 'فقط تماس‌های در حال انجام یا متوقف شده قابل ویرایش هستند.')
+        return redirect('calls:automatic_call_detail', call_id=call.id)
+    
+    # اگر تماس در حال انجام است، ابتدا آن را متوقف کنیم
+    if call.status == 'in_progress':
+        try:
+            # ارسال درخواست pause به API Asterisk
+            headers = {'Content-Type': 'application/json'}
+            if call.asterisk_api_key:
+                headers['X-API-KEY'] = call.asterisk_api_key
+                
+            data = {
+                'call_id': call.id,
+                'title': call.title
+            }
+            
+            response = requests.post(
+                f"{call.asterisk_api_url.replace('/api/start-dialer', '/api/pause-call')}",
+                headers=headers,
+                json=data,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                # به‌روزرسانی وضعیت به paused
+                call.status = 'paused'
+                call.save()
+                
+                # ثبت لاگ
+                CallLog.objects.create(
+                    call=call,
+                    event_type='paused_for_edit',
+                    message=f'تماس "{call.title}" برای ویرایش موقتاً متوقف شد.'
+                )
+                
+                messages.success(request, 'تماس موقتاً متوقف شد. اکنون می‌توانید آن را ویرایش کنید.')
+            else:
+                # اگر pause نشد، مستقیماً به ویرایش برو (ممکن است Asterisk پاسخ ندهد)
+                messages.warning(request, 'خطا در متوقف کردن تماس، اما می‌توانید ویرایش کنید.')
+                
+        except requests.RequestException as e:
+            # اگر خطا در ارتباط با Asterisk، مستقیماً به ویرایش برو
+            messages.warning(request, 'خطا در ارتباط با سرور، اما می‌توانید ویرایش کنید.')
+    
+    # تنظیم فلگ برای نشان دادن اینکه این یک edit mid-call است
+    request.session['edit_mid_call'] = True
+    request.session['original_call_status'] = call.status
+    
+    return redirect('calls:edit_automatic_call', call_id=call.id)

@@ -13,6 +13,7 @@ urlpatterns = [
     path('automatic/create/', views.create_automatic_call, name='create_automatic_call'),
     path('automatic/<int:call_id>/', views.automatic_call_detail, name='automatic_call_detail'),
     path('automatic/<int:call_id>/edit/', views.edit_automatic_call, name='edit_automatic_call'),
+    path('automatic/<int:call_id>/edit-mid-call/', views.edit_mid_call, name='edit_mid_call'),
     path('automatic/<int:call_id>/delete/', views.delete_automatic_call, name='delete_automatic_call'),
     path('automatic/<int:call_id>/start-asterisk/', views.start_asterisk_call, name='start_asterisk_call'),
     

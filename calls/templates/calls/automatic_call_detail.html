@@ -404,6 +404,16 @@
                     </span>
                     {% endif %}
                 {% elif call.status == 'in_progress' %}
+                    <form method="post" action="{% url 'calls:edit_mid_call' call.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn" style="background-color: #8B5CF6; color: white; border: 1px solid #8B5CF6;" 
+                                onclick="return confirm('آیا می‌خواهید تماس را برای ویرایش متوقف کنید؟')"
+                                onmouseover="this.style.backgroundColor='#7C3AED'"
+                                onmouseout="this.style.backgroundColor='#8B5CF6'">
+                            <i class="fas fa-edit"></i>
+                            ویرایش تماس
+                        </button>
+                    </form>
                     <button type="button" class="btn btn-warning" onclick="pauseCall({{ call.id }})">
                         <i class="fas fa-pause"></i>
                         متوقف موقت
@@ -413,6 +423,15 @@
                         لغو تماس
                     </button>
                 {% elif call.status == 'paused' %}
+                    <form method="post" action="{% url 'calls:edit_mid_call' call.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn" style="background-color: #8B5CF6; color: white; border: 1px solid #8B5CF6;"
+                                onmouseover="this.style.backgroundColor='#7C3AED'"
+                                onmouseout="this.style.backgroundColor='#8B5CF6'">
+                            <i class="fas fa-edit"></i>
+                            ویرایش تماس
+                        </button>
+                    </form>
                     <button type="button" class="btn btn-primary" onclick="resumeCall({{ call.id }})">
                         <i class="fas fa-play"></i>
                         ادامه تماس

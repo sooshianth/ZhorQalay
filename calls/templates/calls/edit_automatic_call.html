@@ -486,13 +486,32 @@
                 <h1>
                     <i class="fas fa-edit"></i>
                     ویرایش تماس اتوماتیک
+                    {% if is_mid_call_edit %}
+                        <span style="background-color: #8B5CF6; font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px; margin-right: 0.5rem;">
+                            ویرایش در حین تماس
+                        </span>
+                    {% endif %}
                 </h1>
             </div>
+            
+            {% if is_mid_call_edit %}
+            <div style="background-color: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; padding: 1rem; margin: 1rem 2rem; color: #92400E;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-exclamation-triangle" style="color: #F59E0B;"></i>
+                    <strong>هشدار:</strong>
+                </div>
+                <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem;">
+                    شما در حال ویرایش یک تماس در حین انجام هستید. پس از ذخیره تغییرات، بازگشته و تماس را ادامه دهید.
+                    تغییراتی که انجام می‌دهید به صورت Real-time به سرور Asterisk ارسال خواهد شد.
+                </p>
+            </div>
+            {% endif %}
             
             <div class="form-body">
                 <form method="post" id="editCallForm">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="update_call">
+                    <input type="hidden" name="products_data" id="productsData" value="">
                     
                     <div class="form-group">
                         <label class="form-label" for="title">
@@ -557,9 +576,6 @@
                             <h4 style="margin: 1.5rem 0 1rem 0; color: var(--primary-color);">محصولات انتخاب شده</h4>
                             <div class="selected-products-list" id="selectedProductsList"></div>
                         </div>
-
-                        <!-- Hidden input to store products data -->
-                        <input type="hidden" id="productsData" name="products_data" value="">
                     </div>
 
                     <div class="form-group">
@@ -1212,9 +1228,46 @@ document.addEventListener('DOMContentLoaded', function() {
     // Product Selection Functions
     let selectedProducts = [];
 
+    // Create mapping dictionaries for product types and countries
+    const productTypeMap = {
+        'ذرت': 'corn',
+        'جو': 'barley',
+        'کنجاله سویا': 'soy_meal',
+        'کنجاله آفتابگردان': 'sunflower_meal',
+        'کنجاله کلزا': 'rapeseed_meal',
+        'کنجاله سویا استحصالی از دانه داخلی': 'local_extracted_soy',
+        'کنجاله سویا استحصالی از دانه خارجی': 'foreign_extracted_soy',
+        'دان سویا': 'soy_grain',
+        'دان پنبه': 'cotton_seed',
+        'یونجه': 'alfalfa',
+        'سایر': 'other'
+    };
+
+    const countryMap = {
+        'آرژانتین': 'argentina',
+        'برزیل': 'brazil',
+        'اوکراین': 'ukraine',
+        'هند': 'india',
+        'روسیه': 'russia',
+        'قزاقستان': 'kazakhstan',
+        'ترکیه': 'turkey',
+        'کانادا': 'canada',
+        'استرالیا': 'australia',
+        'صربستان': 'serbia',
+        'رومانی': 'romania',
+        'ایران': 'iran',
+        'سایر': 'other',
+        'نامشخص': 'unknown'
+    };
+
+    // Reverse mappings for display
+    const productTypeReverseMap = Object.fromEntries(Object.entries(productTypeMap).map(([k, v]) => [v, k]));
+    const countryReverseMap = Object.fromEntries(Object.entries(countryMap).map(([k, v]) => [v, k]));
+
     // Initialize selected products from existing call data
     {% if call.call_type == 'marketing' and call.selected_products %}
-    selectedProducts = {{ call.selected_products|safe }};
+    selectedProducts = {{ selected_products_json|safe }};
+    console.log('Loaded existing selected products:', selectedProducts);
     {% endif %}
 
     function toggleProductSelection() {
@@ -1273,10 +1326,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Add product to selected list - same format as create function
                 const product = {
                     id: productId,
-                    name: productName,  // For display purposes
+                    name: productName,  // For display purposes (Persian)
                     cottage: cottage,
-                    country: country,   // For display purposes
-                    price: parseFloat(price) || 0
+                    country: country,   // For display purposes (Persian)
+                    price: parseFloat(price) || 0,
+                    // Store the English keys for backend processing
+                    product_type_key: productCard.dataset.productTypeKey,
+                    country_key: productCard.dataset.countryKey
                 };
                 selectedProducts.push(product);
                 productCard.classList.add('selected');
@@ -1308,11 +1364,37 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedProductsList.innerHTML = '';
         
         selectedProducts.forEach((product, index) => {
+            // Get display name and country from the product card in the DOM
+            let displayName = product.name || 'محصول نامشخص';
+            let displayCountry = product.country || '';
+            
+            // Try to get the actual product info from the DOM if name is missing
+            if (!product.name || product.name === 'undefined') {
+                const productCard = document.querySelector(`[data-product-id="${product.id}"]`);
+                if (productCard) {
+                    displayName = productCard.dataset.productName || 'محصول نامشخص';
+                    displayCountry = productCard.dataset.country || '';
+                }
+            }
+            
+            // For products loaded from database, we might need to get English keys
+            let productTypeKey = product.product_type_key;
+            let countryKey = product.country_key;
+            
+            // If we don't have the keys, try to get them from the DOM or mapping
+            if (!productTypeKey || !countryKey) {
+                const productCard = document.querySelector(`[data-product-id="${product.id}"]`);
+                if (productCard) {
+                    productTypeKey = productCard.dataset.productTypeKey;
+                    countryKey = productCard.dataset.countryKey;
+                }
+            }
+            
             const productItem = document.createElement('div');
             productItem.className = 'selected-product-item';
             productItem.innerHTML = `
                 <div class="selected-product-header">
-                    <span class="selected-product-name">${product.name}</span>
+                    <span class="selected-product-name">${displayName}</span>
                     <button type="button" class="remove-product-btn" onclick="removeProduct('${product.id}')">
                         <i class="fas fa-times"></i>
                     </button>
@@ -1320,15 +1402,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="product-edit-fields">
                     <div class="product-field">
                         <label>قیمت (ریال)</label>
-                        <input type="number" class="product-price-input" data-product-id="${product.id}" value="${product.price}" min="0">
+                        <input type="number" class="product-price-input" data-product-id="${product.id}" value="${product.price || 0}" min="0">
                     </div>
                     <div class="product-field">
                         <label>کوتاژ</label>
-                        <input type="text" class="product-cottage-input" data-product-id="${product.id}" value="${product.cottage}">
+                        <input type="text" class="product-cottage-input" data-product-id="${product.id}" value="${product.cottage || ''}">
                     </div>
-                    <div class="product-field">
-                        <label>کشور</label>
-                        <input type="text" class="product-country-input" data-product-id="${product.id}" value="${product.country}">
+                    <div class="product-field" style="display: none;">
+                        <label>کشور (نمایشی)</label>
+                        <input type="text" class="product-country-display" data-product-id="${product.id}" value="${displayCountry}" readonly style="background: #f3f4f6;">
                     </div>
                 </div>
             `;
